@@ -1,0 +1,234 @@
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:chess_app/constants.dart';
+import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/screens/home_screen.dart';
+
+class LoginRegisterScreen extends StatefulWidget {
+  const LoginRegisterScreen({super.key});
+
+  @override
+  State<LoginRegisterScreen> createState() => _LoginRegisterScreenState();
+}
+
+class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
+  
+  bool _isLogin = true;
+  String _role = 'ucenik'; // Default role is student ('ucenik')
+  bool _isLoading = false;
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      if (_isLogin) {
+        // Login API Call
+        final response = await http.post(
+          Uri.parse('$backendUrl/login'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'email': _emailController.text.trim(),
+            'password': _passwordController.text,
+          }),
+        );
+
+        final data = jsonDecode(response.body);
+        if (response.statusCode == 200) {
+          final session = UserSession.fromJson(data['user'], data['token']);
+          _navigateToHome(session);
+        } else {
+          _showError(data['error'] ?? 'Login failed');
+        }
+      } else {
+        // Register API Call
+        final response = await http.post(
+          Uri.parse('$backendUrl/register'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'email': _emailController.text.trim(),
+            'password': _passwordController.text,
+            'name': _nameController.text.trim(),
+            'role': _role,
+          }),
+        );
+
+        final data = jsonDecode(response.body);
+        if (response.statusCode == 201) {
+          final session = UserSession.fromJson(data['user'], data['token']);
+          _navigateToHome(session);
+        } else {
+          _showError(data['error'] ?? 'Registration failed');
+        }
+      }
+    } catch (e) {
+      _showError('Network error. Check if backend is running.');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _navigateToHome(UserSession session) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => HomeScreen(session: session)),
+    );
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.emoji_events,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _isLogin ? 'Chess Master Login' : 'Register Account',
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 24),
+                    if (!_isLogin) ...[
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Name',
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) =>
+                            value == null || value.isEmpty ? 'Please enter name' : null,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.email),
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) =>
+                          value == null || !value.contains('@') ? 'Please enter a valid email' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordController,
+                      decoration: const InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: Icon(Icons.lock),
+                        border: OutlineInputBorder(),
+                      ),
+                      obscureText: true,
+                      validator: (value) =>
+                          value == null || value.length < 6 ? 'Password must be at least 6 characters' : null,
+                    ),
+                    if (!_isLogin) ...[
+                      const SizedBox(height: 20),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Select your role:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('Student (Učenik)'),
+                              selected: _role == 'ucenik',
+                              onSelected: (selected) {
+                                if (selected) setState(() => _role = 'ucenik');
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('Instructor (Trener)'),
+                              selected: _role == 'trener',
+                              onSelected: (selected) {
+                                if (selected) setState(() => _role = 'trener');
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    _isLoading
+                        ? const CircularProgressIndicator()
+                        : SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: _submit,
+                              style: ElevatedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: Text(_isLogin ? 'Login' : 'Register'),
+                            ),
+                          ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _isLogin = !_isLogin;
+                        });
+                      },
+                      child: Text(_isLogin
+                          ? "Don't have an account? Register"
+                          : "Already have an account? Login"),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
