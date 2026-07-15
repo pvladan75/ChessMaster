@@ -15,13 +15,16 @@ class StockfishService {
     _isActive = true;
   }
 
-  Future<void> analyzePosition(String fen, {int depth = 10}) async {
+  Future<void> analyzePosition(String fen, {int depth = 10, bool isInfinite = false}) async {
     if (!_isActive) return;
 
     final reqId = ++_requestId;
+    
+    // The online API supports depth 5-15.
+    final targetDepth = isInfinite ? 15 : (depth > 15 ? 15 : depth);
 
     try {
-      final url = 'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$depth';
+      final url = 'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$targetDepth';
       final response = await http.get(Uri.parse(url));
 
       if (reqId != _requestId) return; // Ignore outdated responses

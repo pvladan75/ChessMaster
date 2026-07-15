@@ -35,7 +35,8 @@ async function initDB() {
         creator_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         current_fen VARCHAR(255) DEFAULT 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'archived')),
-        board_control VARCHAR(50) DEFAULT 'trainer_only' CHECK (board_control IN ('trainer_only', 'student_white', 'student_black', 'student_both'))
+        board_control VARCHAR(50) DEFAULT 'trainer_only' CHECK (board_control IN ('trainer_only', 'student_white', 'student_black', 'student_both')),
+        allow_student_engine BOOLEAN DEFAULT FALSE
       );
     `);
     
@@ -45,7 +46,11 @@ async function initDB() {
       ADD COLUMN IF NOT EXISTS board_control VARCHAR(50) DEFAULT 'trainer_only' 
       CHECK (board_control IN ('trainer_only', 'student_white', 'student_black', 'student_both'));
     `);
-    console.log('Verified database table: rooms (with board_control)');
+    await client.query(`
+      ALTER TABLE rooms 
+      ADD COLUMN IF NOT EXISTS allow_student_engine BOOLEAN DEFAULT FALSE;
+    `);
+    console.log('Verified database table: rooms (with board_control & allow_student_engine)');
 
     // Create saved_lessons table
     await client.query(`

@@ -302,11 +302,12 @@ io.on('connection', (socket) => {
 
     try {
       // Fetch current room state (FEN & boardControl) from DB
-      const result = await pool.query('SELECT current_fen, board_control FROM rooms WHERE room_code = $1', [roomId]);
+      const result = await pool.query('SELECT current_fen, board_control, allow_student_engine FROM rooms WHERE room_code = $1', [roomId]);
       if (result.rows.length > 0) {
         socket.emit('gameState', {
           currentFen: result.rows[0].current_fen,
-          boardControl: result.rows[0].board_control
+          boardControl: result.rows[0].board_control,
+          allowStudentEngine: result.rows[0].allow_student_engine
         });
       }
     } catch (err) {
@@ -325,6 +326,17 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Trainer changes student engine permissions
+  socket.on('change_engine_permission', async ({ roomId, allowStudentEngine }) => {
+    console.log(`Updating engine permission for room ${roomId} to ${allowStudentEngine}`);
+    try {
+      await pool.query('UPDATE rooms SET allow_student_engine = $1 WHERE room_code = $2', [allowStudentEngine, roomId]);
+      io.to(roomId).emit('engine_permission_updated', { allowStudentEngine });
+    } catch (err) {
+      console.error('Socket change_engine_permission DB error:', err);
+    }
+  });
+
   // Trainer forces board flip for student(s)
   socket.on('force_flip_board', ({ roomId, orientation }) => {
     console.log(`Forcing board flip for students in room ${roomId} to ${orientation}`);
@@ -333,7 +345,7 @@ io.on('connection', (socket) => {
   });
 
   // When a player makes a move
-  socket.on('move', async ({ roomId, move, currentFen, role, currentMoveIndex }) => {
+  socket.on('move', async ({ roomId, move, currentFen, role, currentMoveIndex, movePath }) => {
     console.log(`Move request in room ${roomId} by role ${role}:`, move);
     try {
       // Fetch room state
@@ -377,7 +389,7 @@ io.on('connection', (socket) => {
 
       // If allowed (or Trainer), update DB and broadcast to room
       await pool.query('UPDATE rooms SET current_fen = $1 WHERE room_code = $2', [currentFen, roomId]);
-      socket.to(roomId).emit('moveMade', { move, currentFen, currentMoveIndex });
+      socket.to(roomId).emit('moveMade', { move, currentFen, currentMoveIndex, movePath });
     } catch (err) {
       console.error('Socket move DB error:', err);
     }

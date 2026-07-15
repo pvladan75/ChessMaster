@@ -57,12 +57,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
   
   PlayerColor boardOrientation = PlayerColor.white;
   String boardControl = 'trainer_only';
+  bool allowStudentEngine = false;
 
   final StockfishService _stockfishService = StockfishService();
   bool isEngineEnabled = false;
   String currentEngineEval = "0.00";
   String bestEngineMove = "-";
   Map<int, AnalysisLine> engineLines = {};
+  String engineThinkingMode = 'fast'; // 'fast', 'deep', 'infinite'
 
   bool isDrawingMode = false;
   String? drawingStartSquare;
@@ -138,7 +140,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
         currentEngineEval = "0.00";
         bestEngineMove = "-";
       });
-      _stockfishService.analyzePosition(controller.getFen());
+      final depth = engineThinkingMode == 'fast' ? 10 : 16;
+      final isInfinite = engineThinkingMode == 'infinite';
+      _stockfishService.analyzePosition(
+        controller.getFen(),
+        depth: depth,
+        isInfinite: isInfinite,
+      );
     }
   }
 
@@ -397,6 +405,44 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
+  Widget _buildThinkingModeButton(String mode, String label, {bool isLocalOnly = false}) {
+    final isSelected = engineThinkingMode == mode;
+    final isOnline = _stockfishService.isOnline;
+    final isDisabled = isLocalOnly && isOnline;
+
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2.0),
+        child: ElevatedButton(
+          onPressed: isDisabled
+              ? null
+              : () {
+                  setState(() {
+                    engineThinkingMode = mode;
+                  });
+                  _triggerEngineAnalysis();
+                },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isSelected
+                ? Colors.teal
+                : Colors.blueGrey.withOpacity(isSelected ? 0.8 : 0.2),
+            foregroundColor: isDisabled ? Colors.grey : Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          ),
+          child: Tooltip(
+            message: isDisabled ? 'Nije podržano na webu/desktopu' : label,
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 10, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   List<String> getPathToNode(MoveNode node) {
     final List<String> path = [];
     MoveNode? curr = node;
@@ -463,6 +509,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
           if (data['boardControl'] != null) {
             boardControl = data['boardControl'];
           }
+          if (data['allowStudentEngine'] != null) {
+            allowStudentEngine = data['allowStudentEngine'];
+          }
         });
       }
     });
@@ -478,6 +527,23 @@ class _ChessGamePageState extends State<ChessGamePage> {
             duration: const Duration(seconds: 2),
           ),
         );
+      }
+    });
+
+    socket.on('engine_permission_updated', (data) {
+      if (data != null && data['allowStudentEngine'] != null) {
+        setState(() {
+          allowStudentEngine = data['allowStudentEngine'];
+          // If permission is revoked, force disable and turn off engine for ucenik
+          if (!allowStudentEngine && widget.userSession.role == 'ucenik') {
+            isEngineEnabled = false;
+            _stockfishService.dispose();
+            currentEngineEval = "0.00";
+            bestEngineMove = "-";
+            engineLines.clear();
+            _showError('Trener je onemogućio kompjutersku analizu za učenike.');
+          }
+        });
       }
     });
 
@@ -1559,6 +1625,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     // Right Sidebar Content (Controls & History)
     Widget buildRightSidebar() {
+      final isTrener = widget.userSession.role == 'trener';
+      final isAllowedToUseEngine = isTrener || allowStudentEngine;
+
       return Container(
         width: isWide ? 300 : double.infinity,
         color: Theme.of(context).cardColor,
@@ -1588,6 +1657,22 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     DropdownMenuItem(value: 'student_both', child: Text('Slobodna analiza')),
                   ],
                   onChanged: _changeStudentPermissions,
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  title: const Text('Dozvoli učeniku Stockfish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                  value: allowStudentEngine,
+                  activeColor: Colors.tealAccent,
+                  contentPadding: EdgeInsets.zero,
+                  onChanged: (val) {
+                    setState(() {
+                      allowStudentEngine = val;
+                    });
+                    socket.emit('change_engine_permission', {
+                      'roomId': widget.roomCode,
+                      'allowStudentEngine': val,
+                    });
+                  },
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -1755,8 +1840,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     style: TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                   Text(
-                                    _stockfishService.isOnline ? 'Online (Cloud)' : 'Lokalni Engine',
-                                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                    !isAllowedToUseEngine
+                                        ? 'Zaključano od strane trenera'
+                                        : (_stockfishService.isOnline ? 'Online (Cloud)' : 'Lokalni Engine'),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: !isAllowedToUseEngine ? Colors.redAccent : Colors.grey,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1766,19 +1856,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             value: isEngineEnabled,
                             activeThumbColor: Colors.tealAccent,
                             activeTrackColor: Colors.tealAccent.withOpacity(0.5),
-                            onChanged: (val) {
-                              setState(() {
-                                isEngineEnabled = val;
-                                if (isEngineEnabled) {
-                                  _stockfishService.initEngine();
-                                  _triggerEngineAnalysis();
-                                } else {
-                                  _stockfishService.dispose();
-                                  currentEngineEval = "0.00";
-                                  bestEngineMove = "-";
-                                }
-                              });
-                            },
+                            onChanged: isAllowedToUseEngine
+                                ? (val) {
+                                    setState(() {
+                                      isEngineEnabled = val;
+                                      if (isEngineEnabled) {
+                                        _stockfishService.initEngine();
+                                        _triggerEngineAnalysis();
+                                      } else {
+                                        _stockfishService.dispose();
+                                        currentEngineEval = "0.00";
+                                        bestEngineMove = "-";
+                                      }
+                                    });
+                                  }
+                                : null,
                           ),
                         ],
                       ),
@@ -1823,6 +1915,25 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           ],
                         ),
                         _buildContinuationRow(),
+                        const SizedBox(height: 12),
+                        const Divider(height: 1, color: Colors.grey),
+                        const SizedBox(height: 8),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Brzina / Dubina analize:',
+                            style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildThinkingModeButton('fast', 'Brzi (D10)'),
+                            _buildThinkingModeButton('deep', 'Duboki (D16)'),
+                            _buildThinkingModeButton('infinite', 'Neprekidni', isLocalOnly: true),
+                          ],
+                        ),
                       ],
                     ],
                   ),

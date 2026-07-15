@@ -37,14 +37,25 @@ class StockfishService {
       _parseStockfishLine(line);
     });
 
-    // Initialize UCI protocol
-    _sendCommand('uci');
-    _sendCommand('setoption name MultiPV value 3');
-    _sendCommand('isready');
+    void sendInitCommands() {
+      _sendCommand('uci');
+      _sendCommand('setoption name MultiPV value 3');
+      _sendCommand('isready');
+    }
+
+    if (_stockfish!.state.value == StockfishState.ready) {
+      sendInitCommands();
+    } else {
+      _stockfish!.state.addListener(() {
+        if (_stockfish?.state.value == StockfishState.ready) {
+          sendInitCommands();
+        }
+      });
+    }
   }
 
   /// Sends a FEN position for analysis
-  Future<void> analyzePosition(String fen, {int depth = 10}) async {
+  Future<void> analyzePosition(String fen, {int depth = 10, bool isInfinite = false}) async {
     if (!_isActive) return;
 
     if (_useOnline) {
@@ -95,8 +106,11 @@ class StockfishService {
       _sendCommand('stop');
       // Set position based on FEN
       _sendCommand('position fen $fen');
-      // Run search to depth
-      _sendCommand('go depth $depth');
+      if (isInfinite) {
+        _sendCommand('go infinite');
+      } else {
+        _sendCommand('go depth $depth');
+      }
     }
   }
 
