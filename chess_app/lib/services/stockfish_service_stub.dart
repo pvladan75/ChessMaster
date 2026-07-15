@@ -10,8 +10,9 @@ class StockfishService {
   bool get isActive => _isActive;
   bool get isSupported => true;
   bool get isOnline => true;
+  bool get isCustomEngineActive => false;
 
-  void initEngine() {
+  Future<void> initEngine() async {
     _isActive = true;
   }
 

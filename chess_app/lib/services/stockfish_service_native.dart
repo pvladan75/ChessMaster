@@ -2,28 +2,67 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stockfish/stockfish.dart';
 
 class StockfishService {
   Stockfish? _stockfish;
   StreamSubscription? _subscription;
   
+  Process? _customProcess;
+  StreamSubscription? _customSubscription;
+  bool _isCustomActive = false;
+  
   Function(String evaluation, String bestMove, String continuation, int multipv)? onEvaluationChanged;
 
   bool _isActive = false;
   int _requestId = 0;
 
-  // We fall back to online API on Windows and Linux
-  bool get _useOnline => Platform.isWindows || Platform.isLinux;
+  bool get isCustomEngineActive => _isCustomActive;
 
-  bool get isActive => _useOnline ? _isActive : (_stockfish != null);
+  // We fall back to online API on Windows and Linux if no custom engine is run
+  bool get _useOnline {
+    if (Platform.isWindows && _isCustomActive) return false;
+    return Platform.isWindows || Platform.isLinux;
+  }
+
+  bool get isActive => _useOnline ? _isActive : (_stockfish != null || _customProcess != null);
   bool get isSupported => true;
   bool get isOnline => _useOnline;
 
   /// Starts the Stockfish engine (or sets up online mode)
-  void initEngine() {
+  Future<void> initEngine() async {
     _isActive = true;
     
+    // Check if custom engine path is set
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final customPath = prefs.getString('custom_engine_path');
+      
+      if (customPath != null && customPath.isNotEmpty && Platform.isWindows) {
+        if (_customProcess != null) return;
+        _customProcess = await Process.start(customPath, []);
+        _isCustomActive = true;
+        
+        _customSubscription = _customProcess!.stdout
+            .transform(utf8.decoder)
+            .transform(const LineSplitter())
+            .listen((line) {
+          _parseStockfishLine(line);
+        });
+
+        _sendCommand('uci');
+        _sendCommand('setoption name MultiPV value 3');
+        _sendCommand('isready');
+        return;
+      }
+    } catch (e) {
+      print("Failed to start custom engine: $e");
+      _isCustomActive = false;
+      _customProcess = null;
+    }
+
+    _isCustomActive = false;
     if (_useOnline) {
       return;
     }
@@ -101,7 +140,7 @@ class StockfishService {
         // Ignore network errors gracefully
       }
     } else {
-      if (_stockfish == null) return;
+      if (_stockfish == null && _customProcess == null) return;
       // Stop the previous search if it is running
       _sendCommand('stop');
       // Set position based on FEN
@@ -117,17 +156,24 @@ class StockfishService {
   /// Stops analysis and quits the engine process
   void dispose() {
     _isActive = false;
-    if (_useOnline) return;
+    _isCustomActive = false;
 
     _sendCommand('stop');
     _sendCommand('quit');
+
     _subscription?.cancel();
     _stockfish = null;
+
+    _customSubscription?.cancel();
+    _customProcess?.kill();
+    _customProcess = null;
   }
 
   /// Internal helper to send a command to Stockfish stdin
   void _sendCommand(String command) {
-    if (_stockfish != null && _stockfish!.state.value == StockfishState.ready) {
+    if (_customProcess != null) {
+      _customProcess!.stdin.writeln(command);
+    } else if (_stockfish != null && _stockfish!.state.value == StockfishState.ready) {
       _stockfish!.stdin = command;
     }
   }

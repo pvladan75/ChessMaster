@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:http/http.dart' as http;
@@ -440,6 +442,104 @@ class _ChessGamePageState extends State<ChessGamePage> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showEngineSettingsDialog() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? currentPath = prefs.getString('custom_engine_path') ?? '';
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final hasCustom = currentPath != null && currentPath!.isNotEmpty;
+            return AlertDialog(
+              title: const Text('Podešavanja Šahovskog Engine-a'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Trenutni engine:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    hasCustom
+                        ? 'Sopstveni lokalni engine:\n$currentPath'
+                        : 'Podrazumevani (Online / FFI paket)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: hasCustom ? Colors.tealAccent : Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Možete izabrati bilo koji UCI kompatibilan šahovski engine (.exe) sa vašeg računara.',
+                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ],
+              ),
+              actions: [
+                if (hasCustom)
+                  TextButton.icon(
+                    onPressed: () async {
+                      await prefs.remove('custom_engine_path');
+                      setDialogState(() {
+                        currentPath = '';
+                      });
+                      if (isEngineEnabled) {
+                        // Restart engine
+                        _stockfishService.dispose();
+                        await _stockfishService.initEngine();
+                        _triggerEngineAnalysis();
+                      }
+                      setState(() {});
+                    },
+                    icon: const Icon(Icons.delete, color: Colors.redAccent, size: 16),
+                    label: const Text('Resetuj', style: TextStyle(color: Colors.redAccent)),
+                  ),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    try {
+                      final result = await FilePicker.platform.pickFiles(
+                        type: FileType.custom,
+                        allowedExtensions: ['exe'],
+                      );
+
+                      if (result != null && result.files.single.path != null) {
+                        final path = result.files.single.path!;
+                        await prefs.setString('custom_engine_path', path);
+                        setDialogState(() {
+                          currentPath = path;
+                        });
+                        if (isEngineEnabled) {
+                          // Restart engine with new custom executable
+                          _stockfishService.dispose();
+                          await _stockfishService.initEngine();
+                          _triggerEngineAnalysis();
+                        }
+                        setState(() {});
+                      }
+                    } catch (e) {
+                      _showError('Greška pri izboru fajla: $e');
+                    }
+                  },
+                  icon: const Icon(Icons.folder_open, size: 16),
+                  label: const Text('Izaberi .exe'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Zatvori'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1835,14 +1935,34 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Stockfish Analiza',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  Row(
+                                    children: [
+                                      const Text(
+                                        'Stockfish Analiza',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      if (!kIsWeb && Platform.isWindows) ...[
+                                        const SizedBox(width: 6),
+                                        GestureDetector(
+                                          onTap: _showEngineSettingsDialog,
+                                          child: const MouseRegion(
+                                            cursor: SystemMouseCursors.click,
+                                            child: Icon(
+                                              Icons.settings,
+                                              size: 14,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                   Text(
                                     !isAllowedToUseEngine
                                         ? 'Zaključano od strane trenera'
-                                        : (_stockfishService.isOnline ? 'Online (Cloud)' : 'Lokalni Engine'),
+                                        : (_stockfishService.isCustomEngineActive
+                                            ? 'Sopstveni lokalni engine'
+                                            : (_stockfishService.isOnline ? 'Online (Cloud)' : 'Lokalni Engine')),
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: !isAllowedToUseEngine ? Colors.redAccent : Colors.grey,
@@ -1857,18 +1977,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             activeThumbColor: Colors.tealAccent,
                             activeTrackColor: Colors.tealAccent.withOpacity(0.5),
                             onChanged: isAllowedToUseEngine
-                                ? (val) {
+                                ? (val) async {
                                     setState(() {
                                       isEngineEnabled = val;
-                                      if (isEngineEnabled) {
-                                        _stockfishService.initEngine();
-                                        _triggerEngineAnalysis();
-                                      } else {
-                                        _stockfishService.dispose();
+                                    });
+                                    if (isEngineEnabled) {
+                                      await _stockfishService.initEngine();
+                                      _triggerEngineAnalysis();
+                                    } else {
+                                      _stockfishService.dispose();
+                                      setState(() {
                                         currentEngineEval = "0.00";
                                         bestEngineMove = "-";
-                                      }
-                                    });
+                                        engineLines.clear();
+                                      });
+                                    }
                                   }
                                 : null,
                           ),
