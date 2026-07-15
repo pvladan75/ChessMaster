@@ -292,6 +292,8 @@ function getPieceColorAt(fen, square) {
 
 // SOCKET.IO REALTIME EVENTS
 
+const roomAudioUsers = {}; // roomId -> { userId -> { socketId, userId, userName, role, isMuted, handRaised } }
+
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
@@ -401,8 +403,102 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('pgn_loaded', { pgn });
   });
 
+  // AGORA AUDIO CLASSROOM SOCKET EVENTS
+  socket.on('audio_join', ({ roomId, userId, userName, role, isMuted }) => {
+    console.log(`Audio join in room ${roomId} by user ${userName} (${userId})`);
+    if (!roomAudioUsers[roomId]) {
+      roomAudioUsers[roomId] = {};
+    }
+    roomAudioUsers[roomId][userId] = {
+      socketId: socket.id,
+      userId,
+      userName,
+      role,
+      isMuted: isMuted || false,
+      handRaised: false
+    };
+    socket.audioRoomId = roomId;
+    socket.audioUserId = userId;
+
+    io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
+  });
+
+  socket.on('audio_leave', ({ roomId, userId }) => {
+    console.log(`Audio leave in room ${roomId} by user ID ${userId}`);
+    if (roomAudioUsers[roomId] && roomAudioUsers[roomId][userId]) {
+      delete roomAudioUsers[roomId][userId];
+      if (Object.keys(roomAudioUsers[roomId]).length === 0) {
+        delete roomAudioUsers[roomId];
+      } else {
+        io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
+      }
+    }
+    socket.audioRoomId = null;
+    socket.audioUserId = null;
+  });
+
+  socket.on('audio_mute_toggle', ({ roomId, userId, isMuted }) => {
+    if (roomAudioUsers[roomId] && roomAudioUsers[roomId][userId]) {
+      roomAudioUsers[roomId][userId].isMuted = isMuted;
+      io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
+    }
+  });
+
+  socket.on('audio_mute_all_students', ({ roomId }) => {
+    console.log(`Muting all students in room ${roomId}`);
+    if (roomAudioUsers[roomId]) {
+      Object.keys(roomAudioUsers[roomId]).forEach(uId => {
+        if (roomAudioUsers[roomId][uId].role === 'ucenik') {
+          roomAudioUsers[roomId][uId].isMuted = true;
+        }
+      });
+      io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
+      socket.to(roomId).emit('audio_force_mute_student', { targetUserId: 'all' });
+    }
+  });
+
+  socket.on('audio_mute_student', ({ roomId, targetUserId }) => {
+    console.log(`Muting student ${targetUserId} in room ${roomId}`);
+    if (roomAudioUsers[roomId] && roomAudioUsers[roomId][targetUserId]) {
+      roomAudioUsers[roomId][targetUserId].isMuted = true;
+      io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
+      io.to(roomId).emit('audio_force_mute_student', { targetUserId });
+    }
+  });
+
+  socket.on('audio_raise_hand', ({ roomId, userId }) => {
+    console.log(`User ${userId} raised hand in room ${roomId}`);
+    if (roomAudioUsers[roomId] && roomAudioUsers[roomId][userId]) {
+      roomAudioUsers[roomId][userId].handRaised = true;
+      io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
+      io.to(roomId).emit('audio_hand_raised_alert', { userId, userName: roomAudioUsers[roomId][userId].userName });
+    }
+  });
+
+  socket.on('audio_allow_speech', ({ roomId, targetUserId }) => {
+    console.log(`Allowing speech for user ${targetUserId} in room ${roomId}`);
+    if (roomAudioUsers[roomId] && roomAudioUsers[roomId][targetUserId]) {
+      roomAudioUsers[roomId][targetUserId].handRaised = false;
+      roomAudioUsers[roomId][targetUserId].isMuted = false;
+      io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
+      io.to(roomId).emit('audio_force_unmute_student', { targetUserId });
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
+    if (socket.audioRoomId && socket.audioUserId) {
+      const rId = socket.audioRoomId;
+      const uId = socket.audioUserId;
+      if (roomAudioUsers[rId]) {
+        delete roomAudioUsers[rId][uId];
+        if (Object.keys(roomAudioUsers[rId]).length === 0) {
+          delete roomAudioUsers[rId];
+        } else {
+          io.to(rId).emit('audio_users_list', Object.values(roomAudioUsers[rId]));
+        }
+      }
+    }
   });
 });
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:chess_app/services/agora_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:http/http.dart' as http;
@@ -68,6 +69,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
   Map<int, AnalysisLine> engineLines = {};
   String engineThinkingMode = 'fast'; // 'fast', 'deep', 'infinite'
 
+  final AgoraService _agoraService = AgoraService();
+  List<dynamic> audioUsers = [];
+  Set<int> activeSpeakers = {};
+  bool isAudioMuted = false;
+  bool isAudioConnecting = true;
+  String? audioError;
+  bool isHandRaised = false;
+
   bool isDrawingMode = false;
   String? drawingStartSquare;
   String selectedArrowColorCode = 'G'; // 'G', 'R', 'B', 'O'
@@ -123,16 +132,92 @@ class _ChessGamePageState extends State<ChessGamePage> {
         }
       });
     };
+
+    _initAudioChat();
   }
 
   @override
   void dispose() {
+    socket.emit('audio_leave', {
+      'roomId': widget.roomCode,
+      'userId': widget.userSession.id,
+    });
+    _agoraService.leaveChannel();
     _stockfishService.dispose();
     commentController.dispose();
     fenPasteController.dispose();
     pgnPasteController.dispose();
     searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initAudioChat() async {
+    setState(() {
+      isAudioConnecting = true;
+      audioError = null;
+    });
+
+    _agoraService.onActiveSpeakersChanged = (speakers) {
+      if (mounted) {
+        setState(() {
+          activeSpeakers = speakers;
+        });
+      }
+    };
+
+    _agoraService.onMuteStateChanged = (muted) {
+      if (mounted) {
+        setState(() {
+          isAudioMuted = muted;
+        });
+      }
+    };
+
+    _agoraService.onJoinStateChanged = (joined, err) {
+      if (mounted) {
+        setState(() {
+          isAudioConnecting = false;
+          audioError = err;
+        });
+
+        if (joined) {
+          socket.emit('audio_join', {
+            'roomId': widget.roomCode,
+            'userId': widget.userSession.id,
+            'userName': widget.userSession.name,
+            'role': widget.userSession.role,
+            'isMuted': _agoraService.isMuted,
+          });
+        }
+      }
+    };
+
+    final success = await _agoraService.joinChannel(widget.roomCode, widget.userSession.id);
+    if (!success && mounted) {
+      setState(() {
+        isAudioConnecting = false;
+      });
+    }
+  }
+
+  void _toggleLocalMute() {
+    final nextMute = !isAudioMuted;
+    _agoraService.toggleMute(nextMute);
+    socket.emit('audio_mute_toggle', {
+      'roomId': widget.roomCode,
+      'userId': widget.userSession.id,
+      'isMuted': nextMute,
+    });
+  }
+
+  void _raiseHand() {
+    socket.emit('audio_raise_hand', {
+      'roomId': widget.roomCode,
+      'userId': widget.userSession.id,
+    });
+    setState(() {
+      isHandRaised = true;
+    });
   }
 
   void _triggerEngineAnalysis() {
@@ -740,6 +825,77 @@ class _ChessGamePageState extends State<ChessGamePage> {
             commentController.text = moveTree.current.comment;
           });
         }
+      }
+    });
+
+    // AGORA AUDIO CLASSROOM LISTENERS
+    socket.on('audio_users_list', (data) {
+      if (mounted) {
+        setState(() {
+          audioUsers = data;
+          final selfAudioUser = audioUsers.firstWhere(
+            (u) => u['userId'] == widget.userSession.id,
+            orElse: () => null,
+          );
+          if (selfAudioUser != null) {
+            isHandRaised = selfAudioUser['handRaised'] ?? false;
+          }
+        });
+      }
+    });
+
+    socket.on('audio_force_mute_student', (data) {
+      final targetUserId = data['targetUserId'];
+      if (targetUserId == 'all' || targetUserId == widget.userSession.id) {
+        if (widget.userSession.role == 'ucenik') {
+          _agoraService.toggleMute(true);
+          socket.emit('audio_mute_toggle', {
+            'roomId': widget.roomCode,
+            'userId': widget.userSession.id,
+            'isMuted': true,
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Trener vas je utišao. Možete podići ruku ako želite reč.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    });
+
+    socket.on('audio_force_unmute_student', (data) {
+      final targetUserId = data['targetUserId'];
+      if (targetUserId == widget.userSession.id) {
+        if (widget.userSession.role == 'ucenik') {
+          _agoraService.toggleMute(false);
+          socket.emit('audio_mute_toggle', {
+            'roomId': widget.roomCode,
+            'userId': widget.userSession.id,
+            'isMuted': false,
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Trener vam je dozvolio reč.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    });
+
+    socket.on('audio_hand_raised_alert', (data) {
+      final userName = data['userName'];
+      if (widget.userSession.role == 'trener') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Učenik $userName želi reč.'),
+            backgroundColor: Colors.orangeAccent,
+            duration: const Duration(seconds: 4),
+          ),
+        );
       }
     });
   }
@@ -2057,6 +2213,199 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             _buildThinkingModeButton('infinite', 'Neprekidni', isLocalOnly: true),
                           ],
                         ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                color: Colors.blueGrey.withOpacity(0.15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.mic, color: Colors.blueAccent),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Audio Učionica',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          if (isAudioConnecting)
+                            const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blueAccent),
+                            )
+                          else if (audioError != null)
+                            const Icon(Icons.warning, color: Colors.redAccent, size: 16)
+                          else
+                            const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (audioError != null) ...[
+                        Text(
+                          audioError!,
+                          style: const TextStyle(color: Colors.redAccent, fontSize: 11),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      if (!isAudioConnecting && audioError == null) ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _toggleLocalMute,
+                                icon: Icon(isAudioMuted ? Icons.mic_off : Icons.mic),
+                                label: Text(isAudioMuted ? 'Uključi mikrofon' : 'Utišaj me'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isAudioMuted ? Colors.redAccent.withOpacity(0.2) : Colors.green.withOpacity(0.2),
+                                  foregroundColor: isAudioMuted ? Colors.redAccent : Colors.greenAccent,
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Učesnici u audio razgovoru:',
+                          style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 6),
+                        ...audioUsers.map<Widget>((user) {
+                          final isUserMuted = user['isMuted'] ?? false;
+                          final isUserTalking = activeSpeakers.contains(user['userId']);
+                          final isUserTrainer = user['role'] == 'trener';
+                          final isMe = user['userId'] == widget.userSession.id;
+                          final userHandRaised = user['handRaised'] ?? false;
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      isUserTalking
+                                          ? Icons.volume_up
+                                          : (isUserMuted ? Icons.mic_off : Icons.mic),
+                                      color: isUserTalking
+                                          ? Colors.greenAccent
+                                          : (isUserMuted ? Colors.redAccent : Colors.grey),
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '${user['userName']} ${isMe ? '(Ja)' : ''} ${isUserTrainer ? '[Predavač]' : ''}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: isUserTalking ? FontWeight.bold : FontWeight.normal,
+                                        color: isUserTalking ? Colors.greenAccent : Colors.white,
+                                      ),
+                                    ),
+                                    if (userHandRaised) ...[
+                                      const SizedBox(width: 6),
+                                      const Icon(Icons.pan_tool, color: Colors.orangeAccent, size: 14),
+                                    ],
+                                  ],
+                                ),
+                                if (widget.userSession.role == 'trener' && !isUserTrainer)
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (userHandRaised)
+                                        IconButton(
+                                          icon: const Icon(Icons.check, color: Colors.green, size: 16),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          onPressed: () {
+                                            socket.emit('audio_allow_speech', {
+                                              'roomId': widget.roomCode,
+                                              'targetUserId': user['userId'],
+                                            });
+                                          },
+                                          tooltip: 'Dozvoli reč',
+                                        ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: Icon(
+                                          isUserMuted ? Icons.mic : Icons.mic_off,
+                                          color: isUserMuted ? Colors.grey : Colors.redAccent,
+                                          size: 16,
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () {
+                                          if (isUserMuted) {
+                                            socket.emit('audio_allow_speech', {
+                                              'roomId': widget.roomCode,
+                                              'targetUserId': user['userId'],
+                                            });
+                                          } else {
+                                            socket.emit('audio_mute_student', {
+                                              'roomId': widget.roomCode,
+                                              'targetUserId': user['userId'],
+                                            });
+                                          }
+                                        },
+                                        tooltip: isUserMuted ? 'Oduzmi utišanje' : 'Utišaj učenika',
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        if (audioUsers.isEmpty)
+                          const Text(
+                            'Nema povezanih korisnika.',
+                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                        if (widget.userSession.role == 'trener' && audioUsers.length > 1) ...[
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () {
+                              socket.emit('audio_mute_all_students', {'roomId': widget.roomCode});
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.withOpacity(0.15),
+                              foregroundColor: Colors.redAccent,
+                            ),
+                            child: const Text('Utišaj sve učenike'),
+                          ),
+                        ],
+                        if (widget.userSession.role == 'ucenik' && isAudioMuted && isHandRaised) ...[
+                          const SizedBox(height: 8),
+                          const Center(
+                            child: Text(
+                              'Utišani ste. Ruka je podignuta...',
+                              style: TextStyle(color: Colors.orangeAccent, fontSize: 11),
+                            ),
+                          ),
+                        ] else if (widget.userSession.role == 'ucenik' && isAudioMuted) ...[
+                          const SizedBox(height: 8),
+                          ElevatedButton.icon(
+                            onPressed: _raiseHand,
+                            icon: const Icon(Icons.pan_tool, size: 14),
+                            label: const Text('Podigni ruku za reč'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange.withOpacity(0.2),
+                              foregroundColor: Colors.orangeAccent,
+                            ),
+                          ),
+                        ],
                       ],
                     ],
                   ),
