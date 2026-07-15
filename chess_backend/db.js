@@ -65,6 +65,17 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Create trainer_students table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS trainer_students (
+        id SERIAL PRIMARY KEY,
+        trainer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE(trainer_id, student_id)
+      );
+    `);
+    console.log('Verified database table: trainer_students');
     
     // Add columns if table already exists
     await client.query(`

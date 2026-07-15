@@ -76,6 +76,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   bool isAudioConnecting = true;
   String? audioError;
   bool isHandRaised = false;
+  List<dynamic> roomMembers = [];
 
   bool isDrawingMode = false;
   String? drawingStartSquare;
@@ -672,7 +673,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
       // Join room passing role and roomCode
       socket.emit('joinGame', {
         'roomId': widget.roomCode,
-        'playerColor': widget.userSession.role == 'trener' ? 'white' : 'black'
+        'playerColor': widget.userSession.role == 'trener' ? 'white' : 'black',
+        'userId': widget.userSession.id,
+        'userName': widget.userSession.name,
+        'role': widget.userSession.role,
       });
     });
 
@@ -825,6 +829,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
             commentController.text = moveTree.current.comment;
           });
         }
+      }
+    });
+
+    socket.on('room_members_list', (data) {
+      if (mounted) {
+        setState(() {
+          roomMembers = data;
+        });
       }
     });
 
@@ -2214,6 +2226,53 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           ],
                         ),
                       ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                color: Colors.amber.withOpacity(0.08),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.people, color: Colors.amber, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Prisutni u učionici',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (roomMembers.isEmpty)
+                        const Text(
+                          'Učitavanje prisutnih...',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        )
+                      else
+                        ...roomMembers.map<Widget>((member) {
+                          final isMe = member['userId'] == widget.userSession.id;
+                          final isTrainer = member['role'] == 'trener';
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.fiber_manual_record, color: Colors.greenAccent, size: 8),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${member['name']} ${isMe ? "(Ja)" : ""} ${isTrainer ? "[Predavač]" : ""}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                     ],
                   ),
                 ),

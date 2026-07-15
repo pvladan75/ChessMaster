@@ -159,6 +159,130 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// GOOGLE AUTH & STUDENT MANAGEMENT ROUTES
+
+// POST /auth/google
+app.post('/auth/google', async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken) {
+    return res.status(400).json({ error: 'idToken is required' });
+  }
+
+  try {
+    const verifyUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
+    const response = await fetch(verifyUrl);
+    
+    if (!response.ok) {
+      return res.status(400).json({ error: 'Invalid Google ID Token' });
+    }
+
+    const payload = await response.json();
+    const { email, name } = payload;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Google account does not provide email' });
+    }
+
+    let userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    let user;
+
+    if (userResult.rows.length === 0) {
+      const defaultPasswordHash = 'google_oauth_placeholder_hash';
+      const insertResult = await pool.query(
+        'INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, name, role',
+        [email, defaultPasswordHash, name || 'Korisnik', 'ucenik']
+      );
+      user = insertResult.rows[0];
+    } else {
+      user = userResult.rows[0];
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, name: user.name, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    console.error('Google auth error:', err);
+    res.status(500).json({ error: 'Server error during Google authentication' });
+  }
+});
+
+// POST /trainer/students/add
+app.post('/trainer/students/add', authenticateToken, requireRole('trener'), async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Student email is required' });
+  }
+
+  try {
+    const studentCheck = await pool.query('SELECT id, email, name, role FROM users WHERE email = $1', [email.trim()]);
+    if (studentCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Korisnik sa tim emailom nije pronađen.' });
+    }
+
+    const student = studentCheck.rows[0];
+    if (student.role !== 'ucenik') {
+      return res.status(400).json({ error: 'Taj korisnik nije registrovan kao učenik.' });
+    }
+
+    await pool.query(
+      'INSERT INTO trainer_students (trainer_id, student_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [req.user.id, student.id]
+    );
+
+    res.status(200).json({
+      message: 'Student je uspešno dodat.',
+      student: {
+        id: student.id,
+        email: student.email,
+        name: student.name,
+        role: student.role
+      }
+    });
+  } catch (err) {
+    console.error('Add student error:', err);
+    res.status(500).json({ error: 'Server error while adding student' });
+  }
+});
+
+// GET /trainer/students
+app.get('/trainer/students', authenticateToken, requireRole('trener'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT u.id, u.email, u.name, u.role 
+       FROM users u 
+       JOIN trainer_students ts ON u.id = ts.student_id 
+       WHERE ts.trainer_id = $1 
+       ORDER BY u.name ASC`,
+      [req.user.id]
+    );
+
+    const students = result.rows.map(student => {
+      const isOnline = onlineUsers[student.id] ? true : false;
+      return {
+        ...student,
+        status: isOnline ? 'online' : 'offline'
+      };
+    });
+
+    res.json(students);
+  } catch (err) {
+    console.error('Get students error:', err);
+    res.status(500).json({ error: 'Server error while fetching students' });
+  }
+});
+
 // ROOM MANAGEMENT ROUTES
 
 // POST /rooms/create (restricted to trainers)
@@ -293,14 +417,56 @@ function getPieceColorAt(fen, square) {
 // SOCKET.IO REALTIME EVENTS
 
 const roomAudioUsers = {}; // roomId -> { userId -> { socketId, userId, userName, role, isMuted, handRaised } }
+const onlineUsers = {}; // userId -> { socketId, name, email, role }
+const activeRoomMembers = {}; // roomId -> { userId -> { name, role } }
 
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
+  // Register online user presence
+  socket.on('register_user', ({ userId, name, email, role }) => {
+    socket.userId = userId;
+    socket.userName = name;
+    socket.userEmail = email;
+    socket.userRole = role;
+
+    onlineUsers[userId] = {
+      socketId: socket.id,
+      userId,
+      name,
+      email,
+      role
+    };
+    console.log(`User registered online: ${name} (${userId})`);
+    io.emit('user_presence_changed', { userId, status: 'online' });
+  });
+
+  // Send in-app invite
+  socket.on('send_lesson_invite', ({ studentId, roomCode }) => {
+    const student = onlineUsers[studentId];
+    if (student) {
+      console.log(`Sending lesson invite for room ${roomCode} from trainer ${socket.userName} to student ${student.name}`);
+      io.to(student.socketId).emit('lesson_invite', {
+        roomCode,
+        trainerName: socket.userName || 'Trener'
+      });
+    }
+  });
+
   // When a player wants to join a game room
-  socket.on('joinGame', async ({ roomId, playerColor }) => {
+  socket.on('joinGame', async ({ roomId, playerColor, userId, userName, role }) => {
     socket.join(roomId);
     console.log(`Player ${socket.id} joined room: ${roomId} as ${playerColor}`);
+
+    if (userId && userName && role) {
+      if (!activeRoomMembers[roomId]) {
+        activeRoomMembers[roomId] = {};
+      }
+      activeRoomMembers[roomId][userId] = { userId, name: userName, role };
+      socket.currentRoomId = roomId;
+      socket.currentUserId = userId;
+      io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
+    }
 
     try {
       // Fetch current room state (FEN & boardControl) from DB
@@ -487,6 +653,27 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
+    
+    // Clean up online user presence
+    if (socket.userId) {
+      delete onlineUsers[socket.userId];
+      io.emit('user_presence_changed', { userId: socket.userId, status: 'offline' });
+      console.log(`User went offline: ${socket.userName} (${socket.userId})`);
+    }
+
+    // Clean up classroom active room memberships
+    const roomId = socket.currentRoomId;
+    const userId = socket.currentUserId;
+    if (roomId && userId && activeRoomMembers[roomId]) {
+      delete activeRoomMembers[roomId][userId];
+      if (Object.keys(activeRoomMembers[roomId]).length === 0) {
+        delete activeRoomMembers[roomId];
+      } else {
+        io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
+      }
+    }
+
+    // Clean up audio connections
     if (socket.audioRoomId && socket.audioUserId) {
       const rId = socket.audioRoomId;
       const uId = socket.audioUserId;

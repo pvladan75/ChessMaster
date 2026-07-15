@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -18,11 +19,47 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
   
   bool _isLogin = true;
   String _role = 'ucenik'; // Default role is student ('ucenik')
   bool _isLoading = false;
   bool _rememberMe = false;
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser != null) {
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final String? idToken = googleAuth.idToken;
+
+        if (idToken != null) {
+          final response = await http.post(
+            Uri.parse('$backendUrl/auth/google'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'idToken': idToken}),
+          );
+
+          final data = jsonDecode(response.body);
+          if (response.statusCode == 200) {
+            final session = UserSession.fromJson(data['user'], data['token']);
+            await _saveSession(session);
+            _navigateToHome(session);
+          } else {
+            _showError(data['error'] ?? 'Google login failed');
+          }
+        } else {
+          _showError('Failed to retrieve Google ID Token.');
+        }
+      }
+    } catch (e) {
+      _showError('Google Sign-In Error: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -234,18 +271,45 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     const SizedBox(height: 16),
                     _isLoading
                         ? const CircularProgressIndicator()
-                        : SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: ElevatedButton(
-                              onPressed: _submit,
-                              style: ElevatedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                        : Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                height: 48,
+                                child: ElevatedButton(
+                                  onPressed: _submit,
+                                  style: ElevatedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: Text(_isLogin ? 'Login' : 'Register'),
                                 ),
                               ),
-                              child: Text(_isLogin ? 'Login' : 'Register'),
-                            ),
+                              if (_isLogin) ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: OutlinedButton.icon(
+                                    onPressed: _handleGoogleSignIn,
+                                    icon: Image.network(
+                                      'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
+                                      height: 18,
+                                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, size: 24),
+                                    ),
+                                    label: const Text('Prijavi se preko Google-a'),
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(color: Theme.of(context).primaryColor),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                     const SizedBox(height: 12),
                     TextButton(
