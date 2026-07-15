@@ -4,6 +4,10 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class AgoraService {
+  static final AgoraService _instance = AgoraService._internal();
+  factory AgoraService() => _instance;
+  AgoraService._internal();
+
   static const String appId = "7e604da275014643839b616702e1c0d2";
   RtcEngine? _engine;
   bool _isInitialized = false;
@@ -85,6 +89,9 @@ class AgoraService {
 
   Future<bool> joinChannel(String channelId, int uid) async {
     try {
+      if (_isJoined) {
+        await leaveChannel();
+      }
       await initAgora();
       if (_engine == null) return false;
 
@@ -145,15 +152,14 @@ class AgoraService {
   Future<void> leaveChannel() async {
     if (_engine == null) return;
     try {
-      await _engine!.leaveChannel();
-      await _engine!.release();
-      _engine = null;
-      _isInitialized = false;
-      _isJoined = false;
-      _isMuted = false;
-      _activeSpeakers.clear();
-      if (onJoinStateChanged != null) {
-        onJoinStateChanged!(false, null);
+      if (_isJoined) {
+        await _engine!.leaveChannel();
+        _isJoined = false;
+        _isMuted = false;
+        _activeSpeakers.clear();
+        if (onJoinStateChanged != null) {
+          onJoinStateChanged!(false, null);
+        }
       }
     } catch (e) {
       print("Error leaving Agora channel: $e");
