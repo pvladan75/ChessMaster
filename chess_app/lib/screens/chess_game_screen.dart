@@ -139,10 +139,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   @override
   void dispose() {
+    socket.emit('leaveGame', {
+      'roomId': widget.roomCode,
+      'userId': widget.userSession.id,
+    });
     socket.emit('audio_leave', {
       'roomId': widget.roomCode,
       'userId': widget.userSession.id,
     });
+    socket.disconnect();
+    socket.dispose();
     _agoraService.leaveChannel();
     _stockfishService.dispose();
     commentController.dispose();
@@ -659,6 +665,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     // Configure socket.io client connection to server
     socket = io.io(backendUrl, io.OptionBuilder()
       .setTransports(['websocket'])
+      .enableForceNewConnection()
       .disableAutoConnect()
       .build());
 

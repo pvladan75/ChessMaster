@@ -38,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _socket.disconnect();
+    _socket.dispose();
     _codeController.dispose();
     _studentEmailController.dispose();
     super.dispose();
@@ -46,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _initSocket() {
     _socket = io.io(backendUrl, io.OptionBuilder()
       .setTransports(['websocket'])
+      .enableForceNewConnection()
       .disableAutoConnect()
       .build());
 

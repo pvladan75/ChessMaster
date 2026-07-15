@@ -651,6 +651,18 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('leaveGame', ({ roomId, userId }) => {
+    console.log(`User ${userId} explicitly left room ${roomId}`);
+    if (roomId && userId && activeRoomMembers[roomId]) {
+      delete activeRoomMembers[roomId][userId];
+      if (Object.keys(activeRoomMembers[roomId]).length === 0) {
+        delete activeRoomMembers[roomId];
+      } else {
+        io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
+      }
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
     
