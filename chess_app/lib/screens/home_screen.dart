@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
@@ -97,7 +98,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _logout() {
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('remember_me');
+    await prefs.remove('user_token');
+    await prefs.remove('user_id');
+    await prefs.remove('user_email');
+    await prefs.remove('user_name');
+    await prefs.remove('user_role');
+
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginRegisterScreen()),

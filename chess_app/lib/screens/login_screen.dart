@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/home_screen.dart';
@@ -21,6 +22,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   bool _isLogin = true;
   String _role = 'ucenik'; // Default role is student ('ucenik')
   bool _isLoading = false;
+  bool _rememberMe = false;
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -42,6 +44,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         final data = jsonDecode(response.body);
         if (response.statusCode == 200) {
           final session = UserSession.fromJson(data['user'], data['token']);
+          await _saveSession(session);
           _navigateToHome(session);
         } else {
           _showError(data['error'] ?? 'Login failed');
@@ -62,6 +65,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         final data = jsonDecode(response.body);
         if (response.statusCode == 201) {
           final session = UserSession.fromJson(data['user'], data['token']);
+          await _saveSession(session);
           _navigateToHome(session);
         } else {
           _showError(data['error'] ?? 'Registration failed');
@@ -71,6 +75,25 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       _showError('Network error. Check if backend is running.');
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveSession(UserSession session) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setBool('remember_me', true);
+      await prefs.setString('user_token', session.token);
+      await prefs.setInt('user_id', session.id);
+      await prefs.setString('user_email', session.email);
+      await prefs.setString('user_name', session.name);
+      await prefs.setString('user_role', session.role);
+    } else {
+      await prefs.remove('remember_me');
+      await prefs.remove('user_token');
+      await prefs.remove('user_id');
+      await prefs.remove('user_email');
+      await prefs.remove('user_name');
+      await prefs.remove('user_role');
     }
   }
 
@@ -195,7 +218,20 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                         ],
                       ),
                     ],
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 12),
+                    CheckboxListTile(
+                      title: const Text('Zapamti me', style: TextStyle(fontSize: 14)),
+                      value: _rememberMe,
+                      activeColor: Theme.of(context).primaryColor,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (val) {
+                        setState(() {
+                          _rememberMe = val ?? false;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     _isLoading
                         ? const CircularProgressIndicator()
                         : SizedBox(
