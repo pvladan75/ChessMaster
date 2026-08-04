@@ -8,38 +8,27 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
-import 'package:flutter/gestures.dart';
 import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
 import 'package:chess/chess.dart' as chess;
+
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 
-class EngineMove {
-  final String display;
-  final String from;
-  final String to;
-
-  EngineMove({required this.display, required this.from, required this.to});
-}
-
-class AnalysisLine {
-  final int multipv;
-  final String evaluation;
-  final String bestMove;
-  final String continuation;
-  final List<EngineMove> moves;
-
-  AnalysisLine({
-    required this.multipv,
-    required this.evaluation,
-    required this.bestMove,
-    required this.continuation,
-    required this.moves,
-  });
-}
+import 'package:chess_app/widgets/board_overlay_painter.dart';
+import 'package:chess_app/widgets/board_setup_dialog.dart';
+import 'package:chess_app/widgets/create_course_dialog.dart';
+import 'package:chess_app/widgets/save_position_dialog.dart';
+import 'package:chess_app/widgets/matrix_filter_panel.dart';
+import 'package:chess_app/widgets/move_history_view.dart';
+import 'package:chess_app/widgets/game_selector_dialog.dart';
+import 'package:chess_app/widgets/share_position_dialog.dart';
+import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
+import 'package:chess_app/widgets/engine_line_dialog.dart';
+import 'package:chess_app/models/recording_models.dart';
 
 // 3. MULTIPLAYER CHESS GAME PAGE
 class ChessGamePage extends StatefulWidget {
@@ -53,6 +42,11 @@ class ChessGamePage extends StatefulWidget {
 }
 
 class _ChessGamePageState extends State<ChessGamePage> {
+  late String activeRole;
+  bool isRecording = false;
+  int? recordingStartTimeMs;
+  List<TimelineEvent> recordedEvents = [];
+
   late ChessBoardController controller;
   late io.Socket socket;
   bool isConnected = false;
@@ -100,10 +94,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
   List<String> _selectedIncludeTags = [];
   List<String> _selectedExcludeTags = [];
   String _filterMatchMode = 'all'; // 'all' (AND) or 'any' (OR)
+  String _lessonCategoryFilter = 'all'; // 'all', 'mine', 'trainer'
 
   @override
   void initState() {
     super.initState();
+    activeRole = widget.userSession.role;
     controller = ChessBoardController();
     // Default orientation: Trainer is White, Student is Black
     boardOrientation = widget.userSession.role == 'trener'
@@ -118,23 +114,24 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     // Set up Stockfish service evaluation listener
     _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
+      if (!mounted) return;
       setState(() {
         if (evaluation.isNotEmpty || continuation.isNotEmpty) {
-          final movesList = _parseContinuation(controller.getFen(), continuation);
-          engineLines[multipv] = AnalysisLine(
+          final currentFen = moveTree.current.fen;
+          final updatedLine = AnalysisLine.fromPv(
             multipv: multipv,
-            evaluation: evaluation.isNotEmpty ? evaluation : (engineLines[multipv]?.evaluation ?? '0.00'),
-            bestMove: bestMove.isNotEmpty ? bestMove : (engineLines[multipv]?.bestMove ?? '-'),
-            continuation: continuation,
-            moves: movesList,
+            eval: evaluation.isNotEmpty ? evaluation : (engineLines[multipv]?.evaluation ?? '0.00'),
+            pvString: continuation,
+            startingFen: currentFen,
           );
+          engineLines[multipv] = updatedLine;
 
           if (multipv == 1) {
             if (evaluation.isNotEmpty) {
-              currentEngineEval = evaluation;
+              currentEngineEval = updatedLine.evaluation;
             }
-            if (bestMove.isNotEmpty) {
-              bestEngineMove = bestMove.toUpperCase();
+            if (updatedLine.bestMoveSan.isNotEmpty) {
+              bestEngineMove = updatedLine.bestMoveSan;
             }
           }
         }
@@ -283,7 +280,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         final san = tempGame.move_to_san(moveObj);
         tempGame.move(moveMap);
 
-        result.add(EngineMove(display: san, from: from, to: to));
+        result.add(EngineMove(display: san, san: san, from: from, to: to));
       } else {
         break;
       }
@@ -301,102 +298,70 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
   }
 
-  Widget _buildContinuationRow() {
-    if (engineLines.isEmpty) return const SizedBox.shrink();
-
+  Widget _buildStockfishAnalysisWidget() {
     final sortedKeys = engineLines.keys.toList()..sort();
-    final List<Widget> lineWidgets = [];
+    final List<AnalysisLine> linesList = sortedKeys.map((k) => engineLines[k]!).toList();
+    final isTrener = widget.userSession.role == 'trener';
+    final isAllowedToUseEngine = isTrener || allowStudentEngine;
 
-    final parts = controller.getFen().split(' ');
-    final isWhite = parts[1] == 'w';
-
-    for (final multipv in sortedKeys) {
-      final line = engineLines[multipv]!;
-      if (line.moves.isEmpty) continue;
-
-      final List<InlineSpan> spans = [];
-      int moveNum = int.tryParse(parts[5]) ?? 1;
-
-      spans.add(TextSpan(
-        text: '(${line.evaluation}) ',
-        style: TextStyle(
-          color: line.evaluation.startsWith('+') || line.evaluation.startsWith('M')
-              ? Colors.greenAccent
-              : line.evaluation.startsWith('-')
-                  ? Colors.redAccent
-                  : Colors.grey,
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-        ),
-      ));
-
-      for (int i = 0; i < line.moves.length; i++) {
-        final move = line.moves[i];
-        final currentIsWhite = (i % 2 == 0) ? isWhite : !isWhite;
-
-        if (currentIsWhite) {
-          spans.add(TextSpan(
-            text: '$moveNum. ',
-            style: const TextStyle(color: Colors.grey, fontSize: 11),
-          ));
-        } else if (i == 0) {
-          spans.add(TextSpan(
-            text: '$moveNum... ',
-            style: const TextStyle(color: Colors.grey, fontSize: 11),
-          ));
+    return StockfishAnalysisWidget(
+      isEngineEnabled: isEngineEnabled,
+      isAllowedToUseEngine: isAllowedToUseEngine,
+      isOnline: _stockfishService.isOnline,
+      isCustomEngineActive: _stockfishService.isCustomEngineActive,
+      thinkingMode: engineThinkingMode,
+      lines: linesList,
+      orientation: boardOrientation,
+      onToggleEngine: () async {
+        setState(() {
+          isEngineEnabled = !isEngineEnabled;
+        });
+        if (isEngineEnabled) {
+          await _stockfishService.initEngine();
+          engineLines.clear();
+          _triggerEngineAnalysis();
+        } else {
+          _stockfishService.dispose();
+          setState(() {
+            currentEngineEval = "0.00";
+            bestEngineMove = "-";
+            engineLines.clear();
+          });
         }
-
-        spans.add(TextSpan(
-          text: '${move.display} ',
-          style: const TextStyle(
-            color: Colors.tealAccent,
-            fontWeight: FontWeight.w500,
-            fontSize: 11,
-            decoration: TextDecoration.underline,
-          ),
-          recognizer: TapGestureRecognizer()
-            ..onTap = () {
-              _playEngineMoves(line.moves, i);
-            },
-        ));
-
-        if (!currentIsWhite) {
-          moveNum++;
+      },
+      onChangeThinkingMode: (mode) {
+        setState(() {
+          engineThinkingMode = mode;
+        });
+        if (isEngineEnabled) {
+          engineLines.clear();
+          _triggerEngineAnalysis();
         }
-      }
-
-      lineWidgets.add(Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2.0),
-        child: RichText(
-          text: TextSpan(children: spans),
-        ),
-      ));
-    }
-
-    if (lineWidgets.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 10.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Linije analize (kliknite potez za kretanje):',
-            style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 6),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: lineWidgets,
-          ),
-        ],
-      ),
+      },
+      onOpenSettings: (!kIsWeb && Platform.isWindows) ? _showEngineSettingsDialog : null,
+      onLoadFenToMainBoard: (fen) {
+        loadLessonPosition(fen, null);
+        _showSuccess('Učitana pozicija iz linije analize!');
+      },
     );
   }
 
   Widget _buildChessBoardWithOverlay(double boardSize) {
     final isTrener = widget.userSession.role == 'trener';
     final isAllowedToMove = isTrener || (boardControl != 'trainer_only');
+    final isAllowedToUseEngine = isTrener || allowStudentEngine;
+
+    final List<EngineArrow> engineArrows = (isEngineEnabled && isAllowedToUseEngine)
+        ? engineLines.values
+            .map((line) => EngineArrow(
+                  from: line.fromSquare,
+                  to: line.toSquare,
+                  evalText: line.evaluation,
+                  rank: line.multipv,
+                ))
+            .where((a) => a.from.isNotEmpty && a.to.isNotEmpty)
+            .toList()
+        : [];
 
     return Stack(
       children: [
@@ -440,6 +405,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       to: square,
                       colorCode: selectedArrowColorCode,
                     ));
+                    _recordEvent('arrow_drawn', {
+                      'arrows': moveTree.current.arrows.map((a) => {
+                        'from': a.from,
+                        'to': a.to,
+                        'colorCode': a.colorCode
+                      }).toList()
+                    });
                     socket.emit('pgn_loaded', {
                       'roomId': widget.roomCode,
                       'pgn': moveTree.exportToPgn(),
@@ -452,6 +424,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               size: Size(boardSize, boardSize),
               painter: ChessBoardPainter(
                 arrows: moveTree.current.arrows,
+                engineArrows: engineArrows,
                 boardSize: boardSize,
                 orientation: boardOrientation,
                 highlightedSquare: drawingStartSquare,
@@ -466,6 +439,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               size: Size(boardSize, boardSize),
               painter: ChessBoardPainter(
                 arrows: moveTree.current.arrows,
+                engineArrows: engineArrows,
                 boardSize: boardSize,
                 orientation: boardOrientation,
               ),
@@ -772,6 +746,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           if (data['currentFen'] != null) {
             final newFen = data['currentFen'];
             controller.loadFen(newFen);
+            _recordEvent('move', {'fen': newFen, 'move': data['move']});
 
             if (data['move'] == null) {
               // This is a navigation jump
@@ -850,7 +825,39 @@ class _ChessGamePageState extends State<ChessGamePage> {
       if (mounted) {
         setState(() {
           roomMembers = data;
+          if (roomMembers is List) {
+            final me = (roomMembers as List).firstWhere(
+              (m) => m['userId'] == widget.userSession.id,
+              orElse: () => null,
+            );
+            if (me != null && me['role'] != null) {
+              activeRole = me['role'];
+            }
+          }
         });
+      }
+    });
+
+    socket.on('user_role_changed', (data) {
+      if (data != null && mounted) {
+        final targetUserId = data['targetUserId'];
+        final newRole = data['newRole'];
+        if (targetUserId == widget.userSession.id) {
+          setState(() {
+            activeRole = newRole;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                newRole == 'trener'
+                    ? 'Promovisani ste u ulogu Trenera! Sada imate punu kontrolu nad tablom i sesijom.'
+                    : 'Vaša uloga je vraćena na Učenik.',
+              ),
+              backgroundColor: newRole == 'trener' ? Colors.teal : Colors.amber,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     });
 
@@ -969,6 +976,172 @@ class _ChessGamePageState extends State<ChessGamePage> {
         );
       }
     });
+  }
+
+  bool isRecordingPaused = false;
+  int pauseStartTimeMs = 0;
+  int totalPauseDurationMs = 0;
+
+  void _recordEvent(String eventType, Map<String, dynamic> data) {
+    if (!isRecording || isRecordingPaused || recordingStartTimeMs == null) return;
+    final nowMs = (DateTime.now().millisecondsSinceEpoch - recordingStartTimeMs!) - totalPauseDurationMs;
+    recordedEvents.add(TimelineEvent(
+      timestampMs: nowMs,
+      eventType: eventType,
+      data: data,
+    ));
+  }
+
+  void _startRecording() {
+    setState(() {
+      isRecording = true;
+      isRecordingPaused = false;
+      pauseStartTimeMs = 0;
+      totalPauseDurationMs = 0;
+      recordingStartTimeMs = DateTime.now().millisecondsSinceEpoch;
+      recordedEvents = [
+        TimelineEvent(
+          timestampMs: 0,
+          eventType: 'init',
+          data: {
+            'fen': moveTree.current.fen,
+            'orientation': boardOrientation == PlayerColor.white ? 'white' : 'black',
+            'boardControl': boardControl,
+          },
+        ),
+      ];
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Snimanje časa je započeto! Svi potezi i akcije na tabli se beleže.'),
+        backgroundColor: Colors.redAccent,
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _pauseRecording() {
+    if (!isRecording || isRecordingPaused) return;
+    setState(() {
+      isRecordingPaused = true;
+      pauseStartTimeMs = DateTime.now().millisecondsSinceEpoch;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Snimanje je pauzirano. Akcije se privremeno ne beleže.'),
+        backgroundColor: Colors.orange,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _resumeRecording() {
+    if (!isRecording || !isRecordingPaused) return;
+    final pauseDuration = DateTime.now().millisecondsSinceEpoch - pauseStartTimeMs;
+    setState(() {
+      totalPauseDurationMs += pauseDuration;
+      isRecordingPaused = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Snimanje je nastavljeno! Svi sledstveni potezi se beleže u kombinovani snimak.'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _stopRecording() async {
+    final titleController = TextEditingController(text: 'Čas ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}');
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Završetak i sačuvanje snimka časa'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Unesite naziv snimljenog časa:'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(
+                labelText: 'Naziv časa',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Ukupno zabeleženo događaja: ${recordedEvents.length}',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Prekini bez čuvanja'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sačuvaj snimak'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) {
+      setState(() {
+        isRecording = false;
+        recordingStartTimeMs = null;
+        recordedEvents.clear();
+      });
+      return;
+    }
+
+    final title = titleController.text.trim();
+    if (title.isEmpty) return;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$backendUrl/recordings/save'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.userSession.token}'
+        },
+        body: jsonEncode({
+          'roomId': widget.roomCode,
+          'title': title,
+          'timelineJson': recordedEvents.map((e) => e.toJson()).toList(),
+          'audioUrl': null,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Snimak časa je uspešno sačuvan! Dostupan je u odeljku Snimljeni časovi.'),
+            backgroundColor: Colors.teal,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Greška pri čuvanju snimka.'), backgroundColor: Colors.redAccent),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Greška na mreži: $e'), backgroundColor: Colors.redAccent),
+      );
+    } finally {
+      setState(() {
+        isRecording = false;
+        recordingStartTimeMs = null;
+        recordedEvents.clear();
+      });
+    }
   }
 
   String _getPermissionLabel(String control) {
@@ -1113,6 +1286,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   // Socket: Load lesson position to board and broadcast
   void loadLessonPosition(String fen, String? pgn) {
+    _recordEvent('lesson_loaded', {'fen': fen, 'pgn': pgn});
     if (pgn != null && pgn.isNotEmpty) {
       final parsed = MoveTree.parsePgn(pgn, startingFen: fen);
       if (parsed != null) {
@@ -1168,6 +1342,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   // Jump to specific MoveNode in active history and broadcast state
   void _selectNode(MoveNode node) {
+    _recordEvent('fen_change', {'fen': node.fen});
     setState(() {
       moveTree.current = node;
       commentController.text = node.comment;
@@ -1241,10 +1416,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   void _broadcastMoveAndState([String? from, String? to, String? newFen]) {
+    final effectiveFen = newFen ?? controller.getFen();
+    _recordEvent('move', {
+      'fen': effectiveFen,
+      'move': (from != null && to != null) ? {'from': from, 'to': to} : null,
+    });
+
     socket.emit('move', {
       'roomId': widget.roomCode,
       'move': (from != null && to != null) ? {'from': from, 'to': to} : null,
-      'currentFen': newFen ?? controller.getFen(),
+      'currentFen': effectiveFen,
       'role': widget.userSession.role,
       'movePath': getPathToNode(moveTree.current),
     });
@@ -1349,41 +1530,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
   void _showGameSelectorDialog(List<PgnGameInfo> games) {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Izaberite partiju (${games.length})'),
-          content: SizedBox(
-            width: 400,
-            height: 300,
-            child: ListView.builder(
-              itemCount: games.length,
-              itemBuilder: (context, index) {
-                final game = games[index];
-                return ListTile(
-                  title: Text(game.displayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  subtitle: Text(
-                    game.pgnBody.length > 60
-                        ? '${game.pgnBody.substring(0, 60)}...'
-                        : game.pgnBody,
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 12),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _loadSinglePgnGame(game);
-                  },
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Otkaži'),
-            ),
-          ],
-        );
-      },
+      builder: (ctx) => GameSelectorDialog(
+        games: games,
+        onGameSelected: (game) => _loadSinglePgnGame(game),
+      ),
     );
   }
 
@@ -1402,10 +1552,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
         commentController.text = moveTree.current.comment;
       });
 
-      // Load root/start position FEN
       controller.loadFen(moveTree.root.fen);
       
-      // Sync starting position via socket
       socket.emit('move', {
         'roomId': widget.roomCode,
         'move': null,
@@ -1427,432 +1575,186 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   Widget _buildMatrixFilterPanel() {
-    final hasActiveFilters = _selectedIncludeTags.isNotEmpty || _selectedExcludeTags.isNotEmpty || searchController.text.isNotEmpty;
-
-    return Card(
-      color: Colors.blueGrey.withOpacity(0.12),
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-        childrenPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        title: Row(
-          children: [
-            const Icon(Icons.filter_list, size: 16, color: Colors.tealAccent),
-            const SizedBox(width: 6),
-            const Text(
-              'Logička pretraga i filteri',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-            if (hasActiveFilters) ...[
-              const SizedBox(width: 6),
-              CircleAvatar(
-                radius: 8,
-                backgroundColor: Colors.tealAccent,
-                child: Text(
-                  '${_selectedIncludeTags.length + _selectedExcludeTags.length}',
-                  style: const TextStyle(fontSize: 9, color: Colors.black, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ],
-        ),
-        children: [
-          Row(
-            children: [
-              const Text('Režim spajanja: ', style: TextStyle(fontSize: 11, color: Colors.grey)),
-              ChoiceChip(
-                label: const Text('Sve (AND)', style: TextStyle(fontSize: 10)),
-                selected: _filterMatchMode == 'all',
-                onSelected: (selected) {
-                  if (selected) {
-                    setState(() => _filterMatchMode = 'all');
-                    fetchLessons();
-                  }
-                },
-              ),
-              const SizedBox(width: 6),
-              ChoiceChip(
-                label: const Text('Bilo koja (OR)', style: TextStyle(fontSize: 10)),
-                selected: _filterMatchMode == 'any',
-                onSelected: (selected) {
-                  if (selected) {
-                    setState(() => _filterMatchMode = 'any');
-                    fetchLessons();
-                  }
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Uključi Labele (MORAJU BITI):',
-              style: TextStyle(fontSize: 11, color: Colors.tealAccent, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(height: 4),
-          if (_availableUserLabels.isEmpty)
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Nema dodatih labela.', style: TextStyle(fontSize: 10, color: Colors.grey)),
-            )
-          else
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: _availableUserLabels.map((tag) {
-                final isSelected = _selectedIncludeTags.contains(tag);
-                return FilterChip(
-                  label: Text(tag, style: const TextStyle(fontSize: 10)),
-                  selected: isSelected,
-                  selectedColor: Colors.teal.withOpacity(0.4),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _selectedIncludeTags.add(tag);
-                        _selectedExcludeTags.remove(tag);
-                      } else {
-                        _selectedIncludeTags.remove(tag);
-                      }
-                    });
-                    fetchLessons();
-                  },
-                );
-              }).toList(),
-            ),
-          const SizedBox(height: 10),
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Isključi Labele (NE SMEJU BITI - NOT):',
-              style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(height: 4),
-          if (_availableUserLabels.isEmpty)
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Nema dodatih labela.', style: TextStyle(fontSize: 10, color: Colors.grey)),
-            )
-          else
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: _availableUserLabels.map((tag) {
-                final isSelected = _selectedExcludeTags.contains(tag);
-                return FilterChip(
-                  label: Text(tag, style: const TextStyle(fontSize: 10)),
-                  selected: isSelected,
-                  selectedColor: Colors.redAccent.withOpacity(0.4),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _selectedExcludeTags.add(tag);
-                        _selectedIncludeTags.remove(tag);
-                      } else {
-                        _selectedExcludeTags.remove(tag);
-                      }
-                    });
-                    fetchLessons();
-                  },
-                );
-              }).toList(),
-            ),
-          if (hasActiveFilters) ...[
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _selectedIncludeTags.clear();
-                    _selectedExcludeTags.clear();
-                    searchController.clear();
-                  });
-                  fetchLessons();
-                },
-                icon: const Icon(Icons.clear_all, size: 14, color: Colors.orangeAccent),
-                label: const Text('Poništi sve filtere', style: TextStyle(fontSize: 11, color: Colors.orangeAccent)),
-              ),
-            ),
-          ],
-        ],
-      ),
+    return MatrixFilterPanel(
+      availableUserLabels: _availableUserLabels,
+      selectedIncludeTags: _selectedIncludeTags,
+      selectedExcludeTags: _selectedExcludeTags,
+      filterMatchMode: _filterMatchMode,
+      onFilterChanged: (include, exclude, mode) {
+        setState(() {
+          _selectedIncludeTags = include;
+          _selectedExcludeTags = exclude;
+          _filterMatchMode = mode;
+        });
+        fetchLessons();
+      },
     );
   }
 
   void _showShareStudentPositionModal() {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      builder: (ctx) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.75,
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: const [
-                      Icon(Icons.share, color: Colors.amber),
-                      SizedBox(width: 8),
-                      Text(
-                        'Prikaži moju poziciju treneru',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Izaberite sačuvanu poziciju iz vašeg studija koju želite da pošaljete na glavnu tablu:',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: lessons.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Nemate sačuvanih pozicija u Vašem studiju.',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: lessons.length,
-                        itemBuilder: (context, index) {
-                          final lesson = lessons[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            child: ListTile(
-                              title: Text(
-                                lesson['title'],
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                              subtitle: Text(
-                                lesson['description'] ?? lesson['fen'],
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 11, color: Colors.grey),
-                              ),
-                              trailing: ElevatedButton.icon(
-                                onPressed: () {
-                                  socket.emit('student_shares_position', {
-                                    'roomId': widget.roomCode,
-                                    'studentId': widget.userSession.id,
-                                    'studentName': widget.userSession.name,
-                                    'title': lesson['title'],
-                                    'fen': lesson['fen'],
-                                    'pgn': lesson['pgn'],
-                                  });
-                                  Navigator.pop(ctx);
-                                  _showSuccess('Pozicija "${lesson['title']}" je poslata treneru!');
-                                },
-                                icon: const Icon(Icons.send, size: 14),
-                                label: const Text('Prikaži treneru'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.amber,
-                                  foregroundColor: Colors.black,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
+      builder: (ctx) => ShareStudentPositionDialog(
+        roomMembers: roomMembers,
+        onShareToMember: (member) {
+          final currentFen = moveTree.current.fen;
+          socket.emit('student_shares_position', {
+            'roomId': widget.roomCode,
+            'targetUserId': member['userId'],
+            'fen': currentFen,
+            'studentName': widget.userSession.name,
+          });
+          _showSuccess('Pozicija poslana treneru (${member['name']})!');
+        },
+      ),
+    );
+  }
+
+  void _showBoardSetupDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => BoardSetupDialog(
+        onFenGenerated: (generatedFen) {
+          loadLessonPosition(generatedFen, null);
+          _showSuccess('Postavljena pozicija učitana na tablu!');
+        },
+      ),
+    );
+  }
+
+  void _showCreateCourseDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => CreateCourseDialog(
+        userSession: widget.userSession,
+        lessons: lessons,
+        onCourseCreated: () => fetchLessons(),
+      ),
     );
   }
 
   void _showSaveDialog() {
-    final titleController = TextEditingController();
-    final descController = TextEditingController();
-    final tagInputController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => SavePositionDialog(
+        availableUserLabels: _availableUserLabels,
+        initialPersistedLabels: _persistedLabels,
+        initialShouldPersist: _shouldPersistLabels,
+        onSave: (title, desc, dialogActiveTags, persistChecked) {
+          saveCurrentPosition(title, desc, dialogActiveTags);
+          if (persistChecked) {
+            _persistedLabels = List<String>.from(dialogActiveTags);
+            _shouldPersistLabels = true;
+          } else {
+            _persistedLabels = [];
+            _shouldPersistLabels = false;
+          }
+          fetchUserLabels();
+        },
+      ),
+    );
+  }
 
-    List<String> dialogActiveTags = _shouldPersistLabels ? List<String>.from(_persistedLabels) : [];
-    bool persistChecked = _shouldPersistLabels;
+  void _showInSessionInviteFriendsDialog() async {
+    List<dynamic> friendsList = [];
+    try {
+      final res = await http.get(
+        Uri.parse('$backendUrl/friends'),
+        headers: {'Authorization': 'Bearer ${widget.userSession.token}'},
+      );
+      if (res.statusCode == 200) {
+        friendsList = jsonDecode(res.body);
+      }
+    } catch (e) {
+      // quiet fail
+    }
+
+    if (!mounted) return;
+    final List<int> selectedFriendIds = [];
 
     showDialog(
       context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final suggestions = _availableUserLabels
-                .where((l) => !dialogActiveTags.contains(l))
-                .where((l) => tagInputController.text.isEmpty || l.toLowerCase().contains(tagInputController.text.toLowerCase()))
-                .toList();
-
-            void addTag(String tag) {
-              final cleaned = tag.trim();
-              if (cleaned.isNotEmpty && !dialogActiveTags.contains(cleaned)) {
-                setDialogState(() {
-                  dialogActiveTags.add(cleaned);
-                  tagInputController.clear();
-                });
-              }
-            }
-
-            return AlertDialog(
-              title: const Text('Sačuvaj trenutnu lekciju / poziciju'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Naziv lekcije / pozicije',
-                        hintText: 'Npr. Sicilijanska odbrana - Zmajeva varijanta',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: descController,
-                      decoration: const InputDecoration(
-                        labelText: 'Opšti komentar / Opis',
-                        hintText: 'Opis teme lekcije ili ključne smernice',
-                      ),
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Labele (Oznake pozicije):',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                    const SizedBox(height: 6),
-                    if (dialogActiveTags.isEmpty)
-                      const Text(
-                        'Nema dodatih labela.',
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
-                      )
-                    else
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: dialogActiveTags.map((tag) {
-                          return InputChip(
-                            label: Text(tag, style: const TextStyle(fontSize: 11)),
-                            onDeleted: () {
-                              setDialogState(() {
-                                dialogActiveTags.remove(tag);
-                              });
-                            },
-                            deleteIconColor: Colors.redAccent,
-                            backgroundColor: Colors.teal.withOpacity(0.2),
-                          );
-                        }).toList(),
-                      ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: tagInputController,
-                            decoration: const InputDecoration(
-                              labelText: 'Dodaj labelu (auto-complete)...',
-                              hintText: 'Taktika, Završnica, Mat u 2...',
-                              isDense: true,
-                            ),
-                            onChanged: (_) => setDialogState(() {}),
-                            onSubmitted: (val) => addTag(val),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () => addTag(tagInputController.text),
-                          style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
-                          child: const Text('Dodaj'),
-                        ),
-                      ],
-                    ),
-                    if (suggestions.isNotEmpty && tagInputController.text.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        constraints: const BoxConstraints(maxHeight: 120),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.withOpacity(0.3)),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: suggestions.length,
-                          itemBuilder: (context, index) {
-                            final suggestion = suggestions[index];
-                            return ListTile(
-                              dense: true,
-                              title: Text(suggestion, style: const TextStyle(fontSize: 12)),
-                              onTap: () => addTag(suggestion),
-                            );
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          title: Row(
+            children: const [
+              Icon(Icons.person_add, color: Colors.tealAccent),
+              SizedBox(width: 8),
+              Text('Pozovi prijatelje u sesiju', style: TextStyle(fontSize: 16)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Soba: ${widget.roomCode}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.tealAccent)),
+              const SizedBox(height: 8),
+              const Text('Izaberite prijatelje koje želite da pozovete:', style: TextStyle(fontSize: 12)),
+              const SizedBox(height: 12),
+              if (friendsList.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12.0),
+                  child: Text('Nemate sačuvanih prijatelja.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                )
+              else
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 180),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: friendsList.map((f) {
+                        final fId = f['id'] as int;
+                        final isSel = selectedFriendIds.contains(fId);
+                        return CheckboxListTile(
+                          dense: true,
+                          title: Text(f['name'] ?? 'Prijatelj', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          subtitle: Text(f['email'] ?? '', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                          value: isSel,
+                          onChanged: (val) {
+                            setModalState(() {
+                              if (val == true) {
+                                selectedFriendIds.add(fId);
+                              } else {
+                                selectedFriendIds.remove(fId);
+                              }
+                            });
                           },
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    CheckboxListTile(
-                      title: const Text(
-                        'Zapamti ove Labele za sledeće pozicije',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                      value: persistChecked,
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      onChanged: (val) {
-                        setDialogState(() {
-                          persistChecked = val ?? false;
-                        });
-                      },
+                        );
+                      }).toList(),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Otkaži'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final title = titleController.text.trim();
-                    final desc = descController.text.trim();
-
-                    if (title.isEmpty) {
-                      _showError('Unesite naziv lekcije.');
-                      return;
-                    }
-
-                    saveCurrentPosition(title, desc, dialogActiveTags);
-
-                    if (persistChecked) {
-                      _persistedLabels = List<String>.from(dialogActiveTags);
-                      _shouldPersistLabels = true;
-                    } else {
-                      _persistedLabels = [];
-                      _shouldPersistLabels = false;
-                    }
-
-                    fetchUserLabels();
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text('Sačuvaj'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Otkaži'),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.send, size: 14),
+              label: Text('Pošalji pozivnice (${selectedFriendIds.length})'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                if (selectedFriendIds.isEmpty) return;
+                try {
+                  await http.post(
+                    Uri.parse('$backendUrl/invitations/send'),
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': 'Bearer ${widget.userSession.token}'
+                    },
+                    body: jsonEncode({'friendIds': selectedFriendIds, 'roomCode': widget.roomCode}),
+                  );
+                  _showSuccess('Pozivnice uspešno poslate prijateljima!');
+                } catch (e) {
+                  _showError('Greška pri slanju pozivnica.');
+                }
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1874,128 +1776,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
-  List<InlineSpan> _buildSpans(MoveNode node, BuildContext context) {
-    final List<InlineSpan> spans = [];
-    _collectSpans(node, spans, context, true);
-    return spans;
-  }
-
-  void _collectSpans(MoveNode node, List<InlineSpan> spans, BuildContext context, bool showMoveNumber) {
-    if (node.children.isEmpty) return;
-
-    final mainChild = node.children[0];
-    final parts = node.fen.split(' ');
-    final isWhite = parts[1] == 'w';
-    final moveNum = int.tryParse(parts[5]) ?? 1;
-
-    if (isWhite) {
-      spans.add(TextSpan(
-        text: '$moveNum. ',
-        style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
-      ));
-    } else if (showMoveNumber) {
-      spans.add(TextSpan(
-        text: '$moveNum... ',
-        style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
-      ));
-    }
-
-    final isMainActive = currentNode == mainChild;
-
-    spans.add(TextSpan(
-      text: '${mainChild.san} ',
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 13,
-        color: isMainActive ? Colors.greenAccent : Colors.white,
-        backgroundColor: isMainActive ? Colors.green.withOpacity(0.3) : Colors.transparent,
-      ),
-      recognizer: TapGestureRecognizer()..onTap = () => _selectNode(mainChild),
-    ));
-
-    if (mainChild.comment.isNotEmpty) {
-      spans.add(TextSpan(
-        text: '{${mainChild.comment}} ',
-        style: const TextStyle(color: Colors.yellowAccent, fontStyle: FontStyle.italic, fontSize: 12),
-      ));
-    }
-
-    // Variations
-    for (int i = 1; i < node.children.length; i++) {
-      final varChild = node.children[i];
-      spans.add(const TextSpan(
-        text: '( ',
-        style: TextStyle(color: Colors.grey, fontSize: 11),
-      ));
-
-      if (isWhite) {
-        spans.add(TextSpan(
-          text: '$moveNum. ',
-          style: const TextStyle(color: Colors.grey, fontSize: 11),
-        ));
-      } else {
-        spans.add(TextSpan(
-          text: '$moveNum... ',
-          style: const TextStyle(color: Colors.grey, fontSize: 11),
-        ));
-      }
-
-      final isVarActive = currentNode == varChild;
-
-      spans.add(TextSpan(
-        text: '${varChild.san} ',
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.normal,
-          color: isVarActive ? Colors.greenAccent : Colors.grey[400],
-          backgroundColor: isVarActive ? Colors.green.withOpacity(0.3) : Colors.transparent,
-        ),
-        recognizer: TapGestureRecognizer()..onTap = () => _selectNode(varChild),
-      ));
-
-      if (varChild.comment.isNotEmpty) {
-        spans.add(TextSpan(
-          text: '{${varChild.comment}} ',
-          style: const TextStyle(color: Colors.yellowAccent, fontStyle: FontStyle.italic, fontSize: 10),
-        ));
-      }
-
-      _collectSpans(varChild, spans, context, false);
-
-      spans.add(const TextSpan(
-        text: ') ',
-        style: TextStyle(color: Colors.grey, fontSize: 11),
-      ));
-    }
-
-    final nextShowMoveNumber = node.children.length > 1;
-    _collectSpans(mainChild, spans, context, nextShowMoveNumber);
-  }
-
   Widget _buildMoveHistoryContainer() {
-    final List<InlineSpan> spans = _buildSpans(moveTree.root, context);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.withOpacity(0.3)),
-      ),
-      child: spans.isEmpty
-          ? const Center(
-              child: Text(
-                'Nema odigranih poteza.',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
-              ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(8),
-              child: RichText(
-                text: TextSpan(
-                  children: spans,
-                ),
-              ),
-            ),
+    return MoveHistoryView(
+      moveTree: moveTree,
+      currentNode: currentNode,
+      onSelectNode: _selectNode,
     );
   }
 
@@ -2133,7 +1918,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       return Container(
         width: 300,
         color: Theme.of(context).cardColor,
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2143,109 +1928,141 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              if (isTrener) ...[
-                ElevatedButton.icon(
-                  onPressed: _showSaveDialog,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Sačuvaj lekciju'),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _showBoardSetupDialog,
+                  icon: const Icon(Icons.dashboard_customize, size: 16),
+                  label: const Text('Postavi poziciju (Board Setup)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                  ),
                 ),
-                const SizedBox(height: 8),
-                ElevatedButton.icon(
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _showSaveDialog,
+                  icon: const Icon(Icons.save, size: 16),
+                  label: const Text('Sačuvaj trenutnu poziciju'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
                   onPressed: _openLocalPgnFile,
-                  icon: const Icon(Icons.file_open),
+                  icon: const Icon(Icons.file_open, size: 16),
                   label: const Text('Otvori PGN fajl'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurpleAccent,
                     foregroundColor: Colors.white,
                   ),
                 ),
-                const Divider(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: fenPasteController,
-                        decoration: const InputDecoration(
-                          hintText: 'Nalepi FEN string...',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                        ),
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.input, color: Colors.deepPurpleAccent),
-                      onPressed: () {
-                        final fen = fenPasteController.text.trim();
-                        if (fen.isNotEmpty) {
-                          loadLessonPosition(fen, null);
-                          fenPasteController.clear();
-                        } else {
-                          _showError('Molimo vas zalepite ispravan FEN.');
-                        }
-                      },
-                      tooltip: 'Učitaj FEN',
-                    )
-                  ],
-                ),
+              ),
+              if (isTrener) ...[
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: pgnPasteController,
-                        decoration: const InputDecoration(
-                          hintText: 'Nalepi PGN partiju...',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                        ),
-                        style: const TextStyle(fontSize: 12),
-                      ),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _showCreateCourseDialog,
+                    icon: const Icon(Icons.collections_bookmark, size: 16),
+                    label: const Text('Kreiraj lekciju (Više pozicija)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigoAccent,
+                      foregroundColor: Colors.white,
                     ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.playlist_add, color: Colors.deepPurpleAccent),
-                      onPressed: () {
-                        final pgnStr = pgnPasteController.text.trim();
-                        if (pgnStr.isNotEmpty) {
-                          final parsed = MoveTree.parsePgn(pgnStr);
-                          if (parsed != null && parsed.root.children.isNotEmpty) {
-                            setState(() {
-                              moveTree = parsed;
-                              commentController.text = moveTree.current.comment;
-                              pgnPasteController.clear();
-                            });
-                            
-                            controller.loadFen(parsed.root.fen);
-                            socket.emit('move', {
-                              'roomId': widget.roomCode,
-                              'move': null,
-                              'currentFen': parsed.root.fen,
-                              'role': widget.userSession.role,
-                              'movePath': <String>[],
-                            });
-                            
-                            socket.emit('pgn_loaded', {
-                              'roomId': widget.roomCode,
-                              'pgn': pgnStr,
-                            });
-
-                            _showSuccess('PGN partija učitana!');
-                            _triggerEngineAnalysis();
-                          } else {
-                            _showError('Neuspešno parsiranje PGN-a.');
-                          }
-                        } else {
-                          _showError('Nalepite PGN tekst.');
-                        }
-                      },
-                      tooltip: 'Učitaj PGN',
-                    )
-                  ],
+                  ),
                 ),
-                const Divider(height: 24),
               ],
+              const Divider(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: fenPasteController,
+                      decoration: const InputDecoration(
+                        hintText: 'Nalepi FEN string...',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      ),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.input, color: Colors.deepPurpleAccent),
+                    onPressed: () {
+                      final fen = fenPasteController.text.trim();
+                      if (fen.isNotEmpty) {
+                        loadLessonPosition(fen, null);
+                        fenPasteController.clear();
+                      } else {
+                        _showError('Molimo vas zalepite ispravan FEN.');
+                      }
+                    },
+                    tooltip: 'Učitaj FEN',
+                  )
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: pgnPasteController,
+                      decoration: const InputDecoration(
+                        hintText: 'Nalepi PGN partiju...',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      ),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.playlist_add, color: Colors.deepPurpleAccent),
+                    onPressed: () {
+                      final pgnStr = pgnPasteController.text.trim();
+                      if (pgnStr.isNotEmpty) {
+                        final parsed = MoveTree.parsePgn(pgnStr);
+                        if (parsed != null && parsed.root.children.isNotEmpty) {
+                          setState(() {
+                            moveTree = parsed;
+                            commentController.text = moveTree.current.comment;
+                            pgnPasteController.clear();
+                          });
+                          
+                          controller.loadFen(parsed.root.fen);
+                          socket.emit('move', {
+                            'roomId': widget.roomCode,
+                            'move': null,
+                            'currentFen': parsed.root.fen,
+                            'role': widget.userSession.role,
+                            'movePath': <String>[],
+                          });
+                          
+                          socket.emit('pgn_loaded', {
+                            'roomId': widget.roomCode,
+                            'pgn': pgnStr,
+                          });
+
+                          _showSuccess('PGN partija učitana!');
+                          _triggerEngineAnalysis();
+                        } else {
+                          _showError('Neuspešno parsiranje PGN-a.');
+                        }
+                      } else {
+                        _showError('Nalepite PGN tekst.');
+                      }
+                    },
+                    tooltip: 'Učitaj PGN',
+                  )
+                ],
+              ),
+              const Divider(height: 24),
               const Text(
                 'Pretraga lekcija',
                 style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
@@ -2289,79 +2106,123 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 ),
                 const SizedBox(height: 12),
               ],
-              const Text(
-                'Sačuvane lekcije / pozicije',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+              Row(
+                children: [
+                  const Text(
+                    'Kategorija: ',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey),
+                  ),
+                  ChoiceChip(
+                    label: const Text('Sve', style: TextStyle(fontSize: 10)),
+                    selected: _lessonCategoryFilter == 'all',
+                    onSelected: (val) {
+                      if (val) setState(() => _lessonCategoryFilter = 'all');
+                    },
+                  ),
+                  const SizedBox(width: 4),
+                  ChoiceChip(
+                    label: const Text('Moje', style: TextStyle(fontSize: 10)),
+                    selected: _lessonCategoryFilter == 'mine',
+                    onSelected: (val) {
+                      if (val) setState(() => _lessonCategoryFilter = 'mine');
+                    },
+                  ),
+                  const SizedBox(width: 4),
+                  ChoiceChip(
+                    label: const Text('Od trenera', style: TextStyle(fontSize: 10)),
+                    selected: _lessonCategoryFilter == 'trainer',
+                    onSelected: (val) {
+                      if (val) setState(() => _lessonCategoryFilter = 'trainer');
+                    },
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
-              Expanded(
-                child: isLoadingLessons
-                    ? const Center(child: CircularProgressIndicator())
-                    : lessons.isEmpty
-                        ? const Center(
+              isLoadingLessons
+                  ? const Center(child: Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator()))
+                  : () {
+                      final displayedLessons = lessons.where((l) {
+                        if (_lessonCategoryFilter == 'mine') {
+                          return l['is_trainer_lesson'] != true;
+                        } else if (_lessonCategoryFilter == 'trainer') {
+                          return l['is_trainer_lesson'] == true;
+                        }
+                        return true;
+                      }).toList();
+
+                      if (displayedLessons.isEmpty) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
                             child: Text(
-                              'Nema sačuvanih lekcija.',
+                              'Nema sačuvanih lekcija u ovoj kategoriji.',
                               style: TextStyle(color: Colors.grey),
                             ),
-                          )
-                        : ListView.builder(
-                            itemCount: lessons.length,
-                            itemBuilder: (context, index) {
-                              final lesson = lessons[index];
-                              return Card(
-                                margin: const EdgeInsets.symmetric(vertical: 4),
-                                child: ListTile(
-                                  title: Text(
-                                    lesson['title'],
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      if (lesson['description'] != null && lesson['description'].toString().isNotEmpty) ...[
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          lesson['description'],
-                                          style: const TextStyle(fontSize: 11, color: Colors.grey),
-                                        ),
-                                      ],
-                                      if (lesson['tags'] != null && (lesson['tags'] as List).isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Wrap(
-                                          spacing: 4,
-                                          runSpacing: 4,
-                                          children: (lesson['tags'] as List).map<Widget>((t) {
-                                            return Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.blueGrey.withOpacity(0.2),
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                t.toString(),
-                                                style: const TextStyle(fontSize: 9, color: Colors.blueAccent),
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ],
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Kreirano: ${lesson['created_at'].toString().split('T')[0]}',
-                                        style: const TextStyle(fontSize: 10, color: Colors.grey),
-                                      ),
-                                    ],
-                                  ),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.play_circle_fill, color: Colors.green),
-                                    onPressed: () => loadLessonPosition(lesson['fen'], lesson['pgn']),
-                                    tooltip: 'Učitaj lekciju',
-                                  ),
-                                ),
-                              );
-                            },
                           ),
-              ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: displayedLessons.length,
+                        itemBuilder: (context, index) {
+                          final lesson = displayedLessons[index];
+                          final isTrainerLesson = lesson['is_trainer_lesson'] == true;
+                          final positionList = lesson['position_list'];
+                          final isCourse = positionList != null && (positionList is List) && positionList.isNotEmpty;
+
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            child: ListTile(
+                              leading: Icon(
+                                isCourse
+                                    ? Icons.collections_bookmark
+                                    : (isTrainerLesson ? Icons.school : Icons.person),
+                                color: isCourse
+                                    ? Colors.deepPurpleAccent
+                                    : (isTrainerLesson ? Colors.amberAccent : Colors.tealAccent),
+                              ),
+                              title: Text(
+                                lesson['title'],
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (isTrainerLesson)
+                                    const Text(
+                                      'Sačuvana lekcija od trenera',
+                                      style: TextStyle(fontSize: 10, color: Colors.amberAccent, fontWeight: FontWeight.bold),
+                                    ),
+                                  if (isCourse)
+                                    Text(
+                                      'Kurs od ${positionList.length} pozicija',
+                                      style: const TextStyle(fontSize: 10, color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold),
+                                    ),
+                                  if (lesson['description'] != null && lesson['description'].toString().isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      lesson['description'],
+                                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              onTap: () {
+                                if (isCourse) {
+                                  final firstPos = positionList[0];
+                                  loadLessonPosition(firstPos['fen'], firstPos['pgn']);
+                                  _showSuccess('Učitana 1. pozicija iz kursa: "${firstPos['title'] ?? lesson['title']}"');
+                                } else {
+                                  loadLessonPosition(lesson['fen'], lesson['pgn']);
+                                }
+                              },
+                            ),
+                          );
+                        },
+                      );
+                    }(),
             ],
           ),
         ),
@@ -2370,8 +2231,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     // Right Sidebar Content (Controls & History)
     Widget buildRightSidebar() {
-      final isTrener = widget.userSession.role == 'trener';
-      final isAllowedToUseEngine = isTrener || allowStudentEngine;
+      final isTrener = activeRole == 'trener';
+      final isStudio = widget.roomCode == 'STUDIO';
 
       return Container(
         width: isWide ? 300 : double.infinity,
@@ -2382,12 +2243,95 @@ class _ChessGamePageState extends State<ChessGamePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Kontrola i Istorija',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                isStudio ? 'Studio Kontrole' : 'Kontrola i Istorija',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              if (isTrener) ...[
+
+              if (isStudio) ...[
+                ElevatedButton.icon(
+                  onPressed: _toggleLocalOrientation,
+                  icon: const Icon(Icons.flip),
+                  label: const Text('Okreni tablu'),
+                ),
+                const SizedBox(height: 12),
+                const Divider(height: 12),
+                const Text(
+                  'Crtanje strelica',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            isDrawingMode = !isDrawingMode;
+                            drawingStartSquare = null;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isDrawingMode ? Colors.teal : Colors.deepPurple.withValues(alpha: 0.3),
+                        ),
+                        icon: Icon(isDrawingMode ? Icons.check : Icons.gesture),
+                        label: Text(isDrawingMode ? 'Završi crtanje' : 'Crtaj strelice'),
+                      ),
+                    ),
+                  ],
+                ),
+                if (isDrawingMode) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildColorButton('G', Colors.green, 'Zelena'),
+                      _buildColorButton('R', Colors.red, 'Crvena'),
+                      _buildColorButton('B', Colors.blue, 'Plava'),
+                      _buildColorButton('O', Colors.orange, 'Narandžasta'),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            moveTree.current.arrows.clear();
+                            drawingStartSquare = null;
+                          });
+                          _recordEvent('arrow_drawn', {'arrows': <Map<String, dynamic>>[]});
+                        },
+                        icon: const Icon(Icons.layers_clear, size: 16),
+                        label: const Text('Izbriši strelice', style: TextStyle(fontSize: 12)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  color: Colors.indigo.withValues(alpha: 0.15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  child: const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.architecture, color: Colors.indigoAccent, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Studio Režim (Samostalan rad - Učionica isključena)',
+                            style: TextStyle(fontSize: 11, color: Colors.indigoAccent, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ] else if (isTrener) ...[
                 DropdownButtonFormField<String>(
                   initialValue: boardControl,
                   decoration: const InputDecoration(
@@ -2472,7 +2416,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           });
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isDrawingMode ? Colors.teal : Colors.deepPurple.withOpacity(0.3),
+                          backgroundColor: isDrawingMode ? Colors.teal : Colors.deepPurple.withValues(alpha: 0.3),
                         ),
                         icon: Icon(isDrawingMode ? Icons.check : Icons.gesture),
                         label: Text(isDrawingMode ? 'Završi crtanje' : 'Crtaj strelice'),
@@ -2502,6 +2446,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             moveTree.current.arrows.clear();
                             drawingStartSquare = null;
                           });
+                          _recordEvent('arrow_drawn', {'arrows': <Map<String, dynamic>>[]});
                           socket.emit('pgn_loaded', {
                             'roomId': widget.roomCode,
                             'pgn': moveTree.exportToPgn(),
@@ -2562,392 +2507,337 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ],
                 ),
               ],
-              const Divider(height: 24),
-              Card(
-                color: Colors.deepPurple.withOpacity(0.15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.psychology, color: Colors.tealAccent),
-                              const SizedBox(width: 8),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Text(
-                                        'Stockfish Analiza',
-                                        style: TextStyle(fontWeight: FontWeight.bold),
-                                      ),
-                                      if (!kIsWeb && Platform.isWindows) ...[
-                                        const SizedBox(width: 6),
-                                        GestureDetector(
-                                          onTap: _showEngineSettingsDialog,
-                                          child: const MouseRegion(
-                                            cursor: SystemMouseCursors.click,
-                                            child: Icon(
-                                              Icons.settings,
-                                              size: 14,
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                  Text(
-                                    !isAllowedToUseEngine
-                                        ? 'Zaključano od strane trenera'
-                                        : (_stockfishService.isCustomEngineActive
-                                            ? 'Sopstveni lokalni engine'
-                                            : (_stockfishService.isOnline ? 'Online (Cloud)' : 'Lokalni Engine')),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: !isAllowedToUseEngine ? Colors.redAccent : Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          Switch(
-                            value: isEngineEnabled,
-                            activeThumbColor: Colors.tealAccent,
-                            activeTrackColor: Colors.tealAccent.withOpacity(0.5),
-                            onChanged: isAllowedToUseEngine
-                                ? (val) async {
-                                    setState(() {
-                                      isEngineEnabled = val;
-                                    });
-                                    if (isEngineEnabled) {
-                                      await _stockfishService.initEngine();
-                                      _triggerEngineAnalysis();
-                                    } else {
-                                      _stockfishService.dispose();
-                                      setState(() {
-                                        currentEngineEval = "0.00";
-                                        bestEngineMove = "-";
-                                        engineLines.clear();
-                                      });
-                                    }
-                                  }
-                                : null,
-                          ),
-                        ],
-                      ),
-                      if (isEngineEnabled) ...[
-                        const SizedBox(height: 8),
+
+              if (!isStudio) ...[
+                const SizedBox(height: 12),
+                Card(
+                  color: Colors.amber.withValues(alpha: 0.08),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Column(
-                              children: [
-                                const Text('Ocena', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                                const SizedBox(height: 4),
-                                Text(
-                                  currentEngineEval,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: currentEngineEval.startsWith('+') || currentEngineEval.startsWith('M')
-                                        ? Colors.greenAccent
-                                        : currentEngineEval.startsWith('-')
-                                            ? Colors.redAccent
-                                            : Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(width: 1, height: 30, color: Colors.grey.withOpacity(0.3)),
-                            Column(
-                              children: [
-                                const Text('Najbolji potez', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                                const SizedBox(height: 4),
-                                Text(
-                                  bestEngineMove,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.tealAccent,
-                                  ),
-                                ),
-                              ],
+                          children: const [
+                            Icon(Icons.people, color: Colors.amber, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'Prisutni u učionici',
+                              style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
-                        _buildContinuationRow(),
-                        const SizedBox(height: 12),
-                        const Divider(height: 1, color: Colors.grey),
                         const SizedBox(height: 8),
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Brzina / Dubina analize:',
-                            style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
+                        if (roomMembers.isEmpty)
+                          const Text(
+                            'Učitavanje prisutnih...',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          )
+                        else
+                          ...roomMembers.map<Widget>((member) {
+                            final isMe = member['userId'] == widget.userSession.id;
+                            final isMemberTrainer = member['role'] == 'trener';
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.fiber_manual_record, color: Colors.greenAccent, size: 8),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${member['name']} ${isMe ? "(Ja)" : ""} ${isMemberTrainer ? "[Trener]" : "[Učenik]"}',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  ),
+                                  if (isTrener && !isMe) ...[
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert, size: 16),
+                                      tooltip: 'Promeni ulogu',
+                                      onSelected: (newRole) {
+                                        socket.emit('change_user_role', {
+                                          'roomId': widget.roomCode,
+                                          'targetUserId': member['userId'],
+                                          'newRole': newRole,
+                                        });
+                                      },
+                                      itemBuilder: (ctx) => [
+                                        if (!isMemberTrainer)
+                                          const PopupMenuItem(
+                                            value: 'trener',
+                                            child: Text('Promoviši u Trenera (Co-host)', style: TextStyle(fontSize: 12)),
+                                          )
+                                        else
+                                          const PopupMenuItem(
+                                            value: 'ucenik',
+                                            child: Text('Vrati u Učenika', style: TextStyle(fontSize: 12)),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          if (isTrener && !isStudio) ...[
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: _showInSessionInviteFriendsDialog,
+                                icon: const Icon(Icons.person_add, size: 14),
+                                label: const Text('Pozovi prijatelje u sesiju', style: TextStyle(fontSize: 11)),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.tealAccent,
+                                  side: const BorderSide(color: Colors.tealAccent),
+                                ),
+                              ),
+                            ),
+                          ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  color: Colors.blueGrey.withValues(alpha: 0.15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _buildThinkingModeButton('fast', 'Brzi (D10)'),
-                            _buildThinkingModeButton('deep', 'Duboki (D16)'),
-                            _buildThinkingModeButton('infinite', 'Neprekidni', isLocalOnly: true),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Card(
-                color: Colors.amber.withOpacity(0.08),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: const [
-                          Icon(Icons.people, color: Colors.amber, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'Prisutni u učionici',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      if (roomMembers.isEmpty)
-                        const Text(
-                          'Učitavanje prisutnih...',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        )
-                      else
-                        ...roomMembers.map<Widget>((member) {
-                          final isMe = member['userId'] == widget.userSession.id;
-                          final isTrainer = member['role'] == 'trener';
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4.0),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.fiber_manual_record, color: Colors.greenAccent, size: 8),
-                                const SizedBox(width: 8),
+                            Row(
+                              children: const [
+                                Icon(Icons.mic, color: Colors.blueAccent),
+                                SizedBox(width: 8),
                                 Text(
-                                  '${member['name']} ${isMe ? "(Ja)" : ""} ${isTrainer ? "[Predavač]" : ""}',
-                                  style: const TextStyle(fontSize: 12),
+                                  'Audio Učionica',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
-                          );
-                        }).toList(),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Card(
-                color: Colors.blueGrey.withOpacity(0.15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
+                            if (isAudioConnecting)
+                              const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blueAccent),
+                              )
+                            else if (audioError != null)
+                              const Icon(Icons.warning, color: Colors.redAccent, size: 16)
+                            else
+                              const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        if (audioError != null) ...[
+                          Text(
+                            audioError!,
+                            style: const TextStyle(color: Colors.redAccent, fontSize: 11),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        if (!isAudioConnecting && audioError == null) ...[
                           Row(
-                            children: const [
-                              Icon(Icons.mic, color: Colors.blueAccent),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Audio Učionica',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _toggleLocalMute,
+                                  icon: Icon(isAudioMuted ? Icons.mic_off : Icons.mic),
+                                  label: Text(isAudioMuted ? 'Uključi mikrofon' : 'Utišaj me'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isAudioMuted ? Colors.redAccent.withValues(alpha: 0.2) : Colors.green.withValues(alpha: 0.2),
+                                    foregroundColor: isAudioMuted ? Colors.redAccent : Colors.greenAccent,
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                          if (isAudioConnecting)
-                            const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blueAccent),
-                            )
-                          else if (audioError != null)
-                            const Icon(Icons.warning, color: Colors.redAccent, size: 16)
-                          else
-                            const Icon(Icons.check_circle, color: Colors.green, size: 16),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      if (audioError != null) ...[
-                        Text(
-                          audioError!,
-                          style: const TextStyle(color: Colors.redAccent, fontSize: 11),
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                      if (!isAudioConnecting && audioError == null) ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _toggleLocalMute,
-                                icon: Icon(isAudioMuted ? Icons.mic_off : Icons.mic),
-                                label: Text(isAudioMuted ? 'Uključi mikrofon' : 'Utišaj me'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isAudioMuted ? Colors.redAccent.withOpacity(0.2) : Colors.green.withOpacity(0.2),
-                                  foregroundColor: isAudioMuted ? Colors.redAccent : Colors.greenAccent,
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Učesnici u audio razgovoru:',
-                          style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 6),
-                        ...audioUsers.map<Widget>((user) {
-                          final isUserMuted = user['isMuted'] ?? false;
-                          final isUserTalking = activeSpeakers.contains(user['userId']);
-                          final isUserTrainer = user['role'] == 'trener';
-                          final isMe = user['userId'] == widget.userSession.id;
-                          final userHandRaised = user['handRaised'] ?? false;
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Učesnici u audio razgovoru:',
+                            style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 6),
+                          ...audioUsers.map<Widget>((user) {
+                            final isUserMuted = user['isMuted'] ?? false;
+                            final isUserTalking = activeSpeakers.contains(user['userId']);
+                            final isUserTrainer = user['role'] == 'trener';
+                            final isMe = user['userId'] == widget.userSession.id;
 
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      isUserTalking
-                                          ? Icons.volume_up
-                                          : (isUserMuted ? Icons.mic_off : Icons.mic),
-                                      color: isUserTalking
-                                          ? Colors.greenAccent
-                                          : (isUserMuted ? Colors.redAccent : Colors.grey),
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      '${user['userName']} ${isMe ? '(Ja)' : ''} ${isUserTrainer ? '[Predavač]' : ''}',
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isUserMuted ? Icons.mic_off : Icons.mic,
+                                    size: 16,
+                                    color: isUserTalking ? Colors.greenAccent : (isUserMuted ? Colors.redAccent : Colors.grey),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${user['userName']} ${isMe ? "(Ja)" : ""} ${isUserTrainer ? "[Trener]" : ""}',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: isUserTalking ? FontWeight.bold : FontWeight.normal,
                                         color: isUserTalking ? Colors.greenAccent : Colors.white,
                                       ),
                                     ),
-                                    if (userHandRaised) ...[
-                                      const SizedBox(width: 6),
-                                      const Icon(Icons.pan_tool, color: Colors.orangeAccent, size: 14),
-                                    ],
-                                  ],
-                                ),
-                                if (widget.userSession.role == 'trener' && !isUserTrainer)
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      if (userHandRaised)
-                                        IconButton(
-                                          icon: const Icon(Icons.check, color: Colors.green, size: 16),
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                          onPressed: () {
-                                            socket.emit('audio_allow_speech', {
-                                              'roomId': widget.roomCode,
-                                              'targetUserId': user['userId'],
-                                            });
-                                          },
-                                          tooltip: 'Dozvoli reč',
-                                        ),
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        icon: Icon(
-                                          isUserMuted ? Icons.mic : Icons.mic_off,
-                                          color: isUserMuted ? Colors.grey : Colors.redAccent,
-                                          size: 16,
-                                        ),
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                        onPressed: () {
-                                          if (isUserMuted) {
-                                            socket.emit('audio_allow_speech', {
-                                              'roomId': widget.roomCode,
-                                              'targetUserId': user['userId'],
-                                            });
-                                          } else {
-                                            socket.emit('audio_mute_student', {
-                                              'roomId': widget.roomCode,
-                                              'targetUserId': user['userId'],
-                                            });
-                                          }
-                                        },
-                                        tooltip: isUserMuted ? 'Oduzmi utišanje' : 'Utišaj učenika',
-                                      ),
-                                    ],
                                   ),
-                              ],
+                                  if (isTrener && !isMe)
+                                    IconButton(
+                                      icon: Icon(isUserMuted ? Icons.volume_off : Icons.volume_up, size: 16),
+                                      onPressed: () {
+                                        if (isUserMuted) {
+                                          socket.emit('audio_allow_speech', {
+                                            'roomId': widget.roomCode,
+                                            'targetUserId': user['userId'],
+                                          });
+                                        } else {
+                                          socket.emit('audio_mute_student', {
+                                            'roomId': widget.roomCode,
+                                            'targetUserId': user['userId'],
+                                          });
+                                        }
+                                      },
+                                      tooltip: isUserMuted ? 'Oduzmi utišanje' : 'Utišaj učenika',
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          if (audioUsers.isEmpty)
+                            const Text(
+                              'Nema povezanih korisnika.',
+                              style: TextStyle(fontSize: 11, color: Colors.grey),
                             ),
-                          );
-                        }).toList(),
-                        if (audioUsers.isEmpty)
-                          const Text(
-                            'Nema povezanih korisnika.',
-                            style: TextStyle(fontSize: 11, color: Colors.grey),
-                          ),
-                        if (widget.userSession.role == 'trener' && audioUsers.length > 1) ...[
-                          const SizedBox(height: 12),
-                          ElevatedButton(
-                            onPressed: () {
-                              socket.emit('audio_mute_all_students', {'roomId': widget.roomCode});
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.withOpacity(0.15),
-                              foregroundColor: Colors.redAccent,
+                          if (widget.userSession.role == 'trener' && audioUsers.length > 1) ...[
+                            const SizedBox(height: 12),
+                            ElevatedButton(
+                              onPressed: () {
+                                socket.emit('audio_mute_all_students', {'roomId': widget.roomCode});
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.withValues(alpha: 0.15),
+                                foregroundColor: Colors.redAccent,
+                              ),
+                              child: const Text('Utišaj sve učenike'),
                             ),
-                            child: const Text('Utišaj sve učenike'),
-                          ),
-                        ],
-                        if (widget.userSession.role == 'ucenik' && isAudioMuted && isHandRaised) ...[
-                          const SizedBox(height: 8),
-                          const Center(
-                            child: Text(
-                              'Utišani ste. Ruka je podignuta...',
-                              style: TextStyle(color: Colors.orangeAccent, fontSize: 11),
+                          ],
+                          if (widget.userSession.role == 'ucenik' && isAudioMuted && isHandRaised) ...[
+                            const SizedBox(height: 8),
+                            const Center(
+                              child: Text(
+                                'Utišani ste. Ruka je podignuta...',
+                                style: TextStyle(color: Colors.orangeAccent, fontSize: 11),
+                              ),
                             ),
-                          ),
-                        ] else if (widget.userSession.role == 'ucenik' && isAudioMuted) ...[
-                          const SizedBox(height: 8),
-                          ElevatedButton.icon(
-                            onPressed: _raiseHand,
-                            icon: const Icon(Icons.pan_tool, size: 14),
-                            label: const Text('Podigni ruku za reč'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange.withOpacity(0.2),
-                              foregroundColor: Colors.orangeAccent,
+                          ] else if (widget.userSession.role == 'ucenik' && isAudioMuted) ...[
+                            const SizedBox(height: 8),
+                            ElevatedButton.icon(
+                              onPressed: _raiseHand,
+                              icon: const Icon(Icons.pan_tool, size: 14),
+                              label: const Text('Podigni ruku za reč'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange.withValues(alpha: 0.2),
+                                foregroundColor: Colors.orangeAccent,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              const Divider(height: 24),
+              ],
+
+                if (isTrener && !isStudio) ...[
+                  const SizedBox(height: 12),
+                  Card(
+                    color: isRecording ? Colors.red.withValues(alpha: 0.15) : Colors.deepPurple.withValues(alpha: 0.15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                isRecording
+                                    ? (isRecordingPaused ? Icons.pause_circle_filled : Icons.fiber_manual_record)
+                                    : Icons.videocam,
+                                color: isRecording
+                                    ? (isRecordingPaused ? Colors.orangeAccent : Colors.redAccent)
+                                    : Colors.deepPurpleAccent,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isRecording
+                                    ? (isRecordingPaused ? 'Snimanje PAUZIRANO' : 'Snimanje U TOKU...')
+                                    : 'Snimanje časa (Timeline)',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isRecording
+                                      ? (isRecordingPaused ? Colors.orangeAccent : Colors.redAccent)
+                                      : Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          if (isRecording) ...[
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: isRecordingPaused ? _resumeRecording : _pauseRecording,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: isRecordingPaused ? Colors.greenAccent : Colors.orangeAccent,
+                                      side: BorderSide(color: isRecordingPaused ? Colors.greenAccent : Colors.orangeAccent),
+                                    ),
+                                    icon: Icon(isRecordingPaused ? Icons.play_arrow : Icons.pause, size: 14),
+                                    label: Text(isRecordingPaused ? 'Nastavi' : 'Pauziraj', style: const TextStyle(fontSize: 12)),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _stopRecording,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.redAccent,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    icon: const Icon(Icons.stop, color: Colors.white, size: 14),
+                                    label: const Text('Sačuvaj', style: TextStyle(fontSize: 12)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            ElevatedButton.icon(
+                              onPressed: _startRecording,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepPurpleAccent,
+                                foregroundColor: Colors.white,
+                              ),
+                              icon: const Icon(Icons.fiber_manual_record, color: Colors.white, size: 16),
+                              label: const Text('Započni snimanje časa'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+
+                const Divider(height: 24),
               const Text(
                 'Potezi',
                 style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
@@ -3038,6 +2928,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             width: boardSize,
                             child: buildNavigationControls(),
                           ),
+                          const SizedBox(height: 8),
+                          // Stockfish analysis widget directly UNDER board
+                          SizedBox(
+                            width: boardSize,
+                            child: _buildStockfishAnalysisWidget(),
+                          ),
                         ],
                       ),
                     ),
@@ -3064,6 +2960,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     width: boardSize,
                     child: buildNavigationControls(),
                   ),
+                  const SizedBox(height: 8),
+                  // Stockfish analysis widget directly UNDER board on mobile
+                  SizedBox(
+                    width: boardSize,
+                    child: _buildStockfishAnalysisWidget(),
+                  ),
                   const SizedBox(height: 16),
                   // In Mobile mode, we present Right Sidebar content as a card beneath the board
                   Padding(
@@ -3077,144 +2979,4 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 }
 
-Offset getSquareCenter(String square, double boardSize, PlayerColor orientation) {
-  if (square.length < 2) return Offset.zero;
-  final file = square.codeUnitAt(0) - 'a'.codeUnitAt(0); // 0 to 7
-  final rank = int.parse(square[1]) - 1; // 0 to 7
 
-  double col = file.toDouble();
-  double row = 7.0 - rank.toDouble();
-
-  if (orientation == PlayerColor.black) {
-    col = 7.0 - file.toDouble();
-    row = rank.toDouble();
-  }
-
-  final squareSize = boardSize / 8;
-  final x = col * squareSize + squareSize / 2;
-  final y = row * squareSize + squareSize / 2;
-
-  return Offset(x, y);
-}
-
-String getSquareFromOffset(Offset localOffset, double boardSize, PlayerColor orientation) {
-  final squareSize = boardSize / 8;
-  int col = (localOffset.dx / squareSize).floor();
-  int row = (localOffset.dy / squareSize).floor();
-
-  if (col < 0) col = 0;
-  if (col > 7) col = 7;
-  if (row < 0) row = 0;
-  if (row > 7) row = 7;
-
-  int fileIndex = col;
-  int rankIndex = 7 - row;
-
-  if (orientation == PlayerColor.black) {
-    fileIndex = 7 - col;
-    rankIndex = row;
-  }
-
-  final file = String.fromCharCode('a'.codeUnitAt(0) + fileIndex);
-  final rank = rankIndex + 1;
-
-  return '$file$rank';
-}
-
-class ChessBoardPainter extends CustomPainter {
-  final List<ChessArrow> arrows;
-  final double boardSize;
-  final PlayerColor orientation;
-  final String? highlightedSquare;
-
-  ChessBoardPainter({
-    required this.arrows,
-    required this.boardSize,
-    required this.orientation,
-    this.highlightedSquare,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final squareSize = boardSize / 8;
-
-    // Draw highlighted starting square for drawing mode
-    if (highlightedSquare != null) {
-      final center = getSquareCenter(highlightedSquare!, boardSize, orientation);
-      final paint = Paint()
-        ..color = Colors.tealAccent.withOpacity(0.4)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(center, squareSize * 0.4, paint);
-    }
-
-    // Draw arrows
-    for (final arrow in arrows) {
-      final start = getSquareCenter(arrow.from, boardSize, orientation);
-      final end = getSquareCenter(arrow.to, boardSize, orientation);
-
-      if (start == Offset.zero || end == Offset.zero) continue;
-
-      final ui.Color color = _getColor(arrow.colorCode);
-      final paint = Paint()
-        ..color = color.withOpacity(0.75)
-        ..strokeWidth = 6.0
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round;
-
-      // Draw line
-      canvas.drawLine(start, end, paint);
-
-      // Draw arrowhead
-      final dir = end - start;
-      final length = dir.distance;
-      if (length < 5) continue;
-
-      final u = dir / length; // Unit vector
-      final headLength = 16.0;
-      final headWidth = 10.0;
-
-      // Point back along the line
-      final backPoint = end - u * headLength;
-      
-      // Orthogonal vectors for arrowhead sides
-      final ortho = Offset(-u.dy, u.dx);
-      final p1 = backPoint + ortho * headWidth;
-      final p2 = backPoint - ortho * headWidth;
-
-      final path = Path()
-        ..moveTo(end.dx, end.dy)
-        ..lineTo(p1.dx, p1.dy)
-        ..lineTo(p2.dx, p2.dy)
-        ..close();
-
-      final headPaint = Paint()
-        ..color = color.withOpacity(0.75)
-        ..style = PaintingStyle.fill;
-
-      canvas.drawPath(path, headPaint);
-    }
-  }
-
-  ui.Color _getColor(String code) {
-    switch (code) {
-      case 'R':
-        return Colors.red;
-      case 'G':
-        return Colors.green;
-      case 'B':
-        return Colors.blue;
-      case 'O':
-        return Colors.orange;
-      default:
-        return Colors.tealAccent;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant ChessBoardPainter oldDelegate) {
-    return oldDelegate.arrows != arrows ||
-        oldDelegate.boardSize != boardSize ||
-        oldDelegate.orientation != orientation ||
-        oldDelegate.highlightedSquare != highlightedSquare;
-  }
-}

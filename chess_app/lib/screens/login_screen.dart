@@ -7,6 +7,8 @@ import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/home_screen.dart';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class LoginRegisterScreen extends StatefulWidget {
   const LoginRegisterScreen({super.key});
 
@@ -20,7 +22,11 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
+  late final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: (kIsWeb && googleWebClientId.isNotEmpty) ? googleWebClientId : null,
+    serverClientId: googleWebClientId.isNotEmpty ? googleWebClientId : null,
+    scopes: ['email'],
+  );
   
   bool _isLogin = true;
   String _role = 'ucenik'; // Default role is student ('ucenik')
@@ -28,30 +34,39 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   bool _rememberMe = false;
 
   Future<void> _handleGoogleSignIn() async {
+    if (kIsWeb && googleWebClientId.isEmpty) {
+      _showError('Google Sign-In na Webu zahteva Web ClientID u constants.dart ili web/index.html.');
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser != null) {
         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
         final String? idToken = googleAuth.idToken;
+        final String? accessToken = googleAuth.accessToken;
 
-        if (idToken != null) {
-          final response = await http.post(
-            Uri.parse('$backendUrl/auth/google'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'idToken': idToken}),
-          );
+        final Map<String, dynamic> reqPayload = {
+          if (idToken != null && idToken.isNotEmpty) 'idToken': idToken,
+          if (accessToken != null && accessToken.isNotEmpty) 'accessToken': accessToken,
+          'email': googleUser.email,
+          'name': googleUser.displayName,
+        };
 
-          final data = jsonDecode(response.body);
-          if (response.statusCode == 200) {
-            final session = UserSession.fromJson(data['user'], data['token']);
-            await _saveSession(session);
-            _navigateToHome(session);
-          } else {
-            _showError(data['error'] ?? 'Google login failed');
-          }
+        final response = await http.post(
+          Uri.parse('$backendUrl/auth/google'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(reqPayload),
+        );
+
+        final data = jsonDecode(response.body);
+        if (response.statusCode == 200) {
+          final session = UserSession.fromJson(data['user'], data['token']);
+          await _saveSession(session);
+          _navigateToHome(session);
         } else {
-          _showError('Failed to retrieve Google ID Token.');
+          _showError(data['error'] ?? 'Google prijava nije uspela.');
         }
       }
     } catch (e) {

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "425483567970",
+    "project_id": "chess-master-65e49",
+    "storage_bucket": "chess-master-65e49.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:425483567970:android:cfb15cfca9da27c414a23b",
+        "android_client_info": {
+          "package_name": "com.example.chess_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "425483567970-s4i4c1vjd0b7487v7jt102i3l9hl9odj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.chess_app",
+            "certificate_hash": "3af4701640c04513331af93a6b17cd602a1f1b49"
+          }
+        },
+        {
+          "client_id": "425483567970-jgkipp2dfqmc40kvacn2aginpjnph28s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqs4BGQo4iE5VSrZcfw4p6ppp58IN62Oo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "425483567970-jgkipp2dfqmc40kvacn2aginpjnph28s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -17,6 +17,7 @@ class StockfishService {
 
   bool _isActive = false;
   int _requestId = 0;
+  String _currentFen = '';
 
   bool get isCustomEngineActive => _isCustomActive;
 
@@ -95,6 +96,7 @@ class StockfishService {
 
   /// Sends a FEN position for analysis
   Future<void> analyzePosition(String fen, {int depth = 10, bool isInfinite = false}) async {
+    _currentFen = fen;
     if (!_isActive) return;
 
     if (_useOnline) {
@@ -108,13 +110,24 @@ class StockfishService {
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           if (data['success'] == true) {
+            bool isBlackToMove = false;
+            if (fen.contains(' b ')) {
+              isBlackToMove = true;
+            }
+
             String eval = '0.00';
             if (data['mate'] != null) {
-              final mate = data['mate'] as int;
+              int mate = data['mate'] as int;
+              if (isBlackToMove) {
+                mate = -mate;
+              }
               eval = mate > 0 ? 'M$mate' : '-M${mate.abs()}';
             } else if (data['evaluation'] != null) {
-              final double score = (data['evaluation'] as num).toDouble();
-              eval = score > 0 ? '+$score' : '$score';
+              double score = (data['evaluation'] as num).toDouble();
+              if (isBlackToMove) {
+                score = -score;
+              }
+              eval = score > 0 ? '+${score.toStringAsFixed(2)}' : score.toStringAsFixed(2);
             }
 
             String bestMove = '-';
@@ -136,14 +149,10 @@ class StockfishService {
             }
           }
         }
-      } catch (_) {
-        // Ignore network errors gracefully
-      }
+      } catch (_) {}
     } else {
       if (_stockfish == null && _customProcess == null) return;
-      // Stop the previous search if it is running
       _sendCommand('stop');
-      // Set position based on FEN
       _sendCommand('position fen $fen');
       if (isInfinite) {
         _sendCommand('go infinite');
@@ -169,6 +178,11 @@ class StockfishService {
     _customProcess = null;
   }
 
+  /// Stops ongoing search without quitting engine
+  void stopAnalysis() {
+    _sendCommand('stop');
+  }
+
   /// Internal helper to send a command to Stockfish stdin
   void _sendCommand(String command) {
     if (_customProcess != null) {
@@ -184,12 +198,23 @@ class StockfishService {
     if (line.startsWith('info') && line.contains('score')) {
       String eval = '0.00';
       
+      bool isBlackToMove = false;
+      if (_currentFen.isNotEmpty) {
+        final parts = _currentFen.split(' ');
+        if (parts.length > 1 && parts[1] == 'b') {
+          isBlackToMove = true;
+        }
+      }
+
       // Mate in N moves
       if (line.contains('score mate')) {
         final regExp = RegExp(r'score mate (-?\d+)');
         final match = regExp.firstMatch(line);
         if (match != null) {
-          final mateIn = int.parse(match.group(1)!);
+          int mateIn = int.parse(match.group(1)!);
+          if (isBlackToMove) {
+            mateIn = -mateIn;
+          }
           eval = mateIn > 0 ? 'M$mateIn' : '-M${mateIn.abs()}';
         }
       } 
@@ -198,7 +223,10 @@ class StockfishService {
         final regExp = RegExp(r'score cp (-?\d+)');
         final match = regExp.firstMatch(line);
         if (match != null) {
-          final cp = int.parse(match.group(1)!);
+          int cp = int.parse(match.group(1)!);
+          if (isBlackToMove) {
+            cp = -cp;
+          }
           final scoreValue = cp / 100.0;
           eval = scoreValue > 0 ? '+${scoreValue.toStringAsFixed(2)}' : scoreValue.toStringAsFixed(2);
         }

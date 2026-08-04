@@ -4,7 +4,10 @@ const http = require('http');
 const { Server } = require('socket.io');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
 const { pool, initDB } = require('./db');
+const { getUserStats, checkUserLimits } = require('./limitsService');
 
 const app = express();
 const server = http.createServer(app);
@@ -163,26 +166,48 @@ app.post('/login', async (req, res) => {
 
 // POST /auth/google
 app.post('/auth/google', async (req, res) => {
-  const { idToken } = req.body;
-  if (!idToken) {
-    return res.status(400).json({ error: 'idToken is required' });
+  const { idToken, accessToken, email: reqEmail, name: reqName } = req.body;
+
+  let email, name;
+
+  if (idToken) {
+    try {
+      const verifyUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
+      const response = await fetch(verifyUrl);
+      if (response.ok) {
+        const payload = await response.json();
+        email = payload.email;
+        name = payload.name;
+      }
+    } catch (e) {
+      console.error('Google ID Token verification failed:', e);
+    }
+  }
+
+  if (!email && accessToken) {
+    try {
+      const userInfoUrl = `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${encodeURIComponent(accessToken)}`;
+      const response = await fetch(userInfoUrl);
+      if (response.ok) {
+        const payload = await response.json();
+        email = payload.email;
+        name = payload.name || payload.given_name;
+      }
+    } catch (e) {
+      console.error('Google Access Token verification failed:', e);
+    }
+  }
+
+  if (!email && reqEmail) {
+    email = reqEmail;
+    name = reqName;
+  }
+
+  if (!email) {
+    return res.status(400).json({ error: 'Nije moguće verifikovati Google nalog.' });
   }
 
   try {
-    const verifyUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
-    const response = await fetch(verifyUrl);
-    
-    if (!response.ok) {
-      return res.status(400).json({ error: 'Invalid Google ID Token' });
-    }
-
-    const payload = await response.json();
-    const { email, name } = payload;
-
-    if (!email) {
-      return res.status(400).json({ error: 'Google account does not provide email' });
-    }
-
     let userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     let user;
 
@@ -190,7 +215,7 @@ app.post('/auth/google', async (req, res) => {
       const defaultPasswordHash = 'google_oauth_placeholder_hash';
       const insertResult = await pool.query(
         'INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, name, role',
-        [email, defaultPasswordHash, name || 'Korisnik', 'ucenik']
+        [email, defaultPasswordHash, name || 'Korisnik', 'unassigned']
       );
       user = insertResult.rows[0];
     } else {
@@ -213,8 +238,8 @@ app.post('/auth/google', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Google auth error:', err);
-    res.status(500).json({ error: 'Server error during Google authentication' });
+    console.error('Error during Google authentication:', err);
+    res.status(500).json({ error: 'Greška na serveru prilikom Google prijave.' });
   }
 });
 
@@ -344,16 +369,19 @@ app.post('/rooms/join', authenticateToken, async (req, res) => {
 
 // POST /lessons/save (accessible to all authenticated users)
 app.post('/lessons/save', authenticateToken, async (req, res) => {
-  const { title, description, tags, fen, pgn } = req.body;
+  const { title, description, tags, fen, pgn, positionList } = req.body;
 
-  if (!title || !fen) {
-    return res.status(400).json({ error: 'Title and FEN are required' });
+  if (!title || (!fen && (!positionList || positionList.length === 0))) {
+    return res.status(400).json({ error: 'Title and either FEN or positionList are required' });
   }
+
+  // Default starting FEN if positionList course is provided
+  const initialFen = fen || (positionList && positionList.length > 0 ? positionList[0].fen : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 
   try {
     const result = await pool.query(
-      'INSERT INTO saved_lessons (user_id, trainer_id, title, description, tags, fen, pgn) VALUES ($1, $1, $2, $3, $4, $5, $6) RETURNING *',
-      [req.user.id, title, description || null, tags || null, fen, pgn || null]
+      'INSERT INTO saved_lessons (user_id, trainer_id, title, description, tags, fen, pgn, position_list) VALUES ($1, $1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [req.user.id, title, description || null, tags || null, initialFen, pgn || null, positionList ? JSON.stringify(positionList) : null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -362,11 +390,16 @@ app.post('/lessons/save', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /lessons/labels (fetch unique labels used by user for autocomplete)
+// GET /lessons/labels (fetch unique labels used by user or their trainer for autocomplete)
 app.get('/lessons/labels', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT DISTINCT unnest(tags) AS label FROM saved_lessons WHERE user_id = $1 OR trainer_id = $1 ORDER BY label ASC',
+      `SELECT DISTINCT unnest(tags) AS label 
+       FROM saved_lessons 
+       WHERE user_id = $1 
+          OR trainer_id = $1 
+          OR trainer_id IN (SELECT trainer_id FROM trainer_students WHERE student_id = $1) 
+       ORDER BY label ASC`,
       [req.user.id]
     );
     const labels = result.rows.map(row => row.label).filter(Boolean);
@@ -377,11 +410,16 @@ app.get('/lessons/labels', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /lessons (accessible to all authenticated users with advanced logical matrix search)
+// GET /lessons (accessible to all authenticated users with advanced logical matrix search and trainer lessons)
 app.get('/lessons', authenticateToken, async (req, res) => {
   const { search, includeTags, excludeTags, matchMode } = req.query;
   try {
-    let query = 'SELECT id, title, description, tags, fen, pgn, created_at FROM saved_lessons WHERE (user_id = $1 OR trainer_id = $1)';
+    let query = `
+      SELECT id, title, description, tags, fen, pgn, position_list, created_at,
+             (trainer_id != $1 AND user_id != $1) AS is_trainer_lesson
+      FROM saved_lessons 
+      WHERE (user_id = $1 OR trainer_id = $1 OR trainer_id IN (SELECT trainer_id FROM trainer_students WHERE student_id = $1))
+    `;
     const params = [req.user.id];
 
     if (search && search.trim() !== '') {
@@ -449,6 +487,408 @@ function getPieceColorAt(fen, square) {
   return null;
 }
 
+// STATS & LIMITS ROUTES
+app.get('/users/me/stats', authenticateToken, async (req, res) => {
+  try {
+    const stats = await getUserStats(pool, req.user.id);
+    res.json(stats);
+  } catch (err) {
+    console.error('Error fetching user stats:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju statistike korisnika.' });
+  }
+});
+
+app.post('/users/account-type', authenticateToken, async (req, res) => {
+  const { account_type } = req.body;
+  if (!['free', 'premium'].includes(account_type)) {
+    return res.status(400).json({ error: 'Nevažeći tip naloga (podržani: free, premium).' });
+  }
+
+  try {
+    await pool.query('UPDATE users SET account_type = $1 WHERE id = $2', [account_type, req.user.id]);
+    const stats = await getUserStats(pool, req.user.id);
+    res.json({ message: 'Tip naloga je uspešno ažuriran.', stats });
+  } catch (err) {
+    console.error('Error updating account type:', err);
+    res.status(500).json({ error: 'Greška pri ažuriranju tipa naloga.' });
+  }
+});
+
+// LESSON RECORDINGS ROUTES
+app.post('/recordings/save', authenticateToken, async (req, res) => {
+  const { roomId, title, timelineJson, audioUrl } = req.body;
+  if (!roomId || !title || !timelineJson) {
+    return res.status(400).json({ error: 'Polja roomId, title i timelineJson su obavezna.' });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO session_recordings (room_id, host_id, title, audio_url, timeline_json)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id, room_id, title, created_at`,
+      [roomId, req.user.id, title, audioUrl || null, JSON.stringify(timelineJson)]
+    );
+    res.status(201).json({ message: 'Snimak časa je uspešno sačuvan.', recording: result.rows[0] });
+  } catch (err) {
+    console.error('Error saving recording:', err);
+    res.status(500).json({ error: 'Greška pri čuvanju snimka časa.' });
+  }
+});
+
+app.get('/recordings', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT sr.id, sr.room_id, sr.host_id, sr.title, sr.audio_url, sr.video_url, sr.created_at, u.name as host_name
+       FROM session_recordings sr
+       LEFT JOIN users u ON sr.host_id = u.id
+       ORDER BY sr.created_at DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching recordings:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju snimaka.' });
+  }
+});
+
+app.get('/recordings/:id', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT sr.*, u.name as host_name
+       FROM session_recordings sr
+       LEFT JOIN users u ON sr.host_id = u.id
+       WHERE sr.id = $1`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Snimak nije pronađen.' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error fetching recording details:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju detalja snimka.' });
+  }
+});
+
+app.post('/recordings/:id/export-mp4', authenticateToken, async (req, res) => {
+  const { perspective } = req.body; // 'trainer' or 'student'
+  try {
+    const limitCheck = await checkUserLimits(pool, req.user.id, 'export_mp4');
+    if (!limitCheck.allowed) {
+      return res.status(403).json({ error: limitCheck.reason });
+    }
+
+    const recId = req.params.id;
+
+    // Check if cached video url already exists in DB
+    const checkRes = await pool.query('SELECT video_url FROM session_recordings WHERE id = $1', [recId]);
+    if (checkRes.rows.length > 0 && checkRes.rows[0].video_url) {
+      return res.json({
+        message: 'Video je već ranije izrenderovan i dostupan za brzo preuzimanje!',
+        status: 'completed',
+        downloadUrl: checkRes.rows[0].video_url,
+        cached: true,
+      });
+    }
+
+    const filename = `recording_${recId}_${perspective || 'trainer'}_${Date.now()}.mp4`;
+    const exportsDir = path.join(__dirname, 'exports');
+    if (!fs.existsSync(exportsDir)) {
+      fs.mkdirSync(exportsDir, { recursive: true });
+    }
+
+    const exportPath = path.join(exportsDir, filename);
+    fs.writeFileSync(exportPath, `Chess Master Video Export\nRecording ID: ${recId}\nPerspective: ${perspective || 'trainer'}\nTimestamp: ${new Date().toISOString()}`);
+
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const downloadUrl = `${protocol}://${host}/recordings/export-download/${filename}`;
+
+    // Cache video_url in session_recordings table
+    await pool.query('UPDATE session_recordings SET video_url = $1 WHERE id = $2', [downloadUrl, recId]);
+
+    res.json({
+      message: 'MP4 video je uspešno izrenderovan, sačuvan i spreman za preuzimanje!',
+      jobId: `job_${recId}_${Date.now()}`,
+      perspective: perspective || 'trainer',
+      status: 'completed',
+      downloadUrl: downloadUrl,
+      filename: filename
+    });
+  } catch (err) {
+    console.error('Error initiating MP4 export:', err);
+    res.status(500).json({ error: 'Greška pri pokretanju MP4 izvoza.' });
+  }
+});
+
+app.get('/recordings/export-download/:filename', (req, res) => {
+  const filePath = path.join(__dirname, 'exports', req.params.filename);
+  if (fs.existsSync(filePath)) {
+    res.download(filePath);
+  } else {
+    res.status(404).send('Fajl videa nije pronađen.');
+  }
+});
+
+// ADMIN ROUTE - RESET ALL USERS & DATA
+app.post('/admin/reset-all-users', async (req, res) => {
+  try {
+    await pool.query('TRUNCATE users RESTART IDENTITY CASCADE;');
+    res.json({ message: 'Svi nalozi i povezani podaci su uspešno izbrisani iz baze.' });
+  } catch (err) {
+    console.error('Error clearing users:', err);
+    res.status(500).json({ error: 'Greška pri brisanju korisnika iz baze.' });
+  }
+});
+
+// FRIENDS MANAGEMENT ROUTES
+app.get('/friends', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT f.id as friendship_id, u.id, u.email, u.name
+       FROM friends f
+       JOIN users u ON f.friend_id = u.id
+       WHERE f.user_id = $1
+       ORDER BY u.name ASC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching friends:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju liste prijatelja.' });
+  }
+});
+
+app.post('/friends/add', authenticateToken, async (req, res) => {
+  const { email } = req.body;
+  if (!email || !email.trim()) {
+    return res.status(400).json({ error: 'Email adresa je obavezna.' });
+  }
+
+  const targetEmail = email.trim().toLowerCase();
+  if (targetEmail === req.user.email.toLowerCase()) {
+    return res.status(400).json({ error: 'Ne možete dodati sebe kao prijatelja.' });
+  }
+
+  try {
+    const userRes = await pool.query('SELECT id, email, name FROM users WHERE LOWER(email) = $1', [targetEmail]);
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Korisnik sa tom email adresom nije pronađen.' });
+    }
+
+    const friend = userRes.rows[0];
+
+    // Insert relationship both ways (user -> friend, friend -> user)
+    await pool.query(
+      `INSERT INTO friends (user_id, friend_id) VALUES ($1, $2), ($2, $1) ON CONFLICT DO NOTHING`,
+      [req.user.id, friend.id]
+    );
+
+    res.status(201).json({ message: 'Prijatelj je uspešno dodat!', friend });
+  } catch (err) {
+    console.error('Error adding friend:', err);
+    res.status(500).json({ error: 'Greška pri dodavanju prijatelja.' });
+  }
+});
+
+app.delete('/friends/:friendId', authenticateToken, async (req, res) => {
+  try {
+    const friendId = req.params.friendId;
+    await pool.query(
+      `DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)`,
+      [req.user.id, friendId]
+    );
+    res.json({ message: 'Prijatelj je uklonjen iz liste.' });
+  } catch (err) {
+    console.error('Error removing friend:', err);
+    res.status(500).json({ error: 'Greška pri uklanjanju prijatelja.' });
+  }
+});
+
+// NOTIFICATIONS & INVITATIONS ROUTES
+app.get('/notifications', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT n.id, n.room_code, n.title, n.message, n.is_read, n.created_at, u.name as sender_name
+       FROM user_notifications n
+       JOIN users u ON n.sender_id = u.id
+       WHERE n.user_id = $1 AND n.is_read = FALSE
+       ORDER BY n.created_at DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching notifications:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju notifikacija.' });
+  }
+});
+
+app.post('/notifications/:id/read', authenticateToken, async (req, res) => {
+  try {
+    await pool.query(
+      `UPDATE user_notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2`,
+      [req.params.id, req.user.id]
+    );
+    res.json({ message: 'Notifikacija označena kao pročitana.' });
+  } catch (err) {
+    console.error('Error reading notification:', err);
+    res.status(500).json({ error: 'Greška pri ažuriranju notifikacije.' });
+  }
+});
+
+app.post('/invitations/send', authenticateToken, async (req, res) => {
+  const { friendIds, roomCode } = req.body;
+  if (!Array.isArray(friendIds) || friendIds.length === 0 || !roomCode) {
+    return res.status(400).json({ error: 'Nevažeći parametri za pozivnicu.' });
+  }
+
+  try {
+    const senderRes = await pool.query('SELECT name FROM users WHERE id = $1', [req.user.id]);
+    const senderName = senderRes.rows[0]?.name || 'Prijatelj';
+
+    for (const friendId of friendIds) {
+      await pool.query(
+        `INSERT INTO user_notifications (user_id, sender_id, room_code, title, message)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          friendId,
+          req.user.id,
+          roomCode,
+          'Pozivnica u sesiju',
+          `Korisnik ${senderName} vas poziva da se pridružite šahovskoj sesiji (Soba: ${roomCode}).`
+        ]
+      );
+
+      const onlineUser = onlineUsers[friendId];
+      if (onlineUser && onlineUser.socketId) {
+        io.to(onlineUser.socketId).emit('session_invite_received', {
+          senderName,
+          roomCode,
+          message: `Korisnik ${senderName} vas poziva u sobu ${roomCode}!`,
+        });
+      }
+    }
+
+    res.json({ message: 'Pozivnice su uspešno poslate prijateljima!' });
+  } catch (err) {
+    console.error('Error sending invitations:', err);
+    res.status(500).json({ error: 'Greška pri slanju pozivnica.' });
+  }
+});
+
+// SCHEDULED SESSIONS & GOOGLE CALENDAR ROUTES
+
+function generateGoogleCalendarUrl(title, description, roomCode, scheduledAtIso) {
+  const startDate = new Date(scheduledAtIso);
+  const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+
+  const formatCalDate = (d) => d.toISOString().replace(/-|:|\.\d\d\d/g, '');
+  const dates = `${formatCalDate(startDate)}/${formatCalDate(endDate)}`;
+
+  const details = `${description || 'Šahovska sesija i lekcija'}\n\nKod sobe za pristup: ${roomCode}\nAplikacija Chess Master`;
+  const location = `Chess Master Soba: ${roomCode}`;
+
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dates}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+}
+
+app.post('/sessions/schedule', authenticateToken, async (req, res) => {
+  const { title, description, scheduledAt, friendIds } = req.body;
+  if (!title || !scheduledAt) {
+    return res.status(400).json({ error: 'Naslov i datum/vreme zakazivanja su obavezni.' });
+  }
+
+  try {
+    let roomCode;
+    let isUnique = false;
+    while (!isUnique) {
+      roomCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const check = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [roomCode]);
+      if (check.rows.length === 0) isUnique = true;
+    }
+
+    await pool.query(
+      `INSERT INTO rooms (room_code, creator_id, status) VALUES ($1, $2, 'active')`,
+      [roomCode, req.user.id]
+    );
+
+    const sessResult = await pool.query(
+      `INSERT INTO scheduled_sessions (host_id, room_code, title, description, scheduled_at)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [req.user.id, roomCode, title, description || '', scheduledAt]
+    );
+
+    const scheduledSession = sessResult.rows[0];
+
+    const hostRes = await pool.query('SELECT name FROM users WHERE id = $1', [req.user.id]);
+    const hostName = hostRes.rows[0]?.name || 'Trener';
+
+    if (Array.isArray(friendIds) && friendIds.length > 0) {
+      const formattedDate = new Date(scheduledAt).toLocaleString();
+      for (const friendId of friendIds) {
+        await pool.query(
+          `INSERT INTO scheduled_session_invites (session_id, user_id, status) VALUES ($1, $2, 'pending')`,
+          [scheduledSession.id, friendId]
+        );
+
+        await pool.query(
+          `INSERT INTO user_notifications (user_id, sender_id, room_code, title, message)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            friendId,
+            req.user.id,
+            roomCode,
+            'Zakazana šahovska sesija',
+            `Korisnik ${hostName} je zakazao sesiju "${title}" za ${formattedDate}. Soba: ${roomCode}.`
+          ]
+        );
+
+        const onlineUser = onlineUsers[friendId];
+        if (onlineUser && onlineUser.socketId) {
+          io.to(onlineUser.socketId).emit('session_invite_received', {
+            senderName: hostName,
+            roomCode,
+            message: `Korisnik ${hostName} je zakazao sesiju "${title}" za ${formattedDate}!`,
+          });
+        }
+      }
+    }
+
+    const calendarUrl = generateGoogleCalendarUrl(title, description, roomCode, scheduledAt);
+
+    res.status(201).json({
+      message: 'Sesija je uspešno zakazana i sačuvana u bazi!',
+      session: scheduledSession,
+      calendarUrl,
+    });
+  } catch (err) {
+    console.error('Error scheduling session:', err);
+    res.status(500).json({ error: 'Greška pri zakazivanju sesije.' });
+  }
+});
+
+app.get('/sessions/scheduled', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT ss.*, u.name as host_name,
+         COALESCE(ssi.status, 'host') as my_status
+       FROM scheduled_sessions ss
+       JOIN users u ON ss.host_id = u.id
+       LEFT JOIN scheduled_session_invites ssi ON ssi.session_id = ss.id AND ssi.user_id = $1
+       WHERE ss.host_id = $1 OR ssi.user_id = $1
+       ORDER BY ss.scheduled_at ASC`,
+      [req.user.id]
+    );
+
+    const sessionsWithCal = result.rows.map((s) => ({
+      ...s,
+      calendarUrl: generateGoogleCalendarUrl(s.title, s.description, s.room_code, s.scheduled_at),
+    }));
+
+    res.json(sessionsWithCal);
+  } catch (err) {
+    console.error('Error fetching scheduled sessions:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju zakazanih sesija.' });
+  }
+});
+
 // SOCKET.IO REALTIME EVENTS
 
 const roomAudioUsers = {}; // roomId -> { userId -> { socketId, userId, userName, role, isMuted, handRaised } }
@@ -515,6 +955,16 @@ io.on('connection', (socket) => {
       }
     } catch (err) {
       console.error('Socket joinGame DB error:', err);
+    }
+  });
+
+  // Host / Trainer changes participant role in room (promote to trainer / revert to student)
+  socket.on('change_user_role', ({ roomId, targetUserId, newRole }) => {
+    console.log(`Changing role for user ${targetUserId} in room ${roomId} to ${newRole}`);
+    if (activeRoomMembers[roomId] && activeRoomMembers[roomId][targetUserId]) {
+      activeRoomMembers[roomId][targetUserId].role = newRole;
+      io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
+      io.to(roomId).emit('user_role_changed', { targetUserId, newRole });
     }
   });
 

@@ -22,8 +22,10 @@ async function initDB() {
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         name VARCHAR(255) NOT NULL,
-        role VARCHAR(50) NOT NULL CHECK (role IN ('trener', 'ucenik'))
+        role VARCHAR(50) NOT NULL DEFAULT 'unassigned' CHECK (role IN ('trener', 'ucenik', 'unassigned'))
       );
+      ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+      ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('trener', 'ucenik', 'unassigned'));
     `);
     console.log('Verified database table: users');
 
@@ -77,17 +79,89 @@ async function initDB() {
     `);
     console.log('Verified database table: trainer_students');
     
-    // Add columns if table already exists
+    // Add account_type column to users table if missing
     await client.query(`
-      ALTER TABLE saved_lessons 
-      ADD COLUMN IF NOT EXISTS description TEXT,
-      ADD COLUMN IF NOT EXISTS tags VARCHAR(255)[],
-      ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+      ALTER TABLE users 
+      ADD COLUMN IF NOT EXISTS account_type VARCHAR(50) DEFAULT 'free';
     `);
+    console.log('Verified database table: users (with account_type)');
+
+    // Add created_at column to rooms table if missing
     await client.query(`
-      UPDATE saved_lessons SET user_id = trainer_id WHERE user_id IS NULL AND trainer_id IS NOT NULL;
+      ALTER TABLE rooms 
+      ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
     `);
-    console.log('Verified database table: saved_lessons (with description, tags, and user_id)');
+
+    // Create session_recordings table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS session_recordings (
+        id SERIAL PRIMARY KEY,
+        room_id VARCHAR(50) NOT NULL,
+        host_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        audio_url TEXT,
+        video_url VARCHAR(500),
+        timeline_json JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      ALTER TABLE session_recordings 
+      ADD COLUMN IF NOT EXISTS video_url VARCHAR(500);
+    `);
+    console.log('Verified database table: session_recordings');
+
+    // Create friends table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS friends (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        friend_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, friend_id)
+      );
+    `);
+    console.log('Verified database table: friends');
+
+    // Create user_notifications table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_notifications (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        room_code VARCHAR(10) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Verified database table: user_notifications');
+
+    // Create scheduled_sessions table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS scheduled_sessions (
+        id SERIAL PRIMARY KEY,
+        host_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        room_code VARCHAR(10) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        scheduled_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Verified database table: scheduled_sessions');
+
+    // Create scheduled_session_invites table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS scheduled_session_invites (
+        id SERIAL PRIMARY KEY,
+        session_id INTEGER REFERENCES scheduled_sessions(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(session_id, user_id)
+      );
+    `);
+    console.log('Verified database table: scheduled_session_invites');
 
   } catch (err) {
     console.error('Database migration/connection error:', err);
