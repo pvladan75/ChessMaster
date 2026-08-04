@@ -81,9 +81,13 @@ async function initDB() {
     await client.query(`
       ALTER TABLE saved_lessons 
       ADD COLUMN IF NOT EXISTS description TEXT,
-      ADD COLUMN IF NOT EXISTS tags VARCHAR(255)[];
+      ADD COLUMN IF NOT EXISTS tags VARCHAR(255)[],
+      ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
     `);
-    console.log('Verified database table: saved_lessons (with description and tags)');
+    await client.query(`
+      UPDATE saved_lessons SET user_id = trainer_id WHERE user_id IS NULL AND trainer_id IS NOT NULL;
+    `);
+    console.log('Verified database table: saved_lessons (with description, tags, and user_id)');
 
   } catch (err) {
     console.error('Database migration/connection error:', err);

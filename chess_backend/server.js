@@ -342,8 +342,8 @@ app.post('/rooms/join', authenticateToken, async (req, res) => {
 
 // LESSONS PERSISTENCE ROUTES
 
-// POST /lessons/save (restricted to trainers)
-app.post('/lessons/save', authenticateToken, requireRole('trener'), async (req, res) => {
+// POST /lessons/save (accessible to all authenticated users)
+app.post('/lessons/save', authenticateToken, async (req, res) => {
   const { title, description, tags, fen, pgn } = req.body;
 
   if (!title || !fen) {
@@ -352,7 +352,7 @@ app.post('/lessons/save', authenticateToken, requireRole('trener'), async (req, 
 
   try {
     const result = await pool.query(
-      'INSERT INTO saved_lessons (trainer_id, title, description, tags, fen, pgn) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      'INSERT INTO saved_lessons (user_id, trainer_id, title, description, tags, fen, pgn) VALUES ($1, $1, $2, $3, $4, $5, $6) RETURNING *',
       [req.user.id, title, description || null, tags || null, fen, pgn || null]
     );
     res.status(201).json(result.rows[0]);
@@ -362,16 +362,51 @@ app.post('/lessons/save', authenticateToken, requireRole('trener'), async (req, 
   }
 });
 
-// GET /lessons (restricted to trainers)
-app.get('/lessons', authenticateToken, requireRole('trener'), async (req, res) => {
-  const { search } = req.query;
+// GET /lessons/labels (fetch unique labels used by user for autocomplete)
+app.get('/lessons/labels', authenticateToken, async (req, res) => {
   try {
-    let query = 'SELECT id, title, description, tags, fen, pgn, created_at FROM saved_lessons WHERE trainer_id = $1';
+    const result = await pool.query(
+      'SELECT DISTINCT unnest(tags) AS label FROM saved_lessons WHERE user_id = $1 OR trainer_id = $1 ORDER BY label ASC',
+      [req.user.id]
+    );
+    const labels = result.rows.map(row => row.label).filter(Boolean);
+    res.json(labels);
+  } catch (err) {
+    console.error('Fetch labels error:', err);
+    res.status(500).json({ error: 'Server error while fetching labels' });
+  }
+});
+
+// GET /lessons (accessible to all authenticated users with advanced logical matrix search)
+app.get('/lessons', authenticateToken, async (req, res) => {
+  const { search, includeTags, excludeTags, matchMode } = req.query;
+  try {
+    let query = 'SELECT id, title, description, tags, fen, pgn, created_at FROM saved_lessons WHERE (user_id = $1 OR trainer_id = $1)';
     const params = [req.user.id];
 
-    if (search) {
-      query += ' AND (title ILIKE $2 OR description ILIKE $2 OR EXISTS (SELECT 1 FROM unnest(tags) t WHERE t ILIKE $2))';
-      params.push(`%${search}%`);
+    if (search && search.trim() !== '') {
+      params.push(`%${search.trim()}%`);
+      query += ` AND (title ILIKE $${params.length} OR description ILIKE $${params.length} OR fen ILIKE $${params.length})`;
+    }
+
+    if (includeTags && includeTags.trim() !== '') {
+      const includesArr = includeTags.split(',').map(t => t.trim()).filter(Boolean);
+      if (includesArr.length > 0) {
+        params.push(includesArr);
+        if (matchMode === 'any') {
+          query += ` AND tags && $${params.length}::varchar[]`;
+        } else {
+          query += ` AND tags @> $${params.length}::varchar[]`;
+        }
+      }
+    }
+
+    if (excludeTags && excludeTags.trim() !== '') {
+      const excludesArr = excludeTags.split(',').map(t => t.trim()).filter(Boolean);
+      if (excludesArr.length > 0) {
+        params.push(excludesArr);
+        query += ` AND NOT (tags && $${params.length}::varchar[])`;
+      }
     }
 
     query += ' ORDER BY created_at DESC';
@@ -661,6 +696,17 @@ io.on('connection', (socket) => {
         io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
       }
     }
+  });
+
+  socket.on('student_shares_position', ({ roomId, studentId, studentName, title, fen, pgn }) => {
+    console.log(`Student ${studentName} (${studentId}) shared position "${title}" in room ${roomId}`);
+    io.to(roomId).emit('student_position_shared', {
+      studentId,
+      studentName,
+      title,
+      fen,
+      pgn
+    });
   });
 
   socket.on('disconnect', () => {

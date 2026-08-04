@@ -516,6 +516,55 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ],
+                  const SizedBox(height: 24),
+                  // Studio for Position Preparation (Accessible to both Trainer and Student)
+                  Card(
+                    elevation: 4,
+                    color: Colors.indigo.withOpacity(0.15),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.architecture, size: 44, color: Colors.indigoAccent),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Studio za pripremu pozicija',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Samostalno kreirajte pozicije, uvozite PGN/FEN, analizirajte motorm i upravljajte svojom bibliotekom sa labelama.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 13, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 44,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChessGamePage(
+                                      userSession: widget.session,
+                                      roomCode: 'STUDIO',
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.explore),
+                              label: const Text('Otvori Studio (Studio za pripremu)'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.indigoAccent,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ],
             ),

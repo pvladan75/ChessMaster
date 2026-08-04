@@ -93,6 +93,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
   late MoveTree moveTree;
   MoveNode get currentNode => moveTree.current;
 
+  static List<String> _persistedLabels = [];
+  static bool _shouldPersistLabels = false;
+
+  List<String> _availableUserLabels = [];
+  List<String> _selectedIncludeTags = [];
+  List<String> _selectedExcludeTags = [];
+  String _filterMatchMode = 'all'; // 'all' (AND) or 'any' (OR)
+
   @override
   void initState() {
     super.initState();
@@ -104,10 +112,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
     moveTree = MoveTree(startingFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
     initSocket();
     
-    // Fetch saved lessons for trainer
-    if (widget.userSession.role == 'trener') {
-      fetchLessons();
-    }
+    // Fetch saved positions & user labels for all users
+    fetchLessons();
+    fetchUserLabels();
 
     // Set up Stockfish service evaluation listener
     _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
@@ -847,6 +854,51 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
     });
 
+    socket.on('student_position_shared', (data) {
+      if (data != null && mounted) {
+        final String studentName = data['studentName'] ?? 'Učenik';
+        final String title = data['title'] ?? 'Pozicija';
+        final String fen = data['fen'];
+        final String? pgn = data['pgn'];
+
+        if (widget.userSession.role == 'trener') {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Row(
+                children: const [
+                  Icon(Icons.share, color: Colors.amber),
+                  SizedBox(width: 8),
+                  Text('Predložena pozicija'),
+                ],
+              ),
+              content: Text('Učenik $studentName predlaže poziciju: "$title". Da li želite da je učitate na tablu?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Zatvori'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    loadLessonPosition(fen, pgn);
+                  },
+                  child: const Text('Učitaj na tablu'),
+                ),
+              ],
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Učenik $studentName je podelio poziciju: "$title"'),
+              backgroundColor: Colors.blueAccent,
+            ),
+          );
+        }
+      }
+    });
+
     // AGORA AUDIO CLASSROOM LISTENERS
     socket.on('audio_users_list', (data) {
       if (mounted) {
@@ -957,16 +1009,55 @@ class _ChessGamePageState extends State<ChessGamePage> {
     });
   }
 
-  // REST API: Fetch saved lessons (with optional search)
-  Future<void> fetchLessons({String? searchQuery}) async {
+  Future<void> fetchUserLabels() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$backendUrl/lessons/labels'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.userSession.token}'
+        },
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _availableUserLabels = List<String>.from(data);
+          });
+        }
+      }
+    } catch (e) {
+      print('Error fetching user labels: $e');
+    }
+  }
+
+  // REST API: Fetch saved lessons (with search and matrix label filters)
+  Future<void> fetchLessons({
+    String? searchQuery,
+    List<String>? includeTags,
+    List<String>? excludeTags,
+    String? matchMode,
+  }) async {
     setState(() => isLoadingLessons = true);
     try {
-      String url = '$backendUrl/lessons';
-      if (searchQuery != null && searchQuery.isNotEmpty) {
-        url += '?search=${Uri.encodeComponent(searchQuery)}';
+      final queryParams = <String, String>{};
+      final queryText = searchQuery ?? searchController.text.trim();
+      if (queryText.isNotEmpty) {
+        queryParams['search'] = queryText;
       }
+      final includes = includeTags ?? _selectedIncludeTags;
+      if (includes.isNotEmpty) {
+        queryParams['includeTags'] = includes.join(',');
+      }
+      final excludes = excludeTags ?? _selectedExcludeTags;
+      if (excludes.isNotEmpty) {
+        queryParams['excludeTags'] = excludes.join(',');
+      }
+      queryParams['matchMode'] = matchMode ?? _filterMatchMode;
+
+      final uri = Uri.parse('$backendUrl/lessons').replace(queryParameters: queryParams.isEmpty ? null : queryParams);
       final response = await http.get(
-        Uri.parse(url),
+        uri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${widget.userSession.token}'
@@ -975,14 +1066,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() {
-          lessons = data;
-        });
+        if (mounted) {
+          setState(() {
+            lessons = data;
+          });
+        }
       }
     } catch (e) {
       _showError('Greška prilikom učitavanja lekcija sa servera.');
     } finally {
-      setState(() => isLoadingLessons = false);
+      if (mounted) {
+        setState(() => isLoadingLessons = false);
+      }
     }
   }
 
@@ -1331,73 +1426,431 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
   }
 
+  Widget _buildMatrixFilterPanel() {
+    final hasActiveFilters = _selectedIncludeTags.isNotEmpty || _selectedExcludeTags.isNotEmpty || searchController.text.isNotEmpty;
+
+    return Card(
+      color: Colors.blueGrey.withOpacity(0.12),
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+        childrenPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        title: Row(
+          children: [
+            const Icon(Icons.filter_list, size: 16, color: Colors.tealAccent),
+            const SizedBox(width: 6),
+            const Text(
+              'Logička pretraga i filteri',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            if (hasActiveFilters) ...[
+              const SizedBox(width: 6),
+              CircleAvatar(
+                radius: 8,
+                backgroundColor: Colors.tealAccent,
+                child: Text(
+                  '${_selectedIncludeTags.length + _selectedExcludeTags.length}',
+                  style: const TextStyle(fontSize: 9, color: Colors.black, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ],
+        ),
+        children: [
+          Row(
+            children: [
+              const Text('Režim spajanja: ', style: TextStyle(fontSize: 11, color: Colors.grey)),
+              ChoiceChip(
+                label: const Text('Sve (AND)', style: TextStyle(fontSize: 10)),
+                selected: _filterMatchMode == 'all',
+                onSelected: (selected) {
+                  if (selected) {
+                    setState(() => _filterMatchMode = 'all');
+                    fetchLessons();
+                  }
+                },
+              ),
+              const SizedBox(width: 6),
+              ChoiceChip(
+                label: const Text('Bilo koja (OR)', style: TextStyle(fontSize: 10)),
+                selected: _filterMatchMode == 'any',
+                onSelected: (selected) {
+                  if (selected) {
+                    setState(() => _filterMatchMode = 'any');
+                    fetchLessons();
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Uključi Labele (MORAJU BITI):',
+              style: TextStyle(fontSize: 11, color: Colors.tealAccent, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (_availableUserLabels.isEmpty)
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Nema dodatih labela.', style: TextStyle(fontSize: 10, color: Colors.grey)),
+            )
+          else
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: _availableUserLabels.map((tag) {
+                final isSelected = _selectedIncludeTags.contains(tag);
+                return FilterChip(
+                  label: Text(tag, style: const TextStyle(fontSize: 10)),
+                  selected: isSelected,
+                  selectedColor: Colors.teal.withOpacity(0.4),
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _selectedIncludeTags.add(tag);
+                        _selectedExcludeTags.remove(tag);
+                      } else {
+                        _selectedIncludeTags.remove(tag);
+                      }
+                    });
+                    fetchLessons();
+                  },
+                );
+              }).toList(),
+            ),
+          const SizedBox(height: 10),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Isključi Labele (NE SMEJU BITI - NOT):',
+              style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (_availableUserLabels.isEmpty)
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Nema dodatih labela.', style: TextStyle(fontSize: 10, color: Colors.grey)),
+            )
+          else
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: _availableUserLabels.map((tag) {
+                final isSelected = _selectedExcludeTags.contains(tag);
+                return FilterChip(
+                  label: Text(tag, style: const TextStyle(fontSize: 10)),
+                  selected: isSelected,
+                  selectedColor: Colors.redAccent.withOpacity(0.4),
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _selectedExcludeTags.add(tag);
+                        _selectedIncludeTags.remove(tag);
+                      } else {
+                        _selectedExcludeTags.remove(tag);
+                      }
+                    });
+                    fetchLessons();
+                  },
+                );
+              }).toList(),
+            ),
+          if (hasActiveFilters) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _selectedIncludeTags.clear();
+                    _selectedExcludeTags.clear();
+                    searchController.clear();
+                  });
+                  fetchLessons();
+                },
+                icon: const Icon(Icons.clear_all, size: 14, color: Colors.orangeAccent),
+                label: const Text('Poništi sve filtere', style: TextStyle(fontSize: 11, color: Colors.orangeAccent)),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showShareStudentPositionModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      builder: (ctx) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.75,
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.share, color: Colors.amber),
+                      SizedBox(width: 8),
+                      Text(
+                        'Prikaži moju poziciju treneru',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Izaberite sačuvanu poziciju iz vašeg studija koju želite da pošaljete na glavnu tablu:',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: lessons.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Nemate sačuvanih pozicija u Vašem studiju.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: lessons.length,
+                        itemBuilder: (context, index) {
+                          final lesson = lessons[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            child: ListTile(
+                              title: Text(
+                                lesson['title'],
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                              subtitle: Text(
+                                lesson['description'] ?? lesson['fen'],
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                              ),
+                              trailing: ElevatedButton.icon(
+                                onPressed: () {
+                                  socket.emit('student_shares_position', {
+                                    'roomId': widget.roomCode,
+                                    'studentId': widget.userSession.id,
+                                    'studentName': widget.userSession.name,
+                                    'title': lesson['title'],
+                                    'fen': lesson['fen'],
+                                    'pgn': lesson['pgn'],
+                                  });
+                                  Navigator.pop(ctx);
+                                  _showSuccess('Pozicija "${lesson['title']}" je poslata treneru!');
+                                },
+                                icon: const Icon(Icons.send, size: 14),
+                                label: const Text('Prikaži treneru'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.amber,
+                                  foregroundColor: Colors.black,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showSaveDialog() {
     final titleController = TextEditingController();
     final descController = TextEditingController();
-    final tagsController = TextEditingController();
+    final tagInputController = TextEditingController();
+
+    List<String> dialogActiveTags = _shouldPersistLabels ? List<String>.from(_persistedLabels) : [];
+    bool persistChecked = _shouldPersistLabels;
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Sačuvaj trenutnu lekciju'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Naziv lekcije',
-                    hintText: 'Npr. Sicilijanska odbrana - Zmajeva varijanta',
-                  ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final suggestions = _availableUserLabels
+                .where((l) => !dialogActiveTags.contains(l))
+                .where((l) => tagInputController.text.isEmpty || l.toLowerCase().contains(tagInputController.text.toLowerCase()))
+                .toList();
+
+            void addTag(String tag) {
+              final cleaned = tag.trim();
+              if (cleaned.isNotEmpty && !dialogActiveTags.contains(cleaned)) {
+                setDialogState(() {
+                  dialogActiveTags.add(cleaned);
+                  tagInputController.clear();
+                });
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('Sačuvaj trenutnu lekciju / poziciju'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Naziv lekcije / pozicije',
+                        hintText: 'Npr. Sicilijanska odbrana - Zmajeva varijanta',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descController,
+                      decoration: const InputDecoration(
+                        labelText: 'Opšti komentar / Opis',
+                        hintText: 'Opis teme lekcije ili ključne smernice',
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Labele (Oznake pozicije):',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    if (dialogActiveTags.isEmpty)
+                      const Text(
+                        'Nema dodatih labela.',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      )
+                    else
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: dialogActiveTags.map((tag) {
+                          return InputChip(
+                            label: Text(tag, style: const TextStyle(fontSize: 11)),
+                            onDeleted: () {
+                              setDialogState(() {
+                                dialogActiveTags.remove(tag);
+                              });
+                            },
+                            deleteIconColor: Colors.redAccent,
+                            backgroundColor: Colors.teal.withOpacity(0.2),
+                          );
+                        }).toList(),
+                      ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: tagInputController,
+                            decoration: const InputDecoration(
+                              labelText: 'Dodaj labelu (auto-complete)...',
+                              hintText: 'Taktika, Završnica, Mat u 2...',
+                              isDense: true,
+                            ),
+                            onChanged: (_) => setDialogState(() {}),
+                            onSubmitted: (val) => addTag(val),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () => addTag(tagInputController.text),
+                          style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
+                          child: const Text('Dodaj'),
+                        ),
+                      ],
+                    ),
+                    if (suggestions.isNotEmpty && tagInputController.text.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 120),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: suggestions.length,
+                          itemBuilder: (context, index) {
+                            final suggestion = suggestions[index];
+                            return ListTile(
+                              dense: true,
+                              title: Text(suggestion, style: const TextStyle(fontSize: 12)),
+                              onTap: () => addTag(suggestion),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    CheckboxListTile(
+                      title: const Text(
+                        'Zapamti ove Labele za sledeće pozicije',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      value: persistChecked,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      onChanged: (val) {
+                        setDialogState(() {
+                          persistChecked = val ?? false;
+                        });
+                      },
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: descController,
-                  decoration: const InputDecoration(
-                    labelText: 'Opšti komentar / Opis',
-                    hintText: 'Opis teme lekcije ili ključne smernice',
-                  ),
-                  maxLines: 2,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Otkaži'),
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: tagsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Tagovi (odvojeni zarezom)',
-                    hintText: 'otvaranje, taktika, sicilijanka',
-                  ),
+                ElevatedButton(
+                  onPressed: () {
+                    final title = titleController.text.trim();
+                    final desc = descController.text.trim();
+
+                    if (title.isEmpty) {
+                      _showError('Unesite naziv lekcije.');
+                      return;
+                    }
+
+                    saveCurrentPosition(title, desc, dialogActiveTags);
+
+                    if (persistChecked) {
+                      _persistedLabels = List<String>.from(dialogActiveTags);
+                      _shouldPersistLabels = true;
+                    } else {
+                      _persistedLabels = [];
+                      _shouldPersistLabels = false;
+                    }
+
+                    fetchUserLabels();
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Sačuvaj'),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Otkaži'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final title = titleController.text.trim();
-                final desc = descController.text.trim();
-                final tagsRaw = tagsController.text.trim();
-                
-                if (title.isEmpty) {
-                  _showError('Unesite naziv lekcije.');
-                  return;
-                }
-
-                final List<String> tags = tagsRaw.isEmpty
-                    ? []
-                    : tagsRaw.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
-
-                saveCurrentPosition(title, desc, tags);
-                Navigator.pop(context);
-              },
-              child: const Text('Sačuvaj'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -1818,9 +2271,26 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   fetchLessons(searchQuery: val.trim());
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              _buildMatrixFilterPanel(),
+              if (widget.userSession.role == 'ucenik' && widget.roomCode != 'STUDIO') ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _showShareStudentPositionModal,
+                    icon: const Icon(Icons.share, size: 16),
+                    label: const Text('Prikaži moju poziciju treneru'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber.withOpacity(0.2),
+                      foregroundColor: Colors.amberAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               const Text(
-                'Sačuvane lekcije',
+                'Sačuvane lekcije / pozicije',
                 style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
               ),
               const SizedBox(height: 8),
