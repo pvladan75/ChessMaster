@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import 'package:chess_app/models/analysis_models.dart';
+
 class StockfishService {
   Function(String evaluation, String bestMove, String continuation, int multipv)? onEvaluationChanged;
+  Function(Map<int, AnalysisLine> lines)? onMultiPVUpdated;
+  final Map<int, AnalysisLine> _engineLines = {};
 
   bool _isActive = false;
   int _requestId = 0;
@@ -58,6 +62,16 @@ class StockfishService {
 
           if (onEvaluationChanged != null) {
             onEvaluationChanged!(eval, bestMove, continuation, 1);
+          }
+
+          _engineLines[1] = AnalysisLine.fromPv(
+            multipv: 1,
+            eval: eval,
+            pvString: continuation.isNotEmpty ? continuation : bestMove,
+            startingFen: fen,
+          );
+          if (onMultiPVUpdated != null) {
+            onMultiPVUpdated!(_engineLines);
           }
         }
       }

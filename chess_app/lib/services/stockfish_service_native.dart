@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stockfish/stockfish.dart';
 
+import 'package:chess_app/models/analysis_models.dart';
+
 class StockfishService {
   Stockfish? _stockfish;
   StreamSubscription? _subscription;
@@ -14,6 +16,8 @@ class StockfishService {
   bool _isCustomActive = false;
   
   Function(String evaluation, String bestMove, String continuation, int multipv)? onEvaluationChanged;
+  Function(Map<int, AnalysisLine> lines)? onMultiPVUpdated;
+  final Map<int, AnalysisLine> _engineLines = {};
 
   bool _isActive = false;
   int _requestId = 0;
@@ -256,6 +260,16 @@ class StockfishService {
 
       if (onEvaluationChanged != null) {
         onEvaluationChanged!(eval, bestMove, continuation, multipv);
+      }
+
+      _engineLines[multipv] = AnalysisLine.fromPv(
+        multipv: multipv,
+        eval: eval,
+        pvString: continuation.isNotEmpty ? continuation : bestMove,
+        startingFen: _currentFen,
+      );
+      if (onMultiPVUpdated != null) {
+        onMultiPVUpdated!(_engineLines);
       }
     }
 
