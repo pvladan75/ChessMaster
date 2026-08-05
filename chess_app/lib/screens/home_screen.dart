@@ -1043,17 +1043,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Chip(
-                    label: Text(
-                      isTrener ? 'Role: Instructor (Trener)' : 'Role: Student (Učenik)',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  ),
-                ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
                 if (_isLoading)
                   const Center(child: CircularProgressIndicator())
                 else ...[
@@ -1117,21 +1107,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  if (isTrener) ...[
-                    // Trainer UI
-                    Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          children: [
-                            const Icon(Icons.school, size: 48, color: Colors.amber),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Kreirajte novu lekciju za učenike.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 16),
-                            ),
+                  // Session Creation UI (Equal for all users)
+                  Card(
+                    elevation: 4,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.video_call, size: 48, color: Colors.amber),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Kreirajte novu sesiju ili zakažite termin unapred.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 16),
+                          ),
                             const SizedBox(height: 16),
                             Row(
                               children: [
@@ -1253,7 +1242,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Moji Učenici',
+                              'Moji Prijatelji',
                               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 12),
@@ -1263,8 +1252,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: TextField(
                                     controller: _studentEmailController,
                                     decoration: const InputDecoration(
-                                      labelText: 'Email učenika',
-                                      hintText: 'student@example.com',
+                                      labelText: 'Email prijatelja',
+                                      hintText: 'prijatelj@example.com',
                                       border: OutlineInputBorder(),
                                       isDense: true,
                                     ),
@@ -1276,7 +1265,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   style: ElevatedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                   ),
-                                  child: const Text('Dodaj'),
+                                  child: const Text('Dodaj prijatelja'),
                                 ),
                               ],
                             ),
@@ -1290,7 +1279,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 padding: EdgeInsets.symmetric(vertical: 24.0),
                                 child: Center(
                                   child: Text(
-                                    'Nemate još uvek dodatih učenika.',
+                                    'Nemate još uvek dodatih prijatelja.',
                                     style: TextStyle(color: Colors.grey),
                                   ),
                                 ),
@@ -1328,47 +1317,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-                  ] else ...[
-                    // Student UI
-                    Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          children: [
-                            const Icon(Icons.group, size: 48, color: Colors.blue),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Unesite 6-cifreni kod koji ste dobili od trenera.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 20),
-                            TextField(
-                              controller: _codeController,
-                              decoration: const InputDecoration(
-                                labelText: 'Kod (6 cifara)',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.vpn_key),
-                              ),
-                              keyboardType: TextInputType.number,
-                              maxLength: 6,
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: ElevatedButton.icon(
-                                onPressed: _joinRoom,
-                                icon: const Icon(Icons.login),
-                                label: const Text('Pridruži se (Join Room)'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
                   const SizedBox(height: 24),
                   // Studio for Position Preparation (Accessible to both Trainer and Student)
                   Card(

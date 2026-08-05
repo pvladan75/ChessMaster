@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
 const { pool, initDB } = require('./db');
 const { getUserStats, checkUserLimits } = require('./limitsService');
 const geminiService = require('./geminiService');
@@ -216,7 +217,7 @@ app.post('/auth/google', async (req, res) => {
       const defaultPasswordHash = 'google_oauth_placeholder_hash';
       const insertResult = await pool.query(
         'INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, name, role',
-        [email, defaultPasswordHash, name || 'Korisnik', 'unassigned']
+        [email, defaultPasswordHash, name || 'Korisnik', 'user']
       );
       user = insertResult.rows[0];
     } else {
@@ -590,6 +591,9 @@ app.post('/recordings/:id/export-mp4', authenticateToken, async (req, res) => {
       });
     }
 
+    const recRes = await pool.query('SELECT * FROM session_recordings WHERE id = $1', [recId]);
+    const recording = recRes.rows[0];
+
     const filename = `recording_${recId}_${perspective || 'trainer'}_${Date.now()}.mp4`;
     const exportsDir = path.join(__dirname, 'exports');
     if (!fs.existsSync(exportsDir)) {
@@ -597,7 +601,27 @@ app.post('/recordings/:id/export-mp4', authenticateToken, async (req, res) => {
     }
 
     const exportPath = path.join(exportsDir, filename);
-    fs.writeFileSync(exportPath, `Chess Master Video Export\nRecording ID: ${recId}\nPerspective: ${perspective || 'trainer'}\nTimestamp: ${new Date().toISOString()}`);
+
+    // Calculate duration or fallback to 10 seconds
+    const duration = Math.max(5, Math.min(3600, (recording && recording.duration_seconds) ? recording.duration_seconds : 10));
+    const audioPath = recording ? recording.audio_file_path : null;
+
+    let ffmpegCmd;
+    if (audioPath && fs.existsSync(audioPath)) {
+      ffmpegCmd = `ffmpeg -y -f lavfi -i color=c=0x1E1E2E:s=1280x720:d=${duration} -i "${audioPath}" -c:v libx264 -tune stillimage -pix_fmt yuv420p -c:a aac -b:a 192k -shortest "${exportPath}"`;
+    } else {
+      ffmpegCmd = `ffmpeg -y -f lavfi -i color=c=0x1E1E2E:s=1280x720:d=${duration} -f lavfi -i anullsrc=r=44100:cl=stereo -c:v libx264 -tune stillimage -pix_fmt yuv420p -c:a aac -b:a 192k -shortest "${exportPath}"`;
+    }
+
+    await new Promise((resolve, reject) => {
+      exec(ffmpegCmd, (error, stdout, stderr) => {
+        if (error) {
+          console.error('FFmpeg MP4 export error:', stderr);
+          return reject(error);
+        }
+        resolve();
+      });
+    });
 
     const host = req.get('host');
     const protocol = req.protocol;

@@ -992,7 +992,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
     ));
   }
 
-  void _startRecording() {
+  Future<void> _startRecording() async {
+    try {
+      final audioPath = '${Directory.systemTemp.path}/session_audio_${DateTime.now().millisecondsSinceEpoch}.aac';
+      await agoraService.startAudioRecording(audioPath);
+    } catch (e) {
+      print('Error starting Agora audio recording: $e');
+    }
+
     setState(() {
       isRecording = true;
       isRecordingPaused = false;
@@ -1013,7 +1020,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Snimanje časa je započeto! Svi potezi i akcije na tabli se beleže.'),
+        content: Text('Snimanje časa i zvuka (glasa) je započeto! Svi potezi i govor se beleže.'),
         backgroundColor: Colors.redAccent,
         duration: Duration(seconds: 3),
       ),
@@ -1052,6 +1059,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   Future<void> _stopRecording() async {
+    try {
+      await agoraService.stopAudioRecording();
+    } catch (e) {
+      print('Error stopping Agora audio recording: $e');
+    }
+
     final titleController = TextEditingController(text: 'Čas ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}');
 
     final confirm = await showDialog<bool>(
