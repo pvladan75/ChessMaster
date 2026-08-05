@@ -9,6 +9,9 @@ import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 
+import 'package:chess_app/models/analysis_models.dart';
+import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
+
 class AiStudioScreen extends StatefulWidget {
   final UserSession userSession;
 
@@ -24,6 +27,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   final ChessBoardController _analysisBoardController = ChessBoardController();
 
   final StockfishService _stockfishService = StockfishService();
+
+  // Engine Analysis State
+  bool _isEngineEnabled = true;
+  String _thinkingMode = 'fast';
+  Map<int, AnalysisLine> _engineLinesMap = {};
+  List<ChessArrow> _engineArrows = [];
 
   // Puzzle State
   Map<String, dynamic>? _currentPuzzle;
@@ -83,6 +92,31 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         });
       }
     };
+
+    _stockfishService.onMultiPVUpdated = (linesMap) {
+      if (mounted) {
+        setState(() {
+          _engineLinesMap = linesMap;
+          _engineArrows = _buildArrowsFromEngineLines(linesMap.values.toList());
+        });
+      }
+    };
+  }
+
+  List<ChessArrow> _buildArrowsFromEngineLines(List<AnalysisLine> lines) {
+    final List<ChessArrow> arrows = [];
+    final colors = ['G', 'B', 'O'];
+    for (int i = 0; i < lines.length && i < 3; i++) {
+      final moveStr = lines[i].bestMoveLan;
+      if (moveStr.length >= 4) {
+        arrows.add(ChessArrow(
+          from: moveStr.substring(0, 2),
+          to: moveStr.substring(2, 4),
+          colorCode: colors[i],
+        ));
+      }
+    }
+    return arrows;
   }
 
   @override
@@ -405,13 +439,18 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                             ChessBoard(
                               controller: _puzzleBoardController,
                               boardOrientation: PlayerColor.white,
-                              onMove: _onUserPuzzleMoveMade,
+                              onMove: () {
+                                _onUserPuzzleMoveMade();
+                                if (_isEngineEnabled) {
+                                  _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
+                                }
+                              },
                             ),
                             Positioned.fill(
                               child: IgnorePointer(
                                 child: CustomPaint(
                                   painter: ChessBoardPainter(
-                                    arrows: _aiArrows,
+                                    arrows: [..._aiArrows, ...(_isEngineEnabled ? _engineArrows : [])],
                                     boardSize: 320,
                                     orientation: PlayerColor.white,
                                   ),
@@ -465,6 +504,35 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                             ),
                           ],
                         ),
+                        const SizedBox(height: 16),
+                        // Stockfish 3-Line Analysis Widget for Puzzles
+                        StockfishAnalysisWidget(
+                          isEngineEnabled: _isEngineEnabled,
+                          isAllowedToUseEngine: true,
+                          isOnline: true,
+                          isCustomEngineActive: true,
+                          thinkingMode: _thinkingMode,
+                          lines: _engineLinesMap.values.toList(),
+                          orientation: PlayerColor.white,
+                          onToggleEngine: () {
+                            setState(() {
+                              _isEngineEnabled = !_isEngineEnabled;
+                              if (_isEngineEnabled) {
+                                _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
+                              } else {
+                                _stockfishService.stopAnalysis();
+                                _engineLinesMap.clear();
+                                _engineArrows.clear();
+                              }
+                            });
+                          },
+                          onChangeThinkingMode: (mode) {
+                            setState(() => _thinkingMode = mode);
+                            if (_isEngineEnabled) {
+                              _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: mode == 'deep' ? 22 : 16);
+                            }
+                          },
+                        ),
                       ],
                     ],
                   ),
@@ -509,14 +577,16 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                             boardOrientation: PlayerColor.white,
                             onMove: () {
                               final fen = _analysisBoardController.getFen();
-                              _stockfishService.analyzePosition(fen, depth: 14);
+                              if (_isEngineEnabled) {
+                                _stockfishService.analyzePosition(fen, depth: 16);
+                              }
                             },
                           ),
                           Positioned.fill(
                             child: IgnorePointer(
                               child: CustomPaint(
                                 painter: ChessBoardPainter(
-                                  arrows: _aiArrows,
+                                  arrows: [..._aiArrows, ...(_isEngineEnabled ? _engineArrows : [])],
                                   boardSize: 320,
                                   orientation: PlayerColor.white,
                                 ),
@@ -537,6 +607,35 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                         onPressed: () {
                           final fen = _analysisBoardController.getFen();
                           _fetchAiExplanation(fen);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      // Stockfish 3-Line Analysis Widget for Position Analysis
+                      StockfishAnalysisWidget(
+                        isEngineEnabled: _isEngineEnabled,
+                        isAllowedToUseEngine: true,
+                        isOnline: true,
+                        isCustomEngineActive: true,
+                        thinkingMode: _thinkingMode,
+                        lines: _engineLinesMap.values.toList(),
+                        orientation: PlayerColor.white,
+                        onToggleEngine: () {
+                          setState(() {
+                            _isEngineEnabled = !_isEngineEnabled;
+                            if (_isEngineEnabled) {
+                              _stockfishService.analyzePosition(_analysisBoardController.getFen(), depth: 16);
+                            } else {
+                              _stockfishService.stopAnalysis();
+                              _engineLinesMap.clear();
+                              _engineArrows.clear();
+                            }
+                          });
+                        },
+                        onChangeThinkingMode: (mode) {
+                          setState(() => _thinkingMode = mode);
+                          if (_isEngineEnabled) {
+                            _stockfishService.analyzePosition(_analysisBoardController.getFen(), depth: mode == 'deep' ? 22 : 16);
+                          }
                         },
                       ),
                     ],

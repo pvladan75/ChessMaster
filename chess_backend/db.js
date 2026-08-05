@@ -103,10 +103,13 @@ async function initDB() {
         audio_url TEXT,
         video_url VARCHAR(500),
         timeline_json JSONB NOT NULL,
+        participants INTEGER[] DEFAULT '{}',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       ALTER TABLE session_recordings 
       ADD COLUMN IF NOT EXISTS video_url VARCHAR(500);
+      ALTER TABLE session_recordings 
+      ADD COLUMN IF NOT EXISTS participants INTEGER[] DEFAULT '{}';
     `);
     console.log('Verified database table: session_recordings');
 

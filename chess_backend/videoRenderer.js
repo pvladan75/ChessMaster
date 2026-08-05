@@ -28,18 +28,22 @@ async function preloadPieceSet(style = 'alpha') {
   const dict = (normalizedStyle === 'staunton') ? stauntonPieceSvgs : alphaPieceSvgs;
   const loaded = {};
   for (const [key, svg] of Object.entries(dict)) {
-    loaded[key] = await loadImage(Buffer.from(svg));
+    const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+    loaded[key] = await loadImage(dataUrl);
   }
   loadedPieceSets[normalizedStyle] = loaded;
   return loaded;
 }
 
 function getBoardColors(themeStr) {
-  switch (themeStr) {
+  const normalized = (themeStr || 'wood').toLowerCase().trim();
+  switch (normalized) {
     case 'green':
       return { light: '#EEEED2', dark: '#769656', bg: '#1B281B' };
     case 'blue':
       return { light: '#EAE9D2', dark: '#4B7399', bg: '#141E28' };
+    case 'charcoal':
+      return { light: '#E0E0E0', dark: '#555555', bg: '#181818' };
     case 'wood':
     default:
       return { light: '#F0D9B5', dark: '#B58863', bg: '#1E1E2E' };

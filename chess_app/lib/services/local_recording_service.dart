@@ -14,6 +14,7 @@ class LocalRecordingService {
     required String title,
     required List<TimelineEvent> events,
     String? audioPath,
+    List<int>? participants,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final String localId = 'local_${DateTime.now().millisecondsSinceEpoch}';
@@ -25,6 +26,7 @@ class LocalRecordingService {
       'createdAt': DateTime.now().toIso8601String(),
       'timelineEvents': events.map((e) => e.toJson()).toList(),
       'audioPath': audioPath,
+      'participants': participants ?? [],
       'isSynced': false,
       'serverId': null,
       'serverAudioUrl': null,
@@ -65,6 +67,7 @@ class LocalRecordingService {
         request.fields['roomId'] = item['roomId'] ?? '';
         request.fields['title'] = item['title'] ?? 'Snimak časa';
         request.fields['timelineJson'] = jsonEncode(item['timelineEvents'] ?? []);
+        request.fields['participants'] = jsonEncode(item['participants'] ?? []);
 
         final String? audioPath = item['audioPath'];
         if (audioPath != null) {

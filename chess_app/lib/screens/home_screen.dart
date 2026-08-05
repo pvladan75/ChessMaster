@@ -144,6 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context) => ChessGamePage(
           userSession: widget.session,
           roomCode: roomCode,
+          initialRole: 'ucenik',
         ),
       ),
     );
@@ -569,6 +570,7 @@ class _HomeScreenState extends State<HomeScreen> {
     DateTime selectedDate = DateTime.now().add(const Duration(days: 3));
     TimeOfDay selectedTime = const TimeOfDay(hour: 18, minute: 0);
     final List<int> selectedFriendIds = [];
+    final availableFriends = _students.isNotEmpty ? _students : _friends;
 
     showDialog(
       context: context,
@@ -643,14 +645,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
                 const Text('Pozovi prijatelje na zakazani čas:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                if (_friends.isEmpty)
+                if (availableFriends.isEmpty)
                   const Text('Nemate dodatih prijatelja.', style: TextStyle(fontSize: 11, color: Colors.grey))
                 else
                   Container(
                     constraints: const BoxConstraints(maxHeight: 140),
                     child: SingleChildScrollView(
                       child: Column(
-                        children: _friends.map((f) {
+                        children: availableFriends.map((f) {
                           final fId = f['id'] as int;
                           final isSel = selectedFriendIds.contains(fId);
                           return CheckboxListTile(
@@ -877,6 +879,7 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context) => ChessGamePage(
               userSession: widget.session,
               roomCode: createdRoomCode,
+              initialRole: 'trener',
             ),
           ),
         );
@@ -972,7 +975,11 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChessGamePage(roomCode: roomCode, userSession: sessionForRoom),
+        builder: (context) => ChessGamePage(
+          roomCode: roomCode,
+          userSession: sessionForRoom,
+          initialRole: 'trener',
+        ),
       ),
     );
   }
@@ -1368,6 +1375,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     builder: (context) => ChessGamePage(
                                       userSession: widget.session,
                                       roomCode: 'STUDIO',
+                                      initialRole: 'trener',
                                     ),
                                   ),
                                 );

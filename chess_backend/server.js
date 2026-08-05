@@ -585,10 +585,17 @@ app.post('/recordings/save', authenticateToken, upload.single('audio'), async (r
       console.log(`[RECORDING] Base64 audio saved to ${audioPath}, URL: ${finalAudioUrl}`);
     }
 
+    let participantIds = [];
+    if (req.body.participants) {
+      try {
+        participantIds = typeof req.body.participants === 'string' ? JSON.parse(req.body.participants) : req.body.participants;
+      } catch (e) {}
+    }
+
     const result = await pool.query(
-      `INSERT INTO session_recordings (room_id, host_id, title, audio_url, timeline_json)
-       VALUES ($1, $2, $3, $4, $5) RETURNING id, room_id, title, created_at`,
-      [roomId, req.user.id, title, finalAudioUrl, JSON.stringify(timelineJson)]
+      `INSERT INTO session_recordings (room_id, host_id, title, audio_url, timeline_json, participants)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, room_id, title, created_at`,
+      [roomId, req.user.id, title, finalAudioUrl, JSON.stringify(timelineJson), participantIds]
     );
     res.status(201).json({ message: 'Snimak časa je uspešno sačuvan.', recording: result.rows[0] });
   } catch (err) {
@@ -603,7 +610,9 @@ app.get('/recordings', authenticateToken, async (req, res) => {
       `SELECT sr.id, sr.room_id, sr.host_id, sr.title, sr.audio_url, sr.video_url, sr.created_at, u.name as host_name
        FROM session_recordings sr
        LEFT JOIN users u ON sr.host_id = u.id
-       ORDER BY sr.created_at DESC`
+       WHERE sr.host_id = $1 OR $1 = ANY(sr.participants)
+       ORDER BY sr.created_at DESC`,
+      [req.user.id]
     );
     res.json(result.rows);
   } catch (err) {
@@ -1243,6 +1252,19 @@ io.on('connection', (socket) => {
     } catch (err) {
       console.error('Socket change_permissions DB error:', err);
     }
+  });
+
+  // Global Synced Recording State across all hosts in room
+  socket.on('recording_status_update', ({ roomId, status, recordingStartTimeMs, fen, paused }) => {
+    console.log(`[RECORDING_SYNC] Room ${roomId}: recording status -> ${status} by ${socket.userName}`);
+    io.to(roomId).emit('recording_status_update', {
+      status,
+      recordingStartTimeMs,
+      fen,
+      paused,
+      updatedBy: socket.userName,
+      updatedById: socket.userId
+    });
   });
 
   // Trainer changes student engine permissions

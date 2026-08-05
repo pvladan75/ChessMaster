@@ -36,8 +36,14 @@ import 'package:chess_app/models/recording_models.dart';
 class ChessGamePage extends StatefulWidget {
   final String roomCode;
   final UserSession userSession;
+  final String? initialRole;
 
-  const ChessGamePage({super.key, required this.roomCode, required this.userSession});
+  const ChessGamePage({
+    super.key,
+    required this.roomCode,
+    required this.userSession,
+    this.initialRole,
+  });
 
   @override
   State<ChessGamePage> createState() => _ChessGamePageState();
@@ -107,7 +113,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       allowStudentEngine = true;
       boardControl = 'unrestricted';
     } else {
-      activeRole = widget.userSession.role == 'trener' ? 'trener' : 'ucenik';
+      activeRole = widget.initialRole ?? (widget.userSession.role == 'trener' ? 'trener' : 'ucenik');
       boardOrientation = activeRole == 'trener'
           ? PlayerColor.white
           : PlayerColor.black;
@@ -870,6 +876,44 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
     });
 
+    socket.on('recording_status_update', (data) {
+      if (data != null && mounted) {
+        final status = data['status'];
+        final startTimeMs = data['recordingStartTimeMs'];
+        final isPaused = data['paused'] ?? false;
+        final updatedBy = data['updatedBy'] ?? 'Domaćin';
+
+        setState(() {
+          if (status == 'started') {
+            isRecording = true;
+            isRecordingPaused = false;
+            recordingStartTimeMs = startTimeMs ?? DateTime.now().millisecondsSinceEpoch;
+          } else if (status == 'paused') {
+            isRecordingPaused = true;
+          } else if (status == 'resumed') {
+            isRecordingPaused = false;
+          } else if (status == 'stopped') {
+            isRecording = false;
+            isRecordingPaused = false;
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(status == 'started'
+                ? '$updatedBy je započeo snimanje sesije.'
+                : (status == 'paused'
+                    ? '$updatedBy je pauzirao snimanje.'
+                    : (status == 'resumed'
+                        ? '$updatedBy je nastavio snimanje.'
+                        : '$updatedBy je zaustavio snimanje.'))),
+            duration: const Duration(seconds: 2),
+            backgroundColor: status == 'started' ? Colors.redAccent : Colors.amber,
+          ),
+        );
+      }
+    });
+
     socket.on('student_position_shared', (data) {
       if (data != null && mounted) {
         final String studentName = data['studentName'] ?? 'Učenik';
@@ -1029,6 +1073,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
         ),
       ];
     });
+
+    socket.emit('recording_status_update', {
+      'roomId': widget.roomCode,
+      'status': 'started',
+      'recordingStartTimeMs': recordingStartTimeMs,
+      'fen': moveTree.current.fen
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Snimanje časa i zvuka (glasa) je započeto! Svi potezi i govor se beleže.'),
@@ -1044,6 +1096,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
       isRecordingPaused = true;
       pauseStartTimeMs = DateTime.now().millisecondsSinceEpoch;
     });
+
+    socket.emit('recording_status_update', {
+      'roomId': widget.roomCode,
+      'status': 'paused',
+      'paused': true,
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Snimanje je pauzirano. Akcije se privremeno ne beleže.'),
@@ -1060,6 +1119,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
       totalPauseDurationMs += pauseDuration;
       isRecordingPaused = false;
     });
+
+    socket.emit('recording_status_update', {
+      'roomId': widget.roomCode,
+      'status': 'resumed',
+      'paused': false,
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Snimanje je nastavljeno! Svi sledstveni potezi se beleže u kombinovani snimak.'),
@@ -1070,6 +1136,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   Future<void> _stopRecording() async {
+    socket.emit('recording_status_update', {
+      'roomId': widget.roomCode,
+      'status': 'stopped',
+    });
     print('[RECORDING_LOG] 1. Stopping Agora audio recording...');
     try {
       await _agoraService.stopAudioRecording().timeout(const Duration(seconds: 3));
@@ -1135,11 +1205,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
     try {
       print('[RECORDING_LOG] 1. Saving recording instantly on device...');
       final eventsCopy = List<TimelineEvent>.from(recordedEvents);
+      final List<int> participantIds = [];
+      if (roomMembers is List) {
+        for (var m in roomMembers) {
+          if (m is Map && m['userId'] is int) {
+            participantIds.add(m['userId'] as int);
+          }
+        }
+      }
+
       await LocalRecordingService.saveLocally(
         roomId: widget.roomCode,
         title: title,
         events: eventsCopy,
         audioPath: _currentAudioPath,
+        participants: participantIds,
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
