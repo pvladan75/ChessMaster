@@ -1068,10 +1068,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   Future<void> _stopRecording() async {
+    print('[RECORDING_LOG] 1. Stopping Agora audio recording...');
     try {
-      await _agoraService.stopAudioRecording();
+      await _agoraService.stopAudioRecording().timeout(const Duration(seconds: 3));
+      print('[RECORDING_LOG] 2. Agora audio recording stopped successfully.');
     } catch (e) {
-      print('Error stopping Agora audio recording: $e');
+      print('[RECORDING_LOG] 2. Agora audio recording stop error/timeout: $e');
     }
 
     final titleController = TextEditingController(text: 'Čas ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}');
@@ -1115,6 +1117,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
 
     if (confirm != true) {
+      print('[RECORDING_LOG] User cancelled recording save.');
       setState(() {
         isRecording = false;
         isRecordingPaused = false;
@@ -1143,6 +1146,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
 
     try {
+      print('[RECORDING_LOG] 3. Preparing HTTP Multipart Request to $backendUrl/recordings/save ...');
       final request = http.MultipartRequest('POST', Uri.parse('$backendUrl/recordings/save'));
       request.headers['Authorization'] = 'Bearer ${widget.userSession.token}';
       request.fields['roomId'] = widget.roomCode;
@@ -1152,12 +1156,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
       if (_currentAudioPath != null) {
         final audioFile = File(_currentAudioPath!);
         if (await audioFile.exists()) {
+          final size = await audioFile.length();
+          print('[RECORDING_LOG] 4. Attaching audio file ($size bytes) from $_currentAudioPath ...');
           request.files.add(await http.MultipartFile.fromPath('audio', audioFile.path));
+        } else {
+          print('[RECORDING_LOG] 4. Audio file path $_currentAudioPath does NOT exist on disk.');
         }
+      } else {
+        print('[RECORDING_LOG] 4. _currentAudioPath is NULL.');
       }
 
-      final streamedResponse = await request.send();
+      print('[RECORDING_LOG] 5. Sending HTTP request...');
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 15));
+      print('[RECORDING_LOG] 6. Streamed response received: status ${streamedResponse.statusCode}. Parsing body...');
       final response = await http.Response.fromStream(streamedResponse);
+      print('[RECORDING_LOG] 7. Full server response body: ${response.body}');
 
       // Dismiss progress dialog
       if (mounted && Navigator.canPop(context)) {
@@ -1178,11 +1191,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
         );
       }
     } catch (e) {
+      print('[RECORDING_LOG_ERROR] Exception in _stopRecording: $e');
       if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context);
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Greška na mreži: $e'), backgroundColor: Colors.redAccent),
+        SnackBar(content: Text('Greška pri čuvanju snimka: $e'), backgroundColor: Colors.redAccent),
       );
     } finally {
       setState(() {

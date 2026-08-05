@@ -517,6 +517,14 @@ const upload = multer({ storage: uploadStorage, limits: { fileSize: 100 * 1024 *
 
 // LESSON RECORDINGS ROUTES
 app.post('/recordings/save', authenticateToken, upload.single('audio'), async (req, res) => {
+  console.log('[SERVER_RECORDING_LOG] Received /recordings/save request from user:', req.user ? req.user.id : 'unknown');
+  console.log('[SERVER_RECORDING_LOG] Body keys:', Object.keys(req.body));
+  if (req.file) {
+    console.log('[SERVER_RECORDING_LOG] Audio file received:', req.file.path, 'Size:', req.file.size, 'bytes');
+  } else {
+    console.log('[SERVER_RECORDING_LOG] No file in req.file');
+  }
+
   const roomId = req.body.roomId;
   const title = req.body.title;
   let timelineJson = req.body.timelineJson;
