@@ -995,7 +995,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   Future<void> _startRecording() async {
     try {
       final audioPath = '${Directory.systemTemp.path}/session_audio_${DateTime.now().millisecondsSinceEpoch}.aac';
-      await agoraService.startAudioRecording(audioPath);
+      await _agoraService.startAudioRecording(audioPath);
     } catch (e) {
       print('Error starting Agora audio recording: $e');
     }
@@ -1060,7 +1060,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   Future<void> _stopRecording() async {
     try {
-      await agoraService.stopAudioRecording();
+      await _agoraService.stopAudioRecording();
     } catch (e) {
       print('Error stopping Agora audio recording: $e');
     }
