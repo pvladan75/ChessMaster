@@ -45,6 +45,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   int? _lastRatingChange;
   String _selectedTheme = 'all';
   bool _isOpponentTurn = false;
+  PlayerColor _puzzleOrientation = PlayerColor.white;
 
   // AI Coach Analysis State
   bool _isAnalyzingAi = false;
@@ -129,6 +130,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   // --- PUZZLE LOGIC ---
 
   Future<void> _fetchNextPuzzle() async {
+    final String currentId = _currentPuzzle?['puzzle_id'] ?? '';
     setState(() {
       _isLoadingPuzzle = true;
       _puzzleSolved = false;
@@ -140,7 +142,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
     try {
       final themeParam = _selectedTheme != 'all' ? '&theme=$_selectedTheme' : '';
-      final uri = Uri.parse('$backendUrl/api/puzzles/next?userId=${widget.userSession.id}$themeParam');
+      final excludeParam = currentId.isNotEmpty ? '&excludeId=$currentId' : '';
+      final uri = Uri.parse('$backendUrl/api/puzzles/next?userId=${widget.userSession.id}$themeParam$excludeParam');
       final res = await http.get(
         uri,
         headers: {'Authorization': 'Bearer ${widget.userSession.token}'},
@@ -165,6 +168,17 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         if (moves.isNotEmpty) {
           _playPuzzleMove(moves[0], isSetupMove: true);
           _moveIndex = 1;
+        }
+
+        // Calculate puzzle orientation from side to move AFTER setup move
+        final currentFen = _puzzleBoardController.getFen();
+        final sideToMove = currentFen.split(' ')[1];
+        setState(() {
+          _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
+        });
+
+        if (_isEngineEnabled) {
+          _stockfishService.analyzePosition(currentFen, depth: 16);
         }
       } else {
         _showSnackBar('Nije moguće učitati zagonetku.');
@@ -248,10 +262,39 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
+        final change = data['ratingChange'] ?? 0;
+        final newRating = data['newRating'] ?? 1500;
         setState(() {
-          _lastRatingChange = data['ratingChange'];
-          _userRating = data['newRating'];
+          _lastRatingChange = change;
+          _userRating = newRating;
         });
+
+        if (solved && mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Row(
+                children: const [
+                  Icon(Icons.emoji_events, color: Colors.amber, size: 28),
+                  SizedBox(width: 8),
+                  Text('Zagonetka Rešena!', style: TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              content: Text('Bravo! Tačno ste odigrali sve poteze.\nNovi rejting: $newRating (${change >= 0 ? "+" : ""}$change)'),
+              actions: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.arrow_forward),
+                  label: const Text('Sledeća Zagonetka'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _fetchNextPuzzle();
+                  },
+                ),
+              ],
+            ),
+          );
+        }
       }
     } catch (e) {
       // quiet fail
@@ -434,11 +477,35 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                           child: Center(child: CircularProgressIndicator()),
                         )
                       else ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: _puzzleOrientation == PlayerColor.white ? Colors.blueGrey.shade900 : Colors.teal.shade900,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: _puzzleOrientation == PlayerColor.white ? Colors.white38 : Colors.tealAccent),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.play_circle_fill,
+                                size: 16,
+                                color: _puzzleOrientation == PlayerColor.white ? Colors.white : Colors.tealAccent,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _puzzleOrientation == PlayerColor.white ? '⚪ Vi igrate sa BELIM figurama (Na potezu ste)' : '⚫ Vi igrate sa CRNIM figurama (Na potezu ste)',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
                         Stack(
                           children: [
                             ChessBoard(
                               controller: _puzzleBoardController,
-                              boardOrientation: PlayerColor.white,
+                              boardOrientation: _puzzleOrientation,
                               onMove: () {
                                 _onUserPuzzleMoveMade();
                                 if (_isEngineEnabled) {
@@ -452,7 +519,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                                   painter: ChessBoardPainter(
                                     arrows: [..._aiArrows, ...(_isEngineEnabled ? _engineArrows : [])],
                                     boardSize: 320,
-                                    orientation: PlayerColor.white,
+                                    orientation: _puzzleOrientation,
                                   ),
                                 ),
                               ),

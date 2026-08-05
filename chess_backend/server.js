@@ -1004,7 +1004,7 @@ app.get('/sessions/scheduled', authenticateToken, async (req, res) => {
 
 // GET /api/puzzles/next - Fetch next adaptive puzzle matching user rating
 app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
-  const { theme } = req.query;
+  const { theme, excludeId } = req.query;
   const userId = req.user.id;
 
   try {
@@ -1025,29 +1025,30 @@ app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
       themeRatings = userRatingRes.rows[0].theme_ratings || {};
     }
 
-    const minRating = Math.max(800, userRating - 250);
-    const maxRating = userRating + 250;
+    const minRating = Math.max(800, userRating - 350);
+    const maxRating = userRating + 350;
+    const currentExclude = excludeId || '';
 
     let puzzleRes;
-    if (theme && theme.trim() !== '') {
+    if (theme && theme.trim() !== '' && theme.trim() !== 'all') {
       puzzleRes = await pool.query(
         `SELECT * FROM puzzles
-         WHERE rating BETWEEN $1 AND $2 AND $3 = ANY(themes)
+         WHERE rating BETWEEN $1 AND $2 AND $3 = ANY(themes) AND ($4 = '' OR puzzle_id != $4)
          ORDER BY RANDOM() LIMIT 1`,
-        [minRating, maxRating, theme.trim()]
+        [minRating, maxRating, theme.trim(), currentExclude]
       );
       if (puzzleRes.rows.length === 0) {
         puzzleRes = await pool.query(
-          `SELECT * FROM puzzles WHERE $1 = ANY(themes) ORDER BY ABS(rating - $2) LIMIT 1`,
-          [theme.trim(), userRating]
+          `SELECT * FROM puzzles WHERE $1 = ANY(themes) AND ($2 = '' OR puzzle_id != $2) ORDER BY RANDOM() LIMIT 1`,
+          [theme.trim(), currentExclude]
         );
       }
     } else {
       puzzleRes = await pool.query(
         `SELECT * FROM puzzles
-         WHERE rating BETWEEN $1 AND $2
+         WHERE rating BETWEEN $1 AND $2 AND ($3 = '' OR puzzle_id != $3)
          ORDER BY RANDOM() LIMIT 1`,
-        [minRating, maxRating]
+        [minRating, maxRating, currentExclude]
       );
     }
 
@@ -1208,20 +1209,17 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     console.log(`Player ${socket.id} joined room: ${roomId} as ${playerColor}`);
 
-    if (userId && userName && role) {
-      if (!activeRoomMembers[roomId]) {
-        activeRoomMembers[roomId] = {};
-      }
-      activeRoomMembers[roomId][userId] = { userId, name: userName, role };
-      socket.currentRoomId = roomId;
-      socket.currentUserId = userId;
-      io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
-    }
+    let effectiveRole = role || 'ucenik';
 
     try {
-      // Fetch current room state (FEN & boardControl) from DB
-      const result = await pool.query('SELECT current_fen, board_control, allow_student_engine FROM rooms WHERE room_code = $1', [roomId]);
+      // Fetch current room state & creator_id from DB
+      const result = await pool.query('SELECT creator_id, current_fen, board_control, allow_student_engine FROM rooms WHERE room_code = $1', [roomId]);
       if (result.rows.length > 0) {
+        const creatorId = result.rows[0].creator_id;
+        if (creatorId && Number(creatorId) === Number(userId)) {
+          effectiveRole = 'trener';
+        }
+
         socket.emit('gameState', {
           currentFen: result.rows[0].current_fen,
           boardControl: result.rows[0].board_control,
@@ -1230,6 +1228,18 @@ io.on('connection', (socket) => {
       }
     } catch (err) {
       console.error('Socket joinGame DB error:', err);
+    }
+
+    if (userId && userName) {
+      if (!activeRoomMembers[roomId]) {
+        activeRoomMembers[roomId] = {};
+      }
+      activeRoomMembers[roomId][userId] = { userId, name: userName, role: effectiveRole };
+      socket.currentRoomId = roomId;
+      socket.currentUserId = userId;
+
+      socket.emit('user_role_changed', { targetUserId: userId, newRole: effectiveRole });
+      io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
     }
   });
 

@@ -78,11 +78,12 @@ class ChessBoardPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final squareSize = boardSize / 8;
+    final effectiveBoardSize = (size.width > 0 && size.width != double.infinity) ? size.width : boardSize;
+    final squareSize = effectiveBoardSize / 8;
 
     // Draw highlighted starting square for drawing mode
     if (highlightedSquare != null) {
-      final center = getSquareCenter(highlightedSquare!, boardSize, orientation);
+      final center = getSquareCenter(highlightedSquare!, effectiveBoardSize, orientation);
       final paint = Paint()
         ..color = Colors.tealAccent.withValues(alpha: 0.4)
         ..style = PaintingStyle.fill;
@@ -97,6 +98,7 @@ class ChessBoardPainter extends CustomPainter {
         to: arrow.to,
         color: _getColor(arrow.colorCode).withValues(alpha: 0.75),
         strokeWidth: 6.0,
+        effectiveBoardSize: effectiveBoardSize,
       );
     }
 
@@ -104,8 +106,8 @@ class ChessBoardPainter extends CustomPainter {
     if (engineArrows != null) {
       for (final eArrow in engineArrows!) {
         final ui.Color color = _getEngineColor(eArrow.rank);
-        final start = getSquareCenter(eArrow.from, boardSize, orientation);
-        final end = getSquareCenter(eArrow.to, boardSize, orientation);
+        final start = getSquareCenter(eArrow.from, effectiveBoardSize, orientation);
+        final end = getSquareCenter(eArrow.to, effectiveBoardSize, orientation);
 
         if (start == Offset.zero || end == Offset.zero) continue;
 
@@ -115,17 +117,18 @@ class ChessBoardPainter extends CustomPainter {
           to: eArrow.to,
           color: color.withValues(alpha: 0.85),
           strokeWidth: 7.0 - (eArrow.rank - 1) * 1.5,
+          effectiveBoardSize: effectiveBoardSize,
         );
 
         // Draw Evaluation Badge near the target square center
         if (eArrow.evalText.isNotEmpty) {
           final textSpan = TextSpan(
             text: ' ${eArrow.evalText} ',
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 10,
               fontWeight: FontWeight.bold,
-              shadows: const [Shadow(blurRadius: 2, color: Colors.black)],
+              shadows: [Shadow(blurRadius: 2, color: Colors.black)],
             ),
           );
           final textPainter = TextPainter(
@@ -169,11 +172,20 @@ class ChessBoardPainter extends CustomPainter {
     required String to,
     required ui.Color color,
     required double strokeWidth,
+    required double effectiveBoardSize,
   }) {
-    final start = getSquareCenter(from, boardSize, orientation);
-    final end = getSquareCenter(to, boardSize, orientation);
+    final startRaw = getSquareCenter(from, effectiveBoardSize, orientation);
+    final endRaw = getSquareCenter(to, effectiveBoardSize, orientation);
 
-    if (start == Offset.zero || end == Offset.zero) return;
+    if (startRaw == Offset.zero || endRaw == Offset.zero) return;
+
+    final dir = endRaw - startRaw;
+    final length = dir.distance;
+    if (length < 5) return;
+
+    final u = dir / length;
+    final start = startRaw + u * 10.0;
+    final end = endRaw - u * 6.0;
 
     final paint = Paint()
       ..color = color
@@ -185,11 +197,6 @@ class ChessBoardPainter extends CustomPainter {
     canvas.drawLine(start, end, paint);
 
     // Draw arrowhead
-    final dir = end - start;
-    final length = dir.distance;
-    if (length < 5) return;
-
-    final u = dir / length;
     const headLength = 16.0;
     const headWidth = 10.0;
 
