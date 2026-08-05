@@ -9,6 +9,7 @@ import 'package:chess_app/screens/chess_game_screen.dart';
 import 'package:chess_app/screens/login_screen.dart';
 
 import 'package:chess_app/screens/replay_player_screen.dart';
+import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -1056,6 +1057,66 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (_isLoading)
                   const Center(child: CircularProgressIndicator())
                 else ...[
+                  // AI Studio Card
+                  Card(
+                    elevation: 5,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: Colors.amberAccent, width: 1.5),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade900.withValues(alpha: 0.3),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.psychology, size: 36, color: Colors.amberAccent),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'AI Trener & Vežbe',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amberAccent),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Rešavajte adaptivne zagonetke i tražite AI objašnjenje šahovskih pozicija.',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.play_arrow, size: 18),
+                            label: const Text('Otvori'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AiStudioScreen(userSession: widget.session),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
                   if (isTrener) ...[
                     // Trainer UI
                     Card(

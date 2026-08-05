@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const { pool, initDB } = require('./db');
 const { getUserStats, checkUserLimits } = require('./limitsService');
+const geminiService = require('./geminiService');
 
 const app = express();
 const server = http.createServer(app);
@@ -886,6 +887,170 @@ app.get('/sessions/scheduled', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Error fetching scheduled sessions:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju zakazanih sesija.' });
+  }
+});
+
+// PUZZLES & AI COACH ENDPOINTS
+
+// GET /api/puzzles/next - Fetch next adaptive puzzle matching user rating
+app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
+  const { theme } = req.query;
+  const userId = req.user.id;
+
+  try {
+    let userRatingRes = await pool.query(
+      'SELECT overall_rating, theme_ratings FROM user_puzzle_ratings WHERE user_id = $1',
+      [userId]
+    );
+
+    let userRating = 1500;
+    let themeRatings = {};
+    if (userRatingRes.rows.length === 0) {
+      await pool.query(
+        'INSERT INTO user_puzzle_ratings (user_id, overall_rating) VALUES ($1, 1500) ON CONFLICT DO NOTHING',
+        [userId]
+      );
+    } else {
+      userRating = userRatingRes.rows[0].overall_rating || 1500;
+      themeRatings = userRatingRes.rows[0].theme_ratings || {};
+    }
+
+    const minRating = Math.max(800, userRating - 250);
+    const maxRating = userRating + 250;
+
+    let puzzleRes;
+    if (theme && theme.trim() !== '') {
+      puzzleRes = await pool.query(
+        `SELECT * FROM puzzles
+         WHERE rating BETWEEN $1 AND $2 AND $3 = ANY(themes)
+         ORDER BY RANDOM() LIMIT 1`,
+        [minRating, maxRating, theme.trim()]
+      );
+      if (puzzleRes.rows.length === 0) {
+        puzzleRes = await pool.query(
+          `SELECT * FROM puzzles WHERE $1 = ANY(themes) ORDER BY ABS(rating - $2) LIMIT 1`,
+          [theme.trim(), userRating]
+        );
+      }
+    } else {
+      puzzleRes = await pool.query(
+        `SELECT * FROM puzzles
+         WHERE rating BETWEEN $1 AND $2
+         ORDER BY RANDOM() LIMIT 1`,
+        [minRating, maxRating]
+      );
+    }
+
+    if (puzzleRes.rows.length === 0) {
+      puzzleRes = await pool.query('SELECT * FROM puzzles ORDER BY RANDOM() LIMIT 1');
+    }
+
+    if (puzzleRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Nema dostupnih zagonetki u bazi.' });
+    }
+
+    const puzzle = puzzleRes.rows[0];
+    res.json({
+      puzzle: {
+        puzzle_id: puzzle.puzzle_id,
+        fen: puzzle.fen,
+        moves: puzzle.moves.split(' '),
+        rating: puzzle.rating,
+        themes: puzzle.themes,
+        game_url: puzzle.game_url,
+        opening_tags: puzzle.opening_tags
+      },
+      userRating,
+      themeRatings
+    });
+  } catch (err) {
+    console.error('Error fetching next puzzle:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju zagonetke.' });
+  }
+});
+
+// POST /api/puzzles/submit - Submit puzzle result & update Elo rating
+app.post('/api/puzzles/submit', authenticateToken, async (req, res) => {
+  const { puzzleId, solved, theme } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const puzzleRes = await pool.query('SELECT rating FROM puzzles WHERE puzzle_id = $1', [puzzleId]);
+    const puzzleRating = puzzleRes.rows[0]?.rating || 1500;
+
+    const userRes = await pool.query(
+      'SELECT overall_rating, theme_ratings, puzzles_solved, puzzles_failed FROM user_puzzle_ratings WHERE user_id = $1',
+      [userId]
+    );
+
+    let currentRating = userRes.rows[0]?.overall_rating || 1500;
+    let themeRatings = userRes.rows[0]?.theme_ratings || {};
+    let solvedCount = userRes.rows[0]?.puzzles_solved || 0;
+    let failedCount = userRes.rows[0]?.puzzles_failed || 0;
+
+    const K = 32;
+    const expected = 1 / (1 + Math.pow(10, (puzzleRating - currentRating) / 400));
+    const actual = solved ? 1 : 0;
+    const ratingChange = Math.round(K * (actual - expected));
+    const newRating = Math.max(800, currentRating + ratingChange);
+
+    if (solved) {
+      solvedCount++;
+    } else {
+      failedCount++;
+    }
+
+    if (theme) {
+      const currentThemeRating = themeRatings[theme] || currentRating;
+      const themeExpected = 1 / (1 + Math.pow(10, (puzzleRating - currentThemeRating) / 400));
+      const themeChange = Math.round(K * (actual - themeExpected));
+      themeRatings[theme] = Math.max(800, currentThemeRating + themeChange);
+    }
+
+    await pool.query(
+      `INSERT INTO user_puzzle_ratings (user_id, overall_rating, theme_ratings, puzzles_solved, puzzles_failed, updated_at)
+       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+       ON CONFLICT (user_id) DO UPDATE SET
+         overall_rating = EXCLUDED.overall_rating,
+         theme_ratings = EXCLUDED.theme_ratings,
+         puzzles_solved = EXCLUDED.puzzles_solved,
+         puzzles_failed = EXCLUDED.puzzles_failed,
+         updated_at = CURRENT_TIMESTAMP`,
+      [userId, newRating, JSON.stringify(themeRatings), solvedCount, failedCount]
+    );
+
+    res.json({
+      solved,
+      ratingChange,
+      newRating,
+      themeRatings,
+      puzzlesSolved: solvedCount,
+      puzzlesFailed: failedCount
+    });
+  } catch (err) {
+    console.error('Error submitting puzzle result:', err);
+    res.status(500).json({ error: 'Greška pri obradi rezultata zagonetke.' });
+  }
+});
+
+// POST /api/ai/explain-position - AI Chess Coach powered by Gemini SDK (@google/genai)
+app.post('/api/ai/explain-position', authenticateToken, async (req, res) => {
+  const { fen, evals, userLanguage } = req.body;
+  if (!fen) {
+    return res.status(400).json({ error: 'FEN kod je obavezan parametar.' });
+  }
+
+  try {
+    const explanation = await geminiService.explainPosition({
+      fen,
+      evals: evals || {},
+      userLanguage: userLanguage || 'sr'
+    });
+
+    res.json(explanation);
+  } catch (err) {
+    console.error('Error in AI position explanation route:', err);
+    res.status(500).json({ error: 'Greška pri generisanju AI objašnjenja.' });
   }
 });
 

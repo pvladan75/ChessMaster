@@ -1,108 +1,55 @@
-# ♟️ Chess Master - Interactive Chess Training & Remote Teaching Platform
+# ♟️ Chess Master - Interactive Chess Training & AI Coaching Platform
 
-**Chess Master** is a full-stack, cross-platform interactive chess training and remote teaching application built with **Flutter** (Android, Windows, Web) and **Node.js / Express / PostgreSQL** with **Socket.IO** and **Agora RTC**.
+**Chess Master** is a full-stack, cross-platform interactive chess training and remote teaching application built with **Flutter** (Android, Windows, Web) and **Node.js / Express / PostgreSQL** with **Socket.IO**, **Agora RTC**, and **Google Gemini AI**.
 
-Designed for chess trainers and students, it provides real-time interactive chessboard synchronization, Stockfish engine integration, dynamic role management, audio voice chat, full session recording & MP4 video playback, friend management, room invitations, and Google Calendar scheduled sessions.
+Designed for chess trainers and students, it provides real-time interactive chessboard synchronization, Stockfish engine integration, dynamic role management, audio voice chat, full session recording & MP4 video playback, friend management, room invitations, Google Calendar scheduled sessions, and an **AI Chess Coach with Adaptive Puzzles**.
 
 ---
 
 ## 🌟 Key Features
 
-### 1. 🎤 Real-Time Interactive Classroom & Voice Chat
+### 1. 🤖 AI Chess Coach & Adaptive Puzzles (NEW!)
+- **Lichess Puzzle Database**: PostgreSQL `puzzles` table indexed with B-tree (rating) and GIN (themes) arrays.
+- **Adaptive Rating Tracking**: Per-user overall rating and tactical theme breakdown (`fork`, `pin`, `discoveredAttack`, `mateIn1`, `mateIn2`, `endgame`, `skewer`, `deflection`) with Elo updates.
+- **Google Gemini SDK Integration (`@google/genai`)**: Natural language position coaching in Serbian/English explaining tactical motifs, step-by-step plans, and recommended moves.
+- **Interactive Move Animation**: Tapping AI-recommended move chips animates board moves and draws visual direction arrows.
+
+### 2. 🎤 Real-Time Interactive Classroom & Voice Chat
 - **Synchronized Chessboard**: Moves, PGN variations, custom arrow drawings, and board setups sync in real-time across all connected clients via WebSockets.
 - **Agora Voice RTC**: Integrated voice audio communication with mute/unmute and hand-raising mechanics.
-- **Dynamic Role Management**:
-  - The room host (`Trener` / Host) can promote any participant to Co-Host (`Trener`) or demote to `Učenik`.
-  - Multiple trainers can simultaneously control the board, Stockfish engine, and audio moderation.
+- **Dynamic Role Management**: Host (`Trener`) can promote any participant to Co-Host (`Trener`) or demote to `Učenik`.
 
-### 2. 📹 Complete Session Recording & MP4 Video Rendering
+### 3. 📹 Complete Session Recording & MP4 Video Rendering
 - **Timeline Recording**: Records move timestamps, FEN positions, arrow annotations, and trainer voice audio during live lessons.
-- **In-Session Pause & Resume**: Pause and resume recording mid-session with seamless time-offset calculation.
-- **Synced Interactive Replay**: Dedicated `ReplayPlayerScreen` with synced audio playback, automatic move progression, and timeline scrubbing.
-- **Persistent Server-Side MP4 Video Export**: FFmpeg server-side video rendering with PostgreSQL video URL caching for instant offline downloads across logins.
+- **In-Session Pause & Resume**: Pause and resume recording mid-session with gap-free timestamp calculations.
+- **Synced Interactive Replay & Server-Side MP4 Export**: Dedicated `ReplayPlayerScreen` and FFmpeg server-side video rendering.
 
-### 3. 👥 Friends List & Room Invitations
-- **Friends Management**: Add friends by email address, view friends list, and remove friends.
-- **Pre-Session Invites**: Select friends from a checklist to invite before launching a new lesson room.
-- **In-Session Invites**: Invite online/offline friends during an active session.
-- **Persistent Offline Notifications**: Unread invitation count badge in `HomeScreen` AppBar.
-
-### 4. 📅 Scheduled Sessions & 1-Click Google Calendar Sync
-- **Advance Scheduling**: Schedule future lessons for specific dates and times (e.g. 3 days in advance).
-- **Google Calendar Integration**: 1-click **"Dodaj u Google Kalendar"** button pre-fills Google Calendar events with session title, scheduled start/end date, room code, and join instructions for hosts and students.
-
-### 5. 💎 Free vs. Premium Tier Limits
-- **Account Tiers**: Free and Premium account types.
-- **Usage Limits**: Enforces monthly creation limits for lessons, saved positions, and session recordings for Free accounts.
+### 4. 👥 Friends List, Room Invites & Google Calendar
+- **Friends Management & Invitations**: Pre-session and in-session friend invites with persistent offline notification badges.
+- **1-Click Google Calendar Sync**: Scheduled sessions pre-fill Google Calendar events for hosts and students.
 
 ---
 
 ## 🛠️ Technology Stack
 
 - **Frontend**: Flutter (Dart) — Android, Windows Desktop, Web
-- **Backend Server**: Node.js, Express.js, Socket.IO
-- **Database**: PostgreSQL (Prisma/pg client)
+- **Backend Server**: Node.js, Express.js, Socket.IO, `@google/genai`
+- **Database**: PostgreSQL (`pg` client) with GIN and B-Tree indexing
+- **AI Integration**: Google Gemini 2.5 Flash (`@google/genai`)
 - **Real-Time Audio**: Agora RTC SDK (`agora_rtc_engine`)
-- **Audio Playback**: `audioplayers`
-- **Chess Engine**: Native Stockfish CLI & WASM Engine integration
+- **Chess Engine**: Stockfish CLI & WASM Engine integration
 - **Video Rendering**: Server-side FFmpeg rendering engine
 
 ---
 
-## 📁 Repository Structure
+## 🚀 API Endpoints Summary
 
-```
-chess_master/
-├── chess_app/             # Flutter Client Application
-│   ├── lib/
-│   │   ├── models/        # Data models (UserSession, SessionRecording, etc.)
-│   │   ├── screens/       # UI Screens (HomeScreen, ChessGamePage, ReplayPlayerScreen, LoginScreen)
-│   │   ├── services/      # Agora RTC, Stockfish & API Services
-│   │   └── widgets/       # Chessboard, Draw Overlay, Move History & Dialogs
-│   └── pubspec.yaml
-└── chess_backend/         # Node.js Server & Database Layer
-    ├── server.js          # Express & Socket.IO HTTP Server
-    ├── db.js              # PostgreSQL Pool & Migration Schemas
-    ├── limitsService.js   # Account Tier Limiter Middleware
-    ├── clear_users.js     # Admin Database Cleanup Utility
-    └── exports/           # Server-rendered MP4 Video Cache
-```
-
----
-
-## 🚀 Getting Started & Setup
-
-### Prerequisites
-- [Flutter SDK](https://flutter.dev/docs/get-started/install) (`>=3.0.0`)
-- [Node.js](https://nodejs.org/) (`>=18.x`)
-- [PostgreSQL](https://www.postgresql.org/) database server
-
-### 1. Database Setup
-Create a PostgreSQL database named `chess_app` (or configure your credentials in `chess_backend/.env`):
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=chess_app
-DB_USER=postgres
-DB_PASSWORD=your_password
-JWT_SECRET=your_jwt_secret
-```
-
-### 2. Backend Server Setup
-```bash
-cd chess_backend
-npm install
-node server.js
-```
-
-### 3. Flutter App Setup
-```bash
-cd chess_app
-flutter pub get
-flutter run
-```
+- `GET /api/puzzles/next?userId=...&theme=...`: Fetches adaptive puzzle matching user rating.
+- `POST /api/puzzles/submit`: Submits puzzle solution, calculates Elo rating change.
+- `POST /api/ai/explain-position`: Passes FEN position and Stockfish evaluation to Gemini AI for natural language coaching advice.
+- `POST /sessions/schedule`: Schedules future lesson rooms with 1-click Google Calendar integration.
 
 ---
 
 ## 📄 License
-This project is proprietary and developed for interactive remote chess teaching and lesson analysis.
+This project is proprietary and developed for interactive remote chess teaching and AI lesson analysis.

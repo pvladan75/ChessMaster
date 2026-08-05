@@ -163,6 +163,39 @@ async function initDB() {
     `);
     console.log('Verified database table: scheduled_session_invites');
 
+    // Create puzzles table matching Lichess CSV schema
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS puzzles (
+        puzzle_id VARCHAR(50) PRIMARY KEY,
+        fen TEXT NOT NULL,
+        moves TEXT NOT NULL,
+        rating INT NOT NULL DEFAULT 1500,
+        rating_deviation INT DEFAULT 100,
+        popularity INT DEFAULT 100,
+        nb_plays INT DEFAULT 0,
+        themes TEXT[] DEFAULT '{}',
+        game_url TEXT,
+        opening_tags TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_puzzles_rating ON puzzles(rating);
+      CREATE INDEX IF NOT EXISTS idx_puzzles_themes ON puzzles USING GIN(themes);
+    `);
+    console.log('Verified database table & GIN/B-tree indexes: puzzles');
+
+    // Create user_puzzle_ratings table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_puzzle_ratings (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        overall_rating INT DEFAULT 1500,
+        rating_deviation INT DEFAULT 350,
+        theme_ratings JSONB DEFAULT '{}'::jsonb,
+        puzzles_solved INT DEFAULT 0,
+        puzzles_failed INT DEFAULT 0,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Verified database table: user_puzzle_ratings');
+
   } catch (err) {
     console.error('Database migration/connection error:', err);
     throw err;
@@ -173,5 +206,6 @@ async function initDB() {
 
 module.exports = {
   pool,
-  initDB
+  initDB,
+  initializeDatabase: initDB
 };
