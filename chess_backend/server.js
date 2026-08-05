@@ -169,6 +169,7 @@ app.post('/login', async (req, res) => {
 // POST /auth/google
 app.post('/auth/google', async (req, res) => {
   try {
+    console.log('[GOOGLE_AUTH] Incoming login request:', req.body);
     const { idToken, accessToken, email: reqEmail, name: reqName } = req.body;
 
     let email = reqEmail;
@@ -184,12 +185,13 @@ app.post('/auth/google', async (req, res) => {
           if (payload.name) name = payload.name;
         }
       } catch (e) {
-        console.log('Google ID token verification fallback.');
+        console.log('[GOOGLE_AUTH] Google ID token verification fallback:', e.message);
       }
     }
 
     if (!email) {
-      return res.status(400).json({ error: 'Nije moguće verifikovati Google nalog.' });
+      console.warn('[GOOGLE_AUTH] No email resolved from token or request body.');
+      return res.status(400).json({ error: 'Nije moguće verifikovati Google nalog (nedostaje email).' });
     }
 
     let userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -202,8 +204,10 @@ app.post('/auth/google', async (req, res) => {
         [email, defaultPasswordHash, name || 'Korisnik', 'user']
       );
       user = insertResult.rows[0];
+      console.log('[GOOGLE_AUTH] Created new Google user:', user.email);
     } else {
       user = userResult.rows[0];
+      console.log('[GOOGLE_AUTH] Found existing Google user:', user.email);
     }
 
     const token = jwt.sign(
@@ -222,13 +226,13 @@ app.post('/auth/google', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Error during Google authentication:', err);
-    res.status(500).json({ error: 'Greška na serveru prilikom Google prijave.' });
+    console.error('[GOOGLE_AUTH_ERROR]', err);
+    res.status(500).json({ error: 'Greška na serveru prilikom Google prijave: ' + (err.message || err.toString()) });
   }
 });
 
 // POST /trainer/students/add
-app.post('/trainer/students/add', authenticateToken, requireRole('trener'), async (req, res) => {
+app.post('/trainer/students/add', authenticateToken, async (req, res) => {
   const { email } = req.body;
   if (!email) {
     return res.status(400).json({ error: 'Student email is required' });
@@ -241,9 +245,6 @@ app.post('/trainer/students/add', authenticateToken, requireRole('trener'), asyn
     }
 
     const student = studentCheck.rows[0];
-    if (student.role !== 'ucenik') {
-      return res.status(400).json({ error: 'Taj korisnik nije registrovan kao učenik.' });
-    }
 
     await pool.query(
       'INSERT INTO trainer_students (trainer_id, student_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
@@ -251,7 +252,7 @@ app.post('/trainer/students/add', authenticateToken, requireRole('trener'), asyn
     );
 
     res.status(200).json({
-      message: 'Student je uspešno dodat.',
+      message: 'Korisnik je uspešno dodat.',
       student: {
         id: student.id,
         email: student.email,
@@ -266,7 +267,7 @@ app.post('/trainer/students/add', authenticateToken, requireRole('trener'), asyn
 });
 
 // GET /trainer/students
-app.get('/trainer/students', authenticateToken, requireRole('trener'), async (req, res) => {
+app.get('/trainer/students', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.id, u.email, u.name, u.role 
@@ -294,8 +295,8 @@ app.get('/trainer/students', authenticateToken, requireRole('trener'), async (re
 
 // ROOM MANAGEMENT ROUTES
 
-// POST /rooms/create (restricted to trainers)
-app.post('/rooms/create', authenticateToken, requireRole('trener'), async (req, res) => {
+// POST /rooms/create (accessible to all authenticated users)
+app.post('/rooms/create', authenticateToken, async (req, res) => {
   try {
     let roomCode = '';
     let isUnique = false;
