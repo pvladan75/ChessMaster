@@ -1,19 +1,46 @@
-const { createCanvas } = require('@napi-rs/canvas');
+const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 
-const width = 1280;
-const height = 720;
-const boardSize = 560;
-const offsetX = (width - boardSize) / 2; // 360
-const offsetY = 90;
-const tileSize = boardSize / 8; // 70
-
-const pieceSymbols = {
-  'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟',
-  'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙'
+// Vector Staunton SVG definitions for all 12 pieces
+const pieceSvgStrings = {
+  'P': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><path d="M 22.5,9 C 20.29,9 18.5,10.79 18.5,13 C 18.5,13.89 18.79,14.71 19.28,15.38 C 17.33,16.5 16,18.59 16,21 C 16,23.03 16.94,24.84 18.41,26.03 C 15.41,27.09 11,31.58 11,39.5 L 34,39.5 C 34,31.58 29.59,27.09 26.59,26.03 C 28.06,24.84 29,23.03 29,21 C 29,18.59 27.67,16.5 25.72,15.38 C 26.21,14.71 26.5,13.89 26.5,13 C 26.5,10.79 24.71,9 22.5,9 z" fill="#ffffff" stroke="#000000" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  'N': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,24 C 21.5,17.5 13,18 13,18 C 13,18 16.5,13 22,10 z" fill="#ffffff" stroke="#000000" stroke-width="1.5" stroke-linecap="round"/><circle cx="27" cy="16" r="1.5" fill="#000000"/></svg>`,
+  'B': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="none" fill-rule="evenodd" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g fill="#fff"><path d="M 9,36 C 12.39,35.03 19.11,36.46 22.5,34 C 25.89,36.46 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,39.5 36,39.5 L 9,39.5 C 7.65,39.5 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,22 30,22 C 30.5,20.5 32,18 32,15.5 C 32,13 30,8.5 22.5,8.5 C 15,8.5 13,13 13,15.5 C 13,18 14.5,20.5 15,22 C 15,22 14.5,30.5 15,32 z"/><circle cx="22.5" cy="6" r="2"/></g><path d="M 17.5,26 L 27.5,26 M 22.5,21 L 22.5,31" stroke="#000"/></g></svg>`,
+  'R': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="#fff" fill-rule="evenodd" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,39 L 36,39 L 36,36 L 9,36 z"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 z"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14 z"/><path d="M 12,14 L 33,14 L 31,32 L 14,32 z"/></g></svg>`,
+  'Q': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="#fff" fill-rule="evenodd" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38,14 L 31,25 L 22.5,11 L 14,25 L 7,14 z"/><path d="M 9,26 L 36,26 L 36,36 L 9,36 z"/><path d="M 9,39 L 36,39 L 36,36 L 9,36 z"/><circle cx="6" cy="12" r="2"/><circle cx="14" cy="9" r="2"/><circle cx="22.5" cy="6" r="2"/><circle cx="31" cy="9" r="2"/><circle cx="39" cy="12" r="2"/></g></svg>`,
+  'K': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="none" fill-rule="evenodd" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11.63 L 22.5,6 M 20,8 L 25,8" stroke="#000"/><g fill="#fff"><path d="M 22.5,25 C 22.5,25 27,17.5 27,14 C 27,11.5 25,9.5 22.5,9.5 C 20,9.5 18,11.5 18,14 C 18,17.5 22.5,25 22.5,25 z"/><path d="M 11.5,37 C 17,35.5 28,35.5 33.5,37 L 35.5,25 C 35.5,25 31,31 22.5,31 C 14,31 9.5,25 9.5,25 z"/><path d="M 11.5,37 L 33.5,37 L 33.5,40 L 11.5,40 z"/></g></g></svg>`,
+  'p': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><path d="M 22.5,9 C 20.29,9 18.5,10.79 18.5,13 C 18.5,13.89 18.79,14.71 19.28,15.38 C 17.33,16.5 16,18.59 16,21 C 16,23.03 16.94,24.84 18.41,26.03 C 15.41,27.09 11,31.58 11,39.5 L 34,39.5 C 34,31.58 29.59,27.09 26.59,26.03 C 28.06,24.84 29,23.03 29,21 C 29,18.59 27.67,16.5 25.72,15.38 C 26.21,14.71 26.5,13.89 26.5,13 C 26.5,10.79 24.71,9 22.5,9 z" fill="#333333" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  'n': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,24 C 21.5,17.5 13,18 13,18 C 13,18 16.5,13 22,10 z" fill="#333333" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/><circle cx="27" cy="16" r="1.5" fill="#ffffff"/></svg>`,
+  'b': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="none" fill-rule="evenodd" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g fill="#333"><path d="M 9,36 C 12.39,35.03 19.11,36.46 22.5,34 C 25.89,36.46 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,39.5 36,39.5 L 9,39.5 C 7.65,39.5 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,22 30,22 C 30.5,20.5 32,18 32,15.5 C 32,13 30,8.5 22.5,8.5 C 15,8.5 13,13 13,15.5 C 13,18 14.5,20.5 15,22 C 15,22 14.5,30.5 15,32 z"/><circle cx="22.5" cy="6" r="2"/></g><path d="M 17.5,26 L 27.5,26 M 22.5,21 L 22.5,31" stroke="#fff"/></g></svg>`,
+  'r': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="#333" fill-rule="evenodd" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,39 L 36,39 L 36,36 L 9,36 z"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 z"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14 z"/><path d="M 12,14 L 33,14 L 31,32 L 14,32 z"/></g></svg>`,
+  'q': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="#333" fill-rule="evenodd" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38,14 L 31,25 L 22.5,11 L 14,25 L 7,14 z"/><path d="M 9,26 L 36,26 L 36,36 L 9,36 z"/><path d="M 9,39 L 36,39 L 36,36 L 9,36 z"/><circle cx="6" cy="12" r="2"/><circle cx="14" cy="9" r="2"/><circle cx="22.5" cy="6" r="2"/><circle cx="31" cy="9" r="2"/><circle cx="39" cy="12" r="2"/></g></svg>`,
+  'k': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="none" fill-rule="evenodd" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11.63 L 22.5,6 M 20,8 L 25,8" stroke="#fff"/><g fill="#333"><path d="M 22.5,25 C 22.5,25 27,17.5 27,14 C 27,11.5 25,9.5 22.5,9.5 C 20,9.5 18,11.5 18,14 C 18,17.5 22.5,25 22.5,25 z"/><path d="M 11.5,37 C 17,35.5 28,35.5 33.5,37 L 35.5,25 C 35.5,25 31,31 22.5,31 C 14,31 9.5,25 9.5,25 z"/><path d="M 11.5,37 L 33.5,37 L 33.5,40 L 11.5,40 z"/></g></g></svg>`
 };
+
+let loadedPieceImages = null;
+
+async function preloadPieceImages() {
+  if (loadedPieceImages) return loadedPieceImages;
+  loadedPieceImages = {};
+  for (const [key, svg] of Object.entries(pieceSvgStrings)) {
+    loadedPieceImages[key] = await loadImage(Buffer.from(svg));
+  }
+  return loadedPieceImages;
+}
+
+function getResolutionParams(resolutionStr) {
+  switch (resolutionStr) {
+    case '1080p':
+      return { width: 1920, height: 1080, boardSize: 840, offsetY: 120, fontSizeTitle: 32, fontSizeTimer: 26, fontSizeCoord: 18, fontSizeMove: 24 };
+    case '480p':
+      return { width: 854, height: 480, boardSize: 360, offsetY: 55, fontSizeTitle: 16, fontSizeTimer: 14, fontSizeCoord: 10, fontSizeMove: 14 };
+    case '720p':
+    default:
+      return { width: 1280, height: 720, boardSize: 560, offsetY: 90, fontSizeTitle: 24, fontSizeTimer: 20, fontSizeCoord: 12, fontSizeMove: 16 };
+  }
+}
 
 function formatTime(sec) {
   const m = Math.floor(sec / 60).toString().padStart(2, '0');
@@ -21,7 +48,17 @@ function formatTime(sec) {
   return `${m}:${s}`;
 }
 
-function renderFrameBuffer({ title, fen, perspective, lastMove, timestampSec, totalDurationSec }) {
+async function renderFrameBuffer({ title, fen, perspective, lastMove, timestampSec, totalDurationSec, resolution = '720p' }) {
+  const pieceImages = await preloadPieceImages();
+  const cfg = getResolutionParams(resolution);
+
+  const width = cfg.width;
+  const height = cfg.height;
+  const boardSize = cfg.boardSize;
+  const offsetX = (width - boardSize) / 2;
+  const offsetY = cfg.offsetY;
+  const tileSize = boardSize / 8;
+
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
 
@@ -31,16 +68,16 @@ function renderFrameBuffer({ title, fen, perspective, lastMove, timestampSec, to
 
   // Top Title Bar
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 24px sans-serif';
+  ctx.font = `bold ${cfg.fontSizeTitle}px sans-serif`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`♟ ${title || 'Snimak Časa - Chess Master'}`, 40, 45);
+  ctx.fillText(`♟ ${title || 'Snimak Časa - Chess Master'}`, offsetX, offsetY / 2);
 
   // Timer & Status Badge
   ctx.fillStyle = '#00ADB5';
-  ctx.font = 'bold 20px sans-serif';
+  ctx.font = `bold ${cfg.fontSizeTimer}px sans-serif`;
   ctx.textAlign = 'right';
-  ctx.fillText(`${formatTime(timestampSec)} / ${formatTime(totalDurationSec)}`, width - 40, 45);
+  ctx.fillText(`${formatTime(timestampSec)} / ${formatTime(totalDurationSec)}`, offsetX + boardSize, offsetY / 2);
 
   // Draw 8x8 Board
   const isBlackPerspective = perspective === 'student';
@@ -72,7 +109,7 @@ function renderFrameBuffer({ title, fen, perspective, lastMove, timestampSec, to
   }
 
   // Draw Rank/File Coordinates
-  ctx.font = 'bold 12px sans-serif';
+  ctx.font = `bold ${cfg.fontSizeCoord}px sans-serif`;
   for (let i = 0; i < 8; i++) {
     const fileLabel = isBlackPerspective ? String.fromCharCode(104 - i) : String.fromCharCode(97 + i);
     const rankLabel = isBlackPerspective ? (i + 1).toString() : (8 - i).toString();
@@ -84,10 +121,10 @@ function renderFrameBuffer({ title, fen, perspective, lastMove, timestampSec, to
 
     // Ranks at left
     ctx.textAlign = 'left';
-    ctx.fillText(rankLabel, offsetX + 4, offsetY + i * tileSize + 14);
+    ctx.fillText(rankLabel, offsetX + 4, offsetY + i * tileSize + cfg.fontSizeCoord + 2);
   }
 
-  // Render Pieces from FEN
+  // Render Vector SVG Pieces from FEN
   const fenParts = (fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR').split(' ');
   const boardFen = fenParts[0];
   let r = 0, c = 0;
@@ -103,40 +140,40 @@ function renderFrameBuffer({ title, fen, perspective, lastMove, timestampSec, to
       const displayR = isBlackPerspective ? 7 - r : r;
       const displayC = isBlackPerspective ? 7 - c : c;
 
-      const symbol = pieceSymbols[char] || char;
-      const isWhitePiece = char === char.toUpperCase();
-
-      // Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.font = '48px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(symbol, offsetX + displayC * tileSize + tileSize / 2 + 2, offsetY + displayR * tileSize + tileSize / 2 + 2);
-
-      // Main Piece Symbol
-      ctx.fillStyle = isWhitePiece ? '#FFFFFF' : '#111111';
-      ctx.fillText(symbol, offsetX + displayC * tileSize + tileSize / 2, offsetY + displayR * tileSize + tileSize / 2);
+      const pieceImg = pieceImages[char];
+      if (pieceImg) {
+        ctx.drawImage(
+          pieceImg,
+          offsetX + displayC * tileSize,
+          offsetY + displayR * tileSize,
+          tileSize,
+          tileSize
+        );
+      }
 
       c++;
     }
   }
 
-  // Footer Notation
+  // Footer Move Text
   ctx.fillStyle = '#EEEEEE';
-  ctx.font = '16px sans-serif';
+  ctx.font = `${cfg.fontSizeMove}px sans-serif`;
   ctx.textAlign = 'center';
   const moveText = lastMove && lastMove.san ? `Zadnji potez: ${lastMove.san}` : 'Početna pozicija';
-  ctx.fillText(moveText, width / 2, offsetY + boardSize + 35);
+  ctx.fillText(moveText, width / 2, offsetY + boardSize + cfg.fontSizeMove + 15);
 
   return canvas.toBuffer('image/png');
 }
 
-async function renderRecordingToMP4({ title, timelineEvents, audioFilePath, durationSeconds, perspective, outputPath }) {
-  return new Promise((resolve, reject) => {
+async function renderRecordingToMP4({ title, timelineEvents, audioFilePath, durationSeconds, perspective, resolution = '720p', outputPath }) {
+  return new Promise(async (resolve, reject) => {
     const totalDuration = Math.max(3, Math.min(3600, Math.ceil(durationSeconds || 10)));
     const events = Array.isArray(timelineEvents) ? timelineEvents : [];
 
-    console.log(`[VIDEO_RENDER] Rendering MP4: ${totalDuration}s, ${events.length} events, audio: ${audioFilePath}`);
+    console.log(`[VIDEO_RENDER] Rendering ${resolution} MP4: ${totalDuration}s, ${events.length} events, audio: ${audioFilePath}`);
+
+    // Preload piece images
+    await preloadPieceImages();
 
     // Build FFmpeg args
     const ffmpegArgs = [
@@ -157,12 +194,12 @@ async function renderRecordingToMP4({ title, timelineEvents, audioFilePath, dura
     const ffmpeg = spawn('ffmpeg', ffmpegArgs);
 
     ffmpeg.stderr.on('data', (data) => {
-      // Log FFmpeg progress quietly
+      // Quiet stderr
     });
 
     ffmpeg.on('close', (code) => {
       if (code === 0) {
-        console.log(`[VIDEO_RENDER] Success! Video saved to ${outputPath}`);
+        console.log(`[VIDEO_RENDER] Success! Video (${resolution}) saved to ${outputPath}`);
         resolve(outputPath);
       } else {
         reject(new Error(`FFmpeg exited with code ${code}`));
@@ -181,7 +218,6 @@ async function renderRecordingToMP4({ title, timelineEvents, audioFilePath, dura
     for (let sec = 0; sec <= totalDuration; sec++) {
       const currentMs = sec * 1000;
 
-      // Advance events up to currentMs
       while (eventIdx < events.length && (events[eventIdx].timestampMs || 0) <= currentMs) {
         const ev = events[eventIdx];
         if (ev.eventType === 'init' && ev.data && ev.data.fen) {
@@ -193,13 +229,14 @@ async function renderRecordingToMP4({ title, timelineEvents, audioFilePath, dura
         eventIdx++;
       }
 
-      const frameBuf = renderFrameBuffer({
+      const frameBuf = await renderFrameBuffer({
         title,
         fen: currentFen,
         perspective: perspective || 'trainer',
         lastMove,
         timestampSec: sec,
-        totalDurationSec: totalDuration
+        totalDurationSec: totalDuration,
+        resolution
       });
 
       ffmpeg.stdin.write(frameBuf);

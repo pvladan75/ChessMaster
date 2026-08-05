@@ -50,6 +50,16 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   void initState() {
     super.initState();
     _boardController = ChessBoardController();
+    AudioPlayer.global.setAudioContext(AudioContext(
+      android: const AudioContextAndroid(
+        contentType: AndroidContentType.music,
+        usageType: AndroidUsageType.media,
+        audioFocus: AndroidAudioFocus.gain,
+      ),
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.playback,
+      ),
+    ));
     _fetchRecordingDetails();
   }
 
@@ -108,10 +118,14 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
     setState(() => isPlaying = true);
     if (isAudioAvailable && recording?.audioUrl != null) {
       final url = recording!.audioUrl!;
+      _audioPlayer.setVolume(1.0);
       if (url.startsWith('http://') || url.startsWith('https://')) {
         _audioPlayer.play(UrlSource(url));
       } else if (File(url).existsSync()) {
         _audioPlayer.play(DeviceFileSource(url));
+      } else {
+        final filename = url.split('/').last.split('\\').last;
+        _audioPlayer.play(UrlSource('$backendUrl/uploads/$filename'));
       }
       if (currentMs > 0) {
         _audioPlayer.seek(Duration(milliseconds: currentMs));
@@ -225,6 +239,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
 
   void _showExportMp4Dialog() {
     String selectedPerspective = 'trainer';
+    String selectedResolution = '720p';
 
     showDialog(
       context: context,
@@ -242,23 +257,54 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Izaberite perspektivu table za renderovanje videa:',
-                style: TextStyle(fontSize: 12),
+                'Orijentacija table:',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 12),
-              RadioListTile<String>(
-                title: const Text('Iz ugla Trenera (podrazumevano)', style: TextStyle(fontSize: 12)),
-                subtitle: const Text('Tabla je orijentisana kako je trener vodio čas.', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                value: 'trainer',
-                groupValue: selectedPerspective,
-                onChanged: (val) => setDialogState(() => selectedPerspective = val!),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<String>(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Bela (Trener)', style: TextStyle(fontSize: 11)),
+                      value: 'trainer',
+                      groupValue: selectedPerspective,
+                      onChanged: (val) => setDialogState(() => selectedPerspective = val!),
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<String>(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Crna (Učenik)', style: TextStyle(fontSize: 11)),
+                      value: 'student',
+                      groupValue: selectedPerspective,
+                      onChanged: (val) => setDialogState(() => selectedPerspective = val!),
+                    ),
+                  ),
+                ],
               ),
-              RadioListTile<String>(
-                title: const Text('Iz ugla Učenika (rotirana tabla)', style: TextStyle(fontSize: 12)),
-                subtitle: const Text('Tabla se renderuje sa Crnim figurama na dnu.', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                value: 'student',
-                groupValue: selectedPerspective,
-                onChanged: (val) => setDialogState(() => selectedPerspective = val!),
+              const Divider(),
+              const Text(
+                'Rezolucija i kvalitet videa:',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: selectedResolution,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                ),
+                items: const [
+                  DropdownMenuItem(value: '1080p', child: Text('1080p (Full HD 1920x1080) - Ultra oštrina')),
+                  DropdownMenuItem(value: '720p', child: Text('720p (HD 1280x720) - Balans (Preporučeno)')),
+                  DropdownMenuItem(value: '480p', child: Text('480p (SD 854x480) - Kompaktan fajl')),
+                ],
+                onChanged: (val) {
+                  if (val != null) setDialogState(() => selectedResolution = val);
+                },
               ),
             ],
           ),
@@ -280,7 +326,10 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                       'Content-Type': 'application/json',
                       'Authorization': 'Bearer ${widget.userSession.token}'
                     },
-                    body: jsonEncode({'perspective': selectedPerspective}),
+                    body: jsonEncode({
+                      'perspective': selectedPerspective,
+                      'resolution': selectedResolution,
+                    }),
                   );
                   final resData = jsonDecode(res.body);
                   if (res.statusCode == 200) {

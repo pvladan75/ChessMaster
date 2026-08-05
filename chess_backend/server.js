@@ -601,7 +601,7 @@ app.get('/recordings/:id', authenticateToken, async (req, res) => {
 });
 
 app.post('/recordings/:id/export-mp4', authenticateToken, async (req, res) => {
-  const { perspective } = req.body; // 'trainer' or 'student'
+  const { perspective, resolution } = req.body; // 'trainer' or 'student', resolution: '1080p', '720p', '480p'
   try {
     const limitCheck = await checkUserLimits(pool, req.user.id, 'export_mp4');
     if (!limitCheck.allowed) {
@@ -610,21 +610,23 @@ app.post('/recordings/:id/export-mp4', authenticateToken, async (req, res) => {
 
     const recId = req.params.id;
 
-    // Check if cached video url already exists in DB
-    const checkRes = await pool.query('SELECT video_url FROM session_recordings WHERE id = $1', [recId]);
-    if (checkRes.rows.length > 0 && checkRes.rows[0].video_url) {
-      return res.json({
-        message: 'Video je već ranije izrenderovan i dostupan za brzo preuzimanje!',
-        status: 'completed',
-        downloadUrl: checkRes.rows[0].video_url,
-        cached: true,
-      });
+    // Check if cached video url already exists in DB (unless custom resolution requested)
+    if (!resolution) {
+      const checkRes = await pool.query('SELECT video_url FROM session_recordings WHERE id = $1', [recId]);
+      if (checkRes.rows.length > 0 && checkRes.rows[0].video_url) {
+        return res.json({
+          message: 'Video je već ranije izrenderovan i dostupan za brzo preuzimanje!',
+          status: 'completed',
+          downloadUrl: checkRes.rows[0].video_url,
+          cached: true,
+        });
+      }
     }
 
     const recRes = await pool.query('SELECT * FROM session_recordings WHERE id = $1', [recId]);
     const recording = recRes.rows[0];
 
-    const filename = `recording_${recId}_${perspective || 'trainer'}_${Date.now()}.mp4`;
+    const filename = `recording_${recId}_${perspective || 'trainer'}_${resolution || '720p'}_${Date.now()}.mp4`;
     const exportsDir = path.join(__dirname, 'exports');
     if (!fs.existsSync(exportsDir)) {
       fs.mkdirSync(exportsDir, { recursive: true });
@@ -659,6 +661,7 @@ app.post('/recordings/:id/export-mp4', authenticateToken, async (req, res) => {
       audioFilePath,
       durationSeconds: duration,
       perspective: perspective || 'trainer',
+      resolution: resolution || '720p',
       outputPath: exportPath
     });
 
