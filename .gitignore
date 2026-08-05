@@ -7,3 +7,7 @@
 *.sln
 *.sw?
 .DS_Store
+.env
+*.env
+node_modules/
+chess_backend/node_modules/
