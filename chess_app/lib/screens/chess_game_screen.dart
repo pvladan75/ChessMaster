@@ -99,12 +99,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
   @override
   void initState() {
     super.initState();
-    activeRole = widget.userSession.role;
+    if (widget.roomCode == 'STUDIO') {
+      activeRole = 'trener';
+      boardOrientation = PlayerColor.white;
+      allowStudentEngine = true;
+      boardControl = 'unrestricted';
+    } else {
+      activeRole = widget.userSession.role == 'trener' ? 'trener' : 'ucenik';
+      boardOrientation = activeRole == 'trener'
+          ? PlayerColor.white
+          : PlayerColor.black;
+    }
     controller = ChessBoardController();
-    // Default orientation: Trainer is White, Student is Black
-    boardOrientation = widget.userSession.role == 'trener'
-        ? PlayerColor.white
-        : PlayerColor.black;
     moveTree = MoveTree(startingFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
     initSocket();
     
@@ -301,8 +307,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
   Widget _buildStockfishAnalysisWidget() {
     final sortedKeys = engineLines.keys.toList()..sort();
     final List<AnalysisLine> linesList = sortedKeys.map((k) => engineLines[k]!).toList();
-    final isTrener = widget.userSession.role == 'trener';
-    final isAllowedToUseEngine = isTrener || allowStudentEngine;
+    final isStudio = widget.roomCode == 'STUDIO';
+    final isTrener = activeRole == 'trener' || isStudio;
+    final isAllowedToUseEngine = isTrener || isStudio || allowStudentEngine;
 
     return StockfishAnalysisWidget(
       isEngineEnabled: isEngineEnabled,
@@ -1859,8 +1866,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   @override
   Widget build(BuildContext context) {
-    final isTrener = widget.userSession.role == 'trener';
-    final isAllowedToMove = isTrener || (boardControl != 'trainer_only');
+    final isStudio = widget.roomCode == 'STUDIO';
+    final isTrener = activeRole == 'trener' || isStudio;
+    final isAllowedToMove = isTrener || isStudio || (boardControl != 'trainer_only');
     final media = MediaQuery.of(context);
     final isWide = media.size.width > 900;
 
@@ -1870,7 +1878,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         : min(media.size.height * 0.65, media.size.width * 0.9);
 
     Widget buildCommentBox() {
-      final isTrener = widget.userSession.role == 'trener';
+      final isTrener = activeRole == 'trener' || widget.roomCode == 'STUDIO';
       final hasComment = currentNode.comment.isNotEmpty;
       
       return Container(

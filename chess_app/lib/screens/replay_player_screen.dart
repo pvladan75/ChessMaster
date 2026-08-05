@@ -9,6 +9,7 @@ import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/recording_models.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ReplayPlayerScreen extends StatefulWidget {
   final int recordingId;
@@ -315,10 +316,18 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           ],
         ),
         actions: [
-          ElevatedButton.icon(
-            icon: const Icon(Icons.download),
-            label: const Text('U redu'),
+          if (downloadUrl != null)
+            ElevatedButton.icon(
+              icon: const Icon(Icons.download),
+              label: const Text('Preuzmi MP4 Video'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+              onPressed: () {
+                launchUrl(Uri.parse(downloadUrl), mode: LaunchMode.externalApplication);
+              },
+            ),
+          TextButton(
             onPressed: () => Navigator.pop(ctx),
+            child: const Text('Zatvori'),
           ),
         ],
       ),

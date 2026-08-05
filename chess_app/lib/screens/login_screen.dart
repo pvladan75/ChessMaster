@@ -236,40 +236,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                       validator: (value) =>
                           value == null || value.length < 6 ? 'Password must be at least 6 characters' : null,
                     ),
-                    if (!_isLogin) ...[
-                      const SizedBox(height: 20),
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Select your role:',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ChoiceChip(
-                              label: const Text('Student (Učenik)'),
-                              selected: _role == 'ucenik',
-                              onSelected: (selected) {
-                                if (selected) setState(() => _role = 'ucenik');
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ChoiceChip(
-                              label: const Text('Instructor (Trener)'),
-                              selected: _role == 'trener',
-                              onSelected: (selected) {
-                                if (selected) setState(() => _role = 'trener');
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                     const SizedBox(height: 12),
                     CheckboxListTile(
                       title: const Text('Zapamti me', style: TextStyle(fontSize: 14)),

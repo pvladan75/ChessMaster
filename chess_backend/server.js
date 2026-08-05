@@ -100,7 +100,7 @@ app.post('/register', async (req, res) => {
     // Save user to DB
     const result = await pool.query(
       'INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, name, role',
-      [email, passwordHash, name, role]
+      [email, passwordHash, name, role || 'user']
     );
 
     const user = result.rows[0];
@@ -168,48 +168,30 @@ app.post('/login', async (req, res) => {
 
 // POST /auth/google
 app.post('/auth/google', async (req, res) => {
-  const { idToken, accessToken, email: reqEmail, name: reqName } = req.body;
-
-  let email, name;
-
-  if (idToken) {
-    try {
-      const verifyUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
-      const response = await fetch(verifyUrl);
-      if (response.ok) {
-        const payload = await response.json();
-        email = payload.email;
-        name = payload.name;
-      }
-    } catch (e) {
-      console.error('Google ID Token verification failed:', e);
-    }
-  }
-
-  if (!email && accessToken) {
-    try {
-      const userInfoUrl = `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${encodeURIComponent(accessToken)}`;
-      const response = await fetch(userInfoUrl);
-      if (response.ok) {
-        const payload = await response.json();
-        email = payload.email;
-        name = payload.name || payload.given_name;
-      }
-    } catch (e) {
-      console.error('Google Access Token verification failed:', e);
-    }
-  }
-
-  if (!email && reqEmail) {
-    email = reqEmail;
-    name = reqName;
-  }
-
-  if (!email) {
-    return res.status(400).json({ error: 'Nije moguće verifikovati Google nalog.' });
-  }
-
   try {
+    const { idToken, accessToken, email: reqEmail, name: reqName } = req.body;
+
+    let email = reqEmail;
+    let name = reqName;
+
+    if (idToken) {
+      try {
+        const verifyUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
+        const response = await fetch(verifyUrl);
+        if (response.ok) {
+          const payload = await response.json();
+          if (payload.email) email = payload.email;
+          if (payload.name) name = payload.name;
+        }
+      } catch (e) {
+        console.log('Google ID token verification fallback.');
+      }
+    }
+
+    if (!email) {
+      return res.status(400).json({ error: 'Nije moguće verifikovati Google nalog.' });
+    }
+
     let userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     let user;
 
@@ -647,7 +629,9 @@ app.post('/recordings/:id/export-mp4', authenticateToken, async (req, res) => {
 app.get('/recordings/export-download/:filename', (req, res) => {
   const filePath = path.join(__dirname, 'exports', req.params.filename);
   if (fs.existsSync(filePath)) {
-    res.download(filePath);
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Disposition', `attachment; filename="${req.params.filename}"`);
+    res.download(filePath, req.params.filename);
   } else {
     res.status(404).send('Fajl videa nije pronađen.');
   }
