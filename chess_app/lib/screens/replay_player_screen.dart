@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -106,7 +107,12 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
     }
     setState(() => isPlaying = true);
     if (isAudioAvailable && recording?.audioUrl != null) {
-      _audioPlayer.play(UrlSource(recording!.audioUrl!));
+      final url = recording!.audioUrl!;
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        _audioPlayer.play(UrlSource(url));
+      } else if (File(url).existsSync()) {
+        _audioPlayer.play(DeviceFileSource(url));
+      }
       if (currentMs > 0) {
         _audioPlayer.seek(Duration(milliseconds: currentMs));
       }

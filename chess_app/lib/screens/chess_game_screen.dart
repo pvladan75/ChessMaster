@@ -17,6 +17,7 @@ import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/stockfish_service.dart';
+import 'package:chess_app/services/local_recording_service.dart';
 
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/board_setup_dialog.dart';
@@ -1130,73 +1131,30 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final title = titleController.text.trim();
     if (title.isEmpty) return;
 
-    // Show loading progress dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 16),
-            Expanded(child: Text('Sačuvavam snimak časa i audio zapis... Molimo sačekajte.', style: TextStyle(fontSize: 13))),
-          ],
-        ),
-      ),
-    );
-
     try {
-      print('[RECORDING_LOG] 3. Preparing HTTP Multipart Request to $backendUrl/recordings/save ...');
-      final request = http.MultipartRequest('POST', Uri.parse('$backendUrl/recordings/save'));
-      request.headers['Authorization'] = 'Bearer ${widget.userSession.token}';
-      request.fields['roomId'] = widget.roomCode;
-      request.fields['title'] = title;
-      request.fields['timelineJson'] = jsonEncode(recordedEvents.map((e) => e.toJson()).toList());
+      print('[RECORDING_LOG] 1. Saving recording instantly on device...');
+      final eventsCopy = List<TimelineEvent>.from(recordedEvents);
+      await LocalRecordingService.saveLocally(
+        roomId: widget.roomCode,
+        title: title,
+        events: eventsCopy,
+        audioPath: _currentAudioPath,
+      );
 
-      if (_currentAudioPath != null) {
-        final audioFile = File(_currentAudioPath!);
-        if (await audioFile.exists()) {
-          final size = await audioFile.length();
-          print('[RECORDING_LOG] 4. Attaching audio file ($size bytes) from $_currentAudioPath ...');
-          request.files.add(await http.MultipartFile.fromPath('audio', audioFile.path));
-        } else {
-          print('[RECORDING_LOG] 4. Audio file path $_currentAudioPath does NOT exist on disk.');
-        }
-      } else {
-        print('[RECORDING_LOG] 4. _currentAudioPath is NULL.');
-      }
-
-      print('[RECORDING_LOG] 5. Sending HTTP request...');
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 120));
-      print('[RECORDING_LOG] 6. Streamed response received: status ${streamedResponse.statusCode}. Parsing body...');
-      final response = await http.Response.fromStream(streamedResponse);
-      print('[RECORDING_LOG] 7. Full server response body: ${response.body}');
-
-      // Dismiss progress dialog
-      if (mounted && Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-
-      if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Snimak časa je uspešno sačuvan! Dostupan je u odeljku Snimljeni časovi.'),
-            backgroundColor: Colors.teal,
-          ),
-        );
-      } else {
-        final errData = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errData['error'] ?? 'Greška pri čuvanju snimka.'), backgroundColor: Colors.redAccent),
-        );
-      }
-    } catch (e) {
-      print('[RECORDING_LOG_ERROR] Exception in _stopRecording: $e');
-      if (mounted && Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Greška pri čuvanju snimka: $e'), backgroundColor: Colors.redAccent),
+        const SnackBar(
+          content: Text('Snimak časa je sačuvan na vašem uređaju! Sinhronizacija sa serverom se vrši u pozadini.'),
+          backgroundColor: Colors.teal,
+          duration: Duration(seconds: 4),
+        ),
+      );
+
+      // Trigger background sync to server
+      unawaited(LocalRecordingService.syncPendingRecordings(widget.userSession.token));
+    } catch (e) {
+      print('[RECORDING_LOG_ERROR] Exception in instant local save: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Greška pri čuvanju lokalnog snimka: $e'), backgroundColor: Colors.redAccent),
       );
     } finally {
       setState(() {
