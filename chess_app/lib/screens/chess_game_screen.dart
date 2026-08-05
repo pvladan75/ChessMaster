@@ -1167,7 +1167,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
 
       print('[RECORDING_LOG] 5. Sending HTTP request...');
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 15));
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 120));
       print('[RECORDING_LOG] 6. Streamed response received: status ${streamedResponse.statusCode}. Parsing body...');
       final response = await http.Response.fromStream(streamedResponse);
       print('[RECORDING_LOG] 7. Full server response body: ${response.body}');

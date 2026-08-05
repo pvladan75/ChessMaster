@@ -171,8 +171,8 @@ class AgoraService {
     try {
       await _engine!.startAudioRecording(AudioRecordingConfiguration(
         filePath: filePath,
-        sampleRate: 32000,
-        quality: AudioRecordingQualityType.audioRecordingQualityHigh,
+        sampleRate: 16000,
+        quality: AudioRecordingQualityType.audioRecordingQualityMedium,
       ));
       return true;
     } catch (e) {
