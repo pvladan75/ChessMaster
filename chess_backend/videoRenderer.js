@@ -2,9 +2,10 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const { alphaPieceSvgs } = require('./pieceThemes');
 
-// Vector Staunton SVG definitions for all 12 pieces
-const pieceSvgStrings = {
+// Standard Staunton SVG definitions
+const stauntonPieceSvgs = {
   'P': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><path d="M 22.5,9 C 20.29,9 18.5,10.79 18.5,13 C 18.5,13.89 18.79,14.71 19.28,15.38 C 17.33,16.5 16,18.59 16,21 C 16,23.03 16.94,24.84 18.41,26.03 C 15.41,27.09 11,31.58 11,39.5 L 34,39.5 C 34,31.58 29.59,27.09 26.59,26.03 C 28.06,24.84 29,23.03 29,21 C 29,18.59 27.67,16.5 25.72,15.38 C 26.21,14.71 26.5,13.89 26.5,13 C 26.5,10.79 24.71,9 22.5,9 z" fill="#ffffff" stroke="#000000" stroke-width="1.5" stroke-linecap="round"/></svg>`,
   'N': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,24 C 21.5,17.5 13,18 13,18 C 13,18 16.5,13 22,10 z" fill="#ffffff" stroke="#000000" stroke-width="1.5" stroke-linecap="round"/><circle cx="27" cy="16" r="1.5" fill="#000000"/></svg>`,
   'B': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="none" fill-rule="evenodd" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g fill="#fff"><path d="M 9,36 C 12.39,35.03 19.11,36.46 22.5,34 C 25.89,36.46 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,39.5 36,39.5 L 9,39.5 C 7.65,39.5 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,22 30,22 C 30.5,20.5 32,18 32,15.5 C 32,13 30,8.5 22.5,8.5 C 15,8.5 13,13 13,15.5 C 13,18 14.5,20.5 15,22 C 15,22 14.5,30.5 15,32 z"/><circle cx="22.5" cy="6" r="2"/></g><path d="M 17.5,26 L 27.5,26 M 22.5,21 L 22.5,31" stroke="#000"/></g></svg>`,
@@ -19,15 +20,29 @@ const pieceSvgStrings = {
   'k': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="none" fill-rule="evenodd" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11.63 L 22.5,6 M 20,8 L 25,8" stroke="#fff"/><g fill="#333"><path d="M 22.5,25 C 22.5,25 27,17.5 27,14 C 27,11.5 25,9.5 22.5,9.5 C 20,9.5 18,11.5 18,14 C 18,17.5 22.5,25 22.5,25 z"/><path d="M 11.5,37 C 17,35.5 28,35.5 33.5,37 L 35.5,25 C 35.5,25 31,31 22.5,31 C 14,31 9.5,25 9.5,25 z"/><path d="M 11.5,37 L 33.5,37 L 33.5,40 L 11.5,40 z"/></g></g></svg>`
 };
 
-let loadedPieceImages = null;
+const loadedPieceSets = {};
 
-async function preloadPieceImages() {
-  if (loadedPieceImages) return loadedPieceImages;
-  loadedPieceImages = {};
-  for (const [key, svg] of Object.entries(pieceSvgStrings)) {
-    loadedPieceImages[key] = await loadImage(Buffer.from(svg));
+async function preloadPieceSet(style = 'alpha') {
+  if (loadedPieceSets[style]) return loadedPieceSets[style];
+  const dict = style === 'staunton' ? stauntonPieceSvgs : alphaPieceSvgs;
+  const loaded = {};
+  for (const [key, svg] of Object.entries(dict)) {
+    loaded[key] = await loadImage(Buffer.from(svg));
   }
-  return loadedPieceImages;
+  loadedPieceSets[style] = loaded;
+  return loaded;
+}
+
+function getBoardColors(themeStr) {
+  switch (themeStr) {
+    case 'green':
+      return { light: '#EEEED2', dark: '#769656', bg: '#1B281B' };
+    case 'blue':
+      return { light: '#EAE9D2', dark: '#4B7399', bg: '#141E28' };
+    case 'wood':
+    default:
+      return { light: '#F0D9B5', dark: '#B58863', bg: '#1E1E2E' };
+  }
 }
 
 function getResolutionParams(resolutionStr) {
@@ -48,9 +63,24 @@ function formatTime(sec) {
   return `${m}:${s}`;
 }
 
-async function renderFrameBuffer({ title, fen, perspective, lastMove, timestampSec, totalDurationSec, resolution = '720p' }) {
-  const pieceImages = await preloadPieceImages();
+async function renderFrameBuffer({
+  title,
+  fen,
+  perspective,
+  lastMove,
+  timestampSec,
+  totalDurationSec,
+  resolution = '720p',
+  pieceStyle = 'alpha',
+  boardTheme = 'wood',
+  showTitle = true,
+  showTimer = true,
+  showCoords = true,
+  showMoveText = true,
+}) {
+  const pieceImages = await preloadPieceSet(pieceStyle);
   const cfg = getResolutionParams(resolution);
+  const colors = getBoardColors(boardTheme);
 
   const width = cfg.width;
   const height = cfg.height;
@@ -63,21 +93,25 @@ async function renderFrameBuffer({ title, fen, perspective, lastMove, timestampS
   const ctx = canvas.getContext('2d');
 
   // Background
-  ctx.fillStyle = '#1E1E2E';
+  ctx.fillStyle = colors.bg;
   ctx.fillRect(0, 0, width, height);
 
   // Top Title Bar
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = `bold ${cfg.fontSizeTitle}px sans-serif`;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(`♟ ${title || 'Snimak Časa - Chess Master'}`, offsetX, offsetY / 2);
+  if (showTitle) {
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = `bold ${cfg.fontSizeTitle}px sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`♟ ${title || 'Snimak Časa - Chess Master'}`, offsetX, offsetY / 2);
+  }
 
   // Timer & Status Badge
-  ctx.fillStyle = '#00ADB5';
-  ctx.font = `bold ${cfg.fontSizeTimer}px sans-serif`;
-  ctx.textAlign = 'right';
-  ctx.fillText(`${formatTime(timestampSec)} / ${formatTime(totalDurationSec)}`, offsetX + boardSize, offsetY / 2);
+  if (showTimer) {
+    ctx.fillStyle = '#00ADB5';
+    ctx.font = `bold ${cfg.fontSizeTimer}px sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.fillText(`${formatTime(timestampSec)} / ${formatTime(totalDurationSec)}`, offsetX + boardSize, offsetY / 2);
+  }
 
   // Draw 8x8 Board
   const isBlackPerspective = perspective === 'student';
@@ -87,7 +121,7 @@ async function renderFrameBuffer({ title, fen, perspective, lastMove, timestampS
       const displayC = isBlackPerspective ? 7 - c : c;
 
       const isLight = (displayR + displayC) % 2 === 0;
-      ctx.fillStyle = isLight ? '#F0D9B5' : '#B58863';
+      ctx.fillStyle = isLight ? colors.light : colors.dark;
       ctx.fillRect(offsetX + c * tileSize, offsetY + r * tileSize, tileSize, tileSize);
     }
   }
@@ -109,19 +143,21 @@ async function renderFrameBuffer({ title, fen, perspective, lastMove, timestampS
   }
 
   // Draw Rank/File Coordinates
-  ctx.font = `bold ${cfg.fontSizeCoord}px sans-serif`;
-  for (let i = 0; i < 8; i++) {
-    const fileLabel = isBlackPerspective ? String.fromCharCode(104 - i) : String.fromCharCode(97 + i);
-    const rankLabel = isBlackPerspective ? (i + 1).toString() : (8 - i).toString();
+  if (showCoords) {
+    ctx.font = `bold ${cfg.fontSizeCoord}px sans-serif`;
+    for (let i = 0; i < 8; i++) {
+      const fileLabel = isBlackPerspective ? String.fromCharCode(104 - i) : String.fromCharCode(97 + i);
+      const rankLabel = isBlackPerspective ? (i + 1).toString() : (8 - i).toString();
 
-    // Files at bottom
-    ctx.fillStyle = i % 2 === 0 ? '#B58863' : '#F0D9B5';
-    ctx.textAlign = 'right';
-    ctx.fillText(fileLabel, offsetX + (i + 1) * tileSize - 4, offsetY + boardSize - 4);
+      // Files at bottom
+      ctx.fillStyle = i % 2 === 0 ? colors.dark : colors.light;
+      ctx.textAlign = 'right';
+      ctx.fillText(fileLabel, offsetX + (i + 1) * tileSize - 4, offsetY + boardSize - 4);
 
-    // Ranks at left
-    ctx.textAlign = 'left';
-    ctx.fillText(rankLabel, offsetX + 4, offsetY + i * tileSize + cfg.fontSizeCoord + 2);
+      // Ranks at left
+      ctx.textAlign = 'left';
+      ctx.fillText(rankLabel, offsetX + 4, offsetY + i * tileSize + cfg.fontSizeCoord + 2);
+    }
   }
 
   // Render Vector SVG Pieces from FEN
@@ -156,24 +192,40 @@ async function renderFrameBuffer({ title, fen, perspective, lastMove, timestampS
   }
 
   // Footer Move Text
-  ctx.fillStyle = '#EEEEEE';
-  ctx.font = `${cfg.fontSizeMove}px sans-serif`;
-  ctx.textAlign = 'center';
-  const moveText = lastMove && lastMove.san ? `Zadnji potez: ${lastMove.san}` : 'Početna pozicija';
-  ctx.fillText(moveText, width / 2, offsetY + boardSize + cfg.fontSizeMove + 15);
+  if (showMoveText) {
+    ctx.fillStyle = '#EEEEEE';
+    ctx.font = `${cfg.fontSizeMove}px sans-serif`;
+    ctx.textAlign = 'center';
+    const moveText = lastMove && lastMove.san ? `Zadnji potez: ${lastMove.san}` : 'Početna pozicija';
+    ctx.fillText(moveText, width / 2, offsetY + boardSize + cfg.fontSizeMove + 15);
+  }
 
   return canvas.toBuffer('image/png');
 }
 
-async function renderRecordingToMP4({ title, timelineEvents, audioFilePath, durationSeconds, perspective, resolution = '720p', outputPath }) {
+async function renderRecordingToMP4({
+  title,
+  timelineEvents,
+  audioFilePath,
+  durationSeconds,
+  perspective,
+  resolution = '720p',
+  pieceStyle = 'alpha',
+  boardTheme = 'wood',
+  showTitle = true,
+  showTimer = true,
+  showCoords = true,
+  showMoveText = true,
+  outputPath
+}) {
   return new Promise(async (resolve, reject) => {
     const totalDuration = Math.max(3, Math.min(3600, Math.ceil(durationSeconds || 10)));
     const events = Array.isArray(timelineEvents) ? timelineEvents : [];
 
-    console.log(`[VIDEO_RENDER] Rendering ${resolution} MP4: ${totalDuration}s, ${events.length} events, audio: ${audioFilePath}`);
+    console.log(`[VIDEO_RENDER] Rendering ${resolution} MP4 (${pieceStyle}/${boardTheme}): ${totalDuration}s, ${events.length} events, audio: ${audioFilePath}`);
 
-    // Preload piece images
-    await preloadPieceImages();
+    // Preload piece set
+    await preloadPieceSet(pieceStyle);
 
     // Build FFmpeg args
     const ffmpegArgs = [
@@ -199,7 +251,7 @@ async function renderRecordingToMP4({ title, timelineEvents, audioFilePath, dura
 
     ffmpeg.on('close', (code) => {
       if (code === 0) {
-        console.log(`[VIDEO_RENDER] Success! Video (${resolution}) saved to ${outputPath}`);
+        console.log(`[VIDEO_RENDER] Success! Custom MP4 saved to ${outputPath}`);
         resolve(outputPath);
       } else {
         reject(new Error(`FFmpeg exited with code ${code}`));
@@ -236,7 +288,13 @@ async function renderRecordingToMP4({ title, timelineEvents, audioFilePath, dura
         lastMove,
         timestampSec: sec,
         totalDurationSec: totalDuration,
-        resolution
+        resolution,
+        pieceStyle,
+        boardTheme,
+        showTitle,
+        showTimer,
+        showCoords,
+        showMoveText
       });
 
       ffmpeg.stdin.write(frameBuf);

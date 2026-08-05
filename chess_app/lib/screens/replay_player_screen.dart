@@ -240,6 +240,12 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   void _showExportMp4Dialog() {
     String selectedPerspective = 'trainer';
     String selectedResolution = '720p';
+    String selectedPieceStyle = 'alpha';
+    String selectedBoardTheme = 'wood';
+    bool showTitle = true;
+    bool showTimer = true;
+    bool showCoords = true;
+    bool showMoveText = true;
 
     showDialog(
       context: context,
@@ -247,66 +253,142 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
         builder: (context, setDialogState) => AlertDialog(
           title: Row(
             children: const [
-              Icon(Icons.video_call, color: Colors.deepPurpleAccent),
+              Icon(Icons.video_settings_rounded, color: Colors.deepPurpleAccent),
               SizedBox(width: 8),
-              Text('Izvoz u MP4 Video', style: TextStyle(fontSize: 16)),
+              Text('Video Studio - Podešavanje Videa', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Orijentacija table:',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Expanded(
-                    child: RadioListTile<String>(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Bela (Trener)', style: TextStyle(fontSize: 11)),
-                      value: 'trainer',
-                      groupValue: selectedPerspective,
-                      onChanged: (val) => setDialogState(() => selectedPerspective = val!),
-                    ),
-                  ),
-                  Expanded(
-                    child: RadioListTile<String>(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Crna (Učenik)', style: TextStyle(fontSize: 11)),
-                      value: 'student',
-                      groupValue: selectedPerspective,
-                      onChanged: (val) => setDialogState(() => selectedPerspective = val!),
-                    ),
-                  ),
-                ],
-              ),
-              const Divider(),
-              const Text(
-                'Rezolucija i kvalitet videa:',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: selectedResolution,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '1. Stil šahovskih figura:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent),
                 ),
-                items: const [
-                  DropdownMenuItem(value: '1080p', child: Text('1080p (Full HD 1920x1080) - Ultra oštrina')),
-                  DropdownMenuItem(value: '720p', child: Text('720p (HD 1280x720) - Balans (Preporučeno)')),
-                  DropdownMenuItem(value: '480p', child: Text('480p (SD 854x480) - Kompaktan fajl')),
-                ],
-                onChanged: (val) {
-                  if (val != null) setDialogState(() => selectedResolution = val);
-                },
-              ),
-            ],
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  value: selectedPieceStyle,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'alpha', child: Text('Alpha / Lichess (Preporučeno - Oštre figure)')),
+                    DropdownMenuItem(value: 'staunton', child: Text('Classic Staunton (Tradicionalne)')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => selectedPieceStyle = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '2. Tema šahovske table:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent),
+                ),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  value: selectedBoardTheme,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'wood', child: Text('Klasično drvo (Smeđe / Krem)')),
+                    DropdownMenuItem(value: 'green', child: Text('Turnirska (Zelena / Bela)')),
+                    DropdownMenuItem(value: 'blue', child: Text('Moderna (Tamno plava / Siva)')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => selectedBoardTheme = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '3. Orijentacija table:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: RadioListTile<String>(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Bela (Trener)', style: TextStyle(fontSize: 11)),
+                        value: 'trainer',
+                        groupValue: selectedPerspective,
+                        onChanged: (val) => setDialogState(() => selectedPerspective = val!),
+                      ),
+                    ),
+                    Expanded(
+                      child: RadioListTile<String>(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Crna (Učenik)', style: TextStyle(fontSize: 11)),
+                        value: 'student',
+                        groupValue: selectedPerspective,
+                        onChanged: (val) => setDialogState(() => selectedPerspective = val!),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                const Text(
+                  '4. Prikaz elemenata na ekranu:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent),
+                ),
+                CheckboxListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Prikazi Naslov Časa na vrhu', style: TextStyle(fontSize: 11)),
+                  value: showTitle,
+                  onChanged: (v) => setDialogState(() => showTitle = v ?? true),
+                ),
+                CheckboxListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Prikazi Tajmer i Trajanje', style: TextStyle(fontSize: 11)),
+                  value: showTimer,
+                  onChanged: (v) => setDialogState(() => showTimer = v ?? true),
+                ),
+                CheckboxListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Prikazi Oznake Polja (A-H, 1-8)', style: TextStyle(fontSize: 11)),
+                  value: showCoords,
+                  onChanged: (v) => setDialogState(() => showCoords = v ?? true),
+                ),
+                CheckboxListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Prikazi Tekst Zadnjeg Poteza na dnu', style: TextStyle(fontSize: 11)),
+                  value: showMoveText,
+                  onChanged: (v) => setDialogState(() => showMoveText = v ?? true),
+                ),
+                const Divider(),
+                const Text(
+                  '5. Rezolucija i Kvalitet:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent),
+                ),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  value: selectedResolution,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: '1080p', child: Text('1080p (Full HD 1920x1080) - Ultra oštar')),
+                    DropdownMenuItem(value: '720p', child: Text('720p (HD 1280x720) - Balans (Preporučeno)')),
+                    DropdownMenuItem(value: '480p', child: Text('480p (SD 854x480) - Kompaktan fajl')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => selectedResolution = val);
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -314,8 +396,8 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
               child: const Text('Otkaži'),
             ),
             ElevatedButton.icon(
-              icon: const Icon(Icons.download_rounded, size: 16),
-              label: const Text('Započni izvoz'),
+              icon: const Icon(Icons.movie_creation_rounded, size: 16),
+              label: const Text('Renderuj Video'),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurpleAccent, foregroundColor: Colors.white),
               onPressed: () async {
                 Navigator.pop(ctx);
@@ -329,6 +411,12 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                     body: jsonEncode({
                       'perspective': selectedPerspective,
                       'resolution': selectedResolution,
+                      'pieceStyle': selectedPieceStyle,
+                      'boardTheme': selectedBoardTheme,
+                      'showTitle': showTitle,
+                      'showTimer': showTimer,
+                      'showCoords': showCoords,
+                      'showMoveText': showMoveText,
                     }),
                   );
                   final resData = jsonDecode(res.body);
