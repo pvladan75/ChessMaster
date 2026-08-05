@@ -1143,30 +1143,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
 
     try {
-      String? audioBase64;
+      final request = http.MultipartRequest('POST', Uri.parse('$backendUrl/recordings/save'));
+      request.headers['Authorization'] = 'Bearer ${widget.userSession.token}';
+      request.fields['roomId'] = widget.roomCode;
+      request.fields['title'] = title;
+      request.fields['timelineJson'] = jsonEncode(recordedEvents.map((e) => e.toJson()).toList());
+
       if (_currentAudioPath != null) {
         final audioFile = File(_currentAudioPath!);
         if (await audioFile.exists()) {
-          final bytes = await audioFile.readAsBytes();
-          if (bytes.isNotEmpty) {
-            audioBase64 = base64Encode(bytes);
-          }
+          request.files.add(await http.MultipartFile.fromPath('audio', audioFile.path));
         }
       }
 
-      final response = await http.post(
-        Uri.parse('$backendUrl/recordings/save'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.userSession.token}'
-        },
-        body: jsonEncode({
-          'roomId': widget.roomCode,
-          'title': title,
-          'timelineJson': recordedEvents.map((e) => e.toJson()).toList(),
-          'audioBase64': audioBase64,
-        }),
-      );
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
       // Dismiss progress dialog
       if (mounted && Navigator.canPop(context)) {

@@ -501,23 +501,60 @@ app.post('/users/account-type', authenticateToken, async (req, res) => {
   }
 });
 
+const multer = require('multer');
+const uploadStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname) || '.aac';
+    cb(null, `audio_${Date.now()}_${Math.floor(Math.random() * 10000)}${ext}`);
+  }
+});
+const upload = multer({ storage: uploadStorage, limits: { fileSize: 100 * 1024 * 1024 } });
+
 // LESSON RECORDINGS ROUTES
-app.post('/recordings/save', authenticateToken, async (req, res) => {
-  const { roomId, title, timelineJson, audioUrl } = req.body;
+app.post('/recordings/save', authenticateToken, upload.single('audio'), async (req, res) => {
+  const roomId = req.body.roomId;
+  const title = req.body.title;
+  let timelineJson = req.body.timelineJson;
+
+  if (typeof timelineJson === 'string') {
+    try {
+      timelineJson = JSON.parse(timelineJson);
+    } catch (e) {}
+  }
+
   if (!roomId || !title || !timelineJson) {
     return res.status(400).json({ error: 'Polja roomId, title i timelineJson su obavezna.' });
   }
 
   try {
+    let finalAudioUrl = req.body.audioUrl || null;
+
+    if (req.file) {
+      finalAudioUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+      console.log(`[RECORDING] Multipart audio saved: ${req.file.path}, URL: ${finalAudioUrl}`);
+    } else if (req.body.audioBase64 && req.body.audioBase64.length > 0) {
+      const audioFileName = `audio_${Date.now()}_${Math.floor(Math.random()*10000)}.aac`;
+      const audioPath = path.join(__dirname, 'uploads', audioFileName);
+      const buffer = Buffer.from(req.body.audioBase64, 'base64');
+      fs.writeFileSync(audioPath, buffer);
+      finalAudioUrl = `${req.protocol}://${req.get('host')}/uploads/${audioFileName}`;
+      console.log(`[RECORDING] Base64 audio saved to ${audioPath}, URL: ${finalAudioUrl}`);
+    }
+
     const result = await pool.query(
       `INSERT INTO session_recordings (room_id, host_id, title, audio_url, timeline_json)
        VALUES ($1, $2, $3, $4, $5) RETURNING id, room_id, title, created_at`,
-      [roomId, req.user.id, title, audioUrl || null, JSON.stringify(timelineJson)]
+      [roomId, req.user.id, title, finalAudioUrl, JSON.stringify(timelineJson)]
     );
     res.status(201).json({ message: 'Snimak časa je uspešno sačuvan.', recording: result.rows[0] });
   } catch (err) {
     console.error('Error saving recording:', err);
-    res.status(500).json({ error: 'Greška pri čuvanju snimka časa.' });
+    res.status(500).json({ error: 'Greška pri čuvanju snimka časa: ' + err.message });
   }
 });
 
