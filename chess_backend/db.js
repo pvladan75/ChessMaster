@@ -22,10 +22,11 @@ async function initDB() {
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         name VARCHAR(255) NOT NULL,
-        role VARCHAR(50) NOT NULL DEFAULT 'unassigned' CHECK (role IN ('trener', 'ucenik', 'unassigned'))
+        role VARCHAR(50) NOT NULL DEFAULT 'user'
       );
       ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
-      ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('trener', 'ucenik', 'unassigned'));
+      ALTER TABLE users DROP CONSTRAINT IF EXISTS user_role_check;
+      ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('user', 'trener', 'ucenik', 'unassigned', 'admin'));
     `);
     console.log('Verified database table: users');
 

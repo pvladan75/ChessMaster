@@ -100,10 +100,16 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   void _play() {
     if (currentMs >= maxDurationMs) {
       currentMs = 0;
+      if (isAudioAvailable && recording?.audioUrl != null) {
+        _audioPlayer.seek(Duration.zero);
+      }
     }
     setState(() => isPlaying = true);
-    if (isAudioAvailable) {
-      _audioPlayer.resume();
+    if (isAudioAvailable && recording?.audioUrl != null) {
+      _audioPlayer.play(UrlSource(recording!.audioUrl!));
+      if (currentMs > 0) {
+        _audioPlayer.seek(Duration(milliseconds: currentMs));
+      }
     }
     _playbackTimer?.cancel();
     const intervalMs = 50;

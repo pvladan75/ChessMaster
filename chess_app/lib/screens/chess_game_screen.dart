@@ -999,10 +999,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
     ));
   }
 
+  String? _currentAudioPath;
+
   Future<void> _startRecording() async {
     try {
-      final audioPath = '${Directory.systemTemp.path}/session_audio_${DateTime.now().millisecondsSinceEpoch}.aac';
-      await _agoraService.startAudioRecording(audioPath);
+      _currentAudioPath = '${Directory.systemTemp.path}/session_audio_${DateTime.now().millisecondsSinceEpoch}.aac';
+      await _agoraService.startAudioRecording(_currentAudioPath!);
     } catch (e) {
       print('Error starting Agora audio recording: $e');
     }
@@ -1125,6 +1127,17 @@ class _ChessGamePageState extends State<ChessGamePage> {
     if (title.isEmpty) return;
 
     try {
+      String? audioBase64;
+      if (_currentAudioPath != null) {
+        final audioFile = File(_currentAudioPath!);
+        if (await audioFile.exists()) {
+          final bytes = await audioFile.readAsBytes();
+          if (bytes.isNotEmpty) {
+            audioBase64 = base64Encode(bytes);
+          }
+        }
+      }
+
       final response = await http.post(
         Uri.parse('$backendUrl/recordings/save'),
         headers: {
@@ -1135,7 +1148,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           'roomId': widget.roomCode,
           'title': title,
           'timelineJson': recordedEvents.map((e) => e.toJson()).toList(),
-          'audioUrl': null,
+          'audioBase64': audioBase64,
         }),
       );
 

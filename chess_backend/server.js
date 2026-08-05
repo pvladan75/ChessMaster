@@ -10,6 +10,7 @@ const { exec } = require('child_process');
 const { pool, initDB } = require('./db');
 const { getUserStats, checkUserLimits } = require('./limitsService');
 const geminiService = require('./geminiService');
+const videoRenderer = require('./videoRenderer');
 
 const app = express();
 const server = http.createServer(app);
@@ -585,25 +586,34 @@ app.post('/recordings/:id/export-mp4', authenticateToken, async (req, res) => {
 
     const exportPath = path.join(exportsDir, filename);
 
-    // Calculate duration or fallback to 10 seconds
-    const duration = Math.max(5, Math.min(3600, (recording && recording.duration_seconds) ? recording.duration_seconds : 10));
-    const audioPath = recording ? recording.audio_file_path : null;
+    // Calculate duration
+    let timelineEvents = [];
+    try {
+      timelineEvents = typeof recording.timeline_json === 'string' ? JSON.parse(recording.timeline_json) : (recording.timeline_json || []);
+    } catch (e) {}
 
-    let ffmpegCmd;
-    if (audioPath && fs.existsSync(audioPath)) {
-      ffmpegCmd = `ffmpeg -y -f lavfi -i color=c=0x1E1E2E:s=1280x720:d=${duration} -i "${audioPath}" -c:v libx264 -tune stillimage -pix_fmt yuv420p -c:a aac -b:a 192k -shortest "${exportPath}"`;
-    } else {
-      ffmpegCmd = `ffmpeg -y -f lavfi -i color=c=0x1E1E2E:s=1280x720:d=${duration} -f lavfi -i anullsrc=r=44100:cl=stereo -c:v libx264 -tune stillimage -pix_fmt yuv420p -c:a aac -b:a 192k -shortest "${exportPath}"`;
+    let duration = recording && recording.duration_seconds ? recording.duration_seconds : 10;
+    if (timelineEvents.length > 0) {
+      const maxMs = timelineEvents[timelineEvents.length - 1].timestampMs || 0;
+      duration = Math.max(duration, Math.ceil(maxMs / 1000));
     }
 
-    await new Promise((resolve, reject) => {
-      exec(ffmpegCmd, (error, stdout, stderr) => {
-        if (error) {
-          console.error('FFmpeg MP4 export error:', stderr);
-          return reject(error);
-        }
-        resolve();
-      });
+    // Resolve audio path if audio_url is local
+    let audioFilePath = recording ? recording.audio_file_path : null;
+    if (!audioFilePath && recording && recording.audio_url) {
+      const parts = recording.audio_url.split('/uploads/');
+      if (parts.length > 1) {
+        audioFilePath = path.join(__dirname, 'uploads', parts[1]);
+      }
+    }
+
+    await videoRenderer.renderRecordingToMP4({
+      title: recording ? recording.title : 'Snimak Časa',
+      timelineEvents,
+      audioFilePath,
+      durationSeconds: duration,
+      perspective: perspective || 'trainer',
+      outputPath: exportPath
     });
 
     const host = req.get('host');
