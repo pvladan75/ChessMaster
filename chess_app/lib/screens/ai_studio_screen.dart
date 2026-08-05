@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 
@@ -39,7 +40,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   // AI Coach Analysis State
   bool _isAnalyzingAi = false;
   Map<String, dynamic>? _aiAnalysisResult;
-  List<ArrowInstruction> _aiArrows = [];
+  List<ChessArrow> _aiArrows = [];
   Map<String, dynamic>? _stockfishEval;
 
   final List<Map<String, String>> _themeOptions = [
@@ -66,12 +67,18 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     await _stockfishService.initEngine();
     _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
       if (mounted) {
+        double parsedEval = 0.0;
+        final numVal = double.tryParse(evaluation);
+        if (numVal != null) {
+          parsedEval = numVal;
+        }
+
         setState(() {
           _stockfishEval = {
             'evaluation': evaluation,
             'bestMove': bestMove,
             'continuation': continuation,
-            'cp': (evaluation * 100).round()
+            'cp': (parsedEval * 100).round()
           };
         });
       }
@@ -252,16 +259,16 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     }
   }
 
-  List<ArrowInstruction> _buildArrowsFromMoves(dynamic moves) {
+  List<ChessArrow> _buildArrowsFromMoves(dynamic moves) {
     if (moves is! List) return [];
-    final List<ArrowInstruction> arrows = [];
+    final List<ChessArrow> arrows = [];
     for (var m in moves) {
       final str = m.toString().replaceAll(' ', '');
       if (str.length >= 4) {
-        arrows.add(ArrowInstruction(
-          fromSquare: str.substring(0, 2),
-          toSquare: str.substring(2, 4),
-          color: Colors.amberAccent,
+        arrows.add(ChessArrow(
+          from: str.substring(0, 2),
+          to: str.substring(2, 4),
+          colorCode: 'O',
         ));
       }
     }
@@ -395,8 +402,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                             Positioned.fill(
                               child: IgnorePointer(
                                 child: CustomPaint(
-                                  painter: BoardOverlayPainter(
+                                  painter: ChessBoardPainter(
                                     arrows: _aiArrows,
+                                    boardSize: 320,
                                     orientation: PlayerColor.white,
                                   ),
                                 ),
@@ -493,14 +501,15 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                             boardOrientation: PlayerColor.white,
                             onMove: () {
                               final fen = _analysisBoardController.getFen();
-                              _stockfishService.analyzePosition(fen: fen, depth: 14);
+                              _stockfishService.analyzePosition(fen, depth: 14);
                             },
                           ),
                           Positioned.fill(
                             child: IgnorePointer(
                               child: CustomPaint(
-                                painter: BoardOverlayPainter(
+                                painter: ChessBoardPainter(
                                   arrows: _aiArrows,
+                                  boardSize: 320,
                                   orientation: PlayerColor.white,
                                 ),
                               ),
@@ -586,10 +595,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                       if (str.length >= 4) {
                         setState(() {
                           _aiArrows = [
-                            ArrowInstruction(
-                              fromSquare: str.substring(0, 2),
-                              toSquare: str.substring(2, 4),
-                              color: Colors.amberAccent,
+                            ChessArrow(
+                              from: str.substring(0, 2),
+                              to: str.substring(2, 4),
+                              colorCode: 'O',
                             )
                           ];
                         });
