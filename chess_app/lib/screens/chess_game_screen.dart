@@ -1117,6 +1117,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     if (confirm != true) {
       setState(() {
         isRecording = false;
+        isRecordingPaused = false;
         recordingStartTimeMs = null;
         recordedEvents.clear();
       });
@@ -1125,6 +1126,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     final title = titleController.text.trim();
     if (title.isEmpty) return;
+
+    // Show loading progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Expanded(child: Text('Sačuvavam snimak časa i audio zapis... Molimo sačekajte.', style: TextStyle(fontSize: 13))),
+          ],
+        ),
+      ),
+    );
 
     try {
       String? audioBase64;
@@ -1152,6 +1168,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
         }),
       );
 
+      // Dismiss progress dialog
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
       if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1160,17 +1181,22 @@ class _ChessGamePageState extends State<ChessGamePage> {
           ),
         );
       } else {
+        final errData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Greška pri čuvanju snimka.'), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text(errData['error'] ?? 'Greška pri čuvanju snimka.'), backgroundColor: Colors.redAccent),
         );
       }
     } catch (e) {
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Greška na mreži: $e'), backgroundColor: Colors.redAccent),
       );
     } finally {
       setState(() {
         isRecording = false;
+        isRecordingPaused = false;
         recordingStartTimeMs = null;
         recordedEvents.clear();
       });

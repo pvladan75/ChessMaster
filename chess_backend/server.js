@@ -26,8 +26,9 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'chessmaster_jwt_default_secret_key_2026';
 
-// Middleware for parsing JSON
-app.use(express.json());
+// Middleware for parsing JSON & Urlencoded with large limit for audio recordings
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // CORS headers middleware
 app.use((req, res, next) => {
