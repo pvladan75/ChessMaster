@@ -96,26 +96,18 @@ class _HomeScreenState extends State<HomeScreen> {
     _socket.on('session_invite_received', (data) {
       if (!mounted) return;
       _fetchNotifications();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Pozivnica! ${data['senderName']} vas poziva u sobu ${data['roomCode']}!'),
-          action: SnackBarAction(
-            label: 'Pridruži se',
-            textColor: Colors.tealAccent,
-            onPressed: () => _joinInviteRoom(data['roomCode']),
-          ),
-          duration: const Duration(seconds: 8),
-        ),
-      );
+      final senderName = data['senderName'] ?? data['trainerName'] ?? 'Prijatelj';
+      final roomCode = data['roomCode'] ?? '';
+      _showInviteDialog(roomCode, senderName);
     });
 
-    if (widget.session.role == 'ucenik') {
-      _socket.on('lesson_invite', (data) {
-        if (mounted) {
-          _showInviteDialog(data['roomCode'], data['trainerName']);
-        }
-      });
-    }
+    _socket.on('lesson_invite', (data) {
+      if (!mounted) return;
+      _fetchNotifications();
+      final senderName = data['trainerName'] ?? data['senderName'] ?? 'Prijatelj';
+      final roomCode = data['roomCode'] ?? '';
+      _showInviteDialog(roomCode, senderName);
+    });
   }
 
   void _showInviteDialog(String roomCode, String trainerName) {
@@ -443,6 +435,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showCreateRoomWithFriendsDialog() {
     final List<int> selectedFriendIds = [];
+    final availableFriends = _students.isNotEmpty ? _students : _friends;
 
     showDialog(
       context: context,
@@ -461,7 +454,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const Text('Izaberite prijatelje koje želite da pozovete u novu sesiju:', style: TextStyle(fontSize: 12)),
               const SizedBox(height: 12),
-              if (_friends.isEmpty)
+              if (availableFriends.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12.0),
                   child: Text('Nemate dodatih prijatelja. Možete ih dodati u kartici "Lista prijatelja" ispod.', style: TextStyle(fontSize: 11, color: Colors.grey)),
@@ -471,7 +464,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   constraints: const BoxConstraints(maxHeight: 180),
                   child: SingleChildScrollView(
                     child: Column(
-                      children: _friends.map((f) {
+                      children: availableFriends.map((f) {
                         final fId = f['id'] as int;
                         final isSel = selectedFriendIds.contains(fId);
                         return CheckboxListTile(

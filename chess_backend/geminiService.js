@@ -4,27 +4,36 @@ const { GoogleGenAI } = require('@google/genai');
 
 function generateFallbackExplanation({ fen, evals, userLanguage = 'sr' }) {
   const isSr = userLanguage === 'sr';
-  const bestMove = evals?.bestMove || (evals?.continuation ? evals.continuation.split(' ')[0] : 'e2e4');
+
+  // Parse side to move from FEN ('w' or 'b')
+  const fenParts = (fen || '').split(' ');
+  const sideToMove = fenParts[1] === 'b' ? (isSr ? 'Crni na potezu' : 'Black to move') : (isSr ? 'Beli na potezu' : 'White to move');
+
+  const bestMove = evals?.bestMove || (evals?.continuation ? evals.continuation.split(' ')[0] : null) || (evals?.pv ? evals.pv.split(' ')[0] : null);
   const cp = evals?.cp !== undefined ? evals.cp : (evals?.evaluation !== undefined ? Math.round(evals.evaluation * 100) : 0);
 
   let summary = isSr
-    ? `Pozicija pruža značajnu taktičku šansu sa ocenom ${cp > 0 ? '+' : ''}${(cp / 100).toFixed(2)}.`
-    : `The position offers strong tactical opportunities with evaluation ${cp > 0 ? '+' : ''}${(cp / 100).toFixed(2)}.`;
+    ? `${sideToMove}. Pozicija pruža taktičke resurse sa procenom motora ${cp > 0 ? '+' : ''}${(cp / 100).toFixed(2)}.`
+    : `${sideToMove}. Position offers tactical opportunities with engine evaluation ${cp > 0 ? '+' : ''}${(cp / 100).toFixed(2)}.`;
 
-  let keyMotif = isSr ? 'Taktička inicijativa i napad' : 'Tactical Initiative & Attack';
+  let keyMotif = isSr ? 'Taktička inicijativa i mobilnost' : 'Tactical Initiative & Mobility';
   if (cp > 300) {
-    keyMotif = isSr ? 'Dobijena pozicija (Velika materijalna/taktička prednost)' : 'Decisive Advantage';
+    keyMotif = isSr ? 'Značajna prednost (Zobijena pozicija)' : 'Decisive Advantage';
   } else if (cp < -300) {
-    keyMotif = isSr ? 'Odbrambeni resursi i kontraigra' : 'Defensive Resources & Counterplay';
+    keyMotif = isSr ? 'Odbrambeni resursi i kontraigra' : 'Defensive Counterplay';
   }
 
   const movesList = evals?.continuation
     ? evals.continuation.split(' ').slice(0, 4)
-    : [bestMove];
+    : (bestMove ? [bestMove] : []);
+
+  const moveAdvice = bestMove
+    ? (isSr ? `Pritisnite protivnika potezom ${bestMove}.` : `Pressure opponent with ${bestMove}.`)
+    : (isSr ? 'Analizirajte nezaštićene figure i aktivirajte najjače figure.' : 'Analyze undefended pieces and activate key pieces.');
 
   let plan = isSr
-    ? `1. Pritisnite protivničku poziciju ključnim potezom ${bestMove}.\n2. Kontrolišite centar i iskoristite nepokrivene figure.\n3. Nastavite sa linijom: ${movesList.join(' -> ')}.`
-    : `1. Pressure the opponent's position with key move ${bestMove}.\n2. Control central squares and exploit unguarded pieces.\n3. Continue line: ${movesList.join(' -> ')}.`;
+    ? `1. ${sideToMove}: ${moveAdvice}\n2. Kontrolišite ključne dijagonale i linije.\n3. Nastavite sa preporučenom linijom motora.`
+    : `1. ${sideToMove}: ${moveAdvice}\n2. Control key open files and diagonals.\n3. Continue calculated engine line.`;
 
   return {
     summary,

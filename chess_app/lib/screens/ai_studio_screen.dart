@@ -230,6 +230,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     setState(() => _isAnalyzingAi = true);
 
     try {
+      // Trigger Stockfish engine analysis if evaluation is empty
+      if (evals == null && (_stockfishEval == null || _stockfishEval!['bestMove'] == null)) {
+        _stockfishService.analyzePosition(fen, depth: 16);
+        await Future.delayed(const Duration(milliseconds: 2500));
+      }
+
+      final activeEval = evals ?? _stockfishEval ?? {};
+
       final res = await http.post(
         Uri.parse('$backendUrl/api/ai/explain-position'),
         headers: {
@@ -238,7 +246,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         },
         body: jsonEncode({
           'fen': fen,
-          'evals': evals ?? _stockfishEval ?? {},
+          'evals': activeEval,
           'userLanguage': 'sr',
         }),
       );

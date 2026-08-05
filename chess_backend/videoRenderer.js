@@ -23,13 +23,14 @@ const stauntonPieceSvgs = {
 const loadedPieceSets = {};
 
 async function preloadPieceSet(style = 'alpha') {
-  if (loadedPieceSets[style]) return loadedPieceSets[style];
-  const dict = style === 'staunton' ? stauntonPieceSvgs : alphaPieceSvgs;
+  const normalizedStyle = (style || 'alpha').toLowerCase().trim();
+  if (loadedPieceSets[normalizedStyle]) return loadedPieceSets[normalizedStyle];
+  const dict = (normalizedStyle === 'staunton') ? stauntonPieceSvgs : alphaPieceSvgs;
   const loaded = {};
   for (const [key, svg] of Object.entries(dict)) {
     loaded[key] = await loadImage(Buffer.from(svg));
   }
-  loadedPieceSets[style] = loaded;
+  loadedPieceSets[normalizedStyle] = loaded;
   return loaded;
 }
 
