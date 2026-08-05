@@ -50,9 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _initSocket();
-    if (widget.session.role == 'trener') {
-      _fetchStudents();
-    }
+    _fetchStudents();
     _fetchUserStats();
     _fetchRecordings();
     _fetchFriends();
@@ -163,7 +161,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchStudents() async {
-    if (widget.session.role != 'trener') return;
     setState(() => _isLoadingStudents = true);
     try {
       final response = await http.get(
@@ -177,9 +174,26 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (e) {
-      print("Error fetching students: $e");
+      print("Error fetching friends: $e");
     } finally {
-      setState(() => _isLoadingStudents = false);
+      if (mounted) setState(() => _isLoadingStudents = false);
+    }
+  }
+
+  Future<void> _deleteStudent(int studentId) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('$backendUrl/trainer/students/$studentId'),
+        headers: {'Authorization': 'Bearer ${widget.session.token}'},
+      );
+      if (res.statusCode == 200) {
+        _fetchStudents();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Prijatelj je uklonjen iz liste.')),
+        );
+      }
+    } catch (e) {
+      print("Error deleting friend: $e");
     }
   }
 
@@ -1301,14 +1315,25 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     title: Text(student['name']),
                                     subtitle: Text(student['email']),
-                                    trailing: ElevatedButton.icon(
-                                      onPressed: isOnline ? () => _inviteStudent(student['id']) : null,
-                                      icon: const Icon(Icons.send, size: 14),
-                                      label: const Text('Pozovi'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: isOnline ? Colors.teal : Colors.blueGrey.withOpacity(0.2),
-                                        foregroundColor: Colors.white,
-                                      ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ElevatedButton.icon(
+                                          onPressed: isOnline ? () => _inviteStudent(student['id']) : null,
+                                          icon: const Icon(Icons.send, size: 14),
+                                          label: const Text('Pozovi'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: isOnline ? Colors.teal : Colors.blueGrey.withOpacity(0.2),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                                          onPressed: () => _deleteStudent(student['id']),
+                                          tooltip: 'Ukloni prijatelja',
+                                        ),
+                                      ],
                                     ),
                                   );
                                 },

@@ -233,49 +233,61 @@ app.post('/auth/google', async (req, res) => {
   }
 });
 
-// POST /trainer/students/add
+// POST /trainer/students/add (also aliases adding friends)
 app.post('/trainer/students/add', authenticateToken, async (req, res) => {
   const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ error: 'Student email is required' });
+  if (!email || !email.trim()) {
+    return res.status(400).json({ error: 'Email adresa je obavezna.' });
+  }
+
+  const targetEmail = email.trim().toLowerCase();
+  if (targetEmail === req.user.email.toLowerCase()) {
+    return res.status(400).json({ error: 'Ne možete dodati sebe kao prijatelja.' });
   }
 
   try {
-    const studentCheck = await pool.query('SELECT id, email, name, role FROM users WHERE email = $1', [email.trim()]);
+    const studentCheck = await pool.query('SELECT id, email, name, role FROM users WHERE LOWER(email) = $1', [targetEmail]);
     if (studentCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Korisnik sa tim emailom nije pronađen.' });
     }
 
     const student = studentCheck.rows[0];
 
+    // Insert bi-directionally into trainer_students AND friends tables
     await pool.query(
-      'INSERT INTO trainer_students (trainer_id, student_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      `INSERT INTO trainer_students (trainer_id, student_id) VALUES ($1, $2), ($2, $1) ON CONFLICT DO NOTHING`,
+      [req.user.id, student.id]
+    );
+    await pool.query(
+      `INSERT INTO friends (user_id, friend_id) VALUES ($1, $2), ($2, $1) ON CONFLICT DO NOTHING`,
       [req.user.id, student.id]
     );
 
     res.status(200).json({
-      message: 'Korisnik je uspešno dodat.',
+      message: 'Korisnik je uspešno dodat u prijatelje.',
       student: {
         id: student.id,
         email: student.email,
         name: student.name,
-        role: student.role
+        role: student.role,
+        status: onlineUsers[student.id] ? 'online' : 'offline'
       }
     });
   } catch (err) {
-    console.error('Add student error:', err);
-    res.status(500).json({ error: 'Server error while adding student' });
+    console.error('Add student/friend error:', err);
+    res.status(500).json({ error: 'Greška na serveru pri dodavanju prijatelja.' });
   }
 });
 
-// GET /trainer/students
+// GET /trainer/students (returns all friends bi-directionally)
 app.get('/trainer/students', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT u.id, u.email, u.name, u.role 
+      `SELECT DISTINCT u.id, u.email, u.name, u.role 
        FROM users u 
-       JOIN trainer_students ts ON u.id = ts.student_id 
-       WHERE ts.trainer_id = $1 
+       LEFT JOIN trainer_students ts ON (u.id = ts.student_id AND ts.trainer_id = $1) OR (u.id = ts.trainer_id AND ts.student_id = $1)
+       LEFT JOIN friends f ON (u.id = f.friend_id AND f.user_id = $1)
+       WHERE (ts.trainer_id = $1 OR ts.student_id = $1 OR f.user_id = $1) AND u.id != $1
        ORDER BY u.name ASC`,
       [req.user.id]
     );
@@ -290,8 +302,27 @@ app.get('/trainer/students', authenticateToken, async (req, res) => {
 
     res.json(students);
   } catch (err) {
-    console.error('Get students error:', err);
-    res.status(500).json({ error: 'Server error while fetching students' });
+    console.error('Get students/friends error:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju liste prijatelja.' });
+  }
+});
+
+// DELETE /trainer/students/:studentId
+app.delete('/trainer/students/:studentId', authenticateToken, async (req, res) => {
+  try {
+    const studentId = req.params.studentId;
+    await pool.query(
+      `DELETE FROM trainer_students WHERE (trainer_id = $1 AND student_id = $2) OR (trainer_id = $2 AND student_id = $1)`,
+      [req.user.id, studentId]
+    );
+    await pool.query(
+      `DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)`,
+      [req.user.id, studentId]
+    );
+    res.json({ message: 'Prijatelj je uklonjen iz liste.' });
+  } catch (err) {
+    console.error('Error removing friend:', err);
+    res.status(500).json({ error: 'Greška pri uklanjanju prijatelja.' });
   }
 });
 
