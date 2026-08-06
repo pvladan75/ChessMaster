@@ -46,6 +46,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   String _selectedTheme = 'all';
   bool _isOpponentTurn = false;
   PlayerColor _puzzleOrientation = PlayerColor.white;
+  bool _isProgrammaticMove = false;
+  String? _lastMoveFrom;
+  String? _lastMoveTo;
 
   // AI Coach Analysis State
   bool _isAnalyzingAi = false;
@@ -138,6 +141,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       _lastRatingChange = null;
       _aiAnalysisResult = null;
       _aiArrows = [];
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
+      _isOpponentTurn = true;
     });
 
     try {
@@ -162,19 +168,22 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           _moveIndex = 0;
         });
 
+        // 1. Load starting FEN
         _puzzleBoardController.loadFen(fen);
 
-        // Play the setup move if the puzzle sequence starts with opponent move
+        // 2. Play setup move moves[0] (Opponent's initial move) after short delay
         if (moves.isNotEmpty) {
+          await Future.delayed(const Duration(milliseconds: 300));
           _playPuzzleMove(moves[0], isSetupMove: true);
           _moveIndex = 1;
         }
 
-        // Calculate puzzle orientation from side to move AFTER setup move
+        // 3. Calculate puzzle orientation & side to move AFTER setup move
         final currentFen = _puzzleBoardController.getFen();
         final sideToMove = currentFen.split(' ')[1];
         setState(() {
           _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
+          _isOpponentTurn = false;
         });
 
         if (_isEngineEnabled) {
@@ -195,15 +204,23 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     final fromStr = lanMove.substring(0, 2);
     final toStr = lanMove.substring(2, 4);
 
+    _isProgrammaticMove = true;
     try {
       _puzzleBoardController.makeMove(from: fromStr, to: toStr);
+      setState(() {
+        _lastMoveFrom = fromStr;
+        _lastMoveTo = toStr;
+      });
     } catch (e) {
       // Fallback
+    } finally {
+      _isProgrammaticMove = false;
     }
   }
 
   void _onUserPuzzleMoveMade() {
-    if (_puzzleSolved || _puzzleFailed || _expectedMoves.isEmpty) return;
+    if (_isProgrammaticMove) return; // Ignore moves made programmatically by opponent!
+    if (_puzzleSolved || _puzzleFailed || _expectedMoves.isEmpty || _isOpponentTurn) return;
 
     final currentFen = _puzzleBoardController.getFen();
     final game = chess.Chess.fromFEN(currentFen);
@@ -211,7 +228,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
     if (history.isEmpty) return;
     final lastMove = history.last.move;
-    final userLan = '${lastMove.fromAlgebraic}${lastMove.toAlgebraic}';
+    final userFrom = lastMove.fromAlgebraic;
+    final userTo = lastMove.toAlgebraic;
+    final userLan = '$userFrom$userTo';
+
+    setState(() {
+      _lastMoveFrom = userFrom;
+      _lastMoveTo = userTo;
+    });
 
     final expectedLan = _expectedMoves[_moveIndex];
 
@@ -240,7 +264,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     }
   }
 
-  void _resetCurrentPuzzle() {
+  void _resetCurrentPuzzle() async {
     if (_currentPuzzle == null) return;
     final fen = _currentPuzzle!['fen'];
     final moves = List<String>.from(_currentPuzzle!['moves']);
@@ -566,15 +590,18 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                         ),
                         Stack(
                           children: [
-                            ChessBoard(
-                              controller: _puzzleBoardController,
-                              boardOrientation: _puzzleOrientation,
-                              onMove: () {
-                                _onUserPuzzleMoveMade();
-                                if (_isEngineEnabled) {
-                                  _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
-                                }
-                              },
+                            IgnorePointer(
+                              ignoring: _isOpponentTurn || _puzzleSolved || _puzzleFailed,
+                              child: ChessBoard(
+                                controller: _puzzleBoardController,
+                                boardOrientation: _puzzleOrientation,
+                                onMove: () {
+                                  _onUserPuzzleMoveMade();
+                                  if (_isEngineEnabled) {
+                                    _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
+                                  }
+                                },
+                              ),
                             ),
                             Positioned.fill(
                               child: IgnorePointer(
@@ -583,6 +610,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                                     arrows: [..._aiArrows, ...(_isEngineEnabled ? _engineArrows : [])],
                                     boardSize: 320,
                                     orientation: _puzzleOrientation,
+                                    lastMoveFrom: _lastMoveFrom,
+                                    lastMoveTo: _lastMoveTo,
                                   ),
                                 ),
                               ),

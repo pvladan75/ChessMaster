@@ -67,6 +67,8 @@ class ChessBoardPainter extends CustomPainter {
   final double boardSize;
   final PlayerColor orientation;
   final String? highlightedSquare;
+  final String? lastMoveFrom;
+  final String? lastMoveTo;
 
   ChessBoardPainter({
     required this.arrows,
@@ -74,12 +76,39 @@ class ChessBoardPainter extends CustomPainter {
     required this.boardSize,
     required this.orientation,
     this.highlightedSquare,
+    this.lastMoveFrom,
+    this.lastMoveTo,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final effectiveBoardSize = (size.width > 0 && size.width != double.infinity) ? size.width : boardSize;
     final squareSize = effectiveBoardSize / 8;
+
+    // Draw last move square highlights (origin & destination in glowing amber)
+    if (lastMoveFrom != null && lastMoveTo != null) {
+      final fromCenter = getSquareCenter(lastMoveFrom!, effectiveBoardSize, orientation);
+      final toCenter = getSquareCenter(lastMoveTo!, effectiveBoardSize, orientation);
+
+      final fillPaint = Paint()
+        ..color = Colors.amberAccent.withValues(alpha: 0.45)
+        ..style = PaintingStyle.fill;
+      final borderPaint = Paint()
+        ..color = Colors.amber
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5;
+
+      if (fromCenter != Offset.zero) {
+        final rectFrom = Rect.fromCenter(center: fromCenter, width: squareSize, height: squareSize);
+        canvas.drawRect(rectFrom, fillPaint);
+        canvas.drawRect(rectFrom, borderPaint);
+      }
+      if (toCenter != Offset.zero) {
+        final rectTo = Rect.fromCenter(center: toCenter, width: squareSize, height: squareSize);
+        canvas.drawRect(rectTo, fillPaint);
+        canvas.drawRect(rectTo, borderPaint);
+      }
+    }
 
     // Draw highlighted starting square for drawing mode
     if (highlightedSquare != null) {
@@ -252,6 +281,8 @@ class ChessBoardPainter extends CustomPainter {
         oldDelegate.engineArrows != engineArrows ||
         oldDelegate.boardSize != boardSize ||
         oldDelegate.orientation != orientation ||
-        oldDelegate.highlightedSquare != highlightedSquare;
+        oldDelegate.highlightedSquare != highlightedSquare ||
+        oldDelegate.lastMoveFrom != lastMoveFrom ||
+        oldDelegate.lastMoveTo != lastMoveTo;
   }
 }
