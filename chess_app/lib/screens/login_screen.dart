@@ -29,7 +29,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   );
   
   bool _isLogin = true;
-  String _role = 'ucenik'; // Default role is student ('ucenik')
   bool _isLoading = false;
   bool _rememberMe = false;
 
@@ -110,7 +109,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             'email': _emailController.text.trim(),
             'password': _passwordController.text,
             'name': _nameController.text.trim(),
-            'role': _role,
           }),
         );
 

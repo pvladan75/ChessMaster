@@ -110,13 +110,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
   void initState() {
     super.initState();
     if (widget.roomCode == 'STUDIO') {
-      activeRole = 'trener';
+      activeRole = 'host';
       boardOrientation = PlayerColor.white;
       allowStudentEngine = true;
       boardControl = 'unrestricted';
     } else {
-      activeRole = widget.initialRole ?? (widget.userSession.role == 'trener' ? 'trener' : 'ucenik');
-      boardOrientation = activeRole == 'trener'
+      activeRole = widget.initialRole ?? 'korisnik';
+      boardOrientation = activeRole == 'host'
           ? PlayerColor.white
           : PlayerColor.black;
     }
@@ -364,9 +364,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   Widget _buildChessBoardWithOverlay(double boardSize) {
-    final isTrener = widget.userSession.role == 'trener';
-    final isAllowedToMove = isTrener || (boardControl != 'trainer_only');
-    final isAllowedToUseEngine = isTrener || allowStudentEngine;
+    final isHost = activeRole == 'host' || widget.roomCode == 'STUDIO';
+    final isAllowedToMove = isHost || (boardControl != 'host_only' && boardControl != 'trainer_only');
+    final isAllowedToUseEngine = isHost || allowStudentEngine;
 
     final List<EngineArrow> engineArrows = (isEngineEnabled && isAllowedToUseEngine)
         ? engineLines.values
@@ -2367,9 +2367,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
       );
     }
 
-    // Right Sidebar Content (Controls & History)
     Widget buildRightSidebar() {
-      final isTrener = activeRole == 'trener';
+      final isHost = activeRole == 'host' || widget.roomCode == 'STUDIO';
       final isStudio = widget.roomCode == 'STUDIO';
 
       return Container(
@@ -2382,7 +2381,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                isStudio ? 'Studio Kontrole' : 'Kontrola i Istorija',
+                isStudio ? 'Studio Kontrole' : (isHost ? 'Host Kontrole & Istorija' : 'Kontrola i Istorija'),
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
@@ -2411,11 +2410,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           });
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isDrawingMode ? Colors.teal : Colors.deepPurple.withValues(alpha: 0.3),
-                        ),
-                        icon: Icon(isDrawingMode ? Icons.check : Icons.gesture),
-                        label: Text(isDrawingMode ? 'Završi crtanje' : 'Crtaj strelice'),
-                      ),
                     ),
                   ],
                 ),
@@ -2716,7 +2710,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                       style: const TextStyle(fontSize: 12),
                                     ),
                                   ),
-                                  if (isTrener && !isMe) ...[
+                                  if (isHost && !isMe) ...[
                                     PopupMenuButton<String>(
                                       icon: const Icon(Icons.more_vert, size: 16),
                                       tooltip: 'Promeni ulogu',
@@ -2730,13 +2724,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                       itemBuilder: (ctx) => [
                                         if (!isMemberTrainer)
                                           const PopupMenuItem(
-                                            value: 'trener',
-                                            child: Text('Promoviši u Trenera (Co-host)', style: TextStyle(fontSize: 12)),
+                                            value: 'host',
+                                            child: Text('Promoviši u Hosta (Co-host)', style: TextStyle(fontSize: 12)),
                                           )
                                         else
                                           const PopupMenuItem(
-                                            value: 'ucenik',
-                                            child: Text('Vrati u Učenika', style: TextStyle(fontSize: 12)),
+                                            value: 'korisnik',
+                                            child: Text('Vrati u Korisnika', style: TextStyle(fontSize: 12)),
                                           ),
                                       ],
                                     ),
@@ -3083,7 +3077,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            isTrener ? "Igrate kao Beli (Trener)" : "Igrate kao Crni (Učenik)",
+                            isHost ? "Igrate kao Beli (Host)" : "Igrate kao Crni (Korisnik)",
                             style: TextStyle(color: Colors.grey[400], fontSize: 15),
                           ),
                           const SizedBox(height: 20),
@@ -3115,7 +3109,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    isTrener ? "Igrate kao Beli (Trener)" : "Igrate kao Crni (Učenik)",
+                    isHost ? "Igrate kao Beli (Host)" : "Igrate kao Crni (Korisnik)",
                     style: TextStyle(color: Colors.grey[400], fontSize: 14),
                   ),
                   const SizedBox(height: 16),

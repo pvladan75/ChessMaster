@@ -536,7 +536,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        _navigateToGame(roomCode, 'trener');
+        _navigateToGame(roomCode, 'host');
       } else {
         _showError(data['error'] ?? 'Neuspešno kreiranje sobe.');
       }
@@ -962,7 +962,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateToGame(String roomCode, [String? sessionRole]) {
-    final effectiveRole = sessionRole ?? (roomCode == 'STUDIO' ? 'trener' : (widget.session.role == 'unassigned' ? 'ucenik' : widget.session.role));
+    final effectiveRole = sessionRole ?? (roomCode == 'STUDIO' ? 'host' : 'korisnik');
     final sessionForRoom = UserSession(
       id: widget.session.id,
       email: widget.session.email,
@@ -978,7 +978,7 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context) => ChessGamePage(
           roomCode: roomCode,
           userSession: sessionForRoom,
-          initialRole: 'trener',
+          initialRole: effectiveRole,
         ),
       ),
     );

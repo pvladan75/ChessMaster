@@ -22,13 +22,14 @@ async function initDB() {
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         name VARCHAR(255) NOT NULL,
-        role VARCHAR(50) NOT NULL DEFAULT 'user'
+        role VARCHAR(50) NOT NULL DEFAULT 'korisnik'
       );
       ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
       ALTER TABLE users DROP CONSTRAINT IF EXISTS user_role_check;
-      ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('user', 'trener', 'ucenik', 'unassigned', 'admin'));
+      ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('korisnik', 'host', 'admin', 'user', 'trener', 'ucenik'));
+      UPDATE users SET role = 'korisnik' WHERE role IN ('trener', 'ucenik', 'user', 'unassigned');
     `);
-    console.log('Verified database table: users');
+    console.log('Verified database table & role migration: users (role -> korisnik)');
 
     // Create rooms table
     await client.query(`
@@ -38,7 +39,7 @@ async function initDB() {
         creator_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         current_fen VARCHAR(255) DEFAULT 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'archived')),
-        board_control VARCHAR(50) DEFAULT 'trainer_only' CHECK (board_control IN ('trainer_only', 'student_white', 'student_black', 'student_both')),
+        board_control VARCHAR(50) DEFAULT 'host_only',
         allow_student_engine BOOLEAN DEFAULT FALSE
       );
     `);
@@ -46,8 +47,7 @@ async function initDB() {
     // Add column if table already exists
     await client.query(`
       ALTER TABLE rooms 
-      ADD COLUMN IF NOT EXISTS board_control VARCHAR(50) DEFAULT 'trainer_only' 
-      CHECK (board_control IN ('trainer_only', 'student_white', 'student_black', 'student_both'));
+      ADD COLUMN IF NOT EXISTS board_control VARCHAR(50) DEFAULT 'host_only';
     `);
     await client.query(`
       ALTER TABLE rooms 

@@ -79,21 +79,19 @@ app.get('/', (req, res) => {
 
 // POST /register
 app.post('/register', async (req, res) => {
-  const { email, password, name, role } = req.body;
+  const { email, password, name } = req.body;
 
-  if (!email || !password || !name || !role) {
-    return res.status(400).json({ error: 'All fields (email, password, name, role) are required' });
+  if (!email || !password || !name) {
+    return res.status(400).json({ error: 'Sva polja (email, lozinka, ime) su obavezna.' });
   }
 
-  if (role !== 'trener' && role !== 'ucenik') {
-    return res.status(400).json({ error: "Role must be 'trener' or 'ucenik'" });
-  }
+  const assignedRole = 'korisnik';
 
   try {
     // Check if user already exists
     const userCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userCheck.rows.length > 0) {
-      return res.status(400).json({ error: 'User with this email already exists' });
+      return res.status(400).json({ error: 'Korisnik sa ovom email adresom već postoji.' });
     }
 
     // Hash password
@@ -103,7 +101,7 @@ app.post('/register', async (req, res) => {
     // Save user to DB
     const result = await pool.query(
       'INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, name, role',
-      [email, passwordHash, name, role || 'user']
+      [email, passwordHash, name, assignedRole]
     );
 
     const user = result.rows[0];
@@ -204,7 +202,7 @@ app.post('/auth/google', async (req, res) => {
       const defaultPasswordHash = 'google_oauth_placeholder_hash';
       const insertResult = await pool.query(
         'INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, name, role',
-        [email, defaultPasswordHash, name || 'Korisnik', 'user']
+        [email, defaultPasswordHash, name || 'Korisnik', 'korisnik']
       );
       user = insertResult.rows[0];
       console.log('[GOOGLE_AUTH] Created new Google user:', user.email);
@@ -1276,7 +1274,7 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     console.log(`Player ${socket.id} joined room: ${roomId} as ${playerColor}`);
 
-    let effectiveRole = role || 'ucenik';
+    let effectiveRole = 'korisnik';
 
     try {
       // Fetch current room state & creator_id from DB
@@ -1284,12 +1282,12 @@ io.on('connection', (socket) => {
       if (result.rows.length > 0) {
         const creatorId = result.rows[0].creator_id;
         if (creatorId && Number(creatorId) === Number(userId)) {
-          effectiveRole = 'trener';
+          effectiveRole = 'host';
         }
 
         socket.emit('gameState', {
           currentFen: result.rows[0].current_fen,
-          boardControl: result.rows[0].board_control,
+          boardControl: result.rows[0].board_control || 'host_only',
           allowStudentEngine: result.rows[0].allow_student_engine
         });
       }
@@ -1310,7 +1308,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Host / Trainer changes participant role in room (promote to trainer / revert to student)
+  // Host changes participant role in room (promote to host / revert to korisnik)
   socket.on('change_user_role', ({ roomId, targetUserId, newRole }) => {
     console.log(`Changing role for user ${targetUserId} in room ${roomId} to ${newRole}`);
     if (activeRoomMembers[roomId] && activeRoomMembers[roomId][targetUserId]) {
