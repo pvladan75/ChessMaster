@@ -1506,7 +1506,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               subtitle: Text(s['email'] ?? ''),
                               trailing: IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20),
-                                onPressed: () => _removeStudent(s['id']),
+                                onPressed: () => _deleteStudent(s['id']),
                               ),
                             );
                           },
