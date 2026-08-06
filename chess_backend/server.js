@@ -1034,12 +1034,13 @@ app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
       puzzleRes = await pool.query(
         `SELECT * FROM puzzles
          WHERE rating BETWEEN $1 AND $2 AND $3 = ANY(themes) AND ($4 = '' OR puzzle_id != $4)
+           AND (popularity IS NULL OR popularity >= 30)
          ORDER BY RANDOM() LIMIT 1`,
         [minRating, maxRating, theme.trim(), currentExclude]
       );
       if (puzzleRes.rows.length === 0) {
         puzzleRes = await pool.query(
-          `SELECT * FROM puzzles WHERE $1 = ANY(themes) AND ($2 = '' OR puzzle_id != $2) ORDER BY RANDOM() LIMIT 1`,
+          `SELECT * FROM puzzles WHERE $1 = ANY(themes) AND ($2 = '' OR puzzle_id != $2) AND (popularity IS NULL OR popularity >= 30) ORDER BY RANDOM() LIMIT 1`,
           [theme.trim(), currentExclude]
         );
       }
@@ -1047,13 +1048,14 @@ app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
       puzzleRes = await pool.query(
         `SELECT * FROM puzzles
          WHERE rating BETWEEN $1 AND $2 AND ($3 = '' OR puzzle_id != $3)
+           AND (popularity IS NULL OR popularity >= 30)
          ORDER BY RANDOM() LIMIT 1`,
         [minRating, maxRating, currentExclude]
       );
     }
 
     if (puzzleRes.rows.length === 0) {
-      puzzleRes = await pool.query('SELECT * FROM puzzles ORDER BY RANDOM() LIMIT 1');
+      puzzleRes = await pool.query('SELECT * FROM puzzles WHERE (popularity IS NULL OR popularity >= 30) ORDER BY RANDOM() LIMIT 1');
     }
 
     if (puzzleRes.rows.length === 0) {

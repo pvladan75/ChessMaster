@@ -29,13 +29,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   final StockfishService _stockfishService = StockfishService();
 
   // Engine Analysis State
-  bool _isEngineEnabled = true;
+  bool _isEngineEnabled = false;
   String _thinkingMode = 'fast';
   Map<int, AnalysisLine> _engineLinesMap = {};
   List<ChessArrow> _engineArrows = [];
 
   // Puzzle State
   Map<String, dynamic>? _currentPuzzle;
+  chess.Chess? _puzzleGame;
   int _userRating = 1500;
   List<String> _expectedMoves = [];
   int _moveIndex = 0;
@@ -161,6 +162,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         final fen = p['fen'];
         final moves = List<String>.from(p['moves']);
 
+        _puzzleGame = chess.Chess.fromFEN(fen);
+
         setState(() {
           _currentPuzzle = p;
           _userRating = data['userRating'] ?? 1500;
@@ -174,7 +177,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         // 2. Play setup move moves[0] (Opponent's initial move) after short delay
         if (moves.isNotEmpty) {
           await Future.delayed(const Duration(milliseconds: 300));
-          _playPuzzleMove(moves[0], isSetupMove: true);
+          _playPuzzleMove(moves[0]);
           _moveIndex = 1;
         }
 
@@ -199,42 +202,64 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     }
   }
 
-  void _playPuzzleMove(String lanMove, {bool isSetupMove = false}) {
+  void _playPuzzleMove(String lanMove) {
     if (lanMove.length < 4) return;
     final fromStr = lanMove.substring(0, 2);
     final toStr = lanMove.substring(2, 4);
 
     _isProgrammaticMove = true;
     try {
-      _puzzleBoardController.makeMove(from: fromStr, to: toStr);
+      if (_puzzleGame != null) {
+        _puzzleGame!.move({'from': fromStr, 'to': toStr, 'promotion': lanMove.length > 4 ? lanMove[4] : 'q'});
+        _puzzleBoardController.loadFen(_puzzleGame!.fen);
+      } else {
+        _puzzleBoardController.makeMove(from: fromStr, to: toStr);
+      }
       setState(() {
         _lastMoveFrom = fromStr;
         _lastMoveTo = toStr;
       });
     } catch (e) {
-      // Fallback
+      print('Error playing puzzle move $lanMove: $e');
     } finally {
       _isProgrammaticMove = false;
     }
   }
 
   void _onUserPuzzleMoveMade() {
-    if (_isProgrammaticMove) return; // Ignore moves made programmatically by opponent!
-    if (_puzzleSolved || _puzzleFailed || _expectedMoves.isEmpty || _isOpponentTurn) return;
+    if (_isProgrammaticMove) return;
+    if (_puzzleSolved || _puzzleFailed || _expectedMoves.isEmpty || _isOpponentTurn || _puzzleGame == null) return;
 
     final currentFen = _puzzleBoardController.getFen();
-    final game = chess.Chess.fromFEN(currentFen);
-    final history = game.history;
+    if (currentFen == _puzzleGame!.fen) return; // No move made yet
 
-    if (history.isEmpty) return;
-    final lastMove = history.last.move;
-    final userFrom = lastMove.fromAlgebraic;
-    final userTo = lastMove.toAlgebraic;
-    final userLan = '$userFrom$userTo';
+    // Determine move played on board by comparing FENs with legal moves in _puzzleGame
+    String? userLan;
+    dynamic matchedMove;
 
+    for (var m in _puzzleGame!.moves({'verbose': true})) {
+      final testGame = chess.Chess.fromFEN(_puzzleGame!.fen);
+      testGame.move(m);
+      if (testGame.fen == currentFen) {
+        matchedMove = m;
+        final from = m['from'] ?? '';
+        final to = m['to'] ?? '';
+        final promo = m['promotion'] ?? '';
+        userLan = '$from$to$promo';
+        break;
+      }
+    }
+
+    if (matchedMove == null || userLan == null) return;
+
+    // Apply move to internal _puzzleGame
+    _puzzleGame!.move(matchedMove);
+
+    final fromStr = userLan.substring(0, 2);
+    final toStr = userLan.substring(2, 4);
     setState(() {
-      _lastMoveFrom = userFrom;
-      _lastMoveTo = userTo;
+      _lastMoveFrom = fromStr;
+      _lastMoveTo = toStr;
     });
 
     final expectedLan = _expectedMoves[_moveIndex];
@@ -259,8 +284,47 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         });
       }
     } else {
-      // Wrong move played
+      // Wrong move played!
+      setState(() {
+        _puzzleFailed = true;
+      });
+
       _submitPuzzleResult(false);
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Row(
+              children: const [
+                Icon(Icons.cancel, color: Colors.redAccent, size: 28),
+                SizedBox(width: 8),
+                Text('Netačan Potez!', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: Text('Potez $userLan koji ste odigrali nije tačan.\nOčekivani potez je bio drugačiji.'),
+            actions: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.refresh),
+                label: const Text('Pokušaj Ponovo'),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _resetCurrentPuzzle();
+                },
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.arrow_forward),
+                label: const Text('Sledeća Zagonetka'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _fetchNextPuzzle();
+                },
+              ),
+            ],
+          ),
+        );
+      }
     }
   }
 
@@ -269,17 +333,23 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     final fen = _currentPuzzle!['fen'];
     final moves = List<String>.from(_currentPuzzle!['moves']);
 
+    _puzzleGame = chess.Chess.fromFEN(fen);
+
     setState(() {
       _puzzleSolved = false;
       _puzzleFailed = false;
       _expectedMoves = moves;
       _moveIndex = 0;
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
+      _isOpponentTurn = true;
     });
 
     _puzzleBoardController.loadFen(fen);
 
     if (moves.isNotEmpty) {
-      _playPuzzleMove(moves[0], isSetupMove: true);
+      await Future.delayed(const Duration(milliseconds: 300));
+      _playPuzzleMove(moves[0]);
       _moveIndex = 1;
     }
 
@@ -287,6 +357,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     final sideToMove = currentFen.split(' ')[1];
     setState(() {
       _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
+      _isOpponentTurn = false;
     });
 
     if (_isEngineEnabled) {
