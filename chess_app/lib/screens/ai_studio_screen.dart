@@ -240,6 +240,36 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     }
   }
 
+  void _resetCurrentPuzzle() {
+    if (_currentPuzzle == null) return;
+    final fen = _currentPuzzle!['fen'];
+    final moves = List<String>.from(_currentPuzzle!['moves']);
+
+    setState(() {
+      _puzzleSolved = false;
+      _puzzleFailed = false;
+      _expectedMoves = moves;
+      _moveIndex = 0;
+    });
+
+    _puzzleBoardController.loadFen(fen);
+
+    if (moves.isNotEmpty) {
+      _playPuzzleMove(moves[0], isSetupMove: true);
+      _moveIndex = 1;
+    }
+
+    final currentFen = _puzzleBoardController.getFen();
+    final sideToMove = currentFen.split(' ')[1];
+    setState(() {
+      _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
+    });
+
+    if (_isEngineEnabled) {
+      _stockfishService.analyzePosition(currentFen, depth: 16);
+    }
+  }
+
   Future<void> _submitPuzzleResult(bool solved) async {
     setState(() {
       _puzzleSolved = solved;
@@ -282,6 +312,39 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
               ),
               content: Text('Bravo! Tačno ste odigrali sve poteze.\nNovi rejting: $newRating (${change >= 0 ? "+" : ""}$change)'),
               actions: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.arrow_forward),
+                  label: const Text('Sledeća Zagonetka'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _fetchNextPuzzle();
+                  },
+                ),
+              ],
+            ),
+          );
+        } else if (!solved && mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Row(
+                children: const [
+                  Icon(Icons.cancel, color: Colors.redAccent, size: 28),
+                  SizedBox(width: 8),
+                  Text('Netačan Potez!', style: TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              content: Text('Potez koji ste odigrali nije tačan.\nNovi rejting: $newRating (${change >= 0 ? "+" : ""}$change)'),
+              actions: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Pokušaj Ponovo'),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _resetCurrentPuzzle();
+                  },
+                ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.arrow_forward),
                   label: const Text('Sledeća Zagonetka'),
