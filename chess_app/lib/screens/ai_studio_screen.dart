@@ -293,6 +293,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
   void _onUserPuzzleMoveMade() {
     if (_isProgrammaticMove) return;
+    if (_puzzleType == 'endgame') {
+      _handleUserEndgameMove();
+      return;
+    }
     if (_puzzleSolved || _puzzleFailed || _expectedMoves.isEmpty || _isOpponentTurn || _puzzleGame == null) return;
 
     final currentFen = _puzzleBoardController.getFen();
@@ -391,6 +395,109 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         );
       }
     }
+  }
+
+  void _handleUserEndgameMove() async {
+    if (_isProgrammaticMove || _puzzleSolved || _puzzleFailed || _isOpponentTurn || _puzzleGame == null) return;
+
+    final currentFen = _puzzleBoardController.getFen();
+    if (currentFen == _puzzleGame!.fen) return; // No move made yet
+
+    // Determine move played on board by comparing FENs with legal moves in _puzzleGame
+    String? userLan;
+    dynamic matchedMove;
+
+    for (var m in _puzzleGame!.moves({'verbose': true})) {
+      final testGame = chess.Chess.fromFEN(_puzzleGame!.fen);
+      testGame.move(m);
+      if (testGame.fen == currentFen) {
+        matchedMove = m;
+        final from = m['from'] ?? '';
+        final to = m['to'] ?? '';
+        final promo = m['promotion'] ?? '';
+        userLan = '$from$to$promo';
+        break;
+      }
+    }
+
+    if (matchedMove == null || userLan == null) return;
+
+    // Apply user move to internal _puzzleGame
+    _puzzleGame!.move(matchedMove);
+    final fromStr = userLan.substring(0, 2);
+    final toStr = userLan.substring(2, 4);
+    setState(() {
+      _lastMoveFrom = fromStr;
+      _lastMoveTo = toStr;
+    });
+
+    // Check if player delivered checkmate
+    if (_puzzleGame!.in_checkmate) {
+      setState(() => _puzzleSolved = true);
+      _showEndgameWinDialog();
+      return;
+    } else if (_puzzleGame!.in_stalemate || _puzzleGame!.in_draw) {
+      _showSnackBar('🤝 Pat / Remi u poziciji.');
+      return;
+    }
+
+    // Now it is Stockfish's turn to respond defensively
+    setState(() => _isOpponentTurn = true);
+
+    await _stockfishService.initEngine();
+
+    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
+      if (!mounted || !_isOpponentTurn || _puzzleType != 'endgame') return;
+
+      if (bestMove.isNotEmpty && bestMove.length >= 4) {
+        Future.delayed(const Duration(milliseconds: 350), () {
+          if (!mounted) return;
+          _playPuzzleMove(bestMove);
+          setState(() {
+            _isOpponentTurn = false;
+          });
+
+          if (_puzzleGame != null) {
+            if (_puzzleGame!.in_checkmate) {
+              setState(() => _puzzleFailed = true);
+              _showSnackBar('❌ Stockfish vam je zadao mat.');
+            } else if (_puzzleGame!.in_stalemate || _puzzleGame!.in_draw) {
+              _showSnackBar('🤝 Pat / Remi u poziciji.');
+            }
+          }
+        });
+      }
+    };
+
+    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 12);
+  }
+
+  void _showEndgameWinDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: const [
+            Icon(Icons.emoji_events, color: Colors.amberAccent, size: 28),
+            SizedBox(width: 8),
+            Text('🎉 POBEDA!', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text('Čestitamo! Uspešno ste zadali mat Stockfish-u u završnici!'),
+        actions: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.arrow_forward),
+            label: const Text('Sledeća Završnica'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _fetchNextEndgame();
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   void _resetCurrentPuzzle() async {
