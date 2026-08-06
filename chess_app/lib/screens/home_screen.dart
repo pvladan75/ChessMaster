@@ -1475,49 +1475,52 @@ class _HomeScreenState extends State<HomeScreen> {
                           ElevatedButton(
                             onPressed: _addStudent,
                             style: ElevatedButton.styleFrom(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          rec['title'] ?? 'Snimak časa',
-                                          style: const TextStyle(fontWeight: FontWeight.bold),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      if (rec['video_url'] != null)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Colors.teal.withValues(alpha: 0.3),
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(color: Colors.tealAccent, width: 0.5),
-                                          ),
-                                          child: const Text(
-                                            'MP4 Video',
-                                            style: TextStyle(fontSize: 9, color: Colors.tealAccent, fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  subtitle: Text('Trener: ${rec['host_name'] ?? 'Trener'}'),
-                                  trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (ctx) => ReplayPlayerScreen(
-                                          recordingId: rec['id'],
-                                          userSession: widget.session,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             ),
+                            child: const Text('Dodaj prijatelja'),
+                          ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      if (_isLoadingStudents)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_students.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24.0),
+                          child: Center(child: Text('Nemate još uvek dodatih prijatelja.', style: TextStyle(color: Colors.grey))),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _students.length,
+                          separatorBuilder: (ctx, idx) => const Divider(height: 1),
+                          itemBuilder: (ctx, idx) {
+                            final s = _students[idx];
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const CircleAvatar(child: Icon(Icons.person)),
+                              title: Text(s['name'] ?? 'Prijatelj', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text(s['email'] ?? ''),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20),
+                                onPressed: () => _removeStudent(s['id']),
+                              ),
+                            );
+                          },
+                        ),
+                    ],
                   ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
                 ],
               ],
             ),

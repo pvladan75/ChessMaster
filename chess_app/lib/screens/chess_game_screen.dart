@@ -106,6 +106,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
   String _filterMatchMode = 'all'; // 'all' (AND) or 'any' (OR)
   String _lessonCategoryFilter = 'all'; // 'all', 'mine', 'trainer'
 
+  bool get isHost => activeRole == 'host' || activeRole == 'trener' || widget.roomCode == 'STUDIO';
+  bool get isTrener => isHost;
+
   @override
   void initState() {
     super.initState();
