@@ -1063,7 +1063,7 @@ app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
     }
 
     const puzzle = puzzleRes.rows[0];
-    res.json({
+    const responsePayload = {
       puzzle: {
         puzzle_id: puzzle.puzzle_id,
         fen: puzzle.fen,
@@ -1075,7 +1075,11 @@ app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
       },
       userRating,
       themeRatings
-    });
+    };
+
+    console.log('[PUZZLE_SERVED] Served puzzle payload:\n' + JSON.stringify(responsePayload, null, 2));
+
+    res.json(responsePayload);
   } catch (err) {
     console.error('Error fetching next puzzle:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju zagonetke.' });
