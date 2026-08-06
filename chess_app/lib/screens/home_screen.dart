@@ -1089,6 +1089,19 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _openStudioRoom() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChessGamePage(
+          userSession: widget.session,
+          roomCode: 'STUDIO',
+          initialRole: 'host',
+        ),
+      ),
+    );
+  }
+
   Widget _buildDashboardTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -1149,7 +1162,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         side: const BorderSide(color: Colors.teal, width: 1.5),
                       ),
                       child: InkWell(
-                        onTap: _showCreateSessionModal,
+                        onTap: _showCreateRoomWithFriendsDialog,
                         borderRadius: BorderRadius.circular(16),
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
@@ -1352,7 +1365,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => ReplayPlayerScreen(recordingId: rec['id'], token: widget.session.token),
+                                      builder: (context) => ReplayPlayerScreen(recordingId: rec['id'], userSession: widget.session),
                                     ),
                                   );
                                 },

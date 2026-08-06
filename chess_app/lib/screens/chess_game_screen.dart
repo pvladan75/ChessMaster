@@ -1984,8 +1984,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
   @override
   Widget build(BuildContext context) {
     final isStudio = widget.roomCode == 'STUDIO';
-    final isTrener = activeRole == 'trener' || isStudio;
-    final isAllowedToMove = isTrener || isStudio || (boardControl != 'trainer_only');
+    final isHost = activeRole == 'host' || activeRole == 'trener' || isStudio;
+    final isAllowedToMove = isHost || isStudio || (boardControl != 'host_only' && boardControl != 'trainer_only');
     final media = MediaQuery.of(context);
     final isWide = media.size.width > 900;
 
@@ -2409,7 +2409,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             drawingStartSquare = null;
                           });
                         },
+                        icon: Icon(isDrawingMode ? Icons.check : Icons.brush),
+                        label: Text(isDrawingMode ? 'Završi crtanje' : 'Nacrtaj strelicu'),
                         style: ElevatedButton.styleFrom(
+                          backgroundColor: isDrawingMode ? Colors.amber : Colors.teal,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
                     ),
                   ],
                 ),
