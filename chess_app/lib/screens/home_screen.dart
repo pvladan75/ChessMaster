@@ -12,6 +12,8 @@ import 'package:chess_app/screens/replay_player_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:chess_app/screens/settings_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   final UserSession session;
 
@@ -22,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
   final _codeController = TextEditingController();
   bool _isLoading = false;
 
@@ -1020,11 +1023,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isTrener = widget.session.role == 'trener';
+    final media = MediaQuery.of(context);
+    final isWide = media.size.width > 800;
+
+    final List<Widget> pages = [
+      _buildDashboardTab(),
+      AiStudioScreen(userSession: widget.session),
+      _buildBibliotekaTab(),
+      _buildFriendsTab(),
+      SettingsScreen(session: widget.session),
+    ];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chess Master Home'),
+        title: const Text('Chess Master'),
         actions: [
           IconButton(
             tooltip: 'Notifikacije i Pozivnice',
@@ -1035,504 +1047,421 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             onPressed: _showNotificationsDialog,
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-            tooltip: 'Logout',
-          )
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Text(
-                    'Welcome, ${widget.session.name}!',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      body: Row(
+        children: [
+          if (isWide)
+            NavigationRail(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
+              labelType: NavigationRailLabelType.all,
+              destinations: const [
+                NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Početna')),
+                NavigationRailDestination(icon: Icon(Icons.psychology_outlined), selectedIcon: Icon(Icons.psychology), label: Text('Trening')),
+                NavigationRailDestination(icon: Icon(Icons.library_books_outlined), selectedIcon: Icon(Icons.library_books), label: Text('Biblioteka')),
+                NavigationRailDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: Text('Prijatelji')),
+                NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Podešavanja')),
+              ],
+            ),
+          if (isWide) const VerticalDivider(width: 1, thickness: 1),
+          Expanded(
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: pages,
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: isWide
+          ? null
+          : NavigationBar(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
+              destinations: const [
+                NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Početna'),
+                NavigationDestination(icon: Icon(Icons.psychology_outlined), selectedIcon: Icon(Icons.psychology), label: 'Trening'),
+                NavigationDestination(icon: Icon(Icons.library_books_outlined), selectedIcon: Icon(Icons.library_books), label: 'Biblioteka'),
+                NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: 'Prijatelji'),
+                NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Podešavanja'),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildDashboardTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Welcome Header Card
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 26,
+                        backgroundColor: Colors.deepPurple,
+                        child: Text(
+                          widget.session.name.isNotEmpty ? widget.session.name[0].toUpperCase() : 'K',
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Dobrodošli, ${widget.session.name}!',
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Spremite se za šahovski čas, rešavajte zagonetke ili analizirajte pozicije.',
+                              style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
-                if (_isLoading)
-                  const Center(child: CircularProgressIndicator())
-                else ...[
-                  // AI Studio Card
-                  Card(
-                    elevation: 5,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: Colors.amberAccent, width: 1.5),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.shade900.withValues(alpha: 0.3),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.psychology, size: 36, color: Colors.amberAccent),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Action Cards Grid (Multiplayer Session & Studio)
+              Row(
+                children: [
+                  Expanded(
+                    child: Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(color: Colors.teal, width: 1.5),
+                      ),
+                      child: InkWell(
+                        onTap: _showCreateSessionModal,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Icon(Icons.video_call, size: 36, color: Colors.tealAccent),
+                              SizedBox(height: 12),
+                              Text('Nova Sesija', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
+                              SizedBox(height: 4),
+                              Text('Pokrenite čas kao Host ili zakažite termin za učenike.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                            ],
                           ),
-                          const SizedBox(width: 16),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(color: Colors.deepPurpleAccent, width: 1.5),
+                      ),
+                      child: InkWell(
+                        onTap: _openStudioRoom,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Icon(Icons.dashboard, size: 36, color: Colors.purpleAccent),
+                              SizedBox(height: 12),
+                              Text('Šahovski Studio', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.purpleAccent)),
+                              SizedBox(height: 4),
+                              Text('Samostalni rad, FEN postavljanje, PGN i Stockfish analiza.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Join Room Card
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _codeController,
+                          decoration: const InputDecoration(
+                            labelText: 'Unesite kod sobe (npr. 123456)',
+                            prefixIcon: Icon(Icons.vpn_key),
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.login),
+                        label: const Text('Pridruži se'),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                        onPressed: () {
+                          final code = _codeController.text.trim();
+                          if (code.isNotEmpty) _joinInviteRoom(code);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Resource Usage Card
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.pie_chart, color: Colors.tealAccent),
+                              SizedBox(width: 8),
+                              Text('Statistika naloga', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          Chip(
+                            label: Text(
+                              _userStats?['account_type'] == 'premium' ? 'PREMIUM' : 'FREE',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                            ),
+                            backgroundColor: _userStats?['account_type'] == 'premium'
+                                ? Colors.amber.withValues(alpha: 0.3)
+                                : Colors.teal.withValues(alpha: 0.3),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.bookmark, color: Colors.teal),
+                        title: const Text('Sačuvane lekcije / pozicije', style: TextStyle(fontSize: 13)),
+                        trailing: Text(
+                          '${_userStats?['savedLessonsCount'] ?? 0} / ${_userStats?['limits']?['maxSavedLessons'] == -1 ? '∞' : (_userStats?['limits']?['maxSavedLessons'] ?? 20)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.video_camera_front, color: Colors.blueAccent),
+                        title: const Text('Kreirano sesija u tekućem mesecu', style: TextStyle(fontSize: 13)),
+                        trailing: Text(
+                          '${_userStats?['monthlySessionsCount'] ?? 0} / ${_userStats?['limits']?['maxMonthlySessions'] == -1 ? '∞' : (_userStats?['limits']?['maxMonthlySessions'] ?? 5)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Recordings Card
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.video_library, color: Colors.deepPurpleAccent),
+                              SizedBox(width: 8),
+                              Text('Snimljeni časovi (Replay)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.refresh, size: 18),
+                            onPressed: _fetchRecordings,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (_isLoadingRecordings)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_recordings.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                          child: Center(child: Text('Nemate sačuvanih snimaka.', style: TextStyle(color: Colors.grey))),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _recordings.length,
+                          separatorBuilder: (ctx, idx) => const Divider(height: 1),
+                          itemBuilder: (ctx, idx) {
+                            final rec = _recordings[idx];
+                            final title = rec['title'] ?? 'Snimljena sesija';
+                            final dateStr = DateTime.parse(rec['created_at']).toLocal().toString().substring(0, 16);
+                            final durationSec = rec['duration'] ?? 0;
+                            final durationMin = (durationSec / 60).toStringAsFixed(1);
+
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const CircleAvatar(
+                                backgroundColor: Colors.deepPurple,
+                                child: Icon(Icons.play_arrow, color: Colors.white),
+                              ),
+                              title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              subtitle: Text('$dateStr • $durationMin min', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                              trailing: ElevatedButton.icon(
+                                icon: const Icon(Icons.movie, size: 14),
+                                label: const Text('Pusti', style: TextStyle(fontSize: 11)),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurpleAccent, foregroundColor: Colors.white),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ReplayPlayerScreen(recordingId: rec['id'], token: widget.session.token),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBibliotekaTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.library_books, color: Colors.tealAccent, size: 28),
+                          SizedBox(width: 12),
+                          Text('Biblioteka Pozicija i Lekcija', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Upravljajte vašim sačuvanim pozicijama, PGN fajlovima i kursevima.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.dashboard_customize),
+                        label: const Text('Otvori Šahovski Studio sa praznom tablom'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onPressed: _openStudioRoom,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFriendsTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.people, color: Colors.purpleAccent, size: 28),
+                          SizedBox(width: 12),
+                          Text('Moji Prijatelji & Kontakti', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text(
-                                  'AI Trener & Vežbe',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amberAccent),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Rešavajte adaptivne zagonetke i tražite AI objašnjenje šahovskih pozicija.',
-                                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                                ),
-                              ],
+                            child: TextField(
+                              controller: _studentEmailController,
+                              decoration: const InputDecoration(
+                                labelText: 'Email prijatelja',
+                                hintText: 'prijatelj@example.com',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.play_arrow, size: 18),
-                            label: const Text('Otvori'),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: _addStudent,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.amber,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AiStudioScreen(userSession: widget.session),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Session Creation UI (Equal for all users)
-                  Card(
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.video_call, size: 48, color: Colors.amber),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Kreirajte novu sesiju ili zakažite termin unapred.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 16),
-                          ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: _showCreateRoomWithFriendsDialog,
-                                    icon: const Icon(Icons.add),
-                                    label: const Text('Kreiraj odmah'),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: _showScheduleSessionDialog,
-                                    icon: const Icon(Icons.calendar_month),
-                                    label: const Text('Zakaži unapred'),
-                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Scheduled Sessions & Calendar Card
-                    Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: const [
-                                    Icon(Icons.calendar_month, color: Colors.amberAccent),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Zakazane sesije i Kalendar',
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.refresh, size: 18),
-                                  onPressed: _fetchScheduledSessions,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            if (_isLoadingScheduled)
-                              const Center(child: CircularProgressIndicator())
-                            else if (_scheduledSessions.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 12.0),
-                                child: Center(
-                                  child: Text('Nemate zakazanih budućih sesija.', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                                ),
-                              )
-                            else
-                              ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _scheduledSessions.length,
-                                separatorBuilder: (ctx, idx) => const Divider(height: 1),
-                                itemBuilder: (ctx, idx) {
-                                  final item = _scheduledSessions[idx];
-                                  final dateStr = DateTime.parse(item['scheduled_at']).toLocal().toString().substring(0, 16);
-                                  final roomCode = item['room_code'];
-                                  final calUrl = item['calendarUrl'];
-                                  final hostName = item['host_name'] ?? 'Trener';
-
-                                  return ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    leading: const CircleAvatar(
-                                      backgroundColor: Colors.amber,
-                                      child: Icon(Icons.event, color: Colors.black, size: 18),
-                                    ),
-                                    title: Text(item['title'] ?? 'Šahovska sesija', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                    subtitle: Text('Domaćin: $hostName | $dateStr | Soba: $roomCode', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                                    trailing: Wrap(
-                                      spacing: 4,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit_calendar, color: Colors.blueAccent, size: 20),
-                                          tooltip: 'Dodaj u Google Kalendar',
-                                          onPressed: () {
-                                            if (calUrl != null) {
-                                              launchUrl(Uri.parse(calUrl), mode: LaunchMode.externalApplication);
-                                            }
-                                          },
-                                        ),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-                                          onPressed: () => _joinInviteRoom(roomCode),
-                                          child: const Text('Pridruži se', style: TextStyle(fontSize: 11)),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // Students Card
-                    Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Moji Prijatelji',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _studentEmailController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Email prijatelja',
-                                      hintText: 'prijatelj@example.com',
-                                      border: OutlineInputBorder(),
-                                      isDense: true,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                ElevatedButton(
-                                  onPressed: _addStudent,
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                  ),
-                                  child: const Text('Dodaj prijatelja'),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            const Divider(),
-                            const SizedBox(height: 8),
-                            if (_isLoadingStudents)
-                              const Center(child: CircularProgressIndicator())
-                            else if (_students.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 24.0),
-                                child: Center(
-                                  child: Text(
-                                    'Nemate još uvek dodatih prijatelja.',
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                ),
-                              )
-                            else
-                              ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _students.length,
-                                separatorBuilder: (context, index) => const Divider(height: 1),
-                                itemBuilder: (context, index) {
-                                  final student = _students[index];
-                                  final isOnline = student['status'] == 'online';
-                                  return ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    leading: CircleAvatar(
-                                      backgroundColor: isOnline ? Colors.green : Colors.grey,
-                                      radius: 6,
-                                    ),
-                                    title: Text(student['name']),
-                                    subtitle: Text(student['email']),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        ElevatedButton.icon(
-                                          onPressed: isOnline ? () => _inviteStudent(student['id']) : null,
-                                          icon: const Icon(Icons.send, size: 14),
-                                          label: const Text('Pozovi'),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: isOnline ? Colors.teal : Colors.blueGrey.withOpacity(0.2),
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          ),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                                          onPressed: () => _deleteStudent(student['id']),
-                                          tooltip: 'Ukloni prijatelja',
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 24),
-                  // Studio for Position Preparation (Accessible to both Trainer and Student)
-                  Card(
-                    elevation: 4,
-                    color: Colors.indigo.withOpacity(0.15),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.architecture, size: 44, color: Colors.indigoAccent),
-                          const SizedBox(height: 10),
-                          const Text(
-                            'Studio za pripremu pozicija',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Samostalno kreirajte pozicije, uvozite PGN/FEN, analizirajte motorm i upravljajte svojom bibliotekom sa labelama.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 13, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 44,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ChessGamePage(
-                                      userSession: widget.session,
-                                      roomCode: 'STUDIO',
-                                      initialRole: 'trener',
-                                    ),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.explore),
-                              label: const Text('Otvori Studio (Studio za pripremu)'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.indigoAccent,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Resource Usage Statistics Card
-                  Card(
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: const [
-                                  Icon(Icons.pie_chart, color: Colors.tealAccent),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Statistika upotrebe (Resource Usage)',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                              Chip(
-                                label: Text(
-                                  _userStats?['account_type'] == 'premium' ? 'PREMIUM' : 'FREE',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-                                ),
-                                backgroundColor: _userStats?['account_type'] == 'premium'
-                                    ? Colors.amber.withValues(alpha: 0.3)
-                                    : Colors.teal.withValues(alpha: 0.3),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          if (_isLoadingStats)
-                            const Center(child: CircularProgressIndicator())
-                          else ...[
-                            ListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.bookmark, color: Colors.teal),
-                              title: const Text('Sačuvane lekcije / pozicije', style: TextStyle(fontSize: 13)),
-                              trailing: Text(
-                                '${_userStats?['savedLessonsCount'] ?? 0} / ${_userStats?['limits']?['maxSavedLessons'] == -1 ? '∞' : (_userStats?['limits']?['maxSavedLessons'] ?? 20)}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                            ),
-                            ListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.video_camera_front, color: Colors.blueAccent),
-                              title: const Text('Kreirano sesija u tekućem mesecu', style: TextStyle(fontSize: 13)),
-                              trailing: Text(
-                                '${_userStats?['monthlySessionsCount'] ?? 0} / ${_userStats?['limits']?['maxMonthlySessions'] == -1 ? '∞' : (_userStats?['limits']?['maxMonthlySessions'] ?? 5)}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                            ),
-                            ListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.mic, color: Colors.amberAccent),
-                              title: const Text('Ukupno snimljenih časova', style: TextStyle(fontSize: 13)),
-                              trailing: Text(
-                                '${_userStats?['totalRecordingsCount'] ?? 0}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: _showPremiumModal,
-                                icon: const Icon(Icons.workspace_premium, color: Colors.amber, size: 16),
-                                label: const Text('Upravljaj Premium nalogom'),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Recorded Lessons Card
-                  Card(
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: const [
-                                  Icon(Icons.video_library, color: Colors.deepPurpleAccent),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Snimljeni časovi (Replay)',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.refresh, size: 18),
-                                onPressed: _fetchRecordings,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          if (_isLoadingRecordings)
-                            const Center(child: CircularProgressIndicator())
-                          else if (_recordings.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16.0),
-                              child: Center(
-                                child: Text(
-                                  'Nema sačuvanih snimaka časova.',
-                                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                                ),
-                              ),
-                            )
-                          else
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _recordings.length,
-                              separatorBuilder: (ctx, idx) => const Divider(height: 1),
-                              itemBuilder: (ctx, idx) {
-                                final rec = _recordings[idx];
-                                return ListTile(
-                                  dense: true,
-                                  leading: Icon(
-                                    rec['video_url'] != null ? Icons.file_download_done : Icons.play_circle_fill,
-                                    color: rec['video_url'] != null ? Colors.tealAccent : Colors.deepPurpleAccent,
-                                  ),
-                                  title: Row(
                                     children: [
                                       Expanded(
                                         child: Text(

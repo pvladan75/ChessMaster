@@ -6,6 +6,7 @@ import 'package:chess_app/screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppSettingsService.instance.init();
   final prefs = await SharedPreferences.getInstance();
   
   final rememberMe = prefs.getBool('remember_me') ?? false;
@@ -18,7 +19,7 @@ void main() async {
       id: prefs.getInt('user_id') ?? 0,
       email: prefs.getString('user_email') ?? '',
       name: prefs.getString('user_name') ?? '',
-      role: prefs.getString('user_role') ?? 'ucenik',
+      role: prefs.getString('user_role') ?? 'korisnik',
     );
   }
 
@@ -32,20 +33,35 @@ class ChessApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Chess Master',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: Colors.deepPurple,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      home: savedSession != null
-          ? HomeScreen(session: savedSession!)
-          : const LoginRegisterScreen(),
+    return AnimatedBuilder(
+      animation: AppSettingsService.instance,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'Chess Master',
+          themeMode: AppSettingsService.instance.themeMode,
+          theme: ThemeData(
+            brightness: Brightness.light,
+            primaryColor: Colors.deepPurple,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.deepPurple,
+              brightness: Brightness.light,
+            ),
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            primaryColor: Colors.deepPurple,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.deepPurple,
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+          ),
+          home: savedSession != null
+              ? HomeScreen(session: savedSession!)
+              : const LoginRegisterScreen(),
+        );
+      },
     );
   }
 }
