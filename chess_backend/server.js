@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const { Chess } = require('chess.js');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
@@ -1054,15 +1055,28 @@ app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
       );
     }
 
-    if (puzzleRes.rows.length === 0) {
-      puzzleRes = await pool.query('SELECT * FROM puzzles WHERE (popularity IS NULL OR popularity >= 30) ORDER BY RANDOM() LIMIT 1');
+    let puzzle;
+    while (puzzleRes.rows.length > 0) {
+      const candidate = puzzleRes.rows[0];
+      try {
+        const c = new Chess(candidate.fen);
+        puzzle = candidate;
+        break;
+      } catch (e) {
+        console.warn(`[PUZZLE_CLEANUP] Deleting invalid FEN puzzle ${candidate.puzzle_id} (${candidate.fen}) from database...`);
+        await pool.query('DELETE FROM puzzles WHERE puzzle_id = $1', [candidate.puzzle_id]);
+        puzzleRes.rows.shift();
+      }
+
+      if (puzzleRes.rows.length === 0) {
+        puzzleRes = await pool.query('SELECT * FROM puzzles WHERE (popularity IS NULL OR popularity >= 30) ORDER BY RANDOM() LIMIT 5');
+      }
     }
 
-    if (puzzleRes.rows.length === 0) {
+    if (!puzzle) {
       return res.status(404).json({ error: 'Nema dostupnih zagonetki u bazi.' });
     }
 
-    const puzzle = puzzleRes.rows[0];
     const responsePayload = {
       puzzle: {
         puzzle_id: puzzle.puzzle_id,

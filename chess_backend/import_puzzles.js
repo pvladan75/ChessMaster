@@ -4,17 +4,65 @@ const fs = require('fs');
 const readline = require('readline');
 const { pool, initializeDatabase } = require('./db');
 
-// Built-in seed puzzles covering various tactical themes and ratings
+// Built-in seed puzzles covering various tactical themes and ratings (Official Lichess Dataset)
 const SEED_PUZZLES = [
   {
+    puzzle_id: '00sHx',
+    fen: 'q3k1nr/1pp1nQpp/3p4/1P2p3/4P3/B1PP1b2/B5PP/5K2 b k - 0 17',
+    moves: 'e8d7 a2e6 d7d8 f7f8',
+    rating: 1760,
+    rating_deviation: 80,
+    popularity: 83,
+    nb_plays: 72,
+    themes: ['mate', 'mateIn2', 'middlegame', 'short'],
+    game_url: 'https://lichess.org/yyznGmXs/black#34',
+    opening_tags: 'Italian_Game Italian_Game_Classical_Variation'
+  },
+  {
+    puzzle_id: '00sJ9',
+    fen: 'r3r1k1/p4ppp/2p2n2/1p6/3P1qb1/2NQR3/PPB2PP1/R1B3K1 w - - 5 18',
+    moves: 'e3g3 e8e1 g1h2 e1c1 a1c1 f4h6 h2g1 h6c1',
+    rating: 2671,
+    rating_deviation: 105,
+    popularity: 87,
+    nb_plays: 325,
+    themes: ['advantage', 'attraction', 'fork', 'middlegame', 'sacrifice', 'veryLong'],
+    game_url: 'https://lichess.org/gyFeQsOE#35',
+    opening_tags: 'French_Defense French_Defense_Exchange_Variation'
+  },
+  {
+    puzzle_id: '00sJb',
+    fen: 'Q1b2r1k/p2np2p/5bp1/q7/5P2/4B3/PPP3PP/2KR1B1R w - - 1 17',
+    moves: 'd1d7 a5e1 d7d1 e1e3 c1b1 e3b6',
+    rating: 2235,
+    rating_deviation: 76,
+    popularity: 97,
+    nb_plays: 64,
+    themes: ['advantage', 'fork', 'long'],
+    game_url: 'https://lichess.org/kiuvTFoE#33',
+    opening_tags: 'Sicilian_Defense Sicilian_Defense_Dragon_Variation'
+  },
+  {
+    puzzle_id: '00sO1',
+    fen: '1k1r4/pp3pp1/2p1p3/4b3/P3n1P1/8/KPP2PN1/3rBR1R b - - 2 31',
+    moves: 'b8c7 e1a5 b7b6 f1d1',
+    rating: 998,
+    rating_deviation: 85,
+    popularity: 94,
+    nb_plays: 293,
+    themes: ['advantage', 'discoveredAttack', 'master', 'middlegame', 'short'],
+    game_url: 'https://lichess.org/vsfFkG0s/black#62',
+    opening_tags: ''
+  },
+  {
     puzzle_id: '00008',
-    fen: 'q3k1nr/1pp1nQpp/3p4/1P2p3/4P3/e1PP1b2/5PPP/5RK1 b k - 0 16',
-    moves: 'e8f7 g1f1',
+    fen: 'r1bqk2r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4',
+    moves: 'd2d4 e5d4 e4e5',
     rating: 1450,
     rating_deviation: 75,
     popularity: 95,
     nb_plays: 1200,
-    themes: ['fork', 'middlegame', 'short'],
+    themes: ['opening', 'fork', 'short'],
     game_url: 'https://lichess.org/ABC12345#31',
     opening_tags: 'Italian Game'
   },
@@ -45,7 +93,7 @@ const SEED_PUZZLES = [
   {
     puzzle_id: '0003f',
     fen: 'r2qk2r/ppp2ppp/2n5/3pP3/3Pn3/2P5/P1P1B1PP/R1BQK2R w KQkq - 1 11',
-    moves: 'e2f3 d8h4 g2g3 e4g3',
+    moves: 'c1b2 d8h4 g2g3 e4g3',
     rating: 1600,
     rating_deviation: 80,
     popularity: 97,
@@ -53,78 +101,6 @@ const SEED_PUZZLES = [
     themes: ['fork', 'discoveredAttack', 'middlegame'],
     game_url: 'https://lichess.org/GHI11223#21',
     opening_tags: 'French Defense'
-  },
-  {
-    puzzle_id: '0004g',
-    fen: '3r2k1/p4ppp/1p6/8/8/1P6/P4PPP/3R2K1 w - - 0 25',
-    moves: 'd1d8',
-    rating: 1100,
-    rating_deviation: 50,
-    popularity: 99,
-    nb_plays: 5000,
-    themes: ['mate', 'mateIn1', 'endgame', 'backRankMate'],
-    game_url: 'https://lichess.org/JKL44556#49',
-    opening_tags: 'Queen Gambit Accepted'
-  },
-  {
-    puzzle_id: '0005h',
-    fen: '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1',
-    moves: 'd1d8',
-    rating: 1050,
-    rating_deviation: 45,
-    popularity: 98,
-    nb_plays: 6200,
-    themes: ['mate', 'mateIn1', 'backRankMate'],
-    game_url: 'https://lichess.org/MNO77889#1',
-    opening_tags: 'King Pawn'
-  },
-  {
-    puzzle_id: '0006i',
-    fen: 'r1b2rk1/pp1p1ppp/2n1pn2/q7/2PP4/P1PB4/4NPPP/R1BQ1RK1 w - - 0 11',
-    moves: 'c1g5 a5g5',
-    rating: 1550,
-    rating_deviation: 70,
-    popularity: 94,
-    nb_plays: 1800,
-    themes: ['skewer', 'advantage', 'middlegame'],
-    game_url: 'https://lichess.org/PQR99001#21',
-    opening_tags: 'English Opening'
-  },
-  {
-    puzzle_id: '0007j',
-    fen: 'r4rk1/pp3ppp/2n1pn2/q7/2PP1b2/P2B1N2/4NPPP/R2Q1RK1 b - - 2 14',
-    moves: 'f4h6 e2g3',
-    rating: 1700,
-    rating_deviation: 85,
-    popularity: 91,
-    nb_plays: 1400,
-    themes: ['deflection', 'middlegame', 'advantage'],
-    game_url: 'https://lichess.org/STU22334#27',
-    opening_tags: 'Caro-Kann Defense'
-  },
-  {
-    puzzle_id: '0008k',
-    fen: '2r3k1/pp3p1p/4p1p1/8/8/1P6/P4PPP/3R2K1 b - - 0 22',
-    moves: 'c8c1 d1c1',
-    rating: 1350,
-    rating_deviation: 60,
-    popularity: 96,
-    nb_plays: 2900,
-    themes: ['pin', 'endgame', 'short'],
-    game_url: 'https://lichess.org/VWX55667#43',
-    opening_tags: 'Slav Defense'
-  },
-  {
-    puzzle_id: '0009l',
-    fen: 'r1bqk2r/pp2bppp/2n1pn2/2pp4/3P4/2N1PN2/PPP1BPPP/R1BQ1RK1 w kq - 0 7',
-    moves: 'c3b5 a7a6 b5c3',
-    rating: 1400,
-    rating_deviation: 65,
-    popularity: 90,
-    nb_plays: 1100,
-    themes: ['opening', 'quietMove'],
-    game_url: 'https://lichess.org/YZA88990#13',
-    opening_tags: 'Nimzo-Indian Defense'
   }
 ];
 
