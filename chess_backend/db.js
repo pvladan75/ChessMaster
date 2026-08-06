@@ -198,6 +198,21 @@ async function initDB() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Create endgame_puzzles table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS endgame_puzzles (
+        id SERIAL PRIMARY KEY,
+        puzzle_id VARCHAR(100),
+        fen TEXT NOT NULL,
+        evaluation VARCHAR(100),
+        difficulty VARCHAR(50) DEFAULT 'medium',
+        piece_tags VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_endgame_puzzles_difficulty ON endgame_puzzles(difficulty);
+    `);
+    console.log('Verified database table & indexes: endgame_puzzles');
     console.log('Verified database table: user_puzzle_ratings');
 
   } catch (err) {

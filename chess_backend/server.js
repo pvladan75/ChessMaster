@@ -1100,6 +1100,53 @@ app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/puzzles/endgame/next - Fetch random endgame position from modul2 dataset
+app.get('/api/puzzles/endgame/next', authenticateToken, async (req, res) => {
+  const { difficulty, excludeId } = req.query;
+  const currentExclude = excludeId || '';
+
+  try {
+    let result;
+    if (difficulty && difficulty !== 'all') {
+      result = await pool.query(
+        `SELECT * FROM endgame_puzzles
+         WHERE difficulty = $1 AND ($2 = '' OR puzzle_id != $2)
+         ORDER BY RANDOM() LIMIT 1`,
+        [difficulty, currentExclude]
+      );
+    } else {
+      result = await pool.query(
+        `SELECT * FROM endgame_puzzles
+         WHERE ($1 = '' OR puzzle_id != $1)
+         ORDER BY RANDOM() LIMIT 1`,
+        [currentExclude]
+      );
+    }
+
+    if (result.rows.length === 0) {
+      result = await pool.query('SELECT * FROM endgame_puzzles ORDER BY RANDOM() LIMIT 1');
+    }
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Nema dostupnih završnica u bazi.' });
+    }
+
+    const item = result.rows[0];
+    res.json({
+      endgame: {
+        puzzle_id: item.puzzle_id,
+        fen: item.fen,
+        evaluation: item.evaluation,
+        difficulty: item.difficulty,
+        piece_tags: item.piece_tags
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching endgame puzzle:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju završnice.' });
+  }
+});
+
 // POST /api/puzzles/submit - Submit puzzle result & update Elo rating
 app.post('/api/puzzles/submit', authenticateToken, async (req, res) => {
   const { puzzleId, solved, theme } = req.body;
@@ -1313,6 +1360,12 @@ io.on('connection', (socket) => {
     console.log(`Forcing board flip for students in room ${roomId} to ${orientation}`);
     // Emit only to other players in the room (the students)
     socket.to(roomId).emit('flip_board_forced', { orientation });
+  });
+
+  // Toggle Blunder Alert in session
+  socket.on('toggle_blunder_alert', ({ roomId, enabled }) => {
+    console.log(`Blunder alert toggled in room ${roomId} to ${enabled} by ${socket.userName}`);
+    io.to(roomId).emit('blunder_alert_toggled', { enabled, updatedBy: socket.userName });
   });
 
   // When a player makes a move

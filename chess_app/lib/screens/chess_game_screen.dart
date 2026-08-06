@@ -66,6 +66,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   final StockfishService _stockfishService = StockfishService();
   bool isEngineEnabled = false;
+  bool isBlunderAlertEnabled = true;
+  bool isBlindfoldMode = false;
   String currentEngineEval = "0.00";
   String bestEngineMove = "-";
   Map<int, AnalysisLine> engineLines = {};
@@ -382,23 +384,45 @@ class _ChessGamePageState extends State<ChessGamePage> {
       children: [
         IgnorePointer(
           ignoring: !isAllowedToMove || isDrawingMode,
-          child: ChessBoard(
-            controller: controller,
-            boardColor: BoardColor.brown,
-            boardOrientation: boardOrientation,
-            size: boardSize,
-            onMove: () {
-              final lastMove = controller.getPossibleMoves().isEmpty
-                  ? null
-                  : controller.game.history.last;
-              if (lastMove != null) {
-                final from = lastMove.move.fromAlgebraic;
-                final to = lastMove.move.toAlgebraic;
-                _handleLocalMoveMade(from, to);
-              }
-            },
+          child: Opacity(
+            opacity: isBlindfoldMode ? 0.05 : 1.0,
+            child: ChessBoard(
+              controller: controller,
+              boardColor: BoardColor.brown,
+              boardOrientation: boardOrientation,
+              size: boardSize,
+              onMove: () {
+                final lastMove = controller.getPossibleMoves().isEmpty
+                    ? null
+                    : controller.game.history.last;
+                if (lastMove != null) {
+                  final from = lastMove.move.fromAlgebraic;
+                  final to = lastMove.move.toAlgebraic;
+                  _handleLocalMoveMade(from, to);
+                }
+              },
+            ),
           ),
         ),
+        if (isBlindfoldMode)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.25),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.visibility_off, size: 56, color: Colors.amberAccent),
+                      SizedBox(height: 6),
+                      Text('🙈 Šah Na Slepo', style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text('Figure su skrivene radi vežbanja vizuelizacije', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         // Interactive paint overlay for trainer drawing arrows
         IgnorePointer(
           ignoring: !isDrawingMode,
@@ -752,6 +776,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
             duration: const Duration(seconds: 2),
           ),
         );
+      }
+    });
+
+    socket.on('blunder_alert_toggled', (data) {
+      if (data != null && mounted) {
+        final enabled = data['enabled'] ?? true;
+        setState(() {
+          isBlunderAlertEnabled = enabled;
+        });
+        _showSuccess('Blunder Alert je ${enabled ? "UKLJUČEN" : "ISKLJUČEN"} od strane ${data['updatedBy'] ?? "domaćina"}');
       }
     });
 
@@ -2464,6 +2498,34 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     socket.emit('change_engine_permission', {
                       'roomId': widget.roomCode,
                       'allowStudentEngine': val,
+                    });
+                  },
+                ),
+                SwitchListTile(
+                  title: const Text('Uključi Blunder Alert', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                  subtitle: const Text('Upozori igrače pri kardinalnim greškama', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  value: isBlunderAlertEnabled,
+                  activeColor: Colors.amberAccent,
+                  contentPadding: EdgeInsets.zero,
+                  onChanged: (val) {
+                    setState(() {
+                      isBlunderAlertEnabled = val;
+                    });
+                    socket.emit('toggle_blunder_alert', {
+                      'roomId': widget.roomCode,
+                      'enabled': val,
+                    });
+                  },
+                ),
+                SwitchListTile(
+                  title: const Text('Šah na Slepo (Blindfold)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                  subtitle: const Text('Sakrij figure radi vežbanja vizuelizacije', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  value: isBlindfoldMode,
+                  activeColor: Colors.purpleAccent,
+                  contentPadding: EdgeInsets.zero,
+                  onChanged: (val) {
+                    setState(() {
+                      isBlindfoldMode = val;
                     });
                   },
                 ),

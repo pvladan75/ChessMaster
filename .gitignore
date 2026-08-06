@@ -12,3 +12,6 @@
 node_modules/
 chess_backend/node_modules/
 chess_backend/exports/*.mp4
+puzzles/*.zst
+puzzles/*.csv
+puzzles/*.json

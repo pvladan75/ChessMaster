@@ -34,8 +34,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   Map<int, AnalysisLine> _engineLinesMap = {};
   List<ChessArrow> _engineArrows = [];
 
-  // Puzzle State
+  // Puzzle & Endgame State
+  String _puzzleType = 'tactics'; // 'tactics' or 'endgame'
+  bool _isBlindfold = false;
+  bool _isBlunderAlertEnabled = true;
+  double? _lastPosEval;
   Map<String, dynamic>? _currentPuzzle;
+  Map<String, dynamic>? _currentEndgame;
   chess.Chess? _puzzleGame;
   int _userRating = 1500;
   List<String> _expectedMoves = [];
@@ -133,7 +138,67 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
   // --- PUZZLE LOGIC ---
 
+  Future<void> _fetchNextEndgame() async {
+    final String currentId = _currentEndgame?['puzzle_id'] ?? '';
+    setState(() {
+      _isLoadingPuzzle = true;
+      _puzzleSolved = false;
+      _puzzleFailed = false;
+      _lastRatingChange = null;
+      _aiAnalysisResult = null;
+      _aiArrows = [];
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
+      _isOpponentTurn = false;
+    });
+
+    try {
+      final diffParam = _selectedTheme != 'all' ? '&difficulty=$_selectedTheme' : '';
+      final excludeParam = currentId.isNotEmpty ? '&excludeId=$currentId' : '';
+      final uri = Uri.parse('$backendUrl/api/puzzles/endgame/next?userId=${widget.userSession.id}$diffParam$excludeParam');
+      final res = await http.get(
+        uri,
+        headers: {'Authorization': 'Bearer ${widget.userSession.token}'},
+      );
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final eg = data['endgame'];
+        final fen = eg['fen'];
+
+        _puzzleGame = chess.Chess.fromFEN(fen);
+
+        setState(() {
+          _currentEndgame = eg;
+          _expectedMoves = [];
+          _moveIndex = 0;
+        });
+
+        _puzzleBoardController.loadFen(fen);
+
+        final sideToMove = fen.split(' ')[1];
+        setState(() {
+          _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
+          _isOpponentTurn = false;
+        });
+
+        if (_isEngineEnabled) {
+          _stockfishService.analyzePosition(fen, depth: 16);
+        }
+      } else {
+        _showSnackBar('Nije moguće učitati završnicu.');
+      }
+    } catch (e) {
+      _showSnackBar('Greška pri učitavanju završnice.');
+    } finally {
+      if (mounted) setState(() => _isLoadingPuzzle = false);
+    }
+  }
+
   Future<void> _fetchNextPuzzle() async {
+    if (_puzzleType == 'endgame') {
+      return _fetchNextEndgame();
+    }
     final String currentId = _currentPuzzle?['puzzle_id'] ?? '';
     setState(() {
       _isLoadingPuzzle = true;
@@ -562,6 +627,66 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           constraints: const BoxConstraints(maxWidth: 650),
           child: Column(
             children: [
+              // Mode Selector (Taktičke Zagonetke vs Matne Završnice) & Toggles
+              Card(
+                elevation: 3,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          ChoiceChip(
+                            label: const Text('🧩 Taktičke Zagonetke'),
+                            selected: _puzzleType == 'tactics',
+                            selectedColor: Colors.teal.shade700,
+                            onSelected: (val) {
+                              if (val) {
+                                setState(() => _puzzleType = 'tactics');
+                                _fetchNextPuzzle();
+                              }
+                            },
+                          ),
+                          ChoiceChip(
+                            label: const Text('🏆 Matne Završnice'),
+                            selected: _puzzleType == 'endgame',
+                            selectedColor: Colors.purple.shade700,
+                            onSelected: (val) {
+                              if (val) {
+                                setState(() => _puzzleType = 'endgame');
+                                _fetchNextEndgame();
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          FilterChip(
+                            avatar: Icon(_isBlindfold ? Icons.visibility_off : Icons.visibility, size: 18, color: _isBlindfold ? Colors.amberAccent : Colors.grey),
+                            label: Text(_isBlindfold ? '🙈 Šah Na Slepo: UKLJUČEN' : '👁️ Šah Na Slepo: ISKLJUČEN', style: const TextStyle(fontSize: 12)),
+                            selected: _isBlindfold,
+                            selectedColor: Colors.amber.shade900.withValues(alpha: 0.4),
+                            onSelected: (val) => setState(() => _isBlindfold = val),
+                          ),
+                          FilterChip(
+                            avatar: Icon(Icons.warning_amber_rounded, size: 18, color: _isBlunderAlertEnabled ? Colors.redAccent : Colors.grey),
+                            label: Text(_isBlunderAlertEnabled ? '🚨 Blunder Alert: ON' : '🚨 Blunder Alert: OFF', style: const TextStyle(fontSize: 12)),
+                            selected: _isBlunderAlertEnabled,
+                            selectedColor: Colors.red.shade900.withValues(alpha: 0.4),
+                            onSelected: (val) => setState(() => _isBlunderAlertEnabled = val),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
               // Rating Header & Theme Selector
               Card(
                 elevation: 3,
@@ -573,12 +698,15 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Vaš Rejting Zagonetki', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(_puzzleType == 'endgame' ? 'Baza Matnih Završnica' : 'Vaš Rejting Zagonetki', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Text('$_userRating', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
-                              if (_lastRatingChange != null) ...[
+                              Text(
+                                _puzzleType == 'endgame' ? (_currentEndgame?['evaluation'] ?? 'Mat u N') : '$_userRating',
+                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.tealAccent),
+                              ),
+                              if (_puzzleType == 'tactics' && _lastRatingChange != null) ...[
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -663,17 +791,39 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                           children: [
                             IgnorePointer(
                               ignoring: _isOpponentTurn || _puzzleSolved || _puzzleFailed,
-                              child: ChessBoard(
-                                controller: _puzzleBoardController,
-                                boardOrientation: _puzzleOrientation,
-                                onMove: () {
-                                  _onUserPuzzleMoveMade();
-                                  if (_isEngineEnabled) {
-                                    _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
-                                  }
-                                },
+                              child: Opacity(
+                                opacity: _isBlindfold ? 0.05 : 1.0,
+                                child: ChessBoard(
+                                  controller: _puzzleBoardController,
+                                  boardOrientation: _puzzleOrientation,
+                                  onMove: () {
+                                    _onUserPuzzleMoveMade();
+                                    if (_isEngineEnabled) {
+                                      _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
+                                    }
+                                  },
+                                ),
                               ),
                             ),
+                            if (_isBlindfold)
+                              Positioned.fill(
+                                child: IgnorePointer(
+                                  child: Container(
+                                    color: Colors.black.withValues(alpha: 0.25),
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: const [
+                                          Icon(Icons.visibility_off, size: 64, color: Colors.amberAccent),
+                                          SizedBox(height: 8),
+                                          Text('🙈 Šah Na Slepo', style: TextStyle(color: Colors.amberAccent, fontSize: 18, fontWeight: FontWeight.bold)),
+                                          Text('Figure su skrivene radi vežbanja vizuelizacije', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             Positioned.fill(
                               child: IgnorePointer(
                                 child: CustomPaint(

@@ -1,0 +1,152 @@
+[
+    {
+        "id": 1,
+        "fen": "8/2rk1K2/8/4Q3/8/8/8/8 w - - 0 1",
+        "evaluation": "Mate in 17"
+    },
+    {
+        "id": 2,
+        "fen": "6r1/5k2/3K4/8/Q7/8/8/8 w - - 0 1",
+        "evaluation": "Mate in 17"
+    },
+    {
+        "id": 3,
+        "fen": "1k6/8/1r6/8/1K6/8/8/5Q2 w - - 0 1",
+        "evaluation": "Mate in 15"
+    },
+    {
+        "id": 4,
+        "fen": "8/8/1Q6/8/2K2k2/4r3/8/8 w - - 0 1",
+        "evaluation": "7731"
+    },
+    {
+        "id": 5,
+        "fen": "8/r7/7Q/8/8/8/1K4k1/8 w - - 0 1",
+        "evaluation": "Mate in 15"
+    },
+    {
+        "id": 6,
+        "fen": "8/7k/8/8/r7/8/8/4Q1K1 w - - 0 1",
+        "evaluation": "Mate in 17"
+    },
+    {
+        "id": 7,
+        "fen": "8/6Q1/r7/8/8/8/k4K2/8 w - - 0 1",
+        "evaluation": "6378"
+    },
+    {
+        "id": 8,
+        "fen": "5r2/8/8/8/8/7Q/8/2k2K2 w - - 0 1",
+        "evaluation": "Mate in 16"
+    },
+    {
+        "id": 9,
+        "fen": "8/2r5/8/k2K4/8/8/5Q2/8 w - - 0 1",
+        "evaluation": "Mate in 19"
+    },
+    {
+        "id": 10,
+        "fen": "K7/1Q6/8/k7/8/7r/8/8 w - - 0 1",
+        "evaluation": "Mate in 15"
+    },
+    {
+        "id": 11,
+        "fen": "8/8/r7/7k/2KQ4/8/8/8 w - - 0 1",
+        "evaluation": "6475"
+    },
+    {
+        "id": 12,
+        "fen": "6Q1/3k4/2r5/2K5/8/8/8/8 w - - 0 1",
+        "evaluation": "609"
+    },
+    {
+        "id": 13,
+        "fen": "2k5/1r6/8/1K6/8/8/Q7/8 w - - 0 1",
+        "evaluation": "Mate in 20"
+    },
+    {
+        "id": 14,
+        "fen": "8/8/8/7Q/8/5K2/1k1r4/8 w - - 0 1",
+        "evaluation": "Mate in 19"
+    },
+    {
+        "id": 15,
+        "fen": "8/2r5/8/8/5K2/6Q1/8/3k4 w - - 0 1",
+        "evaluation": "Mate in 21"
+    },
+    {
+        "id": 16,
+        "fen": "6Q1/8/8/8/8/8/4k3/r1K5 w - - 0 1",
+        "evaluation": "Mate in 23"
+    },
+    {
+        "id": 17,
+        "fen": "8/8/8/8/4K3/7r/1Q6/6k1 w - - 0 1",
+        "evaluation": "Mate in 20"
+    },
+    {
+        "id": 18,
+        "fen": "8/8/8/K7/2r4k/8/8/6Q1 w - - 0 1",
+        "evaluation": "Mate in 13"
+    },
+    {
+        "id": 19,
+        "fen": "8/8/8/8/2K5/1Q6/7k/6r1 w - - 0 1",
+        "evaluation": "8100"
+    },
+    {
+        "id": 20,
+        "fen": "8/7Q/8/r7/6k1/8/7K/8 w - - 0 1",
+        "evaluation": "Mate in 25"
+    },
+    {
+        "id": 21,
+        "fen": "3k4/6r1/8/2K5/8/4Q3/8/8 w - - 0 1",
+        "evaluation": "733"
+    },
+    {
+        "id": 22,
+        "fen": "8/8/8/3K4/2Q5/6r1/8/4k3 w - - 0 1",
+        "evaluation": "Mate in 23"
+    },
+    {
+        "id": 23,
+        "fen": "1r6/8/8/4K3/8/7Q/8/3k4 w - - 0 1",
+        "evaluation": "Mate in 18"
+    },
+    {
+        "id": 24,
+        "fen": "8/8/8/4K3/8/5k1r/3Q4/8 w - - 0 1",
+        "evaluation": "Mate in 17"
+    },
+    {
+        "id": 25,
+        "fen": "3r4/8/8/8/8/8/1KQ5/4k3 w - - 0 1",
+        "evaluation": "Mate in 16"
+    },
+    {
+        "id": 26,
+        "fen": "8/8/3k4/8/8/8/7r/Q4K2 w - - 0 1",
+        "evaluation": "Mate in 15"
+    },
+    {
+        "id": 27,
+        "fen": "2k5/8/8/8/3K4/8/3r4/6Q1 w - - 0 1",
+        "evaluation": "Mate in 24"
+    },
+    {
+        "id": 28,
+        "fen": "3r4/8/8/8/8/4k3/1KQ5/8 w - - 0 1",
+        "evaluation": "Mate in 15"
+    },
+    {
+        "id": 29,
+        "fen": "8/k7/8/8/7Q/8/8/1K1r4 w - - 0 1",
+        "evaluation": "Mate in 24"
+    },
+    {
+        "id": 30,
+        "fen": "1Q6/8/2r5/8/8/8/8/2K2k2 w - - 0 1",
+        "evaluation": "Mate in 13"
+    }
+]
