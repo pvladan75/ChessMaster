@@ -1112,8 +1112,9 @@ app.post('/api/puzzles/submit', authenticateToken, async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const puzzleRes = await pool.query('SELECT rating FROM puzzles WHERE puzzle_id = $1', [puzzleId]);
-    const puzzleRating = puzzleRes.rows[0]?.rating || 1500;
+    const puzzleRes = await pool.query('SELECT eval_value FROM puzzles WHERE puzzle_id = $1', [puzzleId]);
+    const puzzleEval = parseFloat(puzzleRes.rows[0]?.eval_value || 1.5);
+    const puzzleRating = Math.round(1500 + (puzzleEval * 50));
 
     const userRes = await pool.query(
       'SELECT overall_rating, theme_ratings, puzzles_solved, puzzles_failed FROM user_puzzle_ratings WHERE user_id = $1',

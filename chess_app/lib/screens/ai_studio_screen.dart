@@ -88,6 +88,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     _engineArrows.clear();
     _lastPosEval = null;
     _activeFen = null;
+    _showEvaluation = false;
   }
 
   Future<void> _initStockfish() async {
@@ -95,7 +96,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
       if (mounted) {
         final currentFen = _puzzleBoardController.getFen();
-        // Enforce FEN synchronization so old evaluation never bleeds into new position
         if (_activeFen != null && _activeFen != currentFen) return;
 
         double parsedEval = 0.0;
@@ -113,7 +113,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           };
         });
 
-        // Blunder Alert Check (Only for Category 3 'winning_position')
+        // 1. Blunder Alert Check (Only for Category 3 'winning_position')
         if (_selectedCategory == 'winning_position' && _isBlunderAlertEnabled && _lastPosEval != null && numVal != null) {
           final evalDiff = _lastPosEval! - numVal;
           if (evalDiff > 2.0) {
@@ -121,6 +121,29 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           }
         }
         _lastPosEval = numVal;
+
+        // 2. Opponent Move Execution (When it is Stockfish's turn to play)
+        if (_isOpponentTurn && (_selectedCategory == 'basic_mate' || _selectedCategory == 'winning_position')) {
+          if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
+            _isOpponentTurn = false; // Prevent duplicate triggers
+            Future.delayed(const Duration(milliseconds: 350), () {
+              if (!mounted) return;
+              _playPuzzleMove(bestMove);
+              if (_puzzleGame != null) {
+                if (_puzzleGame!.in_checkmate) {
+                  if (_selectedCategory == 'basic_mate') {
+                    _showSnackBar('❌ Stockfish vam je zadao mat.');
+                  } else {
+                    setState(() => _puzzleSolved = true);
+                    _showEndgameWinDialog();
+                  }
+                } else if (_puzzleGame!.in_stalemate || _puzzleGame!.in_draw) {
+                  _showSnackBar('🤝 Pat / Remi u poziciji.');
+                }
+              }
+            });
+          }
+        }
       }
     };
 
@@ -418,27 +441,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
     setState(() => _isOpponentTurn = true);
     await _stockfishService.initEngine();
-    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
-      if (!mounted || !_isOpponentTurn || _selectedCategory != 'basic_mate') return;
-
-      if (bestMove.isNotEmpty && bestMove.length >= 4) {
-        Future.delayed(const Duration(milliseconds: 350), () {
-          if (!mounted) return;
-          _playPuzzleMove(bestMove);
-          setState(() => _isOpponentTurn = false);
-
-          if (_puzzleGame != null) {
-            if (_puzzleGame!.in_checkmate) {
-              setState(() => _puzzleFailed = true);
-              _showSnackBar('❌ Stockfish vam je zadao mat.');
-            } else if (_puzzleGame!.in_stalemate || _puzzleGame!.in_draw) {
-              _showSnackBar('🤝 Pat / Remi u poziciji.');
-            }
-          }
-        });
-      }
-    };
-
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 14);
   }
 
@@ -451,23 +453,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
     setState(() => _isOpponentTurn = true);
     await _stockfishService.initEngine();
-    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
-      if (!mounted || !_isOpponentTurn || _selectedCategory != 'winning_position') return;
-
-      if (bestMove.isNotEmpty && bestMove.length >= 4) {
-        Future.delayed(const Duration(milliseconds: 400), () {
-          if (!mounted) return;
-          _playPuzzleMove(bestMove);
-          setState(() => _isOpponentTurn = false);
-
-          if (_puzzleGame != null && _puzzleGame!.in_checkmate) {
-            setState(() => _puzzleSolved = true);
-            _showEndgameWinDialog();
-          }
-        });
-      }
-    };
-
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 14);
   }
 
@@ -1233,7 +1218,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                           isCustomEngineActive: true,
                           thinkingMode: _thinkingMode,
                           lines: _engineLinesMap.values.toList(),
-                          orientation: PlayerColor.white,
+                          orientation: _puzzleOrientation,
                           onToggleEngine: () {
                             setState(() {
                               _showEvaluation = !_showEvaluation;

@@ -16,6 +16,7 @@ class EngineMove {
 
 class AnalysisLine {
   final int multipv;
+  final int depth;
   final String evaluation; // Evaluacija fiksirana iz ugla Belog (+ za belog, - za crnog)
   final String bestMoveLan; // e.g. e2e4
   final String bestMoveSan; // e.g. e4 ili Qe2
@@ -28,6 +29,7 @@ class AnalysisLine {
 
   AnalysisLine({
     required this.multipv,
+    this.depth = 0,
     required this.evaluation,
     required this.bestMoveLan,
     required this.bestMoveSan,
@@ -41,6 +43,7 @@ class AnalysisLine {
 
   static AnalysisLine fromPv({
     required int multipv,
+    int depth = 0,
     required String eval,
     required String pvString,
     required String startingFen,
@@ -49,6 +52,7 @@ class AnalysisLine {
     if (tokens.isEmpty) {
       return AnalysisLine(
         multipv: multipv,
+        depth: depth,
         evaluation: eval,
         bestMoveLan: '',
         bestMoveSan: '',
@@ -117,6 +121,7 @@ class AnalysisLine {
 
     return AnalysisLine(
       multipv: multipv,
+      depth: depth,
       evaluation: eval,
       bestMoveLan: bestMoveLan,
       bestMoveSan: bestMoveSan,

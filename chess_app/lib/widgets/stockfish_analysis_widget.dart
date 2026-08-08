@@ -42,20 +42,17 @@ class StockfishAnalysisWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildThinkingModeChip(String modeKey, String label, {bool isLocalOnly = false}) {
+  Widget _buildThinkingModeChip(String modeKey, String label) {
     final isSelected = thinkingMode == modeKey;
-    final isDisabled = isLocalOnly && isOnline;
 
     return ChoiceChip(
       label: Text(label, style: TextStyle(fontSize: 10, color: isSelected ? Colors.white : Colors.grey[300])),
       selected: isSelected,
       selectedColor: Colors.teal,
       backgroundColor: Colors.black26,
-      onSelected: isDisabled
-          ? null
-          : (selected) {
-              if (selected) onChangeThinkingMode(modeKey);
-            },
+      onSelected: (selected) {
+        if (selected) onChangeThinkingMode(modeKey);
+      },
     );
   }
 
@@ -220,14 +217,17 @@ class StockfishAnalysisWidget extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Dubina analize:', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  Text(
+                    'Dubina: D${bestLine != null && bestLine.depth > 0 ? bestLine.depth : (thinkingMode == 'deep' ? 16 : 10)}',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.tealAccent),
+                  ),
                   Row(
                     children: [
                       _buildThinkingModeChip('fast', 'Brzi (D10)'),
                       const SizedBox(width: 4),
                       _buildThinkingModeChip('deep', 'Duboki (D16)'),
                       const SizedBox(width: 4),
-                      _buildThinkingModeChip('infinite', 'Neprekidni', isLocalOnly: true),
+                      _buildThinkingModeChip('infinite', 'Neprekidni'),
                     ],
                   ),
                 ],
