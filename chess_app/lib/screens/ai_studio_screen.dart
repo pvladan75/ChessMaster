@@ -226,8 +226,15 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       _puzzleOrientation = PlayerColor.white;
     });
 
-    _puzzleBoardController.loadFen(fen);
-    _stockfishService.analyzePosition(fen, depth: 16);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        try {
+          _puzzleBoardController.loadFen(fen);
+        } catch (_) {}
+      }
+    });
+
+    _stockfishService.analyzePosition(fen, depth: 14);
   }
 
   Future<void> _fetchNextPuzzle() async {
@@ -271,16 +278,21 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           _moveIndex = 0;
         });
 
-        // Load starting FEN directly (User's turn immediately)
-        _puzzleBoardController.loadFen(fen);
-
         final sideToMove = fen.split(' ')[1];
         setState(() {
           _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
           _isOpponentTurn = false;
         });
 
-        _stockfishService.analyzePosition(fen, depth: 16);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            try {
+              _puzzleBoardController.loadFen(fen);
+            } catch (_) {}
+          }
+        });
+
+        _stockfishService.analyzePosition(fen, depth: 14);
       } else {
         _showSnackBar('Nije moguće učitati poziciju.');
       }
@@ -327,10 +339,16 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     String? userLan;
     dynamic matchedMove;
 
+    final currentBoardFen = currentFen.split(' ')[0];
+    final currentTurn = currentFen.split(' ')[1];
+
     for (var m in _puzzleGame!.moves({'verbose': true})) {
       final testGame = chess.Chess.fromFEN(_puzzleGame!.fen);
       testGame.move(m);
-      if (testGame.fen == currentFen) {
+      final testBoardFen = testGame.fen.split(' ')[0];
+      final testTurn = testGame.fen.split(' ')[1];
+
+      if (currentBoardFen == testBoardFen && currentTurn == testTurn) {
         matchedMove = m;
         final from = m['from'] ?? '';
         final to = m['to'] ?? '';
@@ -421,7 +439,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       }
     };
 
-    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 12);
+    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 14);
   }
 
   void _handleWinningPositionMove() async {
@@ -450,7 +468,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       }
     };
 
-    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 18);
+    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 14);
   }
 
   void _showMatePuzzleFailedDialog() {
