@@ -1113,17 +1113,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                               }
                             });
                           },
-                                _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
-                              } else {
-                                _stockfishService.stopAnalysis();
-                                _engineLinesMap.clear();
-                                _engineArrows.clear();
-                              }
-                            });
-                          },
                           onChangeThinkingMode: (mode) {
                             setState(() => _thinkingMode = mode);
-                            if (_isEngineEnabled) {
+                            if (_showEvaluation) {
                               _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: mode == 'deep' ? 22 : 16);
                             }
                           },
@@ -1172,7 +1164,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                             boardOrientation: PlayerColor.white,
                             onMove: () {
                               final fen = _analysisBoardController.getFen();
-                              if (_isEngineEnabled) {
+                              if (_showEvaluation) {
                                 _stockfishService.analyzePosition(fen, depth: 16);
                               }
                             },
@@ -1181,7 +1173,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                             child: IgnorePointer(
                               child: CustomPaint(
                                 painter: ChessBoardPainter(
-                                  arrows: [..._aiArrows, ...(_isEngineEnabled ? _engineArrows : [])],
+                                  arrows: [..._aiArrows, ...(_showEvaluation ? _engineArrows : [])],
                                   boardSize: 320,
                                   orientation: PlayerColor.white,
                                 ),
@@ -1207,7 +1199,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                       const SizedBox(height: 16),
                       // Stockfish 3-Line Analysis Widget for Position Analysis
                       StockfishAnalysisWidget(
-                        isEngineEnabled: _isEngineEnabled,
+                        isEngineEnabled: _showEvaluation,
                         isAllowedToUseEngine: true,
                         isOnline: true,
                         isCustomEngineActive: true,
@@ -1216,8 +1208,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                         orientation: PlayerColor.white,
                         onToggleEngine: () {
                           setState(() {
-                            _isEngineEnabled = !_isEngineEnabled;
-                            if (_isEngineEnabled) {
+                            _showEvaluation = !_showEvaluation;
+                            if (_showEvaluation) {
                               _stockfishService.analyzePosition(_analysisBoardController.getFen(), depth: 16);
                             } else {
                               _stockfishService.stopAnalysis();
@@ -1228,7 +1220,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                         },
                         onChangeThinkingMode: (mode) {
                           setState(() => _thinkingMode = mode);
-                          if (_isEngineEnabled) {
+                          if (_showEvaluation) {
                             _stockfishService.analyzePosition(_analysisBoardController.getFen(), depth: mode == 'deep' ? 22 : 16);
                           }
                         },
