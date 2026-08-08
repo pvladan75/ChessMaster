@@ -113,17 +113,17 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           };
         });
 
-        // 1. Blunder Alert Check (Only for Category 3 'winning_position')
-        if (_selectedCategory == 'winning_position' && _isBlunderAlertEnabled && _lastPosEval != null && numVal != null) {
+        // 1. Blunder Alert Check (Eval drop > 1.5 pawns)
+        if (_isBlunderAlertEnabled && _lastPosEval != null && numVal != null) {
           final evalDiff = _lastPosEval! - numVal;
-          if (evalDiff > 2.0) {
+          if (evalDiff > 1.5) {
             _showBlunderAlert(evalDiff, numVal);
           }
         }
         _lastPosEval = numVal;
 
-        // 2. Opponent Move Execution (When it is Stockfish's turn to play)
-        if (_isOpponentTurn && (_selectedCategory == 'basic_mate' || _selectedCategory == 'winning_position')) {
+        // 2. Opponent Bot Move Execution (When it is Stockfish's turn to play at kDefaultEngineTargetDepth)
+        if (_isOpponentTurn) {
           if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
             _isOpponentTurn = false; // Prevent duplicate triggers
             Future.delayed(const Duration(milliseconds: 350), () {
@@ -157,6 +157,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         });
       }
     };
+  }
+
+  void _triggerOpponentBotResponse() async {
+    if (_puzzleGame == null || _puzzleGame!.in_checkmate) return;
+    setState(() => _isOpponentTurn = true);
+    await _stockfishService.initEngine();
+    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: kDefaultEngineTargetDepth);
   }
 
   void _showBlunderAlert(double evalDiff, double currentEval) {
@@ -231,7 +238,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
   void _loadBasicMatePreset(String presetKey) {
     _resetEngineState();
-    final fen = _basicMatePresets[presetKey] ?? '8/8/8/4k3/8/8/4Q3/4K3 w - - 0 1';
+    final fen = _basicMatePresets[presetKey] ?? '4k3/8/8/8/8/8/8/Q3K3 w - - 0 1';
     _puzzleGame = chess.Chess.fromFEN(fen);
     _activeFen = fen;
 
@@ -257,7 +264,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       }
     });
 
-    _stockfishService.analyzePosition(fen, depth: 14);
+    _stockfishService.analyzePosition(fen, depth: kDefaultEngineTargetDepth);
   }
 
   Future<void> _fetchNextPuzzle() async {
@@ -315,7 +322,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           }
         });
 
-        _stockfishService.analyzePosition(fen, depth: 14);
+        _stockfishService.analyzePosition(fen, depth: kDefaultEngineTargetDepth);
       } else {
         _showSnackBar('Nije moguće učitati poziciju.');
       }
@@ -352,7 +359,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     }
   }
 
-  void _onUserPuzzleMoveMade() {
+  void _onUserPuzzleMoveMade() async {
     if (_isProgrammaticMove || _puzzleSolved || _puzzleFailed || _isOpponentTurn || _puzzleGame == null) return;
 
     final currentFen = _puzzleBoardController.getFen();
@@ -393,13 +400,34 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       _lastMoveTo = toStr;
     });
 
-    if (_selectedCategory == 'mate_puzzle') {
-      _handleMatePuzzleMove(userLan);
-    } else if (_selectedCategory == 'basic_mate') {
-      _handleBasicMateMove();
-    } else if (_selectedCategory == 'winning_position') {
-      _handleWinningPositionMove();
+    // --- STEP 1: FAST-TRACK JSON CHECK ---
+    final primaryJsonMove = _currentPuzzle?['winning_move_uci'] ?? (_expectedMoves.isNotEmpty ? _expectedMoves[0] : '');
+    final bool isFastTrack = (primaryJsonMove.isNotEmpty && userLan == primaryJsonMove);
+
+    if (isFastTrack) {
+      if (_selectedCategory == 'mate_puzzle') {
+        _moveIndex = 1;
+        if (_puzzleGame!.in_checkmate) {
+          _submitPuzzleResult(true);
+          return;
+        }
+      } else if (_selectedCategory == 'basic_mate' || _selectedCategory == 'winning_position') {
+        if (_puzzleGame!.in_checkmate) {
+          setState(() => _puzzleSolved = true);
+          _showEndgameWinDialog();
+          return;
+        }
+      }
+
+      // Trigger Opponent Reaction Bot
+      _triggerOpponentBotResponse();
+      return;
     }
+
+    // --- STEP 2: ENGINE EVALUATION AT kDefaultEngineTargetDepth (18) ---
+    setState(() => _isOpponentTurn = true);
+    await _stockfishService.initEngine();
+    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: kDefaultEngineTargetDepth);
   }
 
   void _handleMatePuzzleMove(String userLan) {
@@ -446,9 +474,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       return;
     }
 
-    setState(() => _isOpponentTurn = true);
-    await _stockfishService.initEngine();
-    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 14);
+    _triggerOpponentBotResponse();
   }
 
   void _handleWinningPositionMove() async {
@@ -458,9 +484,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       return;
     }
 
-    setState(() => _isOpponentTurn = true);
-    await _stockfishService.initEngine();
-    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 14);
+    _triggerOpponentBotResponse();
   }
 
   void _showMatePuzzleFailedDialog() {
