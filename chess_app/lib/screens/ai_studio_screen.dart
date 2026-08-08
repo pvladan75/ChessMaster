@@ -259,7 +259,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         final data = jsonDecode(res.body);
         final p = data['puzzle'];
         final fen = p['fen'];
-        final moves = List<String>.from(p['moves'] || []);
+        final moves = List<String>.from(p['moves'] ?? []);
 
         _puzzleGame = chess.Chess.fromFEN(fen);
         _activeFen = fen;
@@ -461,7 +461,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     if (_puzzleGame != null && _expectedMoves.isNotEmpty) {
       final tempGame = chess.Chess.fromFEN(_currentPuzzle?['fen'] ?? _puzzleGame!.fen);
       final List<String> sanList = [];
-      int moveNum = tempGame.full_moves;
+      int moveNum = tempGame.move_number;
       for (int i = 0; i < _expectedMoves.length; i++) {
         final uci = _expectedMoves[i];
         if (uci.length >= 4) {
@@ -471,7 +471,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
             'promotion': uci.length > 4 ? uci[4] : 'q'
           });
           if (moveObj != null) {
-            final san = tempGame.history({'verbose': true}).last['san'];
+            final String san = (tempGame.history.isNotEmpty && tempGame.history.last is Map)
+                ? (tempGame.history.last['san'] ?? uci)
+                : uci;
             if (i % 2 == 0) {
               sanList.add('$moveNum. $san');
             } else {
@@ -580,7 +582,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     }
     if (_currentPuzzle == null) return;
     final fen = _currentPuzzle!['fen'];
-    final moves = List<String>.from(_currentPuzzle!['moves'] || []);
+    final moves = List<String>.from(_currentPuzzle!['moves'] ?? []);
 
     _puzzleGame = chess.Chess.fromFEN(fen);
     _activeFen = fen;
