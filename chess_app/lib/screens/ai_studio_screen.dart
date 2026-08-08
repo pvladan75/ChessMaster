@@ -471,8 +471,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
             'promotion': uci.length > 4 ? uci[4] : 'q'
           });
           if (moveObj != null) {
-            final String san = (tempGame.history.isNotEmpty && tempGame.history.last is Map)
-                ? (tempGame.history.last['san'] ?? uci)
+            dynamic lastHist = tempGame.history.last;
+            final String san = (lastHist != null && lastHist.move != null)
+                ? (lastHist.move.san ?? uci)
                 : uci;
             if (i % 2 == 0) {
               sanList.add('$moveNum. $san');
