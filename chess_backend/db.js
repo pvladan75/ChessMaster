@@ -184,24 +184,24 @@ async function initDB() {
     `);
     console.log('Verified database table: scheduled_session_invites');
 
-    // Create puzzles table matching Lichess CSV schema
+    // Create puzzles table matching new puzzles_23 & winning_chess schema
     await client.query(`
       CREATE TABLE IF NOT EXISTS puzzles (
-        puzzle_id VARCHAR(50) PRIMARY KEY,
-        fen TEXT NOT NULL,
-        moves TEXT NOT NULL,
-        rating INT NOT NULL DEFAULT 1500,
-        rating_deviation INT DEFAULT 100,
-        popularity INT DEFAULT 100,
-        nb_plays INT DEFAULT 0,
-        themes TEXT[] DEFAULT '{}',
-        game_url TEXT,
-        opening_tags TEXT
+        id SERIAL PRIMARY KEY,
+        puzzle_id VARCHAR(100) UNIQUE NOT NULL,
+        source VARCHAR(100) NOT NULL,
+        fen VARCHAR(255) NOT NULL,
+        side_to_move VARCHAR(10) NOT NULL,
+        eval VARCHAR(20) NOT NULL,
+        eval_value NUMERIC(6, 2) DEFAULT 0,
+        type VARCHAR(50) NOT NULL,
+        mate_depth INTEGER DEFAULT NULL,
+        winning_move_uci VARCHAR(10) NOT NULL,
+        winning_move_san VARCHAR(20) NOT NULL
       );
-      CREATE INDEX IF NOT EXISTS idx_puzzles_rating ON puzzles(rating);
-      CREATE INDEX IF NOT EXISTS idx_puzzles_themes ON puzzles USING GIN(themes);
+      CREATE INDEX IF NOT EXISTS idx_puzzles_type_depth ON puzzles(type, mate_depth);
     `);
-    console.log('Verified database table & GIN/B-tree indexes: puzzles');
+    console.log('Verified database table: puzzles');
 
     // Create user_puzzle_ratings table
     await client.query(`
