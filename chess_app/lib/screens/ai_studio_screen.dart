@@ -938,22 +938,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                           ),
                         ],
                       ),
-                      DropdownButton<String>(
-                        value: _selectedTheme,
-                        underline: const SizedBox(),
-                        items: _themeOptions.map((t) {
-                          return DropdownMenuItem<String>(
-                            value: t['id'],
-                            child: Text(t['label']!, style: const TextStyle(fontSize: 13)),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() => _selectedTheme = val);
-                            _fetchNextPuzzle();
-                          }
-                        },
-                      ),
                     ],
                   ),
                 ),
