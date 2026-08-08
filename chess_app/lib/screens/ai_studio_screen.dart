@@ -265,27 +265,17 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           _moveIndex = 0;
         });
 
-        // 1. Load starting FEN
+        // 1. Load starting FEN directly (User's turn to move immediately)
         _puzzleBoardController.loadFen(fen);
 
-        // 2. Play setup move moves[0] (Opponent's initial move) after short delay
-        if (moves.isNotEmpty) {
-          await Future.delayed(const Duration(milliseconds: 300));
-          _playPuzzleMove(moves[0]);
-          _moveIndex = 1;
-        }
-
-        // 3. Calculate puzzle orientation & side to move AFTER setup move
-        final currentFen = _puzzleBoardController.getFen();
-        final sideToMove = currentFen.split(' ')[1];
+        // 2. Set orientation & side to move based on starting FEN
+        final sideToMove = fen.split(' ')[1];
         setState(() {
           _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
           _isOpponentTurn = false;
         });
 
-        if (_isEngineEnabled) {
-          _stockfishService.analyzePosition(currentFen, depth: 16);
-        }
+        _stockfishService.analyzePosition(fen, depth: 16);
       } else {
         _showSnackBar('Nije moguće učitati zagonetku.');
       }
@@ -529,13 +519,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     );
   }
 
-  void _resetCurrentPuzzle() async {
+  void _resetCurrentPuzzle() {
     if (_currentPuzzle == null) return;
     final fen = _currentPuzzle!['fen'];
     final moves = List<String>.from(_currentPuzzle!['moves']);
 
     _puzzleGame = chess.Chess.fromFEN(fen);
 
+    final sideToMove = fen.split(' ')[1];
     setState(() {
       _puzzleSolved = false;
       _puzzleFailed = false;
@@ -543,27 +534,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       _moveIndex = 0;
       _lastMoveFrom = null;
       _lastMoveTo = null;
-      _isOpponentTurn = true;
+      _isOpponentTurn = false;
+      _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
     });
 
     _puzzleBoardController.loadFen(fen);
-
-    if (moves.isNotEmpty) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      _playPuzzleMove(moves[0]);
-      _moveIndex = 1;
-    }
-
-    final currentFen = _puzzleBoardController.getFen();
-    final sideToMove = currentFen.split(' ')[1];
-    setState(() {
-      _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
-      _isOpponentTurn = false;
-    });
-
-    if (_isEngineEnabled) {
-      _stockfishService.analyzePosition(currentFen, depth: 16);
-    }
+    _stockfishService.analyzePosition(fen, depth: 16);
   }
 
   Future<void> _submitPuzzleResult(bool solved) async {
