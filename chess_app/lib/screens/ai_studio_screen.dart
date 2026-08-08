@@ -34,15 +34,18 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   Map<int, AnalysisLine> _engineLinesMap = {};
   List<ChessArrow> _engineArrows = [];
 
-  // Puzzle & Endgame State
-  String _puzzleType = 'mate_puzzle'; // 'mate_puzzle', 'winning_position', or 'endgame'
-  String _selectedMateDepth = 'all'; // 'all', '1', '2', '3'
+  // Reorganization Category State
+  String? _selectedCategory; // null = Selection Hub, 'mate_puzzle', 'basic_mate', 'winning_position'
+  String _selectedMateDepth = '2'; // '1', '2', '3'
+  String _selectedBasicMateType = 'K+Q vs K';
+
+  // Board & Game State
+  String? _activeFen;
   bool _showEvaluation = false;
   bool _isBlindfold = false;
-  bool _isBlunderAlertEnabled = true;
+  bool _isBlunderAlertEnabled = false; // Default OFF as requested
   double? _lastPosEval;
   Map<String, dynamic>? _currentPuzzle;
-  Map<String, dynamic>? _currentEndgame;
   chess.Chess? _puzzleGame;
   int _userRating = 1500;
   List<String> _expectedMoves = [];
@@ -51,7 +54,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   bool _puzzleSolved = false;
   bool _puzzleFailed = false;
   int? _lastRatingChange;
-  String _selectedTheme = 'all';
   bool _isOpponentTurn = false;
   PlayerColor _puzzleOrientation = PlayerColor.white;
   bool _isProgrammaticMove = false;
@@ -64,18 +66,38 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   List<ChessArrow> _aiArrows = [];
   Map<String, dynamic>? _stockfishEval;
 
+  final Map<String, String> _basicMatePresets = {
+    'K+Q vs K': '8/8/8/4k3/8/8/4Q3/4K3 w - - 0 1',
+    'K+R vs K': '8/8/8/4k3/8/8/4R3/4K3 w - - 0 1',
+    'K+2B vs K': '8/8/8/4k3/8/3BB3/8/4K3 w - - 0 1',
+    'K+B+N vs K': '8/8/8/4k3/8/3BN3/8/4K3 w - - 0 1',
+    'K+Q vs K+B': '8/8/3b4/4k3/8/8/4Q3/4K3 w - - 0 1',
+    'K+Q vs K+R': '8/8/3r4/4k3/8/8/4Q3/4K3 w - - 0 1',
+  };
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _fetchNextPuzzle();
     _initStockfish();
+  }
+
+  void _resetEngineState() {
+    _stockfishService.stopAnalysis();
+    _engineLinesMap.clear();
+    _engineArrows.clear();
+    _lastPosEval = null;
+    _activeFen = null;
   }
 
   Future<void> _initStockfish() async {
     await _stockfishService.initEngine();
     _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
       if (mounted) {
+        final currentFen = _puzzleBoardController.getFen();
+        // Enforce FEN synchronization so old evaluation never bleeds into new position
+        if (_activeFen != null && _activeFen != currentFen) return;
+
         double parsedEval = 0.0;
         final numVal = double.tryParse(evaluation);
         if (numVal != null) {
@@ -91,8 +113,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           };
         });
 
-        // Blunder Alert Check
-        if (_isBlunderAlertEnabled && _lastPosEval != null && numVal != null) {
+        // Blunder Alert Check (Only for Category 3 'winning_position')
+        if (_selectedCategory == 'winning_position' && _isBlunderAlertEnabled && _lastPosEval != null && numVal != null) {
           final evalDiff = _lastPosEval! - numVal;
           if (evalDiff > 2.0) {
             _showBlunderAlert(evalDiff, numVal);
@@ -104,6 +126,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
     _stockfishService.onMultiPVUpdated = (linesMap) {
       if (mounted) {
+        final currentFen = _puzzleBoardController.getFen();
+        if (_activeFen != null && _activeFen != currentFen) return;
         setState(() {
           _engineLinesMap = linesMap;
           _engineArrows = _buildArrowsFromEngineLines(linesMap.values.toList());
@@ -167,67 +191,47 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     super.dispose();
   }
 
-  // --- PUZZLE LOGIC ---
+  // --- LAUNCH CATEGORIES ---
 
-  Future<void> _fetchNextEndgame() async {
-    final String currentId = _currentEndgame?['puzzle_id'] ?? '';
+  void _launchCategory(String category) {
+    _resetEngineState();
     setState(() {
-      _isLoadingPuzzle = true;
-      _puzzleSolved = false;
-      _puzzleFailed = false;
-      _lastRatingChange = null;
-      _aiAnalysisResult = null;
-      _aiArrows = [];
-      _lastMoveFrom = null;
-      _lastMoveTo = null;
-      _isOpponentTurn = false;
+      _selectedCategory = category;
     });
 
-    try {
-      final diffParam = _selectedTheme != 'all' ? '&difficulty=$_selectedTheme' : '';
-      final excludeParam = currentId.isNotEmpty ? '&excludeId=$currentId' : '';
-      final uri = Uri.parse('$backendUrl/api/puzzles/endgame/next?userId=${widget.userSession.id}$diffParam$excludeParam');
-      final res = await http.get(
-        uri,
-        headers: {'Authorization': 'Bearer ${widget.userSession.token}'},
-      );
-
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        final eg = data['endgame'];
-        final fen = eg['fen'];
-
-        _puzzleGame = chess.Chess.fromFEN(fen);
-
-        setState(() {
-          _currentEndgame = eg;
-          _expectedMoves = [];
-          _moveIndex = 0;
-        });
-
-        _puzzleBoardController.loadFen(fen);
-
-        final sideToMove = fen.split(' ')[1];
-        setState(() {
-          _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
-          _isOpponentTurn = false;
-        });
-
-        _stockfishService.analyzePosition(fen, depth: 16);
-      } else {
-        _showSnackBar('Nije moguće učitati završnicu.');
-      }
-    } catch (e) {
-      _showSnackBar('Greška pri učitavanju završnice.');
-    } finally {
-      if (mounted) setState(() => _isLoadingPuzzle = false);
+    if (category == 'basic_mate') {
+      _loadBasicMatePreset(_selectedBasicMateType);
+    } else {
+      _fetchNextPuzzle();
     }
   }
 
+  void _loadBasicMatePreset(String presetKey) {
+    _resetEngineState();
+    final fen = _basicMatePresets[presetKey] ?? '8/8/8/4k3/8/8/4Q3/4K3 w - - 0 1';
+    _puzzleGame = chess.Chess.fromFEN(fen);
+    _activeFen = fen;
+
+    setState(() {
+      _selectedCategory = 'basic_mate';
+      _selectedBasicMateType = presetKey;
+      _isLoadingPuzzle = false;
+      _puzzleSolved = false;
+      _puzzleFailed = false;
+      _expectedMoves = [];
+      _moveIndex = 0;
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
+      _isOpponentTurn = false;
+      _puzzleOrientation = PlayerColor.white;
+    });
+
+    _puzzleBoardController.loadFen(fen);
+    _stockfishService.analyzePosition(fen, depth: 16);
+  }
+
   Future<void> _fetchNextPuzzle() async {
-    if (_puzzleType == 'endgame') {
-      return _fetchNextEndgame();
-    }
+    _resetEngineState();
     final String currentId = _currentPuzzle?['puzzle_id'] ?? '';
     setState(() {
       _isLoadingPuzzle = true;
@@ -242,9 +246,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     });
 
     try {
+      final categoryParam = _selectedCategory ?? 'mate_puzzle';
+      final depthParam = (categoryParam == 'mate_puzzle') ? '&mate_depth=$_selectedMateDepth' : '';
       final excludeParam = currentId.isNotEmpty ? '&excludeId=$currentId' : '';
-      final depthParam = (_puzzleType == 'mate_puzzle' && _selectedMateDepth != 'all') ? '&mate_depth=$_selectedMateDepth' : '';
-      final uri = Uri.parse('$backendUrl/api/puzzles/next?userId=${widget.userSession.id}&type=$_puzzleType$depthParam$excludeParam');
+      final uri = Uri.parse('$backendUrl/api/puzzles/next?userId=${widget.userSession.id}&type=$categoryParam$depthParam$excludeParam');
       final res = await http.get(
         uri,
         headers: {'Authorization': 'Bearer ${widget.userSession.token}'},
@@ -254,9 +259,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         final data = jsonDecode(res.body);
         final p = data['puzzle'];
         final fen = p['fen'];
-        final moves = List<String>.from(p['moves']);
+        final moves = List<String>.from(p['moves'] || []);
 
         _puzzleGame = chess.Chess.fromFEN(fen);
+        _activeFen = fen;
 
         setState(() {
           _currentPuzzle = p;
@@ -265,10 +271,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           _moveIndex = 0;
         });
 
-        // 1. Load starting FEN directly (User's turn to move immediately)
+        // Load starting FEN directly (User's turn immediately)
         _puzzleBoardController.loadFen(fen);
 
-        // 2. Set orientation & side to move based on starting FEN
         final sideToMove = fen.split(' ')[1];
         setState(() {
           _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
@@ -277,10 +282,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
         _stockfishService.analyzePosition(fen, depth: 16);
       } else {
-        _showSnackBar('Nije moguće učitati zagonetku.');
+        _showSnackBar('Nije moguće učitati poziciju.');
       }
     } catch (e) {
-      _showSnackBar('Greška na mreži pri učitavanju zagonetke.');
+      _showSnackBar('Greška pri učitavanju pozicije.');
     } finally {
       if (mounted) setState(() => _isLoadingPuzzle = false);
     }
@@ -296,133 +301,29 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       if (_puzzleGame != null) {
         _puzzleGame!.move({'from': fromStr, 'to': toStr, 'promotion': lanMove.length > 4 ? lanMove[4] : 'q'});
         _puzzleBoardController.loadFen(_puzzleGame!.fen);
+        _activeFen = _puzzleGame!.fen;
       } else {
         _puzzleBoardController.makeMove(from: fromStr, to: toStr);
+        _activeFen = _puzzleBoardController.getFen();
       }
       setState(() {
         _lastMoveFrom = fromStr;
         _lastMoveTo = toStr;
       });
     } catch (e) {
-      print('Error playing puzzle move $lanMove: $e');
+      print('Error playing move $lanMove: $e');
     } finally {
       _isProgrammaticMove = false;
     }
   }
 
   void _onUserPuzzleMoveMade() {
-    if (_isProgrammaticMove) return;
-    if (_puzzleType == 'endgame') {
-      _handleUserEndgameMove();
-      return;
-    }
-    if (_puzzleSolved || _puzzleFailed || _expectedMoves.isEmpty || _isOpponentTurn || _puzzleGame == null) return;
-
-    final currentFen = _puzzleBoardController.getFen();
-    if (currentFen == _puzzleGame!.fen) return; // No move made yet
-
-    // Determine move played on board by comparing FENs with legal moves in _puzzleGame
-    String? userLan;
-    dynamic matchedMove;
-
-    for (var m in _puzzleGame!.moves({'verbose': true})) {
-      final testGame = chess.Chess.fromFEN(_puzzleGame!.fen);
-      testGame.move(m);
-      if (testGame.fen == currentFen) {
-        matchedMove = m;
-        final from = m['from'] ?? '';
-        final to = m['to'] ?? '';
-        final promo = m['promotion'] ?? '';
-        userLan = '$from$to$promo';
-        break;
-      }
-    }
-
-    if (matchedMove == null || userLan == null) return;
-
-    // Apply move to internal _puzzleGame
-    _puzzleGame!.move(matchedMove);
-
-    final fromStr = userLan.substring(0, 2);
-    final toStr = userLan.substring(2, 4);
-    setState(() {
-      _lastMoveFrom = fromStr;
-      _lastMoveTo = toStr;
-    });
-
-    final expectedLan = _expectedMoves[_moveIndex];
-
-    if (userLan == expectedLan) {
-      _moveIndex++;
-      if (_moveIndex >= _expectedMoves.length) {
-        // Puzzle solved cleanly!
-        _submitPuzzleResult(true);
-      } else {
-        // Opponent auto-reply
-        setState(() => _isOpponentTurn = true);
-        Future.delayed(const Duration(milliseconds: 600), () {
-          if (!mounted) return;
-          _playPuzzleMove(_expectedMoves[_moveIndex]);
-          _moveIndex++;
-          setState(() => _isOpponentTurn = false);
-
-          if (_moveIndex >= _expectedMoves.length) {
-            _submitPuzzleResult(true);
-          }
-        });
-      }
-    } else {
-      // Wrong move played!
-      setState(() {
-        _puzzleFailed = true;
-      });
-
-      _submitPuzzleResult(false);
-
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Row(
-              children: const [
-                Icon(Icons.cancel, color: Colors.redAccent, size: 28),
-                SizedBox(width: 8),
-                Text('Netačan Potez!', style: TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-            content: Text('Potez $userLan koji ste odigrali nije tačan.\nOčekivani potez je bio drugačiji.'),
-            actions: [
-              OutlinedButton.icon(
-                icon: const Icon(Icons.refresh),
-                label: const Text('Pokušaj Ponovo'),
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  _resetCurrentPuzzle();
-                },
-              ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('Sledeća Zagonetka'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  _fetchNextPuzzle();
-                },
-              ),
-            ],
-          ),
-        );
-      }
-    }
-  }
-
-  void _handleUserEndgameMove() async {
     if (_isProgrammaticMove || _puzzleSolved || _puzzleFailed || _isOpponentTurn || _puzzleGame == null) return;
 
     final currentFen = _puzzleBoardController.getFen();
     if (currentFen == _puzzleGame!.fen) return; // No move made yet
 
-    // Determine move played on board by comparing FENs with legal moves in _puzzleGame
+    // Determine move played on board
     String? userLan;
     dynamic matchedMove;
 
@@ -441,8 +342,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
     if (matchedMove == null || userLan == null) return;
 
-    // Apply user move to internal _puzzleGame
     _puzzleGame!.move(matchedMove);
+    _activeFen = currentFen;
+
     final fromStr = userLan.substring(0, 2);
     final toStr = userLan.substring(2, 4);
     setState(() {
@@ -450,7 +352,43 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       _lastMoveTo = toStr;
     });
 
-    // Check if player delivered checkmate
+    if (_selectedCategory == 'mate_puzzle') {
+      _handleMatePuzzleMove(userLan);
+    } else if (_selectedCategory == 'basic_mate') {
+      _handleBasicMateMove();
+    } else if (_selectedCategory == 'winning_position') {
+      _handleWinningPositionMove();
+    }
+  }
+
+  void _handleMatePuzzleMove(String userLan) {
+    if (_expectedMoves.isEmpty) return;
+    final expectedLan = _expectedMoves[_moveIndex];
+
+    if (userLan == expectedLan) {
+      _moveIndex++;
+      if (_moveIndex >= _expectedMoves.length || _puzzleGame!.in_checkmate) {
+        _submitPuzzleResult(true);
+      } else {
+        setState(() => _isOpponentTurn = true);
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!mounted) return;
+          _playPuzzleMove(_expectedMoves[_moveIndex]);
+          _moveIndex++;
+          setState(() => _isOpponentTurn = false);
+
+          if (_moveIndex >= _expectedMoves.length || _puzzleGame!.in_checkmate) {
+            _submitPuzzleResult(true);
+          }
+        });
+      }
+    } else {
+      setState(() => _puzzleFailed = true);
+      _showMatePuzzleFailedDialog();
+    }
+  }
+
+  void _handleBasicMateMove() async {
     if (_puzzleGame!.in_checkmate) {
       setState(() => _puzzleSolved = true);
       _showEndgameWinDialog();
@@ -460,21 +398,16 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       return;
     }
 
-    // Now it is Stockfish's turn to respond defensively
     setState(() => _isOpponentTurn = true);
-
     await _stockfishService.initEngine();
-
     _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
-      if (!mounted || !_isOpponentTurn || _puzzleType != 'endgame') return;
+      if (!mounted || !_isOpponentTurn || _selectedCategory != 'basic_mate') return;
 
       if (bestMove.isNotEmpty && bestMove.length >= 4) {
         Future.delayed(const Duration(milliseconds: 350), () {
           if (!mounted) return;
           _playPuzzleMove(bestMove);
-          setState(() {
-            _isOpponentTurn = false;
-          });
+          setState(() => _isOpponentTurn = false);
 
           if (_puzzleGame != null) {
             if (_puzzleGame!.in_checkmate) {
@@ -491,6 +424,122 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 12);
   }
 
+  void _handleWinningPositionMove() async {
+    if (_puzzleGame!.in_checkmate) {
+      setState(() => _puzzleSolved = true);
+      _showEndgameWinDialog();
+      return;
+    }
+
+    setState(() => _isOpponentTurn = true);
+    await _stockfishService.initEngine();
+    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
+      if (!mounted || !_isOpponentTurn || _selectedCategory != 'winning_position') return;
+
+      if (bestMove.isNotEmpty && bestMove.length >= 4) {
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (!mounted) return;
+          _playPuzzleMove(bestMove);
+          setState(() => _isOpponentTurn = false);
+
+          if (_puzzleGame != null && _puzzleGame!.in_checkmate) {
+            setState(() => _puzzleSolved = true);
+            _showEndgameWinDialog();
+          }
+        });
+      }
+    };
+
+    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 18);
+  }
+
+  void _showMatePuzzleFailedDialog() {
+    if (!mounted) return;
+
+    // Generate full SAN solution sequence
+    String fullSolutionSan = '';
+    if (_puzzleGame != null && _expectedMoves.isNotEmpty) {
+      final tempGame = chess.Chess.fromFEN(_currentPuzzle?['fen'] ?? _puzzleGame!.fen);
+      final List<String> sanList = [];
+      int moveNum = tempGame.full_moves;
+      for (int i = 0; i < _expectedMoves.length; i++) {
+        final uci = _expectedMoves[i];
+        if (uci.length >= 4) {
+          final moveObj = tempGame.move({
+            'from': uci.substring(0, 2),
+            'to': uci.substring(2, 4),
+            'promotion': uci.length > 4 ? uci[4] : 'q'
+          });
+          if (moveObj != null) {
+            final san = tempGame.history({'verbose': true}).last['san'];
+            if (i % 2 == 0) {
+              sanList.add('$moveNum. $san');
+            } else {
+              sanList.add(san);
+              moveNum++;
+            }
+          }
+        }
+      }
+      fullSolutionSan = sanList.join(' ');
+    }
+    if (fullSolutionSan.isEmpty) {
+      fullSolutionSan = _currentPuzzle?['winning_move_san'] ?? _expectedMoves.join(' ');
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: const [
+            Icon(Icons.cancel, color: Colors.redAccent, size: 28),
+            SizedBox(width: 8),
+            Text('Netačan Potez!', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Potez koji ste odigrali nije tačan.'),
+            const SizedBox(height: 12),
+            ExpansionTile(
+              title: const Text('💡 Prikaži celokupno rešenje', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent, fontSize: 13)),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: SelectableText(
+                    fullSolutionSan,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.tealAccent),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          OutlinedButton.icon(
+            icon: const Icon(Icons.refresh),
+            label: const Text('Pokušaj Ponovo'),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _resetCurrentPuzzle();
+            },
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.arrow_forward),
+            label: const Text('Naredna Zagonetka'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _fetchNextPuzzle();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showEndgameWinDialog() {
     if (!mounted) return;
     showDialog(
@@ -503,15 +552,19 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
             Text('🎉 POBEDA!', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: const Text('Čestitamo! Uspešno ste zadali mat Stockfish-u u završnici!'),
+        content: const Text('Čestitamo! Uspešno ste zadali mat Stockfish-u!'),
         actions: [
           ElevatedButton.icon(
             icon: const Icon(Icons.arrow_forward),
-            label: const Text('Sledeća Završnica'),
+            label: const Text('Sledeća Pozicija'),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, foregroundColor: Colors.white),
             onPressed: () {
               Navigator.pop(ctx);
-              _fetchNextEndgame();
+              if (_selectedCategory == 'basic_mate') {
+                _loadBasicMatePreset(_selectedBasicMateType);
+              } else {
+                _fetchNextPuzzle();
+              }
             },
           ),
         ],
@@ -520,11 +573,17 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   }
 
   void _resetCurrentPuzzle() {
+    _resetEngineState();
+    if (_selectedCategory == 'basic_mate') {
+      _loadBasicMatePreset(_selectedBasicMateType);
+      return;
+    }
     if (_currentPuzzle == null) return;
     final fen = _currentPuzzle!['fen'];
-    final moves = List<String>.from(_currentPuzzle!['moves']);
+    final moves = List<String>.from(_currentPuzzle!['moves'] || []);
 
     _puzzleGame = chess.Chess.fromFEN(fen);
+    _activeFen = fen;
 
     final sideToMove = fen.split(' ')[1];
     setState(() {
@@ -558,7 +617,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         body: jsonEncode({
           'puzzleId': _currentPuzzle?['puzzle_id'],
           'solved': solved,
-          'theme': _selectedTheme != 'all' ? _selectedTheme : null,
         }),
       );
 
@@ -586,40 +644,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
               actions: [
                 ElevatedButton.icon(
                   icon: const Icon(Icons.arrow_forward),
-                  label: const Text('Sledeća Zagonetka'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _fetchNextPuzzle();
-                  },
-                ),
-              ],
-            ),
-          );
-        } else if (!solved && mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: Row(
-                children: const [
-                  Icon(Icons.cancel, color: Colors.redAccent, size: 28),
-                  SizedBox(width: 8),
-                  Text('Netačan Potez!', style: TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
-              content: Text('Potez koji ste odigrali nije tačan.\nNovi rejting: $newRating (${change >= 0 ? "+" : ""}$change)'),
-              actions: [
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Pokušaj Ponovo'),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _resetCurrentPuzzle();
-                  },
-                ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.arrow_forward),
-                  label: const Text('Sledeća Zagonetka'),
+                  label: const Text('Naredna Zagonetka'),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
                   onPressed: () {
                     Navigator.pop(ctx);
@@ -642,7 +667,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     setState(() => _isAnalyzingAi = true);
 
     try {
-      // Trigger Stockfish engine analysis if evaluation is empty
       if (evals == null && (_stockfishEval == null || _stockfishEval!['bestMove'] == null)) {
         _stockfishService.analyzePosition(fen, depth: 16);
         await Future.delayed(const Duration(milliseconds: 2500));
@@ -702,36 +726,311 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: const [
-            Icon(Icons.psychology, color: Colors.amberAccent),
-            SizedBox(width: 8),
-            Text('AI Šahovski Trener & Vežbe'),
-          ],
+    return PopScope(
+      canPop: _selectedCategory == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_selectedCategory != null) {
+          _resetEngineState();
+          setState(() {
+            _selectedCategory = null;
+          });
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Row(
+            children: [
+              if (_selectedCategory != null) ...[
+                IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    _resetEngineState();
+                    setState(() {
+                      _selectedCategory = null;
+                    });
+                  },
+                ),
+                const SizedBox(width: 4),
+              ],
+              const Icon(Icons.psychology, color: Colors.amberAccent),
+              const SizedBox(width: 8),
+              Text(_selectedCategory == null ? 'AI Šahovski Trener & Vežbe' : _getCategoryTitle()),
+            ],
+          ),
+          bottom: TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(icon: Icon(Icons.extension), text: 'Vežbanje Zadataka'),
+              Tab(icon: Icon(Icons.auto_awesome), text: 'AI Analiza Pozicije'),
+            ],
+          ),
         ),
-        bottom: TabBar(
+        body: TabBarView(
           controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.extension), text: 'Vežbanje Zadataka'),
-            Tab(icon: Icon(Icons.auto_awesome), text: 'AI Analiza Pozicije'),
+          children: [
+            _buildPuzzlesTab(),
+            _buildAiAnalysisTab(),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildPuzzlesTab(),
-          _buildAiAnalysisTab(),
-        ],
       ),
     );
+  }
+
+  String _getCategoryTitle() {
+    switch (_selectedCategory) {
+      case 'mate_puzzle':
+        return 'Mat u 1, 2 ili 3 poteza';
+      case 'basic_mate':
+        return 'Vežbanje osnovnog matiranja';
+      case 'winning_position':
+        return 'Pronađite dobitni put';
+      default:
+        return 'Vežbanje Zadataka';
+    }
   }
 
   // --- TAB 1: PUZZLES UI ---
 
   Widget _buildPuzzlesTab() {
+    if (_selectedCategory == null) {
+      return _buildCategorySelectionHub();
+    }
+    return _buildActiveBoardScreen();
+  }
+
+  // --- 1. SELECTION HUB VIEW ---
+
+  Widget _buildCategorySelectionHub() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20.0),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header Card
+              Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Row(
+                    children: [
+                      const CircleAvatar(
+                        radius: 26,
+                        backgroundColor: Colors.teal,
+                        child: Icon(Icons.extension, size: 28, color: Colors.white),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Vežbanje Šahovskih Zadataka',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Izaberite modul za vežbanje taktičkih zagonetki ili matnih završnica.',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // CARD 1: Zagonetke: Mat u 1, 2 ili 3 poteza
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Colors.teal, width: 1.5),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.sports_esports, color: Colors.tealAccent, size: 28),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Zagonetke: Mat u 1, 2 ili 3 poteza',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Rešavajte forsiranu matnu sekvencu u traženom broju poteza.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.looks_one),
+                            label: const Text('Mat u 1'),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade800, foregroundColor: Colors.white),
+                            onPressed: () {
+                              setState(() => _selectedMateDepth = '1');
+                              _launchCategory('mate_puzzle');
+                            },
+                          ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.looks_two),
+                            label: const Text('Mat u 2'),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade800, foregroundColor: Colors.white),
+                            onPressed: () {
+                              setState(() => _selectedMateDepth = '2');
+                              _launchCategory('mate_puzzle');
+                            },
+                          ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.looks_3),
+                            label: const Text('Mat u 3'),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade800, foregroundColor: Colors.white),
+                            onPressed: () {
+                              setState(() => _selectedMateDepth = '3');
+                              _launchCategory('mate_puzzle');
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // CARD 2: Vežbajte osnovno matiranje
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Colors.purpleAccent, width: 1.5),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.workspace_premium, color: Colors.purpleAccent, size: 28),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Vežbajte osnovno matiranje',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Matirajte protivnika u klasičnim matnim pozicijama protiv Stockfish-a.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _basicMatePresets.keys.map((presetKey) {
+                          return OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.purpleAccent),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            ),
+                            onPressed: () {
+                              _selectedCategory = 'basic_mate';
+                              _loadBasicMatePreset(presetKey);
+                            },
+                            child: Text(presetKey, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // CARD 3: Pronađite dobitni put
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Colors.amber, width: 1.5),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.emoji_events, color: Colors.amberAccent, size: 28),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Pronađite dobitni put',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Igrajte dobitne pozicije do kraja protiv Stockfish-a uz opcioni Blunder Alert.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('Započni vežbanje dobitnih pozicija'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber.shade800,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        ),
+                        onPressed: () => _launchCategory('winning_position'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- 2. ACTIVE BOARD GAME SCREEN ---
+
+  Widget _buildActiveBoardScreen() {
+    final String headerGoal = _selectedCategory == 'mate_puzzle'
+        ? '${_puzzleOrientation == PlayerColor.white ? "⚪ Beli" : "⚫ Crni"} na potezu - Mat u $_selectedMateDepth ${_selectedMateDepth == '1' ? 'potez' : 'poteza'}'
+        : (_selectedCategory == 'basic_mate'
+            ? 'Vežbanje: $_selectedBasicMateType (Matirajte Stockfish-a)'
+            : '${_puzzleOrientation == PlayerColor.white ? "⚪ Beli" : "⚫ Crni"} na potezu - Pronađite dobitni put');
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Center(
@@ -739,186 +1038,51 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           constraints: const BoxConstraints(maxWidth: 650),
           child: Column(
             children: [
-              // Mode Selector (Matne Zagonetke vs Dobitne Pozicije vs Matne Završnice) & Toggles
+              // Navigation Back Bar & Controls Card
               Card(
                 elevation: 3,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                  child: Column(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            ChoiceChip(
-                              label: const Text('🎯 Matne Zagonetke'),
-                              selected: _puzzleType == 'mate_puzzle',
-                              selectedColor: Colors.teal.shade700,
-                              onSelected: (val) {
-                                if (val) {
-                                  setState(() => _puzzleType = 'mate_puzzle');
-                                  _fetchNextPuzzle();
-                                }
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            ChoiceChip(
-                              label: const Text('🏆 Dobitne Pozicije'),
-                              selected: _puzzleType == 'winning_position',
-                              selectedColor: Colors.amber.shade800,
-                              onSelected: (val) {
-                                if (val) {
-                                  setState(() => _puzzleType = 'winning_position');
-                                  _fetchNextPuzzle();
-                                }
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            ChoiceChip(
-                              label: const Text('🏁 Matne Završnice'),
-                              selected: _puzzleType == 'endgame',
-                              selectedColor: Colors.purple.shade700,
-                              onSelected: (val) {
-                                if (val) {
-                                  setState(() => _puzzleType = 'endgame');
-                                  _fetchNextEndgame();
-                                }
-                              },
-                            ),
-                          ],
-                        ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.arrow_back, size: 16),
+                        label: const Text('Nazad na izbor', style: TextStyle(fontSize: 12)),
+                        onPressed: () {
+                          _resetEngineState();
+                          setState(() {
+                            _selectedCategory = null;
+                          });
+                        },
                       ),
-
-                      // Sub-filter chips for Mate Puzzles (M1, M2, M3)
-                      if (_puzzleType == 'mate_puzzle') ...[
-                        const SizedBox(height: 10),
-                        const Divider(height: 1),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            const Text('Kriterijum mata: ', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-                            const SizedBox(width: 8),
-                            Wrap(
-                              spacing: 6,
-                              children: [
-                                ChoiceChip(
-                                  label: const Text('Sve', style: TextStyle(fontSize: 11)),
-                                  selected: _selectedMateDepth == 'all',
-                                  onSelected: (val) {
-                                    if (val) {
-                                      setState(() => _selectedMateDepth = 'all');
-                                      _fetchNextPuzzle();
-                                    }
-                                  },
-                                ),
-                                ChoiceChip(
-                                  label: const Text('Mat u 1', style: TextStyle(fontSize: 11)),
-                                  selected: _selectedMateDepth == '1',
-                                  onSelected: (val) {
-                                    if (val) {
-                                      setState(() => _selectedMateDepth = '1');
-                                      _fetchNextPuzzle();
-                                    }
-                                  },
-                                ),
-                                ChoiceChip(
-                                  label: const Text('Mat u 2', style: TextStyle(fontSize: 11)),
-                                  selected: _selectedMateDepth == '2',
-                                  onSelected: (val) {
-                                    if (val) {
-                                      setState(() => _selectedMateDepth = '2');
-                                      _fetchNextPuzzle();
-                                    }
-                                  },
-                                ),
-                                ChoiceChip(
-                                  label: const Text('Mat u 3', style: TextStyle(fontSize: 11)),
-                                  selected: _selectedMateDepth == '3',
-                                  onSelected: (val) {
-                                    if (val) {
-                                      setState(() => _selectedMateDepth = '3');
-                                      _fetchNextPuzzle();
-                                    }
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-
-                      const Divider(height: 16),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           FilterChip(
-                            avatar: Icon(_isBlindfold ? Icons.visibility_off : Icons.visibility, size: 18, color: _isBlindfold ? Colors.amberAccent : Colors.grey),
-                            label: Text(_isBlindfold ? '🙈 Šah Na Slepo: ON' : '👁️ Šah Na Slepo: OFF', style: const TextStyle(fontSize: 12)),
+                            avatar: Icon(_isBlindfold ? Icons.visibility_off : Icons.visibility, size: 16, color: _isBlindfold ? Colors.amberAccent : Colors.grey),
+                            label: Text(_isBlindfold ? '🙈 Slepo: ON' : '👁️ Slepo: OFF', style: const TextStyle(fontSize: 11)),
                             selected: _isBlindfold,
                             selectedColor: Colors.amber.shade900.withValues(alpha: 0.4),
                             onSelected: (val) => setState(() => _isBlindfold = val),
                           ),
-                          FilterChip(
-                            avatar: Icon(Icons.warning_amber_rounded, size: 18, color: _isBlunderAlertEnabled ? Colors.redAccent : Colors.grey),
-                            label: Text(_isBlunderAlertEnabled ? '🚨 Blunder Alert: ON' : '🚨 Blunder Alert: OFF', style: const TextStyle(fontSize: 12)),
-                            selected: _isBlunderAlertEnabled,
-                            selectedColor: Colors.red.shade900.withValues(alpha: 0.4),
-                            onSelected: (val) => setState(() => _isBlunderAlertEnabled = val),
-                          ),
+                          if (_selectedCategory == 'winning_position') ...[
+                            const SizedBox(width: 8),
+                            FilterChip(
+                              avatar: Icon(Icons.warning_amber_rounded, size: 16, color: _isBlunderAlertEnabled ? Colors.redAccent : Colors.grey),
+                              label: Text(_isBlunderAlertEnabled ? '🚨 Blunder: ON' : '🚨 Blunder: OFF', style: const TextStyle(fontSize: 11)),
+                              selected: _isBlunderAlertEnabled,
+                              selectedColor: Colors.red.shade900.withValues(alpha: 0.4),
+                              onSelected: (val) => setState(() => _isBlunderAlertEnabled = val),
+                            ),
+                          ],
                         ],
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
 
-              // Rating Header & Theme Selector
-              Card(
-                elevation: 3,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(_puzzleType == 'endgame' ? 'Baza Matnih Završnica' : 'Vaš Rejting Zagonetki', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text(
-                                _puzzleType == 'endgame' ? (_currentEndgame?['evaluation'] ?? 'Mat u N') : '$_userRating',
-                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.tealAccent),
-                              ),
-                              if (_puzzleType == 'tactics' && _lastRatingChange != null) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: _lastRatingChange! >= 0 ? Colors.green.withValues(alpha: 0.2) : Colors.red.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '${_lastRatingChange! >= 0 ? "+" : ""}$_lastRatingChange',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: _lastRatingChange! >= 0 ? Colors.greenAccent : Colors.redAccent,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               // Chessboard Card
               Card(
@@ -933,8 +1097,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                           child: Center(child: CircularProgressIndicator()),
                         )
                       else ...[
+                        // Turn & Goal Banner
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           margin: const EdgeInsets.only(bottom: 10),
                           decoration: BoxDecoration(
                             color: _puzzleOrientation == PlayerColor.white ? Colors.blueGrey.shade900 : Colors.teal.shade900,
@@ -945,14 +1110,17 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.play_circle_fill,
-                                size: 16,
+                                Icons.flag,
+                                size: 18,
                                 color: _puzzleOrientation == PlayerColor.white ? Colors.white : Colors.tealAccent,
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                _puzzleOrientation == PlayerColor.white ? '⚪ Vi igrate sa BELIM figurama (Na potezu ste)' : '⚫ Vi igrate sa CRNIM figurama (Na potezu ste)',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                              Flexible(
+                                child: Text(
+                                  headerGoal,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ),
@@ -1008,32 +1176,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                           ],
                         ),
                         const SizedBox(height: 12),
-                        // Status & Buttons
-                        if (_puzzleSolved)
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-                            child: Row(
-                              children: const [
-                                Icon(Icons.check_circle, color: Colors.greenAccent),
-                                SizedBox(width: 8),
-                                Text('Bravo! Zagonetka je uspešno rešena!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.greenAccent)),
-                              ],
-                            ),
-                          )
-                        else if (_puzzleFailed)
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-                            child: Row(
-                              children: const [
-                                Icon(Icons.cancel, color: Colors.redAccent),
-                                SizedBox(width: 8),
-                                Text('Potez nije tačan. Pokušajte ponovo ili pitajte AI Trenera.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
-                              ],
-                            ),
-                          ),
-                        const SizedBox(height: 12),
+
+                        // Action Buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
@@ -1046,14 +1190,21 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                             ),
                             ElevatedButton.icon(
                               icon: const Icon(Icons.arrow_forward),
-                              label: const Text('Sledeća Zagonetka'),
+                              label: const Text('Naredna Pozicija'),
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-                              onPressed: _fetchNextPuzzle,
+                              onPressed: () {
+                                if (_selectedCategory == 'basic_mate') {
+                                  _loadBasicMatePreset(_selectedBasicMateType);
+                                } else {
+                                  _fetchNextPuzzle();
+                                }
+                              },
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        // Stockfish 3-Line Analysis Widget for Puzzles ("Prikaži evaluaciju")
+
+                        // Stockfish Analysis Widget ("Prikaži evaluaciju")
                         StockfishAnalysisWidget(
                           isEngineEnabled: _showEvaluation,
                           isAllowedToUseEngine: true,
@@ -1209,55 +1360,33 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   Widget _buildAiAdviceCard(Map<String, dynamic> aiData) {
     return Card(
       elevation: 4,
-      margin: const EdgeInsets.only(top: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Colors.deepPurple.shade900.withValues(alpha: 0.85),
       child: Padding(
-        padding: const EdgeInsets.all(18.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              children: [
-                const Icon(Icons.auto_awesome, color: Colors.amberAccent, size: 24),
-                const SizedBox(width: 8),
-                Text(
-                  aiData['keyMotif'] ?? 'AI Savet Trenera',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.amberAccent),
-                ),
+              children: const [
+                Icon(Icons.auto_awesome, color: Colors.amberAccent),
+                SizedBox(width: 8),
+                Text('AI Šahovski Trener - Savet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.amberAccent)),
               ],
             ),
-            const Divider(height: 24),
-            const Text('Kratak Zaključak:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            const SizedBox(height: 4),
-            Text(aiData['summary'] ?? '', style: const TextStyle(fontSize: 13, height: 1.4)),
-            const SizedBox(height: 14),
-            const Text('Plan Igre Korak-po-Korak:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            const SizedBox(height: 4),
-            Text(aiData['plan'] ?? '', style: const TextStyle(fontSize: 12, height: 1.4, color: Colors.white70)),
-            const SizedBox(height: 14),
-            if (aiData['recommendedMoves'] is List) ...[
-              const Text('Preporučeni potezi (klikni za animaciju):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+            const Divider(height: 20),
+            if (aiData['explanation'] != null)
+              Text(
+                aiData['explanation'],
+                style: const TextStyle(fontSize: 14, height: 1.4),
+              ),
+            if (aiData['recommendedMoves'] != null) ...[
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
-                children: (aiData['recommendedMoves'] as List).map<Widget>((m) {
-                  return ActionChip(
-                    avatar: const Icon(Icons.play_arrow, size: 14, color: Colors.tealAccent),
-                    label: Text(m.toString(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    onPressed: () {
-                      final str = m.toString().replaceAll(' ', '');
-                      if (str.length >= 4) {
-                        setState(() {
-                          _aiArrows = [
-                            ChessArrow(
-                              from: str.substring(0, 2),
-                              to: str.substring(2, 4),
-                              colorCode: 'O',
-                            )
-                          ];
-                        });
-                      }
-                    },
+                children: (aiData['recommendedMoves'] as List).map((m) {
+                  return Chip(
+                    backgroundColor: Colors.teal.shade800,
+                    label: Text(m.toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   );
                 }).toList(),
               ),
