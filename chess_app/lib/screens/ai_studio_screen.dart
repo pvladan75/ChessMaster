@@ -67,12 +67,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   Map<String, dynamic>? _stockfishEval;
 
   final Map<String, String> _basicMatePresets = {
-    'K+Q vs K': '8/8/8/4k3/8/8/4Q3/4K3 w - - 0 1',
-    'K+R vs K': '8/8/8/4k3/8/8/4R3/4K3 w - - 0 1',
-    'K+2B vs K': '8/8/8/4k3/8/3BB3/8/4K3 w - - 0 1',
-    'K+B+N vs K': '8/8/8/4k3/8/3BN3/8/4K3 w - - 0 1',
-    'K+Q vs K+B': '8/8/3b4/4k3/8/8/4Q3/4K3 w - - 0 1',
-    'K+Q vs K+R': '8/8/3r4/4k3/8/8/4Q3/4K3 w - - 0 1',
+    'K+Q vs K': '4k3/8/8/8/8/8/8/Q3K3 w - - 0 1',
+    'K+R vs K': '4k3/8/8/8/8/8/8/R3K3 w - - 0 1',
+    'K+2B vs K': '4k3/8/8/8/8/8/8/2BBK3 w - - 0 1',
+    'K+B+N vs K': '4k3/8/8/8/8/8/8/1NB1K3 w - - 0 1',
+    'K+Q vs K+B': '2b1k3/8/8/8/8/8/8/Q3K3 w - - 0 1',
+    'K+Q vs K+R': '2r1k3/8/8/8/8/8/8/Q3K3 w - - 0 1',
   };
 
   @override
@@ -408,9 +408,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
     if (userLan == expectedLan) {
       _moveIndex++;
-      if (_moveIndex >= _expectedMoves.length || _puzzleGame!.in_checkmate) {
+      if (_puzzleGame!.in_checkmate) {
         _submitPuzzleResult(true);
-      } else {
+      } else if (_moveIndex < _expectedMoves.length) {
         setState(() => _isOpponentTurn = true);
         Future.delayed(const Duration(milliseconds: 500), () {
           if (!mounted) return;
@@ -418,10 +418,17 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           _moveIndex++;
           setState(() => _isOpponentTurn = false);
 
-          if (_moveIndex >= _expectedMoves.length || _puzzleGame!.in_checkmate) {
+          if (_puzzleGame!.in_checkmate) {
             _submitPuzzleResult(true);
           }
         });
+      } else {
+        if (_puzzleGame!.in_checkmate) {
+          _submitPuzzleResult(true);
+        } else {
+          setState(() => _puzzleFailed = true);
+          _showMatePuzzleFailedDialog();
+        }
       }
     } else {
       setState(() => _puzzleFailed = true);
@@ -1170,7 +1177,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                               child: IgnorePointer(
                                 child: CustomPaint(
                                   painter: ChessBoardPainter(
-                                    arrows: [..._aiArrows, ...(_showEvaluation ? _engineArrows : [])],
+                                    arrows: _aiArrows,
                                     boardSize: 320,
                                     orientation: _puzzleOrientation,
                                     lastMoveFrom: _lastMoveFrom,
@@ -1210,15 +1217,16 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                         ),
                         const SizedBox(height: 16),
 
-                        // Stockfish Analysis Widget ("Prikaži evaluaciju")
-                        StockfishAnalysisWidget(
-                          isEngineEnabled: _showEvaluation,
-                          isAllowedToUseEngine: true,
-                          isOnline: true,
-                          isCustomEngineActive: true,
-                          thinkingMode: _thinkingMode,
-                          lines: _engineLinesMap.values.toList(),
-                          orientation: _puzzleOrientation,
+                        // Stockfish Analysis Widget ("Prikaži evaluaciju") - Only visible when it's User's Turn
+                        if (!_isOpponentTurn)
+                          StockfishAnalysisWidget(
+                            isEngineEnabled: _showEvaluation,
+                            isAllowedToUseEngine: true,
+                            isOnline: true,
+                            isCustomEngineActive: true,
+                            thinkingMode: _thinkingMode,
+                            lines: _engineLinesMap.values.toList(),
+                            orientation: _puzzleOrientation,
                           onToggleEngine: () {
                             setState(() {
                               _showEvaluation = !_showEvaluation;

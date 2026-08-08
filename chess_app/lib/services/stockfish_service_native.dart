@@ -105,8 +105,58 @@ class StockfishService {
 
     if (_useOnline) {
       final reqId = ++_requestId;
+      final effectiveDepth = depth > 15 ? 15 : depth;
+
+      // Try Lichess Cloud Eval API first for instant Grandmaster depth 25-50 analysis
       try {
-        final url = 'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$depth';
+        final cloudUrl = 'https://lichess.org/api/cloud-eval?fen=${Uri.encodeComponent(fen)}';
+        final cloudRes = await http.get(Uri.parse(cloudUrl));
+        if (reqId == _requestId && cloudRes.statusCode == 200) {
+          final cloudData = jsonDecode(cloudRes.body);
+          if (cloudData['pvs'] != null && (cloudData['pvs'] as List).isNotEmpty) {
+            final pv = cloudData['pvs'][0];
+            final movesStr = (pv['moves'] as String? ?? '').trim();
+            final depthVal = (cloudData['depth'] as int?) ?? 20;
+
+            if (movesStr.isNotEmpty) {
+              final movesList = movesStr.split(RegExp(r'\s+'));
+              final bestMove = movesList.first;
+              bool isBlackToMove = fen.contains(' b ');
+
+              String eval = '0.00';
+              if (pv['cp'] != null) {
+                double score = (pv['cp'] as num) / 100.0;
+                if (isBlackToMove) score = -score;
+                eval = score > 0 ? '+${score.toStringAsFixed(2)}' : score.toStringAsFixed(2);
+              } else if (pv['mate'] != null) {
+                int mate = pv['mate'] as int;
+                if (isBlackToMove) mate = -mate;
+                eval = mate > 0 ? 'M$mate' : '-M${mate.abs()}';
+              }
+
+              final line = AnalysisLine.fromPv(
+                multipv: 1,
+                depth: depthVal,
+                eval: eval,
+                pvString: movesStr,
+                startingFen: fen,
+              );
+
+              if (onEvaluationChanged != null) {
+                onEvaluationChanged!(eval, bestMove, movesStr, 1);
+              }
+              if (onMultiPVUpdated != null) {
+                onMultiPVUpdated!({1: line});
+              }
+              return;
+            }
+          }
+        }
+      } catch (_) {}
+
+      // Fallback to stockfish.online API v2 (max depth 15)
+      try {
+        final url = 'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$effectiveDepth';
         final response = await http.get(Uri.parse(url));
 
         if (reqId != _requestId) return; // Ignore outdated responses
@@ -114,10 +164,7 @@ class StockfishService {
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           if (data['success'] == true) {
-            bool isBlackToMove = false;
-            if (fen.contains(' b ')) {
-              isBlackToMove = true;
-            }
+            bool isBlackToMove = fen.contains(' b ');
 
             String eval = '0.00';
             if (data['mate'] != null) {
@@ -148,8 +195,19 @@ class StockfishService {
               continuation = data['continuation'] as String;
             }
 
+            final line = AnalysisLine.fromPv(
+              multipv: 1,
+              depth: effectiveDepth,
+              eval: eval,
+              pvString: continuation.isNotEmpty ? continuation : bestMove,
+              startingFen: fen,
+            );
+
             if (onEvaluationChanged != null) {
               onEvaluationChanged!(eval, bestMove, continuation, 1);
+            }
+            if (onMultiPVUpdated != null) {
+              onMultiPVUpdated!({1: line});
             }
           }
         }
