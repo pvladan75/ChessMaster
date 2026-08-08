@@ -86,7 +86,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                         Row(
                           children: [
                             const Text(
-                              'Stockfish Analiza',
+                              'Prikaži evaluaciju',
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                             if (onOpenSettings != null) ...[

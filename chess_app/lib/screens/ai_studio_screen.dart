@@ -35,7 +35,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   List<ChessArrow> _engineArrows = [];
 
   // Puzzle & Endgame State
-  String _puzzleType = 'tactics'; // 'tactics' or 'endgame'
+  String _puzzleType = 'mate_puzzle'; // 'mate_puzzle', 'winning_position', or 'endgame'
+  String _selectedMateDepth = 'all'; // 'all', '1', '2', '3'
+  bool _showEvaluation = false;
   bool _isBlindfold = false;
   bool _isBlunderAlertEnabled = true;
   double? _lastPosEval;
@@ -61,18 +63,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   Map<String, dynamic>? _aiAnalysisResult;
   List<ChessArrow> _aiArrows = [];
   Map<String, dynamic>? _stockfishEval;
-
-  final List<Map<String, String>> _themeOptions = [
-    {'id': 'all', 'label': 'Sve teme'},
-    {'id': 'fork', 'label': 'Viljuška (Fork)'},
-    {'id': 'pin', 'label': 'Vezivanje (Pin)'},
-    {'id': 'discoveredAttack', 'label': 'Otkriveni napad'},
-    {'id': 'mateIn1', 'label': 'Mat u 1'},
-    {'id': 'mateIn2', 'label': 'Mat u 2'},
-    {'id': 'endgame', 'label': 'Završnica'},
-    {'id': 'skewer', 'label': 'Rendgen (Skewer)'},
-    {'id': 'deflection', 'label': 'Odvlačenje'},
-  ];
 
   @override
   void initState() {
@@ -100,6 +90,15 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
             'cp': (parsedEval * 100).round()
           };
         });
+
+        // Blunder Alert Check
+        if (_isBlunderAlertEnabled && _lastPosEval != null && numVal != null) {
+          final evalDiff = _lastPosEval! - numVal;
+          if (evalDiff > 2.0) {
+            _showBlunderAlert(evalDiff, numVal);
+          }
+        }
+        _lastPosEval = numVal;
       }
     };
 
@@ -111,6 +110,38 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         });
       }
     };
+  }
+
+  void _showBlunderAlert(double evalDiff, double currentEval) {
+    if (!mounted) return;
+    final isCritical = currentEval <= 0.5;
+    final title = isCritical ? '🚨 TEŠKA GREŠKA (BLUNDER)!' : '⚠️ NEPRECIZNOST!';
+    final msg = isCritical
+        ? 'Ovim potezom ste izgubili dobitnu poziciju (Pad evaluacije: -${evalDiff.toStringAsFixed(1)}).'
+        : 'Napravili ste neprecizan potez, ali ste i dalje u prednosti (Pad: -${evalDiff.toStringAsFixed(1)}).';
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: isCritical ? Colors.red.shade900 : Colors.amber.shade900,
+        duration: const Duration(seconds: 4),
+        content: Row(
+          children: [
+            Icon(isCritical ? Icons.cancel : Icons.warning_amber, color: Colors.white),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text(msg, style: const TextStyle(fontSize: 11, color: Colors.white70)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   List<ChessArrow> _buildArrowsFromEngineLines(List<AnalysisLine> lines) {
@@ -182,9 +213,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           _isOpponentTurn = false;
         });
 
-        if (_isEngineEnabled) {
-          _stockfishService.analyzePosition(fen, depth: 16);
-        }
+        _stockfishService.analyzePosition(fen, depth: 16);
       } else {
         _showSnackBar('Nije moguće učitati završnicu.');
       }
@@ -209,13 +238,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       _aiArrows = [];
       _lastMoveFrom = null;
       _lastMoveTo = null;
-      _isOpponentTurn = true;
+      _isOpponentTurn = false;
     });
 
     try {
-      final themeParam = _selectedTheme != 'all' ? '&theme=$_selectedTheme' : '';
       final excludeParam = currentId.isNotEmpty ? '&excludeId=$currentId' : '';
-      final uri = Uri.parse('$backendUrl/api/puzzles/next?userId=${widget.userSession.id}$themeParam$excludeParam');
+      final depthParam = (_puzzleType == 'mate_puzzle' && _selectedMateDepth != 'all') ? '&mate_depth=$_selectedMateDepth' : '';
+      final uri = Uri.parse('$backendUrl/api/puzzles/next?userId=${widget.userSession.id}&type=$_puzzleType$depthParam$excludeParam');
       final res = await http.get(
         uri,
         headers: {'Authorization': 'Bearer ${widget.userSession.token}'},
@@ -734,47 +763,121 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           constraints: const BoxConstraints(maxWidth: 650),
           child: Column(
             children: [
-              // Mode Selector (Taktičke Zagonetke vs Matne Završnice) & Toggles
+              // Mode Selector (Matne Zagonetke vs Dobitne Pozicije vs Matne Završnice) & Toggles
               Card(
                 elevation: 3,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                   child: Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          ChoiceChip(
-                            label: const Text('🧩 Taktičke Zagonetke'),
-                            selected: _puzzleType == 'tactics',
-                            selectedColor: Colors.teal.shade700,
-                            onSelected: (val) {
-                              if (val) {
-                                setState(() => _puzzleType = 'tactics');
-                                _fetchNextPuzzle();
-                              }
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('🏆 Matne Završnice'),
-                            selected: _puzzleType == 'endgame',
-                            selectedColor: Colors.purple.shade700,
-                            onSelected: (val) {
-                              if (val) {
-                                setState(() => _puzzleType = 'endgame');
-                                _fetchNextEndgame();
-                              }
-                            },
-                          ),
-                        ],
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            ChoiceChip(
+                              label: const Text('🎯 Matne Zagonetke'),
+                              selected: _puzzleType == 'mate_puzzle',
+                              selectedColor: Colors.teal.shade700,
+                              onSelected: (val) {
+                                if (val) {
+                                  setState(() => _puzzleType = 'mate_puzzle');
+                                  _fetchNextPuzzle();
+                                }
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            ChoiceChip(
+                              label: const Text('🏆 Dobitne Pozicije'),
+                              selected: _puzzleType == 'winning_position',
+                              selectedColor: Colors.amber.shade800,
+                              onSelected: (val) {
+                                if (val) {
+                                  setState(() => _puzzleType = 'winning_position');
+                                  _fetchNextPuzzle();
+                                }
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            ChoiceChip(
+                              label: const Text('🏁 Matne Završnice'),
+                              selected: _puzzleType == 'endgame',
+                              selectedColor: Colors.purple.shade700,
+                              onSelected: (val) {
+                                if (val) {
+                                  setState(() => _puzzleType = 'endgame');
+                                  _fetchNextEndgame();
+                                }
+                              },
+                            ),
+                          ],
+                        ),
                       ),
+
+                      // Sub-filter chips for Mate Puzzles (M1, M2, M3)
+                      if (_puzzleType == 'mate_puzzle') ...[
+                        const SizedBox(height: 10),
+                        const Divider(height: 1),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            const Text('Kriterijum mata: ', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 8),
+                            Wrap(
+                              spacing: 6,
+                              children: [
+                                ChoiceChip(
+                                  label: const Text('Sve', style: TextStyle(fontSize: 11)),
+                                  selected: _selectedMateDepth == 'all',
+                                  onSelected: (val) {
+                                    if (val) {
+                                      setState(() => _selectedMateDepth = 'all');
+                                      _fetchNextPuzzle();
+                                    }
+                                  },
+                                ),
+                                ChoiceChip(
+                                  label: const Text('Mat u 1', style: TextStyle(fontSize: 11)),
+                                  selected: _selectedMateDepth == '1',
+                                  onSelected: (val) {
+                                    if (val) {
+                                      setState(() => _selectedMateDepth = '1');
+                                      _fetchNextPuzzle();
+                                    }
+                                  },
+                                ),
+                                ChoiceChip(
+                                  label: const Text('Mat u 2', style: TextStyle(fontSize: 11)),
+                                  selected: _selectedMateDepth == '2',
+                                  onSelected: (val) {
+                                    if (val) {
+                                      setState(() => _selectedMateDepth = '2');
+                                      _fetchNextPuzzle();
+                                    }
+                                  },
+                                ),
+                                ChoiceChip(
+                                  label: const Text('Mat u 3', style: TextStyle(fontSize: 11)),
+                                  selected: _selectedMateDepth == '3',
+                                  onSelected: (val) {
+                                    if (val) {
+                                      setState(() => _selectedMateDepth = '3');
+                                      _fetchNextPuzzle();
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+
                       const Divider(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           FilterChip(
                             avatar: Icon(_isBlindfold ? Icons.visibility_off : Icons.visibility, size: 18, color: _isBlindfold ? Colors.amberAccent : Colors.grey),
-                            label: Text(_isBlindfold ? '🙈 Šah Na Slepo: UKLJUČEN' : '👁️ Šah Na Slepo: ISKLJUČEN', style: const TextStyle(fontSize: 12)),
+                            label: Text(_isBlindfold ? '🙈 Šah Na Slepo: ON' : '👁️ Šah Na Slepo: OFF', style: const TextStyle(fontSize: 12)),
                             selected: _isBlindfold,
                             selectedColor: Colors.amber.shade900.withValues(alpha: 0.4),
                             onSelected: (val) => setState(() => _isBlindfold = val),
@@ -905,9 +1008,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                                   boardOrientation: _puzzleOrientation,
                                   onMove: () {
                                     _onUserPuzzleMoveMade();
-                                    if (_isEngineEnabled) {
-                                      _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
-                                    }
+                                    _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
                                   },
                                 ),
                               ),
@@ -935,7 +1036,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                               child: IgnorePointer(
                                 child: CustomPaint(
                                   painter: ChessBoardPainter(
-                                    arrows: [..._aiArrows, ...(_isEngineEnabled ? _engineArrows : [])],
+                                    arrows: [..._aiArrows, ...(_showEvaluation ? _engineArrows : [])],
                                     boardSize: 320,
                                     orientation: _puzzleOrientation,
                                     lastMoveFrom: _lastMoveFrom,
@@ -992,9 +1093,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                           ],
                         ),
                         const SizedBox(height: 16),
-                        // Stockfish 3-Line Analysis Widget for Puzzles
+                        // Stockfish 3-Line Analysis Widget for Puzzles ("Prikaži evaluaciju")
                         StockfishAnalysisWidget(
-                          isEngineEnabled: _isEngineEnabled,
+                          isEngineEnabled: _showEvaluation,
                           isAllowedToUseEngine: true,
                           isOnline: true,
                           isCustomEngineActive: true,
@@ -1003,8 +1104,15 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                           orientation: PlayerColor.white,
                           onToggleEngine: () {
                             setState(() {
-                              _isEngineEnabled = !_isEngineEnabled;
-                              if (_isEngineEnabled) {
+                              _showEvaluation = !_showEvaluation;
+                              if (_showEvaluation) {
+                                _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
+                              } else {
+                                _engineLinesMap.clear();
+                                _engineArrows.clear();
+                              }
+                            });
+                          },
                                 _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
                               } else {
                                 _stockfishService.stopAnalysis();

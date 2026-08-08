@@ -999,98 +999,59 @@ app.get('/sessions/scheduled', authenticateToken, async (req, res) => {
   }
 });
 
-// PUZZLES & AI COACH ENDPOINTS
-
-// GET /api/puzzles/next - Fetch next adaptive puzzle matching user rating
+// GET /api/puzzles/next - Fetch next puzzle from clean puzzles_23 and winning_chess dataset
 app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
-  const { theme, excludeId } = req.query;
-  const userId = req.user.id;
+  const { type, mate_depth, excludeId } = req.query;
+  const currentExclude = excludeId || '';
+  const puzzleType = (type === 'winning' || type === 'winning_position') ? 'winning_position' : 'mate_puzzle';
 
   try {
-    let userRatingRes = await pool.query(
-      'SELECT overall_rating, theme_ratings FROM user_puzzle_ratings WHERE user_id = $1',
-      [userId]
-    );
-
-    let userRating = 1500;
-    let themeRatings = {};
-    if (userRatingRes.rows.length === 0) {
-      await pool.query(
-        'INSERT INTO user_puzzle_ratings (user_id, overall_rating) VALUES ($1, 1500) ON CONFLICT DO NOTHING',
-        [userId]
-      );
-    } else {
-      userRating = userRatingRes.rows[0].overall_rating || 1500;
-      themeRatings = userRatingRes.rows[0].theme_ratings || {};
-    }
-
-    const minRating = Math.max(800, userRating - 350);
-    const maxRating = userRating + 350;
-    const currentExclude = excludeId || '';
-
     let puzzleRes;
-    if (theme && theme.trim() !== '' && theme.trim() !== 'all') {
+    if (puzzleType === 'mate_puzzle' && mate_depth && mate_depth !== 'all') {
+      const depthNum = parseInt(mate_depth, 10);
       puzzleRes = await pool.query(
         `SELECT * FROM puzzles
-         WHERE rating BETWEEN $1 AND $2 AND $3 = ANY(themes) AND ($4 = '' OR puzzle_id != $4)
-           AND (popularity IS NULL OR popularity >= 30)
+         WHERE type = $1 AND mate_depth = $2 AND ($3 = '' OR puzzle_id != $3)
          ORDER BY RANDOM() LIMIT 1`,
-        [minRating, maxRating, theme.trim(), currentExclude]
+        ['mate_puzzle', depthNum, currentExclude]
       );
-      if (puzzleRes.rows.length === 0) {
-        puzzleRes = await pool.query(
-          `SELECT * FROM puzzles WHERE $1 = ANY(themes) AND ($2 = '' OR puzzle_id != $2) AND (popularity IS NULL OR popularity >= 30) ORDER BY RANDOM() LIMIT 1`,
-          [theme.trim(), currentExclude]
-        );
-      }
     } else {
       puzzleRes = await pool.query(
         `SELECT * FROM puzzles
-         WHERE rating BETWEEN $1 AND $2 AND ($3 = '' OR puzzle_id != $3)
-           AND (popularity IS NULL OR popularity >= 30)
+         WHERE type = $1 AND ($2 = '' OR puzzle_id != $2)
          ORDER BY RANDOM() LIMIT 1`,
-        [minRating, maxRating, currentExclude]
+        [puzzleType, currentExclude]
       );
     }
 
-    let puzzle;
-    while (puzzleRes.rows.length > 0) {
-      const candidate = puzzleRes.rows[0];
-      try {
-        const c = new Chess(candidate.fen);
-        puzzle = candidate;
-        break;
-      } catch (e) {
-        console.warn(`[PUZZLE_CLEANUP] Deleting invalid FEN puzzle ${candidate.puzzle_id} (${candidate.fen}) from database...`);
-        await pool.query('DELETE FROM puzzles WHERE puzzle_id = $1', [candidate.puzzle_id]);
-        puzzleRes.rows.shift();
-      }
-
-      if (puzzleRes.rows.length === 0) {
-        puzzleRes = await pool.query('SELECT * FROM puzzles WHERE (popularity IS NULL OR popularity >= 30) ORDER BY RANDOM() LIMIT 5');
-      }
+    if (puzzleRes.rows.length === 0) {
+      puzzleRes = await pool.query(`SELECT * FROM puzzles WHERE type = $1 ORDER BY RANDOM() LIMIT 1`, [puzzleType]);
     }
 
-    if (!puzzle) {
+    if (puzzleRes.rows.length === 0) {
       return res.status(404).json({ error: 'Nema dostupnih zagonetki u bazi.' });
     }
 
+    const puzzle = puzzleRes.rows[0];
     const responsePayload = {
       puzzle: {
         puzzle_id: puzzle.puzzle_id,
+        source: puzzle.source,
         fen: puzzle.fen,
-        moves: puzzle.moves.split(' '),
-        rating: puzzle.rating,
-        themes: puzzle.themes,
-        game_url: puzzle.game_url,
-        opening_tags: puzzle.opening_tags
-      },
-      userRating,
-      themeRatings
+        side_to_move: puzzle.side_to_move,
+        eval: puzzle.eval,
+        eval_value: puzzle.eval_value,
+        type: puzzle.type,
+        mate_depth: puzzle.mate_depth,
+        winning_move_uci: puzzle.winning_move_uci,
+        winning_move_san: puzzle.winning_move_san,
+        moves: [puzzle.winning_move_uci],
+        rating: 1500,
+        themes: [puzzle.type]
+      }
     };
 
-    console.log('[PUZZLE_SERVED] Served puzzle payload:\n' + JSON.stringify(responsePayload, null, 2));
-
+    console.log('[PUZZLE_SERVED] Served puzzle:', puzzle.puzzle_id, 'Type:', puzzle.type, 'Eval:', puzzle.eval);
     res.json(responsePayload);
   } catch (err) {
     console.error('Error fetching next puzzle:', err);

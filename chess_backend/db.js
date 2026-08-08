@@ -53,7 +53,24 @@ async function initDB() {
       ALTER TABLE rooms 
       ADD COLUMN IF NOT EXISTS allow_student_engine BOOLEAN DEFAULT FALSE;
     `);
-    console.log('Verified database table: rooms (with board_control & allow_student_engine)');
+    // Create puzzles table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS puzzles (
+        id SERIAL PRIMARY KEY,
+        puzzle_id VARCHAR(100) UNIQUE NOT NULL,
+        source VARCHAR(100) NOT NULL,
+        fen VARCHAR(255) NOT NULL,
+        side_to_move VARCHAR(10) NOT NULL,
+        eval VARCHAR(20) NOT NULL,
+        eval_value NUMERIC(6, 2) DEFAULT 0,
+        type VARCHAR(50) NOT NULL,
+        mate_depth INTEGER DEFAULT NULL,
+        winning_move_uci VARCHAR(10) NOT NULL,
+        winning_move_san VARCHAR(20) NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_puzzles_type_depth ON puzzles(type, mate_depth);
+    `);
+    console.log('Verified database table: puzzles');
 
     // Create saved_lessons table
     await client.query(`
