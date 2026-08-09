@@ -131,7 +131,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     fetchUserLabels();
 
     // Set up Stockfish service evaluation listener
-    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
+    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv, depth, isFinal) {
       if (!mounted) return;
       setState(() {
         if (evaluation.isNotEmpty || continuation.isNotEmpty) {
