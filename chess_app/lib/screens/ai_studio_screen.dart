@@ -345,6 +345,23 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     );
   }
 
+  List<EngineArrow> _buildEngineArrowsFromLines(List<AnalysisLine> lines) {
+    final List<EngineArrow> engineArrowsList = [];
+    for (int i = 0; i < lines.length && i < 3; i++) {
+      final line = lines[i];
+      final moveStr = line.bestMoveLan;
+      if (moveStr.length >= 4) {
+        engineArrowsList.add(EngineArrow(
+          from: moveStr.substring(0, 2),
+          to: moveStr.substring(2, 4),
+          evalText: line.evaluation,
+          rank: i + 1,
+        ));
+      }
+    }
+    return engineArrowsList;
+  }
+
   List<ChessArrow> _buildArrowsFromEngineLines(List<AnalysisLine> lines) {
     final List<ChessArrow> arrows = [];
     final colors = ['G', 'B', 'O'];
@@ -1456,6 +1473,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               child: CustomPaint(
                 painter: ChessBoardPainter(
                   arrows: _showEvaluation ? _engineArrows : [],
+                  engineArrows: _showEvaluation ? _buildEngineArrowsFromLines(_engineLinesMap.values.toList()) : [],
                   boardSize: boardSize,
                   orientation: _puzzleOrientation,
                   lastMoveFrom: _lastMoveFrom,
@@ -1703,7 +1721,7 @@ class HorizontalEvalBarWidget extends StatelessWidget {
       winPct = sigmoid.clamp(0.03, 0.97);
     }
 
-    final String displayEvalText = depth < 18 ? '$evalString (d$depth)' : '(d$depth)';
+    final String displayEvalText = '$evalString (d$depth)';
 
     return Container(
       height: 24,

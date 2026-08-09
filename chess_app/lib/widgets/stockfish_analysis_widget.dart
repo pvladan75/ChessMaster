@@ -147,7 +147,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                         border: Border.all(color: Colors.tealAccent.withValues(alpha: 0.4)),
                       ),
                       child: Text(
-                        'Eval: ${bestLine.evaluation}',
+                        'Eval: ${bestLine.evaluation} (depth: ${bestLine.depth > 0 ? bestLine.depth : 0})',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.tealAccent),
                       ),
                     ),
@@ -221,17 +221,6 @@ class StockfishAnalysisWidget extends StatelessWidget {
                     ),
                   );
                 }),
-
-              const SizedBox(height: 8),
-
-              // Depth Display
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Dubina analize: D${bestLine != null && bestLine.depth > 0 ? bestLine.depth : 0}',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.tealAccent),
-                ),
-              ),
             ],
           ],
         ),
