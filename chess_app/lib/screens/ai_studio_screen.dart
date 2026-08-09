@@ -1015,10 +1015,16 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     // --- STEP 1: DIRECT LOCAL SOLUTION TREE VERIFICATION FOR MATE PUZZLES ---
     if (_selectedCategory == 'mate_puzzle') {
       _currentSolutionsNode ??= Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
-      final dynamic subBranch = _currentSolutionsNode?[userLan];
+      final primaryJsonMove = _currentPuzzle?['winning_move_uci'] ?? (_expectedMoves.length > _moveIndex ? _expectedMoves[_moveIndex] : '');
+
+      dynamic subBranch = _currentSolutionsNode?[userLan];
+      // Fallback for single-move or legacy format where solutions tree might be empty or flat
+      if (subBranch == null && primaryJsonMove.isNotEmpty && userLan == primaryJsonMove) {
+        subBranch = "CHECKMATE";
+      }
 
       print('\n==================================================');
-      print('[TREE_VERIFICATION] 🌳 User move: $userLan');
+      print('[TREE_VERIFICATION] 🌳 User move: $userLan | Primary JSON move: $primaryJsonMove');
       print('[TREE_VERIFICATION] 🌳 Sub-branch: $subBranch');
       print('==================================================\n');
 

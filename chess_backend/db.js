@@ -71,7 +71,11 @@ async function initDB() {
       );
       CREATE INDEX IF NOT EXISTS idx_puzzles_type_depth ON puzzles(type, mate_depth);
     `);
-    console.log('Verified database table: puzzles');
+    await client.query(`
+      ALTER TABLE puzzles 
+      ADD COLUMN IF NOT EXISTS solutions JSONB DEFAULT '{}'::jsonb;
+    `);
+    console.log('Verified database table: puzzles (with solutions column)');
 
     // Create saved_lessons table
     await client.query(`
