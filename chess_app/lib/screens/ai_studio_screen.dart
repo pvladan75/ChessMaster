@@ -146,7 +146,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           bool isMoveAcceptable = false;
 
           if (_selectedCategory == 'mate_puzzle') {
-            if (evaluation.startsWith('M') || evaluation.startsWith('+M')) {
+            if (evaluation.contains('M0') || evaluation == 'M0' || evaluation == '-M0' || evaluation == '+M0') {
+              isMoveAcceptable = true;
+            } else if (evaluation.contains('M')) {
               final mateNum = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), ''));
               final reqMateDepth = int.tryParse(_selectedMateDepth) ?? 3;
               if (mateNum != null && mateNum <= reqMateDepth) {
@@ -160,13 +162,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
               }
             } else if (numVal != null && numVal >= 1.5) {
               isMoveAcceptable = true;
-            } else if (evaluation.startsWith('M') || evaluation.startsWith('+M')) {
+            } else if (evaluation.contains('M')) {
               isMoveAcceptable = true;
             }
           } else if (_selectedCategory == 'basic_mate') {
             if (numVal != null && numVal >= 0.0) {
               isMoveAcceptable = true;
-            } else if (evaluation.startsWith('M') || evaluation.startsWith('+M')) {
+            } else if (evaluation.contains('M')) {
               isMoveAcceptable = true;
             }
           }
@@ -540,6 +542,29 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       _lastMoveFrom = fromStr;
       _lastMoveTo = toStr;
     });
+
+    // --- STEP 0: IMMEDIATE CHECKMATE VICTORY ON BOARD ---
+    if (_puzzleGame!.in_checkmate) {
+      print('\n==================================================');
+      print('[TRAINING_LOG] 🏆 MAT NA TABLI! Korisnik je uspešno zadao mat!');
+      print('==================================================\n');
+
+      await _sendBackendLog({
+        'mode': _categoryDisplayName,
+        'dynamicFen': currentFen,
+        'userMove': userLan,
+        'status': 'SOLVED',
+        'reason': 'Korisnik je uspešno zadao mat na tabli!',
+      });
+
+      if (_selectedCategory == 'basic_mate' || _selectedCategory == 'winning_position') {
+        setState(() => _puzzleSolved = true);
+        _showEndgameWinDialog();
+      } else {
+        _submitPuzzleResult(true);
+      }
+      return;
+    }
 
     // --- STEP 1: FAST-TRACK JSON CHECK ---
     final primaryJsonMove = _currentPuzzle?['winning_move_uci'] ?? (_expectedMoves.isNotEmpty ? _expectedMoves[0] : '');
