@@ -463,6 +463,22 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   List<EngineArrow> _buildEngineArrowsFromLines(List<AnalysisLine> lines) {
     final List<EngineArrow> engineArrowsList = [];
+    if (_isOpponentTurn) {
+      if (lines.isNotEmpty) {
+        final line = lines.first;
+        final moveStr = line.bestMoveLan;
+        if (moveStr.length >= 4) {
+          engineArrowsList.add(EngineArrow(
+            from: moveStr.substring(0, 2),
+            to: moveStr.substring(2, 4),
+            evalText: line.evaluation,
+            rank: 1,
+          ));
+        }
+      }
+      return engineArrowsList;
+    }
+
     for (int i = 0; i < lines.length && i < 3; i++) {
       final line = lines[i];
       final moveStr = line.bestMoveLan;
@@ -480,6 +496,20 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   List<ChessArrow> _buildArrowsFromEngineLines(List<AnalysisLine> lines) {
     final List<ChessArrow> arrows = [];
+    if (_isOpponentTurn) {
+      if (lines.isNotEmpty) {
+        final moveStr = lines.first.bestMoveLan;
+        if (moveStr.length >= 4) {
+          arrows.add(ChessArrow(
+            from: moveStr.substring(0, 2),
+            to: moveStr.substring(2, 4),
+            colorCode: 'G',
+          ));
+        }
+      }
+      return arrows;
+    }
+
     final colors = ['G', 'B', 'O'];
     for (int i = 0; i < lines.length && i < 3; i++) {
       final moveStr = lines[i].bestMoveLan;

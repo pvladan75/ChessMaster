@@ -101,6 +101,7 @@ class StockfishService {
   /// Sends a FEN position for analysis
   Future<void> analyzePosition(String fen, {int depth = 10, bool isInfinite = false}) async {
     _currentFen = fen;
+    _engineLines.clear();
     if (!_isActive) return;
 
     print('[STOCKFISH_ENGINE_LOG] 🎯 Pokrenuta analiza | Dubina: $depth | Mode: ${_useOnline ? "Online API Fallback" : "Nativni Lokalni Engine"} | FEN: $fen');
