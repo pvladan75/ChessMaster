@@ -328,6 +328,7 @@ class StockfishService {
 
       _engineLines[multipv] = AnalysisLine.fromPv(
         multipv: multipv,
+        depth: currentDepth,
         eval: eval,
         pvString: continuation.isNotEmpty ? continuation : bestMove,
         startingFen: _currentFen,

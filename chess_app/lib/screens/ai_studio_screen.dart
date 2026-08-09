@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:http/http.dart' as http;
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:chess/chess.dart' as chess;
@@ -56,6 +57,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   bool _isLoadingPuzzle = false;
   bool _puzzleSolved = false;
   bool _puzzleFailed = false;
+  bool _isBackendConnected = true;
+  Timer? _serverHealthTimer;
   int? _lastRatingChange;
   bool _isOpponentTurn = false;
   PlayerColor _puzzleOrientation = PlayerColor.white;
@@ -79,6 +82,61 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   void initState() {
     super.initState();
     _initStockfish();
+    _startServerHealthCheck();
+  }
+
+  void _startServerHealthCheck() {
+    _serverHealthTimer?.cancel();
+    _serverHealthTimer = Timer.periodic(const Duration(seconds: 4), (_) => _checkServerHealth());
+  }
+
+  Future<void> _checkServerHealth() async {
+    try {
+      final res = await http.get(Uri.parse('$backendUrl/api/puzzles/easy')).timeout(const Duration(seconds: 3));
+      if (res.statusCode == 200 || res.statusCode == 401) {
+        if (!_isBackendConnected && mounted) {
+          setState(() => _isBackendConnected = true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.teal,
+              duration: Duration(seconds: 3),
+              content: Row(
+                children: [
+                  Icon(Icons.wifi, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('✅ Veza sa backend serverom je ponovo uspostavljena.', style: TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          );
+        }
+      } else {
+        _handleServerDisconnected();
+      }
+    } catch (_) {
+      _handleServerDisconnected();
+    }
+  }
+
+  void _handleServerDisconnected() {
+    if (_isBackendConnected && mounted) {
+      setState(() => _isBackendConnected = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.redAccent,
+          duration: Duration(seconds: 5),
+          content: Row(
+            children: [
+              Icon(Icons.wifi_off, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('🚨 Izgubljena veza sa backend serverom! Backend je nedostupan.', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   void _resetEngineState() {
@@ -109,12 +167,18 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           'Authorization': 'Bearer ${widget.userSession.token}',
         },
         body: jsonEncode({'details': details}),
-      );
-      if (res.statusCode != 200) {
+      ).timeout(const Duration(seconds: 4));
+
+      if (res.statusCode == 200) {
+        if (!_isBackendConnected && mounted) {
+          setState(() => _isBackendConnected = true);
+        }
+      } else {
         print('[BACKEND_LOG_WARN] HTTP ${res.statusCode}: ${res.body}');
       }
     } catch (e) {
       print('[BACKEND_LOG_ERROR] $e');
+      _handleServerDisconnected();
     }
   }
 
@@ -123,7 +187,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv, depth, isFinal) async {
       if (mounted) {
         final currentFen = _puzzleBoardController.getFen();
-        if (_activeFen != null && _activeFen != currentFen) return;
+        if (_activeFen != null && _activeFen!.split(' ')[0] != currentFen.split(' ')[0]) return;
 
         double parsedEval = 0.0;
         final numVal = double.tryParse(evaluation);
@@ -236,7 +300,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _stockfishService.onMultiPVUpdated = (linesMap) {
       if (mounted) {
         final currentFen = _puzzleBoardController.getFen();
-        if (_activeFen != null && _activeFen != currentFen) return;
+        if (_activeFen != null && _activeFen!.split(' ')[0] != currentFen.split(' ')[0]) return;
         setState(() {
           _engineLinesMap = linesMap;
           _engineArrows = _buildArrowsFromEngineLines(linesMap.values.toList());
@@ -1015,10 +1079,32 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   // --- TAB 1: PUZZLES UI ---
 
   Widget _buildPuzzlesTab() {
-    if (_selectedCategory == null) {
-      return _buildCategorySelectionHub();
-    }
-    return _buildActiveBoardScreen();
+    return Column(
+      children: [
+        if (!_isBackendConnected)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            color: Colors.red.shade900,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.wifi_off, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  '🚨 VEZA SA SERVEROM IZGUBLJENA! Backend server je nedostupan.',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        Expanded(
+          child: _selectedCategory == null
+              ? _buildCategorySelectionHub()
+              : _buildActiveBoardScreen(),
+        ),
+      ],
+    );
   }
 
   // --- 1. SELECTION HUB VIEW ---
