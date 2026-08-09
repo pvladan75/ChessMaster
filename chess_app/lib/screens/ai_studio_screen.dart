@@ -52,6 +52,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   int _userRating = 1500;
   List<String> _expectedMoves = [];
   int _moveIndex = 0;
+  int _userMoveCount = 0;
   bool _isLoadingPuzzle = false;
   bool _puzzleSolved = false;
   bool _puzzleFailed = false;
@@ -92,6 +93,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _currentRawEval = 0.0;
     _currentEvalString = '0.00';
     _currentEvalDepth = 18;
+    _userMoveCount = 0;
     _selectedSquare = null;
     _puzzleMoveTree = null;
     _initialPuzzleFen = null;
@@ -157,73 +159,75 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
         _lastPosEval = parsedEval;
 
-        // 2. Opponent Bot Move Execution (When it is Stockfish's turn to play at kDefaultEngineTargetDepth)
+        // 2. Opponent Bot Move Execution & Verification
         if (_isOpponentTurn) {
-          if (!isFinal && depth < kDefaultEngineTargetDepth) return; // Wait until depth 18 search completes!
+          if (_selectedCategory == 'mate_puzzle') {
+            final int reqN = int.tryParse(_selectedMateDepth) ?? 1;
+            final int k = _userMoveCount;
+            final int remainingNeeded = reqN - k;
 
-          if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
-            _isOpponentTurn = false; // Prevent duplicate triggers
-
-            // Verify move legality on current board state
-            String validMove = bestMove;
-            if (_puzzleGame != null) {
-              final legalMoves = _puzzleGame!.moves({'verbose': true});
-              final isLegal = legalMoves.any((m) {
-                final from = m['from'] ?? '';
-                final to = m['to'] ?? '';
-                final promo = m['promotion'] ?? '';
-                final lan = '$from$to$promo';
-                return lan.startsWith(validMove.substring(0, 4));
-              });
-              if (!isLegal && legalMoves.isNotEmpty) {
-                final fallbackObj = legalMoves.first;
-                final from = fallbackObj['from'] ?? '';
-                final to = fallbackObj['to'] ?? '';
-                final promo = fallbackObj['promotion'] ?? '';
-                validMove = '$from$to$promo';
-                print('\n[TRAINING_LOG] ⚠️ ENGINE JE VRATIO NELEGALAN POTEZ ($bestMove)! Zamenjen legalnim potezom: $validMove\n');
+            // Check if Stockfish output contains mate in M for active player
+            int? userMateScore;
+            if (evaluation.contains('M')) {
+              final isNegative = evaluation.contains('-');
+              final mateVal = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), ''));
+              if (mateVal != null) {
+                if (_puzzleOrientation == PlayerColor.white && !isNegative) {
+                  userMateScore = mateVal;
+                } else if (_puzzleOrientation == PlayerColor.black && isNegative) {
+                  userMateScore = mateVal;
+                }
               }
             }
 
-            print('\n--------------------------------------------------');
-            print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
-            print('[TRAINING_LOG] 3) FEN POZICIJA KOJU ANALIZIRA ENGINE: ${_puzzleGame?.fen}');
-            print('[TRAINING_LOG] 5) POTEZ ENGINE-A: $validMove');
-            print('[TRAINING_LOG] 5) OSNOV ODABIRA: Stockfish kalkulacija najbolje linije');
-            print('[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): $kDefaultEngineTargetDepth');
-            print('[TRAINING_LOG] 5) EVALUACIJA POZICIJE: $evaluation (Best: $validMove)');
-            print('--------------------------------------------------\n');
+            // EARLY EXIT: Stockfish found mate M <= (N - k)
+            if (userMateScore != null && userMateScore <= remainingNeeded) {
+              print('\n[MATE_VERIFICATION] ✅ EARLY EXIT (Depth $depth): Nađen mat M$userMateScore <= $remainingNeeded! Potez prihvaćen!\n');
+              _stockfishService.stopAnalysis();
 
-            _sendBackendLog({
-              'mode': _categoryDisplayName,
-              'dynamicFen': _puzzleGame?.fen,
-              'engineMove': validMove,
-              'decisionBasis': 'Stockfish kalkulacija najbolje linije',
-              'depth': kDefaultEngineTargetDepth,
-              'eval': evaluation,
-            });
-
-            Future.delayed(const Duration(milliseconds: 350), () {
-              if (!mounted) return;
-              _playPuzzleMove(validMove);
-              if (_puzzleGame != null) {
-                if (_puzzleGame!.in_checkmate) {
-                  if (_selectedCategory == 'basic_mate') {
-                    _showSnackBar('❌ Stockfish vam je zadao mat.');
-                  } else {
-                    setState(() => _puzzleSolved = true);
-                    _showEndgameWinDialog();
-                  }
-                } else if (_puzzleGame!.in_stalemate || _puzzleGame!.in_draw) {
-                  _showSnackBar('🤝 Pat / Remi u poziciji.');
-                } else {
-                  // REFRESH EVALUATION FOR USER'S TURN
-                  if (_showEvaluation) {
-                    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 16);
-                  }
-                }
+              if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
+                _isOpponentTurn = false;
+                _playOpponentMove(bestMove, evaluation);
               }
-            });
+              return;
+            }
+
+            // REJECTION: Stockfish reached Depth 25 without finding M <= (N - k)
+            if (isFinal || depth >= 25) {
+              _stockfishService.stopAnalysis();
+              _isOpponentTurn = false;
+
+              // Undo ONLY that single incorrect move
+              if (_puzzleGame != null && _puzzleGame!.history.isNotEmpty) {
+                _puzzleGame!.undo();
+                _puzzleBoardController.loadFen(_puzzleGame!.fen);
+                _activeFen = _puzzleGame!.fen;
+                if (_userMoveCount > 0) _userMoveCount--;
+              }
+
+              print('\n[MATE_VERIFICATION] ❌ POTEZ ODBIJEN! (Stockfish na dubini 25 nije pronašao mat u $remainingNeeded poteza). Potez vraćen, tabla otključana.\n');
+
+              await _sendBackendLog({
+                'mode': _categoryDisplayName,
+                'dynamicFen': _puzzleGame?.fen,
+                'status': 'REJECTED',
+                'eval': evaluation,
+                'reason': 'Stockfish na dubini 25 nije pronašao mat u $remainingNeeded poteza.',
+              });
+
+              _showSnackBar('Netačan potez! Pokušajte sa drugim potezom.');
+              return;
+            }
+
+            return; // Continue streaming analysis up to Depth 25
+          }
+
+          // Default handling for winning_position and basic_mate
+          if (!isFinal && depth < kDefaultEngineTargetDepth) return;
+
+          if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
+            _isOpponentTurn = false;
+            _playOpponentMove(bestMove, evaluation);
           }
         }
       }
@@ -239,6 +243,67 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         });
       }
     };
+  }
+
+  void _playOpponentMove(String bestMove, String evaluation) {
+    String validMove = bestMove;
+    if (_puzzleGame != null) {
+      final legalMoves = _puzzleGame!.moves({'verbose': true});
+      final isLegal = legalMoves.any((m) {
+        final from = m['from'] ?? '';
+        final to = m['to'] ?? '';
+        final promo = m['promotion'] ?? '';
+        final lan = '$from$to$promo';
+        return lan.startsWith(validMove.substring(0, 4));
+      });
+      if (!isLegal && legalMoves.isNotEmpty) {
+        final fallbackObj = legalMoves.first;
+        final from = fallbackObj['from'] ?? '';
+        final to = fallbackObj['to'] ?? '';
+        final promo = fallbackObj['promotion'] ?? '';
+        validMove = '$from$to$promo';
+        print('\n[TRAINING_LOG] ⚠️ ENGINE JE VRATIO NELEGALAN POTEZ ($bestMove)! Zamenjen legalnim potezom: $validMove\n');
+      }
+    }
+
+    print('\n--------------------------------------------------');
+    print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
+    print('[TRAINING_LOG] 3) FEN POZICIJA KOJU ANALIZIRA ENGINE: ${_puzzleGame?.fen}');
+    print('[TRAINING_LOG] 5) POTEZ ENGINE-A: $validMove');
+    print('[TRAINING_LOG] 5) OSNOV ODABIRA: Stockfish kalkulacija najbolje linije');
+    print('[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): $kDefaultEngineTargetDepth');
+    print('[TRAINING_LOG] 5) EVALUACIJA POZICIJE: $evaluation (Best: $validMove)');
+    print('--------------------------------------------------\n');
+
+    _sendBackendLog({
+      'mode': _categoryDisplayName,
+      'dynamicFen': _puzzleGame?.fen,
+      'engineMove': validMove,
+      'decisionBasis': 'Stockfish kalkulacija najbolje linije',
+      'depth': kDefaultEngineTargetDepth,
+      'eval': evaluation,
+    });
+
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      _playPuzzleMove(validMove);
+      if (_puzzleGame != null) {
+        if (_puzzleGame!.in_checkmate) {
+          if (_selectedCategory == 'basic_mate') {
+            _showSnackBar('❌ Stockfish vam je zadao mat.');
+          } else {
+            setState(() => _puzzleSolved = true);
+            _showEndgameWinDialog();
+          }
+        } else if (_puzzleGame!.in_stalemate || _puzzleGame!.in_draw) {
+          _showSnackBar('🤝 Pat / Remi u poziciji.');
+        } else {
+          if (_showEvaluation) {
+            _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 16);
+          }
+        }
+      }
+    });
   }
 
   void _triggerOpponentBotResponse() async {
@@ -665,6 +730,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     final toStr = userLan.substring(2, 4);
     final san = matchedMove['san'] ?? '$fromStr$toStr';
     _recordMoveInTree(fromStr, toStr, san: san);
+    _userMoveCount++;
+    final int reqN = int.tryParse(_selectedMateDepth) ?? 1;
+    final int k = _userMoveCount;
+
     setState(() {
       _lastMoveFrom = fromStr;
       _lastMoveTo = toStr;
@@ -693,6 +762,26 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       return;
     }
 
+    // --- STEP 0.5: IF k == N (FINAL MOVE) AND NOT CHECKMATE -> REJECT MOVE! ---
+    if (_selectedCategory == 'mate_puzzle' && k == reqN) {
+      _puzzleGame!.undo();
+      _puzzleBoardController.loadFen(_puzzleGame!.fen);
+      _activeFen = _puzzleGame!.fen;
+      if (_userMoveCount > 0) _userMoveCount--;
+
+      print('\n[MATE_VERIFICATION] ❌ POTEZ ODBIJEN na k=$k od N=$reqN (Nije mat na tabli). Potez poništen, tabla otključana.\n');
+
+      await _sendBackendLog({
+        'mode': _categoryDisplayName,
+        'dynamicFen': _puzzleGame?.fen,
+        'status': 'REJECTED',
+        'reason': 'Netačan potez (Potez $k od $reqN nije matirao protivnika).',
+      });
+
+      _showSnackBar('Netačan potez! Pokušajte sa drugim potezom.');
+      return;
+    }
+
     // --- STEP 1: FAST-TRACK JSON CHECK ---
     final primaryJsonMove = _currentPuzzle?['winning_move_uci'] ?? (_expectedMoves.isNotEmpty ? _expectedMoves[0] : '');
     final bool isFastTrack = (primaryJsonMove.isNotEmpty && userLan == primaryJsonMove);
@@ -702,7 +791,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     print('[TRAINING_LOG] 3) DINAMIČKA PROMENA FEN-A (PRE POTEZA): $startingFen');
     print('[TRAINING_LOG] 4) POTEZ KORISNIKA: $userLan');
     print('[TRAINING_LOG] 3) NOVI FEN NAKON POTEZA KORISNIKA: $currentFen');
-    print('[TRAINING_LOG] FAST-TRACK PROVERA: ${isFastTrack ? "✅ Potez u JSON-u (ODMAH Prihvaćen)" : "⚡ Potez nije u JSON-u, šalje se na Stockfish analizu (depth $kDefaultEngineTargetDepth)"}');
+    print('[TRAINING_LOG] FAST-TRACK PROVERA: ${isFastTrack ? "✅ Potez u JSON-u (ODMAH Prihvaćen)" : "⚡ Potez nije u JSON-u, šalje se na Stockfish analizu"}' );
     print('--------------------------------------------------\n');
 
     await _sendBackendLog({
@@ -715,117 +804,16 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     if (isFastTrack) {
       if (_selectedCategory == 'mate_puzzle') {
         _moveIndex = 1;
-        if (_puzzleGame!.in_checkmate) {
-          _submitPuzzleResult(true);
-          return;
-        }
-      } else if (_selectedCategory == 'basic_mate' || _selectedCategory == 'winning_position') {
-        if (_puzzleGame!.in_checkmate) {
-          setState(() => _puzzleSolved = true);
-          _showEndgameWinDialog();
-          return;
-        }
       }
-
-      // Trigger Opponent Reaction Bot
       _triggerOpponentBotResponse();
       return;
     }
 
-    // --- STEP 2: ENGINE EVALUATION AT kDefaultEngineTargetDepth (18) ---
+    // --- STEP 2: ENGINE EVALUATION (DEPTH 25 FOR MATE_PUZZLE) ---
+    final targetDepth = (_selectedCategory == 'mate_puzzle') ? 25 : kDefaultEngineTargetDepth;
     setState(() => _isOpponentTurn = true);
     await _stockfishService.initEngine();
-    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: kDefaultEngineTargetDepth);
-  }
-
-  void _showMatePuzzleFailedDialog() {
-    if (!mounted) return;
-
-    // Generate full SAN solution sequence
-    String fullSolutionSan = '';
-    if (_puzzleGame != null && _expectedMoves.isNotEmpty) {
-      final tempGame = chess.Chess.fromFEN(_currentPuzzle?['fen'] ?? _puzzleGame!.fen);
-      final List<String> sanList = [];
-      int moveNum = tempGame.move_number;
-      for (int i = 0; i < _expectedMoves.length; i++) {
-        final uci = _expectedMoves[i];
-        if (uci.length >= 4) {
-          final moveObj = tempGame.move({
-            'from': uci.substring(0, 2),
-            'to': uci.substring(2, 4),
-            'promotion': uci.length > 4 ? uci[4] : 'q'
-          });
-          if (moveObj != null) {
-            dynamic lastHist = tempGame.history.last;
-            final String san = lastHist.move != null
-                ? (lastHist.move.san ?? uci)
-                : uci;
-            if (i % 2 == 0) {
-              sanList.add('$moveNum. $san');
-            } else {
-              sanList.add(san);
-              moveNum++;
-            }
-          }
-        }
-      }
-      fullSolutionSan = sanList.join(' ');
-    }
-    if (fullSolutionSan.isEmpty) {
-      fullSolutionSan = _currentPuzzle?['winning_move_san'] ?? _expectedMoves.join(' ');
-    }
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: const [
-            Icon(Icons.cancel, color: Colors.redAccent, size: 28),
-            SizedBox(width: 8),
-            Text('Netačan Potez!', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Potez koji ste odigrali nije tačan.'),
-            const SizedBox(height: 12),
-            ExpansionTile(
-              title: const Text('💡 Prikaži celokupno rešenje', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent, fontSize: 13)),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: SelectableText(
-                    fullSolutionSan,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.tealAccent),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          OutlinedButton.icon(
-            icon: const Icon(Icons.refresh),
-            label: const Text('Pokušaj Ponovo'),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _resetCurrentPuzzle();
-            },
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.arrow_forward),
-            label: const Text('Naredna Zagonetka'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _fetchNextPuzzle();
-            },
-          ),
-        ],
-      ),
-    );
+    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
   }
 
   void _showEndgameWinDialog() {
