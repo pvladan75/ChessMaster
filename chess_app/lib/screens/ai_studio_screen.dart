@@ -230,14 +230,20 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           }
         }
 
-        setState(() {
-          _currentRawEval = parsedEval;
-          _currentEvalString = evaluation;
-          _currentEvalDepth = depth;
-          _engineArrows = newArrows;
-        });
-
-        _lastPosEval = parsedEval;
+        // ONLY update main evaluation score & depth when multipv == 1 (top #1 best move)!
+        if (multipv == 1) {
+          setState(() {
+            _currentRawEval = parsedEval;
+            _currentEvalString = evaluation;
+            _currentEvalDepth = depth;
+            _engineArrows = newArrows;
+          });
+          _lastPosEval = parsedEval;
+        } else {
+          setState(() {
+            _engineArrows = newArrows;
+          });
+        }
 
         // 2. Opponent Bot Move Execution & Verification
         if (_isOpponentTurn) {
@@ -372,8 +378,15 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
     Future.delayed(const Duration(milliseconds: 1000), () {
       if (!mounted) return;
+      _stockfishService.stopAnalysis();
       _playPuzzleMove(validMove);
       if (_puzzleGame != null) {
+        _activeFen = _puzzleGame!.fen;
+        setState(() {
+          _engineLinesMap.clear();
+          _engineArrows.clear();
+        });
+
         if (_puzzleGame!.in_checkmate) {
           if (_selectedCategory == 'basic_mate') {
             _showSnackBar('❌ Stockfish vam je zadao mat.');
@@ -402,6 +415,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       final jsonResponseMove = _expectedMoves[_moveIndex];
       _moveIndex++;
       print('\n[OPPONENT_BOT_DEBUG] 🎯 Pronađen spreman odgovor u JSON rešenju: $jsonResponseMove\n');
+      _stockfishService.stopAnalysis();
       _isOpponentTurn = false;
       _playOpponentMove(jsonResponseMove, 'JSON');
       return;
@@ -841,7 +855,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     }
 
     _puzzleGame!.move(matchedMove);
-    _activeFen = currentFen;
+    _activeFen = _puzzleGame!.fen;
+
+    // Immediately stop ongoing Stockfish analysis of old position & clear old arrows/lines!
+    _stockfishService.stopAnalysis();
 
     final fromStr = userLan.substring(0, 2);
     final toStr = userLan.substring(2, 4);
@@ -852,6 +869,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     final int k = _userMoveCount;
 
     setState(() {
+      _engineLinesMap.clear();
+      _engineArrows.clear();
       _lastMoveFrom = fromStr;
       _lastMoveTo = toStr;
     });
