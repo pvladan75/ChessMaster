@@ -420,11 +420,38 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     }
   }
 
+  void _sendBackendLog(Map<String, dynamic> details) async {
+    try {
+      final uri = Uri.parse('$backendUrl/api/puzzles/log');
+      final res = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.userSession.token}',
+        },
+        body: jsonEncode({'details': details}),
+      );
+      if (res.statusCode != 200) {
+        print('[BACKEND_LOG_WARN] HTTP ${res.statusCode}: ${res.body}');
+      }
+    } catch (e) {
+      print('[BACKEND_LOG_ERROR] $e');
+    }
+  }
+
   void _onUserPuzzleMoveMade() async {
+    print('[MOVE_MADE_DEBUG] _onUserPuzzleMoveMade called! Prog: $_isProgrammaticMove | Solved: $_puzzleSolved | Failed: $_puzzleFailed | OpponentTurn: $_isOpponentTurn | GameNull: ${_puzzleGame == null}');
+
     if (_isProgrammaticMove || _puzzleSolved || _puzzleFailed || _isOpponentTurn || _puzzleGame == null) return;
 
     final currentFen = _puzzleBoardController.getFen();
-    if (currentFen == _puzzleGame!.fen) return; // No move made yet
+    print('[MOVE_MADE_DEBUG] Board Controller FEN: $currentFen');
+    print('[MOVE_MADE_DEBUG] Local Puzzle Game FEN: ${_puzzleGame!.fen}');
+
+    if (currentFen == _puzzleGame!.fen) {
+      print('[MOVE_MADE_DEBUG] FENs are identical, no move detected yet.');
+      return;
+    }
 
     final String startingFen = _puzzleGame!.fen;
 
@@ -433,15 +460,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     dynamic matchedMove;
 
     final currentBoardFen = currentFen.split(' ')[0];
-    final currentTurn = currentFen.split(' ')[1];
 
     for (var m in _puzzleGame!.moves({'verbose': true})) {
       final testGame = chess.Chess.fromFEN(_puzzleGame!.fen);
       testGame.move(m);
       final testBoardFen = testGame.fen.split(' ')[0];
-      final testTurn = testGame.fen.split(' ')[1];
 
-      if (currentBoardFen == testBoardFen && currentTurn == testTurn) {
+      if (currentBoardFen == testBoardFen) {
         matchedMove = m;
         final from = m['from'] ?? '';
         final to = m['to'] ?? '';
@@ -451,7 +476,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       }
     }
 
-    if (matchedMove == null || userLan == null) return;
+    print('[MOVE_MADE_DEBUG] Matched move: $matchedMove | User LAN: $userLan');
+
+    if (matchedMove == null || userLan == null) {
+      print('[MOVE_MADE_DEBUG] Could not match move in chess.js legal moves!');
+      return;
+    }
 
     _puzzleGame!.move(matchedMove);
     _activeFen = currentFen;
@@ -1267,8 +1297,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                                   controller: _puzzleBoardController,
                                   boardOrientation: _puzzleOrientation,
                                   onMove: () {
-                                    _onUserPuzzleMoveMade();
-                                    _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
+                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                      _onUserPuzzleMoveMade();
+                                    });
                                   },
                                 ),
                               ),
