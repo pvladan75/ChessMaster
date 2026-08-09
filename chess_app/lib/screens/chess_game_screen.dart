@@ -278,7 +278,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
       isAllowedToUseEngine: isAllowedToUseEngine,
       isOnline: _stockfishService.isOnline,
       isCustomEngineActive: _stockfishService.isCustomEngineActive,
-      thinkingMode: engineThinkingMode,
       lines: linesList,
       orientation: boardOrientation,
       onToggleEngine: () async {
@@ -296,15 +295,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
             bestEngineMove = "-";
             engineLines.clear();
           });
-        }
-      },
-      onChangeThinkingMode: (mode) {
-        setState(() {
-          engineThinkingMode = mode;
-        });
-        if (isEngineEnabled) {
-          engineLines.clear();
-          _triggerEngineAnalysis();
         }
       },
       onOpenSettings: (!kIsWeb && Platform.isWindows) ? _showEngineSettingsDialog : null,
