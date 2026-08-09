@@ -66,7 +66,8 @@ async function initDB() {
         type VARCHAR(50) NOT NULL,
         mate_depth INTEGER DEFAULT NULL,
         winning_move_uci VARCHAR(10) NOT NULL,
-        winning_move_san VARCHAR(20) NOT NULL
+        winning_move_san VARCHAR(20) NOT NULL,
+        solutions JSONB DEFAULT '{}'::jsonb
       );
       CREATE INDEX IF NOT EXISTS idx_puzzles_type_depth ON puzzles(type, mate_depth);
     `);

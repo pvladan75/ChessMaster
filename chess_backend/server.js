@@ -1050,6 +1050,7 @@ app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
         mate_depth: puzzle.mate_depth,
         winning_move_uci: puzzle.winning_move_uci,
         winning_move_san: puzzle.winning_move_san,
+        solutions: puzzle.solutions || {},
         moves: [puzzle.winning_move_uci],
         rating: 1500,
         themes: [puzzle.type]

@@ -57,6 +57,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   double? _lastPosEval;
   double? _lastUserAdvantage;
   Map<String, dynamic>? _currentPuzzle;
+  Map<String, dynamic>? _currentSolutionsNode;
   chess.Chess? _puzzleGame;
   int _userRating = 1500;
   List<String> _expectedMoves = [];
@@ -733,12 +734,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           _userRating = data['userRating'] ?? 1500;
           _expectedMoves = moves;
           _moveIndex = 0;
+          _currentSolutionsNode = Map<String, dynamic>.from(p['solutions'] ?? {});
         });
 
         print('\n==================================================');
         print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
         print('[TRAINING_LOG] 2) UČITANI FEN: $fen');
         print('[TRAINING_LOG] OČEKIVANI POTEZI (JSON): $moves');
+        print('[TREE_VERIFICATION] 🌳 Stablo rešenja učitano (${_currentSolutionsNode?.keys.length ?? 0} grana)');
         print('==================================================\n');
 
         _sendBackendLog({
@@ -760,7 +763,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           }
         });
 
-        _stockfishService.analyzePosition(fen, depth: 20);
+        if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
+          _stockfishService.analyzePosition(fen, depth: 20);
+        }
       } else {
         _showSnackBar('Nije moguće učitati poziciju.');
       }
@@ -1007,97 +1012,122 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       return;
     }
 
-    // --- STEP 0.5: IF k == N (FINAL MOVE) AND NOT CHECKMATE -> REJECT MOVE! ---
-    if (_selectedCategory == 'mate_puzzle' && k == reqN) {
-      _puzzleGame!.undo();
-      _puzzleBoardController.loadFen(_puzzleGame!.fen);
-      _activeFen = _puzzleGame!.fen;
-      if (_userMoveCount > 0) _userMoveCount--;
+    // --- STEP 1: DIRECT LOCAL SOLUTION TREE VERIFICATION FOR MATE PUZZLES ---
+    if (_selectedCategory == 'mate_puzzle') {
+      _currentSolutionsNode ??= Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
+      final dynamic subBranch = _currentSolutionsNode?[userLan];
 
-      resetBoardState(isNewPuzzle: false);
-      if (_showEvaluation || _showEvalBar) {
-        _stockfishService.setMultiPV(3);
-        _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 20);
-      }
+      print('\n==================================================');
+      print('[TREE_VERIFICATION] 🌳 User move: $userLan');
+      print('[TREE_VERIFICATION] 🌳 Sub-branch: $subBranch');
+      print('==================================================\n');
 
-      print('\n[MATE_VERIFICATION] ❌ POTEZ ODBIJEN na k=$k od N=$reqN (Nije mat na tabli). Potez poništen, tabla otključana.\n');
-
-      await _sendBackendLog({
-        'mode': _categoryDisplayName,
-        'dynamicFen': _puzzleGame?.fen,
-        'status': 'REJECTED',
-        'reason': 'Netačan potez (Potez $k od $reqN nije matirao protivnika).',
-      });
-
-      _showSnackBar('Netačan potez! Pokušajte sa drugim potezom.');
-      return;
-    }
-
-    // --- STEP 1: FAST-TRACK JSON CHECK ---
-    final primaryJsonMove = _currentPuzzle?['winning_move_uci'] ?? (_expectedMoves.length > _moveIndex ? _expectedMoves[_moveIndex] : '');
-    final bool isFastTrack = (_selectedCategory == 'mate_puzzle' && primaryJsonMove.isNotEmpty && userLan == primaryJsonMove);
-
-    print('\n--------------------------------------------------');
-    print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
-    print('[TRAINING_LOG] 3) DINAMIČKA PROMENA FEN-A (PRE POTEZA): $startingFen');
-    print('[TRAINING_LOG] 4) POTEZ KORISNIKA: $userLan');
-    print('[TRAINING_LOG] 3) NOVI FEN NAKON POTEZA KORISNIKA: $currentFen');
-    print('[TRAINING_LOG] FAST-TRACK PROVERA: ${isFastTrack ? "✅ Potez u JSON-u (ODMAH Prihvaćen)" : "⚡ Potez nije u JSON-u, šalje se na Stockfish analizu"}' );
-    print('--------------------------------------------------\n');
-
-    await _sendBackendLog({
-      'mode': _categoryDisplayName,
-      'dynamicFen': currentFen,
-      'userMove': userLan,
-      'fastTrack': isFastTrack,
-    });
-
-    if (isFastTrack) {
-      _isVerifyingUserMove = false;
-      _moveIndex++;
-      setState(() => _gameState = PuzzleGameState.waitingEngineMove);
-      _triggerOpponentBotResponse();
-      return;
-    }
-
-    // --- STEP 2: ENGINE EVALUATION (DEPTH 25 FOR MATE_PUZZLE) ---
-    final targetDepth = (_selectedCategory == 'mate_puzzle') ? 25 : AppSettingsService.instance.defaultEngineDepth;
-    setState(() {
-      _isVerifyingUserMove = true;
-      _isOpponentTurn = false;
-    });
-
-    _verificationTimeoutTimer?.cancel();
-    _verificationTimeoutTimer = Timer(const Duration(milliseconds: 3000), () async {
-      if (_isVerifyingUserMove) {
-        print('\n[MATE_VERIFICATION] ⏱️ TIMEOUT (3000ms): Stockfish verifikacija nije potvrdila mat u roku od 3s. Potez se odbija.\n');
+      if (subBranch != null) {
         _isVerifyingUserMove = false;
-        _stockfishService.stopAnalysis();
+        _moveIndex++;
 
-        // Undo ONLY that single incorrect move
-        if (_puzzleGame != null && _puzzleGame!.history.isNotEmpty) {
-          _puzzleGame!.undo();
-          _puzzleBoardController.loadFen(_puzzleGame!.fen);
-          _activeFen = _puzzleGame!.fen;
-          if (_userMoveCount > 0) _userMoveCount--;
+        final bool isTerminalCheckmate = (subBranch == "CHECKMATE" || _puzzleGame!.in_checkmate);
+
+        if (isTerminalCheckmate || (subBranch is Map && (subBranch as Map).isEmpty)) {
+          print('[TREE_VERIFICATION] 🎉 MAT / KRAJ STABLA! Zagonetka je uspešno rešena.');
+          setState(() {
+            _puzzleSolved = true;
+            _gameState = PuzzleGameState.puzzleCompleted;
+          });
+          _submitPuzzleResult(true);
+          _showSnackBar('Čestitamo! Zagonetka je uspešno rešena! 🎉');
+          return;
         }
+
+        if (subBranch is Map) {
+          final Map<String, dynamic> oppTree = Map<String, dynamic>.from(subBranch as Map);
+          final String oppMoveLan = oppTree.keys.first;
+          final dynamic nextSubTree = oppTree[oppMoveLan];
+
+          setState(() => _gameState = PuzzleGameState.waitingEngineMove);
+
+          // Instant opponent response after 300ms delay
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (!mounted) return;
+            try {
+              final oppFrom = oppMoveLan.substring(0, 2);
+              final oppTo = oppMoveLan.substring(2, 4);
+              final oppPromo = oppMoveLan.length > 4 ? oppMoveLan[4] : null;
+
+              final moveObj = _puzzleGame!.move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
+              if (moveObj != null) {
+                _puzzleBoardController.loadFen(_puzzleGame!.fen);
+                _activeFen = _puzzleGame!.fen;
+                _lastMoveFrom = oppFrom;
+                _lastMoveTo = oppTo;
+              }
+
+              if (nextSubTree is Map) {
+                _currentSolutionsNode = Map<String, dynamic>.from(nextSubTree);
+              } else if (nextSubTree is List) {
+                final Map<String, dynamic> listNode = {};
+                for (var m in nextSubTree) {
+                  listNode[m.toString()] = "CHECKMATE";
+                }
+                _currentSolutionsNode = listNode;
+              } else {
+                _currentSolutionsNode = {};
+              }
+
+              setState(() {
+                _gameState = PuzzleGameState.idle;
+                _isOpponentTurn = false;
+              });
+
+              if (_currentSolutionsNode!.isEmpty || nextSubTree == "CHECKMATE" || _puzzleGame!.in_checkmate) {
+                if (_puzzleGame!.in_checkmate || nextSubTree == "CHECKMATE") {
+                  setState(() {
+                    _puzzleSolved = true;
+                    _gameState = PuzzleGameState.puzzleCompleted;
+                  });
+                  _submitPuzzleResult(true);
+                  _showSnackBar('Čestitamo! Zagonetka je uspešno rešena! 🎉');
+                }
+              }
+            } catch (e) {
+              print('Greška pri odigravanju poteza protivnika: $e');
+              setState(() {
+                _gameState = PuzzleGameState.idle;
+                _isOpponentTurn = false;
+              });
+            }
+          });
+          return;
+        }
+
+        // Fallback win
+        setState(() {
+          _puzzleSolved = true;
+          _gameState = PuzzleGameState.puzzleCompleted;
+        });
+        _submitPuzzleResult(true);
+        _showSnackBar('Čestitamo! Zagonetka je uspešno rešena! 🎉');
+        return;
+      } else {
+        // Move NOT in solution tree -> REJECT IMMEDIATELY (0ms, NO Stockfish calls!)
+        print('[TREE_VERIFICATION] ❌ Potez $userLan nije u stablu rešenja! Poništavanje poteza.');
+        _puzzleGame!.undo();
+        _puzzleBoardController.loadFen(_puzzleGame!.fen);
+        _activeFen = _puzzleGame!.fen;
+        if (_userMoveCount > 0) _userMoveCount--;
 
         resetBoardState(isNewPuzzle: false);
-        if (_showEvaluation || _showEvalBar) {
-          _stockfishService.setMultiPV(3);
-          _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 20);
-        }
 
-        await _sendBackendLog({
-          'mode': _categoryDisplayName,
-          'dynamicFen': _puzzleGame?.fen,
-          'status': 'REJECTED',
-          'reason': 'Stockfish verifikacija je istekla (timeout 3000ms). Potez ne ispunjava uslove.',
+        setState(() {
+          _gameState = PuzzleGameState.idle;
+          _isOpponentTurn = false;
+          _isVerifyingUserMove = false;
         });
 
-        _showSnackBar('Netačan potez! Pokušajte sa drugim potezom.');
+        _showSnackBar('Netačan potez! Pokušajte ponovo.');
+        return;
       }
-    });
+    }
 
     await _stockfishService.initEngine();
     _stockfishService.setMultiPV(1);
@@ -1675,8 +1705,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Stockfish Analysis Widget ("Prikaži evaluaciju")
-                        if (!_isOpponentTurn)
+                        // Stockfish Analysis Widget ("Prikaži evaluaciju") - Hawaian/Clean UI for Mat u N
+                        if (!_isOpponentTurn && _selectedCategory != 'mate_puzzle')
                           StockfishAnalysisWidget(
                             isEngineEnabled: _showEvaluation,
                             isAllowedToUseEngine: true,
@@ -1766,8 +1796,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             child: IgnorePointer(
               child: CustomPaint(
                 painter: ChessBoardPainter(
-                  arrows: _showEvaluation ? _engineArrows : [],
-                  engineArrows: _showEvaluation ? _buildEngineArrowsFromLines(_engineLinesMap.values.toList()) : [],
+                  arrows: (_showEvaluation && _selectedCategory != 'mate_puzzle') ? _engineArrows : [],
+                  engineArrows: (_showEvaluation && _selectedCategory != 'mate_puzzle') ? _buildEngineArrowsFromLines(_engineLinesMap.values.toList()) : [],
                   boardSize: boardSize,
                   orientation: _puzzleOrientation,
                   lastMoveFrom: _lastMoveFrom,

@@ -34,7 +34,8 @@ async function runImport() {
         type VARCHAR(50) NOT NULL,
         mate_depth INTEGER DEFAULT NULL,
         winning_move_uci VARCHAR(10) NOT NULL,
-        winning_move_san VARCHAR(20) NOT NULL
+        winning_move_san VARCHAR(20) NOT NULL,
+        solutions JSONB DEFAULT '{}'::jsonb
       );
       CREATE INDEX idx_puzzles_type_depth ON puzzles(type, mate_depth);
     `);
@@ -42,6 +43,33 @@ async function runImport() {
     let importedMate = 0;
     let importedWinning = 0;
     let rejectedCount = 0;
+
+    const mateDbPath = path.join(__dirname, '../puzzles/mate_puzzles_db.json');
+    if (fs.existsSync(mateDbPath)) {
+      const mateDbData = JSON.parse(fs.readFileSync(mateDbPath, 'utf8'));
+      console.log(`Loaded ${mateDbData.length} clean mate positions from mate_puzzles_db.json`);
+      for (const item of mateDbData) {
+        const fen = (item.fen || '').trim();
+        if (!fen) continue;
+        const puzzleId = item.id || `mate_db_${item.diagramNumber}`;
+        const targetMoves = item.targetMoves || 1;
+        const solutionsJson = item.solutions || {};
+        let winUci = '';
+        if (solutionsJson && typeof solutionsJson === 'object') {
+          const keys = Object.keys(solutionsJson);
+          if (keys.length > 0) winUci = keys[0];
+        }
+        const side = fen.split(' ')[1] === 'b' ? 'black' : 'white';
+
+        await client.query(
+          `INSERT INTO puzzles (puzzle_id, source, fen, side_to_move, eval, eval_value, type, mate_depth, winning_move_uci, winning_move_san, solutions)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+           ON CONFLICT (puzzle_id) DO UPDATE SET solutions = EXCLUDED.solutions, mate_depth = EXCLUDED.mate_depth`,
+          [puzzleId, 'mate_db', fen, side, `+M${targetMoves}`, 100.0, 'mate_puzzle', targetMoves, winUci, winUci, JSON.stringify(solutionsJson)]
+        );
+        importedMate++;
+      }
+    }
 
     function processItem(item, sourceTag) {
       const fen = (item.fen || '').trim();
@@ -139,9 +167,7 @@ async function runImport() {
       }
     }
 
-    for (const p of data23) {
-      processItem(p, '23_pdf');
-    }
+    // Process winning chess positions
     for (const p of dataWinning) {
       processItem(p, 'winning_chess');
     }
@@ -149,7 +175,7 @@ async function runImport() {
     await client.query('COMMIT');
 
     console.log('--- Dataset Import Successful ---');
-    console.log(`Successfully imported Matne Zagonetke (M1, M2, M3): ${importedMate}`);
+    console.log(`Successfully imported Verified Mate Puzzles (M1, M2, M3): ${importedMate}`);
     console.log(`Successfully imported Dobitne Pozicije (Winning): ${importedWinning}`);
     console.log(`Total valid imported: ${importedMate + importedWinning}`);
     console.log(`Total invalid/rejected: ${rejectedCount}`);
