@@ -1051,7 +1051,12 @@ app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
       }
     };
 
-    console.log('[PUZZLE_SERVED] Served puzzle:', puzzle.puzzle_id, 'Type:', puzzle.type, 'Eval:', puzzle.eval);
+    console.log('\n=================== ♟️ [TRAINING LOG - BACKEND TERMINAL] ===================');
+    console.log(`[1] MOD: ${puzzle.type === 'mate_puzzle' ? `Zagonetke: Mat u ${puzzle.mate_depth || 1} poteza` : 'Pronađite dobitni put'}`);
+    console.log(`[2] UČITANI FEN: ${puzzle.fen}`);
+    console.log(`[ID ZAGONETKE]: ${puzzle.puzzle_id} | Evaluacija: ${puzzle.eval}`);
+    console.log(`[OČEKIVANI POTEZ (JSON)]: ${puzzle.winning_move_uci} (${puzzle.winning_move_san || ''})`);
+    console.log('============================================================================\n');
     res.json(responsePayload);
   } catch (err) {
     console.error('Error fetching next puzzle:', err);
