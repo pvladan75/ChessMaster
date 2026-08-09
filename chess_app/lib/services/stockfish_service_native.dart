@@ -103,6 +103,8 @@ class StockfishService {
     _currentFen = fen;
     if (!_isActive) return;
 
+    print('[STOCKFISH_ENGINE_LOG] 🎯 Pokrenuta analiza | Dubina: $depth | Mode: ${_useOnline ? "Online API Fallback" : "Nativni Lokalni Engine"} | FEN: $fen');
+
     if (_useOnline) {
       final reqId = ++_requestId;
       final effectiveDepth = depth > 15 ? 15 : depth;

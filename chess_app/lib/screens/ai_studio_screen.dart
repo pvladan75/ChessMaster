@@ -126,6 +126,16 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         if (_isOpponentTurn) {
           if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
             _isOpponentTurn = false; // Prevent duplicate triggers
+
+            print('\n--------------------------------------------------');
+            print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
+            print('[TRAINING_LOG] 3) FEN POZICIJA KOJU ANALIZIRA ENGINE: ${_puzzleGame?.fen}');
+            print('[TRAINING_LOG] 5) POTEZ ENGINE-A: $bestMove');
+            print('[TRAINING_LOG] 5) OSNOV ODABIRA: Stockfish kalkulacija najbolje linije');
+            print('[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): $kDefaultEngineTargetDepth');
+            print('[TRAINING_LOG] 5) EVALUACIJA POZICIJE: $evaluation (Best: $bestMove)');
+            print('--------------------------------------------------\n');
+
             Future.delayed(const Duration(milliseconds: 350), () {
               if (!mounted) return;
               _playPuzzleMove(bestMove);
@@ -236,11 +246,23 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     }
   }
 
+  String get _categoryDisplayName {
+    if (_selectedCategory == 'mate_puzzle') return 'Zagonetke: Mat u $_selectedMateDepth poteza';
+    if (_selectedCategory == 'basic_mate') return 'Vežbajte osnovno matiranje ($_selectedBasicMateType)';
+    if (_selectedCategory == 'winning_position') return 'Pronađite dobitni put';
+    return _selectedCategory ?? 'Trening';
+  }
+
   void _loadBasicMatePreset(String presetKey) {
     _resetEngineState();
     final fen = _basicMatePresets[presetKey] ?? '4k3/8/8/8/8/8/8/Q3K3 w - - 0 1';
     _puzzleGame = chess.Chess.fromFEN(fen);
     _activeFen = fen;
+
+    print('\n==================================================');
+    print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
+    print('[TRAINING_LOG] 2) UČITANI FEN: $fen');
+    print('==================================================\n');
 
     setState(() {
       _selectedCategory = 'basic_mate';
@@ -308,6 +330,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           _moveIndex = 0;
         });
 
+        print('\n==================================================');
+        print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
+        print('[TRAINING_LOG] 2) UČITANI FEN: $fen');
+        print('[TRAINING_LOG] OČEKIVANI POTEZI (JSON): $moves');
+        print('==================================================\n');
+
         final sideToMove = fen.split(' ')[1];
         setState(() {
           _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
@@ -365,6 +393,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     final currentFen = _puzzleBoardController.getFen();
     if (currentFen == _puzzleGame!.fen) return; // No move made yet
 
+    final String startingFen = _puzzleGame!.fen;
+
     // Determine move played on board
     String? userLan;
     dynamic matchedMove;
@@ -404,6 +434,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     final primaryJsonMove = _currentPuzzle?['winning_move_uci'] ?? (_expectedMoves.isNotEmpty ? _expectedMoves[0] : '');
     final bool isFastTrack = (primaryJsonMove.isNotEmpty && userLan == primaryJsonMove);
 
+    print('\n--------------------------------------------------');
+    print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
+    print('[TRAINING_LOG] 3) DINAMIČKA PROMENA FEN-A (PRE POTEZA): $startingFen');
+    print('[TRAINING_LOG] 4) POTEZ KORISNIKA: $userLan');
+    print('[TRAINING_LOG] 3) NOVI FEN NAKON POTEZA KORISNIKA: $currentFen');
+    print('[TRAINING_LOG] FAST-TRACK PROVERA: ${isFastTrack ? "✅ Potez u JSON-u (ODMAH Prihvaćen)" : "⚡ Potez nije u JSON-u, šalje se na Stockfish analizu (depth $kDefaultEngineTargetDepth)"}');
+    print('--------------------------------------------------\n');
+
     if (isFastTrack) {
       if (_selectedCategory == 'mate_puzzle') {
         _moveIndex = 1;
@@ -439,10 +477,19 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       if (_puzzleGame!.in_checkmate) {
         _submitPuzzleResult(true);
       } else if (_moveIndex < _expectedMoves.length) {
+        final engineResponseMove = _expectedMoves[_moveIndex];
+        print('\n--------------------------------------------------');
+        print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
+        print('[TRAINING_LOG] 3) FEN POZICIJA KOJU ANALIZIRA ENGINE: ${_puzzleGame?.fen}');
+        print('[TRAINING_LOG] 5) POTEZ ENGINE-A: $engineResponseMove');
+        print('[TRAINING_LOG] 5) OSNOV ODABIRA: Primarni sekvencijalni odgovor iz JSON zagonetke');
+        print('[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): Instant JSON sekvenca');
+        print('--------------------------------------------------\n');
+
         setState(() => _isOpponentTurn = true);
         Future.delayed(const Duration(milliseconds: 500), () {
           if (!mounted) return;
-          _playPuzzleMove(_expectedMoves[_moveIndex]);
+          _playPuzzleMove(engineResponseMove);
           _moveIndex++;
           setState(() => _isOpponentTurn = false);
 
