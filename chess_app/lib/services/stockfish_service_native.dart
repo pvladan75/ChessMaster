@@ -247,6 +247,8 @@ class StockfishService {
 
   /// Stops ongoing search without quitting engine
   void stopAnalysis() {
+    _currentFen = '';
+    _engineLines.clear();
     _sendCommand('stop');
   }
 

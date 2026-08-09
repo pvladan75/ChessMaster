@@ -244,7 +244,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       final currentBoardFen = (_puzzleGame?.fen ?? _activeFen ?? _puzzleBoardController.getFen()).split(' ')[0];
       final eventFen = analyzedFen.split(' ')[0];
 
-      if (eventFen != currentBoardFen) {
+      if (analyzedFen.isEmpty || eventFen != currentBoardFen) {
         print('[IGNORED EVENT] Discarding stale evaluation from old FEN: $analyzedFen (Current Board FEN: $currentBoardFen)');
         _sendBackendLog({
           'type': 'ignoredEvent',
