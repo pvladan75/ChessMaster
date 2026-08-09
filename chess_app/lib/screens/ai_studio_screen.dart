@@ -241,7 +241,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         'bestMove': bestMove,
       });
 
-      final currentBoardFen = _puzzleBoardController.getFen().split(' ')[0];
+      final currentBoardFen = (_puzzleGame?.fen ?? _activeFen ?? _puzzleBoardController.getFen()).split(' ')[0];
       final eventFen = analyzedFen.split(' ')[0];
 
       if (eventFen != currentBoardFen) {
@@ -258,6 +258,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _sendBackendLog({
         'type': 'uiRender',
         'fen': analyzedFen,
+        'currentFen': currentBoardFen,
       });
 
       double parsedEval = 0.0;
@@ -381,7 +382,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       if (linesMap.isEmpty) return;
 
       final lineFen = linesMap.values.first.startingFen.split(' ')[0];
-      final currentBoardFen = _puzzleBoardController.getFen().split(' ')[0];
+      final currentBoardFen = (_puzzleGame?.fen ?? _activeFen ?? _puzzleBoardController.getFen()).split(' ')[0];
 
       if (lineFen != currentBoardFen) {
         print('[IGNORED EVENT] Discarding stale MultiPV lines from old FEN: $lineFen (Current Board FEN: $currentBoardFen)');
