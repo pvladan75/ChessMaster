@@ -208,19 +208,34 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
             _isOpponentTurn = false; // Prevent duplicate triggers
 
+            // Verify move legality on current board state
+            String validMove = bestMove;
+            if (_puzzleGame != null) {
+              final legalMoves = _puzzleGame!.legal_moves({'verbose': true});
+              final isLegal = legalMoves.any((m) {
+                final lan = '${m['from']}${m['to']}';
+                return lan == validMove.substring(0, 4);
+              });
+              if (!isLegal && legalMoves.isNotEmpty) {
+                final fallbackObj = legalMoves.first;
+                validMove = '${fallbackObj['from']}${fallbackObj['to']}';
+                print('\n[TRAINING_LOG] ⚠️ ENGINE JE VRATIO NELEGALA POTEZ ($bestMove)! Zamenjen legalnim potezom: $validMove\n');
+              }
+            }
+
             print('\n--------------------------------------------------');
             print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
             print('[TRAINING_LOG] 3) FEN POZICIJA KOJU ANALIZIRA ENGINE: ${_puzzleGame?.fen}');
-            print('[TRAINING_LOG] 5) POTEZ ENGINE-A: $bestMove');
+            print('[TRAINING_LOG] 5) POTEZ ENGINE-A: $validMove');
             print('[TRAINING_LOG] 5) OSNOV ODABIRA: Stockfish kalkulacija najbolje linije');
             print('[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): $kDefaultEngineTargetDepth');
-            print('[TRAINING_LOG] 5) EVALUACIJA POZICIJE: $evaluation (Best: $bestMove)');
+            print('[TRAINING_LOG] 5) EVALUACIJA POZICIJE: $evaluation (Best: $validMove)');
             print('--------------------------------------------------\n');
 
             _sendBackendLog({
               'mode': _categoryDisplayName,
               'dynamicFen': _puzzleGame?.fen,
-              'engineMove': bestMove,
+              'engineMove': validMove,
               'decisionBasis': 'Stockfish kalkulacija najbolje linije',
               'depth': kDefaultEngineTargetDepth,
               'eval': evaluation,
@@ -228,7 +243,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
             Future.delayed(const Duration(milliseconds: 350), () {
               if (!mounted) return;
-              _playPuzzleMove(bestMove);
+              _playPuzzleMove(validMove);
               if (_puzzleGame != null) {
                 if (_puzzleGame!.in_checkmate) {
                   if (_selectedCategory == 'basic_mate') {
@@ -239,6 +254,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                   }
                 } else if (_puzzleGame!.in_stalemate || _puzzleGame!.in_draw) {
                   _showSnackBar('🤝 Pat / Remi u poziciji.');
+                } else {
+                  // REFRESH EVALUATION FOR USER'S TURN
+                  if (_showEvaluation) {
+                    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 16);
+                  }
                 }
               }
             });
