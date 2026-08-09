@@ -211,15 +211,21 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
             // Verify move legality on current board state
             String validMove = bestMove;
             if (_puzzleGame != null) {
-              final legalMoves = _puzzleGame!.legal_moves({'verbose': true});
+              final legalMoves = _puzzleGame!.moves({'verbose': true});
               final isLegal = legalMoves.any((m) {
-                final lan = '${m['from']}${m['to']}';
-                return lan == validMove.substring(0, 4);
+                final from = m['from'] ?? '';
+                final to = m['to'] ?? '';
+                final promo = m['promotion'] ?? '';
+                final lan = '$from$to$promo';
+                return lan.startsWith(validMove.substring(0, 4));
               });
               if (!isLegal && legalMoves.isNotEmpty) {
                 final fallbackObj = legalMoves.first;
-                validMove = '${fallbackObj['from']}${fallbackObj['to']}';
-                print('\n[TRAINING_LOG] ⚠️ ENGINE JE VRATIO NELEGALA POTEZ ($bestMove)! Zamenjen legalnim potezom: $validMove\n');
+                final from = fallbackObj['from'] ?? '';
+                final to = fallbackObj['to'] ?? '';
+                final promo = fallbackObj['promotion'] ?? '';
+                validMove = '$from$to$promo';
+                print('\n[TRAINING_LOG] ⚠️ ENGINE JE VRATIO NELEGALAN POTEZ ($bestMove)! Zamenjen legalnim potezom: $validMove\n');
               }
             }
 
