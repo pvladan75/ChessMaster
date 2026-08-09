@@ -121,15 +121,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           parsedEval = numVal;
         }
 
-        setState(() {
-          _stockfishEval = {
-            'evaluation': evaluation,
-            'bestMove': bestMove,
-            'continuation': continuation,
-            'cp': (parsedEval * 100).round()
-          };
-        });
-
         // 1. Blunder Alert Check (Eval drop > 1.5 pawns)
         if (_isBlunderAlertEnabled && _lastPosEval != null && numVal != null) {
           final evalDiff = _lastPosEval! - numVal;
@@ -345,7 +336,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   @override
   void dispose() {
-    _tabController.dispose();
     _stockfishService.dispose();
     super.dispose();
   }
@@ -423,8 +413,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _puzzleSolved = false;
       _puzzleFailed = false;
       _lastRatingChange = null;
-      _aiAnalysisResult = null;
-      _aiArrows = [];
       _lastMoveFrom = null;
       _lastMoveTo = null;
       _isOpponentTurn = false;
