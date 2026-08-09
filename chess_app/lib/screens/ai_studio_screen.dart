@@ -420,24 +420,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     }
   }
 
-  void _sendBackendLog(Map<String, dynamic> details) async {
-    try {
-      final uri = Uri.parse('$backendUrl/api/puzzles/log');
-      final res = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.userSession.token}',
-        },
-        body: jsonEncode({'details': details}),
-      );
-      if (res.statusCode != 200) {
-        print('[BACKEND_LOG_WARN] HTTP ${res.statusCode}: ${res.body}');
-      }
-    } catch (e) {
-      print('[BACKEND_LOG_ERROR] $e');
-    }
-  }
+
 
   void _onUserPuzzleMoveMade() async {
     print('[MOVE_MADE_DEBUG] _onUserPuzzleMoveMade called! Prog: $_isProgrammaticMove | Solved: $_puzzleSolved | Failed: $_puzzleFailed | OpponentTurn: $_isOpponentTurn | GameNull: ${_puzzleGame == null}');
