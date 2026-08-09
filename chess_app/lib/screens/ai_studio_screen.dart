@@ -1131,6 +1131,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
     await _stockfishService.initEngine();
     _stockfishService.setMultiPV(1);
+    final targetDepth = AppSettingsService.instance.defaultEngineDepth;
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
   }
 
