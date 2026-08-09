@@ -155,6 +155,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   void _resetEngineState() {
     _stockfishService.stopAnalysis();
+    _stockfishService.setMultiPV(3);
     _engineLinesMap.clear();
     _engineArrows.clear();
     _lastPosEval = null;
@@ -166,6 +167,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _currentEvalString = '0.00';
     _currentEvalDepth = 18;
     _userMoveCount = 0;
+    _isOpponentTurn = false;
     _selectedSquare = null;
     _puzzleMoveTree = null;
     _initialPuzzleFen = null;
@@ -688,6 +690,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   void _restartCurrentPuzzle() {
     if (_initialPuzzleFen == null) return;
+    _stockfishService.stopAnalysis();
+    _stockfishService.setMultiPV(3);
     _puzzleGame = chess.Chess.fromFEN(_initialPuzzleFen!);
     _activeFen = _initialPuzzleFen;
     _puzzleBoardController.loadFen(_initialPuzzleFen!);
@@ -1541,6 +1545,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                               setState(() {
                                 _showEvaluation = !_showEvaluation;
                                 if (_showEvaluation) {
+                                  _stockfishService.setMultiPV(3);
                                   _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 99);
                                 } else {
                                   _engineLinesMap.clear();
