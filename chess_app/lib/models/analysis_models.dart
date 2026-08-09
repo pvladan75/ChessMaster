@@ -27,6 +27,8 @@ class AnalysisLine {
   final String fromSquare;
   final String toSquare;
 
+  String get startingFen => fenList.isNotEmpty ? fenList.first : '';
+
   AnalysisLine({
     required this.multipv,
     this.depth = 0,
