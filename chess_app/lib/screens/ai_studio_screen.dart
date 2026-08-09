@@ -10,6 +10,7 @@ import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/services/stockfish_service.dart';
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 
 import 'package:chess_app/models/analysis_models.dart';
@@ -58,6 +59,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   bool _puzzleSolved = false;
   bool _puzzleFailed = false;
   bool _isBackendConnected = true;
+  int _consecutiveServerFailures = 0;
   Timer? _serverHealthTimer;
   int? _lastRatingChange;
   bool _isOpponentTurn = false;
@@ -72,7 +74,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   final Map<String, String> _basicMatePresets = {
     'K+Q vs K': '4k3/8/8/8/8/8/8/Q3K3 w - - 0 1',
     'K+R vs K': '4k3/8/8/8/8/8/8/R3K3 w - - 0 1',
-    'K+2B vs K': '4k3/8/8/8/8/8/8/2BBK3 w - - 0 1',
+    'K+2R vs K': '4k3/8/8/8/8/8/8/R3K2R w - - 0 1',
+    'K+2B vs K': '4k3/8/8/8/8/8/8/2B1KB2 w - - 0 1',
     'K+B+N vs K': '4k3/8/8/8/8/8/8/1NB1K3 w - - 0 1',
     'K+Q vs K+B': '2b1k3/8/8/8/8/8/8/Q3K3 w - - 0 1',
     'K+Q vs K+R': '2r1k3/8/8/8/8/8/8/Q3K3 w - - 0 1',
@@ -87,15 +90,16 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   void _startServerHealthCheck() {
     _serverHealthTimer?.cancel();
-    _serverHealthTimer = Timer.periodic(const Duration(seconds: 4), (_) => _checkServerHealth());
+    _serverHealthTimer = Timer.periodic(const Duration(seconds: 5), (_) => _checkServerHealth());
   }
 
   Future<void> _checkServerHealth() async {
     try {
-      final res = await http.get(Uri.parse('$backendUrl/api/health')).timeout(const Duration(seconds: 3));
+      final res = await http.get(Uri.parse('$backendUrl/api/health')).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
+        _consecutiveServerFailures = 0;
         if (!_isBackendConnected && mounted) {
-          print('[HEALTH_CHECK_LOG] ✅ Server reconnected! Status 200 from $backendUrl/api/health');
+          print('[HEALTH_CHECK_LOG] ✅ Server reconnected at ${DateTime.now()}');
           setState(() => _isBackendConnected = true);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -112,17 +116,24 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           );
         }
       } else {
-        print('[HEALTH_CHECK_LOG] ⚠️ Server check returned HTTP ${res.statusCode}');
-        _handleServerDisconnected();
+        _consecutiveServerFailures++;
+        print('[HEALTH_CHECK_LOG] ⚠️ Server check returned HTTP ${res.statusCode} (Consecutive failures: $_consecutiveServerFailures)');
+        if (_consecutiveServerFailures >= 3) {
+          _handleServerDisconnected();
+        }
       }
     } catch (e) {
-      print('[HEALTH_CHECK_LOG] ❌ Server connection error: $e');
-      _handleServerDisconnected();
+      _consecutiveServerFailures++;
+      print('[HEALTH_CHECK_LOG] ❌ Server connection error: $e (Consecutive failures: $_consecutiveServerFailures)');
+      if (_consecutiveServerFailures >= 3) {
+        _handleServerDisconnected();
+      }
     }
   }
 
   void _handleServerDisconnected() {
     if (_isBackendConnected && mounted) {
+      print('[HEALTH_CHECK_LOG] 🚨 Server disconnected alert triggered at ${DateTime.now()}');
       setState(() => _isBackendConnected = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -335,12 +346,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       }
     }
 
+    final targetDepth = AppSettingsService.instance.defaultEngineDepth;
+
     print('\n--------------------------------------------------');
     print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
     print('[TRAINING_LOG] 3) FEN POZICIJA KOJU ANALIZIRA ENGINE: ${_puzzleGame?.fen}');
     print('[TRAINING_LOG] 5) POTEZ ENGINE-A: $validMove');
     print('[TRAINING_LOG] 5) OSNOV ODABIRA: Stockfish kalkulacija najbolje linije');
-    print('[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): $kDefaultEngineTargetDepth');
+    print('[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): $targetDepth');
     print('[TRAINING_LOG] 5) EVALUACIJA POZICIJE: $evaluation (Best: $validMove)');
     print('--------------------------------------------------\n');
 
@@ -349,11 +362,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       'dynamicFen': _puzzleGame?.fen,
       'engineMove': validMove,
       'decisionBasis': 'Stockfish kalkulacija najbolje linije',
-      'depth': kDefaultEngineTargetDepth,
+      'depth': targetDepth,
       'eval': evaluation,
     });
 
-    Future.delayed(const Duration(milliseconds: 350), () {
+    Future.delayed(const Duration(milliseconds: 1000), () {
       if (!mounted) return;
       _playPuzzleMove(validMove);
       if (_puzzleGame != null) {
@@ -379,7 +392,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     if (_puzzleGame == null || _puzzleGame!.in_checkmate) return;
     setState(() => _isOpponentTurn = true);
     await _stockfishService.initEngine();
-    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: kDefaultEngineTargetDepth);
+    final targetDepth = AppSettingsService.instance.defaultEngineDepth;
+    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
   }
 
   void _showBlunderAlert(double evalDiff, double currentEval) {
