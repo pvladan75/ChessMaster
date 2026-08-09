@@ -1180,6 +1180,104 @@ app.post('/api/puzzles/submit', authenticateToken, async (req, res) => {
   }
 });
 
+// Worker Queue lock to ensure single atomic Stockfish requests
+let isStockfishBusy = false;
+const stockfishQueue = [];
+
+function processStockfishQueue() {
+  if (isStockfishBusy || stockfishQueue.length === 0) return;
+  const task = stockfishQueue.shift();
+  isStockfishBusy = true;
+  task().finally(() => {
+    isStockfishBusy = false;
+    processStockfishQueue();
+  });
+}
+
+function runAtomicStockfishTask(taskFn) {
+  return new Promise((resolve, reject) => {
+    stockfishQueue.push(() => taskFn().then(resolve).catch(reject));
+    processStockfishQueue();
+  });
+}
+
+// POST /api/puzzles/verify - Atomic Stockfish Move Verification with 2000ms Hard Timeout
+app.post('/api/puzzles/verify', async (req, res) => {
+  const { fen, userMove, mode, remainingNeeded, orientation } = req.body;
+
+  try {
+    const result = await runAtomicStockfishTask(async () => {
+      const verifyPromise = (async () => {
+        try {
+          const cloudUrl = `https://lichess.org/api/cloud-eval?fen=${encodeURIComponent(fen)}`;
+          const response = await fetch(cloudUrl);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.pvs && data.pvs.length > 0) {
+              const pv = data.pvs[0];
+              const isBlackToMove = fen.includes(' b ');
+              let mateVal = null;
+              if (pv.mate !== undefined && pv.mate !== null) {
+                mateVal = pv.mate;
+                if (isBlackToMove) mateVal = -mateVal;
+              }
+
+              const isWhite = (orientation === 'white');
+              let isMateForUser = false;
+              if (mateVal !== null) {
+                if (isWhite && mateVal > 0 && mateVal <= (remainingNeeded || 3)) isMateForUser = true;
+                if (!isWhite && mateVal < 0 && Math.abs(mateVal) <= (remainingNeeded || 3)) isMateForUser = true;
+              }
+
+              if (isMateForUser) {
+                return { success: true, status: 'ACCEPTED', mateVal: Math.abs(mateVal), depth: data.depth || 25 };
+              }
+            }
+          }
+        } catch (_) {}
+
+        try {
+          const sfUrl = `https://stockfish.online/api/s/v2.php?fen=${encodeURIComponent(fen)}&depth=12`;
+          const sfRes = await fetch(sfUrl);
+          if (sfRes.ok) {
+            const sfData = await sfRes.json();
+            if (sfData.success) {
+              const isBlackToMove = fen.includes(' b ');
+              let mateVal = sfData.mate;
+              if (mateVal !== null && mateVal !== undefined) {
+                if (isBlackToMove) mateVal = -mateVal;
+                const isWhite = (orientation === 'white');
+                if (isWhite && mateVal > 0 && mateVal <= (remainingNeeded || 3)) {
+                  return { success: true, status: 'ACCEPTED', mateVal: Math.abs(mateVal), depth: 12 };
+                }
+                if (!isWhite && mateVal < 0 && Math.abs(mateVal) <= (remainingNeeded || 3)) {
+                  return { success: true, status: 'ACCEPTED', mateVal: Math.abs(mateVal), depth: 12 };
+                }
+              }
+            }
+          }
+        } catch (_) {}
+
+        return { success: false, status: 'REJECTED', reason: 'Netačan potez (Nije pronađen mat u zadatom broju poteza).' };
+      })();
+
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({ success: false, status: 'TIMEOUT_REJECTED', reason: 'Evaluacija je istekla (Timeout 2000ms).' });
+        }, 2000);
+      });
+
+      return Promise.race([verifyPromise, timeoutPromise]);
+    });
+
+    console.log(`[VERIFY ENDPOINT] FEN: ${fen} | Move: ${userMove} | Result: ${result.status} (${result.reason || 'OK'})`);
+    return res.json(result);
+  } catch (err) {
+    console.error('Error in /api/puzzles/verify:', err);
+    return res.json({ success: false, status: 'REJECTED', reason: 'Greška na serveru pri verifikaciji.' });
+  }
+});
+
 // POST /api/puzzles/log - Stream live position state & Stockfish logs directly to backend console
 app.post('/api/puzzles/log', (req, res) => {
   try {

@@ -16,6 +16,13 @@ import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 
+enum PuzzleGameState {
+  idle,
+  verifyingMove,
+  waitingEngineMove,
+  puzzleCompleted,
+}
+
 class AiStudioScreen extends StatefulWidget {
   final UserSession userSession;
 
@@ -64,6 +71,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   int? _lastRatingChange;
   bool _isOpponentTurn = false;
   bool _isVerifyingUserMove = false;
+  PuzzleGameState _gameState = PuzzleGameState.idle;
+  Timer? _verificationTimeoutTimer;
   int _positionToken = 0;
   PlayerColor _puzzleOrientation = PlayerColor.white;
   bool _isProgrammaticMove = false;
@@ -167,6 +176,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       'token': currentToken,
     });
 
+    _verificationTimeoutTimer?.cancel();
+
     // 1. Immediately HALT any active Stockfish analysis worker
     _stockfishService.stopAnalysis();
 
@@ -184,6 +195,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     // 4. RESET Flags
     _isOpponentTurn = false;
     _isVerifyingUserMove = false;
+    _gameState = PuzzleGameState.idle;
     _selectedSquare = null;
 
     // 5. IF loading a COMPLETELY NEW PUZZLE, reset evaluation toggles A/B to OFF!
@@ -325,14 +337,19 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           // EARLY EXIT: Stockfish found mate M <= (N - k) -> ACCEPT USER MOVE!
           if (userMateScore != null && userMateScore <= remainingNeeded) {
             print('\n[MATE_VERIFICATION] ✅ EARLY EXIT (Depth $depth): Nađen mat M$userMateScore <= $remainingNeeded! Potez prihvaćen!\n');
+            _verificationTimeoutTimer?.cancel();
             _isVerifyingUserMove = false;
             _stockfishService.stopAnalysis();
             _triggerOpponentBotResponse();
             return;
           }
 
-          // REJECTION: Stockfish reached Depth 25 without finding M <= (N - k) -> REJECT USER MOVE!
-          if (isFinal || depth >= 25) {
+          // FAST REJECTION (Depth >= 6): Stockfish shows no mate in remainingNeeded moves -> REJECT IMMEDIATELY!
+          final bool isFastFail = (depth >= 6 && (userMateScore == null || userMateScore > remainingNeeded));
+
+          // REJECTION: Stockfish reached Depth 25 or fast fail without finding M <= (N - k) -> REJECT USER MOVE!
+          if (isFinal || depth >= 25 || isFastFail) {
+            _verificationTimeoutTimer?.cancel();
             _isVerifyingUserMove = false;
             _stockfishService.stopAnalysis();
 
@@ -344,14 +361,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               if (_userMoveCount > 0) _userMoveCount--;
             }
 
-            print('\n[MATE_VERIFICATION] ❌ POTEZ ODBIJEN! (Stockfish na dubini 25 nije pronašao mat u $remainingNeeded poteza). Potez vraćen, tabla otključana.\n');
+            print('\n[MATE_VERIFICATION] ❌ POTEZ ODBIJEN! (Stockfish na dubini $depth nije pronašao mat u $remainingNeeded poteza). Potez vraćen, tabla otključana.\n');
 
             await _sendBackendLog({
               'mode': _categoryDisplayName,
               'dynamicFen': _puzzleGame?.fen,
               'status': 'REJECTED',
               'eval': evaluation,
-              'reason': 'Stockfish na dubini 25 nije pronašao mat u $remainingNeeded poteza.',
+              'reason': 'Stockfish na dubini $depth nije pronašao mat u $remainingNeeded poteza.',
             });
 
             _showSnackBar('Netačan potez! Pokušajte sa drugim potezom.');
@@ -887,9 +904,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   }
 
   void _onUserPuzzleMoveMade() async {
-    print('[MOVE_MADE_DEBUG] _onUserPuzzleMoveMade called! Prog: $_isProgrammaticMove | Solved: $_puzzleSolved | Failed: $_puzzleFailed | OpponentTurn: $_isOpponentTurn | GameNull: ${_puzzleGame == null}');
+    print('[MOVE_MADE_DEBUG] _onUserPuzzleMoveMade called! Prog: $_isProgrammaticMove | Solved: $_puzzleSolved | Failed: $_puzzleFailed | OpponentTurn: $_isOpponentTurn | GameState: $_gameState | GameNull: ${_puzzleGame == null}');
 
-    if (_isProgrammaticMove || _puzzleSolved || _puzzleFailed || _isOpponentTurn || _puzzleGame == null) return;
+    if (_isProgrammaticMove || _puzzleSolved || _puzzleFailed || _isOpponentTurn || _gameState != PuzzleGameState.idle || _puzzleGame == null) return;
+
+    setState(() {
+      _gameState = PuzzleGameState.verifyingMove;
+    });
 
     final currentFen = _puzzleBoardController.getFen();
     print('[MOVE_MADE_DEBUG] Board Controller FEN: $currentFen');
@@ -1034,6 +1055,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     if (isFastTrack) {
       _isVerifyingUserMove = false;
       _moveIndex++;
+      setState(() => _gameState = PuzzleGameState.waitingEngineMove);
       _triggerOpponentBotResponse();
       return;
     }
@@ -1044,6 +1066,39 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _isVerifyingUserMove = true;
       _isOpponentTurn = false;
     });
+
+    _verificationTimeoutTimer?.cancel();
+    _verificationTimeoutTimer = Timer(const Duration(milliseconds: 3000), () async {
+      if (_isVerifyingUserMove) {
+        print('\n[MATE_VERIFICATION] ⏱️ TIMEOUT (3000ms): Stockfish verifikacija nije potvrdila mat u roku od 3s. Potez se odbija.\n');
+        _isVerifyingUserMove = false;
+        _stockfishService.stopAnalysis();
+
+        // Undo ONLY that single incorrect move
+        if (_puzzleGame != null && _puzzleGame!.history.isNotEmpty) {
+          _puzzleGame!.undo();
+          _puzzleBoardController.loadFen(_puzzleGame!.fen);
+          _activeFen = _puzzleGame!.fen;
+          if (_userMoveCount > 0) _userMoveCount--;
+        }
+
+        resetBoardState(isNewPuzzle: false);
+        if (_showEvaluation || _showEvalBar) {
+          _stockfishService.setMultiPV(3);
+          _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 99);
+        }
+
+        await _sendBackendLog({
+          'mode': _categoryDisplayName,
+          'dynamicFen': _puzzleGame?.fen,
+          'status': 'REJECTED',
+          'reason': 'Stockfish verifikacija je istekla (timeout 3000ms). Potez ne ispunjava uslove.',
+        });
+
+        _showSnackBar('Netačan potez! Pokušajte sa drugim potezom.');
+      }
+    });
+
     await _stockfishService.initEngine();
     _stockfishService.setMultiPV(1);
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
@@ -1695,7 +1750,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       child: Stack(
         children: [
           IgnorePointer(
-            ignoring: _isOpponentTurn || _puzzleSolved || _puzzleFailed,
+            ignoring: _isOpponentTurn || _puzzleSolved || _puzzleFailed || _gameState != PuzzleGameState.idle,
             child: ChessBoard(
               controller: _puzzleBoardController,
               boardOrientation: _puzzleOrientation,
