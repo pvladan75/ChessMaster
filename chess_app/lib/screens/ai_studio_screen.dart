@@ -91,10 +91,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     _showEvaluation = false;
   }
 
-  void _sendBackendLog(Map<String, dynamic> details) async {
+  Future<void> _sendBackendLog(Map<String, dynamic> details) async {
     try {
       final uri = Uri.parse('$backendUrl/api/puzzles/log');
-      await http.post(
+      final res = await http.post(
         uri,
         headers: {
           'Content-Type': 'application/json',
@@ -102,12 +102,17 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         },
         body: jsonEncode({'details': details}),
       );
-    } catch (_) {}
+      if (res.statusCode != 200) {
+        print('[BACKEND_LOG_WARN] HTTP ${res.statusCode}: ${res.body}');
+      }
+    } catch (e) {
+      print('[BACKEND_LOG_ERROR] $e');
+    }
   }
 
   Future<void> _initStockfish() async {
     await _stockfishService.initEngine();
-    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
+    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) async {
       if (mounted) {
         final currentFen = _puzzleBoardController.getFen();
         if (_activeFen != null && _activeFen != currentFen) return;
@@ -168,17 +173,28 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
           if (!isMoveAcceptable) {
             _isOpponentTurn = false;
+
+            // UNDO rejected user move on local game & board controller to prevent FEN corruption
+            if (_puzzleGame != null && _puzzleGame!.history.isNotEmpty) {
+              _puzzleGame!.undo();
+              _puzzleBoardController.loadFen(_puzzleGame!.fen);
+              _activeFen = _puzzleGame!.fen;
+            }
+
             setState(() {
               _puzzleFailed = true;
             });
-            print('\n[TRAINING_LOG] ❌ POTEZ NIJE PRIHVAĆEN! Evaluacija: $evaluation. Potez kvari poziciju ili ne vodi do mata u traženom broju poteza.\n');
-            _sendBackendLog({
+
+            print('\n[TRAINING_LOG] ❌ POTEZ NIJE PRIHVAĆEN! Evaluacija: $evaluation. Potez je odbijen i tabla je vraćena.\n');
+
+            await _sendBackendLog({
               'mode': _categoryDisplayName,
               'dynamicFen': _puzzleGame?.fen,
               'status': 'REJECTED',
               'eval': evaluation,
-              'reason': 'Potez je netačan i ne ispunjava kriterijum moda.',
+              'reason': 'Potez je netačan i ne ispunjava kriterijum moda. Pozicija je automatski vraćena na početno stanje.',
             });
+
             if (_selectedCategory == 'mate_puzzle') {
               _showMatePuzzleFailedDialog();
             } else {
@@ -537,7 +553,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     print('[TRAINING_LOG] FAST-TRACK PROVERA: ${isFastTrack ? "✅ Potez u JSON-u (ODMAH Prihvaćen)" : "⚡ Potez nije u JSON-u, šalje se na Stockfish analizu (depth $kDefaultEngineTargetDepth)"}');
     print('--------------------------------------------------\n');
 
-    _sendBackendLog({
+    await _sendBackendLog({
       'mode': _categoryDisplayName,
       'dynamicFen': currentFen,
       'userMove': userLan,
