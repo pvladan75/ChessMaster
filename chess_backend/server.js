@@ -1158,16 +1158,38 @@ app.post('/api/puzzles/submit', authenticateToken, async (req, res) => {
     );
 
     res.json({
-      solved,
-      ratingChange,
+      success: true,
       newRating,
-      themeRatings,
+      ratingChange,
       puzzlesSolved: solvedCount,
       puzzlesFailed: failedCount
     });
   } catch (err) {
     console.error('Error submitting puzzle result:', err);
-    res.status(500).json({ error: 'Greška pri obradi rezultata zagonetke.' });
+    res.status(500).json({ error: 'Greška pri čuvanju rezultata.' });
+  }
+});
+
+// POST /api/puzzles/log - Stream live position state & Stockfish logs directly to backend console
+app.post('/api/puzzles/log', (req, res) => {
+  try {
+    const { details } = req.body;
+    if (details) {
+      console.log('\n=================== ♟️ [TRAINING LOG - BACKEND TERMINAL] ===================');
+      if (details.mode) console.log(`[1] MOD: ${details.mode}`);
+      if (details.initialFen) console.log(`[2] UČITANI FEN: ${details.initialFen}`);
+      if (details.dynamicFen) console.log(`[3] DINAMIČKI FEN: ${details.dynamicFen}`);
+      if (details.userMove) console.log(`[4] POTEZ KORISNIKA: ${details.userMove}`);
+      if (details.fastTrack !== undefined) console.log(`[4] FAST-TRACK PROVERA: ${details.fastTrack ? '✅ DA (Potez u JSON-u)' : '⚡ NE (Šalje se na Stockfish)'}`);
+      if (details.engineMove) console.log(`[5] POTEZ ENGINE-A: ${details.engineMove}`);
+      if (details.decisionBasis) console.log(`[5] OSNOV ODABIRA: ${details.decisionBasis}`);
+      if (details.depth) console.log(`[5] DUBINA (DEPTH): ${details.depth}`);
+      if (details.eval) console.log(`[5] EVALUACIJA: ${details.eval}`);
+      console.log('============================================================================\n');
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Log failure' });
   }
 });
 

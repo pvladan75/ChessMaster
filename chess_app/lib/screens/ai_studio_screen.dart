@@ -91,6 +91,20 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     _showEvaluation = false;
   }
 
+  void _sendBackendLog(Map<String, dynamic> details) async {
+    try {
+      final uri = Uri.parse('$backendUrl/api/puzzles/log');
+      await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.userSession.token}',
+        },
+        body: jsonEncode({'details': details}),
+      );
+    } catch (_) {}
+  }
+
   Future<void> _initStockfish() async {
     await _stockfishService.initEngine();
     _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) {
@@ -135,6 +149,15 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
             print('[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): $kDefaultEngineTargetDepth');
             print('[TRAINING_LOG] 5) EVALUACIJA POZICIJE: $evaluation (Best: $bestMove)');
             print('--------------------------------------------------\n');
+
+            _sendBackendLog({
+              'mode': _categoryDisplayName,
+              'dynamicFen': _puzzleGame?.fen,
+              'engineMove': bestMove,
+              'decisionBasis': 'Stockfish kalkulacija najbolje linije',
+              'depth': kDefaultEngineTargetDepth,
+              'eval': evaluation,
+            });
 
             Future.delayed(const Duration(milliseconds: 350), () {
               if (!mounted) return;
@@ -264,6 +287,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     print('[TRAINING_LOG] 2) UČITANI FEN: $fen');
     print('==================================================\n');
 
+    _sendBackendLog({
+      'mode': _categoryDisplayName,
+      'initialFen': fen,
+    });
+
     setState(() {
       _selectedCategory = 'basic_mate';
       _selectedBasicMateType = presetKey;
@@ -335,6 +363,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         print('[TRAINING_LOG] 2) UČITANI FEN: $fen');
         print('[TRAINING_LOG] OČEKIVANI POTEZI (JSON): $moves');
         print('==================================================\n');
+
+        _sendBackendLog({
+          'mode': _categoryDisplayName,
+          'initialFen': fen,
+        });
 
         final sideToMove = fen.split(' ')[1];
         setState(() {
@@ -442,6 +475,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     print('[TRAINING_LOG] FAST-TRACK PROVERA: ${isFastTrack ? "✅ Potez u JSON-u (ODMAH Prihvaćen)" : "⚡ Potez nije u JSON-u, šalje se na Stockfish analizu (depth $kDefaultEngineTargetDepth)"}');
     print('--------------------------------------------------\n');
 
+    _sendBackendLog({
+      'mode': _categoryDisplayName,
+      'dynamicFen': currentFen,
+      'userMove': userLan,
+      'fastTrack': isFastTrack,
+    });
+
     if (isFastTrack) {
       if (_selectedCategory == 'mate_puzzle') {
         _moveIndex = 1;
@@ -485,6 +525,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         print('[TRAINING_LOG] 5) OSNOV ODABIRA: Primarni sekvencijalni odgovor iz JSON zagonetke');
         print('[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): Instant JSON sekvenca');
         print('--------------------------------------------------\n');
+
+        _sendBackendLog({
+          'mode': _categoryDisplayName,
+          'dynamicFen': _puzzleGame?.fen,
+          'engineMove': engineResponseMove,
+          'decisionBasis': 'Primarni sekvencijalni odgovor iz JSON zagonetke',
+          'depth': 'Instant JSON sekvenca',
+        });
 
         setState(() => _isOpponentTurn = true);
         Future.delayed(const Duration(milliseconds: 500), () {
