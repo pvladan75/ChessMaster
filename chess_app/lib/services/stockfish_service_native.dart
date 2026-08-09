@@ -15,7 +15,7 @@ class StockfishService {
   StreamSubscription? _customSubscription;
   bool _isCustomActive = false;
   
-  Function(String evaluation, String bestMove, String continuation, int multipv)? onEvaluationChanged;
+  Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal)? onEvaluationChanged;
   Function(Map<int, AnalysisLine> lines)? onMultiPVUpdated;
   final Map<int, AnalysisLine> _engineLines = {};
 
@@ -145,7 +145,7 @@ class StockfishService {
               );
 
               if (onEvaluationChanged != null) {
-                onEvaluationChanged!(eval, bestMove, movesStr, 1);
+                onEvaluationChanged!(eval, bestMove, movesStr, 1, depthVal, true);
               }
               if (onMultiPVUpdated != null) {
                 onMultiPVUpdated!({1: line});
@@ -206,7 +206,7 @@ class StockfishService {
             );
 
             if (onEvaluationChanged != null) {
-              onEvaluationChanged!(eval, bestMove, continuation, 1);
+              onEvaluationChanged!(eval, bestMove, continuation, 1, effectiveDepth, true);
             }
             if (onMultiPVUpdated != null) {
               onMultiPVUpdated!({1: line});
@@ -218,11 +218,7 @@ class StockfishService {
       if (_stockfish == null && _customProcess == null) return;
       _sendCommand('stop');
       _sendCommand('position fen $fen');
-      if (isInfinite) {
-        _sendCommand('go infinite');
-      } else {
-        _sendCommand('go depth $depth');
-      }
+      _sendCommand('go depth 18');
     }
   }
 
@@ -310,6 +306,14 @@ class StockfishService {
         }
       }
 
+      int currentDepth = 1;
+      if (line.contains(' depth ')) {
+        final dMatch = RegExp(r'depth\s+(\d+)').firstMatch(line);
+        if (dMatch != null) {
+          currentDepth = int.parse(dMatch.group(1)!);
+        }
+      }
+
       String bestMove = '';
       if (continuation.isNotEmpty) {
         final tokens = continuation.split(' ');
@@ -319,7 +323,7 @@ class StockfishService {
       }
 
       if (onEvaluationChanged != null) {
-        onEvaluationChanged!(eval, bestMove, continuation, multipv);
+        onEvaluationChanged!(eval, bestMove, continuation, multipv, currentDepth, false);
       }
 
       _engineLines[multipv] = AnalysisLine.fromPv(
@@ -339,7 +343,7 @@ class StockfishService {
       if (parts.length > 1) {
         final bestMove = parts[1]; // e.g. "e2e4"
         if (onEvaluationChanged != null) {
-          onEvaluationChanged!('', bestMove, '', 1);
+          onEvaluationChanged!('', bestMove, '', 1, 18, true);
         }
       }
     }

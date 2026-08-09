@@ -112,7 +112,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
   Future<void> _initStockfish() async {
     await _stockfishService.initEngine();
-    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv) async {
+    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv, depth, isFinal) async {
       if (mounted) {
         final currentFen = _puzzleBoardController.getFen();
         if (_activeFen != null && _activeFen != currentFen) return;
@@ -143,6 +143,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
         // 2. Opponent Bot Move Execution (When it is Stockfish's turn to play at kDefaultEngineTargetDepth)
         if (_isOpponentTurn) {
+          if (!isFinal && depth < kDefaultEngineTargetDepth) return; // Wait until depth 18 search completes!
           bool isMoveAcceptable = false;
 
           if (_selectedCategory == 'mate_puzzle') {

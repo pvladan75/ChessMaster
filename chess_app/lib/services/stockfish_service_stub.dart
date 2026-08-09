@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:chess_app/models/analysis_models.dart';
 
 class StockfishService {
-  Function(String evaluation, String bestMove, String continuation, int multipv)? onEvaluationChanged;
+  Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal)? onEvaluationChanged;
   Function(Map<int, AnalysisLine> lines)? onMultiPVUpdated;
   final Map<int, AnalysisLine> _engineLines = {};
 
@@ -61,7 +61,7 @@ class StockfishService {
           }
 
           if (onEvaluationChanged != null) {
-            onEvaluationChanged!(eval, bestMove, continuation, 1);
+            onEvaluationChanged!(eval, bestMove, continuation, 1, targetDepth, true);
           }
 
           _engineLines[1] = AnalysisLine.fromPv(
