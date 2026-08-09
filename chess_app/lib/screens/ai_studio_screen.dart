@@ -138,6 +138,54 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
         // 2. Opponent Bot Move Execution (When it is Stockfish's turn to play at kDefaultEngineTargetDepth)
         if (_isOpponentTurn) {
+          bool isMoveAcceptable = false;
+
+          if (_selectedCategory == 'mate_puzzle') {
+            if (evaluation.startsWith('M') || evaluation.startsWith('+M')) {
+              final mateNum = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), ''));
+              if (mateNum != null && mateNum <= _selectedMateDepth) {
+                isMoveAcceptable = true;
+              }
+            }
+          } else if (_selectedCategory == 'winning_position') {
+            if (numVal != null && _lastPosEval != null) {
+              if ((_lastPosEval! - numVal) <= 0.5 && numVal > 1.0) {
+                isMoveAcceptable = true;
+              }
+            } else if (numVal != null && numVal >= 1.5) {
+              isMoveAcceptable = true;
+            } else if (evaluation.startsWith('M') || evaluation.startsWith('+M')) {
+              isMoveAcceptable = true;
+            }
+          } else if (_selectedCategory == 'basic_mate') {
+            if (numVal != null && numVal >= 0.0) {
+              isMoveAcceptable = true;
+            } else if (evaluation.startsWith('M') || evaluation.startsWith('+M')) {
+              isMoveAcceptable = true;
+            }
+          }
+
+          if (!isMoveAcceptable) {
+            _isOpponentTurn = false;
+            setState(() {
+              _puzzleFailed = true;
+            });
+            print('\n[TRAINING_LOG] ❌ POTEZ NIJE PRIHVAĆEN! Evaluacija: $evaluation. Potez kvari poziciju ili ne vodi do mata u traženom broju poteza.\n');
+            _sendBackendLog({
+              'mode': _categoryDisplayName,
+              'dynamicFen': _puzzleGame?.fen,
+              'status': 'REJECTED',
+              'eval': evaluation,
+              'reason': 'Potez je netačan i ne ispunjava kriterijum moda.',
+            });
+            if (_selectedCategory == 'mate_puzzle') {
+              _showMatePuzzleFailedDialog();
+            } else {
+              _showSnackBar('❌ Netačan potez! Pozicija je pokvarena (Eval: $evaluation).');
+            }
+            return;
+          }
+
           if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
             _isOpponentTurn = false; // Prevent duplicate triggers
 

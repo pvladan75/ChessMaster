@@ -1180,6 +1180,16 @@ app.post('/api/puzzles/log', (req, res) => {
   try {
     const { details } = req.body;
     if (details) {
+      if (details.status === 'REJECTED') {
+        console.log('\n❌ [REJECTED MOVE LOG - BACKEND TERMINAL] ===================');
+        console.log(`[1] MOD: ${details.mode}`);
+        console.log(`[3] DINAMIČKI FEN: ${details.dynamicFen}`);
+        console.log(`[STATUS]: ❌ ODBIJEN POTEZ KORISNIKA (Evaluacija: ${details.eval})`);
+        console.log(`[RAZLOG]: ${details.reason}`);
+        console.log('============================================================================\n');
+        return res.json({ success: true });
+      }
+
       console.log('\n=================== ♟️ [TRAINING LOG - BACKEND TERMINAL] ===================');
       if (details.mode) console.log(`[1] MOD: ${details.mode}`);
       if (details.initialFen) console.log(`[2] UČITANI FEN: ${details.initialFen}`);
