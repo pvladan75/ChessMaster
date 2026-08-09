@@ -1928,6 +1928,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         ],
       ),
     );
+  }
+
   String _formatMoveWithNumber(MoveNode node, MoveNode rootNode) {
     if (node.parent == null) return 'Početak';
 
