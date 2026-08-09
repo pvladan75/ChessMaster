@@ -473,7 +473,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         } else {
           if (_showEvaluation || _showEvalBar) {
             _stockfishService.setMultiPV(3);
-            _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 99);
+            _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 20);
           }
         }
       }
@@ -687,7 +687,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           }
         });
 
-        _stockfishService.analyzePosition(fen, depth: 99);
+        _stockfishService.analyzePosition(fen, depth: 20);
       }
     } catch (e) {
       print('Error loading basic mate preset $difficulty: $e');
@@ -760,7 +760,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           }
         });
 
-        _stockfishService.analyzePosition(fen, depth: 99);
+        _stockfishService.analyzePosition(fen, depth: 20);
       } else {
         _showSnackBar('Nije moguće učitati poziciju.');
       }
@@ -813,7 +813,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
     if (_showEvaluation || _showEvalBar) {
       _stockfishService.setMultiPV(3);
-      _stockfishService.analyzePosition(_initialPuzzleFen!, depth: 99);
+      _stockfishService.analyzePosition(_initialPuzzleFen!, depth: 20);
     }
 
     _sendBackendLog({
@@ -1017,7 +1017,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       resetBoardState(isNewPuzzle: false);
       if (_showEvaluation || _showEvalBar) {
         _stockfishService.setMultiPV(3);
-        _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 99);
+        _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 20);
       }
 
       print('\n[MATE_VERIFICATION] ❌ POTEZ ODBIJEN na k=$k od N=$reqN (Nije mat na tabli). Potez poništen, tabla otključana.\n');
@@ -1085,7 +1085,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         resetBoardState(isNewPuzzle: false);
         if (_showEvaluation || _showEvalBar) {
           _stockfishService.setMultiPV(3);
-          _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 99);
+          _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 20);
         }
 
         await _sendBackendLog({
@@ -1162,7 +1162,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     });
 
     _puzzleBoardController.loadFen(fen);
-    _stockfishService.analyzePosition(fen, depth: 99);
+    _stockfishService.analyzePosition(fen, depth: 20);
   }
 
   Future<void> _submitPuzzleResult(bool solved) async {
@@ -1695,7 +1695,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                                 _showEvaluation = !_showEvaluation;
                                 if (_showEvaluation) {
                                   _stockfishService.setMultiPV(3);
-                                  _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 99);
+                                  _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 20);
                                 } else {
                                   _engineLinesMap.clear();
                                   _engineArrows.clear();
@@ -1930,7 +1930,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _puzzleFailed = false;
     });
     if (_showEvaluation) {
-      _stockfishService.analyzePosition(node.fen, depth: 99);
+      _stockfishService.analyzePosition(node.fen, depth: 20);
     }
   }
 }

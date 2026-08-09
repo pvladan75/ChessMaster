@@ -220,13 +220,9 @@ class StockfishService {
       _sendCommand('stop');
       _sendCommand('ucinewgame');
       _sendCommand('position fen $fen');
-      if (depth >= 99) {
-        print('[STOCKFISH_NATIVE_LOG] 🚀 Pokrenuta neograničena analiza (go infinite)...');
-        _sendCommand('go infinite');
-      } else {
-        print('[STOCKFISH_NATIVE_LOG] 🎯 Pokrenuta analiza na dubini (go depth $depth)...');
-        _sendCommand('go depth $depth');
-      }
+      final effectiveDepth = depth > 20 ? 20 : depth;
+      print('[STOCKFISH_NATIVE_LOG] 🎯 Pokrenuta analiza na dubini (go depth $effectiveDepth)...');
+      _sendCommand('go depth $effectiveDepth');
     }
   }
 
