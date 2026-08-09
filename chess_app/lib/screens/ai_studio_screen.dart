@@ -143,7 +143,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           if (_selectedCategory == 'mate_puzzle') {
             if (evaluation.startsWith('M') || evaluation.startsWith('+M')) {
               final mateNum = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), ''));
-              if (mateNum != null && mateNum <= _selectedMateDepth) {
+              final reqMateDepth = int.tryParse(_selectedMateDepth) ?? 3;
+              if (mateNum != null && mateNum <= reqMateDepth) {
                 isMoveAcceptable = true;
               }
             }
