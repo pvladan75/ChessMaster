@@ -136,10 +136,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         int colorIdx = 0;
         for (var line in _engineLinesMap.values) {
           if (colorIdx >= 3) break;
-          if (line.moveLan.length >= 4) {
+          if (line.fromSquare.isNotEmpty && line.toSquare.isNotEmpty) {
             newArrows.add(ChessArrow(
-              from: line.moveLan.substring(0, 2),
-              to: line.moveLan.substring(2, 4),
+              from: line.fromSquare,
+              to: line.toSquare,
               colorCode: colors[colorIdx],
             ));
             colorIdx++;
@@ -1416,15 +1416,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           });
                         },
                       ),
-                      if (_selectedCategory == 'winning_position') ...[
-                        FilterChip(
-                          avatar: Icon(Icons.warning_amber_rounded, size: 16, color: _isBlunderAlertEnabled ? Colors.redAccent : Colors.grey),
-                          label: Text(_isBlunderAlertEnabled ? '🚨 Blunder: ON' : '🚨 Blunder: OFF', style: const TextStyle(fontSize: 11)),
-                          selected: _isBlunderAlertEnabled,
-                          selectedColor: Colors.red.shade900.withValues(alpha: 0.4),
-                          onSelected: (val) => setState(() => _isBlunderAlertEnabled = val),
-                        ),
-                      ],
                     ],
                   ),
                 ),
