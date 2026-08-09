@@ -26,6 +26,8 @@ import 'package:chess_app/widgets/create_course_dialog.dart';
 import 'package:chess_app/widgets/save_position_dialog.dart';
 import 'package:chess_app/widgets/matrix_filter_panel.dart';
 import 'package:chess_app/widgets/move_history_view.dart';
+import 'package:chess_app/widgets/game_selector_dialog.dart';
+import 'package:chess_app/widgets/share_position_dialog.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 import 'package:chess_app/models/recording_models.dart';
 
