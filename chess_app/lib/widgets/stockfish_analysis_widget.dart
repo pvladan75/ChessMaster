@@ -8,11 +8,9 @@ class StockfishAnalysisWidget extends StatelessWidget {
   final bool isAllowedToUseEngine;
   final bool isOnline;
   final bool isCustomEngineActive;
-  final String thinkingMode;
   final List<AnalysisLine> lines;
   final PlayerColor orientation;
   final VoidCallback onToggleEngine;
-  final Function(String mode) onChangeThinkingMode;
   final bool isShowEvalBarEnabled;
   final VoidCallback? onToggleShowEvalBar;
   final VoidCallback? onOpenSettings;
@@ -24,11 +22,9 @@ class StockfishAnalysisWidget extends StatelessWidget {
     required this.isAllowedToUseEngine,
     required this.isOnline,
     required this.isCustomEngineActive,
-    required this.thinkingMode,
     required this.lines,
     required this.orientation,
     required this.onToggleEngine,
-    required this.onChangeThinkingMode,
     this.isShowEvalBarEnabled = false,
     this.onToggleShowEvalBar,
     this.onOpenSettings,
@@ -46,19 +42,6 @@ class StockfishAnalysisWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildThinkingModeChip(String modeKey, String label) {
-    final isSelected = thinkingMode == modeKey;
-
-    return ChoiceChip(
-      label: Text(label, style: TextStyle(fontSize: 10, color: isSelected ? Colors.white : Colors.grey[300])),
-      selected: isSelected,
-      selectedColor: Colors.teal,
-      backgroundColor: Colors.black26,
-      onSelected: (selected) {
-        if (selected) onChangeThinkingMode(modeKey);
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +90,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                               ? 'Zaključano od strane trenera'
                               : (isCustomEngineActive
                                   ? 'Sopstveni lokalni engine (.exe)'
-                                  : (isOnline ? 'Online (Cloud API)' : 'Lokalni Engine')),
+                                  : (isOnline ? 'Spoljašnji Stockfish (Online API)' : 'Lokalni Engine (Nativni)')),
                           style: TextStyle(
                             fontSize: 10,
                             color: !isAllowedToUseEngine ? Colors.redAccent : Colors.grey,
@@ -241,24 +224,13 @@ class StockfishAnalysisWidget extends StatelessWidget {
 
               const SizedBox(height: 8),
 
-              // Speed & Depth Mode Selector Chips
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Dubina: D${bestLine != null && bestLine.depth > 0 ? bestLine.depth : (thinkingMode == 'deep' ? 16 : 10)}',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.tealAccent),
-                  ),
-                  Row(
-                    children: [
-                      _buildThinkingModeChip('fast', 'Brzi (D10)'),
-                      const SizedBox(width: 4),
-                      _buildThinkingModeChip('deep', 'Duboki (D16)'),
-                      const SizedBox(width: 4),
-                      _buildThinkingModeChip('infinite', 'Neprekidni'),
-                    ],
-                  ),
-                ],
+              // Depth Display
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Dubina analize: D${bestLine != null && bestLine.depth > 0 ? bestLine.depth : 0}',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.tealAccent),
+                ),
               ),
             ],
           ],

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -29,7 +30,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   // Engine Analysis State
   bool _isEngineEnabled = false;
-  String _thinkingMode = 'fast';
   Map<int, AnalysisLine> _engineLinesMap = {};
   List<ChessArrow> _engineArrows = [];
 
@@ -299,7 +299,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           _showSnackBar('🤝 Pat / Remi u poziciji.');
         } else {
           if (_showEvaluation) {
-            _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 16);
+            _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 99);
           }
         }
       }
@@ -448,7 +448,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           }
         });
 
-        _stockfishService.analyzePosition(fen, depth: kDefaultEngineTargetDepth);
+        _stockfishService.analyzePosition(fen, depth: 99);
       }
     } catch (e) {
       print('Error loading basic mate preset $difficulty: $e');
@@ -521,7 +521,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           }
         });
 
-        _stockfishService.analyzePosition(fen, depth: kDefaultEngineTargetDepth);
+        _stockfishService.analyzePosition(fen, depth: 99);
       } else {
         _showSnackBar('Nije moguće učitati poziciju.');
       }
@@ -575,7 +575,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     });
 
     if (_showEvaluation || _showEvalBar) {
-      _stockfishService.analyzePosition(_initialPuzzleFen!, depth: kDefaultEngineTargetDepth);
+      _stockfishService.analyzePosition(_initialPuzzleFen!, depth: 99);
     }
 
     _sendBackendLog({
@@ -874,7 +874,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     });
 
     _puzzleBoardController.loadFen(fen);
-    _stockfishService.analyzePosition(fen, depth: 16);
+    _stockfishService.analyzePosition(fen, depth: 99);
   }
 
   Future<void> _submitPuzzleResult(bool solved) async {
@@ -1370,9 +1370,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           StockfishAnalysisWidget(
                             isEngineEnabled: _showEvaluation,
                             isAllowedToUseEngine: true,
-                            isOnline: true,
-                            isCustomEngineActive: true,
-                            thinkingMode: _thinkingMode,
+                            isOnline: _stockfishService.isOnline,
+                            isCustomEngineActive: _stockfishService.isCustomEngineActive,
                             lines: _engineLinesMap.values.toList(),
                             orientation: _puzzleOrientation,
                             isShowEvalBarEnabled: _showEvalBar,
@@ -1385,18 +1384,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                               setState(() {
                                 _showEvaluation = !_showEvaluation;
                                 if (_showEvaluation) {
-                                  _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
+                                  _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 99);
                                 } else {
                                   _engineLinesMap.clear();
                                   _engineArrows.clear();
                                 }
                               });
-                            },
-                            onChangeThinkingMode: (mode) {
-                              setState(() => _thinkingMode = mode);
-                              if (_showEvaluation) {
-                                _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: mode == 'deep' ? 22 : 16);
-                              }
                             },
                           ),
                         const SizedBox(height: 12),
@@ -1625,7 +1618,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _puzzleFailed = false;
     });
     if (_showEvaluation) {
-      _stockfishService.analyzePosition(node.fen, depth: 16);
+      _stockfishService.analyzePosition(node.fen, depth: 99);
     }
   }
 }
@@ -1698,14 +1691,19 @@ class HorizontalEvalBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     double winPct;
-    final displayEvalText = '$evalString (d$depth)';
 
-    if (eval.abs() > 500) {
-      winPct = eval > 0 ? 0.98 : 0.02;
+    if (evalString.contains('M') && !evalString.contains('-')) {
+      winPct = 1.0;
+    } else if (evalString.contains('-M')) {
+      winPct = 0.0;
+    } else if (eval.abs() > 500) {
+      winPct = eval > 0 ? 1.0 : 0.0;
     } else {
-      final sigmoid = 1.0 / (1.0 + double.parse(((-eval / 4.0)).toStringAsFixed(4)));
-      winPct = sigmoid.clamp(0.04, 0.96);
+      final sigmoid = 1.0 / (1.0 + math.exp(-eval / 3.0));
+      winPct = sigmoid.clamp(0.03, 0.97);
     }
+
+    final String displayEvalText = depth < 18 ? '$evalString (d$depth)' : '(d$depth)';
 
     return Container(
       height: 24,
