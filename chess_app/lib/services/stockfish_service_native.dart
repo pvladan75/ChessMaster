@@ -218,7 +218,13 @@ class StockfishService {
       if (_stockfish == null && _customProcess == null) return;
       _sendCommand('stop');
       _sendCommand('position fen $fen');
-      _sendCommand('go depth 18');
+      if (depth >= 99) {
+        print('[STOCKFISH_NATIVE_LOG] 🚀 Pokrenuta neograničena analiza (go infinite)...');
+        _sendCommand('go infinite');
+      } else {
+        print('[STOCKFISH_NATIVE_LOG] 🎯 Pokrenuta analiza na dubini (go depth $depth)...');
+        _sendCommand('go depth $depth');
+      }
     }
   }
 

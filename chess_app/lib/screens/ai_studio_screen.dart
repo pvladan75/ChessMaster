@@ -92,9 +92,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   Future<void> _checkServerHealth() async {
     try {
-      final res = await http.get(Uri.parse('$backendUrl/api/puzzles/easy')).timeout(const Duration(seconds: 3));
-      if (res.statusCode == 200 || res.statusCode == 401) {
+      final res = await http.get(Uri.parse('$backendUrl/api/health')).timeout(const Duration(seconds: 3));
+      if (res.statusCode == 200) {
         if (!_isBackendConnected && mounted) {
+          print('[HEALTH_CHECK_LOG] ✅ Server reconnected! Status 200 from $backendUrl/api/health');
           setState(() => _isBackendConnected = true);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -111,9 +112,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           );
         }
       } else {
+        print('[HEALTH_CHECK_LOG] ⚠️ Server check returned HTTP ${res.statusCode}');
         _handleServerDisconnected();
       }
-    } catch (_) {
+    } catch (e) {
+      print('[HEALTH_CHECK_LOG] ❌ Server connection error: $e');
       _handleServerDisconnected();
     }
   }
@@ -188,6 +191,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       if (mounted) {
         final currentFen = _puzzleBoardController.getFen();
         if (_activeFen != null && _activeFen!.split(' ')[0] != currentFen.split(' ')[0]) return;
+
+        print('[STREAM_EVAL_DEBUG] Dubina: $depth | Eval: $evaluation | Best: $bestMove | Turn: ${_isOpponentTurn ? "ENGINE" : "KORISNIK"}');
 
         double parsedEval = 0.0;
         final numVal = double.tryParse(evaluation);
@@ -1807,7 +1812,12 @@ class HorizontalEvalBarWidget extends StatelessWidget {
       winPct = sigmoid.clamp(0.03, 0.97);
     }
 
-    final String displayEvalText = '$evalString (d$depth)';
+    final safeEvalString = (evalString.isNotEmpty && evalString != '0.00')
+        ? evalString
+        : (eval > 0 ? '+${eval.toStringAsFixed(2)}' : eval.toStringAsFixed(2));
+    final String displayEvalText = '$safeEvalString (d$depth)';
+
+    print('[EVAL_BAR_DEBUG] eval: $eval | evalString: "$evalString" | display: "$displayEvalText" | winPct: $winPct');
 
     return Container(
       height: 24,

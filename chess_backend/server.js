@@ -999,6 +999,11 @@ app.get('/sessions/scheduled', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/health - Health check endpoint for client connection monitoring
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // GET /api/puzzles/next - Fetch next puzzle from clean puzzles_23 and winning_chess dataset
 app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
   const { type, mate_depth, excludeId } = req.query;
