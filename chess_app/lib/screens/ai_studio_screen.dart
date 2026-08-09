@@ -60,6 +60,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   bool _isProgrammaticMove = false;
   String? _lastMoveFrom;
   String? _lastMoveTo;
+  String? _selectedSquare;
+  MoveTree? _puzzleMoveTree;
+  String? _initialPuzzleFen;
 
   // AI Coach Analysis State
   bool _isAnalyzingAi = false;
@@ -91,6 +94,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     _lastUserAdvantage = null;
     _activeFen = null;
     _showEvaluation = false;
+    _selectedSquare = null;
+    _puzzleMoveTree = null;
+    _initialPuzzleFen = null;
   }
 
   Future<void> _sendBackendLog(Map<String, dynamic> details) async {
@@ -208,11 +214,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
               'reason': 'Potez je netačan i ne ispunjava kriterijum moda. Pozicija je automatski vraćena na početno stanje.',
             });
 
-            if (_selectedCategory == 'mate_puzzle') {
-              _showMatePuzzleFailedDialog();
-            } else {
-              _showSnackBar('❌ Netačan potez! Pozicija je pokvarena (Eval: $evaluation).');
-            }
+            _showIncorrectMoveDialog(evaluation);
             return;
           }
 
@@ -385,6 +387,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     final fen = _basicMatePresets[presetKey] ?? '4k3/8/8/8/8/8/8/Q3K3 w - - 0 1';
     _puzzleGame = chess.Chess.fromFEN(fen);
     _activeFen = fen;
+    _initialPuzzleFen = fen;
+    _puzzleMoveTree = MoveTree(startingFen: fen);
 
     print('\n==================================================');
     print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
@@ -454,6 +458,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
         _puzzleGame = chess.Chess.fromFEN(fen);
         _activeFen = fen;
+        _initialPuzzleFen = fen;
+        _puzzleMoveTree = MoveTree(startingFen: fen);
 
         setState(() {
           _currentPuzzle = p;
@@ -498,6 +504,170 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     }
   }
 
+  void _recordMoveInTree(String from, String to, {String promotion = ''}) {
+    if (_puzzleGame == null || _puzzleMoveTree == null) return;
+    final san = _puzzleGame!.history.isNotEmpty ? (_puzzleGame!.history.last.move.san ?? '$from$to') : '$from$to';
+    final fen = _puzzleGame!.fen;
+
+    for (var child in _puzzleMoveTree!.current.children) {
+      if (child.san == san || (child.from == from && child.to == to)) {
+        _puzzleMoveTree!.current = child;
+        return;
+      }
+    }
+
+    final newNode = MoveNode(
+      san: san,
+      fen: fen,
+      from: from,
+      to: to,
+      parent: _puzzleMoveTree!.current,
+    );
+    _puzzleMoveTree!.current.children.add(newNode);
+    _puzzleMoveTree!.current = newNode;
+  }
+
+  void _showIncorrectMoveDialog(String evaluation) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final isMateCategory = _selectedCategory == 'mate_puzzle';
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: const [
+              Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 28),
+              SizedBox(width: 8),
+              Text('❌ Netačan potez!', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            isMateCategory
+                ? 'Potez nije ispunio uslov za mat u $_selectedMateDepth ${int.tryParse(_selectedMateDepth) == 1 ? 'potez' : 'poteza'}.'
+                : 'Ovaj potez nije najbolji nastavak (Evaluacija: $evaluation). Šta želite da uradite?',
+            style: const TextStyle(fontSize: 14),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actionsAlignment: MainAxisAlignment.end,
+          actions: [
+            if (!isMateCategory)
+              ElevatedButton.icon(
+                icon: const Icon(Icons.play_arrow, size: 16),
+                label: const Text('Nastavi sa igrom'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal.shade700,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  setState(() {
+                    _puzzleFailed = false;
+                  });
+                  _showSnackBar('💡 Nastavili ste igru iz ove pozicije.');
+                },
+              ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Probaj ponovo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber.shade800,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _restartCurrentPuzzle();
+              },
+            ),
+            TextButton.icon(
+              icon: const Icon(Icons.arrow_forward, size: 16),
+              label: const Text('Sledeća pozicija'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                if (_selectedCategory == 'basic_mate') {
+                  _loadBasicMatePreset(_selectedBasicMateType);
+                } else {
+                  _fetchNextPuzzle();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _restartCurrentPuzzle() {
+    if (_initialPuzzleFen == null) return;
+    _puzzleGame = chess.Chess.fromFEN(_initialPuzzleFen!);
+    _activeFen = _initialPuzzleFen;
+    _puzzleBoardController.loadFen(_initialPuzzleFen!);
+
+    setState(() {
+      _puzzleSolved = false;
+      _puzzleFailed = false;
+      _isOpponentTurn = false;
+      _moveIndex = 0;
+      _selectedSquare = null;
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
+      _puzzleMoveTree = MoveTree(startingFen: _initialPuzzleFen!);
+    });
+
+    _sendBackendLog({
+      'mode': _categoryDisplayName,
+      'action': 'RESTART_PUZZLE',
+      'initialFen': _initialPuzzleFen,
+    });
+
+    _showSnackBar('🔄 Pozicija je vraćena na početno stanje.');
+  }
+
+  void _handleSquareTap(String square) {
+    if (_isOpponentTurn || _puzzleSolved || _puzzleGame == null) return;
+
+    final piece = _puzzleGame!.get(square);
+    final isTurnWhite = _puzzleGame!.turn == chess.Color.WHITE;
+
+    bool isFriendlyPiece = false;
+    if (piece != null) {
+      if (isTurnWhite && piece.color == chess.Color.WHITE) isFriendlyPiece = true;
+      if (!isTurnWhite && piece.color == chess.Color.BLACK) isFriendlyPiece = true;
+    }
+
+    if (isFriendlyPiece) {
+      setState(() {
+        _selectedSquare = square;
+      });
+      return;
+    }
+
+    if (_selectedSquare != null && _selectedSquare != square) {
+      final from = _selectedSquare!;
+      final to = square;
+
+      final testGame = chess.Chess.fromFEN(_puzzleGame!.fen);
+      final moveRes = testGame.move({'from': from, 'to': to, 'promotion': 'q'});
+
+      if (moveRes != null) {
+        _puzzleGame!.move({'from': from, 'to': to, 'promotion': 'q'});
+        _puzzleBoardController.loadFen(_puzzleGame!.fen);
+        _activeFen = _puzzleGame!.fen;
+        setState(() {
+          _selectedSquare = null;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _onUserPuzzleMoveMade();
+        });
+      } else {
+        setState(() {
+          _selectedSquare = null;
+        });
+      }
+    }
+  }
+
   void _playPuzzleMove(String lanMove) {
     if (lanMove.length < 4) return;
     final fromStr = lanMove.substring(0, 2);
@@ -509,6 +679,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         _puzzleGame!.move({'from': fromStr, 'to': toStr, 'promotion': lanMove.length > 4 ? lanMove[4] : 'q'});
         _puzzleBoardController.loadFen(_puzzleGame!.fen);
         _activeFen = _puzzleGame!.fen;
+        _recordMoveInTree(fromStr, toStr);
       } else {
         _puzzleBoardController.makeMove(from: fromStr, to: toStr);
         _activeFen = _puzzleBoardController.getFen();
@@ -523,8 +694,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       _isProgrammaticMove = false;
     }
   }
-
-
 
   void _onUserPuzzleMoveMade() async {
     print('[MOVE_MADE_DEBUG] _onUserPuzzleMoveMade called! Prog: $_isProgrammaticMove | Solved: $_puzzleSolved | Failed: $_puzzleFailed | OpponentTurn: $_isOpponentTurn | GameNull: ${_puzzleGame == null}');
@@ -575,6 +744,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
     final fromStr = userLan.substring(0, 2);
     final toStr = userLan.substring(2, 4);
+    _recordMoveInTree(fromStr, toStr);
     setState(() {
       _lastMoveFrom = fromStr;
       _lastMoveTo = toStr;
@@ -1323,57 +1493,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                             ],
                           ),
                         ),
-                        Stack(
-                          children: [
-                            IgnorePointer(
-                              ignoring: _isOpponentTurn || _puzzleSolved || _puzzleFailed,
-                              child: Opacity(
-                                opacity: _isBlindfold ? 0.05 : 1.0,
-                                child: ChessBoard(
-                                  controller: _puzzleBoardController,
-                                  boardOrientation: _puzzleOrientation,
-                                  onMove: () {
-                                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                                      _onUserPuzzleMoveMade();
-                                    });
-                                  },
-                                ),
-                              ),
-                            ),
-                            if (_isBlindfold)
-                              Positioned.fill(
-                                child: IgnorePointer(
-                                  child: Container(
-                                    color: Colors.black.withValues(alpha: 0.25),
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: const [
-                                          Icon(Icons.visibility_off, size: 64, color: Colors.amberAccent),
-                                          SizedBox(height: 8),
-                                          Text('🙈 Šah Na Slepo', style: TextStyle(color: Colors.amberAccent, fontSize: 18, fontWeight: FontWeight.bold)),
-                                          Text('Figure su skrivene radi vežbanja vizuelizacije', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            Positioned.fill(
-                              child: IgnorePointer(
-                                child: CustomPaint(
-                                  painter: ChessBoardPainter(
-                                    arrows: _aiArrows,
-                                    boardSize: 320,
-                                    orientation: _puzzleOrientation,
-                                    lastMoveFrom: _lastMoveFrom,
-                                    lastMoveTo: _lastMoveTo,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        _buildBoardWithTapAndHighlights(320.0),
+                        const SizedBox(height: 10),
+
+                        // Move History & Variation Tree Navigation Bar
+                        _buildMoveHistoryNavigationWidget(),
                         const SizedBox(height: 12),
 
                         // Action Buttons
@@ -1386,6 +1510,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                               onPressed: () {
                                 _fetchAiExplanation(_puzzleBoardController.getFen());
                               },
+                            ),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.refresh, size: 16),
+                              label: const Text('Probaj Ponovo'),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade800, foregroundColor: Colors.white),
+                              onPressed: _restartCurrentPuzzle,
                             ),
                             ElevatedButton.icon(
                               icon: const Icon(Icons.arrow_forward),
@@ -1595,5 +1725,251 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         ),
       ),
     );
+  }
+
+  Widget _buildBoardWithTapAndHighlights(double boardSize) {
+    final squareSize = boardSize / 8.0;
+
+    return GestureDetector(
+      onTapUp: (details) {
+        if (_isOpponentTurn || _puzzleSolved) return;
+        final localOffset = details.localPosition;
+        final x = localOffset.dx;
+        final y = localOffset.dy;
+
+        if (x < 0 || y < 0 || x >= boardSize || y >= boardSize) return;
+
+        final col = (x / squareSize).floor().clamp(0, 7);
+        final row = (y / squareSize).floor().clamp(0, 7);
+
+        String square;
+        if (_puzzleOrientation == PlayerColor.white) {
+          final file = String.fromCharCode('a'.codeUnitAt(0) + col);
+          final rank = 8 - row;
+          square = '$file$rank';
+        } else {
+          final file = String.fromCharCode('h'.codeUnitAt(0) - col);
+          final rank = 1 + row;
+          square = '$file$rank';
+        }
+
+        _handleSquareTap(square);
+      },
+      child: Stack(
+        children: [
+          IgnorePointer(
+            ignoring: _isOpponentTurn || _puzzleSolved || _puzzleFailed,
+            child: Opacity(
+              opacity: _isBlindfold ? 0.05 : 1.0,
+              child: ChessBoard(
+                controller: _puzzleBoardController,
+                boardOrientation: _puzzleOrientation,
+                onMove: () {
+                  _selectedSquare = null;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _onUserPuzzleMoveMade();
+                  });
+                },
+              ),
+            ),
+          ),
+          if (_isBlindfold)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.visibility_off, size: 64, color: Colors.amberAccent),
+                        SizedBox(height: 8),
+                        Text('🙈 Šah Na Slepo', style: TextStyle(color: Colors.amberAccent, fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text('Figure su skrivene radi vežbanja vizuelizacije', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: ChessBoardPainter(
+                  arrows: _aiArrows,
+                  boardSize: boardSize,
+                  orientation: _puzzleOrientation,
+                  lastMoveFrom: _lastMoveFrom,
+                  lastMoveTo: _lastMoveTo,
+                ),
+              ),
+            ),
+          ),
+          if (_selectedSquare != null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: SelectedSquarePainter(
+                    selectedSquare: _selectedSquare!,
+                    boardSize: boardSize,
+                    orientation: _puzzleOrientation,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMoveHistoryNavigationWidget() {
+    if (_puzzleMoveTree == null) return const SizedBox.shrink();
+
+    final currentNode = _puzzleMoveTree!.current;
+    final mainLineNodes = <MoveNode>[];
+    MoveNode? curr = currentNode;
+    while (curr != null && curr.parent != null) {
+      mainLineNodes.insert(0, curr);
+      curr = curr.parent;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey.shade900.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                ActionChip(
+                  avatar: const Icon(Icons.flag, size: 14, color: Colors.amberAccent),
+                  label: const Text('Početak', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  backgroundColor: currentNode == _puzzleMoveTree!.root ? Colors.amber.shade900 : Colors.blueGrey.shade800,
+                  onPressed: () => _navigateToNode(_puzzleMoveTree!.root),
+                ),
+                const SizedBox(width: 6),
+                ...mainLineNodes.map((node) {
+                  final isCurrent = (node == currentNode);
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6.0),
+                    child: ChoiceChip(
+                      label: Text(node.san, style: TextStyle(fontSize: 11, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal, color: isCurrent ? Colors.white : Colors.white70)),
+                      selected: isCurrent,
+                      selectedColor: Colors.teal.shade700,
+                      backgroundColor: Colors.blueGrey.shade800,
+                      onSelected: (_) => _navigateToNode(node),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.first_page, size: 20),
+                tooltip: 'Početna pozicija',
+                onPressed: () => _navigateToNode(_puzzleMoveTree!.root),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_left, size: 20),
+                tooltip: 'Prethodni potez',
+                onPressed: currentNode.parent != null ? () => _navigateToNode(currentNode.parent!) : null,
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right, size: 20),
+                tooltip: 'Naredni potez',
+                onPressed: currentNode.children.isNotEmpty ? () => _navigateToNode(currentNode.children.first) : null,
+              ),
+              IconButton(
+                icon: const Icon(Icons.last_page, size: 20),
+                tooltip: 'Poslednji potez',
+                onPressed: () {
+                  MoveNode target = currentNode;
+                  while (target.children.isNotEmpty) {
+                    target = target.children.first;
+                  }
+                  _navigateToNode(target);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToNode(MoveNode node) {
+    if (_puzzleGame == null || _puzzleMoveTree == null) return;
+    _puzzleMoveTree!.current = node;
+    _puzzleGame = chess.Chess.fromFEN(node.fen);
+    _puzzleBoardController.loadFen(node.fen);
+    _activeFen = node.fen;
+    setState(() {
+      _selectedSquare = null;
+      _puzzleFailed = false;
+    });
+    if (_showEvaluation) {
+      _stockfishService.analyzePosition(node.fen, depth: 16);
+    }
+  }
+}
+
+class SelectedSquarePainter extends CustomPainter {
+  final String selectedSquare;
+  final double boardSize;
+  final PlayerColor orientation;
+
+  SelectedSquarePainter({
+    required this.selectedSquare,
+    required this.boardSize,
+    required this.orientation,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (selectedSquare.length < 2) return;
+    final fileChar = selectedSquare[0];
+    final rankNum = int.tryParse(selectedSquare[1]);
+    if (rankNum == null) return;
+
+    final squareSize = boardSize / 8.0;
+    int col, row;
+
+    if (orientation == PlayerColor.white) {
+      col = fileChar.codeUnitAt(0) - 'a'.codeUnitAt(0);
+      row = 8 - rankNum;
+    } else {
+      col = 'h'.codeUnitAt(0) - fileChar.codeUnitAt(0);
+      row = rankNum - 1;
+    }
+
+    final rect = Rect.fromLTWH(col * squareSize, row * squareSize, squareSize, squareSize);
+
+    final fillPaint = Paint()
+      ..color = Colors.amberAccent.withValues(alpha: 0.35)
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(rect, fillPaint);
+
+    final borderPaint = Paint()
+      ..color = Colors.amberAccent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
+    canvas.drawRect(rect, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant SelectedSquarePainter oldDelegate) {
+    return oldDelegate.selectedSquare != selectedSquare ||
+        oldDelegate.boardSize != boardSize ||
+        oldDelegate.orientation != orientation;
   }
 }
