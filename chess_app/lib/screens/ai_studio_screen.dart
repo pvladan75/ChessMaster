@@ -241,6 +241,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
         // 2. Opponent Bot Move Execution & Verification
         if (_isOpponentTurn) {
+          if (multipv != 1) return; // GUARANTEE OPPONENT BOT ONLY PLAYS TOP #1 BEST MOVE!
           if (_selectedCategory == 'mate_puzzle') {
             final int reqN = int.tryParse(_selectedMateDepth) ?? 1;
             final int k = _userMoveCount;
@@ -384,6 +385,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           _showSnackBar('🤝 Pat / Remi u poziciji.');
         } else {
           if (_showEvaluation) {
+            _stockfishService.setMultiPV(3);
             _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 99);
           }
         }
@@ -394,7 +396,19 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   void _triggerOpponentBotResponse() async {
     if (_puzzleGame == null || _puzzleGame!.in_checkmate) return;
     setState(() => _isOpponentTurn = true);
+
+    // If puzzle solution JSON has the predefined response move at _moveIndex, play it!
+    if (_expectedMoves.length > _moveIndex && _expectedMoves[_moveIndex].isNotEmpty) {
+      final jsonResponseMove = _expectedMoves[_moveIndex];
+      _moveIndex++;
+      print('\n[OPPONENT_BOT_DEBUG] 🎯 Pronađen spreman odgovor u JSON rešenju: $jsonResponseMove\n');
+      _isOpponentTurn = false;
+      _playOpponentMove(jsonResponseMove, 'JSON');
+      return;
+    }
+
     await _stockfishService.initEngine();
+    _stockfishService.setMultiPV(1);
     final targetDepth = AppSettingsService.instance.defaultEngineDepth;
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
   }
@@ -905,17 +919,16 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     });
 
     if (isFastTrack) {
-      if (_selectedCategory == 'mate_puzzle') {
-        _moveIndex = 1;
-      }
+      _moveIndex++;
       _triggerOpponentBotResponse();
       return;
     }
 
     // --- STEP 2: ENGINE EVALUATION (DEPTH 25 FOR MATE_PUZZLE) ---
-    final targetDepth = (_selectedCategory == 'mate_puzzle') ? 25 : kDefaultEngineTargetDepth;
+    final targetDepth = (_selectedCategory == 'mate_puzzle') ? 25 : AppSettingsService.instance.defaultEngineDepth;
     setState(() => _isOpponentTurn = true);
     await _stockfishService.initEngine();
+    _stockfishService.setMultiPV(1);
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
   }
 

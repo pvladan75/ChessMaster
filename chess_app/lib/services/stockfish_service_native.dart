@@ -249,6 +249,11 @@ class StockfishService {
     _sendCommand('stop');
   }
 
+  /// Sets MultiPV option on engine
+  void setMultiPV(int count) {
+    _sendCommand('setoption name MultiPV value $count');
+  }
+
   /// Internal helper to send a command to Stockfish stdin
   void _sendCommand(String command) {
     if (_customProcess != null) {
