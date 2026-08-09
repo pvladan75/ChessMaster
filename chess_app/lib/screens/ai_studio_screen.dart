@@ -64,6 +64,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   int? _lastRatingChange;
   bool _isOpponentTurn = false;
   bool _isVerifyingUserMove = false;
+  int _positionToken = 0;
   PlayerColor _puzzleOrientation = PlayerColor.white;
   bool _isProgrammaticMove = false;
   String? _lastMoveFrom;
@@ -156,6 +157,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   /// Centralized Universal Board State Reboot & Cleanup Function
   void resetBoardState({bool isNewPuzzle = false}) {
+    final oldFen = _activeFen ?? _puzzleBoardController.getFen();
+    _positionToken++;
+    final int currentToken = _positionToken;
+    print('[STATE RESET] Cleared arrows and stopped analysis for FEN: $oldFen (Token: $currentToken)');
+
     // 1. Immediately HALT any active Stockfish analysis worker
     _stockfishService.stopAnalysis();
 
@@ -219,139 +225,153 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   Future<void> _initStockfish() async {
     await _stockfishService.initEngine();
-    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv, depth, isFinal) async {
-      if (mounted) {
-        final currentFen = _puzzleBoardController.getFen();
-        if (_activeFen != null && _activeFen!.split(' ')[0] != currentFen.split(' ')[0]) return;
+    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv, depth, isFinal, analyzedFen) async {
+      if (!mounted) return;
 
-        print('[STREAM_EVAL_DEBUG] Dubina: $depth | Eval: $evaluation | Best: $bestMove | Turn: ${_isOpponentTurn ? "ENGINE" : "KORISNIK"}');
+      print('[ENGINE STREAM] Received eval for FEN: $analyzedFen | Depth: $depth | Best Move: $bestMove');
 
-        double parsedEval = 0.0;
-        final numVal = double.tryParse(evaluation);
-        if (numVal != null) {
-          parsedEval = numVal;
-        } else if (evaluation.contains('M')) {
-          final mateNum = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-          parsedEval = evaluation.contains('-') ? (-10000.0 + mateNum) : (10000.0 - mateNum);
+      final currentBoardFen = _puzzleBoardController.getFen().split(' ')[0];
+      final eventFen = analyzedFen.split(' ')[0];
+
+      if (eventFen != currentBoardFen) {
+        print('[IGNORED EVENT] Discarding stale evaluation from old FEN: $analyzedFen (Current Board FEN: $currentBoardFen)');
+        return; // Odbaci stari event i NEMOJ crtati strelice!
+      }
+
+      print('[UI RENDER] Attempting to draw arrows for FEN: $analyzedFen | Current Board FEN: $currentBoardFen');
+
+      double parsedEval = 0.0;
+      final numVal = double.tryParse(evaluation);
+      if (numVal != null) {
+        parsedEval = numVal;
+      } else if (evaluation.contains('M')) {
+        final mateNum = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+        parsedEval = evaluation.contains('-') ? (-10000.0 + mateNum) : (10000.0 - mateNum);
+      }
+
+      // Build top 3 engine arrows for display
+      final List<ChessArrow> newArrows = [];
+      final colors = ['G', 'B', 'O'];
+      int colorIdx = 0;
+      for (var line in _engineLinesMap.values) {
+        if (colorIdx >= 3) break;
+        if (line.fromSquare.isNotEmpty && line.toSquare.isNotEmpty) {
+          newArrows.add(ChessArrow(
+            from: line.fromSquare,
+            to: line.toSquare,
+            colorCode: colors[colorIdx],
+          ));
+          colorIdx++;
         }
+      }
 
-        // Build top 3 engine arrows for display
-        final List<ChessArrow> newArrows = [];
-        final colors = ['G', 'B', 'O'];
-        int colorIdx = 0;
-        for (var line in _engineLinesMap.values) {
-          if (colorIdx >= 3) break;
-          if (line.fromSquare.isNotEmpty && line.toSquare.isNotEmpty) {
-            newArrows.add(ChessArrow(
-              from: line.fromSquare,
-              to: line.toSquare,
-              colorCode: colors[colorIdx],
-            ));
-            colorIdx++;
-          }
-        }
+      // ONLY update main evaluation score & depth when multipv == 1 (top #1 best move)!
+      if (multipv == 1) {
+        setState(() {
+          _currentRawEval = parsedEval;
+          _currentEvalString = evaluation;
+          _currentEvalDepth = depth;
+          _engineArrows = newArrows;
+        });
+        _lastPosEval = parsedEval;
+      } else {
+        setState(() {
+          _engineArrows = newArrows;
+        });
+      }
 
-        // ONLY update main evaluation score & depth when multipv == 1 (top #1 best move)!
-        if (multipv == 1) {
-          setState(() {
-            _currentRawEval = parsedEval;
-            _currentEvalString = evaluation;
-            _currentEvalDepth = depth;
-            _engineArrows = newArrows;
-          });
-          _lastPosEval = parsedEval;
-        } else {
-          setState(() {
-            _engineArrows = newArrows;
-          });
-        }
+      // --- PHASE A: USER MOVE VERIFICATION (Depth 25 with Early Exit) ---
+      if (_isVerifyingUserMove) {
+        if (_selectedCategory == 'mate_puzzle') {
+          final int reqN = int.tryParse(_selectedMateDepth) ?? 1;
+          final int k = _userMoveCount;
+          final int remainingNeeded = reqN - k;
 
-        // --- PHASE A: USER MOVE VERIFICATION (Depth 25 with Early Exit) ---
-        if (_isVerifyingUserMove) {
-          if (_selectedCategory == 'mate_puzzle') {
-            final int reqN = int.tryParse(_selectedMateDepth) ?? 1;
-            final int k = _userMoveCount;
-            final int remainingNeeded = reqN - k;
-
-            // Check if Stockfish output contains mate in M for active player
-            int? userMateScore;
-            if (evaluation.contains('M')) {
-              final isNegative = evaluation.contains('-');
-              final mateVal = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), ''));
-              if (mateVal != null) {
-                if (_puzzleOrientation == PlayerColor.white && !isNegative) {
-                  userMateScore = mateVal;
-                } else if (_puzzleOrientation == PlayerColor.black && isNegative) {
-                  userMateScore = mateVal;
-                }
+          // Check if Stockfish output contains mate in M for active player
+          int? userMateScore;
+          if (evaluation.contains('M')) {
+            final isNegative = evaluation.contains('-');
+            final mateVal = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), ''));
+            if (mateVal != null) {
+              if (_puzzleOrientation == PlayerColor.white && !isNegative) {
+                userMateScore = mateVal;
+              } else if (_puzzleOrientation == PlayerColor.black && isNegative) {
+                userMateScore = mateVal;
               }
             }
-
-            // EARLY EXIT: Stockfish found mate M <= (N - k) -> ACCEPT USER MOVE!
-            if (userMateScore != null && userMateScore <= remainingNeeded) {
-              print('\n[MATE_VERIFICATION] ✅ EARLY EXIT (Depth $depth): Nađen mat M$userMateScore <= $remainingNeeded! Potez prihvaćen!\n');
-              _isVerifyingUserMove = false;
-              _stockfishService.stopAnalysis();
-              _triggerOpponentBotResponse();
-              return;
-            }
-
-            // REJECTION: Stockfish reached Depth 25 without finding M <= (N - k) -> REJECT USER MOVE!
-            if (isFinal || depth >= 25) {
-              _isVerifyingUserMove = false;
-              _stockfishService.stopAnalysis();
-
-              // Undo ONLY that single incorrect move
-              if (_puzzleGame != null && _puzzleGame!.history.isNotEmpty) {
-                _puzzleGame!.undo();
-                _puzzleBoardController.loadFen(_puzzleGame!.fen);
-                _activeFen = _puzzleGame!.fen;
-                if (_userMoveCount > 0) _userMoveCount--;
-              }
-
-              print('\n[MATE_VERIFICATION] ❌ POTEZ ODBIJEN! (Stockfish na dubini 25 nije pronašao mat u $remainingNeeded poteza). Potez vraćen, tabla otključana.\n');
-
-              await _sendBackendLog({
-                'mode': _categoryDisplayName,
-                'dynamicFen': _puzzleGame?.fen,
-                'status': 'REJECTED',
-                'eval': evaluation,
-                'reason': 'Stockfish na dubini 25 nije pronašao mat u $remainingNeeded poteza.',
-              });
-
-              _showSnackBar('Netačan potez! Pokušajte sa drugim potezom.');
-              return;
-            }
           }
-          return;
-        }
 
-        // --- PHASE B: OPPONENT BOT TURN RESPONSE ---
-        if (_isOpponentTurn) {
-          if (multipv != 1) return; // GUARANTEE OPPONENT BOT ONLY PLAYS TOP #1 BEST MOVE!
-
-          final targetDepth = AppSettingsService.instance.defaultEngineDepth;
-          if (depth < targetDepth && !isFinal) return;
-
-          if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
-            print('\n[ENGINE_MOVE_DEBUG] 🎯 Stockfish je dostigao zadatu dubinu $depth (Cilj iz podešavanja: $targetDepth)! Odabran potez: $bestMove (Eval: $evaluation)\n');
+          // EARLY EXIT: Stockfish found mate M <= (N - k) -> ACCEPT USER MOVE!
+          if (userMateScore != null && userMateScore <= remainingNeeded) {
+            print('\n[MATE_VERIFICATION] ✅ EARLY EXIT (Depth $depth): Nađen mat M$userMateScore <= $remainingNeeded! Potez prihvaćen!\n');
+            _isVerifyingUserMove = false;
             _stockfishService.stopAnalysis();
-            _isOpponentTurn = false;
-            _playOpponentMove(bestMove, evaluation);
+            _triggerOpponentBotResponse();
+            return;
           }
+
+          // REJECTION: Stockfish reached Depth 25 without finding M <= (N - k) -> REJECT USER MOVE!
+          if (isFinal || depth >= 25) {
+            _isVerifyingUserMove = false;
+            _stockfishService.stopAnalysis();
+
+            // Undo ONLY that single incorrect move
+            if (_puzzleGame != null && _puzzleGame!.history.isNotEmpty) {
+              _puzzleGame!.undo();
+              _puzzleBoardController.loadFen(_puzzleGame!.fen);
+              _activeFen = _puzzleGame!.fen;
+              if (_userMoveCount > 0) _userMoveCount--;
+            }
+
+            print('\n[MATE_VERIFICATION] ❌ POTEZ ODBIJEN! (Stockfish na dubini 25 nije pronašao mat u $remainingNeeded poteza). Potez vraćen, tabla otključana.\n');
+
+            await _sendBackendLog({
+              'mode': _categoryDisplayName,
+              'dynamicFen': _puzzleGame?.fen,
+              'status': 'REJECTED',
+              'eval': evaluation,
+              'reason': 'Stockfish na dubini 25 nije pronašao mat u $remainingNeeded poteza.',
+            });
+
+            _showSnackBar('Netačan potez! Pokušajte sa drugim potezom.');
+            return;
+          }
+        }
+        return;
+      }
+
+      // --- PHASE B: OPPONENT BOT TURN RESPONSE ---
+      if (_isOpponentTurn) {
+        if (multipv != 1) return; // GUARANTEE OPPONENT BOT ONLY PLAYS TOP #1 BEST MOVE!
+
+        final targetDepth = AppSettingsService.instance.defaultEngineDepth;
+        if (depth < targetDepth && !isFinal) return;
+
+        if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
+          print('\n[ENGINE_MOVE_DEBUG] 🎯 Stockfish je dostigao zadatu dubinu $depth (Cilj iz podešavanja: $targetDepth)! Odabran potez: $bestMove (Eval: $evaluation)\n');
+          _stockfishService.stopAnalysis();
+          _isOpponentTurn = false;
+          _playOpponentMove(bestMove, evaluation);
         }
       }
     };
 
     _stockfishService.onMultiPVUpdated = (linesMap) {
-      if (mounted) {
-        final currentFen = _puzzleBoardController.getFen();
-        if (_activeFen != null && _activeFen!.split(' ')[0] != currentFen.split(' ')[0]) return;
-        setState(() {
-          _engineLinesMap = linesMap;
-          _engineArrows = _buildArrowsFromEngineLines(linesMap.values.toList());
-        });
+      if (!mounted) return;
+      if (linesMap.isEmpty) return;
+
+      final lineFen = linesMap.values.first.startingFen.split(' ')[0];
+      final currentBoardFen = _puzzleBoardController.getFen().split(' ')[0];
+
+      if (lineFen != currentBoardFen) {
+        print('[IGNORED EVENT] Discarding stale MultiPV lines from old FEN: $lineFen (Current Board FEN: $currentBoardFen)');
+        return;
       }
+
+      setState(() {
+        _engineLinesMap = linesMap;
+        _engineArrows = _buildArrowsFromEngineLines(linesMap.values.toList());
+      });
     };
   }
 

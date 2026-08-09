@@ -15,7 +15,7 @@ class StockfishService {
   StreamSubscription? _customSubscription;
   bool _isCustomActive = false;
   
-  Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal)? onEvaluationChanged;
+  Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluationChanged;
   Function(Map<int, AnalysisLine> lines)? onMultiPVUpdated;
   final Map<int, AnalysisLine> _engineLines = {};
 
@@ -146,7 +146,7 @@ class StockfishService {
               );
 
               if (onEvaluationChanged != null) {
-                onEvaluationChanged!(eval, bestMove, movesStr, 1, depthVal, true);
+                onEvaluationChanged!(eval, bestMove, movesStr, 1, depthVal, true, fen);
               }
               if (onMultiPVUpdated != null) {
                 onMultiPVUpdated!({1: line});
@@ -207,7 +207,7 @@ class StockfishService {
             );
 
             if (onEvaluationChanged != null) {
-              onEvaluationChanged!(eval, bestMove, continuation, 1, effectiveDepth, true);
+              onEvaluationChanged!(eval, bestMove, continuation, 1, effectiveDepth, true, fen);
             }
             if (onMultiPVUpdated != null) {
               onMultiPVUpdated!({1: line});
@@ -335,7 +335,7 @@ class StockfishService {
       }
 
       if (onEvaluationChanged != null) {
-        onEvaluationChanged!(eval, bestMove, continuation, multipv, currentDepth, false);
+        onEvaluationChanged!(eval, bestMove, continuation, multipv, currentDepth, false, _currentFen);
       }
 
       _engineLines[multipv] = AnalysisLine.fromPv(
@@ -356,7 +356,7 @@ class StockfishService {
       if (parts.length > 1) {
         final bestMove = parts[1]; // e.g. "e2e4"
         if (onEvaluationChanged != null) {
-          onEvaluationChanged!('', bestMove, '', 1, 18, true);
+          onEvaluationChanged!('', bestMove, '', 1, 18, true, _currentFen);
         }
       }
     }
