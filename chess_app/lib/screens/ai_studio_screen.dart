@@ -21,10 +21,8 @@ class AiStudioScreen extends StatefulWidget {
   State<AiStudioScreen> createState() => _AiStudioScreenState();
 }
 
-class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _AiStudioScreenState extends State<AiStudioScreen> {
   final ChessBoardController _puzzleBoardController = ChessBoardController();
-  final ChessBoardController _analysisBoardController = ChessBoardController();
 
   final StockfishService _stockfishService = StockfishService();
 
@@ -42,7 +40,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   // Board & Game State
   String? _activeFen;
   bool _showEvaluation = false;
-  bool _isBlindfold = false;
   bool _isBlunderAlertEnabled = false; // Default OFF as requested
   double? _lastPosEval;
   double? _lastUserAdvantage;
@@ -64,12 +61,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   MoveTree? _puzzleMoveTree;
   String? _initialPuzzleFen;
 
-  // AI Coach Analysis State
-  bool _isAnalyzingAi = false;
-  Map<String, dynamic>? _aiAnalysisResult;
-  List<ChessArrow> _aiArrows = [];
-  Map<String, dynamic>? _stockfishEval;
-
   final Map<String, String> _basicMatePresets = {
     'K+Q vs K': '4k3/8/8/8/8/8/8/Q3K3 w - - 0 1',
     'K+R vs K': '4k3/8/8/8/8/8/8/R3K3 w - - 0 1',
@@ -82,7 +73,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _initStockfish();
   }
 
@@ -1051,64 +1041,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     }
   }
 
-  // --- AI COACH EXPLANATION ---
-
-  Future<void> _fetchAiExplanation(String fen, {Map<String, dynamic>? evals}) async {
-    setState(() => _isAnalyzingAi = true);
-
-    try {
-      if (evals == null && (_stockfishEval == null || _stockfishEval!['bestMove'] == null)) {
-        _stockfishService.analyzePosition(fen, depth: 16);
-        await Future.delayed(const Duration(milliseconds: 2500));
-      }
-
-      final activeEval = evals ?? _stockfishEval ?? {};
-
-      final res = await http.post(
-        Uri.parse('$backendUrl/api/ai/explain-position'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.userSession.token}'
-        },
-        body: jsonEncode({
-          'fen': fen,
-          'evals': activeEval,
-          'userLanguage': 'sr',
-        }),
-      );
-
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        setState(() {
-          _aiAnalysisResult = data;
-          _aiArrows = _buildArrowsFromMoves(data['recommendedMoves']);
-        });
-      } else {
-        _showSnackBar('Greška pri dobavljanju AI objašnjenja.');
-      }
-    } catch (e) {
-      _showSnackBar('Greška na mreži pri komunikaciji sa AI Trenerom.');
-    } finally {
-      if (mounted) setState(() => _isAnalyzingAi = false);
-    }
-  }
-
-  List<ChessArrow> _buildArrowsFromMoves(dynamic moves) {
-    if (moves is! List) return [];
-    final List<ChessArrow> arrows = [];
-    for (var m in moves) {
-      final str = m.toString().replaceAll(' ', '');
-      if (str.length >= 4) {
-        arrows.add(ChessArrow(
-          from: str.substring(0, 2),
-          to: str.substring(2, 4),
-          colorCode: 'O',
-        ));
-      }
-    }
-    return arrows;
-  }
-
   void _showSnackBar(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
@@ -1145,24 +1077,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
               ],
               const Icon(Icons.psychology, color: Colors.amberAccent),
               const SizedBox(width: 8),
-              Text(_selectedCategory == null ? 'AI Šahovski Trener & Vežbe' : _getCategoryTitle()),
-            ],
-          ),
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(icon: Icon(Icons.extension), text: 'Vežbanje Zadataka'),
-              Tab(icon: Icon(Icons.auto_awesome), text: 'AI Analiza Pozicije'),
+              Text(_selectedCategory == null ? 'Šahovski trener i vežbe' : _getCategoryTitle()),
             ],
           ),
         ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildPuzzlesTab(),
-            _buildAiAnalysisTab(),
-          ],
-        ),
+        body: _buildPuzzlesTab(),
       ),
     );
   }
@@ -1176,7 +1095,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       case 'winning_position':
         return 'Pronađite dobitni put';
       default:
-        return 'Vežbanje Zadataka';
+        return 'Šahovski trener i vežbe';
     }
   }
 
@@ -1219,7 +1138,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: const [
                             Text(
-                              'Vežbanje Šahovskih Zadataka',
+                              'Šahovski trener i vežbe',
                               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             SizedBox(height: 4),
@@ -1446,27 +1365,15 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                           });
                         },
                       ),
-                      Row(
-                        children: [
-                          FilterChip(
-                            avatar: Icon(_isBlindfold ? Icons.visibility_off : Icons.visibility, size: 16, color: _isBlindfold ? Colors.amberAccent : Colors.grey),
-                            label: Text(_isBlindfold ? '🙈 Slepo: ON' : '👁️ Slepo: OFF', style: const TextStyle(fontSize: 11)),
-                            selected: _isBlindfold,
-                            selectedColor: Colors.amber.shade900.withValues(alpha: 0.4),
-                            onSelected: (val) => setState(() => _isBlindfold = val),
-                          ),
-                          if (_selectedCategory == 'winning_position') ...[
-                            const SizedBox(width: 8),
-                            FilterChip(
-                              avatar: Icon(Icons.warning_amber_rounded, size: 16, color: _isBlunderAlertEnabled ? Colors.redAccent : Colors.grey),
-                              label: Text(_isBlunderAlertEnabled ? '🚨 Blunder: ON' : '🚨 Blunder: OFF', style: const TextStyle(fontSize: 11)),
-                              selected: _isBlunderAlertEnabled,
-                              selectedColor: Colors.red.shade900.withValues(alpha: 0.4),
-                              onSelected: (val) => setState(() => _isBlunderAlertEnabled = val),
-                            ),
-                          ],
-                        ],
-                      ),
+                      if (_selectedCategory == 'winning_position') ...[
+                        FilterChip(
+                          avatar: Icon(Icons.warning_amber_rounded, size: 16, color: _isBlunderAlertEnabled ? Colors.redAccent : Colors.grey),
+                          label: Text(_isBlunderAlertEnabled ? '🚨 Blunder: ON' : '🚨 Blunder: OFF', style: const TextStyle(fontSize: 11)),
+                          selected: _isBlunderAlertEnabled,
+                          selectedColor: Colors.red.shade900.withValues(alpha: 0.4),
+                          onSelected: (val) => setState(() => _isBlunderAlertEnabled = val),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1526,13 +1433,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            OutlinedButton.icon(
-                              icon: const Icon(Icons.psychology, color: Colors.amberAccent),
-                              label: const Text('Pitaj AI Trenera'),
-                              onPressed: () {
-                                _fetchAiExplanation(_puzzleBoardController.getFen());
-                              },
-                            ),
                             ElevatedButton.icon(
                               icon: const Icon(Icons.refresh, size: 16),
                               label: const Text('Probaj Ponovo'),
@@ -1588,162 +1488,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                   ),
                 ),
               ),
-
-              // AI Advice Card
-              if (_isAnalyzingAi)
-                const Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (_aiAnalysisResult != null)
-                _buildAiAdviceCard(_aiAnalysisResult!),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  // --- TAB 2: AI ANALYSIS TAB UI ---
-
-  Widget _buildAiAnalysisTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 650),
-          child: Column(
-            children: [
-              Card(
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    children: [
-                      Stack(
-                        children: [
-                          ChessBoard(
-                            controller: _analysisBoardController,
-                            boardOrientation: PlayerColor.white,
-                            onMove: () {
-                              final fen = _analysisBoardController.getFen();
-                              if (_showEvaluation) {
-                                _stockfishService.analyzePosition(fen, depth: 16);
-                              }
-                            },
-                          ),
-                          Positioned.fill(
-                            child: IgnorePointer(
-                              child: CustomPaint(
-                                painter: ChessBoardPainter(
-                                  arrows: [..._aiArrows, ...(_showEvaluation ? _engineArrows : [])],
-                                  boardSize: 320,
-                                  orientation: PlayerColor.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
-                        label: const Text('Analiziraj poziciju sa AI Trenerom'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber.shade800,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        ),
-                        onPressed: () {
-                          final fen = _analysisBoardController.getFen();
-                          _fetchAiExplanation(fen);
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      // Stockfish 3-Line Analysis Widget for Position Analysis
-                      StockfishAnalysisWidget(
-                        isEngineEnabled: _showEvaluation,
-                        isAllowedToUseEngine: true,
-                        isOnline: true,
-                        isCustomEngineActive: true,
-                        thinkingMode: _thinkingMode,
-                        lines: _engineLinesMap.values.toList(),
-                        orientation: PlayerColor.white,
-                        onToggleEngine: () {
-                          setState(() {
-                            _showEvaluation = !_showEvaluation;
-                            if (_showEvaluation) {
-                              _stockfishService.analyzePosition(_analysisBoardController.getFen(), depth: 16);
-                            } else {
-                              _stockfishService.stopAnalysis();
-                              _engineLinesMap.clear();
-                              _engineArrows.clear();
-                            }
-                          });
-                        },
-                        onChangeThinkingMode: (mode) {
-                          setState(() => _thinkingMode = mode);
-                          if (_showEvaluation) {
-                            _stockfishService.analyzePosition(_analysisBoardController.getFen(), depth: mode == 'deep' ? 22 : 16);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              if (_isAnalyzingAi)
-                const Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (_aiAnalysisResult != null)
-                _buildAiAdviceCard(_aiAnalysisResult!),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // --- AI ADVICE CARD WIDGET ---
-
-  Widget _buildAiAdviceCard(Map<String, dynamic> aiData) {
-    return Card(
-      elevation: 4,
-      color: Colors.deepPurple.shade900.withValues(alpha: 0.85),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: const [
-                Icon(Icons.auto_awesome, color: Colors.amberAccent),
-                SizedBox(width: 8),
-                Text('AI Šahovski Trener - Savet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.amberAccent)),
-              ],
-            ),
-            const Divider(height: 20),
-            if (aiData['explanation'] != null)
-              Text(
-                aiData['explanation'],
-                style: const TextStyle(fontSize: 14, height: 1.4),
-              ),
-            if (aiData['recommendedMoves'] != null) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                children: (aiData['recommendedMoves'] as List).map((m) {
-                  return Chip(
-                    backgroundColor: Colors.teal.shade800,
-                    label: Text(m.toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  );
-                }).toList(),
-              ),
-            ],
-          ],
         ),
       ),
     );
@@ -1781,44 +1527,22 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         children: [
           IgnorePointer(
             ignoring: _isOpponentTurn || _puzzleSolved || _puzzleFailed,
-            child: Opacity(
-              opacity: _isBlindfold ? 0.05 : 1.0,
-              child: ChessBoard(
-                controller: _puzzleBoardController,
-                boardOrientation: _puzzleOrientation,
-                onMove: () {
-                  _selectedSquare = null;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _onUserPuzzleMoveMade();
-                  });
-                },
-              ),
+            child: ChessBoard(
+              controller: _puzzleBoardController,
+              boardOrientation: _puzzleOrientation,
+              onMove: () {
+                _selectedSquare = null;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _onUserPuzzleMoveMade();
+                });
+              },
             ),
           ),
-          if (_isBlindfold)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.visibility_off, size: 64, color: Colors.amberAccent),
-                        SizedBox(height: 8),
-                        Text('🙈 Šah Na Slepo', style: TextStyle(color: Colors.amberAccent, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text('Figure su skrivene radi vežbanja vizuelizacije', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
           Positioned.fill(
             child: IgnorePointer(
               child: CustomPaint(
                 painter: ChessBoardPainter(
-                  arrows: _aiArrows,
+                  arrows: [],
                   boardSize: boardSize,
                   orientation: _puzzleOrientation,
                   lastMoveFrom: _lastMoveFrom,
