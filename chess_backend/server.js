@@ -1185,6 +1185,23 @@ app.post('/api/puzzles/log', (req, res) => {
   try {
     const { details } = req.body;
     if (details) {
+      if (details.type === 'engineStream') {
+        console.log(`[ENGINE STREAM] Received eval for FEN: ${details.fen} | Depth: ${details.depth} | Best Move: ${details.bestMove}`);
+        return res.json({ success: true });
+      }
+      if (details.type === 'uiRender') {
+        console.log(`[UI RENDER] Attempting to draw arrows for FEN: ${details.fen} | Current Board FEN: ${details.currentFen}`);
+        return res.json({ success: true });
+      }
+      if (details.type === 'stateReset') {
+        console.log(`[STATE RESET] Cleared arrows and stopped analysis for FEN: ${details.oldFen} (Token: ${details.token || 1})`);
+        return res.json({ success: true });
+      }
+      if (details.type === 'ignoredEvent') {
+        console.log(`[IGNORED EVENT] Discarding stale evaluation from old FEN: ${details.oldFen} (Current Board FEN: ${details.currentFen})`);
+        return res.json({ success: true });
+      }
+
       if (details.status === 'REJECTED') {
         console.log('\n❌ [REJECTED MOVE LOG - BACKEND TERMINAL] ===================');
         console.log(`[1] MOD: ${details.mode}`);

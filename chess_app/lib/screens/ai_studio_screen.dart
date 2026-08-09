@@ -161,6 +161,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _positionToken++;
     final int currentToken = _positionToken;
     print('[STATE RESET] Cleared arrows and stopped analysis for FEN: $oldFen (Token: $currentToken)');
+    _sendBackendLog({
+      'type': 'stateReset',
+      'oldFen': oldFen,
+      'token': currentToken,
+    });
 
     // 1. Immediately HALT any active Stockfish analysis worker
     _stockfishService.stopAnalysis();
@@ -229,16 +234,31 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       if (!mounted) return;
 
       print('[ENGINE STREAM] Received eval for FEN: $analyzedFen | Depth: $depth | Best Move: $bestMove');
+      _sendBackendLog({
+        'type': 'engineStream',
+        'fen': analyzedFen,
+        'depth': depth,
+        'bestMove': bestMove,
+      });
 
       final currentBoardFen = _puzzleBoardController.getFen().split(' ')[0];
       final eventFen = analyzedFen.split(' ')[0];
 
       if (eventFen != currentBoardFen) {
         print('[IGNORED EVENT] Discarding stale evaluation from old FEN: $analyzedFen (Current Board FEN: $currentBoardFen)');
+        _sendBackendLog({
+          'type': 'ignoredEvent',
+          'oldFen': analyzedFen,
+          'currentFen': currentBoardFen,
+        });
         return; // Odbaci stari event i NEMOJ crtati strelice!
       }
 
       print('[UI RENDER] Attempting to draw arrows for FEN: $analyzedFen | Current Board FEN: $currentBoardFen');
+      _sendBackendLog({
+        'type': 'uiRender',
+        'fen': analyzedFen,
+      });
 
       double parsedEval = 0.0;
       final numVal = double.tryParse(evaluation);
