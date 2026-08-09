@@ -739,6 +739,20 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
       }
     }
 
+    if (matchedMove == null) {
+      for (var m in _puzzleGame!.moves({'verbose': true})) {
+        final from = m['from'] ?? '';
+        final to = m['to'] ?? '';
+        final promo = m['promotion'] ?? '';
+        if ((to.endsWith('8') || to.endsWith('1')) && promo.isNotEmpty) {
+          matchedMove = m;
+          userLan = '$from$to$promo';
+          print('[MOVE_MADE_DEBUG] Fallback promotion match found: $userLan');
+          break;
+        }
+      }
+    }
+
     print('[MOVE_MADE_DEBUG] Matched move: $matchedMove | User LAN: $userLan');
 
     if (matchedMove == null || userLan == null) {
@@ -1864,10 +1878,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
                 const SizedBox(width: 6),
                 ...mainLineNodes.map((node) {
                   final isCurrent = (node == currentNode);
+                  final labelText = _formatMoveWithNumber(node, _puzzleMoveTree!.root);
                   return Padding(
                     padding: const EdgeInsets.only(right: 6.0),
                     child: ChoiceChip(
-                      label: Text(node.san, style: TextStyle(fontSize: 11, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal, color: isCurrent ? Colors.white : Colors.white70)),
+                      label: Text(labelText, style: TextStyle(fontSize: 11, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal, color: isCurrent ? Colors.white : Colors.white70)),
                       selected: isCurrent,
                       selectedColor: Colors.teal.shade700,
                       backgroundColor: Colors.blueGrey.shade800,
@@ -1913,6 +1928,44 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
         ],
       ),
     );
+  String _formatMoveWithNumber(MoveNode node, MoveNode rootNode) {
+    if (node.parent == null) return 'Početak';
+
+    final path = <MoveNode>[];
+    MoveNode? curr = node;
+    while (curr != null && curr.parent != null) {
+      path.insert(0, curr);
+      curr = curr.parent;
+    }
+
+    final rootFen = rootNode.fen;
+    final rootParts = rootFen.split(' ');
+    final rootIsWhite = rootParts.length > 1 ? (rootParts[1] == 'w') : true;
+    final rootMoveNum = rootParts.length > 5 ? (int.tryParse(rootParts[5]) ?? 1) : 1;
+
+    final moveIndex = path.indexOf(node);
+    if (moveIndex < 0) return node.san;
+
+    int currentMoveNum;
+    bool isWhiteMove;
+
+    if (rootIsWhite) {
+      currentMoveNum = rootMoveNum + (moveIndex ~/ 2);
+      isWhiteMove = (moveIndex % 2 == 0);
+    } else {
+      currentMoveNum = rootMoveNum + ((moveIndex + 1) ~/ 2);
+      isWhiteMove = (moveIndex % 2 == 1);
+    }
+
+    if (isWhiteMove) {
+      return '$currentMoveNum. ${node.san}';
+    } else {
+      if (moveIndex == 0 && !rootIsWhite) {
+        return '$currentMoveNum... ${node.san}';
+      } else {
+        return node.san;
+      }
+    }
   }
 
   void _navigateToNode(MoveNode node) {
