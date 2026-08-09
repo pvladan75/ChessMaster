@@ -218,6 +218,7 @@ class StockfishService {
     } else {
       if (_stockfish == null && _customProcess == null) return;
       _sendCommand('stop');
+      _sendCommand('ucinewgame');
       _sendCommand('position fen $fen');
       if (depth >= 99) {
         print('[STOCKFISH_NATIVE_LOG] 🚀 Pokrenuta neograničena analiza (go infinite)...');
@@ -250,6 +251,7 @@ class StockfishService {
     _currentFen = '';
     _engineLines.clear();
     _sendCommand('stop');
+    _sendCommand('ucinewgame');
   }
 
   /// Sets MultiPV option on engine
