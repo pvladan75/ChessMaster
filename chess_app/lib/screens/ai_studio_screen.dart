@@ -504,20 +504,20 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     }
   }
 
-  void _recordMoveInTree(String from, String to, {String promotion = ''}) {
+  void _recordMoveInTree(String from, String to, {String san = '', String promotion = ''}) {
     if (_puzzleGame == null || _puzzleMoveTree == null) return;
-    final san = _puzzleGame!.history.isNotEmpty ? (_puzzleGame!.history.last.move.san ?? '$from$to') : '$from$to';
+    final displaySan = san.isNotEmpty ? san : '$from$to';
     final fen = _puzzleGame!.fen;
 
     for (var child in _puzzleMoveTree!.current.children) {
-      if (child.san == san || (child.from == from && child.to == to)) {
+      if (child.san == displaySan || (child.from == from && child.to == to)) {
         _puzzleMoveTree!.current = child;
         return;
       }
     }
 
     final newNode = MoveNode(
-      san: san,
+      san: displaySan,
       fen: fen,
       from: from,
       to: to,
@@ -676,10 +676,17 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     _isProgrammaticMove = true;
     try {
       if (_puzzleGame != null) {
+        String san = '$fromStr$toStr';
+        for (var m in _puzzleGame!.moves({'verbose': true})) {
+          if (m['from'] == fromStr && m['to'] == toStr) {
+            san = m['san'] ?? san;
+            break;
+          }
+        }
         _puzzleGame!.move({'from': fromStr, 'to': toStr, 'promotion': lanMove.length > 4 ? lanMove[4] : 'q'});
         _puzzleBoardController.loadFen(_puzzleGame!.fen);
         _activeFen = _puzzleGame!.fen;
-        _recordMoveInTree(fromStr, toStr);
+        _recordMoveInTree(fromStr, toStr, san: san);
       } else {
         _puzzleBoardController.makeMove(from: fromStr, to: toStr);
         _activeFen = _puzzleBoardController.getFen();
@@ -744,7 +751,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
 
     final fromStr = userLan.substring(0, 2);
     final toStr = userLan.substring(2, 4);
-    _recordMoveInTree(fromStr, toStr);
+    final san = matchedMove['san'] ?? '$fromStr$toStr';
+    _recordMoveInTree(fromStr, toStr, san: san);
     setState(() {
       _lastMoveFrom = fromStr;
       _lastMoveTo = toStr;
