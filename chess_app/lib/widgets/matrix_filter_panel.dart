@@ -59,7 +59,7 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      color: Colors.blueGrey.withOpacity(0.1),
+      color: Colors.blueGrey.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: ExpansionTile(
         initiallyExpanded: false,
@@ -143,16 +143,16 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                       final isInc = widget.selectedIncludeTags.contains(tag);
                       final isExc = widget.selectedExcludeTags.contains(tag);
 
-                      Color chipBg = Colors.grey.withOpacity(0.2);
+                      Color chipBg = Colors.grey.withValues(alpha: 0.2);
                       Color chipText = Colors.white;
                       IconData? chipIcon;
 
                       if (isInc) {
-                        chipBg = Colors.green.withOpacity(0.3);
+                        chipBg = Colors.green.withValues(alpha: 0.3);
                         chipText = Colors.greenAccent;
                         chipIcon = Icons.add_circle;
                       } else if (isExc) {
-                        chipBg = Colors.red.withOpacity(0.3);
+                        chipBg = Colors.red.withValues(alpha: 0.3);
                         chipText = Colors.redAccent;
                         chipIcon = Icons.remove_circle;
                       }

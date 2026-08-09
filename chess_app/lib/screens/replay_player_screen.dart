@@ -490,13 +490,6 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
     );
   }
 
-  void _showSuccess(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.teal),
-    );
-  }
-
   String _formatDuration(int ms) {
     final seconds = (ms / 1000).floor();
     final mins = (seconds / 60).floor();

@@ -80,6 +80,10 @@ class StockfishService {
     }
   }
 
+  void stopAnalysis() {
+    _isActive = false;
+  }
+
   void dispose() {
     _isActive = false;
   }

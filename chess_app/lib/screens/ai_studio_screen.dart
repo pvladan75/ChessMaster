@@ -611,80 +611,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: kDefaultEngineTargetDepth);
   }
 
-  void _handleMatePuzzleMove(String userLan) {
-    if (_expectedMoves.isEmpty) return;
-    final expectedLan = _expectedMoves[_moveIndex];
-
-    if (userLan == expectedLan) {
-      _moveIndex++;
-      if (_puzzleGame!.in_checkmate) {
-        _submitPuzzleResult(true);
-      } else if (_moveIndex < _expectedMoves.length) {
-        final engineResponseMove = _expectedMoves[_moveIndex];
-        print('\n--------------------------------------------------');
-        print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
-        print('[TRAINING_LOG] 3) FEN POZICIJA KOJU ANALIZIRA ENGINE: ${_puzzleGame?.fen}');
-        print('[TRAINING_LOG] 5) POTEZ ENGINE-A: $engineResponseMove');
-        print('[TRAINING_LOG] 5) OSNOV ODABIRA: Primarni sekvencijalni odgovor iz JSON zagonetke');
-        print('[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): Instant JSON sekvenca');
-        print('--------------------------------------------------\n');
-
-        _sendBackendLog({
-          'mode': _categoryDisplayName,
-          'dynamicFen': _puzzleGame?.fen,
-          'engineMove': engineResponseMove,
-          'decisionBasis': 'Primarni sekvencijalni odgovor iz JSON zagonetke',
-          'depth': 'Instant JSON sekvenca',
-        });
-
-        setState(() => _isOpponentTurn = true);
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          _playPuzzleMove(engineResponseMove);
-          _moveIndex++;
-          setState(() => _isOpponentTurn = false);
-
-          if (_puzzleGame!.in_checkmate) {
-            _submitPuzzleResult(true);
-          }
-        });
-      } else {
-        if (_puzzleGame!.in_checkmate) {
-          _submitPuzzleResult(true);
-        } else {
-          setState(() => _puzzleFailed = true);
-          _showMatePuzzleFailedDialog();
-        }
-      }
-    } else {
-      setState(() => _puzzleFailed = true);
-      _showMatePuzzleFailedDialog();
-    }
-  }
-
-  void _handleBasicMateMove() async {
-    if (_puzzleGame!.in_checkmate) {
-      setState(() => _puzzleSolved = true);
-      _showEndgameWinDialog();
-      return;
-    } else if (_puzzleGame!.in_stalemate || _puzzleGame!.in_draw) {
-      _showSnackBar('🤝 Pat / Remi u poziciji.');
-      return;
-    }
-
-    _triggerOpponentBotResponse();
-  }
-
-  void _handleWinningPositionMove() async {
-    if (_puzzleGame!.in_checkmate) {
-      setState(() => _puzzleSolved = true);
-      _showEndgameWinDialog();
-      return;
-    }
-
-    _triggerOpponentBotResponse();
-  }
-
   void _showMatePuzzleFailedDialog() {
     if (!mounted) return;
 
@@ -704,7 +630,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           });
           if (moveObj != null) {
             dynamic lastHist = tempGame.history.last;
-            final String san = (lastHist != null && lastHist.move != null)
+            final String san = lastHist.move != null
                 ? (lastHist.move.san ?? uci)
                 : uci;
             if (i % 2 == 0) {

@@ -26,10 +26,7 @@ import 'package:chess_app/widgets/create_course_dialog.dart';
 import 'package:chess_app/widgets/save_position_dialog.dart';
 import 'package:chess_app/widgets/matrix_filter_panel.dart';
 import 'package:chess_app/widgets/move_history_view.dart';
-import 'package:chess_app/widgets/game_selector_dialog.dart';
-import 'package:chess_app/widgets/share_position_dialog.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
-import 'package:chess_app/widgets/engine_line_dialog.dart';
 import 'package:chess_app/models/recording_models.dart';
 
 // 3. MULTIPLAYER CHESS GAME PAGE
@@ -267,56 +264,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
   }
 
-  List<EngineMove> _parseContinuation(String fen, String continuationStr) {
-    final List<EngineMove> result = [];
-    if (continuationStr.isEmpty) return result;
-
-    final tokens = continuationStr.split(RegExp(r'\s+'));
-    final tempGame = chess.Chess();
-    tempGame.load(fen);
-
-    for (var token in tokens) {
-      token = token.trim();
-      if (token.length < 4) continue;
-
-      final from = token.substring(0, 2);
-      final to = token.substring(2, 4);
-
-      String? promotion;
-      if (token.length == 5) {
-        promotion = token.substring(4, 5);
-      }
-
-      final moveMap = {'from': from, 'to': to};
-      if (promotion != null) {
-        moveMap['promotion'] = promotion;
-      }
-
-      final success = tempGame.move(moveMap);
-      if (success) {
-        final moveObj = tempGame.history.last.move;
-        tempGame.undo_move();
-        final san = tempGame.move_to_san(moveObj);
-        tempGame.move(moveMap);
-
-        result.add(EngineMove(display: san, san: san, from: from, to: to));
-      } else {
-        break;
-      }
-    }
-
-    return result;
-  }
-
-  void _playEngineMoves(List<EngineMove> moves, int limitIndex) {
-    if (moves.isEmpty || limitIndex < 0 || limitIndex >= moves.length) return;
-    for (int i = 0; i <= limitIndex; i++) {
-      final m = moves[i];
-      controller.makeMove(from: m.from, to: m.to);
-      _handleLocalMoveMade(m.from, m.to);
-    }
-  }
-
   Widget _buildStockfishAnalysisWidget() {
     final sortedKeys = engineLines.keys.toList()..sort();
     final List<AnalysisLine> linesList = sortedKeys.map((k) => engineLines[k]!).toList();
@@ -517,44 +464,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
           child: isSelected
               ? const Icon(Icons.check, size: 16, color: Colors.white)
               : null,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildThinkingModeButton(String mode, String label, {bool isLocalOnly = false}) {
-    final isSelected = engineThinkingMode == mode;
-    final isOnline = _stockfishService.isOnline;
-    final isDisabled = isLocalOnly && isOnline;
-
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2.0),
-        child: ElevatedButton(
-          onPressed: isDisabled
-              ? null
-              : () {
-                  setState(() {
-                    engineThinkingMode = mode;
-                  });
-                  _triggerEngineAnalysis();
-                },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isSelected
-                ? Colors.teal
-                : Colors.blueGrey.withOpacity(isSelected ? 0.8 : 0.2),
-            foregroundColor: isDisabled ? Colors.grey : Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          ),
-          child: Tooltip(
-            message: isDisabled ? 'Nije podržano na webu/desktopu' : label,
-            child: Text(
-              label,
-              style: TextStyle(fontSize: 10, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
-              textAlign: TextAlign.center,
-            ),
-          ),
         ),
       ),
     );

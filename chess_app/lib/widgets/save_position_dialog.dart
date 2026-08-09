@@ -95,7 +95,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                         label: Text(t, style: const TextStyle(fontSize: 11)),
                         deleteIcon: const Icon(Icons.close, size: 14),
                         onDeleted: () => removeTag(t),
-                        backgroundColor: Colors.teal.withOpacity(0.2),
+                        backgroundColor: Colors.teal.withValues(alpha: 0.2),
                       )),
                 ],
               ),
@@ -129,7 +129,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                 Container(
                   constraints: const BoxConstraints(maxHeight: 120),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: ListView.builder(

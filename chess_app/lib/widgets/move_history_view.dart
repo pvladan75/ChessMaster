@@ -48,7 +48,7 @@ class MoveHistoryView extends StatelessWidget {
         fontWeight: FontWeight.bold,
         fontSize: 13,
         color: isMainActive ? Colors.greenAccent : Colors.white,
-        backgroundColor: isMainActive ? Colors.green.withOpacity(0.3) : Colors.transparent,
+        backgroundColor: isMainActive ? Colors.green.withValues(alpha: 0.3) : Colors.transparent,
       ),
       recognizer: TapGestureRecognizer()..onTap = () => onSelectNode(mainChild),
     ));
@@ -88,7 +88,7 @@ class MoveHistoryView extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.normal,
           color: isVarActive ? Colors.greenAccent : Colors.grey[400],
-          backgroundColor: isVarActive ? Colors.green.withOpacity(0.3) : Colors.transparent,
+          backgroundColor: isVarActive ? Colors.green.withValues(alpha: 0.3) : Colors.transparent,
         ),
         recognizer: TapGestureRecognizer()..onTap = () => onSelectNode(varChild),
       ));
@@ -120,7 +120,7 @@ class MoveHistoryView extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.withOpacity(0.3)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
       ),
       child: spans.isEmpty
           ? const Center(
