@@ -63,6 +63,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   Timer? _serverHealthTimer;
   int? _lastRatingChange;
   bool _isOpponentTurn = false;
+  bool _isVerifyingUserMove = false;
   PlayerColor _puzzleOrientation = PlayerColor.white;
   bool _isProgrammaticMove = false;
   String? _lastMoveFrom;
@@ -168,6 +169,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _currentEvalDepth = 18;
     _userMoveCount = 0;
     _isOpponentTurn = false;
+    _isVerifyingUserMove = false;
     _selectedSquare = null;
     _puzzleMoveTree = null;
     _initialPuzzleFen = null;
@@ -247,9 +249,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           });
         }
 
-        // 2. Opponent Bot Move Execution & Verification
-        if (_isOpponentTurn) {
-          if (multipv != 1) return; // GUARANTEE OPPONENT BOT ONLY PLAYS TOP #1 BEST MOVE!
+        // --- PHASE A: USER MOVE VERIFICATION (Depth 25 with Early Exit) ---
+        if (_isVerifyingUserMove) {
           if (_selectedCategory == 'mate_puzzle') {
             final int reqN = int.tryParse(_selectedMateDepth) ?? 1;
             final int k = _userMoveCount;
@@ -269,22 +270,19 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               }
             }
 
-            // EARLY EXIT: Stockfish found mate M <= (N - k)
+            // EARLY EXIT: Stockfish found mate M <= (N - k) -> ACCEPT USER MOVE!
             if (userMateScore != null && userMateScore <= remainingNeeded) {
               print('\n[MATE_VERIFICATION] ✅ EARLY EXIT (Depth $depth): Nađen mat M$userMateScore <= $remainingNeeded! Potez prihvaćen!\n');
+              _isVerifyingUserMove = false;
               _stockfishService.stopAnalysis();
-
-              if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
-                _isOpponentTurn = false;
-                _playOpponentMove(bestMove, evaluation);
-              }
+              _triggerOpponentBotResponse();
               return;
             }
 
-            // REJECTION: Stockfish reached Depth 25 without finding M <= (N - k)
+            // REJECTION: Stockfish reached Depth 25 without finding M <= (N - k) -> REJECT USER MOVE!
             if (isFinal || depth >= 25) {
+              _isVerifyingUserMove = false;
               _stockfishService.stopAnalysis();
-              _isOpponentTurn = false;
 
               // Undo ONLY that single incorrect move
               if (_puzzleGame != null && _puzzleGame!.history.isNotEmpty) {
@@ -307,13 +305,16 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               _showSnackBar('Netačan potez! Pokušajte sa drugim potezom.');
               return;
             }
-
-            return; // Continue streaming analysis up to Depth 25
           }
+          return;
+        }
 
-          // Default handling for winning_position and basic_mate
+        // --- PHASE B: OPPONENT BOT TURN RESPONSE ---
+        if (_isOpponentTurn) {
+          if (multipv != 1) return; // GUARANTEE OPPONENT BOT ONLY PLAYS TOP #1 BEST MOVE!
+
           final targetDepth = AppSettingsService.instance.defaultEngineDepth;
-          if (depth < targetDepth) return;
+          if (depth < targetDepth && !isFinal) return;
 
           if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
             print('\n[ENGINE_MOVE_DEBUG] 🎯 Stockfish je dostigao zadatu dubinu $depth (Cilj iz podešavanja: $targetDepth)! Odabran potez: $bestMove (Eval: $evaluation)\n');
@@ -410,7 +411,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   void _triggerOpponentBotResponse() async {
     if (_puzzleGame == null || _puzzleGame!.in_checkmate) return;
-    setState(() => _isOpponentTurn = true);
+    setState(() {
+      _isVerifyingUserMove = false;
+      _isOpponentTurn = true;
+    });
 
     // If puzzle solution JSON has the predefined response move at _moveIndex, play it!
     if (_expectedMoves.length > _moveIndex && _expectedMoves[_moveIndex].isNotEmpty) {
@@ -972,6 +976,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     });
 
     if (isFastTrack) {
+      _isVerifyingUserMove = false;
       _moveIndex++;
       _triggerOpponentBotResponse();
       return;
@@ -979,7 +984,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
     // --- STEP 2: ENGINE EVALUATION (DEPTH 25 FOR MATE_PUZZLE) ---
     final targetDepth = (_selectedCategory == 'mate_puzzle') ? 25 : AppSettingsService.instance.defaultEngineDepth;
-    setState(() => _isOpponentTurn = true);
+    setState(() {
+      _isVerifyingUserMove = true;
+      _isOpponentTurn = false;
+    });
     await _stockfishService.initEngine();
     _stockfishService.setMultiPV(1);
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
