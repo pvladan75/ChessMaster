@@ -303,9 +303,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           }
 
           // Default handling for winning_position and basic_mate
-          if (!isFinal && depth < kDefaultEngineTargetDepth) return;
+          final targetDepth = AppSettingsService.instance.defaultEngineDepth;
+          if (depth < targetDepth) return;
 
           if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
+            print('\n[ENGINE_MOVE_DEBUG] 🎯 Stockfish je dostigao zadatu dubinu $depth (Cilj iz podešavanja: $targetDepth)! Odabran potez: $bestMove (Eval: $evaluation)\n');
+            _stockfishService.stopAnalysis();
             _isOpponentTurn = false;
             _playOpponentMove(bestMove, evaluation);
           }

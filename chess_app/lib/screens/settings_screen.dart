@@ -204,7 +204,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Podrazumevana dubina analize:', style: TextStyle(fontWeight: FontWeight.w500)),
+                          const Text('Dubina analize posle koje Stockfish povlači potez:', style: TextStyle(fontWeight: FontWeight.w500)),
                           Text(
                             'Dubina ${_settings.defaultEngineDepth}',
                             style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.tealAccent),
