@@ -45,6 +45,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
   bool _isBlindfold = false;
   bool _isBlunderAlertEnabled = false; // Default OFF as requested
   double? _lastPosEval;
+  double? _lastUserAdvantage;
   Map<String, dynamic>? _currentPuzzle;
   chess.Chess? _puzzleGame;
   int _userRating = 1500;
@@ -87,6 +88,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
     _engineLinesMap.clear();
     _engineArrows.clear();
     _lastPosEval = null;
+    _lastUserAdvantage = null;
     _activeFen = null;
     _showEvaluation = false;
   }
@@ -146,6 +148,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
           if (!isFinal && depth < kDefaultEngineTargetDepth) return; // Wait until depth 18 search completes!
           bool isMoveAcceptable = false;
 
+          final double? userAdvantage = (numVal != null)
+              ? (_puzzleOrientation == PlayerColor.black ? -numVal : numVal)
+              : null;
+
           if (_selectedCategory == 'mate_puzzle') {
             if (evaluation.contains('M0') || evaluation == 'M0' || evaluation == '-M0' || evaluation == '+M0') {
               isMoveAcceptable = true;
@@ -157,21 +163,25 @@ class _AiStudioScreenState extends State<AiStudioScreen> with SingleTickerProvid
               }
             }
           } else if (_selectedCategory == 'winning_position') {
-            if (numVal != null && _lastPosEval != null) {
-              if ((_lastPosEval! - numVal) <= 0.5 && numVal > 1.0) {
+            if (userAdvantage != null && _lastUserAdvantage != null) {
+              if ((userAdvantage - _lastUserAdvantage!) >= -0.5 && userAdvantage >= 1.0) {
                 isMoveAcceptable = true;
               }
-            } else if (numVal != null && numVal >= 1.5) {
+            } else if (userAdvantage != null && userAdvantage >= 1.0) {
               isMoveAcceptable = true;
             } else if (evaluation.contains('M')) {
               isMoveAcceptable = true;
             }
           } else if (_selectedCategory == 'basic_mate') {
-            if (numVal != null && numVal >= 0.0) {
+            if (userAdvantage != null && userAdvantage >= 0.0) {
               isMoveAcceptable = true;
             } else if (evaluation.contains('M')) {
               isMoveAcceptable = true;
             }
+          }
+
+          if (userAdvantage != null) {
+            _lastUserAdvantage = userAdvantage;
           }
 
           if (!isMoveAcceptable) {
