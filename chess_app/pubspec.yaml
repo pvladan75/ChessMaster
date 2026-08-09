@@ -30,6 +30,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/puzzles/easy_puzzles.json
+    - assets/puzzles/medium_puzzles.json
+    - assets/puzzles/hard_puzzles.json
 
 dependency_overrides:
   ffi: ^2.2.0

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -35,12 +36,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   // Reorganization Category State
   String? _selectedCategory; // null = Selection Hub, 'mate_puzzle', 'basic_mate', 'winning_position'
   String _selectedMateDepth = '2'; // '1', '2', '3'
-  String _selectedBasicMateType = 'K+Q vs K';
+  String _selectedBasicMateType = 'easy'; // 'easy', 'medium', 'hard'
 
   // Board & Game State
   String? _activeFen;
   bool _showEvaluation = false;
-  bool _isBlunderAlertEnabled = false; // Default OFF as requested
+  bool _showEvalBar = false; // Default OFF
+  double _currentRawEval = 0.0;
+  int _currentEvalDepth = 18;
   double? _lastPosEval;
   double? _lastUserAdvantage;
   Map<String, dynamic>? _currentPuzzle;
@@ -84,6 +87,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _lastUserAdvantage = null;
     _activeFen = null;
     _showEvaluation = false;
+    _showEvalBar = false;
+    _currentRawEval = 0.0;
+    _currentEvalDepth = 18;
     _selectedSquare = null;
     _puzzleMoveTree = null;
     _initialPuzzleFen = null;
@@ -119,16 +125,34 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         final numVal = double.tryParse(evaluation);
         if (numVal != null) {
           parsedEval = numVal;
+        } else if (evaluation.contains('M')) {
+          final mateNum = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+          parsedEval = evaluation.contains('-') ? (-10000.0 + mateNum) : (10000.0 - mateNum);
         }
 
-        // 1. Blunder Alert Check (Eval drop > 1.5 pawns)
-        if (_isBlunderAlertEnabled && _lastPosEval != null && numVal != null) {
-          final evalDiff = _lastPosEval! - numVal;
-          if (evalDiff > 1.5) {
-            _showBlunderAlert(evalDiff, numVal);
+        // Build top 3 engine arrows for display
+        final List<ChessArrow> newArrows = [];
+        final colors = ['G', 'B', 'O'];
+        int colorIdx = 0;
+        for (var line in _engineLinesMap.values) {
+          if (colorIdx >= 3) break;
+          if (line.moveLan.length >= 4) {
+            newArrows.add(ChessArrow(
+              from: line.moveLan.substring(0, 2),
+              to: line.moveLan.substring(2, 4),
+              colorCode: colors[colorIdx],
+            ));
+            colorIdx++;
           }
         }
-        _lastPosEval = numVal;
+
+        setState(() {
+          _currentRawEval = parsedEval;
+          _currentEvalDepth = depth;
+          _engineArrows = newArrows;
+        });
+
+        _lastPosEval = parsedEval;
 
         // 2. Opponent Bot Move Execution (When it is Stockfish's turn to play at kDefaultEngineTargetDepth)
         if (_isOpponentTurn) {
@@ -362,47 +386,70 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     return _selectedCategory ?? 'Trening';
   }
 
-  void _loadBasicMatePreset(String presetKey) {
+  Future<void> _loadBasicMatePreset(String difficulty) async {
     _resetEngineState();
-    final fen = _basicMatePresets[presetKey] ?? '4k3/8/8/8/8/8/8/Q3K3 w - - 0 1';
-    _puzzleGame = chess.Chess.fromFEN(fen);
-    _activeFen = fen;
-    _initialPuzzleFen = fen;
-    _puzzleMoveTree = MoveTree(startingFen: fen);
+    String assetPath;
+    if (difficulty == 'hard') {
+      assetPath = 'assets/puzzles/hard_puzzles.json';
+    } else if (difficulty == 'medium') {
+      assetPath = 'assets/puzzles/medium_puzzles.json';
+    } else {
+      assetPath = 'assets/puzzles/easy_puzzles.json';
+    }
 
-    print('\n==================================================');
-    print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
-    print('[TRAINING_LOG] 2) UČITANI FEN: $fen');
-    print('==================================================\n');
+    try {
+      final jsonStr = await rootBundle.loadString(assetPath);
+      final List<dynamic> list = jsonDecode(jsonStr);
+      if (list.isNotEmpty) {
+        list.shuffle();
+        final item = list.first;
+        final fen = item['fen'] ?? '4k3/8/8/8/8/8/8/Q3K3 w - - 0 1';
+        final parts = fen.split(' ');
+        final turnIsWhite = parts.length > 1 ? (parts[1] == 'w') : true;
 
-    _sendBackendLog({
-      'mode': _categoryDisplayName,
-      'initialFen': fen,
-    });
+        _puzzleGame = chess.Chess.fromFEN(fen);
+        _activeFen = fen;
+        _initialPuzzleFen = fen;
+        _puzzleMoveTree = MoveTree(startingFen: fen);
 
-    setState(() {
-      _selectedCategory = 'basic_mate';
-      _selectedBasicMateType = presetKey;
-      _isLoadingPuzzle = false;
-      _puzzleSolved = false;
-      _puzzleFailed = false;
-      _expectedMoves = [];
-      _moveIndex = 0;
-      _lastMoveFrom = null;
-      _lastMoveTo = null;
-      _isOpponentTurn = false;
-      _puzzleOrientation = PlayerColor.white;
-    });
+        print('\n==================================================');
+        print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
+        print('[TRAINING_LOG] 2) UČITANI FEN: $fen');
+        print('==================================================\n');
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        try {
-          _puzzleBoardController.loadFen(fen);
-        } catch (_) {}
+        _sendBackendLog({
+          'mode': _categoryDisplayName,
+          'initialFen': fen,
+        });
+
+        setState(() {
+          _selectedCategory = 'basic_mate';
+          _selectedBasicMateType = difficulty;
+          _isLoadingPuzzle = false;
+          _puzzleSolved = false;
+          _puzzleFailed = false;
+          _expectedMoves = [];
+          _moveIndex = 0;
+          _lastMoveFrom = null;
+          _lastMoveTo = null;
+          _isOpponentTurn = false;
+          _puzzleOrientation = turnIsWhite ? PlayerColor.white : PlayerColor.black;
+          _showEvalBar = false;
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            try {
+              _puzzleBoardController.loadFen(fen);
+            } catch (_) {}
+          }
+        });
+
+        _stockfishService.analyzePosition(fen, depth: kDefaultEngineTargetDepth);
       }
-    });
-
-    _stockfishService.analyzePosition(fen, depth: kDefaultEngineTargetDepth);
+    } catch (e) {
+      print('Error loading basic mate preset $difficulty: $e');
+    }
   }
 
   Future<void> _fetchNextPuzzle() async {
@@ -1245,21 +1292,37 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       ),
                       const SizedBox(height: 16),
                       Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _basicMatePresets.keys.map((presetKey) {
-                          return OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.purpleAccent),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            ),
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.sentiment_satisfied, size: 16),
+                            label: const Text('Lako'),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple.shade800, foregroundColor: Colors.white),
                             onPressed: () {
                               _selectedCategory = 'basic_mate';
-                              _loadBasicMatePreset(presetKey);
+                              _loadBasicMatePreset('easy');
                             },
-                            child: Text(presetKey, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                          );
-                        }).toList(),
+                          ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.sentiment_neutral, size: 16),
+                            label: const Text('Srednje'),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple.shade800, foregroundColor: Colors.white),
+                            onPressed: () {
+                              _selectedCategory = 'basic_mate';
+                              _loadBasicMatePreset('medium');
+                            },
+                          ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.sentiment_very_dissatisfied, size: 16),
+                            label: const Text('Teško'),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple.shade800, foregroundColor: Colors.white),
+                            onPressed: () {
+                              _selectedCategory = 'basic_mate';
+                              _loadBasicMatePreset('hard');
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -1411,11 +1474,17 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           ),
                         ),
                         _buildBoardWithTapAndHighlights(320.0),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 6),
 
-                        // Move History & Variation Tree Navigation Bar
-                        _buildMoveHistoryNavigationWidget(),
-                        const SizedBox(height: 12),
+                        // Horizontal Evaluation Bar Widget (Visible when _showEvalBar is enabled)
+                        if (_showEvalBar) ...[
+                          HorizontalEvalBarWidget(
+                            eval: _currentRawEval,
+                            depth: _currentEvalDepth,
+                            orientation: _puzzleOrientation,
+                          ),
+                          const SizedBox(height: 8),
+                        ],
 
                         // Action Buttons
                         Row(
@@ -1441,9 +1510,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
-                        // Stockfish Analysis Widget ("Prikaži evaluaciju") - Only visible when it's User's Turn
+                        // Stockfish Analysis Widget ("Prikaži evaluaciju")
                         if (!_isOpponentTurn)
                           StockfishAnalysisWidget(
                             isEngineEnabled: _showEvaluation,
@@ -1453,24 +1522,34 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                             thinkingMode: _thinkingMode,
                             lines: _engineLinesMap.values.toList(),
                             orientation: _puzzleOrientation,
-                          onToggleEngine: () {
-                            setState(() {
-                              _showEvaluation = !_showEvaluation;
+                            isShowEvalBarEnabled: _showEvalBar,
+                            onToggleShowEvalBar: () {
+                              setState(() {
+                                _showEvalBar = !_showEvalBar;
+                              });
+                            },
+                            onToggleEngine: () {
+                              setState(() {
+                                _showEvaluation = !_showEvaluation;
+                                if (_showEvaluation) {
+                                  _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
+                                } else {
+                                  _engineLinesMap.clear();
+                                  _engineArrows.clear();
+                                }
+                              });
+                            },
+                            onChangeThinkingMode: (mode) {
+                              setState(() => _thinkingMode = mode);
                               if (_showEvaluation) {
-                                _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 16);
-                              } else {
-                                _engineLinesMap.clear();
-                                _engineArrows.clear();
+                                _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: mode == 'deep' ? 22 : 16);
                               }
-                            });
-                          },
-                          onChangeThinkingMode: (mode) {
-                            setState(() => _thinkingMode = mode);
-                            if (_showEvaluation) {
-                              _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: mode == 'deep' ? 22 : 16);
-                            }
-                          },
-                        ),
+                            },
+                          ),
+                        const SizedBox(height: 12),
+
+                        // Move History & Variation Tree Navigation Bar (MOVED TO BOTTOM)
+                        _buildMoveHistoryNavigationWidget(),
                       ],
                     ],
                   ),
@@ -1746,5 +1825,91 @@ class SelectedSquarePainter extends CustomPainter {
     return oldDelegate.selectedSquare != selectedSquare ||
         oldDelegate.boardSize != boardSize ||
         oldDelegate.orientation != orientation;
+  }
+}
+
+class HorizontalEvalBarWidget extends StatelessWidget {
+  final double eval;
+  final int depth;
+  final PlayerColor orientation;
+
+  const HorizontalEvalBarWidget({
+    super.key,
+    required this.eval,
+    required this.depth,
+    this.orientation = PlayerColor.white,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    double winPct;
+    String displayEvalText;
+
+    if (eval.abs() > 500) {
+      final mateMoves = eval > 0 ? (10000 - eval).round() : (-10000 - eval).round();
+      displayEvalText = eval > 0 ? 'M${mateMoves.abs()} (d$depth)' : '-M${mateMoves.abs()} (d$depth)';
+      winPct = eval > 0 ? 0.98 : 0.02;
+    } else {
+      displayEvalText = '${eval >= 0 ? "+" : ""}${eval.toStringAsFixed(2)} (d$depth)';
+      final sigmoid = 1.0 / (1.0 + double.parse(((-eval / 4.0)).toStringAsFixed(4)));
+      winPct = sigmoid.clamp(0.04, 0.96);
+    }
+
+    return Container(
+      height: 24,
+      margin: const EdgeInsets.symmetric(vertical: 6.0),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade900,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.8), width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Stack(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  flex: (winPct * 1000).round(),
+                  child: Container(color: Colors.grey.shade100),
+                ),
+                Expanded(
+                  flex: ((1.0 - winPct) * 1000).round(),
+                  child: Container(color: Colors.grey.shade900),
+                ),
+              ],
+            ),
+            Center(
+              child: Stack(
+                children: [
+                  Text(
+                    displayEvalText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      foreground: Paint()
+                        ..style = PaintingStyle.stroke
+                        ..strokeWidth = 2.5
+                        ..color = Colors.black,
+                    ),
+                  ),
+                  Text(
+                    displayEvalText,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.amberAccent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

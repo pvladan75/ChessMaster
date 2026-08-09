@@ -13,6 +13,8 @@ class StockfishAnalysisWidget extends StatelessWidget {
   final PlayerColor orientation;
   final VoidCallback onToggleEngine;
   final Function(String mode) onChangeThinkingMode;
+  final bool isShowEvalBarEnabled;
+  final VoidCallback? onToggleShowEvalBar;
   final VoidCallback? onOpenSettings;
   final Function(String fen)? onLoadFenToMainBoard;
 
@@ -27,6 +29,8 @@ class StockfishAnalysisWidget extends StatelessWidget {
     required this.orientation,
     required this.onToggleEngine,
     required this.onChangeThinkingMode,
+    this.isShowEvalBarEnabled = false,
+    this.onToggleShowEvalBar,
     this.onOpenSettings,
     this.onLoadFenToMainBoard,
   });
@@ -232,6 +236,30 @@ class StockfishAnalysisWidget extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              if (onToggleShowEvalBar != null) ...[
+                const Divider(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.bar_chart, size: 16, color: Colors.amberAccent),
+                        SizedBox(width: 6),
+                        Text(
+                          'Prikaži evaluacionu liniju',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    Switch(
+                      value: isShowEvalBarEnabled,
+                      activeThumbColor: Colors.amberAccent,
+                      onChanged: (_) => onToggleShowEvalBar?.call(),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ],
         ),
