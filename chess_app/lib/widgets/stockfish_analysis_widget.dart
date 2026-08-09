@@ -125,6 +125,30 @@ class StockfishAnalysisWidget extends StatelessWidget {
               ],
             ),
 
+            if (onToggleShowEvalBar != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.bar_chart, size: 18, color: Colors.amberAccent),
+                      SizedBox(width: 8),
+                      Text(
+                        'Prikaži evaluacionu liniju',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  Switch(
+                    value: isShowEvalBarEnabled,
+                    activeThumbColor: Colors.amberAccent,
+                    onChanged: (_) => onToggleShowEvalBar?.call(),
+                  ),
+                ],
+              ),
+            ],
+
             if (isEngineEnabled && isAllowedToUseEngine) ...[
               const Divider(height: 16),
 
@@ -213,7 +237,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                       ),
                     ),
                   );
-                }).toList(),
+                }),
 
               const SizedBox(height: 8),
 
@@ -236,30 +260,6 @@ class StockfishAnalysisWidget extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              if (onToggleShowEvalBar != null) ...[
-                const Divider(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.bar_chart, size: 16, color: Colors.amberAccent),
-                        SizedBox(width: 6),
-                        Text(
-                          'Prikaži evaluacionu liniju',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                      ],
-                    ),
-                    Switch(
-                      value: isShowEvalBarEnabled,
-                      activeThumbColor: Colors.amberAccent,
-                      onChanged: (_) => onToggleShowEvalBar?.call(),
-                    ),
-                  ],
-                ),
-              ],
             ],
           ],
         ),

@@ -43,6 +43,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   bool _showEvaluation = false;
   bool _showEvalBar = false; // Default OFF
   double _currentRawEval = 0.0;
+  String _currentEvalString = '0.00';
   int _currentEvalDepth = 18;
   double? _lastPosEval;
   double? _lastUserAdvantage;
@@ -89,6 +90,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _showEvaluation = false;
     _showEvalBar = false;
     _currentRawEval = 0.0;
+    _currentEvalString = '0.00';
     _currentEvalDepth = 18;
     _selectedSquare = null;
     _puzzleMoveTree = null;
@@ -148,6 +150,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
         setState(() {
           _currentRawEval = parsedEval;
+          _currentEvalString = evaluation;
           _currentEvalDepth = depth;
           _engineArrows = newArrows;
         });
@@ -184,11 +187,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               isMoveAcceptable = true;
             }
           } else if (_selectedCategory == 'basic_mate') {
-            if (userAdvantage != null && userAdvantage >= 0.0) {
-              isMoveAcceptable = true;
-            } else if (evaluation.contains('M')) {
-              isMoveAcceptable = true;
-            }
+            isMoveAcceptable = true;
           }
 
           if (userAdvantage != null) {
@@ -637,8 +636,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _selectedSquare = null;
       _lastMoveFrom = null;
       _lastMoveTo = null;
+      _engineLinesMap.clear();
+      _engineArrows.clear();
       _puzzleMoveTree = MoveTree(startingFen: _initialPuzzleFen!);
     });
+
+    if (_showEvaluation || _showEvalBar) {
+      _stockfishService.analyzePosition(_initialPuzzleFen!, depth: kDefaultEngineTargetDepth);
+    }
 
     _sendBackendLog({
       'mode': _categoryDisplayName,
@@ -1471,6 +1476,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                         if (_showEvalBar) ...[
                           HorizontalEvalBarWidget(
                             eval: _currentRawEval,
+                            evalString: _currentEvalString,
                             depth: _currentEvalDepth,
                             orientation: _puzzleOrientation,
                           ),
@@ -1600,7 +1606,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             child: IgnorePointer(
               child: CustomPaint(
                 painter: ChessBoardPainter(
-                  arrows: [],
+                  arrows: _showEvaluation ? _engineArrows : [],
                   boardSize: boardSize,
                   orientation: _puzzleOrientation,
                   lastMoveFrom: _lastMoveFrom,
@@ -1821,12 +1827,14 @@ class SelectedSquarePainter extends CustomPainter {
 
 class HorizontalEvalBarWidget extends StatelessWidget {
   final double eval;
+  final String evalString;
   final int depth;
   final PlayerColor orientation;
 
   const HorizontalEvalBarWidget({
     super.key,
     required this.eval,
+    required this.evalString,
     required this.depth,
     this.orientation = PlayerColor.white,
   });
@@ -1834,14 +1842,11 @@ class HorizontalEvalBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     double winPct;
-    String displayEvalText;
+    final displayEvalText = '$evalString (d$depth)';
 
     if (eval.abs() > 500) {
-      final mateMoves = eval > 0 ? (10000 - eval).round() : (-10000 - eval).round();
-      displayEvalText = eval > 0 ? 'M${mateMoves.abs()} (d$depth)' : '-M${mateMoves.abs()} (d$depth)';
       winPct = eval > 0 ? 0.98 : 0.02;
     } else {
-      displayEvalText = '${eval >= 0 ? "+" : ""}${eval.toStringAsFixed(2)} (d$depth)';
       final sigmoid = 1.0 / (1.0 + double.parse(((-eval / 4.0)).toStringAsFixed(4)));
       winPct = sigmoid.clamp(0.04, 0.96);
     }
