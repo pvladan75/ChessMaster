@@ -154,25 +154,42 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     }
   }
 
-  void _resetEngineState() {
+  /// Centralized Universal Board State Reboot & Cleanup Function
+  void resetBoardState({bool isNewPuzzle = false}) {
+    // 1. Immediately HALT any active Stockfish analysis worker
     _stockfishService.stopAnalysis();
-    _stockfishService.setMultiPV(3);
+
+    // 2. CLEAR all drawn arrows & engine analysis line entries
     _engineLinesMap.clear();
     _engineArrows.clear();
     _lastPosEval = null;
     _lastUserAdvantage = null;
-    _activeFen = null;
-    _showEvaluation = false;
-    _showEvalBar = false;
+
+    // 3. RESET visual evaluation values
     _currentRawEval = 0.0;
     _currentEvalString = '0.00';
     _currentEvalDepth = 18;
-    _userMoveCount = 0;
+
+    // 4. RESET Flags
     _isOpponentTurn = false;
     _isVerifyingUserMove = false;
     _selectedSquare = null;
-    _puzzleMoveTree = null;
-    _initialPuzzleFen = null;
+
+    // 5. IF loading a COMPLETELY NEW PUZZLE, reset evaluation toggles A/B to OFF!
+    if (isNewPuzzle) {
+      _showEvaluation = false;
+      _showEvalBar = false;
+      _userMoveCount = 0;
+      _moveIndex = 0;
+      _activeFen = null;
+      _puzzleMoveTree = null;
+      _initialPuzzleFen = null;
+      _stockfishService.setMultiPV(3);
+    }
+  }
+
+  void _resetEngineState() {
+    resetBoardState(isNewPuzzle: true);
   }
 
   Future<void> _sendBackendLog(Map<String, dynamic> details) async {
@@ -381,14 +398,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
     Future.delayed(const Duration(milliseconds: 1000), () {
       if (!mounted) return;
-      _stockfishService.stopAnalysis();
       _playPuzzleMove(validMove);
       if (_puzzleGame != null) {
         _activeFen = _puzzleGame!.fen;
-        setState(() {
-          _engineLinesMap.clear();
-          _engineArrows.clear();
-        });
+        resetBoardState(isNewPuzzle: false);
 
         if (_puzzleGame!.in_checkmate) {
           if (_selectedCategory == 'basic_mate') {
@@ -400,7 +413,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         } else if (_puzzleGame!.in_stalemate || _puzzleGame!.in_draw) {
           _showSnackBar('🤝 Pat / Remi u poziciji.');
         } else {
-          if (_showEvaluation) {
+          if (_showEvaluation || _showEvalBar) {
             _stockfishService.setMultiPV(3);
             _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 99);
           }
@@ -411,6 +424,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   void _triggerOpponentBotResponse() async {
     if (_puzzleGame == null || _puzzleGame!.in_checkmate) return;
+    resetBoardState(isNewPuzzle: false);
     setState(() {
       _isVerifyingUserMove = false;
       _isOpponentTurn = true;
@@ -724,8 +738,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   void _restartCurrentPuzzle() {
     if (_initialPuzzleFen == null) return;
-    _stockfishService.stopAnalysis();
-    _stockfishService.setMultiPV(3);
+    resetBoardState(isNewPuzzle: false);
     _puzzleGame = chess.Chess.fromFEN(_initialPuzzleFen!);
     _activeFen = _initialPuzzleFen;
     _puzzleBoardController.loadFen(_initialPuzzleFen!);
@@ -733,17 +746,15 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     setState(() {
       _puzzleSolved = false;
       _puzzleFailed = false;
-      _isOpponentTurn = false;
       _moveIndex = 0;
-      _selectedSquare = null;
+      _userMoveCount = 0;
       _lastMoveFrom = null;
       _lastMoveTo = null;
-      _engineLinesMap.clear();
-      _engineArrows.clear();
       _puzzleMoveTree = MoveTree(startingFen: _initialPuzzleFen!);
     });
 
     if (_showEvaluation || _showEvalBar) {
+      _stockfishService.setMultiPV(3);
       _stockfishService.analyzePosition(_initialPuzzleFen!, depth: 99);
     }
 
@@ -895,8 +906,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _puzzleGame!.move(matchedMove);
     _activeFen = _puzzleGame!.fen;
 
-    // Immediately stop ongoing Stockfish analysis of old position & clear old arrows/lines!
-    _stockfishService.stopAnalysis();
+    // Universal reboot of board state for move execution (preserves toggles A/B if ON!)
+    resetBoardState(isNewPuzzle: false);
 
     final fromStr = userLan.substring(0, 2);
     final toStr = userLan.substring(2, 4);
@@ -907,8 +918,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     final int k = _userMoveCount;
 
     setState(() {
-      _engineLinesMap.clear();
-      _engineArrows.clear();
       _lastMoveFrom = fromStr;
       _lastMoveTo = toStr;
     });
@@ -943,6 +952,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _activeFen = _puzzleGame!.fen;
       if (_userMoveCount > 0) _userMoveCount--;
 
+      resetBoardState(isNewPuzzle: false);
+      if (_showEvaluation || _showEvalBar) {
+        _stockfishService.setMultiPV(3);
+        _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 99);
+      }
+
       print('\n[MATE_VERIFICATION] ❌ POTEZ ODBIJEN na k=$k od N=$reqN (Nije mat na tabli). Potez poništen, tabla otključana.\n');
 
       await _sendBackendLog({
@@ -957,8 +972,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     }
 
     // --- STEP 1: FAST-TRACK JSON CHECK ---
-    final primaryJsonMove = _currentPuzzle?['winning_move_uci'] ?? (_expectedMoves.isNotEmpty ? _expectedMoves[0] : '');
-    final bool isFastTrack = (primaryJsonMove.isNotEmpty && userLan == primaryJsonMove);
+    final primaryJsonMove = _currentPuzzle?['winning_move_uci'] ?? (_expectedMoves.length > _moveIndex ? _expectedMoves[_moveIndex] : '');
+    final bool isFastTrack = (_selectedCategory == 'mate_puzzle' && primaryJsonMove.isNotEmpty && userLan == primaryJsonMove);
 
     print('\n--------------------------------------------------');
     print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
