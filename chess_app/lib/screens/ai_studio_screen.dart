@@ -2063,45 +2063,218 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   // --- 2. ACTIVE BOARD GAME SCREEN ---
 
   Widget _buildActiveBoardScreen() {
+    final screenSize = MediaQuery.of(context).size;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
     final String headerGoal = _selectedCategory == 'mate_puzzle'
         ? '${_puzzleOrientation == PlayerColor.white ? "⚪ Beli" : "⚫ Crni"} na potezu - Mat u $_selectedMateDepth ${_selectedMateDepth == '1' ? 'potez' : 'poteza'}'
         : (_selectedCategory == 'basic_mate'
             ? 'Vežbanje: $_selectedBasicMateType (Matirajte Stockfish-a)'
             : '${_puzzleOrientation == PlayerColor.white ? "⚪ Beli" : "⚫ Crni"} na potezu - Pronađite dobitni put');
 
+    final backButtonCard = Card(
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            OutlinedButton.icon(
+              icon: const Icon(Icons.arrow_back, size: 16),
+              label: const Text('Nazad na izbor', style: TextStyle(fontSize: 12)),
+              onPressed: () {
+                _resetEngineState();
+                setState(() {
+                  _selectedCategory = null;
+                });
+              },
+            ),
+            if (isLandscape)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _puzzleOrientation == PlayerColor.white ? Colors.blueGrey.shade900 : Colors.teal.shade900,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _puzzleOrientation == PlayerColor.white ? Colors.white38 : Colors.tealAccent),
+                ),
+                child: Text(
+                  headerGoal,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+
+    final goalBanner = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: _puzzleOrientation == PlayerColor.white ? Colors.blueGrey.shade900 : Colors.teal.shade900,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _puzzleOrientation == PlayerColor.white ? Colors.white38 : Colors.tealAccent),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.flag,
+            size: 18,
+            color: _puzzleOrientation == PlayerColor.white ? Colors.white : Colors.tealAccent,
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              headerGoal,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final actionButtonsRow = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        ElevatedButton.icon(
+          icon: const Icon(Icons.refresh, size: 16),
+          label: const Text('Probaj Ponovo'),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade800, foregroundColor: Colors.white),
+          onPressed: _restartCurrentPuzzle,
+        ),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.arrow_forward),
+          label: const Text('Naredna Pozicija'),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+          onPressed: () {
+            if (_selectedCategory == 'basic_mate') {
+              _loadBasicMatePreset(_selectedBasicMateType);
+            } else {
+              _fetchNextPuzzle();
+            }
+          },
+        ),
+      ],
+    );
+
+    if (isLandscape) {
+      // LANDSCAPE LAYOUT: Side-by-Side (Left: Board & Buttons, Right: Tree & Analysis)
+      final double boardSize = math.min(screenSize.height - 150.0, screenSize.width * 0.42);
+
+      return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          children: [
+            backButtonCard,
+            const SizedBox(height: 6),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // LEFT SIDE (Board & Actions)
+                  SizedBox(
+                    width: boardSize + 32,
+                    child: SingleChildScrollView(
+                      child: Card(
+                        elevation: 4,
+                        child: Padding(
+                          padding: const EdgeInsets.all(10.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_isLoadingPuzzle)
+                                SizedBox(
+                                  height: boardSize,
+                                  child: const Center(child: CircularProgressIndicator()),
+                                )
+                              else ...[
+                                _buildBoardWithTapAndHighlights(boardSize),
+                                const SizedBox(height: 6),
+                                if (_showEvalBar) ...[
+                                  HorizontalEvalBarWidget(
+                                    eval: _currentRawEval,
+                                    evalString: _currentEvalString,
+                                    depth: _currentEvalDepth,
+                                    orientation: _puzzleOrientation,
+                                  ),
+                                  const SizedBox(height: 6),
+                                ],
+                                actionButtonsRow,
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // RIGHT SIDE (Tree & Stockfish Analysis & History)
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          if (_selectedCategory == 'mate_puzzle')
+                            _buildGraphicalSolutionTreeWidget()
+                          else
+                            _buildPgnSolutionTreeWidget(),
+                          const SizedBox(height: 8),
+                          if (!_isOpponentTurn && _selectedCategory != 'mate_puzzle')
+                            StockfishAnalysisWidget(
+                              isEngineEnabled: _showEvaluation,
+                              isAllowedToUseEngine: true,
+                              isOnline: _stockfishService.isOnline,
+                              isCustomEngineActive: _stockfishService.isCustomEngineActive,
+                              lines: _engineLinesMap.values.toList(),
+                              orientation: _puzzleOrientation,
+                              isShowEvalBarEnabled: _showEvalBar,
+                              onToggleShowEvalBar: () {
+                                setState(() {
+                                  _showEvalBar = !_showEvalBar;
+                                });
+                              },
+                              onToggleEngine: () {
+                                setState(() {
+                                  _showEvaluation = !_showEvaluation;
+                                  if (_showEvaluation) {
+                                    _stockfishService.setMultiPV(3);
+                                    _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 20);
+                                  } else {
+                                    _engineLinesMap.clear();
+                                    _engineArrows.clear();
+                                  }
+                                });
+                              },
+                            ),
+                          const SizedBox(height: 8),
+                          _buildMoveHistoryNavigationWidget(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // PORTRAIT LAYOUT: Responsive Column with clean max width
+    final double boardSize = math.min(screenSize.width - 48.0, 380.0);
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(12.0),
       child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 650),
           child: Column(
             children: [
-              // Navigation Back Bar & Controls Card
-              Card(
-                elevation: 3,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.arrow_back, size: 16),
-                        label: const Text('Nazad na izbor', style: TextStyle(fontSize: 12)),
-                        onPressed: () {
-                          _resetEngineState();
-                          setState(() {
-                            _selectedCategory = null;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Chessboard Card
+              backButtonCard,
+              const SizedBox(height: 8),
               Card(
                 elevation: 4,
                 child: Padding(
@@ -2109,43 +2282,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                   child: Column(
                     children: [
                       if (_isLoadingPuzzle)
-                        const SizedBox(
-                          height: 320,
-                          child: Center(child: CircularProgressIndicator()),
+                        SizedBox(
+                          height: boardSize,
+                          child: const Center(child: CircularProgressIndicator()),
                         )
                       else ...[
-                        // Turn & Goal Banner
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          margin: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(
-                            color: _puzzleOrientation == PlayerColor.white ? Colors.blueGrey.shade900 : Colors.teal.shade900,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: _puzzleOrientation == PlayerColor.white ? Colors.white38 : Colors.tealAccent),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.flag,
-                                size: 18,
-                                color: _puzzleOrientation == PlayerColor.white ? Colors.white : Colors.tealAccent,
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  headerGoal,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        _buildBoardWithTapAndHighlights(320.0),
+                        goalBanner,
+                        _buildBoardWithTapAndHighlights(boardSize),
                         const SizedBox(height: 6),
-
-                        // Horizontal Evaluation Bar Widget (Visible when _showEvalBar is enabled)
                         if (_showEvalBar) ...[
                           HorizontalEvalBarWidget(
                             eval: _currentRawEval,
@@ -2155,34 +2299,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           ),
                           const SizedBox(height: 8),
                         ],
-
-                        // Action Buttons
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            ElevatedButton.icon(
-                              icon: const Icon(Icons.refresh, size: 16),
-                              label: const Text('Probaj Ponovo'),
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade800, foregroundColor: Colors.white),
-                              onPressed: _restartCurrentPuzzle,
-                            ),
-                            ElevatedButton.icon(
-                              icon: const Icon(Icons.arrow_forward),
-                              label: const Text('Naredna Pozicija'),
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-                              onPressed: () {
-                                if (_selectedCategory == 'basic_mate') {
-                                  _loadBasicMatePreset(_selectedBasicMateType);
-                                } else {
-                                  _fetchNextPuzzle();
-                                }
-                              },
-                            ),
-                          ],
-                        ),
+                        actionButtonsRow,
                         const SizedBox(height: 12),
-
-                        // Stockfish Analysis Widget ("Prikaži evaluaciju") - Hawaian/Clean UI for Mat u N
                         if (!_isOpponentTurn && _selectedCategory != 'mate_puzzle')
                           StockfishAnalysisWidget(
                             isEngineEnabled: _showEvaluation,
@@ -2211,15 +2329,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                             },
                           ),
                         const SizedBox(height: 12),
-
-                        // Interactive Solution Tree Widget (Graphical Tree for Mate in N / PGN Chips for others)
                         if (_selectedCategory == 'mate_puzzle')
                           _buildGraphicalSolutionTreeWidget()
                         else
                           _buildPgnSolutionTreeWidget(),
                         const SizedBox(height: 12),
-
-                        // Move History & Variation Tree Navigation Bar (MOVED TO BOTTOM)
                         _buildMoveHistoryNavigationWidget(),
                       ],
                     ],
@@ -2678,7 +2792,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: math.min(canvasHeight + 20.0, 320.0),
+            height: math.min(canvasHeight + 20.0, MediaQuery.of(context).orientation == Orientation.landscape ? math.max(280.0, MediaQuery.of(context).size.height - 180.0) : 340.0),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Container(
