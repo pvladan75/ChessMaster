@@ -1279,7 +1279,7 @@ app.post('/api/puzzles/verify', async (req, res) => {
   }
 });
 
-// POST /api/puzzles/log - Stream live position state & Stockfish logs directly to backend console
+// POST /api/puzzles/log - Stream live position state & user actions directly to backend console
 app.post('/api/puzzles/log', (req, res) => {
   try {
     const { details } = req.body;
@@ -1301,12 +1301,31 @@ app.post('/api/puzzles/log', (req, res) => {
         return res.json({ success: true });
       }
 
+      if (details.type === 'buttonClick') {
+        console.log('\n🔘 [KLIK NA DUGME - BACKEND TERMINAL] ==============================');
+        console.log(`[DUGME]: ${details.button}`);
+        if (details.puzzleId) console.log(`[ID ZAGONETKE]: ${details.puzzleId}`);
+        if (details.fen) console.log(`[FEN POZICIJE]: ${details.fen}`);
+        if (details.category) console.log(`[KATEGORIJA]: ${details.category}`);
+        console.log('============================================================================\n');
+        return res.json({ success: true });
+      }
+
+      if (details.type === 'pgnChipClick') {
+        console.log('\n♟️ [KLIK NA PGN POTEZ - BACKEND TERMINAL] ===========================');
+        console.log(`[ODABRANI POTEZ U STABLU]: ${details.moveSan}`);
+        console.log(`[CILJNI FEN]: ${details.targetFen}`);
+        console.log('============================================================================\n');
+        return res.json({ success: true });
+      }
+
       if (details.status === 'REJECTED') {
         console.log('\n❌ [REJECTED MOVE LOG - BACKEND TERMINAL] ===================');
         console.log(`[1] MOD: ${details.mode}`);
-        console.log(`[3] DINAMIČKI FEN: ${details.dynamicFen}`);
-        console.log(`[STATUS]: ❌ ODBIJEN POTEZ KORISNIKA (Evaluacija: ${details.eval})`);
-        console.log(`[RAZLOG]: ${details.reason}`);
+        console.log(`[2] FEN PRE POTEZA: ${details.initialFen || details.dynamicFen}`);
+        console.log(`[3] ODIGRANI POTEZ KORISNIKA: ❌ ${details.userMove}`);
+        console.log(`[STATUS]: ❌ ODBIJEN POTEZ (Nije u stablu rešenja)`);
+        if (details.reason) console.log(`[RAZLOG]: ${details.reason}`);
         console.log('============================================================================\n');
         return res.json({ success: true });
       }
@@ -1316,8 +1335,10 @@ app.post('/api/puzzles/log', (req, res) => {
       if (details.initialFen) console.log(`[2] UČITANI FEN: ${details.initialFen}`);
       if (details.dynamicFen) console.log(`[3] DINAMIČKI FEN: ${details.dynamicFen}`);
       if (details.userMove) console.log(`[4] POTEZ KORISNIKA: ${details.userMove}`);
+      if (details.status) console.log(`[4] STATUS POTEZA: ${details.status === 'ACCEPTED' ? '✅ TAČAN (Prihvaćen u stablu)' : details.status}`);
+      if (details.subBranch) console.log(`[4] STABLO NASTAVKA: ${details.subBranch}`);
       if (details.fastTrack !== undefined) console.log(`[4] FAST-TRACK PROVERA: ${details.fastTrack ? '✅ DA (Potez u JSON-u)' : '⚡ NE (Šalje se na Stockfish)'}`);
-      if (details.engineMove) console.log(`[5] POTEZ ENGINE-A: ${details.engineMove}`);
+      if (details.engineMove) console.log(`[5] ODGOVOR PROTIVNIKA: ${details.engineMove}`);
       if (details.decisionBasis) console.log(`[5] OSNOV ODABIRA: ${details.decisionBasis}`);
       if (details.depth) console.log(`[5] DUBINA (DEPTH): ${details.depth}`);
       if (details.eval) console.log(`[5] EVALUACIJA: ${details.eval}`);

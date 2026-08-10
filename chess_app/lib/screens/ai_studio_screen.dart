@@ -1057,6 +1057,15 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         _isVerifyingUserMove = false;
         _moveIndex++;
 
+        _sendBackendLog({
+          'mode': _categoryDisplayName,
+          'initialFen': _initialPuzzleFen,
+          'dynamicFen': startingFen,
+          'userMove': '$userLan ($san)',
+          'status': 'ACCEPTED',
+          'subBranch': subBranch == "CHECKMATE" ? "CHECKMATE (Matni kraj)" : (subBranch is Map ? "Grana sa odgovora: ${subBranch.keys.join(', ')}" : subBranch.toString()),
+        });
+
         final bool isTerminalCheckmate = (subBranch == "CHECKMATE" || _puzzleGame!.in_checkmate);
 
         if (isTerminalCheckmate || (subBranch is Map && (subBranch as Map).isEmpty)) {
@@ -1247,6 +1256,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       } else {
         // Move NOT in solution tree -> Show failure modal dialog with 3 choices!
         print('[TREE_VERIFICATION] ❌ Potez $userLan nije u stablu rešenja! Prikazivanje dijaloga za grešku.');
+        _sendBackendLog({
+          'mode': _categoryDisplayName,
+          'initialFen': _initialPuzzleFen,
+          'dynamicFen': startingFen,
+          'userMove': '$userLan ($san)',
+          'status': 'REJECTED',
+          'reason': 'Potez nije u ugnježđenom stablu rešenja zagonetke',
+        });
         _showFailureDialog();
         return;
       }
@@ -1284,6 +1301,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   void _showFailureDialog() {
     if (!mounted) return;
+    _sendBackendLog({
+      'type': 'buttonClick',
+      'button': 'Prikazan dijalog - Netačan Potez',
+      'puzzleId': _currentPuzzle?['puzzle_id'],
+      'fen': _puzzleGame?.fen,
+    });
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.grey.shade900,
@@ -1323,6 +1347,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                   ),
                   onPressed: () {
                     Navigator.pop(ctx);
+                    _sendBackendLog({'type': 'buttonClick', 'button': 'Modal - Pokušaj Ponovo'});
                     _undoIncorrectUserMove();
                   },
                 ),
@@ -1341,6 +1366,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
+                        _sendBackendLog({'type': 'buttonClick', 'button': 'Modal - Prikaži Rešenje'});
                         _playFullSolutionReplay();
                       },
                     ),
@@ -1357,6 +1383,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
+                        _sendBackendLog({'type': 'buttonClick', 'button': 'Modal - Sledeća Zagonetka'});
                         _fetchNextPuzzle();
                       },
                     ),
@@ -1387,6 +1414,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   Future<void> _playFullSolutionReplay() async {
     if (_initialPuzzleFen == null || _rootSolutionsTree.isEmpty) return;
+    _sendBackendLog({
+      'type': 'buttonClick',
+      'button': 'Akcija - Prikaži Rešenje (Auto Replay)',
+      'puzzleId': _currentPuzzle?['puzzle_id'],
+      'fen': _initialPuzzleFen,
+    });
     setState(() => _isReplayingSolution = true);
 
     _puzzleGame = chess.Chess.fromFEN(_initialPuzzleFen!);
@@ -1482,6 +1515,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   void _resetCurrentPuzzle() {
     _resetEngineState();
+    _sendBackendLog({
+      'type': 'buttonClick',
+      'button': 'Akcija - Probaj Ponovo',
+      'puzzleId': _currentPuzzle?['puzzle_id'],
+      'fen': _initialPuzzleFen,
+    });
     if (_selectedCategory == 'basic_mate') {
       _loadBasicMatePreset(_selectedBasicMateType);
       return;
@@ -2359,6 +2398,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         chips.add(
           InkWell(
             onTap: () {
+              _sendBackendLog({
+                'type': 'pgnChipClick',
+                'moveSan': labelStr,
+                'targetFen': targetFen,
+              });
               setState(() {
                 _puzzleGame = chess.Chess.fromFEN(targetFen);
                 _puzzleBoardController.loadFen(targetFen);
