@@ -2239,152 +2239,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _stockfishService.analyzePosition(node.fen, depth: 20);
     }
   }
-}
-
-class SelectedSquarePainter extends CustomPainter {
-  final String selectedSquare;
-  final double boardSize;
-  final PlayerColor orientation;
-
-  SelectedSquarePainter({
-    required this.selectedSquare,
-    required this.boardSize,
-    required this.orientation,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (selectedSquare.length < 2) return;
-    final fileChar = selectedSquare[0];
-    final rankNum = int.tryParse(selectedSquare[1]);
-    if (rankNum == null) return;
-
-    final squareSize = boardSize / 8.0;
-    int col, row;
-
-    if (orientation == PlayerColor.white) {
-      col = fileChar.codeUnitAt(0) - 'a'.codeUnitAt(0);
-      row = 8 - rankNum;
-    } else {
-      col = 'h'.codeUnitAt(0) - fileChar.codeUnitAt(0);
-      row = rankNum - 1;
-    }
-
-    final rect = Rect.fromLTWH(col * squareSize, row * squareSize, squareSize, squareSize);
-
-    final fillPaint = Paint()
-      ..color = Colors.amberAccent.withValues(alpha: 0.35)
-      ..style = PaintingStyle.fill;
-    canvas.drawRect(rect, fillPaint);
-
-    final borderPaint = Paint()
-      ..color = Colors.amberAccent
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0;
-    canvas.drawRect(rect, borderPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant SelectedSquarePainter oldDelegate) {
-    return oldDelegate.selectedSquare != selectedSquare ||
-        oldDelegate.boardSize != boardSize ||
-        oldDelegate.orientation != orientation;
-  }
-}
-
-class HorizontalEvalBarWidget extends StatelessWidget {
-  final double eval;
-  final String evalString;
-  final int depth;
-  final PlayerColor orientation;
-
-  const HorizontalEvalBarWidget({
-    super.key,
-    required this.eval,
-    required this.evalString,
-    required this.depth,
-    this.orientation = PlayerColor.white,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    double winPct;
-
-    if (evalString.contains('M') && !evalString.contains('-')) {
-      winPct = 1.0;
-    } else if (evalString.contains('-M')) {
-      winPct = 0.0;
-    } else if (eval.abs() > 500) {
-      winPct = eval > 0 ? 1.0 : 0.0;
-    } else {
-      final sigmoid = 1.0 / (1.0 + math.exp(-eval / 3.0));
-      winPct = sigmoid.clamp(0.03, 0.97);
-    }
-
-    final safeEvalString = (evalString.isNotEmpty && evalString != '0.00')
-        ? evalString
-        : (eval > 0 ? '+${eval.toStringAsFixed(2)}' : eval.toStringAsFixed(2));
-    final String displayEvalText = '$safeEvalString (d$depth)';
-
-    print('[EVAL_BAR_DEBUG] eval: $eval | evalString: "$evalString" | display: "$displayEvalText" | winPct: $winPct');
-
-    return Container(
-      height: 24,
-      margin: const EdgeInsets.symmetric(vertical: 6.0),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade900,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.8), width: 1.5),
-        boxShadow: const [
-          BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Stack(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  flex: (winPct * 1000).round(),
-                  child: Container(color: Colors.grey.shade100),
-                ),
-                Expanded(
-                  flex: ((1.0 - winPct) * 1000).round(),
-                  child: Container(color: Colors.grey.shade900),
-                ),
-              ],
-            ),
-            Center(
-              child: Stack(
-                children: [
-                  Text(
-                    displayEvalText,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      foreground: Paint()
-                        ..style = PaintingStyle.stroke
-                        ..strokeWidth = 2.5
-                        ..color = Colors.black,
-                    ),
-                  ),
-                  Text(
-                    displayEvalText,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.amberAccent,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildPgnSolutionTreeWidget() {
     if (_currentPuzzle == null || _currentPuzzle!['solutions'] == null) {
@@ -2444,17 +2298,23 @@ class HorizontalEvalBarWidget extends StatelessWidget {
         final to = uciMove.substring(2, 4);
         final promo = uciMove.length > 4 ? uciMove[4] : null;
 
-        final moveObj = tempBoard.move({'from': from, 'to': to, 'promotion': promo});
-        final sanStr = moveObj != null ? (moveObj['san'] ?? uciMove) : uciMove;
-        final targetFen = tempBoard.fen;
+        final bool moveOk = tempBoard.move({'from': from, 'to': to, 'promotion': promo});
+        String sanStr = uciMove;
+        if (moveOk && tempBoard.history.isNotEmpty) {
+          try {
+            sanStr = tempBoard.history.last.move.san ?? uciMove;
+          } catch (_) {
+            sanStr = uciMove;
+          }
+        }
 
+        final targetFen = tempBoard.fen;
         final String labelStr = isWhite ? '$num. $sanStr' : '$num... $sanStr';
         final bool isCurrentPos = (_activeFen == targetFen);
 
         chips.add(
           InkWell(
             onTap: () {
-              // Interactive click: Jump board to this exact FEN position!
               setState(() {
                 _puzzleGame = chess.Chess.fromFEN(targetFen);
                 _puzzleBoardController.loadFen(targetFen);
@@ -2494,12 +2354,129 @@ class HorizontalEvalBarWidget extends StatelessWidget {
           traverseNode(nextMap, nextNum, nextIsWhite, prefix);
         }
 
-        // Undo move on temp board to backtrack for other variations
         tempBoard.undo();
       }
     }
 
     traverseNode(solutions, moveNum, isWhiteToMove, '');
     return chips;
+  }
+}
+
+class SelectedSquarePainter extends CustomPainter {
+  final String selectedSquare;
+  final double boardSize;
+  final PlayerColor orientation;
+
+  SelectedSquarePainter({
+    required this.selectedSquare,
+    required this.boardSize,
+    required this.orientation,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (selectedSquare.isEmpty) return;
+    final squareSize = boardSize / 8.0;
+
+    final file = selectedSquare[0];
+    final rank = int.parse(selectedSquare[1]);
+
+    int col, row;
+    if (orientation == PlayerColor.white) {
+      col = file.codeUnitAt(0) - 'a'.codeUnitAt(0);
+      row = 8 - rank;
+    } else {
+      col = 'h'.codeUnitAt(0) - file.codeUnitAt(0);
+      row = rank - 1;
+    }
+
+    final rect = Rect.fromLTWH(col * squareSize, row * squareSize, squareSize, squareSize);
+    final borderPaint = Paint()
+      ..color = Colors.amberAccent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
+    canvas.drawRect(rect, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant SelectedSquarePainter oldDelegate) {
+    return oldDelegate.selectedSquare != selectedSquare ||
+        oldDelegate.boardSize != boardSize ||
+        oldDelegate.orientation != orientation;
+  }
+}
+
+class HorizontalEvalBarWidget extends StatelessWidget {
+  final double eval;
+  final String evalString;
+  final int depth;
+  final PlayerColor orientation;
+
+  const HorizontalEvalBarWidget({
+    super.key,
+    required this.eval,
+    required this.evalString,
+    required this.depth,
+    required this.orientation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double winPct = (eval.clamp(-10.0, 10.0) + 10.0) / 20.0;
+    final String displayEvalText = evalString;
+
+    return Container(
+      height: 20,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(9),
+        child: Stack(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  flex: (winPct * 1000).round(),
+                  child: Container(color: Colors.grey.shade100),
+                ),
+                Expanded(
+                  flex: ((1.0 - winPct) * 1000).round(),
+                  child: Container(color: Colors.grey.shade900),
+                ),
+              ],
+            ),
+            Center(
+              child: Stack(
+                children: [
+                  Text(
+                    displayEvalText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      foreground: Paint()
+                        ..style = PaintingStyle.stroke
+                        ..strokeWidth = 2.5
+                        ..color = Colors.black,
+                    ),
+                  ),
+                  Text(
+                    displayEvalText,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.amberAccent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
