@@ -881,23 +881,33 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       final from = _selectedSquare!;
       final to = square;
 
+      setState(() {
+        _selectedSquare = null;
+      });
+
       final testGame = chess.Chess.fromFEN(_puzzleGame!.fen);
       final moveRes = testGame.move({'from': from, 'to': to, 'promotion': 'q'});
 
       if (moveRes != null) {
-        _puzzleGame!.move({'from': from, 'to': to, 'promotion': 'q'});
-        _puzzleBoardController.loadFen(_puzzleGame!.fen);
-        _activeFen = _puzzleGame!.fen;
-        setState(() {
-          _selectedSquare = null;
-        });
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _onUserPuzzleMoveMade();
-        });
-      } else {
-        setState(() {
-          _selectedSquare = null;
-        });
+        String promoPiece = 'q';
+        final promoMoves = _puzzleGame!.moves({'verbose': true}).where(
+          (m) => m['from'] == from && m['to'] == to && m['promotion'] != null && m['promotion'].toString().isNotEmpty,
+        );
+
+        if (promoMoves.isNotEmpty) {
+          _currentSolutionsNode ??= Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
+          if (_currentSolutionsNode != null) {
+            for (var pm in promoMoves) {
+              final candUci = '$from$to${pm['promotion']}';
+              if (_currentSolutionsNode!.containsKey(candUci)) {
+                promoPiece = pm['promotion'].toString();
+                break;
+              }
+            }
+          }
+        }
+
+        _onUserPuzzleMoveMade(manualFrom: from, manualTo: to, manualPromo: promoPiece);
       }
     }
   }
@@ -936,91 +946,92 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     }
   }
 
-  void _onUserPuzzleMoveMade() async {
-    print('[MOVE_MADE_DEBUG] _onUserPuzzleMoveMade called! Prog: $_isProgrammaticMove | Solved: $_puzzleSolved | Failed: $_puzzleFailed | OpponentTurn: $_isOpponentTurn | GameState: $_gameState | GameNull: ${_puzzleGame == null}');
-
-    if (_isProgrammaticMove || _puzzleSolved || _puzzleFailed || _isOpponentTurn || _gameState != PuzzleGameState.idle || _puzzleGame == null) return;
-
+  Future<void> _onUserPuzzleMoveMade({String? manualFrom, String? manualTo, String? manualPromo}) async {
+    if (_isOpponentTurn || _puzzleGame == null || _isVerifyingUserMove || _puzzleSolved) return;
+    _isVerifyingUserMove = true;
     setState(() {
       _gameState = PuzzleGameState.verifyingMove;
     });
 
     final currentFen = _puzzleBoardController.getFen();
-    print('[MOVE_MADE_DEBUG] Board Controller FEN: $currentFen');
-    print('[MOVE_MADE_DEBUG] Local Puzzle Game FEN: ${_puzzleGame!.fen}');
+    final allLegalMoves = _puzzleGame!.moves({'verbose': true});
 
-    if (currentFen == _puzzleGame!.fen) {
-      print('[MOVE_MADE_DEBUG] FENs are identical, no move detected yet.');
-      return;
-    }
-
-    final String startingFen = _puzzleGame!.fen;
-
-    // Determine move played on board
     String? userLan;
     dynamic matchedMove;
 
-    final currentBoardFen = currentFen.split(' ')[0];
-    final allLegalMoves = _puzzleGame!.moves({'verbose': true});
-
-    for (var m in allLegalMoves) {
-      final testGame = chess.Chess.fromFEN(_puzzleGame!.fen);
-      testGame.move(m);
-      final testBoardFen = testGame.fen.split(' ')[0];
-
-      if (currentBoardFen == testBoardFen) {
-        matchedMove = m;
-        final from = m['from'] ?? '';
-        final to = m['to'] ?? '';
-        final promo = m['promotion'] ?? '';
-        userLan = '$from$to$promo';
-        break;
-      }
-    }
-
-    // Promotion handling refinement:
-    // If a promotion move was played (from rank 7/2 to rank 8/1), check if a specific promotion variant (e.g. 'n', 'r', 'b', 'q') is expected by the solution tree!
-    if (matchedMove != null && matchedMove['promotion'] != null && matchedMove['promotion'].toString().isNotEmpty) {
-      final from = matchedMove['from'] ?? '';
-      final to = matchedMove['to'] ?? '';
-      _currentSolutionsNode ??= Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
-
-      if (_currentSolutionsNode != null) {
-        for (var candidate in allLegalMoves) {
-          final cFrom = candidate['from'] ?? '';
-          final cTo = candidate['to'] ?? '';
-          final cPromo = candidate['promotion'] ?? '';
-          if (cFrom == from && cTo == to && cPromo.toString().isNotEmpty) {
-            final candUci = '$cFrom$cTo$cPromo';
-            if (_currentSolutionsNode!.containsKey(candUci)) {
-              matchedMove = candidate;
-              userLan = candUci;
-              print('[MOVE_MADE_DEBUG] 🎯 Solution tree expects promotion move: $userLan');
+    if (manualFrom != null && manualTo != null) {
+      for (var m in allLegalMoves) {
+        if (m['from'] == manualFrom && m['to'] == manualTo) {
+          final promo = m['promotion']?.toString() ?? '';
+          if (manualPromo != null && manualPromo.isNotEmpty) {
+            if (promo == manualPromo) {
+              matchedMove = m;
+              userLan = '$manualFrom$manualTo$manualPromo';
               break;
             }
+          } else {
+            matchedMove = m;
+            userLan = '$manualFrom$manualTo$promo';
+            break;
           }
         }
       }
     }
 
     if (matchedMove == null) {
+      if (currentFen == _puzzleGame!.fen) {
+        print('[MOVE_MADE_DEBUG] FENs are identical, no move detected yet.');
+        _isVerifyingUserMove = false;
+        setState(() => _gameState = PuzzleGameState.idle);
+        return;
+      }
+
+      final currentBoardFen = currentFen.split(' ')[0];
+
       for (var m in allLegalMoves) {
-        final from = m['from'] ?? '';
-        final to = m['to'] ?? '';
-        final promo = m['promotion'] ?? '';
-        if ((to.endsWith('8') || to.endsWith('1')) && promo.isNotEmpty) {
+        final testGame = chess.Chess.fromFEN(_puzzleGame!.fen);
+        testGame.move(m);
+        final testBoardFen = testGame.fen.split(' ')[0];
+
+        if (currentBoardFen == testBoardFen) {
           matchedMove = m;
+          final from = m['from'] ?? '';
+          final to = m['to'] ?? '';
+          final promo = m['promotion'] ?? '';
           userLan = '$from$to$promo';
-          print('[MOVE_MADE_DEBUG] Fallback promotion match found: $userLan');
           break;
+        }
+      }
+
+      // Promotion handling refinement:
+      if (matchedMove != null && matchedMove['promotion'] != null && matchedMove['promotion'].toString().isNotEmpty) {
+        final from = matchedMove['from'] ?? '';
+        final to = matchedMove['to'] ?? '';
+        _currentSolutionsNode ??= Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
+
+        if (_currentSolutionsNode != null) {
+          for (var candidate in allLegalMoves) {
+            final cFrom = candidate['from'] ?? '';
+            final cTo = candidate['to'] ?? '';
+            final cPromo = candidate['promotion'] ?? '';
+            if (cFrom == from && cTo == to && cPromo.toString().isNotEmpty) {
+              final candUci = '$cFrom$cTo$cPromo';
+              if (_currentSolutionsNode!.containsKey(candUci)) {
+                matchedMove = candidate;
+                userLan = candUci;
+                print('[MOVE_MADE_DEBUG] 🎯 Solution tree expects promotion move: $userLan');
+                break;
+              }
+            }
+          }
         }
       }
     }
 
-    print('[MOVE_MADE_DEBUG] Matched move: $matchedMove | User LAN: $userLan');
-
     if (matchedMove == null || userLan == null) {
       print('[MOVE_MADE_DEBUG] Could not match move in chess.js legal moves!');
+      _isVerifyingUserMove = false;
+      setState(() => _gameState = PuzzleGameState.idle);
       return;
     }
 
