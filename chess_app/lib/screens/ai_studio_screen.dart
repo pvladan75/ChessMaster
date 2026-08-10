@@ -2211,8 +2211,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           ),
                         const SizedBox(height: 12),
 
-                        // Interactive PGN Solution Tree Widget
-                        _buildPgnSolutionTreeWidget(),
+                        // Interactive Solution Tree Widget (Graphical Tree for Mate in N / PGN Chips for others)
+                        if (_selectedCategory == 'mate_puzzle')
+                          _buildGraphicalSolutionTreeWidget()
+                        else
+                          _buildPgnSolutionTreeWidget(),
                         const SizedBox(height: 12),
 
                         // Move History & Variation Tree Navigation Bar (MOVED TO BOTTOM)
@@ -2692,5 +2695,630 @@ class HorizontalEvalBarWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildGraphicalSolutionTreeWidget() {
+    if (!_showSolutionTree && !_puzzleSolved && !_puzzleFailed && !_isReplayingSolution) {
+      return const SizedBox.shrink();
+    }
+    if (_currentPuzzle == null || _currentPuzzle!['solutions'] == null || _initialPuzzleFen == null) {
+      return const SizedBox.shrink();
+    }
+    final solutions = Map<String, dynamic>.from(_currentPuzzle!['solutions'] ?? {});
+    if (solutions.isEmpty) return const SizedBox.shrink();
+
+    final List<SolutionGraphNode> rootNodes = _buildSolutionGraphNodes(
+      _initialPuzzleFen!,
+      solutions,
+      true,
+      'root',
+    );
+    if (rootNodes.isEmpty) return const SizedBox.shrink();
+
+    final List<PositionedNode> positionedNodes = [];
+    double currentLeft = 0.0;
+    const double nodeWidth = 115.0;
+    const double nodeHeight = 44.0;
+    const double levelSpacing = 36.0;
+    const double siblingSpacing = 16.0;
+
+    for (var rNode in rootNodes) {
+      final w = _calculateSubtreeWidth(rNode, nodeWidth, siblingSpacing);
+      _layoutGraphNodes(
+        rNode,
+        currentLeft,
+        0.0,
+        nodeWidth,
+        nodeHeight,
+        levelSpacing,
+        siblingSpacing,
+        null,
+        positionedNodes,
+      );
+      currentLeft += w + siblingSpacing;
+    }
+
+    double maxRight = 0.0;
+    double maxBottom = 0.0;
+    for (var pn in positionedNodes) {
+      if (pn.x + pn.width > maxRight) maxRight = pn.x + pn.width;
+      if (pn.y + pn.height > maxBottom) maxBottom = pn.y + pn.height;
+    }
+
+    final double canvasWidth = math.max(maxRight + 20.0, MediaQuery.of(context).size.width - 32.0);
+    final double canvasHeight = maxBottom + 20.0;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF0284C7), width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x400284C7),
+            blurRadius: 10,
+            spreadRadius: 1,
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.account_tree_outlined, color: Color(0xFF38BDF8), size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Grafičko Stablo Poteza',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Mat u ${int.tryParse(_selectedMateDepth) ?? 1}',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF38BDF8)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: math.min(canvasHeight + 20.0, 320.0),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                color: const Color(0xFF020617),
+                child: InteractiveViewer(
+                  constrained: false,
+                  boundaryMargin: const EdgeInsets.all(40),
+                  minScale: 0.5,
+                  maxScale: 2.5,
+                  child: Container(
+                    width: canvasWidth,
+                    height: canvasHeight,
+                    padding: const EdgeInsets.all(10),
+                    child: Stack(
+                      children: [
+                        CustomPaint(
+                          size: Size(canvasWidth, canvasHeight),
+                          painter: TreeEdgesPainter(positionedNodes: positionedNodes, activeFen: _activeFen),
+                        ),
+                        ...positionedNodes.map((pn) => _buildGraphNodeWidget(pn)).toList(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGraphNodeWidget(PositionedNode pn) {
+    final node = pn.node;
+    final bool isActive = (_activeFen != null && _activeFen!.split(' ')[0] == node.fen.split(' ')[0]);
+
+    Color bgColor;
+    Color borderColor;
+    Color textColor;
+    IconData? iconData;
+
+    if (isActive) {
+      bgColor = const Color(0xFF0284C7);
+      borderColor = const Color(0xFF38BDF8);
+      textColor = Colors.white;
+      iconData = Icons.play_arrow_rounded;
+    } else if (node.isCheckmate) {
+      bgColor = const Color(0xFF065F46);
+      borderColor = const Color(0xFF34D399);
+      textColor = const Color(0xFFECFDF5);
+      iconData = Icons.emoji_events;
+    } else if (node.isGrouped) {
+      bgColor = const Color(0xFF312E81);
+      borderColor = const Color(0xFF818CF8);
+      textColor = const Color(0xFFE0E7FF);
+      iconData = Icons.filter_list;
+    } else if (node.isWhite) {
+      bgColor = const Color(0xFF1E293B);
+      borderColor = const Color(0xFF475569);
+      textColor = const Color(0xFFF8FAFC);
+    } else {
+      bgColor = const Color(0xFF0F172A);
+      borderColor = const Color(0xFF334155);
+      textColor = const Color(0xFF94A3B8);
+    }
+
+    return Positioned(
+      left: pn.x,
+      top: pn.y,
+      width: pn.width,
+      height: pn.height,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            if (node.isGrouped && node.groupedOpponentMoves.isNotEmpty) {
+              _showGroupedMovesDialog(node);
+            } else {
+              _jumpToGraphNodePosition(node);
+            }
+          },
+          borderRadius: BorderRadius.circular(10),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: borderColor, width: isActive ? 2.5 : 1.5),
+              boxShadow: isActive
+                  ? [
+                      const BoxShadow(
+                        color: Color(0x8038BDF8),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      )
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (iconData != null) ...[
+                  Icon(iconData, size: 14, color: textColor),
+                  const SizedBox(width: 4),
+                ],
+                Flexible(
+                  child: Text(
+                    node.moveSan,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isActive || node.isCheckmate ? FontWeight.bold : FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _jumpToGraphNodePosition(SolutionGraphNode node) {
+    if (_puzzleGame == null) return;
+    try {
+      _puzzleGame = chess.Chess.fromFEN(node.fen);
+      _puzzleBoardController.loadFen(node.fen);
+      _activeFen = node.fen;
+
+      setState(() {
+        _lastMoveFrom = node.moveUci.length >= 4 ? node.moveUci.substring(0, 2) : null;
+        _lastMoveTo = node.moveUci.length >= 4 ? node.moveUci.substring(2, 4) : null;
+      });
+
+      _sendBackendLog({
+        'type': 'graphNodeClick',
+        'moveSan': node.moveSan,
+        'targetFen': node.fen,
+      });
+    } catch (e) {
+      print('Error jumping to graph node position: $e');
+    }
+  }
+
+  void _showGroupedMovesDialog(SolutionGraphNode node) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF818CF8), width: 1.5),
+        ),
+        title: Row(
+          children: const [
+            Icon(Icons.filter_list, color: Color(0xFF818CF8), size: 22),
+            SizedBox(width: 8),
+            Text(
+              'Odbrambene Varijante',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Svi navedeni odgovori protivnika vode do istog matnog nastavka:',
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: node.groupedOpponentMoves
+                  .map(
+                    (san) => Chip(
+                      backgroundColor: const Color(0xFF1E293B),
+                      side: const BorderSide(color: Color(0xFF475569)),
+                      label: Text(
+                        san,
+                        style: const TextStyle(color: Color(0xFFE0E7FF), fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _jumpToGraphNodePosition(node);
+            },
+            child: const Text('Prikaži Poziciju na Tabli', style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<SolutionGraphNode> _buildSolutionGraphNodes(
+    String currentFen,
+    Map<String, dynamic> treeMap,
+    bool isWhiteMove,
+    String parentIdPath,
+  ) {
+    final List<SolutionGraphNode> nodes = [];
+
+    if (isWhiteMove) {
+      int moveIdx = 0;
+      for (var whiteMoveUci in treeMap.keys) {
+        if (whiteMoveUci.length < 4) continue;
+        moveIdx++;
+        final nodeId = '${parentIdPath}_w$moveIdx';
+        final game = chess.Chess.fromFEN(currentFen);
+
+        final from = whiteMoveUci.substring(0, 2);
+        final to = whiteMoveUci.substring(2, 4);
+        final promo = whiteMoveUci.length > 4 ? whiteMoveUci[4] : null;
+
+        String san = '$from$to';
+        for (var m in game.moves({'verbose': true})) {
+          if (m['from'] == from && m['to'] == to) {
+            san = m['san'] ?? san;
+            break;
+          }
+        }
+
+        game.move({'from': from, 'to': to, 'promotion': promo});
+        final fenAfterWhite = game.fen;
+        final isMate = game.in_checkmate;
+
+        final dynamic sub = treeMap[whiteMoveUci];
+        List<SolutionGraphNode> children = [];
+
+        if (sub is Map && (sub as Map).isNotEmpty) {
+          children = _buildSolutionGraphNodes(
+            fenAfterWhite,
+            Map<String, dynamic>.from(sub as Map),
+            false,
+            nodeId,
+          );
+        }
+
+        nodes.add(SolutionGraphNode(
+          id: nodeId,
+          moveUci: whiteMoveUci,
+          moveSan: san,
+          fen: fenAfterWhite,
+          isWhite: true,
+          isCheckmate: isMate || sub == "CHECKMATE",
+          children: children,
+        ));
+      }
+    } else {
+      final Map<String, List<String>> signatureToOpponentMoves = {};
+      final Map<String, dynamic> signatureToSubTree = {};
+
+      for (var oppMoveUci in treeMap.keys) {
+        final sub = treeMap[oppMoveUci];
+        String sig = '';
+        if (sub is Map) {
+          sig = (sub as Map).keys.join(',');
+        } else if (sub is List) {
+          sig = (sub as List).join(',');
+        } else {
+          sig = sub.toString();
+        }
+
+        signatureToOpponentMoves.putIfAbsent(sig, () => []).add(oppMoveUci.toString());
+        signatureToSubTree[sig] = sub;
+      }
+
+      int groupIdx = 0;
+      for (var sig in signatureToOpponentMoves.keys) {
+        groupIdx++;
+        final oppMovesList = signatureToOpponentMoves[sig]!;
+        final sub = signatureToSubTree[sig];
+        final nodeId = '${parentIdPath}_b$groupIdx';
+
+        if (oppMovesList.length == 1) {
+          final oppMoveUci = oppMovesList.first;
+          if (oppMoveUci.length < 4) continue;
+          final game = chess.Chess.fromFEN(currentFen);
+          final from = oppMoveUci.substring(0, 2);
+          final to = oppMoveUci.substring(2, 4);
+          final promo = oppMoveUci.length > 4 ? oppMoveUci[4] : null;
+
+          String san = '$from$to';
+          for (var m in game.moves({'verbose': true})) {
+            if (m['from'] == from && m['to'] == to) {
+              san = m['san'] ?? san;
+              break;
+            }
+          }
+
+          game.move({'from': from, 'to': to, 'promotion': promo});
+          final fenAfterBlack = game.fen;
+
+          List<SolutionGraphNode> children = [];
+          if (sub is Map && (sub as Map).isNotEmpty) {
+            children = _buildSolutionGraphNodes(
+              fenAfterBlack,
+              Map<String, dynamic>.from(sub as Map),
+              true,
+              nodeId,
+            );
+          }
+
+          nodes.add(SolutionGraphNode(
+            id: nodeId,
+            moveUci: oppMoveUci,
+            moveSan: '..$san',
+            fen: fenAfterBlack,
+            isWhite: false,
+            children: children,
+          ));
+        } else {
+          final sampleOppMove = oppMovesList.first;
+          final game = chess.Chess.fromFEN(currentFen);
+          final from = sampleOppMove.substring(0, 2);
+          final to = sampleOppMove.substring(2, 4);
+          final promo = sampleOppMove.length > 4 ? sampleOppMove[4] : null;
+
+          game.move({'from': from, 'to': to, 'promotion': promo});
+          final fenAfterSample = game.fen;
+
+          List<SolutionGraphNode> children = [];
+          if (sub is Map && (sub as Map).isNotEmpty) {
+            children = _buildSolutionGraphNodes(
+              fenAfterSample,
+              Map<String, dynamic>.from(sub as Map),
+              true,
+              nodeId,
+            );
+          }
+
+          final List<String> sanList = [];
+          for (var mUci in oppMovesList) {
+            if (mUci.length < 4) continue;
+            final gTest = chess.Chess.fromFEN(currentFen);
+            final f = mUci.substring(0, 2);
+            final t = mUci.substring(2, 4);
+            final pr = mUci.length > 4 ? mUci[4] : null;
+            String s = '$f$t';
+            for (var vm in gTest.moves({'verbose': true})) {
+              if (vm['from'] == f && vm['to'] == t) {
+                s = vm['san'] ?? s;
+                break;
+              }
+            }
+            sanList.add('..$s');
+          }
+
+          nodes.add(SolutionGraphNode(
+            id: nodeId,
+            moveUci: sampleOppMove,
+            moveSan: '.. [${oppMovesList.length} varijanti]',
+            fen: fenAfterSample,
+            isWhite: false,
+            isGrouped: true,
+            groupedOpponentMoves: sanList,
+            children: children,
+          ));
+        }
+      }
+    }
+
+    return nodes;
+  }
+
+  double _calculateSubtreeWidth(SolutionGraphNode node, double nodeWidth, double siblingSpacing) {
+    if (node.children.isEmpty) {
+      return nodeWidth;
+    }
+    double sum = 0;
+    for (int i = 0; i < node.children.length; i++) {
+      if (i > 0) sum += siblingSpacing;
+      sum += _calculateSubtreeWidth(node.children[i], nodeWidth, siblingSpacing);
+    }
+    return math.max(nodeWidth, sum);
+  }
+
+  void _layoutGraphNodes(
+    SolutionGraphNode node,
+    double leftX,
+    double topY,
+    double nodeWidth,
+    double nodeHeight,
+    double levelSpacing,
+    double siblingSpacing,
+    PositionedNode? parentPosNode,
+    List<PositionedNode> outNodes,
+  ) {
+    final subtreeWidth = _calculateSubtreeWidth(node, nodeWidth, siblingSpacing);
+    final nodeX = leftX + (subtreeWidth - nodeWidth) / 2;
+
+    final posNode = PositionedNode(
+      node: node,
+      x: nodeX,
+      y: topY,
+      width: nodeWidth,
+      height: nodeHeight,
+      parent: parentPosNode,
+    );
+    if (parentPosNode != null) {
+      parentPosNode.children.add(posNode);
+    }
+    outNodes.add(posNode);
+
+    double currentLeft = leftX;
+    for (var child in node.children) {
+      final childSubtreeWidth = _calculateSubtreeWidth(child, nodeWidth, siblingSpacing);
+      _layoutGraphNodes(
+        child,
+        currentLeft,
+        topY + nodeHeight + levelSpacing,
+        nodeWidth,
+        nodeHeight,
+        levelSpacing,
+        siblingSpacing,
+        posNode,
+        outNodes,
+      );
+      currentLeft += childSubtreeWidth + siblingSpacing;
+    }
+  }
+}
+
+class SolutionGraphNode {
+  final String id;
+  final String moveUci;
+  final String moveSan;
+  final String fen;
+  final bool isWhite;
+  final bool isCheckmate;
+  final bool isGrouped;
+  final List<String> groupedOpponentMoves;
+  final List<SolutionGraphNode> children;
+
+  SolutionGraphNode({
+    required this.id,
+    required this.moveUci,
+    required this.moveSan,
+    required this.fen,
+    required this.isWhite,
+    this.isCheckmate = false,
+    this.isGrouped = false,
+    this.groupedOpponentMoves = const [],
+    this.children = const [],
+  });
+}
+
+class PositionedNode {
+  final SolutionGraphNode node;
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+  final PositionedNode? parent;
+  final List<PositionedNode> children = [];
+
+  PositionedNode({
+    required this.node,
+    required this.x,
+    required this.y,
+    this.width = 110.0,
+    this.height = 44.0,
+    this.parent,
+  });
+}
+
+class TreeEdgesPainter extends CustomPainter {
+  final List<PositionedNode> positionedNodes;
+  final String? activeFen;
+
+  TreeEdgesPainter({
+    required this.positionedNodes,
+    required this.activeFen,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint linePaint = Paint()
+      ..color = const Color(0xFF334155)
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
+
+    final Paint activePaint = Paint()
+      ..color = const Color(0xFF38BDF8)
+      ..strokeWidth = 3.0
+      ..style = PaintingStyle.stroke;
+
+    final String? activeFenShort = activeFen?.split(' ')[0];
+
+    for (var pn in positionedNodes) {
+      if (pn.parent != null) {
+        final parentX = pn.parent!.x + pn.parent!.width / 2;
+        final parentY = pn.parent!.y + pn.parent!.height;
+        final childX = pn.x + pn.width / 2;
+        final childY = pn.y;
+
+        final bool isChildActive = (activeFenShort != null && activeFenShort == pn.node.fen.split(' ')[0]);
+
+        final Path path = Path();
+        path.moveTo(parentX, parentY);
+        final double midY = (parentY + childY) / 2;
+        path.cubicTo(parentX, midY, childX, midY, childX, childY);
+
+        canvas.drawPath(path, isChildActive ? activePaint : linePaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant TreeEdgesPainter oldDelegate) {
+    return oldDelegate.activeFen != activeFen || oldDelegate.positionedNodes != positionedNodes;
   }
 }
