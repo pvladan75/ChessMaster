@@ -1040,6 +1040,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
     _puzzleGame!.move(matchedMove);
     _activeFen = _puzzleGame!.fen;
+    _puzzleBoardController.loadFen(_puzzleGame!.fen);
 
     // Universal reboot of board state for move execution (preserves toggles A/B if ON!)
     resetBoardState(isNewPuzzle: false);
@@ -1086,6 +1087,18 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       final primaryJsonMove = _currentPuzzle?['winning_move_uci'] ?? (_expectedMoves.length > _moveIndex ? _expectedMoves[_moveIndex] : '');
 
       dynamic subBranch = _currentSolutionsNode?[userLan];
+      // Case-insensitive fallback for promotion moves (e.g. h7h8q vs h7h8Q)
+      if (subBranch == null && userLan != null && _currentSolutionsNode != null) {
+        final lower = userLan.toLowerCase();
+        for (var k in _currentSolutionsNode!.keys) {
+          if (k.toString().toLowerCase() == lower) {
+            subBranch = _currentSolutionsNode![k];
+            userLan = k.toString();
+            break;
+          }
+        }
+      }
+
       // Fallback for single-move puzzles (Mate in 1) or when position is in checkmate
       if (subBranch == null && primaryJsonMove.isNotEmpty && userLan == primaryJsonMove) {
         final reqN = int.tryParse(_selectedMateDepth) ?? 1;
