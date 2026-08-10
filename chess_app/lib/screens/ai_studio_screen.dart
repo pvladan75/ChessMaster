@@ -3018,62 +3018,119 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   }
 
   void _showGroupedMovesDialog(SolutionGraphNode node) {
+    int selectedIndex = 0;
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const ui.Color(0xFF0F172A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: ui.Color(0xFF818CF8), width: 1.5),
-        ),
-        title: Row(
-          children: const [
-            Icon(Icons.filter_list, color: ui.Color(0xFF818CF8), size: 22),
-            SizedBox(width: 8),
-            Text(
-              'Odbrambene Varijante',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: const ui.Color(0xFF0F172A),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: ui.Color(0xFF818CF8), width: 1.5),
             ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Svi navedeni odgovori protivnika vode do istog matnog nastavka:',
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+            title: Row(
+              children: const [
+                Icon(Icons.filter_list, color: ui.Color(0xFF818CF8), size: 22),
+                SizedBox(width: 8),
+                Text(
+                  'Odbrambene Varijante',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: node.groupedOpponentMoves
-                  .map(
-                    (san) => Chip(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Izaberite odbrambeni potez protivnika za prikaz na tabli:',
+                  style: TextStyle(color: Colors.grey.shade300, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: List.generate(node.groupedOpponentMoves.length, (index) {
+                    final isSelected = (index == selectedIndex);
+                    final san = node.groupedOpponentMoves[index];
+                    return ChoiceChip(
+                      selected: isSelected,
+                      selectedColor: const ui.Color(0xFF0D9488),
                       backgroundColor: const ui.Color(0xFF1E293B),
-                      side: const BorderSide(color: ui.Color(0xFF475569)),
+                      side: BorderSide(color: isSelected ? Colors.tealAccent : const ui.Color(0xFF475569)),
+                      avatar: isSelected ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
                       label: Text(
                         san,
-                        style: const TextStyle(color: ui.Color(0xFFE0E7FF), fontWeight: FontWeight.bold, fontSize: 13),
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : const ui.Color(0xFFE0E7FF),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
-                    ),
-                  )
-                  .toList(),
+                      onSelected: (_) {
+                        setDialogState(() {
+                          selectedIndex = index;
+                        });
+                      },
+                    );
+                  }),
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _jumpToGraphNodePosition(node);
-            },
-            child: const Text('Prikaži Poziciju na Tabli', style: TextStyle(color: ui.Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Zatvori', style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.gamepad, size: 16),
+                label: const Text('Prikaži Poziciju na Tabli'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const ui.Color(0xFF0284C7),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _jumpToGroupedOpponentMove(node, selectedIndex);
+                },
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  void _jumpToGroupedOpponentMove(SolutionGraphNode node, int moveIndex) {
+    if (node.parentFen == null || node.groupedOpponentMovesUci.isEmpty) {
+      _jumpToGraphNodePosition(node);
+      return;
+    }
+
+    final selectedUci = node.groupedOpponentMovesUci[moveIndex.clamp(0, node.groupedOpponentMovesUci.length - 1)];
+    final game = chess.Chess.fromFEN(node.parentFen!);
+    final from = selectedUci.substring(0, 2);
+    final to = selectedUci.substring(2, 4);
+    final promo = selectedUci.length > 4 ? selectedUci[4] : null;
+
+    game.move({'from': from, 'to': to, 'promotion': promo});
+    final targetFen = game.fen;
+
+    _puzzleGame = chess.Chess.fromFEN(targetFen);
+    _puzzleBoardController.loadFen(targetFen);
+    _activeFen = targetFen;
+    setState(() {
+      _selectedSquare = null;
+      _lastMoveFrom = from;
+      _lastMoveTo = to;
+    });
+
+    final String sanLabel = (moveIndex >= 0 && moveIndex < node.groupedOpponentMoves.length)
+        ? node.groupedOpponentMoves[moveIndex]
+        : selectedUci;
+    _showSnackBar('Prikazana pozicija za potez protivnika: $sanLabel');
   }
 
   List<SolutionGraphNode> _buildSolutionGraphNodes(
@@ -3099,8 +3156,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         String san = '$from$to';
         for (var m in game.moves({'verbose': true})) {
           if (m['from'] == from && m['to'] == to) {
-            san = m['san'] ?? san;
-            break;
+            if (promo == null || m['promotion'] == promo || m['promotion'] == promo.toLowerCase()) {
+              san = m['san'] ?? san;
+              break;
+            }
           }
         }
 
@@ -3190,6 +3249,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             moveUci: oppMoveUci,
             moveSan: '..$san',
             fen: fenAfterBlack,
+            parentFen: currentFen,
             isWhite: false,
             children: children,
           ));
@@ -3214,6 +3274,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           }
 
           final List<String> sanList = [];
+          final List<String> uciList = [];
           for (var mUci in oppMovesList) {
             if (mUci.length < 4) continue;
             final gTest = chess.Chess.fromFEN(currentFen);
@@ -3223,11 +3284,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             String s = '$f$t';
             for (var vm in gTest.moves({'verbose': true})) {
               if (vm['from'] == f && vm['to'] == t) {
-                s = vm['san'] ?? s;
-                break;
+                if (pr == null || vm['promotion'] == pr || vm['promotion'] == pr.toLowerCase()) {
+                  s = vm['san'] ?? s;
+                  break;
+                }
               }
             }
             sanList.add('..$s');
+            uciList.add(mUci);
           }
 
           nodes.add(SolutionGraphNode(
@@ -3235,9 +3299,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             moveUci: sampleOppMove,
             moveSan: '.. [${oppMovesList.length} varijanti]',
             fen: fenAfterSample,
+            parentFen: currentFen,
             isWhite: false,
             isGrouped: true,
             groupedOpponentMoves: sanList,
+            groupedOpponentMovesUci: uciList,
             children: children,
           ));
         }
@@ -3441,10 +3507,12 @@ class SolutionGraphNode {
   final String moveUci;
   final String moveSan;
   final String fen;
+  final String? parentFen;
   final bool isWhite;
   final bool isCheckmate;
   final bool isGrouped;
   final List<String> groupedOpponentMoves;
+  final List<String> groupedOpponentMovesUci;
   final List<SolutionGraphNode> children;
 
   SolutionGraphNode({
@@ -3452,10 +3520,12 @@ class SolutionGraphNode {
     required this.moveUci,
     required this.moveSan,
     required this.fen,
+    this.parentFen,
     required this.isWhite,
     this.isCheckmate = false,
     this.isGrouped = false,
     this.groupedOpponentMoves = const [],
+    this.groupedOpponentMovesUci = const [],
     this.children = const [],
   });
 }
