@@ -2492,8 +2492,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildMoveHistoryNavigationWidget() {
     if (_puzzleMoveTree == null) return const SizedBox.shrink();
