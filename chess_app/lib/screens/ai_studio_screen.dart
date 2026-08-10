@@ -269,6 +269,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     await _stockfishService.initEngine();
     _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv, depth, isFinal, analyzedFen) async {
       if (!mounted) return;
+      if (_selectedCategory == 'mate_puzzle') return;
 
       print('[ENGINE STREAM] Received eval for FEN: $analyzedFen | Depth: $depth | Best Move: $bestMove');
       _sendBackendLog({
@@ -496,7 +497,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         } else if (_puzzleGame!.in_stalemate || _puzzleGame!.in_draw) {
           _showSnackBar('🤝 Pat / Remi u poziciji.');
         } else {
-          if (_showEvaluation || _showEvalBar) {
+          if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
             _stockfishService.setMultiPV(3);
             _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 20);
           }
@@ -506,6 +507,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   }
 
   void _triggerOpponentBotResponse() async {
+    if (_selectedCategory == 'mate_puzzle') return;
     if (_puzzleGame == null || _puzzleGame!.in_checkmate) return;
     resetBoardState(isNewPuzzle: false);
     setState(() {
@@ -844,7 +846,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _puzzleMoveTree = MoveTree(startingFen: _initialPuzzleFen!);
     });
 
-    if (_showEvaluation || _showEvalBar) {
+    if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
       _stockfishService.setMultiPV(3);
       _stockfishService.analyzePosition(_initialPuzzleFen!, depth: 20);
     }
@@ -1319,6 +1321,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       }
     }
 
+    if (_selectedCategory == 'mate_puzzle') return;
     await _stockfishService.initEngine();
     _stockfishService.setMultiPV(1);
     final targetDepth = AppSettingsService.instance.defaultEngineDepth;
@@ -1633,7 +1636,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     });
 
     _puzzleBoardController.loadFen(fen);
-    _stockfishService.analyzePosition(fen, depth: 20);
+    if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
+      _stockfishService.analyzePosition(fen, depth: 20);
+    }
   }
 
   Future<void> _submitPuzzleResult(bool solved) async {
