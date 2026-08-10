@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:http/http.dart' as http;
@@ -2635,12 +2636,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: const ui.Color(0xFF0F172A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF0284C7), width: 1.5),
+        border: Border.all(color: const ui.Color(0xFF0284C7), width: 1.5),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x400284C7),
+            color: ui.Color(0x400284C7),
             blurRadius: 10,
             spreadRadius: 1,
           )
@@ -2654,7 +2655,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             children: [
               Row(
                 children: const [
-                  Icon(Icons.account_tree_outlined, color: Color(0xFF38BDF8), size: 20),
+                  Icon(Icons.account_tree_outlined, color: ui.Color(0xFF38BDF8), size: 20),
                   SizedBox(width: 8),
                   Text(
                     'Grafičko Stablo Poteza',
@@ -2665,12 +2666,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
+                  color: const ui.Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   'Mat u ${int.tryParse(_selectedMateDepth) ?? 1}',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF38BDF8)),
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ui.Color(0xFF38BDF8)),
                 ),
               ),
             ],
@@ -2681,7 +2682,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                color: const Color(0xFF020617),
+                color: const ui.Color(0xFF020617),
                 child: InteractiveViewer(
                   constrained: false,
                   boundaryMargin: const EdgeInsets.all(40),
@@ -2714,34 +2715,34 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     final node = pn.node;
     final bool isActive = (_activeFen != null && _activeFen!.split(' ')[0] == node.fen.split(' ')[0]);
 
-    Color bgColor;
-    Color borderColor;
-    Color textColor;
+    ui.Color bgColor;
+    ui.Color borderColor;
+    ui.Color textColor;
     IconData? iconData;
 
     if (isActive) {
-      bgColor = const Color(0xFF0284C7);
-      borderColor = const Color(0xFF38BDF8);
+      bgColor = const ui.Color(0xFF0284C7);
+      borderColor = const ui.Color(0xFF38BDF8);
       textColor = Colors.white;
       iconData = Icons.play_arrow_rounded;
     } else if (node.isCheckmate) {
-      bgColor = const Color(0xFF065F46);
-      borderColor = const Color(0xFF34D399);
-      textColor = const Color(0xFFECFDF5);
+      bgColor = const ui.Color(0xFF065F46);
+      borderColor = const ui.Color(0xFF34D399);
+      textColor = const ui.Color(0xFFECFDF5);
       iconData = Icons.emoji_events;
     } else if (node.isGrouped) {
-      bgColor = const Color(0xFF312E81);
-      borderColor = const Color(0xFF818CF8);
-      textColor = const Color(0xFFE0E7FF);
+      bgColor = const ui.Color(0xFF312E81);
+      borderColor = const ui.Color(0xFF818CF8);
+      textColor = const ui.Color(0xFFE0E7FF);
       iconData = Icons.filter_list;
     } else if (node.isWhite) {
-      bgColor = const Color(0xFF1E293B);
-      borderColor = const Color(0xFF475569);
-      textColor = const Color(0xFFF8FAFC);
+      bgColor = const ui.Color(0xFF1E293B);
+      borderColor = const ui.Color(0xFF475569);
+      textColor = const ui.Color(0xFFF8FAFC);
     } else {
-      bgColor = const Color(0xFF0F172A);
-      borderColor = const Color(0xFF334155);
-      textColor = const Color(0xFF94A3B8);
+      bgColor = const ui.Color(0xFF0F172A);
+      borderColor = const ui.Color(0xFF334155);
+      textColor = const ui.Color(0xFF94A3B8);
     }
 
     return Positioned(
@@ -2770,7 +2771,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               boxShadow: isActive
                   ? [
                       const BoxShadow(
-                        color: Color(0x8038BDF8),
+                        color: ui.Color(0x8038BDF8),
                         blurRadius: 10,
                         spreadRadius: 2,
                       )
@@ -2830,14 +2831,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const ui.Color(0xFF0F172A),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFF818CF8), width: 1.5),
+          side: const BorderSide(color: ui.Color(0xFF818CF8), width: 1.5),
         ),
         title: Row(
           children: const [
-            Icon(Icons.filter_list, color: Color(0xFF818CF8), size: 22),
+            Icon(Icons.filter_list, color: ui.Color(0xFF818CF8), size: 22),
             SizedBox(width: 8),
             Text(
               'Odbrambene Varijante',
@@ -2860,11 +2861,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               children: node.groupedOpponentMoves
                   .map(
                     (san) => Chip(
-                      backgroundColor: const Color(0xFF1E293B),
-                      side: const BorderSide(color: Color(0xFF475569)),
+                      backgroundColor: const ui.Color(0xFF1E293B),
+                      side: const BorderSide(color: ui.Color(0xFF475569)),
                       label: Text(
                         san,
-                        style: const TextStyle(color: Color(0xFFE0E7FF), fontWeight: FontWeight.bold, fontSize: 13),
+                        style: const TextStyle(color: ui.Color(0xFFE0E7FF), fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ),
                   )
@@ -2878,7 +2879,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               Navigator.pop(ctx);
               _jumpToGraphNodePosition(node);
             },
-            child: const Text('Prikaži Poziciju na Tabli', style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
+            child: const Text('Prikaži Poziciju na Tabli', style: TextStyle(color: ui.Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -3300,12 +3301,12 @@ class TreeEdgesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Paint linePaint = Paint()
-      ..color = const Color(0xFF334155)
+      ..color = const ui.Color(0xFF334155)
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
 
     final Paint activePaint = Paint()
-      ..color = const Color(0xFF38BDF8)
+      ..color = const ui.Color(0xFF38BDF8)
       ..strokeWidth = 3.0
       ..style = PaintingStyle.stroke;
 
