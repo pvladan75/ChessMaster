@@ -1,6 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:chess_app/features/puzzle_trainer/puzzle_notifier.dart';
-import 'package:chess_app/features/puzzle_trainer/puzzle_state.dart';
 import 'package:chess_app/widgets/ai_studio/studio_info_header.dart';
 import 'package:chess_app/widgets/ai_studio/category_selection_hub.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';

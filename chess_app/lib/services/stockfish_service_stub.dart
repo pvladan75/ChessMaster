@@ -84,6 +84,8 @@ class StockfishService {
     _isActive = false;
   }
 
+  void setMultiPV(int count) {}
+
   void dispose() {
     _isActive = false;
   }
