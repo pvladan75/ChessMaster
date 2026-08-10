@@ -2288,7 +2288,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     if (_initialPuzzleFen == null) return chips;
 
     final tempBoard = chess.Chess.fromFEN(_initialPuzzleFen!);
-    int moveNum = (tempBoard.fullmove_number > 0) ? tempBoard.fullmove_number : 1;
+    final fenParts = _initialPuzzleFen!.split(' ');
+    int moveNum = fenParts.length > 5 ? (int.tryParse(fenParts[5]) ?? 1) : 1;
     bool isWhiteToMove = (tempBoard.turn == chess.Color.WHITE);
 
     void traverseNode(Map<String, dynamic> node, int num, bool isWhite, String prefix) {
@@ -2302,7 +2303,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         String sanStr = uciMove;
         if (moveOk && tempBoard.history.isNotEmpty) {
           try {
-            sanStr = tempBoard.history.last.move.san ?? uciMove;
+            final dynamic lastHist = tempBoard.history.last;
+            sanStr = lastHist.san ?? uciMove;
           } catch (_) {
             sanStr = uciMove;
           }
