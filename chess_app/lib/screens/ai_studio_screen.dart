@@ -2190,11 +2190,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     );
 
     if (isLandscape) {
-      // ULTRA-COMPACT LANDSCAPE LAYOUT: Maximized 100% Vertical Board Space with 26px Header
-      final double boardSize = math.max(240.0, screenSize.height - 32.0);
+      // STRICT 1:1 SQUARE LANDSCAPE LAYOUT with 3-side margins (Left, Top, Bottom)
+      final double availableVerticalHeight = screenSize.height - (32.0 + (_showEvalBar ? 20.0 : 0.0));
+      final double boardSize = math.max(180.0, availableVerticalHeight - 20.0);
 
       final landscapeTopHeader = SizedBox(
-        height: 26,
+        height: 24,
         child: Row(
           children: [
             InkWell(
@@ -2245,39 +2246,43 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       );
 
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+        padding: const EdgeInsets.only(left: 12.0, top: 4.0, bottom: 8.0, right: 8.0),
         child: Column(
           children: [
             landscapeTopHeader,
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // LEFT SIDE (Board & Eval Bar)
-                  SizedBox(
-                    width: boardSize,
+                  // LEFT SIDE (Board & Eval Bar) with margins on Left, Top, and Bottom
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Expanded(
-                          child: Center(
-                            child: _buildBoardWithTapAndHighlights(boardSize - 4.0),
-                          ),
+                        SizedBox(
+                          width: boardSize,
+                          height: boardSize,
+                          child: _buildBoardWithTapAndHighlights(boardSize),
                         ),
                         if (_showEvalBar) ...[
-                          const SizedBox(height: 2),
-                          HorizontalEvalBarWidget(
-                            eval: _currentRawEval,
-                            evalString: _currentEvalString,
-                            depth: _currentEvalDepth,
-                            orientation: _puzzleOrientation,
+                          const SizedBox(height: 4),
+                          SizedBox(
+                            width: boardSize,
+                            child: HorizontalEvalBarWidget(
+                              eval: _currentRawEval,
+                              evalString: _currentEvalString,
+                              depth: _currentEvalDepth,
+                              orientation: _puzzleOrientation,
+                            ),
                           ),
                         ],
                       ],
                     ),
                   ),
 
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
 
                   // RIGHT SIDE (Tree & Stockfish Analysis & History)
                   Expanded(
@@ -2416,7 +2421,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   Widget _buildBoardWithTapAndHighlights(double boardSize) {
     final squareSize = boardSize / 8.0;
 
-    return GestureDetector(
+    return SizedBox(
+      width: boardSize,
+      height: boardSize,
+      child: GestureDetector(
       onTapUp: (details) {
         if (_isOpponentTurn || _puzzleSolved) return;
         final localOffset = details.localPosition;
@@ -2626,8 +2634,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     if (_showEvaluation) {
       _stockfishService.analyzePosition(node.fen, depth: 20);
     }
+    );
   }
-
   Widget _buildPgnSolutionTreeWidget() {
     if (!_showSolutionTree && !_puzzleSolved && !_puzzleFailed && !_isReplayingSolution) {
       return const SizedBox.shrink();
