@@ -2089,19 +2089,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                 });
               },
             ),
-            if (isLandscape)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _puzzleOrientation == PlayerColor.white ? Colors.blueGrey.shade900 : Colors.teal.shade900,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _puzzleOrientation == PlayerColor.white ? Colors.white38 : Colors.tealAccent),
-                ),
-                child: Text(
-                  headerGoal,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white),
-                ),
-              ),
           ],
         ),
       ),
@@ -2160,53 +2147,92 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     );
 
     if (isLandscape) {
-      // LANDSCAPE LAYOUT: Side-by-Side (Left: Board & Buttons, Right: Tree & Analysis)
-      final double boardSize = math.min(screenSize.height - 150.0, screenSize.width * 0.42);
+      // ULTRA-COMPACT LANDSCAPE LAYOUT: Maximized 100% Vertical Board Space
+      final double boardSize = math.max(220.0, screenSize.height - 44.0);
+
+      final landscapeTopHeader = Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          children: [
+            InkWell(
+              onTap: () {
+                _resetEngineState();
+                setState(() => _selectedCategory = null);
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.arrow_back, size: 18, color: Colors.tealAccent),
+                  SizedBox(width: 4),
+                  Text('Izbor', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                headerGoal,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 18, color: Colors.amberAccent),
+              tooltip: 'Probaj Ponovo',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: _restartCurrentPuzzle,
+            ),
+            const SizedBox(width: 12),
+            IconButton(
+              icon: const Icon(Icons.arrow_forward, size: 18, color: Colors.tealAccent),
+              tooltip: 'Naredna Pozicija',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () {
+                if (_selectedCategory == 'basic_mate') {
+                  _loadBasicMatePreset(_selectedBasicMateType);
+                } else {
+                  _fetchNextPuzzle();
+                }
+              },
+            ),
+          ],
+        ),
+      );
 
       return Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
         child: Column(
           children: [
-            backButtonCard,
-            const SizedBox(height: 6),
+            landscapeTopHeader,
+            const SizedBox(height: 2),
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // LEFT SIDE (Board & Actions)
+                  // LEFT SIDE (Board & Eval Bar)
                   SizedBox(
-                    width: boardSize + 32,
-                    child: SingleChildScrollView(
-                      child: Card(
-                        elevation: 4,
-                        child: Padding(
-                          padding: const EdgeInsets.all(10.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (_isLoadingPuzzle)
-                                SizedBox(
-                                  height: boardSize,
-                                  child: const Center(child: CircularProgressIndicator()),
-                                )
-                              else ...[
-                                _buildBoardWithTapAndHighlights(boardSize),
-                                const SizedBox(height: 6),
-                                if (_showEvalBar) ...[
-                                  HorizontalEvalBarWidget(
-                                    eval: _currentRawEval,
-                                    evalString: _currentEvalString,
-                                    depth: _currentEvalDepth,
-                                    orientation: _puzzleOrientation,
-                                  ),
-                                  const SizedBox(height: 6),
-                                ],
-                                actionButtonsRow,
-                              ],
-                            ],
+                    width: boardSize,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Center(
+                            child: _buildBoardWithTapAndHighlights(boardSize - 12.0),
                           ),
                         ),
-                      ),
+                        if (_showEvalBar) ...[
+                          const SizedBox(height: 4),
+                          HorizontalEvalBarWidget(
+                            eval: _currentRawEval,
+                            evalString: _currentEvalString,
+                            depth: _currentEvalDepth,
+                            orientation: _puzzleOrientation,
+                          ),
+                        ],
+                      ],
                     ),
                   ),
 
@@ -2263,7 +2289,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       );
     }
 
-    // PORTRAIT LAYOUT: Responsive Column with clean max width
+    // PORTRAIT LAYOUT: Responsive Column
     final double boardSize = math.min(screenSize.width - 48.0, 380.0);
 
     return SingleChildScrollView(
@@ -2346,7 +2372,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       ),
     );
   }
-
   Widget _buildBoardWithTapAndHighlights(double boardSize) {
     final squareSize = boardSize / 8.0;
 

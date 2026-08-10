@@ -1034,28 +1034,32 @@ class _HomeScreenState extends State<HomeScreen> {
       SettingsScreen(session: widget.session),
     ];
 
+    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chess Master'),
-        actions: [
-          IconButton(
-            tooltip: 'Notifikacije i Pozivnice',
-            icon: Badge(
-              isLabelVisible: _notifications.isNotEmpty,
-              label: Text('${_notifications.length}'),
-              child: const Icon(Icons.notifications, color: Colors.amberAccent),
+      appBar: isLandscape
+          ? null
+          : AppBar(
+              title: const Text('Chess Master'),
+              actions: [
+                IconButton(
+                  tooltip: 'Notifikacije i Pozivnice',
+                  icon: Badge(
+                    isLabelVisible: _notifications.isNotEmpty,
+                    label: Text('${_notifications.length}'),
+                    child: const Icon(Icons.notifications, color: Colors.amberAccent),
+                  ),
+                  onPressed: _showNotificationsDialog,
+                ),
+              ],
             ),
-            onPressed: _showNotificationsDialog,
-          ),
-        ],
-      ),
       body: Row(
         children: [
-          if (isWide)
+          if (isWide || (isLandscape && _selectedIndex != 1))
             NavigationRail(
               selectedIndex: _selectedIndex,
               onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
-              labelType: NavigationRailLabelType.all,
+              labelType: NavigationRailLabelType.none,
               destinations: const [
                 NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Početna')),
                 NavigationRailDestination(icon: Icon(Icons.psychology_outlined), selectedIcon: Icon(Icons.psychology), label: Text('Trening')),
@@ -1064,7 +1068,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Podešavanja')),
               ],
             ),
-          if (isWide) const VerticalDivider(width: 1, thickness: 1),
+          if (isWide || (isLandscape && _selectedIndex != 1)) const VerticalDivider(width: 1, thickness: 1),
           Expanded(
             child: IndexedStack(
               index: _selectedIndex,
@@ -1073,7 +1077,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: isWide
+      bottomNavigationBar: (isWide || isLandscape)
           ? null
           : NavigationBar(
               selectedIndex: _selectedIndex,
