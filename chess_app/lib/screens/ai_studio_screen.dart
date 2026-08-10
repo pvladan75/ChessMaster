@@ -961,8 +961,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     dynamic matchedMove;
 
     final currentBoardFen = currentFen.split(' ')[0];
+    final allLegalMoves = _puzzleGame!.moves({'verbose': true});
 
-    for (var m in _puzzleGame!.moves({'verbose': true})) {
+    for (var m in allLegalMoves) {
       final testGame = chess.Chess.fromFEN(_puzzleGame!.fen);
       testGame.move(m);
       final testBoardFen = testGame.fen.split(' ')[0];
@@ -977,8 +978,33 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       }
     }
 
+    // Promotion handling refinement:
+    // If a promotion move was played (from rank 7/2 to rank 8/1), check if a specific promotion variant (e.g. 'n', 'r', 'b', 'q') is expected by the solution tree!
+    if (matchedMove != null && matchedMove['promotion'] != null && matchedMove['promotion'].toString().isNotEmpty) {
+      final from = matchedMove['from'] ?? '';
+      final to = matchedMove['to'] ?? '';
+      _currentSolutionsNode ??= Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
+
+      if (_currentSolutionsNode != null) {
+        for (var candidate in allLegalMoves) {
+          final cFrom = candidate['from'] ?? '';
+          final cTo = candidate['to'] ?? '';
+          final cPromo = candidate['promotion'] ?? '';
+          if (cFrom == from && cTo == to && cPromo.toString().isNotEmpty) {
+            final candUci = '$cFrom$cTo$cPromo';
+            if (_currentSolutionsNode!.containsKey(candUci)) {
+              matchedMove = candidate;
+              userLan = candUci;
+              print('[MOVE_MADE_DEBUG] 🎯 Solution tree expects promotion move: $userLan');
+              break;
+            }
+          }
+        }
+      }
+    }
+
     if (matchedMove == null) {
-      for (var m in _puzzleGame!.moves({'verbose': true})) {
+      for (var m in allLegalMoves) {
         final from = m['from'] ?? '';
         final to = m['to'] ?? '';
         final promo = m['promotion'] ?? '';
