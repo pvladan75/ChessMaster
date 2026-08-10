@@ -1130,6 +1130,26 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         final bool isTerminalCheckmate = (subBranch == "CHECKMATE" || _puzzleGame!.in_checkmate);
 
         if (isTerminalCheckmate || (subBranch is Map && (subBranch as Map).isEmpty)) {
+          // DEDUPLICATION: Clean up any pending opponent moves in active branch points that are ALSO satisfied by userLan!
+          if (userLan != null) {
+            final String lowerUserLan = userLan.toLowerCase();
+            for (var bp in _activeBranchPoints) {
+              bp.pendingOpponentMoves.removeWhere((pendingOppMove) {
+                final subForPending = bp.oppBranchMap[pendingOppMove];
+                if (subForPending == "CHECKMATE") return true;
+                if (subForPending is Map) {
+                  final Map subMap = subForPending;
+                  for (var k in subMap.keys) {
+                    if (k.toString().toLowerCase() == lowerUserLan) {
+                      return true; // This pending opponent branch is ALSO satisfied by userLan!
+                    }
+                  }
+                }
+                return false;
+              });
+            }
+          }
+
           // Check if there are any pending variation branch points with unvisited opponent moves!
           VariationBranchPoint? pendingBP;
           while (_activeBranchPoints.isNotEmpty) {
@@ -2147,12 +2167,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     );
 
     if (isLandscape) {
-      // ULTRA-COMPACT LANDSCAPE LAYOUT: Maximized 100% Vertical Board Space
-      final double boardSize = math.max(220.0, screenSize.height - 44.0);
+      // ULTRA-COMPACT LANDSCAPE LAYOUT: Maximized 100% Vertical Board Space with 26px Header
+      final double boardSize = math.max(240.0, screenSize.height - 32.0);
 
-      final landscapeTopHeader = Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+      final landscapeTopHeader = SizedBox(
+        height: 26,
         child: Row(
           children: [
             InkWell(
@@ -2163,31 +2182,30 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: const [
-                  Icon(Icons.arrow_back, size: 18, color: Colors.tealAccent),
+                  Icon(Icons.arrow_back, size: 16, color: Colors.tealAccent),
                   SizedBox(width: 4),
-                  Text('Izbor', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
+                  Text('Izbor', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 headerGoal,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(Icons.refresh, size: 18, color: Colors.amberAccent),
+              icon: const Icon(Icons.refresh, size: 16, color: Colors.amberAccent),
               tooltip: 'Probaj Ponovo',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               onPressed: _restartCurrentPuzzle,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             IconButton(
-              icon: const Icon(Icons.arrow_forward, size: 18, color: Colors.tealAccent),
+              icon: const Icon(Icons.arrow_forward, size: 16, color: Colors.tealAccent),
               tooltip: 'Naredna Pozicija',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -2204,7 +2222,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       );
 
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
+        padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
         child: Column(
           children: [
             landscapeTopHeader,
@@ -2220,11 +2238,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       children: [
                         Expanded(
                           child: Center(
-                            child: _buildBoardWithTapAndHighlights(boardSize - 12.0),
+                            child: _buildBoardWithTapAndHighlights(boardSize - 4.0),
                           ),
                         ),
                         if (_showEvalBar) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           HorizontalEvalBarWidget(
                             eval: _currentRawEval,
                             evalString: _currentEvalString,
