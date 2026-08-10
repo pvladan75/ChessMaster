@@ -954,6 +954,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     });
 
     final currentFen = _puzzleBoardController.getFen();
+    final String startingFen = _puzzleGame!.fen;
     final allLegalMoves = _puzzleGame!.moves({'verbose': true});
 
     String? userLan;
