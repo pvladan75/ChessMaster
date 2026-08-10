@@ -2634,7 +2634,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     if (_showEvaluation) {
       _stockfishService.analyzePosition(node.fen, depth: 20);
     }
-    );
   }
   Widget _buildPgnSolutionTreeWidget() {
     if (!_showSolutionTree && !_puzzleSolved && !_puzzleFailed && !_isReplayingSolution) {
