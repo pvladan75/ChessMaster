@@ -1,3 +1,4 @@
+const logger = require('./services/logger');
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -57,7 +58,7 @@ app.post('/admin/reset-all-users', async (req, res) => {
     await pool.query('TRUNCATE users RESTART IDENTITY CASCADE;');
     res.json({ message: 'Svi nalozi i povezani podaci su uspešno izbrisani iz baze.' });
   } catch (err) {
-    console.error('Error resetting DB:', err);
+    logger.error('Error resetting DB:', err);
     res.status(500).json({ error: 'Greška pri brisanju podataka.' });
   }
 });
@@ -77,7 +78,7 @@ const onlineUsers = {}; // userId -> { socketId, name, email, role }
 const activeRoomMembers = {}; // roomId -> { userId -> { name, role } }
 
 io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
+  logger.info(`User connected: ${socket.id}`);
 
   // Register online user presence
   socket.on('register_user', ({ userId, name, email, role }) => {
@@ -94,11 +95,11 @@ io.on('connection', (socket) => {
       role
     };
 
-    console.log(`[ONLINE PRESENCE] User registered: ${name} (ID: ${userId})`);
+    logger.info(`[ONLINE PRESENCE] User registered: ${name} (ID: ${userId})`);
   });
 
   socket.on('send_lesson_invite', ({ studentId, roomCode }) => {
-    console.log(`[REALTIME INVITE] Sender: ${socket.userName} -> Student ID: ${studentId} | Room: ${roomCode}`);
+    logger.info(`[REALTIME INVITE] Sender: ${socket.userName} -> Student ID: ${studentId} | Room: ${roomCode}`);
     const recipient = onlineUsers[studentId];
     if (recipient) {
       io.to(recipient.socketId).emit('lesson_invite_received', {
@@ -126,7 +127,7 @@ io.on('connection', (socket) => {
       socketId: socket.id
     };
 
-    console.log(`User ${socket.userName} (${socket.userId}) joined room: ${roomId} as ${socket.userRole}`);
+    logger.info(`User ${socket.userName} (${socket.userId}) joined room: ${roomId} as ${socket.userRole}`);
 
     io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
 
@@ -140,7 +141,7 @@ io.on('connection', (socket) => {
         });
       }
     } catch (e) {
-      console.error('Error fetching room permissions:', e);
+      logger.error('Error fetching room permissions:', e);
     }
   });
 
@@ -159,9 +160,9 @@ io.on('connection', (socket) => {
     try {
       await pool.query('UPDATE rooms SET board_control = $1 WHERE room_code = $2', [boardControl, roomId]);
       io.to(roomId).emit('permissions_updated', { boardControl });
-      console.log(`[PERMISSIONS] Room ${roomId} boardControl updated to ${boardControl}`);
+      logger.info(`[PERMISSIONS] Room ${roomId} boardControl updated to ${boardControl}`);
     } catch (e) {
-      console.error('Error updating permissions:', e);
+      logger.error('Error updating permissions:', e);
     }
   });
 
@@ -172,27 +173,27 @@ io.on('connection', (socket) => {
       fen,
       paused: !!paused
     });
-    console.log(`[RECORDING STATUS] Room ${roomId} -> status: ${status}, paused: ${paused}`);
+    logger.info(`[RECORDING STATUS] Room ${roomId} -> status: ${status}, paused: ${paused}`);
   });
 
   socket.on('change_engine_permission', async ({ roomId, allowStudentEngine }) => {
     try {
       await pool.query('UPDATE rooms SET allow_student_engine = $1 WHERE room_code = $2', [allowStudentEngine, roomId]);
       io.to(roomId).emit('engine_permission_updated', { allowStudentEngine });
-      console.log(`[PERMISSIONS] Room ${roomId} allowStudentEngine updated to ${allowStudentEngine}`);
+      logger.info(`[PERMISSIONS] Room ${roomId} allowStudentEngine updated to ${allowStudentEngine}`);
     } catch (e) {
-      console.error('Error updating engine permission:', e);
+      logger.error('Error updating engine permission:', e);
     }
   });
 
   socket.on('force_flip_board', ({ roomId, orientation }) => {
     socket.to(roomId).emit('board_flipped', { orientation });
-    console.log(`[FORCE FLIP] Room ${roomId} -> orientation: ${orientation}`);
+    logger.info(`[FORCE FLIP] Room ${roomId} -> orientation: ${orientation}`);
   });
 
   socket.on('toggle_blunder_alert', ({ roomId, enabled }) => {
     socket.to(roomId).emit('blunder_alert_toggled', { enabled });
-    console.log(`[BLUNDER ALERT] Room ${roomId} -> enabled: ${enabled}`);
+    logger.info(`[BLUNDER ALERT] Room ${roomId} -> enabled: ${enabled}`);
   });
 
   socket.on('move', async ({ roomId, move, currentFen, role, currentMoveIndex, movePath }) => {
@@ -200,7 +201,7 @@ io.on('connection', (socket) => {
     try {
       await pool.query('UPDATE rooms SET current_fen = $1 WHERE room_code = $2', [currentFen, roomId]);
     } catch (err) {
-      console.error('Error updating room FEN:', err);
+      logger.error('Error updating room FEN:', err);
     }
   });
 
@@ -227,7 +228,7 @@ io.on('connection', (socket) => {
     };
 
     io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
-    console.log(`[AUDIO] User ${userName} (${userId}) joined audio in room ${roomId}`);
+    logger.info(`[AUDIO] User ${userName} (${userId}) joined audio in room ${roomId}`);
   });
 
   socket.on('audio_leave', ({ roomId, userId }) => {
@@ -240,7 +241,7 @@ io.on('connection', (socket) => {
       }
     }
     socket.leave(roomId);
-    console.log(`[AUDIO] User ${userId} left audio in room ${roomId}`);
+    logger.info(`[AUDIO] User ${userId} left audio in room ${roomId}`);
   });
 
   socket.on('audio_mute_toggle', ({ roomId, userId, isMuted }) => {
@@ -274,11 +275,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.id}`);
+    logger.info(`User disconnected: ${socket.id}`);
 
     if (socket.userId && onlineUsers[socket.userId]) {
       delete onlineUsers[socket.userId];
-      console.log(`[ONLINE PRESENCE] User disconnected: ID ${socket.userId}`);
+      logger.info(`[ONLINE PRESENCE] User disconnected: ID ${socket.userId}`);
     }
 
     if (socket.roomId && socket.userId && activeRoomMembers[socket.roomId]) {
@@ -310,10 +311,10 @@ async function startServer() {
   try {
     await initDB();
     server.listen(PORT, () => {
-      console.log(`Server is listening on port ${PORT}`);
+      logger.info(`Server is listening on port ${PORT}`);
     });
   } catch (err) {
-    console.error('Failed to start server due to DB initialization failure:', err);
+    logger.error('Failed to start server due to DB initialization failure:', err);
     process.exit(1);
   }
 }

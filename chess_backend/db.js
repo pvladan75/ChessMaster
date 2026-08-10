@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { Pool } = require('pg');
+const logger = require('./services/logger');
 
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -13,7 +14,7 @@ const pool = new Pool({
 async function initDB() {
   const client = await pool.connect();
   try {
-    console.log('Successfully connected to DigitalOcean PostgreSQL database.');
+    logger.info('Successfully connected to DigitalOcean PostgreSQL database.');
 
     // Create users table
     await client.query(`
@@ -29,7 +30,7 @@ async function initDB() {
       ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('korisnik', 'host', 'admin', 'user', 'trener', 'ucenik'));
       UPDATE users SET role = 'korisnik' WHERE role IN ('trener', 'ucenik', 'user', 'unassigned');
     `);
-    console.log('Verified database table & role migration: users (role -> korisnik)');
+    logger.info('Verified database table & role migration: users (role -> korisnik)');
 
     // Create rooms table
     await client.query(`
@@ -75,7 +76,7 @@ async function initDB() {
       ALTER TABLE puzzles 
       ADD COLUMN IF NOT EXISTS solutions JSONB DEFAULT '{}'::jsonb;
     `);
-    console.log('Verified database table: puzzles (with solutions column)');
+    logger.info('Verified database table: puzzles (with solutions column)');
 
     // Create saved_lessons table
     await client.query(`
@@ -100,14 +101,14 @@ async function initDB() {
         UNIQUE(trainer_id, student_id)
       );
     `);
-    console.log('Verified database table: trainer_students');
+    logger.info('Verified database table: trainer_students');
     
     // Add account_type column to users table if missing
     await client.query(`
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS account_type VARCHAR(50) DEFAULT 'free';
     `);
-    console.log('Verified database table: users (with account_type)');
+    logger.info('Verified database table: users (with account_type)');
 
     // Add created_at column to rooms table if missing
     await client.query(`
@@ -133,7 +134,7 @@ async function initDB() {
       ALTER TABLE session_recordings 
       ADD COLUMN IF NOT EXISTS participants INTEGER[] DEFAULT '{}';
     `);
-    console.log('Verified database table: session_recordings');
+    logger.info('Verified database table: session_recordings');
 
     // Create friends table
     await client.query(`
@@ -145,7 +146,7 @@ async function initDB() {
         UNIQUE (user_id, friend_id)
       );
     `);
-    console.log('Verified database table: friends');
+    logger.info('Verified database table: friends');
 
     // Create user_notifications table
     await client.query(`
@@ -160,7 +161,7 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('Verified database table: user_notifications');
+    logger.info('Verified database table: user_notifications');
 
     // Create scheduled_sessions table
     await client.query(`
@@ -174,7 +175,7 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('Verified database table: scheduled_sessions');
+    logger.info('Verified database table: scheduled_sessions');
 
     // Create scheduled_session_invites table
     await client.query(`
@@ -187,7 +188,7 @@ async function initDB() {
         UNIQUE(session_id, user_id)
       );
     `);
-    console.log('Verified database table: scheduled_session_invites');
+    logger.info('Verified database table: scheduled_session_invites');
 
 
     // Create user_puzzle_ratings table
@@ -216,11 +217,11 @@ async function initDB() {
       );
       CREATE INDEX IF NOT EXISTS idx_endgame_puzzles_difficulty ON endgame_puzzles(difficulty);
     `);
-    console.log('Verified database table & indexes: endgame_puzzles');
-    console.log('Verified database table: user_puzzle_ratings');
+    logger.info('Verified database table & indexes: endgame_puzzles');
+    logger.info('Verified database table: user_puzzle_ratings');
 
   } catch (err) {
-    console.error('Database migration/connection error:', err);
+    logger.error('Database migration/connection error:', err);
     throw err;
   } finally {
     client.release();

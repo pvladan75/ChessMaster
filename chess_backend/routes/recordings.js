@@ -1,3 +1,4 @@
+const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -26,12 +27,12 @@ const upload = multer({ storage: uploadStorage, limits: { fileSize: 100 * 1024 *
 
 // POST /recordings/save
 router.post('/save', authenticateToken, upload.single('audio'), async (req, res) => {
-  console.log('[SERVER_RECORDING_LOG] Received /recordings/save request from user:', req.user ? req.user.id : 'unknown');
-  console.log('[SERVER_RECORDING_LOG] Body keys:', Object.keys(req.body));
+  logger.info('[SERVER_RECORDING_LOG] Received /recordings/save request from user:', req.user ? req.user.id : 'unknown');
+  logger.info('[SERVER_RECORDING_LOG] Body keys:', Object.keys(req.body));
   if (req.file) {
-    console.log('[SERVER_RECORDING_LOG] Audio file received:', req.file.path, 'Size:', req.file.size, 'bytes');
+    logger.info('[SERVER_RECORDING_LOG] Audio file received:', req.file.path, 'Size:', req.file.size, 'bytes');
   } else {
-    console.log('[SERVER_RECORDING_LOG] No file in req.file');
+    logger.info('[SERVER_RECORDING_LOG] No file in req.file');
   }
 
   const roomId = req.body.roomId;
@@ -53,14 +54,14 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
 
     if (req.file) {
       finalAudioUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-      console.log(`[RECORDING] Multipart audio saved: ${req.file.path}, URL: ${finalAudioUrl}`);
+      logger.info(`[RECORDING] Multipart audio saved: ${req.file.path}, URL: ${finalAudioUrl}`);
     } else if (req.body.audioBase64 && req.body.audioBase64.length > 0) {
       const audioFileName = `audio_${Date.now()}_${Math.floor(Math.random()*10000)}.aac`;
       const audioPath = path.join(__dirname, '..', 'uploads', audioFileName);
       const buffer = Buffer.from(req.body.audioBase64, 'base64');
       fs.writeFileSync(audioPath, buffer);
       finalAudioUrl = `${req.protocol}://${req.get('host')}/uploads/${audioFileName}`;
-      console.log(`[RECORDING] Base64 audio saved to ${audioPath}, URL: ${finalAudioUrl}`);
+      logger.info(`[RECORDING] Base64 audio saved to ${audioPath}, URL: ${finalAudioUrl}`);
     }
 
     let participantIds = [];
@@ -77,7 +78,7 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
     );
     res.status(201).json({ message: 'Snimak časa je uspešno sačuvan.', recording: result.rows[0] });
   } catch (err) {
-    console.error('Error saving recording:', err);
+    logger.error('Error saving recording:', err);
     res.status(500).json({ error: 'Greška pri čuvanju snimka časa: ' + err.message });
   }
 });
@@ -95,7 +96,7 @@ router.get('/', authenticateToken, async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching recordings:', err);
+    logger.error('Error fetching recordings:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju snimaka.' });
   }
 });
@@ -115,7 +116,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Error fetching recording details:', err);
+    logger.error('Error fetching recording details:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju detalja snimka.' });
   }
 });
@@ -201,7 +202,7 @@ router.post('/:id/export-mp4', authenticateToken, async (req, res) => {
       filename: filename
     });
   } catch (err) {
-    console.error('Error initiating MP4 export:', err);
+    logger.error('Error initiating MP4 export:', err);
     res.status(500).json({ error: 'Greška pri pokretanju MP4 izvoza.' });
   }
 });

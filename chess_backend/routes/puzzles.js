@@ -1,3 +1,4 @@
+const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
@@ -71,15 +72,15 @@ router.get('/puzzles/next', authenticateToken, async (req, res) => {
       }
     };
 
-    console.log('\n=================== ♟️ [TRAINING LOG - BACKEND TERMINAL] ===================');
-    console.log(`[1] MOD: ${puzzle.type === 'mate_puzzle' ? `Zagonetke: Mat u ${puzzle.mate_depth || 1} poteza` : 'Pronađite dobitni put'}`);
-    console.log(`[2] UČITANI FEN: ${puzzle.fen}`);
-    console.log(`[ID ZAGONETKE]: ${puzzle.puzzle_id} | Evaluacija: ${puzzle.eval}`);
-    console.log(`[OČEKIVANI POTEZ (JSON)]: ${puzzle.winning_move_uci} (${puzzle.winning_move_san || ''})`);
-    console.log('============================================================================\n');
+    logger.info('\n=================== ♟️ [TRAINING LOG - BACKEND TERMINAL] ===================');
+    logger.info(`[1] MOD: ${puzzle.type === 'mate_puzzle' ? `Zagonetke: Mat u ${puzzle.mate_depth || 1} poteza` : 'Pronađite dobitni put'}`);
+    logger.info(`[2] UČITANI FEN: ${puzzle.fen}`);
+    logger.info(`[ID ZAGONETKE]: ${puzzle.puzzle_id} | Evaluacija: ${puzzle.eval}`);
+    logger.info(`[OČEKIVANI POTEZ (JSON)]: ${puzzle.winning_move_uci} (${puzzle.winning_move_san || ''})`);
+    logger.info('============================================================================\n');
     res.json(responsePayload);
   } catch (err) {
-    console.error('Error fetching next puzzle:', err);
+    logger.error('Error fetching next puzzle:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju zagonetke.' });
   }
 });
@@ -126,7 +127,7 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Error fetching endgame puzzle:', err);
+    logger.error('Error fetching endgame puzzle:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju završnice.' });
   }
 });
@@ -190,7 +191,7 @@ router.post('/puzzles/submit', authenticateToken, async (req, res) => {
       puzzlesFailed: failedCount
     });
   } catch (err) {
-    console.error('Error submitting puzzle result:', err);
+    logger.error('Error submitting puzzle result:', err);
     res.status(500).json({ error: 'Greška pri čuvanju rezultata.' });
   }
 });
@@ -285,10 +286,10 @@ router.post('/puzzles/verify', async (req, res) => {
       return Promise.race([verifyPromise, timeoutPromise]);
     });
 
-    console.log(`[VERIFY ENDPOINT] FEN: ${fen} | Move: ${userMove} | Result: ${result.status} (${result.reason || 'OK'})`);
+    logger.info(`[VERIFY ENDPOINT] FEN: ${fen} | Move: ${userMove} | Result: ${result.status} (${result.reason || 'OK'})`);
     return res.json(result);
   } catch (err) {
-    console.error('Error in /api/puzzles/verify:', err);
+    logger.error('Error in /api/puzzles/verify:', err);
     return res.json({ success: false, status: 'REJECTED', reason: 'Greška na serveru pri verifikaciji.' });
   }
 });
@@ -299,76 +300,76 @@ router.post('/puzzles/log', (req, res) => {
     const { details } = req.body;
     if (details) {
       if (details.type === 'engineStream') {
-        console.log(`[ENGINE STREAM] Received eval for FEN: ${details.fen} | Depth: ${details.depth} | Best Move: ${details.bestMove}`);
+        logger.info(`[ENGINE STREAM] Received eval for FEN: ${details.fen} | Depth: ${details.depth} | Best Move: ${details.bestMove}`);
         return res.json({ success: true });
       }
       if (details.type === 'uiRender') {
-        console.log(`[UI RENDER] Attempting to draw arrows for FEN: ${details.fen} | Current Board FEN: ${details.currentFen}`);
+        logger.info(`[UI RENDER] Attempting to draw arrows for FEN: ${details.fen} | Current Board FEN: ${details.currentFen}`);
         return res.json({ success: true });
       }
       if (details.type === 'stateReset') {
-        console.log(`[STATE RESET] Cleared arrows and stopped analysis for FEN: ${details.oldFen} (Token: ${details.token || 1})`);
+        logger.info(`[STATE RESET] Cleared arrows and stopped analysis for FEN: ${details.oldFen} (Token: ${details.token || 1})`);
         return res.json({ success: true });
       }
       if (details.type === 'ignoredEvent') {
-        console.log(`[IGNORED EVENT] Discarding stale evaluation from old FEN: ${details.oldFen} (Current Board FEN: ${details.currentFen})`);
+        logger.info(`[IGNORED EVENT] Discarding stale evaluation from old FEN: ${details.oldFen} (Current Board FEN: ${details.currentFen})`);
         return res.json({ success: true });
       }
 
       if (details.type === 'buttonClick') {
-        console.log('\n🔘 [KLIK NA DUGME - BACKEND TERMINAL] ==============================');
-        console.log(`[DUGME]: ${details.button}`);
-        if (details.puzzleId) console.log(`[ID ZAGONETKE]: ${details.puzzleId}`);
-        if (details.fen) console.log(`[FEN POZICIJE]: ${details.fen}`);
-        if (details.category) console.log(`[KATEGORIJA]: ${details.category}`);
-        console.log('============================================================================\n');
+        logger.info('\n🔘 [KLIK NA DUGME - BACKEND TERMINAL] ==============================');
+        logger.info(`[DUGME]: ${details.button}`);
+        if (details.puzzleId) logger.info(`[ID ZAGONETKE]: ${details.puzzleId}`);
+        if (details.fen) logger.info(`[FEN POZICIJE]: ${details.fen}`);
+        if (details.category) logger.info(`[KATEGORIJA]: ${details.category}`);
+        logger.info('============================================================================\n');
         return res.json({ success: true });
       }
 
       if (details.type === 'branchReset') {
-        console.log('\n🔄 [VARIATION BRANCH RESET - BACKEND TERMINAL] =====================');
-        console.log(`[1] MOD: ${details.mode}`);
-        console.log(`[STATUS]: 🔁 Prva linija rešena! Vraćanje na tačku razgranjenja.`);
-        console.log(`[NAREDNI ODGOVOR PROTIVNIKA]: ${details.nextOpponentMove}`);
-        console.log(`[PREOSTALO UNIKATNIH LINIJA]: ${details.remainingBranches}`);
-        console.log('============================================================================\n');
+        logger.info('\n🔄 [VARIATION BRANCH RESET - BACKEND TERMINAL] =====================');
+        logger.info(`[1] MOD: ${details.mode}`);
+        logger.info(`[STATUS]: 🔁 Prva linija rešena! Vraćanje na tačku razgranjenja.`);
+        logger.info(`[NAREDNI ODGOVOR PROTIVNIKA]: ${details.nextOpponentMove}`);
+        logger.info(`[PREOSTALO UNIKATNIH LINIJA]: ${details.remainingBranches}`);
+        logger.info('============================================================================\n');
         return res.json({ success: true });
       }
 
       if (details.type === 'pgnChipClick') {
-        console.log('\n♟️ [KLIK NA PGN POTEZ - BACKEND TERMINAL] ===========================');
-        console.log(`[ODABRANI POTEZ U STABLU]: ${details.moveSan}`);
-        console.log(`[CILJNI FEN]: ${details.targetFen}`);
-        console.log('============================================================================\n');
+        logger.info('\n♟️ [KLIK NA PGN POTEZ - BACKEND TERMINAL] ===========================');
+        logger.info(`[ODABRANI POTEZ U STABLU]: ${details.moveSan}`);
+        logger.info(`[CILJNI FEN]: ${details.targetFen}`);
+        logger.info('============================================================================\n');
         return res.json({ success: true });
       }
 
       if (details.status === 'REJECTED') {
-        console.log('\n❌ [REJECTED MOVE LOG - BACKEND TERMINAL] ===================');
-        console.log(`[1] MOD: ${details.mode}`);
-        console.log(`[2] FEN PRE POTEZA: ${details.initialFen || details.dynamicFen}`);
-        console.log(`[3] ODIGRANI POTEZ KORISNIKA: ❌ ${details.userMove}`);
-        console.log(`[STATUS]: ❌ ODBIJEN POTEZ (Nije u stablu rešenja)`);
-        if (details.validTreeKeys) console.log(`[DOZVOLJENI POTEZI U TRENUTNOM ČVORU]: ${details.validTreeKeys}`);
-        if (details.reason) console.log(`[RAZLOG]: ${details.reason}`);
-        console.log('============================================================================\n');
+        logger.info('\n❌ [REJECTED MOVE LOG - BACKEND TERMINAL] ===================');
+        logger.info(`[1] MOD: ${details.mode}`);
+        logger.info(`[2] FEN PRE POTEZA: ${details.initialFen || details.dynamicFen}`);
+        logger.info(`[3] ODIGRANI POTEZ KORISNIKA: ❌ ${details.userMove}`);
+        logger.info(`[STATUS]: ❌ ODBIJEN POTEZ (Nije u stablu rešenja)`);
+        if (details.validTreeKeys) logger.info(`[DOZVOLJENI POTEZI U TRENUTNOM ČVORU]: ${details.validTreeKeys}`);
+        if (details.reason) logger.info(`[RAZLOG]: ${details.reason}`);
+        logger.info('============================================================================\n');
         return res.json({ success: true });
       }
 
-      console.log('\n=================== ♟️ [TRAINING LOG - BACKEND TERMINAL] ===================');
-      if (details.mode) console.log(`[1] MOD: ${details.mode}`);
-      if (details.initialFen) console.log(`[2] UČITANI FEN: ${details.initialFen}`);
-      if (details.dynamicFen) console.log(`[3] DINAMIČKI FEN: ${details.dynamicFen}`);
-      if (details.userMove) console.log(`[4] POTEZ KORISNIKA: ${details.userMove}`);
-      if (details.status) console.log(`[4] STATUS POTEZA: ${details.status === 'ACCEPTED' ? '✅ TAČAN (Prihvaćen u stablu)' : details.status}`);
-      if (details.validTreeKeys) console.log(`[4] DOZVOLJENI POTEZI U TRENUTNOM ČVORU]: ${details.validTreeKeys}`);
-      if (details.subBranch) console.log(`[4] STABLO NASTAVKA: ${details.subBranch}`);
-      if (details.fastTrack !== undefined) console.log(`[4] FAST-TRACK PROVERA: ${details.fastTrack ? '✅ DA (Potez u JSON-u)' : '⚡ NE (Šalje se na Stockfish)'}`);
-      if (details.engineMove) console.log(`[5] ODGOVOR PROTIVNIKA: ${details.engineMove}`);
-      if (details.decisionBasis) console.log(`[5] OSNOV ODABIRA: ${details.decisionBasis}`);
-      if (details.depth) console.log(`[5] DUBINA (DEPTH): ${details.depth}`);
-      if (details.eval) console.log(`[5] EVALUACIJA: ${details.eval}`);
-      console.log('============================================================================\n');
+      logger.info('\n=================== ♟️ [TRAINING LOG - BACKEND TERMINAL] ===================');
+      if (details.mode) logger.info(`[1] MOD: ${details.mode}`);
+      if (details.initialFen) logger.info(`[2] UČITANI FEN: ${details.initialFen}`);
+      if (details.dynamicFen) logger.info(`[3] DINAMIČKI FEN: ${details.dynamicFen}`);
+      if (details.userMove) logger.info(`[4] POTEZ KORISNIKA: ${details.userMove}`);
+      if (details.status) logger.info(`[4] STATUS POTEZA: ${details.status === 'ACCEPTED' ? '✅ TAČAN (Prihvaćen u stablu)' : details.status}`);
+      if (details.validTreeKeys) logger.info(`[4] DOZVOLJENI POTEZI U TRENUTNOM ČVORU]: ${details.validTreeKeys}`);
+      if (details.subBranch) logger.info(`[4] STABLO NASTAVKA: ${details.subBranch}`);
+      if (details.fastTrack !== undefined) logger.info(`[4] FAST-TRACK PROVERA: ${details.fastTrack ? '✅ DA (Potez u JSON-u)' : '⚡ NE (Šalje se na Stockfish)'}`);
+      if (details.engineMove) logger.info(`[5] ODGOVOR PROTIVNIKA: ${details.engineMove}`);
+      if (details.decisionBasis) logger.info(`[5] OSNOV ODABIRA: ${details.decisionBasis}`);
+      if (details.depth) logger.info(`[5] DUBINA (DEPTH): ${details.depth}`);
+      if (details.eval) logger.info(`[5] EVALUACIJA: ${details.eval}`);
+      logger.info('============================================================================\n');
     }
     res.json({ success: true });
   } catch (err) {
@@ -392,7 +393,7 @@ router.post('/ai/explain-position', authenticateToken, async (req, res) => {
 
     res.json(explanation);
   } catch (err) {
-    console.error('Error in AI position explanation route:', err);
+    logger.error('Error in AI position explanation route:', err);
     res.status(500).json({ error: 'Greška pri generisanju AI objašnjenja.' });
   }
 });

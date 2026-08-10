@@ -1,3 +1,4 @@
+const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
@@ -39,7 +40,7 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({ token, user });
   } catch (err) {
-    console.error('Registration error:', err);
+    logger.error('Registration error:', err);
     res.status(500).json({ error: 'Server error during registration' });
   }
 });
@@ -81,7 +82,7 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Login error:', err);
+    logger.error('Login error:', err);
     res.status(500).json({ error: 'Server error during login' });
   }
 });
@@ -89,7 +90,7 @@ router.post('/login', async (req, res) => {
 // POST /google and /auth/google
 router.post(['/google', '/auth/google'], async (req, res) => {
   try {
-    console.log('[GOOGLE_AUTH] Incoming login request:', req.body);
+    logger.info('[GOOGLE_AUTH] Incoming login request:', req.body);
     const { idToken, accessToken, email: reqEmail, name: reqName } = req.body;
 
     let email = reqEmail;
@@ -105,12 +106,12 @@ router.post(['/google', '/auth/google'], async (req, res) => {
           if (payload.name) name = payload.name;
         }
       } catch (e) {
-        console.log('[GOOGLE_AUTH] Google ID token verification fallback:', e.message);
+        logger.info('[GOOGLE_AUTH] Google ID token verification fallback:', e.message);
       }
     }
 
     if (!email) {
-      console.warn('[GOOGLE_AUTH] No email resolved from token or request body.');
+      logger.warn('[GOOGLE_AUTH] No email resolved from token or request body.');
       return res.status(400).json({ error: 'Nije moguće verifikovati Google nalog (nedostaje email).' });
     }
 
@@ -124,10 +125,10 @@ router.post(['/google', '/auth/google'], async (req, res) => {
         [email, defaultPasswordHash, name || 'Korisnik', 'korisnik']
       );
       user = insertResult.rows[0];
-      console.log('[GOOGLE_AUTH] Created new Google user:', user.email);
+      logger.info('[GOOGLE_AUTH] Created new Google user:', user.email);
     } else {
       user = userResult.rows[0];
-      console.log('[GOOGLE_AUTH] Found existing Google user:', user.email);
+      logger.info('[GOOGLE_AUTH] Found existing Google user:', user.email);
     }
 
     const token = jwt.sign(
@@ -146,7 +147,7 @@ router.post(['/google', '/auth/google'], async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('[GOOGLE_AUTH_ERROR]', err);
+    logger.error('[GOOGLE_AUTH_ERROR]', err);
     res.status(500).json({ error: 'Greška na serveru prilikom Google prijave: ' + (err.message || err.toString()) });
   }
 });

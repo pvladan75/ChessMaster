@@ -1,3 +1,4 @@
+const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
@@ -20,7 +21,7 @@ router.post('/save', authenticateToken, async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Save lesson error:', err);
+    logger.error('Save lesson error:', err);
     res.status(500).json({ error: 'Server error while saving lesson' });
   }
 });
@@ -40,7 +41,7 @@ router.get('/labels', authenticateToken, async (req, res) => {
     const labels = result.rows.map(row => row.label).filter(Boolean);
     res.json(labels);
   } catch (err) {
-    console.error('Fetch labels error:', err);
+    logger.error('Fetch labels error:', err);
     res.status(500).json({ error: 'Server error while fetching labels' });
   }
 });
@@ -87,7 +88,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
-    console.error('Fetch lessons error:', err);
+    logger.error('Fetch lessons error:', err);
     res.status(500).json({ error: 'Server error while fetching lessons' });
   }
 });

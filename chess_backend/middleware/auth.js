@@ -1,3 +1,4 @@
+const logger = require('../services/logger');
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'chessmaster_jwt_default_secret_key_2026';

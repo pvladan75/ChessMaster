@@ -1,3 +1,4 @@
+const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
@@ -26,7 +27,7 @@ router.post('/create', authenticateToken, async (req, res) => {
 
     res.status(201).json({ room: result.rows[0] });
   } catch (err) {
-    console.error('Room creation error:', err);
+    logger.error('Room creation error:', err);
     res.status(500).json({ error: 'Server error during room creation' });
   }
 });
@@ -47,7 +48,7 @@ router.post('/join', authenticateToken, async (req, res) => {
 
     res.json({ room: result.rows[0] });
   } catch (err) {
-    console.error('Room join error:', err);
+    logger.error('Room join error:', err);
     res.status(500).json({ error: 'Greška pri pridruživanju sobi' });
   }
 });

@@ -1,3 +1,4 @@
+const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
@@ -40,7 +41,7 @@ router.post('/trainer/students/add', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Prijatelj/Učenik uspešno dodat.', student });
   } catch (err) {
-    console.error('Error adding student/friend:', err);
+    logger.error('Error adding student/friend:', err);
     res.status(500).json({ error: 'Greška pri dodavanju.' });
   }
 });
@@ -59,7 +60,7 @@ router.get('/trainer/students', authenticateToken, async (req, res) => {
     );
     res.json({ students: result.rows });
   } catch (err) {
-    console.error('Error fetching students:', err);
+    logger.error('Error fetching students:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju liste.' });
   }
 });
@@ -74,7 +75,7 @@ router.delete('/trainer/students/:studentId', authenticateToken, async (req, res
     await pool.query('DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)', [trainerId, studentId]);
     res.json({ message: 'Učenik/Prijatelj uspešno uklonjen.' });
   } catch (err) {
-    console.error('Error removing student:', err);
+    logger.error('Error removing student:', err);
     res.status(500).json({ error: 'Greška pri uklanjanju.' });
   }
 });
@@ -85,7 +86,7 @@ router.get('/users/me/stats', authenticateToken, async (req, res) => {
     const stats = await getUserStats(pool, req.user.id);
     res.json(stats);
   } catch (err) {
-    console.error('Error fetching user stats:', err);
+    logger.error('Error fetching user stats:', err);
     res.status(500).json({ error: 'Greška pri preuzimanju statistike.' });
   }
 });
@@ -103,7 +104,7 @@ router.post('/users/account-type', authenticateToken, async (req, res) => {
     await pool.query('UPDATE users SET account_type = $1 WHERE id = $2', [accountType, req.user.id]);
     res.json({ success: true, message: `Tip naloga uspešno promenjen na '${accountType}'.` });
   } catch (err) {
-    console.error('Error updating account type:', err);
+    logger.error('Error updating account type:', err);
     res.status(500).json({ error: 'Greška pri ažuriranju tipa naloga.' });
   }
 });
@@ -120,7 +121,7 @@ router.get('/friends', authenticateToken, async (req, res) => {
     );
     res.json({ friends: result.rows });
   } catch (err) {
-    console.error('Error fetching friends:', err);
+    logger.error('Error fetching friends:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju liste prijatelja.' });
   }
 });
@@ -150,7 +151,7 @@ router.post('/friends/add', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Prijatelj uspešno dodat.', friend });
   } catch (err) {
-    console.error('Error adding friend:', err);
+    logger.error('Error adding friend:', err);
     res.status(500).json({ error: 'Greška pri dodavanju prijatelja.' });
   }
 });
@@ -164,7 +165,7 @@ router.delete('/friends/:friendId', authenticateToken, async (req, res) => {
     await pool.query('DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)', [userId, friendId]);
     res.json({ message: 'Prijatelj uspešno uklonjen.' });
   } catch (err) {
-    console.error('Error removing friend:', err);
+    logger.error('Error removing friend:', err);
     res.status(500).json({ error: 'Greška pri uklanjanju prijatelja.' });
   }
 });
@@ -182,7 +183,7 @@ router.get('/notifications', authenticateToken, async (req, res) => {
     );
     res.json({ notifications: result.rows });
   } catch (err) {
-    console.error('Error fetching notifications:', err);
+    logger.error('Error fetching notifications:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju obaveštenja.' });
   }
 });
@@ -193,7 +194,7 @@ router.post('/notifications/:id/read', authenticateToken, async (req, res) => {
     await pool.query('UPDATE user_notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
     res.json({ success: true });
   } catch (err) {
-    console.error('Error marking notification read:', err);
+    logger.error('Error marking notification read:', err);
     res.status(500).json({ error: 'Greška pri ažuriranju obaveštenja.' });
   }
 });
@@ -222,7 +223,7 @@ router.post('/invitations/send', authenticateToken, async (req, res) => {
 
     res.json({ success: true, message: 'Pozivnica uspešno poslata.' });
   } catch (err) {
-    console.error('Error sending invitation:', err);
+    logger.error('Error sending invitation:', err);
     res.status(500).json({ error: 'Greška pri slanju pozivnice.' });
   }
 });
@@ -272,7 +273,7 @@ router.post('/sessions/schedule', authenticateToken, async (req, res) => {
 
     res.json({ success: true, message: 'Čas uspešno zakazan.', sessionId });
   } catch (err) {
-    console.error('Error scheduling session:', err);
+    logger.error('Error scheduling session:', err);
     res.status(500).json({ error: 'Greška pri zakazivanju časa.' });
   }
 });
@@ -293,7 +294,7 @@ router.get('/sessions/scheduled', authenticateToken, async (req, res) => {
     );
     res.json({ sessions: result.rows });
   } catch (err) {
-    console.error('Error fetching scheduled sessions:', err);
+    logger.error('Error fetching scheduled sessions:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju zakazanih časova.' });
   }
 });
