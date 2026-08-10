@@ -2786,6 +2786,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       true,
       'root',
     );
+    _solutionGraphNodesCache = rootNodes;
     if (rootNodes.isEmpty) return const SizedBox.shrink();
 
     final List<PositionedNode> positionedNodes = [];
@@ -2995,26 +2996,74 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     );
   }
 
-  void _jumpToGraphNodePosition(SolutionGraphNode node) {
+  List<SolutionGraphNode> _solutionGraphNodesCache = [];
+
+  void _jumpToGraphNodePosition(SolutionGraphNode targetNode) {
     if (_puzzleGame == null) return;
     try {
-      _puzzleGame = chess.Chess.fromFEN(node.fen);
-      _puzzleBoardController.loadFen(node.fen);
-      _activeFen = node.fen;
+      String computedFen = targetNode.fen;
+      String? lastFrom = targetNode.moveUci.length >= 4 ? targetNode.moveUci.substring(0, 2) : null;
+      String? lastTo = targetNode.moveUci.length >= 4 ? targetNode.moveUci.substring(2, 4) : null;
+
+      if (_initialPuzzleFen != null && _selectedCategory == 'mate_puzzle') {
+        final List<SolutionGraphNode> path = _findPathToGraphNode(_solutionGraphNodesCache, targetNode);
+        if (path.isNotEmpty) {
+          try {
+            final game = chess.Chess.fromFEN(_initialPuzzleFen!);
+            for (var n in path) {
+              String uciToPlay = n.moveUci;
+              if (n.isGrouped && n.groupedOpponentMovesUci.isNotEmpty) {
+                final idx = n.selectedGroupedIndex.clamp(0, n.groupedOpponentMovesUci.length - 1);
+                uciToPlay = n.groupedOpponentMovesUci[idx];
+              }
+              if (uciToPlay.length >= 4) {
+                final from = uciToPlay.substring(0, 2);
+                final to = uciToPlay.substring(2, 4);
+                final promo = uciToPlay.length > 4 ? uciToPlay[4] : null;
+                game.move({'from': from, 'to': to, 'promotion': promo});
+                lastFrom = from;
+                lastTo = to;
+              }
+            }
+            computedFen = game.fen;
+          } catch (_) {
+            computedFen = targetNode.fen;
+          }
+        }
+      }
+
+      _puzzleGame = chess.Chess.fromFEN(computedFen);
+      _puzzleBoardController.loadFen(computedFen);
+      _activeFen = computedFen;
 
       setState(() {
-        _lastMoveFrom = node.moveUci.length >= 4 ? node.moveUci.substring(0, 2) : null;
-        _lastMoveTo = node.moveUci.length >= 4 ? node.moveUci.substring(2, 4) : null;
+        _lastMoveFrom = lastFrom;
+        _lastMoveTo = lastTo;
       });
 
       _sendBackendLog({
         'type': 'graphNodeClick',
-        'moveSan': node.moveSan,
-        'targetFen': node.fen,
+        'moveSan': targetNode.moveSan,
+        'targetFen': computedFen,
       });
     } catch (e) {
       print('Error jumping to graph node position: $e');
     }
+  }
+
+  List<SolutionGraphNode> _findPathToGraphNode(List<SolutionGraphNode> currentLevel, SolutionGraphNode target) {
+    for (var node in currentLevel) {
+      if (node.id == target.id) {
+        return [node];
+      }
+      if (node.children.isNotEmpty) {
+        final subPath = _findPathToGraphNode(node.children, target);
+        if (subPath.isNotEmpty) {
+          return [node, ...subPath];
+        }
+      }
+    }
+    return [];
   }
 
   void _showGroupedMovesDialog(SolutionGraphNode node) {
@@ -3104,6 +3153,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   }
 
   void _jumpToGroupedOpponentMove(SolutionGraphNode node, int moveIndex) {
+    node.selectedGroupedIndex = moveIndex;
     if (node.parentFen == null || node.groupedOpponentMovesUci.isEmpty) {
       _jumpToGraphNodePosition(node);
       return;
@@ -3511,6 +3561,7 @@ class SolutionGraphNode {
   final bool isWhite;
   final bool isCheckmate;
   final bool isGrouped;
+  int selectedGroupedIndex;
   final List<String> groupedOpponentMoves;
   final List<String> groupedOpponentMovesUci;
   final List<SolutionGraphNode> children;
@@ -3524,6 +3575,7 @@ class SolutionGraphNode {
     required this.isWhite,
     this.isCheckmate = false,
     this.isGrouped = false,
+    this.selectedGroupedIndex = 0,
     this.groupedOpponentMoves = const [],
     this.groupedOpponentMovesUci = const [],
     this.children = const [],
