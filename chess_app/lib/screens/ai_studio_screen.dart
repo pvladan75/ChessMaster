@@ -1086,9 +1086,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       final primaryJsonMove = _currentPuzzle?['winning_move_uci'] ?? (_expectedMoves.length > _moveIndex ? _expectedMoves[_moveIndex] : '');
 
       dynamic subBranch = _currentSolutionsNode?[userLan];
-      // Fallback for single-move or legacy format where solutions tree might be empty or flat
+      // Fallback for single-move puzzles (Mate in 1) or when position is in checkmate
       if (subBranch == null && primaryJsonMove.isNotEmpty && userLan == primaryJsonMove) {
-        subBranch = "CHECKMATE";
+        final reqN = int.tryParse(_selectedMateDepth) ?? 1;
+        if (reqN == 1 || _puzzleGame!.in_checkmate) {
+          subBranch = "CHECKMATE";
+        }
       }
 
       print('\n==================================================');

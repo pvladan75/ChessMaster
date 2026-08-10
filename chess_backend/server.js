@@ -1016,9 +1016,20 @@ app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
       const depthNum = parseInt(mate_depth, 10);
       puzzleRes = await pool.query(
         `SELECT * FROM puzzles
-         WHERE type = $1 AND mate_depth = $2 AND ($3 = '' OR puzzle_id != $3)
+         WHERE type = $1 AND mate_depth = $2 
+           AND solutions != '{}'::jsonb AND solutions IS NOT NULL
+           AND ($3 = '' OR puzzle_id != $3)
          ORDER BY RANDOM() LIMIT 1`,
         ['mate_puzzle', depthNum, currentExclude]
+      );
+    } else if (puzzleType === 'mate_puzzle') {
+      puzzleRes = await pool.query(
+        `SELECT * FROM puzzles
+         WHERE type = $1 
+           AND solutions != '{}'::jsonb AND solutions IS NOT NULL
+           AND ($2 = '' OR puzzle_id != $2)
+         ORDER BY RANDOM() LIMIT 1`,
+        ['mate_puzzle', currentExclude]
       );
     } else {
       puzzleRes = await pool.query(
@@ -1030,7 +1041,10 @@ app.get('/api/puzzles/next', authenticateToken, async (req, res) => {
     }
 
     if (puzzleRes.rows.length === 0) {
-      puzzleRes = await pool.query(`SELECT * FROM puzzles WHERE type = $1 ORDER BY RANDOM() LIMIT 1`, [puzzleType]);
+      puzzleRes = await pool.query(
+        `SELECT * FROM puzzles WHERE type = $1 AND solutions != '{}'::jsonb AND solutions IS NOT NULL ORDER BY RANDOM() LIMIT 1`,
+        [puzzleType]
+      );
     }
 
     if (puzzleRes.rows.length === 0) {
