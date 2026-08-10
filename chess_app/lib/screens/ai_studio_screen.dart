@@ -1478,6 +1478,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   }
 
   void _undoIncorrectUserMove() {
+    _stockfishService.stopAnalysis();
+    if (_currentPuzzle != null && _currentPuzzle!['solutions'] != null) {
+      _rootSolutionsTree = Map<String, dynamic>.from(_currentPuzzle!['solutions']);
+      _currentSolutionsNode = Map<String, dynamic>.from(_rootSolutionsTree);
+    }
+    _activeBranchPoints.clear();
+
     if (_selectedCategory == 'mate_puzzle') {
       _resetCurrentPuzzle();
       return;
@@ -1512,6 +1519,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _puzzleGame = chess.Chess.fromFEN(_initialPuzzleFen!);
     _puzzleBoardController.loadFen(_initialPuzzleFen!);
     _activeFen = _initialPuzzleFen!;
+    if (_currentPuzzle != null && _currentPuzzle!['solutions'] != null) {
+      _rootSolutionsTree = Map<String, dynamic>.from(_currentPuzzle!['solutions']);
+      _currentSolutionsNode = Map<String, dynamic>.from(_rootSolutionsTree);
+    }
+    _activeBranchPoints.clear();
 
     Map<String, dynamic> current = Map<String, dynamic>.from(_rootSolutionsTree);
 
@@ -1565,6 +1577,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _isReplayingSolution = false;
       _puzzleSolved = true;
       _gameState = PuzzleGameState.puzzleCompleted;
+      _currentSolutionsNode = Map<String, dynamic>.from(_rootSolutionsTree);
+      _activeBranchPoints.clear();
     });
   }
 
