@@ -35,6 +35,7 @@ flutter:
     - assets/puzzles/easy_puzzles.json
     - assets/puzzles/medium_puzzles.json
     - assets/puzzles/hard_puzzles.json
+    - assets/puzzles/mate_puzzles_db.json
 
 dependency_overrides:
   ffi: ^2.2.0

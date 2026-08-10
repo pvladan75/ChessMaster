@@ -1,3 +1,4 @@
+import 'package:chess_app/services/local_puzzle_service.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -48,15 +49,21 @@ class PuzzleApiService {
     try {
       final res = await http
           .get(uri, headers: _headers(userToken))
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 4));
 
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as Map<String, dynamic>;
       }
     } catch (e) {
-      print('[PUZZLE_API_SERVICE] Error fetching next puzzle: $e');
+      print('[PUZZLE_API_SERVICE] Server unreachable. Falling back to local offline puzzle DB: $e');
     }
-    return null;
+
+    // Offline fallback for mate puzzles
+    final int depth = int.tryParse(mateDepth) ?? 2;
+    return await LocalPuzzleService.instance.getRandomPuzzle(
+      mateIn: depth,
+      excludeId: excludeId,
+    );
   }
 
   Future<Map<String, dynamic>?> fetchNextEndgamePuzzle({
