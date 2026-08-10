@@ -46,9 +46,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Basic health check endpoint
-app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'Chess Master backend is running' });
+// Basic health check endpoints
+app.get(['/', '/health', '/api/health'], (req, res) => {
+  res.json({ status: 'ok', message: 'Chess Master backend is running', timestamp: new Date().toISOString() });
 });
 
 // ADMIN ROUTE - RESET ALL USERS & DATA
