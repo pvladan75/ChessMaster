@@ -23,6 +23,20 @@ enum PuzzleGameState {
   puzzleCompleted,
 }
 
+class VariationBranchPoint {
+  final String fenPostUserMove;
+  final String userMoveUci;
+  final Map<String, dynamic> oppBranchMap;
+  final List<String> pendingOpponentMoves;
+
+  VariationBranchPoint({
+    required this.fenPostUserMove,
+    required this.userMoveUci,
+    required this.oppBranchMap,
+    required this.pendingOpponentMoves,
+  });
+}
+
 class AiStudioScreen extends StatefulWidget {
   final UserSession userSession;
 
@@ -56,19 +70,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   int _currentEvalDepth = 18;
   double? _lastPosEval;
   double? _lastUserAdvantage;
-class VariationBranchPoint {
-  final String fenPostUserMove;
-  final String userMoveUci;
-  final Map<String, dynamic> oppBranchMap;
-  final List<String> pendingOpponentMoves;
-
-  VariationBranchPoint({
-    required this.fenPostUserMove,
-    required this.userMoveUci,
-    required this.oppBranchMap,
-    required this.pendingOpponentMoves,
-  });
-}
 
   Map<String, dynamic>? _currentPuzzle;
   Map<String, dynamic> _rootSolutionsTree = {};
