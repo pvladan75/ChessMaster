@@ -1815,7 +1815,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                   ),
                 ),
               ),
-        body: _buildPuzzlesTab(),
+        body: SafeArea(child: _buildPuzzlesTab()),
       ),
     );
   }
@@ -2190,9 +2190,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     );
 
     if (isLandscape) {
-      // STRICT 1:1 SQUARE LANDSCAPE LAYOUT with 3-side margins (Left, Top, Bottom)
-      final double availableVerticalHeight = screenSize.height - (32.0 + (_showEvalBar ? 20.0 : 0.0));
-      final double boardSize = math.max(180.0, availableVerticalHeight - 20.0);
+      // STRICT 1:1 SQUARE LANDSCAPE LAYOUT with SafeArea & 3-side margins (Left, Top, Bottom)
+      final padding = MediaQuery.of(context).padding;
+      final double safeHeight = screenSize.height - padding.top - padding.bottom;
+      final double availableVerticalHeight = safeHeight - (28.0 + (_showEvalBar ? 20.0 : 0.0));
+      final double boardSize = math.max(160.0, availableVerticalHeight - 16.0);
 
       final landscapeTopHeader = SizedBox(
         height: 24,
