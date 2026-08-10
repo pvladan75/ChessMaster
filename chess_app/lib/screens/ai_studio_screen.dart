@@ -1207,9 +1207,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             }
 
             if (existingBP == null) {
-              final allOppKeys = oppTree.keys.toList();
-              oppMoveLan = allOppKeys.first;
-              final pendingKeys = allOppKeys.sublist(1);
+              final uniqueOppKeys = _getUniqueOpponentRepresentativeMoves(oppTree);
+              oppMoveLan = uniqueOppKeys.first;
+              final pendingKeys = uniqueOppKeys.sublist(1);
 
               _activeBranchPoints.add(VariationBranchPoint(
                 fenPostUserMove: _puzzleGame!.fen,
@@ -1323,6 +1323,30 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _stockfishService.setMultiPV(1);
     final targetDepth = AppSettingsService.instance.defaultEngineDepth;
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
+  }
+
+  List<String> _getUniqueOpponentRepresentativeMoves(Map<String, dynamic> oppBranchMap) {
+    final List<String> uniqueOpponentMoves = [];
+    final Set<String> seenUserSignatures = {};
+
+    for (var oppMove in oppBranchMap.keys) {
+      final oppSub = oppBranchMap[oppMove];
+      String moveSignature = '';
+      if (oppSub is Map) {
+        moveSignature = (oppSub as Map).keys.join(',');
+      } else if (oppSub is List) {
+        moveSignature = (oppSub as List).join(',');
+      } else if (oppSub is String) {
+        moveSignature = oppSub.toString();
+      }
+
+      if (!seenUserSignatures.contains(moveSignature)) {
+        seenUserSignatures.add(moveSignature);
+        uniqueOpponentMoves.add(oppMove.toString());
+      }
+    }
+
+    return uniqueOpponentMoves.isNotEmpty ? uniqueOpponentMoves : oppBranchMap.keys.map((k) => k.toString()).toList();
   }
 
   bool _areUserMovesIdenticalForAllOpponentReplies(Map<String, dynamic> oppBranchMap) {
@@ -1604,6 +1628,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _lastMoveTo = null;
       _isOpponentTurn = false;
       _isVerifyingUserMove = false;
+      _gameState = PuzzleGameState.idle;
       _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
     });
 
