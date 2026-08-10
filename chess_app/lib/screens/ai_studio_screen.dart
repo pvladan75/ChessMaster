@@ -1733,9 +1733,19 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               ),
               content: Text('Bravo! Tačno ste odigrali sve poteze.\nNovi rejting: $newRating (${change >= 0 ? "+" : ""}$change)'),
               actions: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.account_tree_outlined, color: Colors.tealAccent, size: 18),
+                  label: const Text('Prikaži Rešenje', style: TextStyle(color: Colors.tealAccent, fontSize: 13)),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    setState(() {
+                      _showSolutionTree = true;
+                    });
+                  },
+                ),
                 ElevatedButton.icon(
-                  icon: const Icon(Icons.arrow_forward),
-                  label: const Text('Naredna Zagonetka'),
+                  icon: const Icon(Icons.arrow_forward, size: 18),
+                  label: const Text('Naredna Zagonetka', style: TextStyle(fontSize: 13)),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
                   onPressed: () {
                     Navigator.pop(ctx);
@@ -1759,6 +1769,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
     return PopScope(
       canPop: _selectedCategory == null,
       onPopInvokedWithResult: (didPop, result) {
@@ -1771,27 +1783,38 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Row(
-            children: [
-              if (_selectedCategory != null) ...[
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () {
-                    _resetEngineState();
-                    setState(() {
-                      _selectedCategory = null;
-                    });
-                  },
+        appBar: isLandscape
+            ? null
+            : PreferredSize(
+                preferredSize: const Size.fromHeight(38.0),
+                child: AppBar(
+                  toolbarHeight: 38.0,
+                  title: Row(
+                    children: [
+                      if (_selectedCategory != null) ...[
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, size: 18),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            _resetEngineState();
+                            setState(() {
+                              _selectedCategory = null;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      const Icon(Icons.psychology, color: Colors.amberAccent, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        _selectedCategory == null ? 'Šahovski trener i vežbe' : _getCategoryTitle(),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 4),
-              ],
-              const Icon(Icons.psychology, color: Colors.amberAccent),
-              const SizedBox(width: 8),
-              Text(_selectedCategory == null ? 'Šahovski trener i vežbe' : _getCategoryTitle()),
-            ],
-          ),
-        ),
+              ),
         body: _buildPuzzlesTab(),
       ),
     );
