@@ -1335,6 +1335,7 @@ app.post('/api/puzzles/log', (req, res) => {
         console.log(`[2] FEN PRE POTEZA: ${details.initialFen || details.dynamicFen}`);
         console.log(`[3] ODIGRANI POTEZ KORISNIKA: ❌ ${details.userMove}`);
         console.log(`[STATUS]: ❌ ODBIJEN POTEZ (Nije u stablu rešenja)`);
+        if (details.validTreeKeys) console.log(`[DOZVOLJENI POTEZI U TRENUTNOM ČVORU]: ${details.validTreeKeys}`);
         if (details.reason) console.log(`[RAZLOG]: ${details.reason}`);
         console.log('============================================================================\n');
         return res.json({ success: true });
@@ -1346,6 +1347,7 @@ app.post('/api/puzzles/log', (req, res) => {
       if (details.dynamicFen) console.log(`[3] DINAMIČKI FEN: ${details.dynamicFen}`);
       if (details.userMove) console.log(`[4] POTEZ KORISNIKA: ${details.userMove}`);
       if (details.status) console.log(`[4] STATUS POTEZA: ${details.status === 'ACCEPTED' ? '✅ TAČAN (Prihvaćen u stablu)' : details.status}`);
+      if (details.validTreeKeys) console.log(`[4] DOZVOLJENI POTEZI U TRENUTNOM ČVORU]: ${details.validTreeKeys}`);
       if (details.subBranch) console.log(`[4] STABLO NASTAVKA: ${details.subBranch}`);
       if (details.fastTrack !== undefined) console.log(`[4] FAST-TRACK PROVERA: ${details.fastTrack ? '✅ DA (Potez u JSON-u)' : '⚡ NE (Šalje se na Stockfish)'}`);
       if (details.engineMove) console.log(`[5] ODGOVOR PROTIVNIKA: ${details.engineMove}`);

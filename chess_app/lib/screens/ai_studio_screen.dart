@@ -1104,6 +1104,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           'dynamicFen': startingFen,
           'userMove': '$userLan ($san)',
           'status': 'ACCEPTED',
+          'validTreeKeys': _currentSolutionsNode?.keys.join(', '),
           'subBranch': subBranch == "CHECKMATE" ? "CHECKMATE (Matni kraj)" : (subBranch is Map ? "Grana sa odgovora: ${subBranch.keys.join(', ')}" : subBranch.toString()),
         });
 
@@ -1310,6 +1311,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           'dynamicFen': startingFen,
           'userMove': '$userLan ($san)',
           'status': 'REJECTED',
+          'validTreeKeys': _currentSolutionsNode?.keys.join(', '),
           'reason': 'Potez nije u ugnježđenom stablu rešenja zagonetke',
         });
         _showFailureDialog();
@@ -1446,6 +1448,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   }
 
   void _undoIncorrectUserMove() {
+    if (_selectedCategory == 'mate_puzzle') {
+      _resetCurrentPuzzle();
+      return;
+    }
     if (_puzzleGame != null && _puzzleGame!.history.isNotEmpty) {
       _puzzleGame!.undo();
       _puzzleBoardController.loadFen(_puzzleGame!.fen);
@@ -1583,15 +1589,21 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _puzzleGame = chess.Chess.fromFEN(fen);
     _activeFen = fen;
 
+    _rootSolutionsTree = Map<String, dynamic>.from(_currentPuzzle!['solutions'] ?? {});
+    _currentSolutionsNode = Map<String, dynamic>.from(_rootSolutionsTree);
+    _activeBranchPoints.clear();
+
     final sideToMove = fen.split(' ')[1];
     setState(() {
       _puzzleSolved = false;
       _puzzleFailed = false;
       _expectedMoves = moves;
       _moveIndex = 0;
+      _userMoveCount = 0;
       _lastMoveFrom = null;
       _lastMoveTo = null;
       _isOpponentTurn = false;
+      _isVerifyingUserMove = false;
       _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
     });
 
