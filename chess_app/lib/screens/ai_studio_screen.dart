@@ -57,7 +57,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   double? _lastPosEval;
   double? _lastUserAdvantage;
   Map<String, dynamic>? _currentPuzzle;
+  Map<String, dynamic> _rootSolutionsTree = {};
   Map<String, dynamic>? _currentSolutionsNode;
+  Set<String> _solvedVariationKeys = {};
+  List<String> _remainingOpponentVariations = [];
+  String? _firstUserMove;
+  String? _postFirstUserMoveFen;
+  bool _isReplayingSolution = false;
   chess.Chess? _puzzleGame;
   int _userRating = 1500;
   List<String> _expectedMoves = [];
@@ -208,6 +214,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _activeFen = null;
       _puzzleMoveTree = null;
       _initialPuzzleFen = null;
+      _rootSolutionsTree.clear();
+      _currentSolutionsNode = null;
+      _solvedVariationKeys.clear();
+      _remainingOpponentVariations.clear();
+      _firstUserMove = null;
+      _postFirstUserMoveFen = null;
+      _isReplayingSolution = false;
       _stockfishService.setMultiPV(3);
     }
   }
@@ -734,7 +747,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           _userRating = data['userRating'] ?? 1500;
           _expectedMoves = moves;
           _moveIndex = 0;
-          _currentSolutionsNode = Map<String, dynamic>.from(p['solutions'] ?? {});
+          _rootSolutionsTree = Map<String, dynamic>.from(p['solutions'] ?? {});
+          _currentSolutionsNode = Map<String, dynamic>.from(_rootSolutionsTree);
+          _solvedVariationKeys.clear();
+          _remainingOpponentVariations.clear();
+          _firstUserMove = null;
+          _postFirstUserMoveFen = null;
+          _isReplayingSolution = false;
         });
 
         print('\n==================================================');
@@ -1032,10 +1051,66 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         _isVerifyingUserMove = false;
         _moveIndex++;
 
+        // Store first user move for variation resets
+        if (_firstUserMove == null) {
+          _firstUserMove = userLan;
+          _postFirstUserMoveFen = _puzzleGame!.fen;
+        }
+
         final bool isTerminalCheckmate = (subBranch == "CHECKMATE" || _puzzleGame!.in_checkmate);
 
         if (isTerminalCheckmate || (subBranch is Map && (subBranch as Map).isEmpty)) {
-          print('[TREE_VERIFICATION] 🎉 MAT / KRAJ STABLA! Zagonetka je uspešno rešena.');
+          // Check if there are remaining distinct opponent variations to solve!
+          if (_remainingOpponentVariations.isNotEmpty) {
+            final String nextOppMove = _remainingOpponentVariations.removeAt(0);
+            print('[TREE_VERIFICATION] 🔁 Rešena varijanta! Prelaženje na sledeću odbrambenu liniju: $nextOppMove');
+            
+            _showSnackBar('Sjajno! Rešite i ostale odbrambene linije protivnika.');
+
+            // Reset board to post-first-move FEN and play next opponent variation after 500ms
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (!mounted || _postFirstUserMoveFen == null) return;
+              try {
+                _puzzleGame = chess.Chess.fromFEN(_postFirstUserMoveFen!);
+                _puzzleBoardController.loadFen(_postFirstUserMoveFen!);
+                _activeFen = _postFirstUserMoveFen!;
+
+                final oppFrom = nextOppMove.substring(0, 2);
+                final oppTo = nextOppMove.substring(2, 4);
+                final oppPromo = nextOppMove.length > 4 ? nextOppMove[4] : null;
+
+                _puzzleGame!.move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
+                _puzzleBoardController.loadFen(_puzzleGame!.fen);
+                _activeFen = _puzzleGame!.fen;
+                _lastMoveFrom = oppFrom;
+                _lastMoveTo = oppTo;
+
+                final oppSubNode = _rootSolutionsTree[_firstUserMove]?[nextOppMove];
+                if (oppSubNode is Map) {
+                  _currentSolutionsNode = Map<String, dynamic>.from(oppSubNode);
+                } else if (oppSubNode is List) {
+                  final Map<String, dynamic> listNode = {};
+                  for (var m in oppSubNode) {
+                    listNode[m.toString()] = "CHECKMATE";
+                  }
+                  _currentSolutionsNode = listNode;
+                } else {
+                  _currentSolutionsNode = {};
+                }
+
+                setState(() {
+                  _gameState = PuzzleGameState.idle;
+                  _isOpponentTurn = false;
+                });
+              } catch (e) {
+                print('Greška pri prelasku na sledeću varijantu: $e');
+              }
+            });
+            return;
+          }
+
+          // All variations solved!
+          print('[TREE_VERIFICATION] 🎉 SVE VARIJANTE REŠENE! Zagonetka je kompletno rešena.');
           setState(() {
             _puzzleSolved = true;
             _gameState = PuzzleGameState.puzzleCompleted;
@@ -1047,12 +1122,22 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
         if (subBranch is Map) {
           final Map<String, dynamic> oppTree = Map<String, dynamic>.from(subBranch as Map);
-          final String oppMoveLan = oppTree.keys.first;
+          
+          // Check unicity: do all opponent replies require identical user responses?
+          final bool isIdenticalUserMoves = _areUserMovesIdenticalForAllOpponentReplies(oppTree);
+          if (!isIdenticalUserMoves && _remainingOpponentVariations.isEmpty) {
+            _remainingOpponentVariations = oppTree.keys.toList();
+          }
+
+          final String oppMoveLan = _remainingOpponentVariations.isNotEmpty
+              ? _remainingOpponentVariations.removeAt(0)
+              : oppTree.keys.first;
+
           final dynamic nextSubTree = oppTree[oppMoveLan];
 
           setState(() => _gameState = PuzzleGameState.waitingEngineMove);
 
-          // Instant opponent response after 300ms delay
+          // Opponent response after 300ms delay
           Future.delayed(const Duration(milliseconds: 300), () {
             if (!mounted) return;
             try {
@@ -1087,12 +1172,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
               if (_currentSolutionsNode!.isEmpty || nextSubTree == "CHECKMATE" || _puzzleGame!.in_checkmate) {
                 if (_puzzleGame!.in_checkmate || nextSubTree == "CHECKMATE") {
-                  setState(() {
-                    _puzzleSolved = true;
-                    _gameState = PuzzleGameState.puzzleCompleted;
-                  });
-                  _submitPuzzleResult(true);
-                  _showSnackBar('Čestitamo! Zagonetka je uspešno rešena! 🎉');
+                  if (_remainingOpponentVariations.isEmpty) {
+                    setState(() {
+                      _puzzleSolved = true;
+                      _gameState = PuzzleGameState.puzzleCompleted;
+                    });
+                    _submitPuzzleResult(true);
+                    _showSnackBar('Čestitamo! Zagonetka je uspešno rešena! 🎉');
+                  }
                 }
               }
             } catch (e) {
@@ -1115,22 +1202,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         _showSnackBar('Čestitamo! Zagonetka je uspešno rešena! 🎉');
         return;
       } else {
-        // Move NOT in solution tree -> REJECT IMMEDIATELY (0ms, NO Stockfish calls!)
-        print('[TREE_VERIFICATION] ❌ Potez $userLan nije u stablu rešenja! Poništavanje poteza.');
-        _puzzleGame!.undo();
-        _puzzleBoardController.loadFen(_puzzleGame!.fen);
-        _activeFen = _puzzleGame!.fen;
-        if (_userMoveCount > 0) _userMoveCount--;
-
-        resetBoardState(isNewPuzzle: false);
-
-        setState(() {
-          _gameState = PuzzleGameState.idle;
-          _isOpponentTurn = false;
-          _isVerifyingUserMove = false;
-        });
-
-        _showSnackBar('Netačan potez! Pokušajte ponovo.');
+        // Move NOT in solution tree -> Show failure modal dialog with 3 choices!
+        print('[TREE_VERIFICATION] ❌ Potez $userLan nije u stablu rešenja! Prikazivanje dijaloga za grešku.');
+        _showFailureDialog();
         return;
       }
     }
@@ -1139,6 +1213,197 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     _stockfishService.setMultiPV(1);
     final targetDepth = AppSettingsService.instance.defaultEngineDepth;
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
+  }
+
+  bool _areUserMovesIdenticalForAllOpponentReplies(Map<String, dynamic> oppBranchMap) {
+    if (oppBranchMap.isEmpty) return true;
+    String? firstUserMoveSet;
+
+    for (var oppMove in oppBranchMap.keys) {
+      final oppSub = oppBranchMap[oppMove];
+      String moveSignature = '';
+      if (oppSub is Map) {
+        moveSignature = oppSub.keys.join(',');
+      } else if (oppSub is List) {
+        moveSignature = oppSub.join(',');
+      } else if (oppSub is String) {
+        moveSignature = oppSub;
+      }
+
+      if (firstUserMoveSet == null) {
+        firstUserMoveSet = moveSignature;
+      } else if (firstUserMoveSet != moveSignature) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _showFailureDialog() {
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey.shade900,
+      isDismissible: false,
+      enableDrag: false,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 48),
+              const SizedBox(height: 12),
+              const Text(
+                'Netačan Potez!',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Potez koji ste odigrali nije u stablu rešenja. Izaberite opciju:',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Pokušaj Ponovo'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber.shade800,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _undoIncorrectUserMove();
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.lightbulb_outline),
+                      label: const Text('Prikaži Rešenje'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _playFullSolutionReplay();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.arrow_forward),
+                      label: const Text('Sledeća Zagonetka'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _fetchNextPuzzle();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _undoIncorrectUserMove() {
+    if (_puzzleGame != null && _puzzleGame!.history.isNotEmpty) {
+      _puzzleGame!.undo();
+      _puzzleBoardController.loadFen(_puzzleGame!.fen);
+      _activeFen = _puzzleGame!.fen;
+      if (_userMoveCount > 0) _userMoveCount--;
+    }
+    resetBoardState(isNewPuzzle: false);
+    setState(() {
+      _gameState = PuzzleGameState.idle;
+      _isOpponentTurn = false;
+      _isVerifyingUserMove = false;
+    });
+  }
+
+  Future<void> _playFullSolutionReplay() async {
+    if (_initialPuzzleFen == null || _rootSolutionsTree.isEmpty) return;
+    setState(() => _isReplayingSolution = true);
+
+    _puzzleGame = chess.Chess.fromFEN(_initialPuzzleFen!);
+    _puzzleBoardController.loadFen(_initialPuzzleFen!);
+    _activeFen = _initialPuzzleFen!;
+
+    Map<String, dynamic> current = Map<String, dynamic>.from(_rootSolutionsTree);
+
+    while (current.isNotEmpty) {
+      final userMove = current.keys.first;
+      final from = userMove.substring(0, 2);
+      final to = userMove.substring(2, 4);
+      final promo = userMove.length > 4 ? userMove[4] : null;
+
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+
+      _puzzleGame!.move({'from': from, 'to': to, 'promotion': promo});
+      _puzzleBoardController.loadFen(_puzzleGame!.fen);
+      _activeFen = _puzzleGame!.fen;
+      setState(() {
+        _lastMoveFrom = from;
+        _lastMoveTo = to;
+      });
+
+      final oppBranch = current[userMove];
+      if (oppBranch is Map && oppBranch.isNotEmpty) {
+        final oppMove = (oppBranch as Map).keys.first.toString();
+        final oppFrom = oppMove.substring(0, 2);
+        final oppTo = oppMove.substring(2, 4);
+        final oppPromo = oppMove.length > 4 ? oppMove[4] : null;
+
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (!mounted) return;
+
+        _puzzleGame!.move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
+        _puzzleBoardController.loadFen(_puzzleGame!.fen);
+        _activeFen = _puzzleGame!.fen;
+        setState(() {
+          _lastMoveFrom = oppFrom;
+          _lastMoveTo = oppTo;
+        });
+
+        final nextLevel = oppBranch[oppMove];
+        if (nextLevel is Map) {
+          current = Map<String, dynamic>.from(nextLevel);
+        } else {
+          break;
+        }
+      } else {
+        break;
+      }
+    }
+
+    setState(() {
+      _isReplayingSolution = false;
+      _puzzleSolved = true;
+      _gameState = PuzzleGameState.puzzleCompleted;
+    });
+  }
   }
 
   void _showEndgameWinDialog() {
@@ -1742,6 +2007,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           ),
                         const SizedBox(height: 12),
 
+                        // Interactive PGN Solution Tree Widget
+                        _buildPgnSolutionTreeWidget(),
+                        const SizedBox(height: 12),
+
                         // Move History & Variation Tree Navigation Bar (MOVED TO BOTTOM)
                         _buildMoveHistoryNavigationWidget(),
                       ],
@@ -2115,5 +2384,122 @@ class HorizontalEvalBarWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildPgnSolutionTreeWidget() {
+    if (_currentPuzzle == null || _currentPuzzle!['solutions'] == null) {
+      return const SizedBox.shrink();
+    }
+    final solutions = Map<String, dynamic>.from(_currentPuzzle!['solutions'] ?? {});
+    if (solutions.isEmpty) return const SizedBox.shrink();
+
+    final List<Widget> chips = _buildPgnChipsFromSolutions(solutions);
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade900,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.teal.shade700, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.account_tree, color: Colors.tealAccent, size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Stablo Rešenja (PGN):',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: chips,
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildPgnChipsFromSolutions(Map<String, dynamic> solutions) {
+    final List<Widget> chips = [];
+    if (_initialPuzzleFen == null) return chips;
+
+    final tempBoard = chess.Chess.fromFEN(_initialPuzzleFen!);
+    int moveNum = (tempBoard.fullmove_number > 0) ? tempBoard.fullmove_number : 1;
+    bool isWhiteToMove = (tempBoard.turn == chess.Color.WHITE);
+
+    void traverseNode(Map<String, dynamic> node, int num, bool isWhite, String prefix) {
+      for (var uciMove in node.keys) {
+        if (uciMove.length < 4) continue;
+        final from = uciMove.substring(0, 2);
+        final to = uciMove.substring(2, 4);
+        final promo = uciMove.length > 4 ? uciMove[4] : null;
+
+        final moveObj = tempBoard.move({'from': from, 'to': to, 'promotion': promo});
+        final sanStr = moveObj != null ? (moveObj['san'] ?? uciMove) : uciMove;
+        final targetFen = tempBoard.fen;
+
+        final String labelStr = isWhite ? '$num. $sanStr' : '$num... $sanStr';
+        final bool isCurrentPos = (_activeFen == targetFen);
+
+        chips.add(
+          InkWell(
+            onTap: () {
+              // Interactive click: Jump board to this exact FEN position!
+              setState(() {
+                _puzzleGame = chess.Chess.fromFEN(targetFen);
+                _puzzleBoardController.loadFen(targetFen);
+                _activeFen = targetFen;
+                _lastMoveFrom = from;
+                _lastMoveTo = to;
+              });
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: isCurrentPos ? Colors.amber.shade700 : Colors.teal.shade900,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isCurrentPos ? Colors.amberAccent : Colors.tealAccent.withOpacity(0.5),
+                  width: isCurrentPos ? 2 : 1,
+                ),
+              ),
+              child: Text(
+                labelStr,
+                style: TextStyle(
+                  color: isCurrentPos ? Colors.white : Colors.tealAccent,
+                  fontWeight: isCurrentPos ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        );
+
+        final subVal = node[uciMove];
+        if (subVal is Map && subVal.isNotEmpty) {
+          final nextMap = Map<String, dynamic>.from(subVal);
+          final nextIsWhite = !isWhite;
+          final nextNum = nextIsWhite ? num + 1 : num;
+          traverseNode(nextMap, nextNum, nextIsWhite, prefix);
+        }
+
+        // Undo move on temp board to backtrack for other variations
+        tempBoard.undo();
+      }
+    }
+
+    traverseNode(solutions, moveNum, isWhiteToMove, '');
+    return chips;
   }
 }
