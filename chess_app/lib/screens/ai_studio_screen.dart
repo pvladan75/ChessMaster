@@ -76,6 +76,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   Map<String, dynamic>? _currentSolutionsNode;
   List<VariationBranchPoint> _activeBranchPoints = [];
   bool _isReplayingSolution = false;
+  bool _showSolutionTree = false;
   chess.Chess? _puzzleGame;
   int _userRating = 1500;
   List<String> _expectedMoves = [];
@@ -230,6 +231,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _currentSolutionsNode = null;
       _activeBranchPoints.clear();
       _isReplayingSolution = false;
+      _showSolutionTree = false;
       _stockfishService.setMultiPV(3);
     }
   }
@@ -760,6 +762,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           _currentSolutionsNode = Map<String, dynamic>.from(_rootSolutionsTree);
           _activeBranchPoints.clear();
           _isReplayingSolution = false;
+          _showSolutionTree = false;
         });
 
         print('\n==================================================');
@@ -1014,8 +1017,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _lastMoveTo = toStr;
     });
 
-    // --- STEP 0: IMMEDIATE CHECKMATE VICTORY ON BOARD ---
-    if (_puzzleGame!.in_checkmate) {
+    // --- STEP 0: IMMEDIATE CHECKMATE VICTORY ON BOARD (FOR BASIC MATES & WINNING POSITIONS) ---
+    if (_puzzleGame!.in_checkmate && _selectedCategory != 'mate_puzzle') {
       print('\n==================================================');
       print('[TRAINING_LOG] 🏆 MAT NA TABLI! Korisnik je uspešno zadao mat!');
       print('==================================================\n');
@@ -1085,6 +1088,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             final String nextOppMove = pendingBP.pendingOpponentMoves.removeAt(0);
             print('[TREE_VERIFICATION] 🔁 Rešena linija do mata! Nastavak na drugu odbrambenu varijantu od tačke razgranjenja: $nextOppMove');
             
+            _sendBackendLog({
+              'type': 'branchReset',
+              'mode': _categoryDisplayName,
+              'nextOpponentMove': nextOppMove,
+              'remainingBranches': pendingBP.pendingOpponentMoves.length,
+            });
+
             _showSnackBar('Sjajno! Rešite i ostalu odbrambenu liniju protivnika.');
 
             // Reset board to the EXACT branching FEN (post-user-move position) and play next opponent variation
@@ -1420,7 +1430,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       'puzzleId': _currentPuzzle?['puzzle_id'],
       'fen': _initialPuzzleFen,
     });
-    setState(() => _isReplayingSolution = true);
+    setState(() {
+      _isReplayingSolution = true;
+      _showSolutionTree = true;
+    });
 
     _puzzleGame = chess.Chess.fromFEN(_initialPuzzleFen!);
     _puzzleBoardController.loadFen(_initialPuzzleFen!);
@@ -2322,6 +2335,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   }
 
   Widget _buildPgnSolutionTreeWidget() {
+    if (!_showSolutionTree && !_puzzleSolved && !_puzzleFailed && !_isReplayingSolution) {
+      return const SizedBox.shrink();
+    }
     if (_currentPuzzle == null || _currentPuzzle!['solutions'] == null) {
       return const SizedBox.shrink();
     }

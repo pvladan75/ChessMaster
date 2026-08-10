@@ -1311,6 +1311,16 @@ app.post('/api/puzzles/log', (req, res) => {
         return res.json({ success: true });
       }
 
+      if (details.type === 'branchReset') {
+        console.log('\n🔄 [VARIATION BRANCH RESET - BACKEND TERMINAL] =====================');
+        console.log(`[1] MOD: ${details.mode}`);
+        console.log(`[STATUS]: 🔁 Prva linija rešena! Vraćanje na tačku razgranjenja.`);
+        console.log(`[NAREDNI ODGOVOR PROTIVNIKA]: ${details.nextOpponentMove}`);
+        console.log(`[PREOSTALO UNIKATNIH LINIJA]: ${details.remainingBranches}`);
+        console.log('============================================================================\n');
+        return res.json({ success: true });
+      }
+
       if (details.type === 'pgnChipClick') {
         console.log('\n♟️ [KLIK NA PGN POTEZ - BACKEND TERMINAL] ===========================');
         console.log(`[ODABRANI POTEZ U STABLU]: ${details.moveSan}`);
