@@ -1231,7 +1231,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
               _activeBranchPoints.add(VariationBranchPoint(
                 fenPostUserMove: _puzzleGame!.fen,
-                userMoveUci: userLan,
+                userMoveUci: userLan!,
                 oppBranchMap: oppTree,
                 pendingOpponentMoves: pendingKeys,
               ));
