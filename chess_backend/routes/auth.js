@@ -86,8 +86,8 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /auth/google
-router.post('/google', async (req, res) => {
+// POST /google and /auth/google
+router.post(['/google', '/auth/google'], async (req, res) => {
   try {
     console.log('[GOOGLE_AUTH] Incoming login request:', req.body);
     const { idToken, accessToken, email: reqEmail, name: reqName } = req.body;

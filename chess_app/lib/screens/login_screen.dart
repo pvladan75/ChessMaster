@@ -59,13 +59,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
           body: jsonEncode(reqPayload),
         );
 
-        final data = jsonDecode(response.body);
         if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
           final session = UserSession.fromJson(data['user'], data['token']);
           await _saveSession(session);
           _navigateToHome(session);
         } else {
-          _showError(data['error'] ?? 'Google prijava nije uspela.');
+          try {
+            final data = jsonDecode(response.body);
+            _showError(data['error'] ?? 'Google prijava nije uspela.');
+          } catch (_) {
+            _showError('Greška na serveru prilikom Google prijave (Status ${response.statusCode}).');
+          }
         }
       }
     } catch (e) {
@@ -92,13 +97,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
           }),
         );
 
-        final data = jsonDecode(response.body);
         if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
           final session = UserSession.fromJson(data['user'], data['token']);
           await _saveSession(session);
           _navigateToHome(session);
         } else {
-          _showError(data['error'] ?? 'Login failed');
+          try {
+            final data = jsonDecode(response.body);
+            _showError(data['error'] ?? 'Login failed');
+          } catch (_) {
+            _showError('Greška pri prijavi (Status ${response.statusCode}).');
+          }
         }
       } else {
         // Register API Call
@@ -112,13 +122,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
           }),
         );
 
-        final data = jsonDecode(response.body);
         if (response.statusCode == 201) {
+          final data = jsonDecode(response.body);
           final session = UserSession.fromJson(data['user'], data['token']);
           await _saveSession(session);
           _navigateToHome(session);
         } else {
-          _showError(data['error'] ?? 'Registration failed');
+          try {
+            final data = jsonDecode(response.body);
+            _showError(data['error'] ?? 'Registration failed');
+          } catch (_) {
+            _showError('Greška pri registraciji (Status ${response.statusCode}).');
+          }
         }
       }
     } catch (e) {
