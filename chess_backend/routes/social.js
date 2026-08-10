@@ -82,7 +82,7 @@ router.delete('/trainer/students/:studentId', authenticateToken, async (req, res
 // GET /users/me/stats
 router.get('/users/me/stats', authenticateToken, async (req, res) => {
   try {
-    const stats = await getUserStats(req.user.id);
+    const stats = await getUserStats(pool, req.user.id);
     res.json(stats);
   } catch (err) {
     console.error('Error fetching user stats:', err);
