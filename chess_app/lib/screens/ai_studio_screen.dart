@@ -1228,6 +1228,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             } catch (e) {
               print('Greška pri odigravanju poteza protivnika: $e');
               setState(() {
+                _gameState = PuzzleGameState.idle;
+                _isOpponentTurn = false;
+              });
             }
           });
           return;
@@ -1443,7 +1446,6 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _puzzleSolved = true;
       _gameState = PuzzleGameState.puzzleCompleted;
     });
-  }
   }
 
   void _showEndgameWinDialog() {
