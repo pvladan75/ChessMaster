@@ -1,3 +1,6 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:chess_app/features/puzzle_trainer/puzzle_notifier.dart';
+import 'package:chess_app/features/puzzle_trainer/puzzle_state.dart';
 import 'package:chess_app/widgets/ai_studio/studio_info_header.dart';
 import 'package:chess_app/widgets/ai_studio/category_selection_hub.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
@@ -43,16 +46,16 @@ class VariationBranchPoint {
   });
 }
 
-class AiStudioScreen extends StatefulWidget {
+class AiStudioScreen extends ConsumerStatefulWidget {
   final UserSession userSession;
 
   const AiStudioScreen({super.key, required this.userSession});
 
   @override
-  State<AiStudioScreen> createState() => _AiStudioScreenState();
+  ConsumerState<AiStudioScreen> createState() => _AiStudioScreenState();
 }
 
-class _AiStudioScreenState extends State<AiStudioScreen> {
+class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   final ChessBoardController _puzzleBoardController = ChessBoardController();
 
   final StockfishService _stockfishService = StockfishService();

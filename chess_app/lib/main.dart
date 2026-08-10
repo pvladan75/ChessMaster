@@ -5,6 +5,8 @@ import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/screens/home_screen.dart';
 import 'package:chess_app/screens/login_screen.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppSettingsService.instance.init();
@@ -24,7 +26,7 @@ void main() async {
     );
   }
 
-  runApp(ChessApp(savedSession: savedSession));
+  runApp(ProviderScope(child: ChessApp(savedSession: savedSession)));
 }
 
 class ChessApp extends StatelessWidget {
