@@ -2403,6 +2403,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     traverseNode(solutions, moveNum, isWhiteToMove, '');
     return chips;
   }
+}
 
 class SelectedSquarePainter extends CustomPainter {
   final String selectedSquare;
