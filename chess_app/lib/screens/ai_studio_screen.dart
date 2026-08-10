@@ -56,13 +56,24 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   int _currentEvalDepth = 18;
   double? _lastPosEval;
   double? _lastUserAdvantage;
+class VariationBranchPoint {
+  final String fenPostUserMove;
+  final String userMoveUci;
+  final Map<String, dynamic> oppBranchMap;
+  final List<String> pendingOpponentMoves;
+
+  VariationBranchPoint({
+    required this.fenPostUserMove,
+    required this.userMoveUci,
+    required this.oppBranchMap,
+    required this.pendingOpponentMoves,
+  });
+}
+
   Map<String, dynamic>? _currentPuzzle;
   Map<String, dynamic> _rootSolutionsTree = {};
   Map<String, dynamic>? _currentSolutionsNode;
-  Set<String> _solvedVariationKeys = {};
-  List<String> _remainingOpponentVariations = [];
-  String? _firstUserMove;
-  String? _postFirstUserMoveFen;
+  List<VariationBranchPoint> _activeBranchPoints = [];
   bool _isReplayingSolution = false;
   chess.Chess? _puzzleGame;
   int _userRating = 1500;
@@ -216,10 +227,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       _initialPuzzleFen = null;
       _rootSolutionsTree.clear();
       _currentSolutionsNode = null;
-      _solvedVariationKeys.clear();
-      _remainingOpponentVariations.clear();
-      _firstUserMove = null;
-      _postFirstUserMoveFen = null;
+      _activeBranchPoints.clear();
       _isReplayingSolution = false;
       _stockfishService.setMultiPV(3);
     }
@@ -749,10 +757,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           _moveIndex = 0;
           _rootSolutionsTree = Map<String, dynamic>.from(p['solutions'] ?? {});
           _currentSolutionsNode = Map<String, dynamic>.from(_rootSolutionsTree);
-          _solvedVariationKeys.clear();
-          _remainingOpponentVariations.clear();
-          _firstUserMove = null;
-          _postFirstUserMoveFen = null;
+          _activeBranchPoints.clear();
           _isReplayingSolution = false;
         });
 
@@ -1051,29 +1056,34 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         _isVerifyingUserMove = false;
         _moveIndex++;
 
-        // Store first user move for variation resets
-        if (_firstUserMove == null) {
-          _firstUserMove = userLan;
-          _postFirstUserMoveFen = _puzzleGame!.fen;
-        }
-
         final bool isTerminalCheckmate = (subBranch == "CHECKMATE" || _puzzleGame!.in_checkmate);
 
         if (isTerminalCheckmate || (subBranch is Map && (subBranch as Map).isEmpty)) {
-          // Check if there are remaining distinct opponent variations to solve!
-          if (_remainingOpponentVariations.isNotEmpty) {
-            final String nextOppMove = _remainingOpponentVariations.removeAt(0);
-            print('[TREE_VERIFICATION] 🔁 Rešena varijanta! Prelaženje na sledeću odbrambenu liniju: $nextOppMove');
-            
-            _showSnackBar('Sjajno! Rešite i ostale odbrambene linije protivnika.');
+          // Check if there are any pending variation branch points with unvisited opponent moves!
+          VariationBranchPoint? pendingBP;
+          while (_activeBranchPoints.isNotEmpty) {
+            final top = _activeBranchPoints.last;
+            if (top.pendingOpponentMoves.isNotEmpty) {
+              pendingBP = top;
+              break;
+            } else {
+              _activeBranchPoints.removeLast(); // Clean up completed branch points
+            }
+          }
 
-            // Reset board to post-first-move FEN and play next opponent variation after 500ms
-            Future.delayed(const Duration(milliseconds: 500), () {
-              if (!mounted || _postFirstUserMoveFen == null) return;
+          if (pendingBP != null) {
+            final String nextOppMove = pendingBP.pendingOpponentMoves.removeAt(0);
+            print('[TREE_VERIFICATION] 🔁 Rešena linija do mata! Nastavak na drugu odbrambenu varijantu od tačke razgranjenja: $nextOppMove');
+            
+            _showSnackBar('Sjajno! Rešite i ostalu odbrambenu liniju protivnika.');
+
+            // Reset board to the EXACT branching FEN (post-user-move position) and play next opponent variation
+            Future.delayed(const Duration(milliseconds: 600), () {
+              if (!mounted) return;
               try {
-                _puzzleGame = chess.Chess.fromFEN(_postFirstUserMoveFen!);
-                _puzzleBoardController.loadFen(_postFirstUserMoveFen!);
-                _activeFen = _postFirstUserMoveFen!;
+                _puzzleGame = chess.Chess.fromFEN(pendingBP!.fenPostUserMove);
+                _puzzleBoardController.loadFen(pendingBP.fenPostUserMove);
+                _activeFen = pendingBP.fenPostUserMove;
 
                 final oppFrom = nextOppMove.substring(0, 2);
                 final oppTo = nextOppMove.substring(2, 4);
@@ -1085,7 +1095,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                 _lastMoveFrom = oppFrom;
                 _lastMoveTo = oppTo;
 
-                final oppSubNode = _rootSolutionsTree[_firstUserMove]?[nextOppMove];
+                final oppSubNode = pendingBP.oppBranchMap[nextOppMove];
                 if (oppSubNode is Map) {
                   _currentSolutionsNode = Map<String, dynamic>.from(oppSubNode);
                 } else if (oppSubNode is List) {
@@ -1109,8 +1119,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             return;
           }
 
-          // All variations solved!
-          print('[TREE_VERIFICATION] 🎉 SVE VARIJANTE REŠENE! Zagonetka je kompletno rešena.');
+          // All variations completely solved!
+          print('[TREE_VERIFICATION] 🎉 SVE VARIJANTE U POTPUNOSTI REŠENE! Zagonetka je uspešno rešena.');
           setState(() {
             _puzzleSolved = true;
             _gameState = PuzzleGameState.puzzleCompleted;
@@ -1125,13 +1135,39 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           
           // Check unicity: do all opponent replies require identical user responses?
           final bool isIdenticalUserMoves = _areUserMovesIdenticalForAllOpponentReplies(oppTree);
-          if (!isIdenticalUserMoves && _remainingOpponentVariations.isEmpty) {
-            _remainingOpponentVariations = oppTree.keys.toList();
-          }
 
-          final String oppMoveLan = _remainingOpponentVariations.isNotEmpty
-              ? _remainingOpponentVariations.removeAt(0)
-              : oppTree.keys.first;
+          String oppMoveLan;
+          if (!isIdenticalUserMoves && oppTree.keys.length > 1) {
+            // Find or record branch point for current user move
+            VariationBranchPoint? existingBP;
+            for (var bp in _activeBranchPoints) {
+              if (bp.fenPostUserMove == _puzzleGame!.fen && bp.userMoveUci == userLan) {
+                existingBP = bp;
+                break;
+              }
+            }
+
+            if (existingBP == null) {
+              final allOppKeys = oppTree.keys.toList();
+              oppMoveLan = allOppKeys.first;
+              final pendingKeys = allOppKeys.sublist(1);
+
+              _activeBranchPoints.add(VariationBranchPoint(
+                fenPostUserMove: _puzzleGame!.fen,
+                userMoveUci: userLan,
+                oppBranchMap: oppTree,
+                pendingOpponentMoves: pendingKeys,
+              ));
+            } else {
+              if (existingBP.pendingOpponentMoves.isNotEmpty) {
+                oppMoveLan = existingBP.pendingOpponentMoves.removeAt(0);
+              } else {
+                oppMoveLan = oppTree.keys.first;
+              }
+            }
+          } else {
+            oppMoveLan = oppTree.keys.first;
+          }
 
           final dynamic nextSubTree = oppTree[oppMoveLan];
 
@@ -1171,23 +1207,26 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               });
 
               if (_currentSolutionsNode!.isEmpty || nextSubTree == "CHECKMATE" || _puzzleGame!.in_checkmate) {
-                if (_puzzleGame!.in_checkmate || nextSubTree == "CHECKMATE") {
-                  if (_remainingOpponentVariations.isEmpty) {
-                    setState(() {
-                      _puzzleSolved = true;
-                      _gameState = PuzzleGameState.puzzleCompleted;
-                    });
-                    _submitPuzzleResult(true);
-                    _showSnackBar('Čestitamo! Zagonetka je uspešno rešena! 🎉');
+                bool hasPendingBP = false;
+                for (var bp in _activeBranchPoints) {
+                  if (bp.pendingOpponentMoves.isNotEmpty) {
+                    hasPendingBP = true;
+                    break;
                   }
+                }
+
+                if (!hasPendingBP && (_puzzleGame!.in_checkmate || nextSubTree == "CHECKMATE")) {
+                  setState(() {
+                    _puzzleSolved = true;
+                    _gameState = PuzzleGameState.puzzleCompleted;
+                  });
+                  _submitPuzzleResult(true);
+                  _showSnackBar('Čestitamo! Zagonetka je uspešno rešena! 🎉');
                 }
               }
             } catch (e) {
               print('Greška pri odigravanju poteza protivnika: $e');
               setState(() {
-                _gameState = PuzzleGameState.idle;
-                _isOpponentTurn = false;
-              });
             }
           });
           return;
