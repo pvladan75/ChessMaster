@@ -21,12 +21,12 @@ class StockfishService {
   }
 
   Future<void> analyzePosition(String fen, {int depth = 10, bool isInfinite = false}) async {
-    if (!_isActive) return;
+    _isActive = true;
 
     final reqId = ++_requestId;
     
-    // The online API supports depth 5-15.
-    final targetDepth = isInfinite ? 15 : (depth > 15 ? 15 : depth);
+    // The online API supports depth 5-20.
+    final targetDepth = isInfinite ? 20 : (depth > 20 ? 20 : depth);
 
     try {
       final url = 'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$targetDepth';

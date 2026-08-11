@@ -102,13 +102,13 @@ class StockfishService {
   Future<void> analyzePosition(String fen, {int depth = 10, bool isInfinite = false}) async {
     _currentFen = fen;
     _engineLines.clear();
-    if (!_isActive) return;
+    _isActive = true;
 
     print('[STOCKFISH_ENGINE_LOG] 🎯 Pokrenuta analiza | Dubina: $depth | Mode: ${_useOnline ? "Online API Fallback" : "Nativni Lokalni Engine"} | FEN: $fen');
 
     if (_useOnline) {
       final reqId = ++_requestId;
-      final effectiveDepth = depth > 15 ? 15 : depth;
+      final effectiveDepth = depth > 20 ? 20 : depth;
 
       // Try Lichess Cloud Eval API first for instant Grandmaster depth 25-50 analysis
       try {

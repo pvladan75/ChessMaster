@@ -70,11 +70,12 @@ class HorizontalEvalBarWidget extends StatelessWidget {
       winPct = 1.0 - winPct;
     }
 
-    String displayEvalText = evalString;
+    String formattedEval = evalString;
     if (!evalString.contains('M') && !evalString.contains('+') && !evalString.contains('-')) {
       final double val = double.tryParse(evalString) ?? 0.0;
-      if (val > 0) displayEvalText = '+$evalString';
+      if (val > 0) formattedEval = '+$evalString';
     }
+    final String displayEvalText = depth > 0 ? '$formattedEval (d$depth)' : formattedEval;
 
     return Container(
       height: 18,

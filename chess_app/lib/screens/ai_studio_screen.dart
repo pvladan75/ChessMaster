@@ -1422,84 +1422,99 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       backgroundColor: Colors.grey.shade900,
       isDismissible: false,
       enableDrag: false,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 48),
-              const SizedBox(height: 12),
-              const Text(
-                'Netačan Potez!',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Potez koji ste odigrali nije u stablu rešenja. Izaberite opciju:',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Pokušaj Ponovo'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber.shade800,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _sendBackendLog({'type': 'buttonClick', 'button': 'Modal - Pokušaj Ponovo'});
-                    _undoIncorrectUserMove();
-                  },
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
+        final bottomPadding = MediaQuery.of(ctx).padding.bottom;
+        final isLandscape = MediaQuery.of(ctx).orientation == Orientation.landscape;
+        return SafeArea(
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.88,
+            ),
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 16,
+              bottom: bottomPadding + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
+                  Icon(Icons.cancel_outlined, color: Colors.redAccent, size: isLandscape ? 36 : 48),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Netačan Potez!',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Potez koji ste odigrali nije u stablu rešenja. Izaberite opciju:',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
                     child: ElevatedButton.icon(
-                      icon: const Icon(Icons.lightbulb_outline),
-                      label: const Text('Prikaži Rešenje'),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Pokušaj Ponovo'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo,
+                        backgroundColor: Colors.amber.shade800,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
-                        _sendBackendLog({'type': 'buttonClick', 'button': 'Modal - Prikaži Rešenje'});
-                        _playFullSolutionReplay();
+                        _sendBackendLog({'type': 'buttonClick', 'button': 'Modal - Pokušaj Ponovo'});
+                        _undoIncorrectUserMove();
                       },
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.arrow_forward),
-                      label: const Text('Sledeća Zagonetka'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.lightbulb_outline),
+                          label: const Text('Prikaži Rešenje'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.indigo,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _sendBackendLog({'type': 'buttonClick', 'button': 'Modal - Prikaži Rešenje'});
+                            _playFullSolutionReplay();
+                          },
+                        ),
                       ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _sendBackendLog({'type': 'buttonClick', 'button': 'Modal - Sledeća Zagonetka'});
-                        _fetchNextPuzzle();
-                      },
-                    ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.arrow_forward),
+                          label: const Text('Sledeća Zagonetka'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _sendBackendLog({'type': 'buttonClick', 'button': 'Modal - Sledeća Zagonetka'});
+                            _fetchNextPuzzle();
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         );
       },
@@ -1992,7 +2007,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // LEFT SIDE (Board & Eval Bar) with margins on Left, Top, and Bottom
+                  // LEFT SIDE (Board, Eval Bar & Landscape Controls)
                   Padding(
                     padding: const EdgeInsets.only(right: 12.0),
                     child: Column(
@@ -2003,8 +2018,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           height: boardSize,
                           child: _buildBoardWithTapAndHighlights(boardSize),
                         ),
+                        const SizedBox(height: 4),
                         if (_showEvalBar) ...[
-                          const SizedBox(height: 4),
                           SizedBox(
                             width: boardSize,
                             child: HorizontalEvalBarWidget(
@@ -2014,7 +2029,46 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               orientation: _puzzleOrientation,
                             ),
                           ),
+                          const SizedBox(height: 6),
                         ],
+                        SizedBox(
+                          width: boardSize,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.refresh, size: 16),
+                                  label: const Text('Probaj ponovo', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.amber.shade900,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                  ),
+                                  onPressed: _restartCurrentPuzzle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.arrow_forward, size: 16),
+                                  label: const Text('Naredna pozicija', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.teal.shade800,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                  ),
+                                  onPressed: () {
+                                    if (_selectedCategory == 'basic_mate') {
+                                      _loadBasicMatePreset(_selectedBasicMateType);
+                                    } else {
+                                      _fetchNextPuzzle();
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -2051,7 +2105,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                                   if (_showEvaluation) {
                                     _selectedGroupedMoveIndices.clear();
       _stockfishService.setMultiPV(3);
-                                    _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 20);
+                                    final targetDepth = AppSettingsService.instance.defaultEngineDepth;
+                              _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: targetDepth);
                                   } else {
                                     _engineLinesMap.clear();
                                     _engineArrows.clear();
@@ -2139,7 +2194,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                             if (_showEvaluation) {
                               _selectedGroupedMoveIndices.clear();
                               _stockfishService.setMultiPV(3);
-                              _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 20);
+                              final targetDepth = AppSettingsService.instance.defaultEngineDepth;
+                              _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: targetDepth);
                             } else {
                               _engineLinesMap.clear();
                               _engineArrows.clear();
