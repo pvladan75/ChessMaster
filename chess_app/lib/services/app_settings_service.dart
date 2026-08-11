@@ -8,12 +8,14 @@ class AppSettingsService extends ChangeNotifier {
 
   ThemeMode _themeMode = ThemeMode.dark;
   String _language = 'sr'; // 'sr' or 'en'
-  int _defaultEngineDepth = 20;
+  int _defaultEngineDepth = 18;
+  int _defaultEngineMoveTimeSeconds = 2;
   int _defaultMultiPV = 3;
 
   ThemeMode get themeMode => _themeMode;
   String get language => _language;
   int get defaultEngineDepth => _defaultEngineDepth;
+  int get defaultEngineMoveTimeSeconds => _defaultEngineMoveTimeSeconds;
   int get defaultMultiPV => _defaultMultiPV;
 
   Future<void> init() async {
@@ -28,7 +30,8 @@ class AppSettingsService extends ChangeNotifier {
     }
 
     _language = prefs.getString('app_language') ?? 'sr';
-    _defaultEngineDepth = (prefs.getInt('app_engine_depth') ?? 20).clamp(5, 50);
+    _defaultEngineDepth = (prefs.getInt('app_engine_depth') ?? 18).clamp(5, 50);
+    _defaultEngineMoveTimeSeconds = (prefs.getInt('app_engine_movetime') ?? 2).clamp(1, 60);
     _defaultMultiPV = (prefs.getInt('app_multi_pv') ?? 3).clamp(1, 5);
     notifyListeners();
   }
@@ -55,6 +58,13 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('app_engine_depth', _defaultEngineDepth);
+  }
+
+  Future<void> setEngineMoveTimeSeconds(int seconds) async {
+    _defaultEngineMoveTimeSeconds = seconds.clamp(1, 60);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('app_engine_movetime', _defaultEngineMoveTimeSeconds);
   }
 
   Future<void> setMultiPV(int count) async {

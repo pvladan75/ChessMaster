@@ -102,6 +102,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   bool _isVerifyingUserMove = false;
   PuzzleGameState _gameState = PuzzleGameState.idle;
   Timer? _verificationTimeoutTimer;
+  Timer? _opponentMoveTimer;
+  String? _latestEngineBestMove;
+  String? _latestEngineEval;
   int _positionToken = 0;
   PlayerColor _puzzleOrientation = PlayerColor.white;
   bool _isProgrammaticMove = false;
@@ -404,16 +407,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
       // --- PHASE B: OPPONENT BOT TURN RESPONSE ---
       if (_isOpponentTurn) {
-        if (multipv != 1) return; // GUARANTEE OPPONENT BOT ONLY PLAYS TOP #1 BEST MOVE!
-
-        final targetDepth = AppSettingsService.instance.defaultEngineDepth;
-        if (depth < targetDepth && !isFinal) return;
-
-        if (bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
-          print('\n[ENGINE_MOVE_DEBUG] 🎯 Stockfish je dostigao zadatu dubinu $depth (Cilj iz podešavanja: $targetDepth)! Odabran potez: $bestMove (Eval: $evaluation)\n');
-          _stockfishService.stopAnalysis();
-          _isOpponentTurn = false;
-          _playOpponentMove(bestMove, evaluation);
+        if (multipv == 1 && bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
+          _latestEngineBestMove = bestMove;
+          _latestEngineEval = evaluation;
+          final targetDepth = AppSettingsService.instance.defaultEngineDepth;
+          if (depth >= targetDepth || isFinal) {
+            _executeOpponentEngineMoveDueToTimeoutOrDepth('Zadata dubina dostignuta ($depth >= $targetDepth)');
+          }
         }
       }
     };
@@ -435,6 +435,21 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         _engineArrows = _buildArrowsFromEngineLines(linesMap.values.toList());
       });
     };
+  }
+
+  void _executeOpponentEngineMoveDueToTimeoutOrDepth(String reason) {
+    if (!_isOpponentTurn) return;
+    _opponentMoveTimer?.cancel();
+    _isOpponentTurn = false;
+
+    final move = _latestEngineBestMove ?? (_engineLinesMap.isNotEmpty ? _engineLinesMap.values.first.bestMoveLan : '');
+    final eval = _latestEngineEval ?? (_engineLinesMap.isNotEmpty ? _engineLinesMap.values.first.evaluation : '0.00');
+
+    if (move.isNotEmpty && move != '-' && move.length >= 4) {
+      print('\n[ENGINE_MOVE_TRIGGER] ⚡ Odigravanje poteza engine-a: $reason! Odabran potez: $move (Eval: $eval)\n');
+      _stockfishService.stopAnalysis();
+      _playOpponentMove(move, eval);
+    }
   }
 
   void _playOpponentMove(String bestMove, String evaluation) {
@@ -524,6 +539,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _playOpponentMove(jsonResponseMove, 'JSON');
       return;
     }
+
+    _opponentMoveTimer?.cancel();
+    _latestEngineBestMove = null;
+    _latestEngineEval = null;
+    final moveTimeSec = AppSettingsService.instance.defaultEngineMoveTimeSeconds;
+    _opponentMoveTimer = Timer(Duration(seconds: moveTimeSec), () {
+      if (_isOpponentTurn && mounted) {
+        _executeOpponentEngineMoveDueToTimeoutOrDepth('Vreme razmišljanja isteka ($moveTimeSec s)');
+      }
+    });
 
     await _stockfishService.initEngine();
     _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
@@ -2085,7 +2110,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           else
                             _buildPgnSolutionTreeWidget(),
                           const SizedBox(height: 8),
-                          if (!_isOpponentTurn && _selectedCategory != 'mate_puzzle')
+                          if (_selectedCategory != 'mate_puzzle')
                             StockfishAnalysisWidget(
                               isEngineEnabled: _showEvaluation,
                               isAllowedToUseEngine: true,
@@ -2174,7 +2199,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     ],
                     actionButtonsRow,
                     const SizedBox(height: 12),
-                    if (!_isOpponentTurn && _selectedCategory != 'mate_puzzle')
+                    if (_selectedCategory != 'mate_puzzle')
                       StockfishAnalysisWidget(
                         isEngineEnabled: _showEvaluation,
                         isAllowedToUseEngine: true,

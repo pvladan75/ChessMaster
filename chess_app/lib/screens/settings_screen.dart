@@ -233,6 +233,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          const Text('Maksimalno vreme razmišljanja engine-a:', style: TextStyle(fontWeight: FontWeight.w500)),
+                          Text(
+                            '${_settings.defaultEngineMoveTimeSeconds} s',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent),
+                          ),
+                        ],
+                      ),
+                      Slider(
+                        value: _settings.defaultEngineMoveTimeSeconds.toDouble().clamp(1.0, 60.0),
+                        min: 1,
+                        max: 60,
+                        divisions: 59,
+                        label: '${_settings.defaultEngineMoveTimeSeconds} s',
+                        activeColor: Colors.cyanAccent,
+                        onChanged: (val) {
+                          _settings.setEngineMoveTimeSeconds(val.round());
+                        },
+                      ),
+                      Text(
+                        'Engine igra potez čim dostigne ciljanu dubinu ILI čim istekne podešeno vreme (šta se pre dostigne).',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                      ),
+                      const Divider(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
                           const Text('Broj linija i strelica na tabli (Multi-PV):', style: TextStyle(fontWeight: FontWeight.w500)),
                           Text(
                             '${_settings.defaultMultiPV} ${_settings.defaultMultiPV == 1 ? "linija" : "linije"}',
