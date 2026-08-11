@@ -132,3 +132,56 @@ class HorizontalEvalBarWidget extends StatelessWidget {
     );
   }
 }
+
+class VerticalEvalBarWidget extends StatelessWidget {
+  final double eval;
+  final String evalString;
+  final int depth;
+  final double height;
+  final PlayerColor orientation;
+
+  const VerticalEvalBarWidget({
+    super.key,
+    required this.eval,
+    required this.evalString,
+    required this.depth,
+    required this.height,
+    required this.orientation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isWhiteOrientation = orientation == PlayerColor.white;
+    final double clampedEval = eval.clamp(-10.0, 10.0);
+    double whitePct = 0.5 + (clampedEval / 20.0);
+    whitePct = whitePct.clamp(0.05, 0.95);
+
+    final double topPct = isWhiteOrientation ? (1.0 - whitePct) : whitePct;
+    final double bottomPct = isWhiteOrientation ? whitePct : (1.0 - whitePct);
+
+    return Container(
+      width: 22,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade900,
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: Colors.tealAccent.shade400, width: 1.5),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(11),
+        child: Column(
+          children: [
+            Expanded(
+              flex: (topPct * 1000).round(),
+              child: Container(color: isWhiteOrientation ? Colors.grey.shade900 : Colors.grey.shade100),
+            ),
+            Expanded(
+              flex: (bottomPct * 1000).round(),
+              child: Container(color: isWhiteOrientation ? Colors.grey.shade100 : Colors.grey.shade900),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

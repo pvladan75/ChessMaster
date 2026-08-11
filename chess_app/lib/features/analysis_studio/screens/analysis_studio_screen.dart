@@ -11,6 +11,8 @@ import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
+import 'package:chess_app/widgets/board_overlay_painter.dart';
+import 'package:chess_app/features/analysis_studio/services/position_info_service.dart';
 
 class AnalysisStudioScreen extends StatefulWidget {
   final UserSession userSession;
@@ -43,6 +45,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   String _currentEvalString = '0.00';
   int _currentEvalDepth = 18;
   Map<int, AnalysisLine> _engineLinesMap = {};
+  List<EngineArrow> _engineArrows = [];
+  bool _showEngineOverlay = true;
 
   @override
   void initState() {
@@ -87,6 +91,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           _currentRawEval = parsedEval;
           _currentEvalString = evaluation;
           _currentEvalDepth = depth;
+          _currentNode.eval = parsedEval;
         });
       }
     };
@@ -95,6 +100,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       if (!mounted) return;
       setState(() {
         _engineLinesMap = linesMap;
+        _engineArrows = _buildArrowsFromEngineLines(linesMap.values.toList());
       });
     };
   }
@@ -110,6 +116,24 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         _engineLinesMap.clear();
       });
     }
+  }
+
+  List<EngineArrow> _buildArrowsFromEngineLines(List<AnalysisLine> lines) {
+    if (!_showEngineOverlay || lines.isEmpty) return [];
+    final List<EngineArrow> arrows = [];
+    for (var line in lines) {
+      if (line.bestMoveLan.length >= 4) {
+        final from = line.bestMoveLan.substring(0, 2);
+        final to = line.bestMoveLan.substring(2, 4);
+        arrows.add(EngineArrow(
+          from: from,
+          to: to,
+          evalText: line.evaluation,
+          rank: line.multipv,
+        ));
+      }
+    }
+    return arrows;
   }
 
   void _jumpToNode(AnalysisNode node) {
@@ -369,6 +393,53 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   ),
                   const SizedBox(height: 8),
                 ],
+                                // Position Phase & Syzygy Card
+                Builder(
+                  builder: (ctx) {
+                    final phaseInfo = PositionInfoService.analyzeFen(_currentNode.fen);
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: phaseInfo.isEndgame ? Colors.indigo.shade900 : Colors.grey.shade900,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            phaseInfo.isEndgame ? Icons.auto_awesome : Icons.menu_book,
+                            color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              phaseInfo.openingName,
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ),
+                          if (phaseInfo.isSyzygyReady)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.cyanAccent.shade700,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'Syzygy Ready',
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
                 AnalysisMoveTreeWidget(
                   rootNode: _rootNode,
                   activeNode: _currentNode,
@@ -465,7 +536,54 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  AnalysisMoveTreeWidget(
+                                  // Position Phase & Syzygy Card
+                Builder(
+                  builder: (ctx) {
+                    final phaseInfo = PositionInfoService.analyzeFen(_currentNode.fen);
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: phaseInfo.isEndgame ? Colors.indigo.shade900 : Colors.grey.shade900,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            phaseInfo.isEndgame ? Icons.auto_awesome : Icons.menu_book,
+                            color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              phaseInfo.openingName,
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ),
+                          if (phaseInfo.isSyzygyReady)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.cyanAccent.shade700,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'Syzygy Ready',
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                AnalysisMoveTreeWidget(
                     rootNode: _rootNode,
                     activeNode: _currentNode,
                     onSelectNode: _jumpToNode,
@@ -515,19 +633,37 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   }
 
   Widget _buildBoardWidget(double size) {
-    return ChessBoard(
-      controller: _boardController,
-      boardOrientation: _orientation,
-      onMove: () {
-        final history = _boardController.game.history;
-        if (history.isNotEmpty) {
-          final lastMove = history.last;
-          final from = lastMove.move.fromAlgebraic;
-          final to = lastMove.move.toAlgebraic;
-          final promo = lastMove.move.promotion?.name ?? '';
-          _handleUserMove(from, to, promo);
-        }
-      },
+    return Stack(
+      children: [
+        ChessBoard(
+          controller: _boardController,
+          boardOrientation: _orientation,
+          onMove: () {
+            final history = _boardController.game.history;
+            if (history.isNotEmpty) {
+              final lastMove = history.last;
+              final from = lastMove.move.fromAlgebraic;
+              final to = lastMove.move.toAlgebraic;
+              final promo = lastMove.move.promotion?.name ?? '';
+              _handleUserMove(from, to, promo);
+            }
+          },
+        ),
+        if (_showEngineOverlay && _engineArrows.isNotEmpty)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                size: Size(size, size),
+                painter: ChessBoardPainter(
+                  arrows: const [],
+                  engineArrows: _engineArrows,
+                  boardSize: size,
+                  orientation: _orientation,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
