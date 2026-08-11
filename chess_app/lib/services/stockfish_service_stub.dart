@@ -106,4 +106,15 @@ class StockfishService {
     onEvaluationChanged = null;
     onMultiPVUpdated = null;
   }
+
+  Future<List<AnalysisLine>> analyzePositionSync(
+    String fen, {
+    required int depth,
+    required int multiPV,
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
+    await analyzePosition(fen, depth: depth);
+    return _engineLines.values.toList();
+  }
+
 }

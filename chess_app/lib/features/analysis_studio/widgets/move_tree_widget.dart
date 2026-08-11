@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 
-class AnalysisMoveTreeWidget extends StatelessWidget {
+class AnalysisMoveTreeWidget extends StatefulWidget {
   final AnalysisNode rootNode;
   final AnalysisNode activeNode;
   final Function(AnalysisNode node) onSelectNode;
@@ -16,6 +17,13 @@ class AnalysisMoveTreeWidget extends StatelessWidget {
     this.onPromoteNode,
     this.onDeleteNode,
   });
+
+  @override
+  State<AnalysisMoveTreeWidget> createState() => _AnalysisMoveTreeWidgetState();
+}
+
+class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
+  bool _showVisualGraph = true; // Default to interactive visual tree graph!
 
   @override
   Widget build(BuildContext context) {
@@ -36,30 +44,76 @@ class AnalysisMoveTreeWidget extends StatelessWidget {
                     Icon(Icons.account_tree, color: Colors.tealAccent, size: 18),
                     SizedBox(width: 6),
                     Text(
-                      'Stablo Varijanti (Move Tree)',
+                      'Stablo Varijanti',
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ],
                 ),
-                Text(
-                  activeNode.isRoot ? 'Startna pozicija' : 'Odabrana pozicija: ${activeNode.moveSan ?? ""}',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                Row(
+                  children: [
+                    // Mode selector toggle buttons
+                    InkWell(
+                      onTap: () => setState(() => _showVisualGraph = true),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _showVisualGraph ? Colors.teal.shade800 : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: _showVisualGraph ? Colors.tealAccent : Colors.white24),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.bar_chart, size: 13, color: Colors.tealAccent),
+                            SizedBox(width: 3),
+                            Text('Grafičko', style: TextStyle(fontSize: 11, color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    InkWell(
+                      onTap: () => setState(() => _showVisualGraph = false),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: !_showVisualGraph ? Colors.teal.shade800 : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: !_showVisualGraph ? Colors.tealAccent : Colors.white24),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.notes, size: 13, color: Colors.tealAccent),
+                            SizedBox(width: 3),
+                            Text('PGN', style: TextStyle(fontSize: 11, color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
             const Divider(height: 16, color: Colors.white24),
-            SingleChildScrollView(
-              child: Container(
-                constraints: const BoxConstraints(maxHeight: 180),
-                width: double.infinity,
-                child: SingleChildScrollView(
-                  child: Wrap(
-                    spacing: 4.0,
-                    runSpacing: 6.0,
-                    children: _buildTreeSpans(context, rootNode, 1),
-                  ),
-                ),
-              ),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 220),
+              width: double.infinity,
+              child: _showVisualGraph
+                  ? VisualMoveTreeWidget(
+                      rootNode: widget.rootNode,
+                      activeNode: widget.activeNode,
+                      onSelectNode: widget.onSelectNode,
+                      onPromoteNode: widget.onPromoteNode,
+                      onDeleteNode: widget.onDeleteNode,
+                    )
+                  : SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 4.0,
+                        runSpacing: 6.0,
+                        children: _buildTreeSpans(context, widget.rootNode, 1),
+                      ),
+                    ),
             ),
           ],
         ),
@@ -75,13 +129,13 @@ class AnalysisMoveTreeWidget extends StatelessWidget {
     // Main line child (0th child)
     final mainChild = current.children.first;
     final isWhiteMove = current.fen.contains(' w ');
-    final isSelected = mainChild.id == activeNode.id;
+    final isSelected = mainChild.id == widget.activeNode.id;
 
     final moveNumStr = isWhiteMove ? '$moveNumber. ' : '';
 
     widgets.add(
       InkWell(
-        onTap: () => onSelectNode(mainChild),
+        onTap: () => widget.onSelectNode(mainChild),
         onLongPress: () => _showNodeContextMenu(context, mainChild),
         borderRadius: BorderRadius.circular(4),
         child: Container(
@@ -134,7 +188,7 @@ class AnalysisMoveTreeWidget extends StatelessWidget {
               border: Border.all(color: Colors.purpleAccent.shade100, width: 0.8),
             ),
             child: InkWell(
-              onTap: () => onSelectNode(varChild),
+              onTap: () => widget.onSelectNode(varChild),
               onLongPress: () => _showNodeContextMenu(context, varChild),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -144,8 +198,8 @@ class AnalysisMoveTreeWidget extends StatelessWidget {
                     '${isWhiteMove ? "$moveNumber..." : ""}${varChild.moveSan ?? ""}${varChild.nag ?? ""}',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: varChild.id == activeNode.id ? FontWeight.bold : FontWeight.normal,
-                      color: varChild.id == activeNode.id ? Colors.amberAccent : Colors.purpleAccent.shade100,
+                      fontWeight: varChild.id == widget.activeNode.id ? FontWeight.bold : FontWeight.normal,
+                      color: varChild.id == widget.activeNode.id ? Colors.amberAccent : Colors.purpleAccent.shade100,
                     ),
                   ),
                   const Text(')', style: TextStyle(color: Colors.purpleAccent, fontSize: 11)),
@@ -180,7 +234,7 @@ class AnalysisMoveTreeWidget extends StatelessWidget {
                 onTap: () {
                   Navigator.pop(ctx);
                   if (node.parent != null) {
-                    onPromoteNode?.call(node);
+                    widget.onPromoteNode?.call(node);
                   }
                 },
               ),
@@ -189,7 +243,7 @@ class AnalysisMoveTreeWidget extends StatelessWidget {
                 title: const Text('Obriši Ovu Varijantu', style: TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.pop(ctx);
-                  onDeleteNode?.call(node);
+                  widget.onDeleteNode?.call(node);
                 },
               ),
             ],

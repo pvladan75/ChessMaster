@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/services/stockfish_service.dart';
+import 'package:chess_app/services/app_logger.dart';
+import 'package:chess_app/models/analysis_models.dart';
 
 class AutoAnalysisParams {
   final int pliesDepth; // N: 2 to 6 plies
@@ -33,7 +35,7 @@ class AutoTreeGeneratorService {
   }) async {
     _isCancelled = false;
     int processedCount = 0;
-    final int estimatedTotal = _calculateEstimatedNodes(params.pliesDepth, params.candidateCount);
+    final int estimatedTotal = calculateEstimatedNodes(params.pliesDepth, params.candidateCount);
 
     await _expandNodeRecursive(
       currentNode: startNode,
@@ -59,33 +61,97 @@ class AutoTreeGeneratorService {
     final game = chess.Chess.fromFEN(currentNode.fen);
     if (game.game_over) return;
 
-    final moves = game.moves({'verbose': true});
-    if (moves.isEmpty) return;
+    AppLogger.log('[AutoTree] 🌳 Generišem n=${params.candidateCount} kandidata za čvor na dubini d=${params.engineDepth} | FEN: ${currentNode.fen}');
+    AppLogger.log('[AutoTree] ⏱️ Čekam Stockfish odgovor za depth ${params.engineDepth}...');
+    onProgress('Analiziram poziciju (Sloj ${currentPly + 1}/${params.pliesDepth})...');
 
-    // Get candidate moves (up to n top candidates)
-    final candidateMoves = moves.take(params.candidateCount).toList();
+    final lines = await stockfishService.analyzePositionSync(
+      currentNode.fen,
+      depth: params.engineDepth,
+      multiPV: params.candidateCount,
+      timeout: const Duration(seconds: 12),
+    );
 
-    for (var moveObj in candidateMoves) {
+    if (_isCancelled) return;
+
+    if (lines.isEmpty) {
+      AppLogger.log('[AutoTree WARNING] ⚠️ Stockfish nije vratio linije za FEN: ${currentNode.fen}. Preskačem grananje čvora.');
+      return;
+    }
+
+    final isWhiteToMove = currentNode.fen.contains(' w ');
+
+    // Parse eval to numeric double score from White's perspective
+    double parseEvalToNumeric(String evalStr) {
+      if (evalStr.contains('M')) {
+        final mateNum = int.tryParse(evalStr.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+        return evalStr.contains('-') ? (-1000.0 + mateNum) : (1000.0 - mateNum);
+      }
+      return double.tryParse(evalStr.replaceAll('+', '')) ?? 0.0;
+    }
+
+    final sortedLines = List<AnalysisLine>.from(lines);
+    sortedLines.sort((a, b) {
+      final scoreA = parseEvalToNumeric(a.evaluation);
+      final scoreB = parseEvalToNumeric(b.evaluation);
+      return isWhiteToMove ? scoreB.compareTo(scoreA) : scoreA.compareTo(scoreB);
+    });
+
+    final topScore = parseEvalToNumeric(sortedLines.first.evaluation);
+
+    for (var line in sortedLines.take(params.candidateCount)) {
       if (_isCancelled) break;
 
-      final from = moveObj['from'] as String;
-      final to = moveObj['to'] as String;
-      final promo = (moveObj['promotion'] as String?) ?? '';
-      final san = (moveObj['san'] as String?) ?? '$from$to';
-      final uci = '$from$to$promo';
+      final moveUci = line.bestMoveLan;
+      final moveSanStr = line.bestMoveSan;
+      if (moveUci.isEmpty && moveSanStr.isEmpty) continue;
 
+      final lineScore = parseEvalToNumeric(line.evaluation);
+      final evalDelta = isWhiteToMove ? (topScore - lineScore) : (lineScore - topScore);
+
+      // Check pruning delta
+      if (evalDelta > params.deltaCutoff) {
+        AppLogger.log('[AutoTree] ✂️ Potez ${moveSanStr.isNotEmpty ? moveSanStr : moveUci} orezan (eval: ${line.evaluation}, delta > ${params.deltaCutoff})');
+        continue;
+      }
+
+      // Convert move to legal chess move on current board FEN
       final tempGame = chess.Chess.fromFEN(currentNode.fen);
-      tempGame.move({'from': from, 'to': to, if (promo.isNotEmpty) 'promotion': promo});
+      bool moveOk = false;
+
+      // Try UCI format first (e.g. e2e4)
+      if (moveUci.length >= 4) {
+        final from = moveUci.substring(0, 2);
+        final to = moveUci.substring(2, 4);
+        final promo = moveUci.length > 4 ? moveUci.substring(4, 5) : null;
+        try {
+          moveOk = tempGame.move({'from': from, 'to': to, if (promo != null) 'promotion': promo});
+        } catch (_) {}
+      }
+
+      // Try SAN format if UCI failed
+      if (!moveOk && moveSanStr.isNotEmpty) {
+        try {
+          moveOk = tempGame.move(moveSanStr);
+        } catch (_) {}
+      }
+
+      if (!moveOk) {
+        AppLogger.log('[AutoTree WARNING] ⚠️ Nevalidan potez ${moveSanStr.isNotEmpty ? moveSanStr : moveUci} za FEN: ${currentNode.fen}');
+        continue;
+      }
+
       final childFen = tempGame.fen;
+      final moveObj = tempGame.history.last.move;
+      final san = moveSanStr.isNotEmpty ? moveSanStr : (moveObj.fromAlgebraic + moveObj.toAlgebraic);
+      final uci = moveObj.fromAlgebraic + moveObj.toAlgebraic + (moveObj.promotion?.name ?? '');
 
       final childNode = currentNode.addChild(
         childFen: childFen,
         san: san,
         uci: uci,
       );
-
-      onProgress('Analiziram $san (Sloj ${currentPly + 1}/${params.pliesDepth})...');
-      await Future.delayed(const Duration(milliseconds: 20));
+      childNode.eval = lineScore;
 
       // Recurse to next ply
       await _expandNodeRecursive(
@@ -98,7 +164,7 @@ class AutoTreeGeneratorService {
     }
   }
 
-  int _calculateEstimatedNodes(int plies, int candidates) {
+  int calculateEstimatedNodes(int plies, int candidates) {
     int total = 0;
     int currentLevel = 1;
     for (int i = 0; i < plies; i++) {

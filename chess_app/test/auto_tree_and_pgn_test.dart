@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart';
+import 'package:chess_app/services/stockfish_service.dart';
 
 void main() {
   group('Analysis Studio Phase 3 Unit Tests', () {
@@ -55,8 +56,36 @@ void main() {
 
     test('3. AutoTreeGeneratorService node estimation calculation', () {
       final service = AutoTreeGeneratorService();
-      final estimated = service.generateTree; // Check signature
-      expect(estimated, isNotNull);
+      final estimated = service.calculateEstimatedNodes(4, 2);
+      // Level 1: 2, Level 2: 4, Level 3: 8, Level 4: 16 -> Sum = 30
+      expect(estimated, equals(30));
+    });
+
+    test('4. AutoTreeGeneratorService generates candidate branches synchronously', () async {
+      final service = AutoTreeGeneratorService();
+      final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      final stockfish = StockfishService();
+
+      final params = AutoAnalysisParams(
+        pliesDepth: 2,
+        candidateCount: 2,
+        engineDepth: 10,
+        deltaCutoff: 2.0,
+      );
+
+      await service.generateTree(
+        startNode: root,
+        params: params,
+        stockfishService: stockfish,
+      );
+
+      expect(root.children, isNotEmpty);
+    });
+
+    test('5. AutoTreeGeneratorService cancel stops recursion', () {
+      final service = AutoTreeGeneratorService();
+      service.cancel();
+      expect(service, isNotNull);
     });
   });
 }

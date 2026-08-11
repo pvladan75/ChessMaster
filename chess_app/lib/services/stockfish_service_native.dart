@@ -397,6 +397,57 @@ class StockfishService {
     if (onMultiPVUpdated != null) onMultiPVUpdated!({1: line});
   }
 
+  
+  /// Synchronously awaits MultiPV analysis for a position up to target depth or timeout.
+  Future<List<AnalysisLine>> analyzePositionSync(
+    String fen, {
+    required int depth,
+    required int multiPV,
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
+    final completer = Completer<List<AnalysisLine>>();
+    final Map<int, AnalysisLine> capturedLines = {};
+
+    final prevEvalCallback = onEvaluationChanged;
+    final prevMultiPVCallback = onMultiPVUpdated;
+
+    Timer? timer;
+
+    void finish(List<AnalysisLine> lines) {
+      if (!completer.isCompleted) {
+        timer?.cancel();
+        onEvaluationChanged = prevEvalCallback;
+        onMultiPVUpdated = prevMultiPVCallback;
+        completer.complete(lines);
+      }
+    }
+
+    timer = Timer(timeout, () {
+      AppLogger.log('[StockfishSync] ⏰ Timeout reached for depth $depth. Returning captured lines (${capturedLines.length}).');
+      finish(capturedLines.values.toList());
+    });
+
+    onMultiPVUpdated = (linesMap) {
+      capturedLines.addAll(linesMap);
+      bool allReachedDepth = linesMap.length >= multiPV &&
+          linesMap.values.every((line) => line.depth >= depth);
+      if (allReachedDepth) {
+        finish(linesMap.values.toList());
+      }
+    };
+
+    onEvaluationChanged = (eval, bestMove, continuation, multipv, currentDepth, isFinal, analyzedFen) {
+      if (isFinal) {
+        finish(capturedLines.values.toList());
+      }
+    };
+
+    setMultiPV(multiPV);
+    await analyzePosition(fen, depth: depth);
+
+    return completer.future;
+  }
+
   /// Fully shuts down the engine process. Call only when app exits.
   void shutdown() {
     AppLogger.log('[StockfishService] 🔌 shutdown() — killing engine process.');
