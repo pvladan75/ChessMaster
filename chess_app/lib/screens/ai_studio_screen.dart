@@ -174,23 +174,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   void _handleServerDisconnected() {
     if (_isBackendConnected && mounted) {
-      print('[HEALTH_CHECK_LOG] 🚨 Server disconnected alert triggered at ${DateTime.now()}');
+      print('[HEALTH_CHECK_LOG] ℹ️ Backend server is offline or unreachable. Switching silently to offline mode.');
       setState(() => _isBackendConnected = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.redAccent,
-          duration: Duration(seconds: 5),
-          content: Row(
-            children: [
-              Icon(Icons.wifi_off, color: Colors.white),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text('🚨 Izgubljena veza sa backend serverom! Backend je nedostupan.', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        ),
-      );
     }
   }
 
