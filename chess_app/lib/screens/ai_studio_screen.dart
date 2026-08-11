@@ -76,7 +76,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   bool _showEvalBar = false; // Default OFF
   double _currentRawEval = 0.0;
   String _currentEvalString = '0.00';
-  int _currentEvalDepth = 18;
+  int _currentEvalDepth = AppSettingsService.instance.defaultEngineDepth;
   double? _lastPosEval;
   double? _lastUserAdvantage;
 
@@ -206,7 +206,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     // 3. RESET visual evaluation values
     _currentRawEval = 0.0;
     _currentEvalString = '0.00';
-    _currentEvalDepth = 18;
+    _currentEvalDepth = AppSettingsService.instance.defaultEngineDepth;
 
     // 4. RESET Flags
     _isOpponentTurn = false;

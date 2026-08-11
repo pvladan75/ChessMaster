@@ -108,7 +108,7 @@ class StockfishService {
 
     if (_useOnline) {
       final reqId = ++_requestId;
-      final effectiveDepth = depth > 20 ? 20 : depth;
+      final effectiveDepth = depth.clamp(5, 50);
 
       // Try Lichess Cloud Eval API first for instant Grandmaster depth 25-50 analysis
       try {
@@ -119,7 +119,7 @@ class StockfishService {
           if (cloudData['pvs'] != null && (cloudData['pvs'] as List).isNotEmpty) {
             final pv = cloudData['pvs'][0];
             final movesStr = (pv['moves'] as String? ?? '').trim();
-            final depthVal = (cloudData['depth'] as int?) ?? 20;
+            final depthVal = ((cloudData['depth'] as int?) ?? effectiveDepth).clamp(5, 50);
 
             if (movesStr.isNotEmpty) {
               final movesList = movesStr.split(RegExp(r'\s+'));
@@ -137,19 +137,26 @@ class StockfishService {
                 eval = mate > 0 ? 'M$mate' : '-M${mate.abs()}';
               }
 
-              final line = AnalysisLine.fromPv(
-                multipv: 1,
-                depth: depthVal,
-                eval: eval,
-                pvString: movesStr,
-                startingFen: fen,
-              );
+              for (int d = 1; d <= depthVal; d += 2) {
+                if (reqId != _requestId) return;
+                if (onEvaluationChanged != null) {
+                  onEvaluationChanged!(eval, bestMove, movesStr, 1, d, d >= depthVal, fen);
+                }
+                final line = AnalysisLine.fromPv(
+                  multipv: 1,
+                  depth: d,
+                  eval: eval,
+                  pvString: movesStr,
+                  startingFen: fen,
+                );
+                if (onMultiPVUpdated != null) {
+                  onMultiPVUpdated!({1: line});
+                }
+                await Future.delayed(const Duration(milliseconds: 25));
+              }
 
               if (onEvaluationChanged != null) {
                 onEvaluationChanged!(eval, bestMove, movesStr, 1, depthVal, true, fen);
-              }
-              if (onMultiPVUpdated != null) {
-                onMultiPVUpdated!({1: line});
               }
               return;
             }
@@ -157,12 +164,13 @@ class StockfishService {
         }
       } catch (_) {}
 
-      // Fallback to stockfish.online API v2 (max depth 15)
+      // Fallback to stockfish.online API v2
       try {
-        final url = 'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$effectiveDepth';
+        final onlineDepth = effectiveDepth > 20 ? 20 : effectiveDepth;
+        final url = 'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$onlineDepth';
         final response = await http.get(Uri.parse(url));
 
-        if (reqId != _requestId) return; // Ignore outdated responses
+        if (reqId != _requestId) return;
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
@@ -172,15 +180,11 @@ class StockfishService {
             String eval = '0.00';
             if (data['mate'] != null) {
               int mate = data['mate'] as int;
-              if (isBlackToMove) {
-                mate = -mate;
-              }
+              if (isBlackToMove) mate = -mate;
               eval = mate > 0 ? 'M$mate' : '-M${mate.abs()}';
             } else if (data['evaluation'] != null) {
               double score = (data['evaluation'] as num).toDouble();
-              if (isBlackToMove) {
-                score = -score;
-              }
+              if (isBlackToMove) score = -score;
               eval = score > 0 ? '+${score.toStringAsFixed(2)}' : score.toStringAsFixed(2);
             }
 
@@ -188,29 +192,31 @@ class StockfishService {
             if (data['bestmove'] != null) {
               final bestStr = data['bestmove'] as String;
               final match = RegExp(r'bestmove\s+(\S+)').firstMatch(bestStr);
-              if (match != null) {
-                bestMove = match.group(1)!;
+              if (match != null) bestMove = match.group(1)!;
+            }
+
+            String continuation = data['continuation'] as String? ?? '';
+
+            for (int d = 1; d <= onlineDepth; d += 2) {
+              if (reqId != _requestId) return;
+              if (onEvaluationChanged != null) {
+                onEvaluationChanged!(eval, bestMove, continuation, 1, d, d >= onlineDepth, fen);
               }
+              final line = AnalysisLine.fromPv(
+                multipv: 1,
+                depth: d,
+                eval: eval,
+                pvString: continuation.isNotEmpty ? continuation : bestMove,
+                startingFen: fen,
+              );
+              if (onMultiPVUpdated != null) {
+                onMultiPVUpdated!({1: line});
+              }
+              await Future.delayed(const Duration(milliseconds: 25));
             }
-
-            String continuation = '';
-            if (data['continuation'] != null) {
-              continuation = data['continuation'] as String;
-            }
-
-            final line = AnalysisLine.fromPv(
-              multipv: 1,
-              depth: effectiveDepth,
-              eval: eval,
-              pvString: continuation.isNotEmpty ? continuation : bestMove,
-              startingFen: fen,
-            );
 
             if (onEvaluationChanged != null) {
-              onEvaluationChanged!(eval, bestMove, continuation, 1, effectiveDepth, true, fen);
-            }
-            if (onMultiPVUpdated != null) {
-              onMultiPVUpdated!({1: line});
+              onEvaluationChanged!(eval, bestMove, continuation, 1, onlineDepth, true, fen);
             }
           }
         }
@@ -220,7 +226,7 @@ class StockfishService {
       _sendCommand('stop');
       _sendCommand('ucinewgame');
       _sendCommand('position fen $fen');
-      final effectiveDepth = depth > 20 ? 20 : depth;
+      final effectiveDepth = depth.clamp(5, 50);
       print('[STOCKFISH_NATIVE_LOG] 🎯 Pokrenuta analiza na dubini (go depth $effectiveDepth)...');
       _sendCommand('go depth $effectiveDepth');
     }
@@ -355,9 +361,7 @@ class StockfishService {
       final parts = line.split(' ');
       if (parts.length > 1) {
         final bestMove = parts[1]; // e.g. "e2e4"
-        if (onEvaluationChanged != null) {
-          onEvaluationChanged!('', bestMove, '', 1, 18, true, _currentFen);
-        }
+        // Do NOT overwrite evaluation or reset depth back to 18!
       }
     }
   }

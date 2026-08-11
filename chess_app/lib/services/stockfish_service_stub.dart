@@ -26,7 +26,7 @@ class StockfishService {
     final reqId = ++_requestId;
     
     // The online API supports depth 5-20.
-    final targetDepth = isInfinite ? 20 : (depth > 20 ? 20 : depth);
+    final targetDepth = isInfinite ? 50 : depth.clamp(5, 50);
 
     try {
       final url = 'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$targetDepth';
