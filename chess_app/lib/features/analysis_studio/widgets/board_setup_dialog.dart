@@ -356,7 +356,39 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
             }).toList(),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            OutlinedButton.icon(
+              icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
+              label: const Text('Obriši tablu 🗑️', style: TextStyle(fontSize: 11, color: Colors.redAccent)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.redAccent),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              ),
+              onPressed: () {
+                setState(() {
+                  _initBuilderBoardFromFen('8/8/8/8/8/8/8/8 w - - 0 1');
+                });
+              },
+            ),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.restart_alt, size: 16, color: Colors.tealAccent),
+              label: const Text('Početna pozicija 🔄', style: TextStyle(fontSize: 11, color: Colors.tealAccent)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.tealAccent),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              ),
+              onPressed: () {
+                setState(() {
+                  _initBuilderBoardFromFen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+                });
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
 
         // 8x8 Board Representation
         Expanded(

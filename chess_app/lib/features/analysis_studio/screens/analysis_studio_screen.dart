@@ -41,8 +41,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   PlayerColor _orientation = PlayerColor.white;
 
   // Engine evaluation state
-  bool _showEvaluation = false;
-  bool _showEvalBar = false;
+  bool _showEvaluation = true;
+  bool _showEvalBar = true;
   double _currentRawEval = 0.0;
   String _currentEvalString = '0.00';
   int _currentEvalDepth = 18;
@@ -105,6 +105,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         _engineArrows = _buildArrowsFromEngineLines(linesMap.values.toList());
       });
     };
+
+    _triggerEngineAnalysis();
   }
 
   void _triggerEngineAnalysis() {
@@ -381,11 +383,20 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
-          children: [
-            Icon(Icons.biotech, color: Colors.tealAccent),
-            SizedBox(width: 8),
-            Text('Tabla za Analizu (Analysis Studio)'),
+        titleSpacing: 8.0,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.biotech, color: Colors.tealAccent, size: 20),
+            SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                'Tabla za Analizu',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
         actions: [
