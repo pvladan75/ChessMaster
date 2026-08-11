@@ -67,6 +67,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   String? _selectedCategory; // null = Selection Hub, 'mate_puzzle', 'basic_mate', 'winning_position'
   String _selectedMateDepth = '2'; // '1', '2', '3'
   String _selectedBasicMateType = 'easy'; // 'easy', 'medium', 'hard'
+  final Map<String, int> _selectedGroupedMoveIndices = {};
 
   // Board & Game State
   String? _activeFen;
@@ -239,6 +240,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _activeBranchPoints.clear();
       _isReplayingSolution = false;
       _showSolutionTree = false;
+      _selectedGroupedMoveIndices.clear();
       _stockfishService.setMultiPV(3);
     }
   }
@@ -505,7 +507,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           _showSnackBar('🤝 Pat / Remi u poziciji.');
         } else {
           if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
-            _stockfishService.setMultiPV(3);
+            _selectedGroupedMoveIndices.clear();
+      _stockfishService.setMultiPV(3);
             _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 20);
           }
         }
@@ -854,6 +857,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     });
 
     if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
+      _selectedGroupedMoveIndices.clear();
       _stockfishService.setMultiPV(3);
       _stockfishService.analyzePosition(_initialPuzzleFen!, depth: 20);
     }
@@ -2097,7 +2101,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                                 setState(() {
                                   _showEvaluation = !_showEvaluation;
                                   if (_showEvaluation) {
-                                    _stockfishService.setMultiPV(3);
+                                    _selectedGroupedMoveIndices.clear();
+      _stockfishService.setMultiPV(3);
                                     _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 20);
                                   } else {
                                     _engineLinesMap.clear();
@@ -2191,7 +2196,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               setState(() {
                                 _showEvaluation = !_showEvaluation;
                                 if (_showEvaluation) {
-                                  _stockfishService.setMultiPV(3);
+                                  _selectedGroupedMoveIndices.clear();
+      _stockfishService.setMultiPV(3);
                                   _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 20);
                                 } else {
                                   _engineLinesMap.clear();
@@ -2811,7 +2817,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             for (var n in path) {
               String uciToPlay = n.moveUci;
               if (n.isGrouped && n.groupedOpponentMovesUci.isNotEmpty) {
-                final idx = n.selectedGroupedIndex.clamp(0, n.groupedOpponentMovesUci.length - 1);
+                final idx = (_selectedGroupedMoveIndices[n.id] ?? n.selectedGroupedIndex).clamp(0, n.groupedOpponentMovesUci.length - 1);
                 uciToPlay = n.groupedOpponentMovesUci[idx];
               }
               if (uciToPlay.length >= 4) {
@@ -2875,6 +2881,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   }
 
   void _jumpToGroupedOpponentMove(SolutionGraphNode node, int moveIndex) {
+    _selectedGroupedMoveIndices[node.id] = moveIndex;
     node.selectedGroupedIndex = moveIndex;
     if (node.parentFen == null || node.groupedOpponentMovesUci.isEmpty) {
       _jumpToGraphNodePosition(node);
@@ -3026,19 +3033,20 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             children: children,
           ));
         } else {
-          final sampleOppMove = oppMovesList.first;
+          final int selectedIdx = (_selectedGroupedMoveIndices[nodeId] ?? 0).clamp(0, oppMovesList.length - 1);
+          final selectedOppMove = oppMovesList[selectedIdx];
           final game = chess.Chess.fromFEN(currentFen);
-          final from = sampleOppMove.substring(0, 2);
-          final to = sampleOppMove.substring(2, 4);
-          final promo = sampleOppMove.length > 4 ? sampleOppMove[4] : null;
+          final from = selectedOppMove.substring(0, 2);
+          final to = selectedOppMove.substring(2, 4);
+          final promo = selectedOppMove.length > 4 ? selectedOppMove[4] : null;
 
           game.move({'from': from, 'to': to, 'promotion': promo});
-          final fenAfterSample = game.fen;
+          final fenAfterSelected = game.fen;
 
           List<SolutionGraphNode> children = [];
           if (sub is Map && (sub as Map).isNotEmpty) {
             children = _buildSolutionGraphNodes(
-              fenAfterSample,
+              fenAfterSelected,
               Map<String, dynamic>.from(sub as Map),
               true,
               nodeId,
@@ -3068,12 +3076,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
           nodes.add(SolutionGraphNode(
             id: nodeId,
-            moveUci: sampleOppMove,
+            moveUci: selectedOppMove,
             moveSan: '.. [${oppMovesList.length} varijanti]',
-            fen: fenAfterSample,
+            fen: fenAfterSelected,
             parentFen: currentFen,
             isWhite: false,
             isGrouped: true,
+            selectedGroupedIndex: selectedIdx,
             groupedOpponentMoves: sanList,
             groupedOpponentMovesUci: uciList,
             children: children,

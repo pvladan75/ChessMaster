@@ -329,7 +329,7 @@ router.post('/puzzles/log', (req, res) => {
       if (details.type === 'branchReset') {
         logger.info('\n🔄 [VARIATION BRANCH RESET - BACKEND TERMINAL] =====================');
         logger.info(`[1] MOD: ${details.mode}`);
-        logger.info(`[STATUS]: 🔁 Prva linija rešena! Vraćanje na tačku razgranjenja.`);
+        logger.info(`[STATUS]: Prva linija resena! Vracanje na tacku razgranjenja.`);
         logger.info(`[NAREDNI ODGOVOR PROTIVNIKA]: ${details.nextOpponentMove}`);
         logger.info(`[PREOSTALO UNIKATNIH LINIJA]: ${details.remainingBranches}`);
         logger.info('============================================================================\n');
@@ -345,11 +345,11 @@ router.post('/puzzles/log', (req, res) => {
       }
 
       if (details.status === 'REJECTED') {
-        logger.info('\n❌ [REJECTED MOVE LOG - BACKEND TERMINAL] ===================');
+        logger.info('\n[REJECTED] [REJECTED MOVE LOG - BACKEND TERMINAL] ===================');
         logger.info(`[1] MOD: ${details.mode}`);
         logger.info(`[2] FEN PRE POTEZA: ${details.initialFen || details.dynamicFen}`);
-        logger.info(`[3] ODIGRANI POTEZ KORISNIKA: ❌ ${details.userMove}`);
-        logger.info(`[STATUS]: ❌ ODBIJEN POTEZ (Nije u stablu rešenja)`);
+        logger.info(`[3] ODIGRANI POTEZ KORISNIKA: [REJECTED] ${details.userMove}`);
+        logger.info(`[STATUS]: [REJECTED] ODBIJEN POTEZ (Nije u stablu rešenja)`);
         if (details.validTreeKeys) logger.info(`[DOZVOLJENI POTEZI U TRENUTNOM ČVORU]: ${details.validTreeKeys}`);
         if (details.reason) logger.info(`[RAZLOG]: ${details.reason}`);
         logger.info('============================================================================\n');
