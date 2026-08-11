@@ -10,6 +10,7 @@ import 'package:chess_app/screens/login_screen.dart';
 
 import 'package:chess_app/screens/replay_player_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
+import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:chess_app/screens/settings_screen.dart';
@@ -1474,6 +1475,53 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                         onPressed: _openStudioRoom,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 4,
+                color: Colors.deepPurple.shade900.withValues(alpha: 0.3),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.biotech, color: Colors.tealAccent, size: 28),
+                          SizedBox(width: 12),
+                          Text('Tabla za Analizu 🔬', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Slobodna šahovska tabla za duboku analizu, unos varijacija za obe strane, rad sa PGN/FEN pozicijama i beleženje komentara i NAG simbola.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.biotech),
+                          label: const Text('Otvori Tablu za Analizu', style: TextStyle(fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal.shade700,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AnalysisStudioScreen(userSession: widget.session),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
