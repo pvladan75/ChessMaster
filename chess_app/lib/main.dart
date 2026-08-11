@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/screens/home_screen.dart';
-import 'package:chess_app/screens/login_screen.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,7 +15,7 @@ void main() async {
   final token = prefs.getString('user_token');
   
   UserSession? savedSession;
-  if (rememberMe && token != null) {
+  if (rememberMe && token != null && token.isNotEmpty) {
     savedSession = UserSession(
       token: token,
       id: prefs.getInt('user_id') ?? 0,
@@ -60,9 +59,7 @@ class ChessApp extends StatelessWidget {
             ),
             useMaterial3: true,
           ),
-          home: savedSession != null
-              ? HomeScreen(session: savedSession!)
-              : const LoginRegisterScreen(),
+          home: HomeScreen(session: savedSession ?? UserSession.guest()),
         );
       },
     );

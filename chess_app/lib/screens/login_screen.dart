@@ -21,6 +21,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
+  final _codeController = TextEditingController();
 
   late final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: (kIsWeb && googleWebClientId.isNotEmpty) ? googleWebClientId : null,
@@ -29,8 +30,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   );
   
   bool _isLogin = true;
+  bool _isAwaitingVerification = false;
   bool _isLoading = false;
-  bool _rememberMe = false;
+  bool _rememberMe = true;
 
   Future<void> _handleGoogleSignIn() async {
     if (kIsWeb && googleWebClientId.isEmpty) {
@@ -80,7 +82,50 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     }
   }
 
+  Future<void> _verifyCode() async {
+    final code = _codeController.text.trim();
+    final email = _emailController.text.trim();
+    if (email.isEmpty || code.isEmpty) {
+      _showError('Unesite email i 6-cifreni verifikacioni kod.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('$backendUrl/auth/verify-email'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'code': code}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final session = UserSession.fromJson(data['user'], data['token']);
+        await _saveSession(session);
+        _showSuccess('Email verifikovan! Dobrodošli.');
+        _navigateToHome(session);
+      } else {
+        try {
+          final data = jsonDecode(response.body);
+          _showError(data['error'] ?? 'Verifikacija nije uspela.');
+        } catch (_) {
+          _showError('Greška pri verifikaciji (Status ${response.statusCode}).');
+        }
+      }
+    } catch (e) {
+      _showError('Mrežna greška pri verifikaciji koda.');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _submit() async {
+    if (_isAwaitingVerification) {
+      await _verifyCode();
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -97,18 +142,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
           }),
         );
 
+        final data = jsonDecode(response.body);
         if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
           final session = UserSession.fromJson(data['user'], data['token']);
           await _saveSession(session);
           _navigateToHome(session);
+        } else if (data['requiresVerification'] == true) {
+          setState(() {
+            _isAwaitingVerification = true;
+          });
+          _showSuccess(data['error'] ?? 'Unesite verifikacioni kod poslat na email.');
         } else {
-          try {
-            final data = jsonDecode(response.body);
-            _showError(data['error'] ?? 'Login failed');
-          } catch (_) {
-            _showError('Greška pri prijavi (Status ${response.statusCode}).');
-          }
+          _showError(data['error'] ?? 'Prijava nije uspela.');
         }
       } else {
         // Register API Call
@@ -122,22 +167,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
           }),
         );
 
-        if (response.statusCode == 201) {
-          final data = jsonDecode(response.body);
-          final session = UserSession.fromJson(data['user'], data['token']);
-          await _saveSession(session);
-          _navigateToHome(session);
+        final data = jsonDecode(response.body);
+        if (response.statusCode == 201 || data['requiresVerification'] == true) {
+          setState(() {
+            _isAwaitingVerification = true;
+          });
+          _showSuccess(data['message'] ?? 'Kod za verifikaciju je generisan! Unesite 6-cifreni kod.');
         } else {
-          try {
-            final data = jsonDecode(response.body);
-            _showError(data['error'] ?? 'Registration failed');
-          } catch (_) {
-            _showError('Greška pri registraciji (Status ${response.statusCode}).');
-          }
+          _showError(data['error'] ?? 'Registracija nije uspela.');
         }
       }
     } catch (e) {
-      _showError('Network error. Check if backend is running.');
+      _showError('Greška u mreži. Proverite konekciju sa serverom.');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -178,17 +219,39 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     );
   }
 
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green.shade800,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
+    _codeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(_isAwaitingVerification
+            ? 'Verifikacija Email-a'
+            : (_isLogin ? 'Prijava' : 'Registracija')),
+        actions: [
+          TextButton.icon(
+            onPressed: () => _navigateToHome(UserSession.guest()),
+            icon: const Icon(Icons.person_outline),
+            label: const Text('Nastavi kao Gost'),
+          ),
+        ],
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -203,65 +266,88 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.emoji_events,
+                      _isAwaitingVerification ? Icons.mark_email_unread : Icons.emoji_events,
                       size: 64,
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      _isLogin ? 'Chess Master Login' : 'Register Account',
+                      _isAwaitingVerification
+                          ? 'Unesite Verifikacioni Kod'
+                          : (_isLogin ? 'Chess Master Login' : 'Registracija Naloga'),
                       style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 24),
-                    if (!_isLogin) ...[
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Name',
-                          prefixIcon: Icon(Icons.person),
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) =>
-                            value == null || value.isEmpty ? 'Please enter name' : null,
+                    if (_isAwaitingVerification) ...[
+                      Text(
+                        'Poslat je verifikacioni kod na ${_emailController.text}.\n(U dev okruženju kod se ispisuje u backend logovima).',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                       const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _codeController,
+                        decoration: const InputDecoration(
+                          labelText: 'Verifikacioni Kod (6 cifara)',
+                          prefixIcon: Icon(Icons.pin),
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        validator: (val) => val == null || val.length != 6 ? 'Unesite 6 cifara' : null,
+                      ),
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      if (!_isLogin) ...[
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Ime i Prezime',
+                            prefixIcon: Icon(Icons.person),
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) =>
+                              value == null || value.isEmpty ? 'Unesite ime' : null,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(
+                          labelText: 'Email Adresa',
+                          prefixIcon: Icon(Icons.email),
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) =>
+                            value == null || !value.contains('@') ? 'Unesite validnu email adresu' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _passwordController,
+                        decoration: const InputDecoration(
+                          labelText: 'Lozinka',
+                          prefixIcon: Icon(Icons.lock),
+                          border: OutlineInputBorder(),
+                        ),
+                        obscureText: true,
+                        validator: (value) =>
+                            value == null || value.length < 6 ? 'Lozinka mora imati bar 6 karaktera' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      CheckboxListTile(
+                        title: const Text('Zapamti me', style: TextStyle(fontSize: 14)),
+                        value: _rememberMe,
+                        activeColor: Theme.of(context).primaryColor,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                        onChanged: (val) {
+                          setState(() {
+                            _rememberMe = val ?? false;
+                          });
+                        },
+                      ),
                     ],
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email),
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) =>
-                          value == null || !value.contains('@') ? 'Please enter a valid email' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      decoration: const InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: Icon(Icons.lock),
-                        border: OutlineInputBorder(),
-                      ),
-                      obscureText: true,
-                      validator: (value) =>
-                          value == null || value.length < 6 ? 'Password must be at least 6 characters' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    CheckboxListTile(
-                      title: const Text('Zapamti me', style: TextStyle(fontSize: 14)),
-                      value: _rememberMe,
-                      activeColor: Theme.of(context).primaryColor,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (val) {
-                        setState(() {
-                          _rememberMe = val ?? false;
-                        });
-                      },
-                    ),
                     const SizedBox(height: 16),
                     _isLoading
                         ? const CircularProgressIndicator()
@@ -278,10 +364,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  child: Text(_isLogin ? 'Login' : 'Register'),
+                                  child: Text(_isAwaitingVerification
+                                      ? 'Potvrdi Verifikaciju'
+                                      : (_isLogin ? 'Prijavi Se' : 'Registruj Se')),
                                 ),
                               ),
-                              if (_isLogin) ...[
+                              if (!_isAwaitingVerification && _isLogin) ...[
                                 const SizedBox(height: 12),
                                 SizedBox(
                                   width: double.infinity,
@@ -306,16 +394,26 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                             ],
                           ),
                     const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _isLogin = !_isLogin;
-                        });
-                      },
-                      child: Text(_isLogin
-                          ? "Don't have an account? Register"
-                          : "Already have an account? Login"),
-                    ),
+                    if (_isAwaitingVerification)
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _isAwaitingVerification = false;
+                          });
+                        },
+                        child: const Text('Nazad na prijavu'),
+                      )
+                    else
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _isLogin = !_isLogin;
+                          });
+                        },
+                        child: Text(_isLogin
+                            ? "Nemate nalog? Registrujte se"
+                            : "Već imate nalog? Prijavite se"),
+                      ),
                   ],
                 ),
               ),

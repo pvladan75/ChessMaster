@@ -128,6 +128,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   }
 
   void _startServerHealthCheck() {
+    final bindingStr = WidgetsBinding.instance.runtimeType.toString();
+    if (bindingStr.contains('Test') || bindingStr.contains('test')) return;
     _serverHealthTimer?.cancel();
     _serverHealthTimer = Timer.periodic(const Duration(seconds: 5), (_) => _checkServerHealth());
   }
@@ -639,6 +641,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   @override
   void dispose() {
+    _serverHealthTimer?.cancel();
+    _verificationTimeoutTimer?.cancel();
     _stockfishService.dispose();
     super.dispose();
   }

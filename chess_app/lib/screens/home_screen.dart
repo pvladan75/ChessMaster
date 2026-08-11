@@ -52,13 +52,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _initSocket();
-    _fetchStudents();
-    _fetchUserStats();
-    _fetchRecordings();
-    _fetchFriends();
-    _fetchNotifications();
-    _fetchScheduledSessions();
+    if (!widget.session.isGuest) {
+      _initSocket();
+      _fetchStudents();
+      _fetchUserStats();
+      _fetchRecordings();
+      _fetchFriends();
+      _fetchNotifications();
+      _fetchScheduledSessions();
+    }
   }
 
   @override
@@ -855,6 +857,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _inviteStudent(int studentId) async {
+    if (!_checkAuthRequired()) return;
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
@@ -905,6 +908,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _createRoom() async {
+    if (!_checkAuthRequired()) return;
     setState(() => _isLoading = true);
 
     try {
@@ -932,6 +936,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _joinRoom() async {
+    if (!_checkAuthRequired()) return;
     final code = _codeController.text.trim();
     if (code.length != 6) {
       _showError('Enter a valid 6-digit code');
@@ -1005,6 +1010,38 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  bool _checkAuthRequired() {
+    if (widget.session.isGuest) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Potrebna Prijava'),
+          content: const Text(
+            'Za pokretanje ili priključivanje sesijama uživo (Agora predavanja / igra u dvoje) potrebna je prijava ili registracija.'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Odustani'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginRegisterScreen()),
+                );
+              },
+              child: const Text('Prijavi se / Registruj'),
+            ),
+          ],
+        ),
+      );
+      return false;
+    }
+    return true;
+  }
+
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('remember_me');
@@ -1042,6 +1079,17 @@ class _HomeScreenState extends State<HomeScreen> {
           : AppBar(
               title: const Text('Chess Master'),
               actions: [
+                if (widget.session.isGuest)
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginRegisterScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.login, color: Colors.white),
+                    label: const Text('Prijavi Se', style: TextStyle(color: Colors.white)),
+                  ),
                 IconButton(
                   tooltip: 'Notifikacije i Pozivnice',
                   icon: Badge(

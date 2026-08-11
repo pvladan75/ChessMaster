@@ -87,8 +87,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.logout, color: Colors.redAccent),
-                        tooltip: 'Odjavi se',
+                        icon: Icon(
+                          widget.session.isGuest ? Icons.login : Icons.logout,
+                          color: widget.session.isGuest ? Colors.greenAccent : Colors.redAccent,
+                        ),
+                        tooltip: widget.session.isGuest ? 'Prijavi se' : 'Odjavi se',
                         onPressed: () {
                           showDialog(
                             context: context,

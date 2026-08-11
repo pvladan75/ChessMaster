@@ -28,9 +28,11 @@ async function initDB() {
       ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
       ALTER TABLE users DROP CONSTRAINT IF EXISTS user_role_check;
       ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('korisnik', 'host', 'admin', 'user', 'trener', 'ucenik'));
-      UPDATE users SET role = 'korisnik' WHERE role IN ('trener', 'ucenik', 'user', 'unassigned');
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_code VARCHAR(6);
+      UPDATE users SET is_verified = TRUE WHERE is_verified IS FALSE AND verification_code IS NULL;
     `);
-    logger.info('Verified database table & role migration: users (role -> korisnik)');
+    logger.info('Verified database table & role migration: users (is_verified & verification_code)');
 
     // Create rooms table
     await client.query(`
