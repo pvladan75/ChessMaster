@@ -229,7 +229,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _isReplayingSolution = false;
       _showSolutionTree = false;
       _selectedGroupedMoveIndices.clear();
-      _stockfishService.setMultiPV(3);
+      _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
     }
   }
 
@@ -305,12 +305,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         parsedEval = evaluation.contains('-') ? (-10000.0 + mateNum) : (10000.0 - mateNum);
       }
 
-      // Build top 3 engine arrows for display
+      // Build top 1-5 engine arrows for display matching user MultiPV setting
       final List<ChessArrow> newArrows = [];
-      final colors = ['G', 'B', 'O'];
+      final maxArrows = AppSettingsService.instance.defaultMultiPV;
+      final colors = ['G', 'B', 'O', 'P', 'R'];
       int colorIdx = 0;
       for (var line in _engineLinesMap.values) {
-        if (colorIdx >= 3) break;
+        if (colorIdx >= maxArrows) break;
         if (line.fromSquare.isNotEmpty && line.toSquare.isNotEmpty) {
           newArrows.add(ChessArrow(
             from: line.fromSquare,
@@ -496,8 +497,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         } else {
           if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
             _selectedGroupedMoveIndices.clear();
-      _stockfishService.setMultiPV(3);
-            _stockfishService.analyzePosition(_puzzleGame!.fen, depth: 20);
+      _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
+            _stockfishService.analyzePosition(_puzzleGame!.fen, depth: AppSettingsService.instance.defaultEngineDepth);
           }
         }
       }
@@ -525,7 +526,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
 
     await _stockfishService.initEngine();
-    _stockfishService.setMultiPV(1);
+    _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
     final targetDepth = AppSettingsService.instance.defaultEngineDepth;
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
   }
@@ -611,8 +612,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       return arrows;
     }
 
-    final colors = ['G', 'B', 'O'];
-    for (int i = 0; i < lines.length && i < 3; i++) {
+    final maxArrows = AppSettingsService.instance.defaultMultiPV;
+    final colors = ['G', 'B', 'O', 'P', 'R'];
+    for (int i = 0; i < lines.length && i < maxArrows; i++) {
       final moveStr = lines[i].bestMoveLan;
       if (moveStr.length >= 4) {
         arrows.add(ChessArrow(
@@ -714,7 +716,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           }
         });
 
-        _stockfishService.analyzePosition(fen, depth: 20);
+        _stockfishService.analyzePosition(fen, depth: AppSettingsService.instance.defaultEngineDepth);
       }
     } catch (e) {
       print('Error loading basic mate preset $difficulty: $e');
@@ -792,7 +794,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         });
 
         if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
-          _stockfishService.analyzePosition(fen, depth: 20);
+          _stockfishService.analyzePosition(fen, depth: AppSettingsService.instance.defaultEngineDepth);
         }
       } else {
         _showSnackBar('Nije moguće učitati poziciju.');
@@ -846,8 +848,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
       _selectedGroupedMoveIndices.clear();
-      _stockfishService.setMultiPV(3);
-      _stockfishService.analyzePosition(_initialPuzzleFen!, depth: 20);
+      _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
+      _stockfishService.analyzePosition(_initialPuzzleFen!, depth: AppSettingsService.instance.defaultEngineDepth);
     }
 
     _sendBackendLog({
@@ -1698,7 +1700,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     _puzzleBoardController.loadFen(fen);
     if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
-      _stockfishService.analyzePosition(fen, depth: 20);
+      _stockfishService.analyzePosition(fen, depth: AppSettingsService.instance.defaultEngineDepth);
     }
   }
 
@@ -2007,7 +2009,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // LEFT SIDE (Board, Eval Bar & Landscape Controls)
+                  // LEFT SIDE (Board & Eval Bar)
                   Padding(
                     padding: const EdgeInsets.only(right: 12.0),
                     child: Column(
@@ -2018,8 +2020,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           height: boardSize,
                           child: _buildBoardWithTapAndHighlights(boardSize),
                         ),
-                        const SizedBox(height: 4),
                         if (_showEvalBar) ...[
+                          const SizedBox(height: 4),
                           SizedBox(
                             width: boardSize,
                             child: HorizontalEvalBarWidget(
@@ -2029,33 +2031,42 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               orientation: _puzzleOrientation,
                             ),
                           ),
-                          const SizedBox(height: 6),
                         ],
-                        SizedBox(
-                          width: boardSize,
-                          child: Row(
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 4),
+
+                  // RIGHT SIDE (Controls, Tree & Stockfish Analysis & History)
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          // PROMINENT LANDSCAPE CONTROL BUTTONS ON THE RIGHT SIDE PANEL
+                          Row(
                             children: [
                               Expanded(
                                 child: ElevatedButton.icon(
                                   icon: const Icon(Icons.refresh, size: 16),
-                                  label: const Text('Probaj ponovo', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  label: const Text('Probaj ponovo', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.amber.shade900,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                                   ),
                                   onPressed: _restartCurrentPuzzle,
                                 ),
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: ElevatedButton.icon(
                                   icon: const Icon(Icons.arrow_forward, size: 16),
-                                  label: const Text('Naredna pozicija', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  label: const Text('Naredna pozicija', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.teal.shade800,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                                   ),
                                   onPressed: () {
                                     if (_selectedCategory == 'basic_mate') {
@@ -2068,18 +2079,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               ),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(width: 4),
-
-                  // RIGHT SIDE (Tree & Stockfish Analysis & History)
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
+                          const SizedBox(height: 8),
                           if (_selectedCategory == 'mate_puzzle')
                             _buildGraphicalSolutionTreeWidget()
                           else
@@ -2104,7 +2104,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                                   _showEvaluation = !_showEvaluation;
                                   if (_showEvaluation) {
                                     _selectedGroupedMoveIndices.clear();
-      _stockfishService.setMultiPV(3);
+      _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
                                     final targetDepth = AppSettingsService.instance.defaultEngineDepth;
                               _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: targetDepth);
                                   } else {
@@ -2193,7 +2193,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                             _showEvaluation = !_showEvaluation;
                             if (_showEvaluation) {
                               _selectedGroupedMoveIndices.clear();
-                              _stockfishService.setMultiPV(3);
+                              _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
                               final targetDepth = AppSettingsService.instance.defaultEngineDepth;
                               _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: targetDepth);
                             } else {
@@ -2435,7 +2435,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _puzzleFailed = false;
     });
     if (_showEvaluation) {
-      _stockfishService.analyzePosition(node.fen, depth: 20);
+      _stockfishService.analyzePosition(node.fen, depth: AppSettingsService.instance.defaultEngineDepth);
     }
   }
   Widget _buildPgnSolutionTreeWidget() {

@@ -250,13 +250,15 @@ class ChessBoardPainter extends CustomPainter {
   ui.Color _getColor(String code) {
     switch (code) {
       case 'R':
-        return Colors.red;
+        return const ui.Color(0xFFFF5252);
       case 'G':
-        return Colors.green;
+        return const ui.Color(0xFF00E676);
       case 'B':
-        return Colors.blue;
+        return const ui.Color(0xFF00B0FF);
       case 'O':
-        return Colors.orange;
+        return const ui.Color(0xFFFF9100);
+      case 'P':
+        return const ui.Color(0xFFE040FB);
       default:
         return Colors.tealAccent;
     }
@@ -270,8 +272,12 @@ class ChessBoardPainter extends CustomPainter {
         return const ui.Color(0xFF00B0FF); // Vibrant Blue
       case 3:
         return const ui.Color(0xFFFF9100); // Vibrant Amber/Orange
+      case 4:
+        return const ui.Color(0xFFE040FB); // Vibrant Purple
+      case 5:
+        return const ui.Color(0xFFFF5252); // Vibrant Red
       default:
-        return Colors.purpleAccent;
+        return Colors.tealAccent;
     }
   }
 

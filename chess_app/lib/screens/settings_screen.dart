@@ -207,7 +207,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Dubina analize posle koje Stockfish povlači potez:', style: TextStyle(fontWeight: FontWeight.w500)),
+                          const Text('Dubina analize Stockfish engine-a (max 50):', style: TextStyle(fontWeight: FontWeight.w500)),
                           Text(
                             'Dubina ${_settings.defaultEngineDepth}',
                             style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.tealAccent),
@@ -215,10 +215,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ],
                       ),
                       Slider(
-                        value: _settings.defaultEngineDepth.toDouble(),
-                        min: 8,
-                        max: 24,
-                        divisions: 8,
+                        value: _settings.defaultEngineDepth.toDouble().clamp(5.0, 50.0),
+                        min: 5,
+                        max: 50,
+                        divisions: 45,
                         label: '${_settings.defaultEngineDepth}',
                         activeColor: Colors.tealAccent,
                         onChanged: (val) {
@@ -226,7 +226,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         },
                       ),
                       Text(
-                        'Veća dubina daje precizniju analizu ali troši više resursa procesora.',
+                        'Veća dubina daje precizniju analizu (do max 50).',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                      ),
+                      const Divider(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Broj linija i strelica na tabli (Multi-PV):', style: TextStyle(fontWeight: FontWeight.w500)),
+                          Text(
+                            '${_settings.defaultMultiPV} ${_settings.defaultMultiPV == 1 ? "linija" : "linije"}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent),
+                          ),
+                        ],
+                      ),
+                      Slider(
+                        value: _settings.defaultMultiPV.toDouble().clamp(1.0, 5.0),
+                        min: 1,
+                        max: 5,
+                        divisions: 4,
+                        label: '${_settings.defaultMultiPV}',
+                        activeColor: Colors.amberAccent,
+                        onChanged: (val) {
+                          _settings.setMultiPV(val.round());
+                        },
+                      ),
+                      Text(
+                        'Prikazuje od 1 do 5 najboljih alternativnih linija i strelica u poziciji.',
                         style: TextStyle(fontSize: 11, color: Colors.grey[400]),
                       ),
                     ],

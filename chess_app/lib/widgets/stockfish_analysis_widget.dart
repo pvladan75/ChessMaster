@@ -1,3 +1,4 @@
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/models/analysis_models.dart';
@@ -172,9 +173,9 @@ class StockfishAnalysisWidget extends StatelessWidget {
               ],
 
               // Top 3 Lines List (Compact 1 line per row with '...' inspector button)
-              const Text(
-                'Top 3 Linije (Klik na liniju za kompletan pregled):',
-                style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+              Text(
+                'Top ${AppSettingsService.instance.defaultMultiPV} Linije (Klik na liniju za kompletan pregled):',
+                style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
 
@@ -187,7 +188,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                   ),
                 )
               else
-                ...lines.take(3).map((line) {
+                ...lines.take(AppSettingsService.instance.defaultMultiPV).map((line) {
                   return InkWell(
                     onTap: () => _openLineDialog(context, line),
                     borderRadius: BorderRadius.circular(6),
