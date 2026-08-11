@@ -49,7 +49,7 @@ class PuzzleApiService {
     try {
       final res = await http
           .get(uri, headers: _headers(userToken))
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 3));
 
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as Map<String, dynamic>;
@@ -58,12 +58,18 @@ class PuzzleApiService {
       print('[PUZZLE_API_SERVICE] Server unreachable. Falling back to local offline puzzle DB: $e');
     }
 
-    // Offline fallback for mate puzzles
-    final int depth = int.tryParse(mateDepth) ?? 2;
-    return await LocalPuzzleService.instance.getRandomPuzzle(
-      mateIn: depth,
-      excludeId: excludeId,
-    );
+    // Offline fallback for mate and winning position puzzles
+    if (puzzleType == 'winning_position') {
+      return await LocalPuzzleService.instance.getWinningPositionPuzzle(
+        excludeId: excludeId,
+      );
+    } else {
+      final int depth = int.tryParse(mateDepth) ?? 2;
+      return await LocalPuzzleService.instance.getRandomPuzzle(
+        mateIn: depth,
+        excludeId: excludeId,
+      );
+    }
   }
 
   Future<Map<String, dynamic>?> fetchNextEndgamePuzzle({
@@ -82,7 +88,7 @@ class PuzzleApiService {
     try {
       final res = await http
           .get(uri, headers: _headers(userToken))
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 5));
 
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as Map<String, dynamic>;
@@ -110,7 +116,7 @@ class PuzzleApiService {
               if (theme != null) 'theme': theme,
             }),
           )
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 5));
 
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as Map<String, dynamic>;
@@ -141,7 +147,7 @@ class PuzzleApiService {
               'orientation': orientation,
             }),
           )
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 4));
 
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as Map<String, dynamic>;
@@ -185,7 +191,7 @@ class PuzzleApiService {
               'userLanguage': userLanguage,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 10));
 
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as Map<String, dynamic>;

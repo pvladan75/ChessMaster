@@ -75,6 +75,32 @@ class LocalPuzzleService {
     };
   }
 
+  /// Gets a random offline winning position puzzle.
+  Future<Map<String, dynamic>?> getWinningPositionPuzzle({
+    String? excludeId,
+  }) async {
+    try {
+      final jsonString =
+          await rootBundle.loadString('assets/puzzles/hard_puzzles.json');
+      final List<dynamic> jsonList = jsonDecode(jsonString);
+      if (jsonList.isNotEmpty) {
+        jsonList.shuffle();
+        final chosen = jsonList.first;
+        return {
+          'id': chosen['id']?.toString() ?? '1',
+          'puzzle_id': chosen['id']?.toString() ?? '1',
+          'fen': chosen['fen'],
+          'type': 'winning_position',
+          'solutions': {},
+          'isLocal': true,
+        };
+      }
+    } catch (e) {
+      print('[LOCAL_PUZZLE_SERVICE] Error loading winning position puzzle: $e');
+    }
+    return null;
+  }
+
   /// Saves solved puzzle ID into SharedPreferences so it won't repeat.
   Future<void> markPuzzleAsSolved(String puzzleId) async {
     try {

@@ -1,3 +1,4 @@
+import 'package:chess_app/services/puzzle_api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chess_app/widgets/ai_studio/studio_info_header.dart';
 import 'package:chess_app/widgets/ai_studio/category_selection_hub.dart';
@@ -722,7 +723,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   Future<void> _fetchNextPuzzle() async {
     _resetEngineState();
-    final String currentId = _currentPuzzle?['puzzle_id'] ?? '';
+    final String currentId = _currentPuzzle?['puzzle_id'] ?? _currentPuzzle?['id'] ?? '';
     setState(() {
       _isLoadingPuzzle = true;
       _puzzleSolved = false;
@@ -735,17 +736,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     try {
       final categoryParam = _selectedCategory ?? 'mate_puzzle';
-      final depthParam = (categoryParam == 'mate_puzzle') ? '&mate_depth=$_selectedMateDepth' : '';
-      final excludeParam = currentId.isNotEmpty ? '&excludeId=$currentId' : '';
-      final uri = Uri.parse('$backendUrl/api/puzzles/next?userId=${widget.userSession.id}&type=$categoryParam$depthParam$excludeParam');
-      final res = await http.get(
-        uri,
-        headers: {'Authorization': 'Bearer ${widget.userSession.token}'},
+      final resData = await PuzzleApiService.instance.fetchNextPuzzle(
+        type: categoryParam,
+        mateDepth: _selectedMateDepth.toString(),
+        excludeId: currentId,
+        userToken: widget.userSession.token,
       );
 
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        final p = data['puzzle'];
+      if (resData != null) {
+        final p = resData['puzzle'] ?? resData;
         final fen = p['fen'];
         final moves = List<String>.from(p['moves'] ?? []);
 
@@ -756,7 +755,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
         setState(() {
           _currentPuzzle = p;
-          _userRating = data['userRating'] ?? 1500;
+          _userRating = resData['userRating'] ?? 1500;
           _expectedMoves = moves;
           _moveIndex = 0;
           _rootSolutionsTree = Map<String, dynamic>.from(p['solutions'] ?? {});
