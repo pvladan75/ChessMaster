@@ -250,8 +250,10 @@ class StockfishService {
 
   /// Stops ongoing search without quitting engine
   void stopAnalysis() {
+    _requestId++; // Cancel any pending online API requests
     _currentFen = '';
     _engineLines.clear();
+    print('[StockfishService] 🛑 stopAnalysis called (requestId incremented to $_requestId)');
     _sendCommand('stop');
     _sendCommand('ucinewgame');
   }
@@ -263,10 +265,13 @@ class StockfishService {
 
   /// Internal helper to send a command to Stockfish stdin
   void _sendCommand(String command) {
+    print('[Stockfish STDIN] ➡️ $command');
     if (_customProcess != null) {
       _customProcess!.stdin.writeln(command);
     } else if (_stockfish != null && _stockfish!.state.value == StockfishState.ready) {
       _stockfish!.stdin = command;
+    } else {
+      print('[Stockfish STDIN WARNING] ⚠️ Could not send "$command" - engine process/instance is not ready.');
     }
   }
 

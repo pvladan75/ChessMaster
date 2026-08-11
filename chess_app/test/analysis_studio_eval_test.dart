@@ -45,5 +45,15 @@ void main() {
       expect(arrow2.from, equals('d2'));
       expect(arrow2.to, equals('d4'));
     });
+
+    test('5. Custom FEN initialization and position analysis trigger', () {
+      const customFen = 'r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3';
+      final root = AnalysisNode(fen: customFen);
+
+      expect(root.fen, equals(customFen));
+      expect(root.isRoot, isTrue);
+      final info = PositionInfoService.analyzeFen(root.fen);
+      expect(info.pieceCount, 32);
+    });
   });
 }

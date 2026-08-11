@@ -54,6 +54,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   void initState() {
     super.initState();
     final startFen = widget.initialFen ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    print('[AnalysisStudio] 🎬 initState initialized with FEN: $startFen');
     _initAnalysisTree(startFen);
     _initEngine();
   }
@@ -110,14 +111,25 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   }
 
   void _triggerEngineAnalysis() {
+    print('[AnalysisStudio] ⚡ _triggerEngineAnalysis fired | showEval: $_showEvaluation | showEvalBar: $_showEvalBar | Current FEN: ${_currentNode.fen}');
     if (_showEvaluation || _showEvalBar) {
+      // Validate FEN before sending to engine
+      try {
+        final testGame = chess.Chess.fromFEN(_currentNode.fen);
+        print('[AnalysisStudio] ✅ FEN is valid for chess game: ${_currentNode.fen}');
+      } catch (e) {
+        print('[AnalysisStudio ERROR] ❌ Invalid FEN string: ${_currentNode.fen} | Error: $e');
+      }
+
       final depth = AppSettingsService.instance.defaultEngineDepth;
       _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
       _stockfishService.analyzePosition(_currentNode.fen, depth: depth);
     } else {
+      print('[AnalysisStudio] ⏸️ Engine evaluation disabled by user switch. Stopping analysis.');
       _stockfishService.stopAnalysis();
       setState(() {
         _engineLinesMap.clear();
+        _engineArrows.clear();
       });
     }
   }
