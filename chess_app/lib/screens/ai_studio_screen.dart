@@ -1831,32 +1831,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   // --- TAB 1: PUZZLES UI ---
 
   Widget _buildPuzzlesTab() {
-    return Column(
-      children: [
-        if (!_isBackendConnected)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            color: Colors.red.shade900,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.wifi_off, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text(
-                  '🚨 VEZA SA SERVEROM IZGUBLJENA! Backend server je nedostupan.',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-        Expanded(
-          child: _selectedCategory == null
-              ? _buildCategorySelectionHub()
-              : _buildActiveBoardScreen(),
-        ),
-      ],
-    );
+    return _selectedCategory == null
+        ? _buildCategorySelectionHub()
+        : _buildActiveBoardScreen();
   }
 
   // --- 1. SELECTION HUB VIEW ---
@@ -1972,21 +1949,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         height: 24,
         child: Row(
           children: [
-            InkWell(
-              onTap: () {
-                _resetEngineState();
-                setState(() => _selectedCategory = null);
-              },
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.arrow_back, size: 16, color: Colors.tealAccent),
-                  SizedBox(width: 4),
-                  Text('Izbor', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
+
             Expanded(
               child: Text(
                 headerGoal,
@@ -2110,105 +2073,97 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       );
     }
 
-    // PORTRAIT LAYOUT: Responsive Column
-    final double boardSize = math.min(screenSize.width - 48.0, 380.0);
+    // PORTRAIT LAYOUT: Static Board & Scrollable Controls Below
+    final double boardSize = math.min(screenSize.width - 32.0, 380.0);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(12.0),
-      child: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 650),
-          child: Column(
-            children: [
-              StudioInfoHeaderWidget(
-                selectedCategory: _selectedCategory,
-                selectedMateDepth: _selectedMateDepth,
-                selectedBasicMateType: _selectedBasicMateType,
-                puzzleOrientation: _puzzleOrientation,
-                onBackToHub: () {
-                  _resetEngineState();
-                  setState(() => _selectedCategory = null);
-                },
-                onRestartPuzzle: _restartCurrentPuzzle,
-                onNextPuzzle: () {
-                  if (_selectedCategory == 'basic_mate') {
-                    _loadBasicMatePreset(_selectedBasicMateType);
-                  } else {
-                    _fetchNextPuzzle();
-                  }
-                },
-              ),
-              Card(
+    return Column(
+      children: [
+        // STATIC NON-SCROLLABLE CHESS BOARD AT TOP
+        Padding(
+          padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+          child: Center(
+            child: SizedBox(
+              width: boardSize,
+              height: boardSize,
+              child: Card(
                 elevation: 4,
+                margin: EdgeInsets.zero,
                 child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    children: [
-                      if (_isLoadingPuzzle)
-                        SizedBox(
-                          height: boardSize,
-                          child: const Center(child: CircularProgressIndicator()),
-                        )
-                      else ...[
-                        _buildBoardWithTapAndHighlights(boardSize),
-                        const SizedBox(height: 6),
-                        if (_showEvalBar) ...[
-                          HorizontalEvalBarWidget(
-                            eval: _currentRawEval,
-                            evalString: _currentEvalString,
-                            depth: _currentEvalDepth,
-                            orientation: _puzzleOrientation,
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                        actionButtonsRow,
-                        const SizedBox(height: 12),
-                        if (!_isOpponentTurn && _selectedCategory != 'mate_puzzle')
-                          StockfishAnalysisWidget(
-                            isEngineEnabled: _showEvaluation,
-                            isAllowedToUseEngine: true,
-                            isOnline: _stockfishService.isOnline,
-                            isCustomEngineActive: _stockfishService.isCustomEngineActive,
-                            lines: _engineLinesMap.values.toList(),
-                            orientation: _puzzleOrientation,
-                            isShowEvalBarEnabled: _showEvalBar,
-                            onToggleShowEvalBar: () {
-                              setState(() {
-                                _showEvalBar = !_showEvalBar;
-                              });
-                            },
-                            onToggleEngine: () {
-                              setState(() {
-                                _showEvaluation = !_showEvaluation;
-                                if (_showEvaluation) {
-                                  _selectedGroupedMoveIndices.clear();
-      _stockfishService.setMultiPV(3);
-                                  _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 20);
-                                } else {
-                                  _engineLinesMap.clear();
-                                  _engineArrows.clear();
-                                }
-                              });
-                            },
-                          ),
-                        const SizedBox(height: 12),
-                        if (_selectedCategory == 'mate_puzzle')
-                          _buildGraphicalSolutionTreeWidget()
-                        else
-                          _buildPgnSolutionTreeWidget(),
-                        const SizedBox(height: 12),
-                        _buildMoveHistoryNavigationWidget(),
-                      ],
-                    ],
-                  ),
+                  padding: const EdgeInsets.all(8.0),
+                  child: _isLoadingPuzzle
+                      ? const Center(child: CircularProgressIndicator())
+                      : _buildBoardWithTapAndHighlights(boardSize - 16.0),
                 ),
               ),
-            ],
+            ),
           ),
         ),
-      ),
+
+        // SCROLLABLE CONTROLS & BUTTONS BELOW THE BOARD
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Center(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 650),
+                child: Column(
+                  children: [
+                    if (_showEvalBar) ...[
+                      HorizontalEvalBarWidget(
+                        eval: _currentRawEval,
+                        evalString: _currentEvalString,
+                        depth: _currentEvalDepth,
+                        orientation: _puzzleOrientation,
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    actionButtonsRow,
+                    const SizedBox(height: 12),
+                    if (!_isOpponentTurn && _selectedCategory != 'mate_puzzle')
+                      StockfishAnalysisWidget(
+                        isEngineEnabled: _showEvaluation,
+                        isAllowedToUseEngine: true,
+                        isOnline: _stockfishService.isOnline,
+                        isCustomEngineActive: _stockfishService.isCustomEngineActive,
+                        lines: _engineLinesMap.values.toList(),
+                        orientation: _puzzleOrientation,
+                        isShowEvalBarEnabled: _showEvalBar,
+                        onToggleShowEvalBar: () {
+                          setState(() {
+                            _showEvalBar = !_showEvalBar;
+                          });
+                        },
+                        onToggleEngine: () {
+                          setState(() {
+                            _showEvaluation = !_showEvaluation;
+                            if (_showEvaluation) {
+                              _selectedGroupedMoveIndices.clear();
+                              _stockfishService.setMultiPV(3);
+                              _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: 20);
+                            } else {
+                              _engineLinesMap.clear();
+                              _engineArrows.clear();
+                            }
+                          });
+                        },
+                      ),
+                    const SizedBox(height: 12),
+                    if (_selectedCategory == 'mate_puzzle')
+                      _buildGraphicalSolutionTreeWidget()
+                    else
+                      _buildPgnSolutionTreeWidget(),
+                    const SizedBox(height: 12),
+                    _buildMoveHistoryNavigationWidget(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
+
   Widget _buildBoardWithTapAndHighlights(double boardSize) {
     final squareSize = boardSize / 8.0;
 

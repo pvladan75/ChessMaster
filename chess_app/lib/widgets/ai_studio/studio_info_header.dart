@@ -40,11 +40,7 @@ class StudioInfoHeaderWidget extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.arrow_back, size: 16),
-                  label: const Text('Nazad na izbor', style: TextStyle(fontSize: 12)),
-                  onPressed: onBackToHub,
-                ),
+                const SizedBox.shrink(),
               ],
             ),
           ),
