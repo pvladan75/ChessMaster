@@ -124,6 +124,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       }
 
       final depth = AppSettingsService.instance.defaultEngineDepth;
+      _stockfishService.stopAnalysis();
       _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
       _stockfishService.analyzePosition(_currentNode.fen, depth: depth);
     } else {
