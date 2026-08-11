@@ -1369,10 +1369,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
 
     if (_selectedCategory == 'mate_puzzle') return;
-    await _stockfishService.initEngine();
-    _stockfishService.setMultiPV(1);
-    final targetDepth = AppSettingsService.instance.defaultEngineDepth;
-    _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
+    _triggerOpponentBotResponse();
   }
 
   List<String> _getUniqueOpponentRepresentativeMoves(Map<String, dynamic> oppBranchMap) {
