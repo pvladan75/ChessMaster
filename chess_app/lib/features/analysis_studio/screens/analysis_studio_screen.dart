@@ -1,3 +1,5 @@
+import 'package:chess_app/services/app_logger.dart';
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -54,7 +56,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   void initState() {
     super.initState();
     final startFen = widget.initialFen ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-    print('[AnalysisStudio] 🎬 initState initialized with FEN: $startFen');
+    AppLogger.log('[AnalysisStudio] 🎬 initState initialized with FEN: $startFen');
     _initAnalysisTree(startFen);
     _initEngine();
   }
@@ -111,21 +113,21 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   }
 
   void _triggerEngineAnalysis() {
-    print('[AnalysisStudio] ⚡ _triggerEngineAnalysis fired | showEval: $_showEvaluation | showEvalBar: $_showEvalBar | Current FEN: ${_currentNode.fen}');
+    AppLogger.log('[AnalysisStudio] ⚡ _triggerEngineAnalysis fired | showEval: $_showEvaluation | showEvalBar: $_showEvalBar | Current FEN: ${_currentNode.fen}');
     if (_showEvaluation || _showEvalBar) {
       // Validate FEN before sending to engine
       try {
         final testGame = chess.Chess.fromFEN(_currentNode.fen);
-        print('[AnalysisStudio] ✅ FEN is valid for chess game: ${_currentNode.fen}');
+        AppLogger.log('[AnalysisStudio] ✅ FEN is valid for chess game: ${_currentNode.fen}');
       } catch (e) {
-        print('[AnalysisStudio ERROR] ❌ Invalid FEN string: ${_currentNode.fen} | Error: $e');
+        AppLogger.log('[AnalysisStudio ERROR] ❌ Invalid FEN string: ${_currentNode.fen} | Error: $e');
       }
 
       final depth = AppSettingsService.instance.defaultEngineDepth;
       _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
       _stockfishService.analyzePosition(_currentNode.fen, depth: depth);
     } else {
-      print('[AnalysisStudio] ⏸️ Engine evaluation disabled by user switch. Stopping analysis.');
+      AppLogger.log('[AnalysisStudio] ⏸️ Engine evaluation disabled by user switch. Stopping analysis.');
       _stockfishService.stopAnalysis();
       setState(() {
         _engineLinesMap.clear();
@@ -288,6 +290,88 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     );
   }
 
+  void _showLogsDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.grey.shade900,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.terminal, color: Colors.amberAccent),
+                SizedBox(width: 8),
+                Text('Logovi Engine-a 📜', style: TextStyle(color: Colors.white, fontSize: 16)),
+              ],
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+              tooltip: 'Očisti logove',
+              onPressed: () {
+                AppLogger.clear();
+                (ctx as Element).markNeedsBuild();
+              },
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 600,
+          height: 400,
+          child: ValueListenableBuilder<int>(
+            valueListenable: AppLogger.logUpdateNotifier,
+            builder: (context, _, __) {
+              final logs = AppLogger.logs;
+              if (logs.isEmpty) {
+                return const Center(
+                  child: Text('Nema zabeleženih logova.', style: TextStyle(color: Colors.grey)),
+                );
+              }
+              return Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade800),
+                ),
+                child: SingleChildScrollView(
+                  reverse: true,
+                  child: SelectableText(
+                    logs.join('\n'),
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      color: Colors.greenAccent,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.copy, size: 16),
+            label: const Text('Kopiraj Logove'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: AppLogger.formattedLogs));
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('✅ Logovi kopirani u klipbord!'), backgroundColor: Colors.teal),
+                );
+              }
+            },
+          ),
+          TextButton(
+            child: const Text('Zatvori'),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAutoAnalysisDialog() {
     showDialog(
       context: context,
@@ -412,6 +496,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.terminal, color: Colors.amberAccent),
+            tooltip: 'Logovi Engine-a 📜',
+            onPressed: _showLogsDialog,
+          ),
           IconButton(
             icon: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
             tooltip: 'Automatska Analiza ⚡',

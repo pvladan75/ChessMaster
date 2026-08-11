@@ -1,3 +1,4 @@
+import 'package:chess_app/services/app_logger.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -104,7 +105,7 @@ class StockfishService {
     _engineLines.clear();
     _isActive = true;
 
-    print('[STOCKFISH_ENGINE_LOG] 🎯 Pokrenuta analiza | Dubina: $depth | Mode: ${_useOnline ? "Online API Fallback" : "Nativni Lokalni Engine"} | FEN: $fen');
+    AppLogger.log('[STOCKFISH_ENGINE_LOG] 🎯 Pokrenuta analiza | Dubina: $depth | Mode: ${_useOnline ? "Online API Fallback" : "Nativni Lokalni Engine"} | FEN: $fen');
 
     if (_useOnline) {
       final reqId = ++_requestId;
@@ -227,7 +228,7 @@ class StockfishService {
       _sendCommand('ucinewgame');
       _sendCommand('position fen $fen');
       final effectiveDepth = depth.clamp(5, 50);
-      print('[STOCKFISH_NATIVE_LOG] 🎯 Pokrenuta analiza na dubini (go depth $effectiveDepth)...');
+      AppLogger.log('[STOCKFISH_NATIVE_LOG] 🎯 Pokrenuta analiza na dubini (go depth $effectiveDepth)...');
       _sendCommand('go depth $effectiveDepth');
     }
   }
@@ -253,7 +254,7 @@ class StockfishService {
     _requestId++; // Cancel any pending online API requests
     _currentFen = '';
     _engineLines.clear();
-    print('[StockfishService] 🛑 stopAnalysis called (requestId incremented to $_requestId)');
+    AppLogger.log('[StockfishService] 🛑 stopAnalysis called (requestId incremented to $_requestId)');
     _sendCommand('stop');
     _sendCommand('ucinewgame');
   }
@@ -265,7 +266,7 @@ class StockfishService {
 
   /// Internal helper to send a command to Stockfish stdin
   void _sendCommand(String command) {
-    print('[Stockfish STDIN] ➡️ $command');
+    AppLogger.log('[Stockfish STDIN] ➡️ $command');
     if (_customProcess != null) {
       _customProcess!.stdin.writeln(command);
     } else if (_stockfish != null && _stockfish!.state.value == StockfishState.ready) {
