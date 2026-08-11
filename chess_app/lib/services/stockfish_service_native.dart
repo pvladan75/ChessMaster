@@ -9,6 +9,11 @@ import 'package:stockfish/stockfish.dart';
 import 'package:chess_app/models/analysis_models.dart';
 
 class StockfishService {
+  // ─── SINGLETON ───
+  static final StockfishService _instance = StockfishService._internal();
+  factory StockfishService() => _instance;
+  StockfishService._internal();
+
   Stockfish? _stockfish;
   StreamSubscription? _subscription;
   
@@ -34,7 +39,6 @@ class StockfishService {
 
   bool get isCustomEngineActive => _isCustomActive;
 
-  // We fall back to online API on Windows and Linux if no custom engine is run
   bool get _useOnline {
     if (Platform.isWindows && _isCustomActive) return false;
     return Platform.isWindows || Platform.isLinux;
@@ -44,14 +48,23 @@ class StockfishService {
   bool get isSupported => true;
   bool get isOnline => _useOnline;
 
-  /// Starts the Stockfish engine (or sets up online mode)
+  /// Starts the Stockfish engine (or sets up online mode).
+  /// Safe to call multiple times — if engine is already ready, returns immediately.
   Future<void> initEngine() async {
+    _isActive = true;
+
+    // If engine is already initialized and ready, nothing to do
+    if (_nativeReady && (_stockfish != null || _customProcess != null || _useOnline)) {
+      AppLogger.log('[StockfishService] ♻️ Engine already initialized and ready (singleton). Draining any pending queue...');
+      _drainPendingQueue();
+      return;
+    }
+
     if (_initInProgress) {
       AppLogger.log('[StockfishService] ⏳ initEngine already in progress, skipping duplicate call.');
       return;
     }
     _initInProgress = true;
-    _isActive = true;
     AppLogger.log('[StockfishService] 🛠️ initEngine called | CustomActive: $_isCustomActive | UseOnline: $_useOnline');
     
     // Check if custom engine path is set (Windows only)
@@ -61,13 +74,15 @@ class StockfishService {
       
       if (customPath != null && customPath.isNotEmpty && Platform.isWindows) {
         if (_customProcess != null) {
+          _nativeReady = true;
           _initInProgress = false;
+          _drainPendingQueue();
           return;
         }
-        AppLogger.log('[StockfishService] 🚀 Starting custom engine executable at: $customPath');
+        AppLogger.log('[StockfishService] 🚀 Starting custom engine at: $customPath');
         _customProcess = await Process.start(customPath, []);
         _isCustomActive = true;
-        _nativeReady = true; // Custom process is ready immediately after start
+        _nativeReady = true;
         
         _customSubscription = _customProcess!.stdout
             .transform(utf8.decoder)
@@ -76,73 +91,72 @@ class StockfishService {
           _parseStockfishLine(line);
         });
 
-        // For custom process, we can send directly — no state gating
         _sendCommandForce('uci');
         _sendCommandForce('setoption name MultiPV value 3');
         _sendCommandForce('isready');
-
         _drainPendingQueue();
         _initInProgress = false;
         return;
       }
     } catch (e) {
-      AppLogger.log('[StockfishService ERROR] ❌ Failed to start custom engine: $e');
+      AppLogger.log('[StockfishService ERROR] ❌ Custom engine failed: $e');
       _isCustomActive = false;
       _customProcess = null;
     }
 
     _isCustomActive = false;
     if (_useOnline) {
-      AppLogger.log('[StockfishService] 🌐 Using Online Stockfish Cloud API Fallback (Windows/Linux)');
-      _nativeReady = true; // Online mode is always "ready"
+      AppLogger.log('[StockfishService] 🌐 Using Online Stockfish Cloud API Fallback');
+      _nativeReady = true;
       _initInProgress = false;
+      _drainPendingQueue();
       return;
     }
 
-    // Native Stockfish (Android/iOS)
+    // ── Native Stockfish (Android/iOS) ──
+    // Reuse existing instance if it's still alive and ready
     if (_stockfish != null && _nativeReady) {
-      AppLogger.log('[StockfishService] ♻️ Stockfish already initialized and ready.');
+      AppLogger.log('[StockfishService] ♻️ Reusing existing native Stockfish instance.');
       _initInProgress = false;
+      _drainPendingQueue();
       return;
     }
 
     // Kill old broken instance if it exists but never became ready
     if (_stockfish != null && !_nativeReady) {
-      AppLogger.log('[StockfishService] 🔄 Disposing stale Stockfish instance that never became ready...');
+      AppLogger.log('[StockfishService] 🔄 Disposing stale Stockfish instance...');
       _subscription?.cancel();
       _subscription = null;
       try { _stockfish?.dispose(); } catch (_) {}
       _stockfish = null;
+      // Small delay to let the FFI process fully terminate
+      await Future.delayed(const Duration(milliseconds: 300));
     }
 
     AppLogger.log('[StockfishService] ⚙️ Creating new Native Stockfish instance...');
     _stockfish = Stockfish();
     
-    // Listen to output messages from Stockfish stdout
     _subscription = _stockfish!.stdout.listen((line) {
       _parseStockfishLine(line);
     });
 
-    // Wait for the Stockfish FFI process to become ready with a timeout
+    // Wait for the Stockfish FFI process to become ready
     final ready = await _waitForReady(timeout: const Duration(seconds: 5));
     
     if (ready) {
       AppLogger.log('[StockfishService] ✅ Native Stockfish is READY! Sending UCI init commands...');
       _nativeReady = true;
-      // These MUST use _sendCommandForce since the stockfish package's
-      // stdin setter writes directly to the process without state checks
       _sendCommandForce('uci');
       _sendCommandForce('setoption name MultiPV value 3');
       _sendCommandForce('isready');
       _drainPendingQueue();
     } else {
-      AppLogger.log('[StockfishService ERROR] ❌ Stockfish did not become ready within timeout! State: ${_stockfish?.state.value}');
-      // Try one more time with a fresh instance
+      AppLogger.log('[StockfishService ERROR] ❌ Stockfish not ready within 5s. Retrying...');
       _subscription?.cancel();
       try { _stockfish?.dispose(); } catch (_) {}
       _stockfish = null;
+      await Future.delayed(const Duration(milliseconds: 300));
       
-      AppLogger.log('[StockfishService] 🔄 Retrying with a fresh Stockfish instance...');
       _stockfish = Stockfish();
       _subscription = _stockfish!.stdout.listen((line) {
         _parseStockfishLine(line);
@@ -157,8 +171,7 @@ class StockfishService {
         _sendCommandForce('isready');
         _drainPendingQueue();
       } else {
-        AppLogger.log('[StockfishService ERROR] ❌ Stockfish failed to initialize after retry. Falling back to material eval.');
-        // If there's a pending FEN, give it a material-only fallback
+        AppLogger.log('[StockfishService ERROR] ❌ Stockfish failed after retry. Using material fallback.');
         if (_pendingFen != null) {
           _fallbackBasicEvaluation(_pendingFen!, _pendingDepth ?? 18);
           _pendingFen = null;
@@ -196,7 +209,7 @@ class StockfishService {
     
     timer = Timer(timeout, () {
       if (!completer.isCompleted) {
-        AppLogger.log('[StockfishService] ⏰ Timeout waiting for Stockfish ready state.');
+        AppLogger.log('[StockfishService] ⏰ Timeout waiting for ready state.');
         completer.complete(false);
       }
     });
@@ -206,16 +219,22 @@ class StockfishService {
     return result;
   }
 
-  /// Drains the pending FEN queue: if there's a queued position, analyze it now.
+  /// Drains the pending FEN queue
   void _drainPendingQueue() {
     if (_pendingFen != null) {
       final fen = _pendingFen!;
       final depth = _pendingDepth ?? 18;
       _pendingFen = null;
       _pendingDepth = null;
-      AppLogger.log('[StockfishService] 🎯 Draining pending queue → analyzing FEN: $fen');
+      AppLogger.log('[StockfishService] 🎯 Draining queue → analyzing FEN: $fen');
       analyzePosition(fen, depth: depth);
     }
+  }
+
+  /// Clears callbacks (call when a screen disposes to avoid stale references)
+  void clearCallbacks() {
+    onEvaluationChanged = null;
+    onMultiPVUpdated = null;
   }
 
   /// Sends a FEN position for analysis
@@ -224,7 +243,7 @@ class StockfishService {
     _engineLines.clear();
     _isActive = true;
 
-    AppLogger.log('[STOCKFISH_ENGINE_LOG] 🎯 Pokrenuta analiza | Dubina: $depth | Mode: ${_useOnline ? "Online API Fallback" : "Nativni Lokalni Engine"} | FEN: $fen');
+    AppLogger.log('[STOCKFISH_ENGINE_LOG] 🎯 Analiza | Dubina: $depth | Mode: ${_useOnline ? "Online API" : "Nativni Engine"} | FEN: $fen');
 
     if (_useOnline) {
       final reqId = ++_requestId;
@@ -233,9 +252,7 @@ class StockfishService {
       // Try Lichess Cloud Eval API first
       try {
         final cloudUrl = 'https://lichess.org/api/cloud-eval?fen=${Uri.encodeComponent(fen)}';
-        AppLogger.log('[Stockfish API] 🔍 Querying Lichess Cloud: $cloudUrl');
         final cloudRes = await http.get(Uri.parse(cloudUrl)).timeout(const Duration(seconds: 4));
-        AppLogger.log('[Stockfish API] 📩 Lichess Cloud response status: ${cloudRes.statusCode}');
 
         if (reqId == _requestId && cloudRes.statusCode == 200) {
           final cloudData = jsonDecode(cloudRes.body);
@@ -260,26 +277,15 @@ class StockfishService {
                 eval = mate > 0 ? 'M$mate' : '-M${mate.abs()}';
               }
 
-              AppLogger.log('[Stockfish API] ✅ Lichess Cloud Eval: eval=$eval, bestMove=$bestMove, depth=$depthVal');
-
               for (int d = 1; d <= depthVal; d += 2) {
                 if (reqId != _requestId) return;
                 if (onEvaluationChanged != null) {
                   onEvaluationChanged!(eval, bestMove, movesStr, 1, d, d >= depthVal, fen);
                 }
-                final line = AnalysisLine.fromPv(
-                  multipv: 1,
-                  depth: d,
-                  eval: eval,
-                  pvString: movesStr,
-                  startingFen: fen,
-                );
-                if (onMultiPVUpdated != null) {
-                  onMultiPVUpdated!({1: line});
-                }
+                final line = AnalysisLine.fromPv(multipv: 1, depth: d, eval: eval, pvString: movesStr, startingFen: fen);
+                if (onMultiPVUpdated != null) onMultiPVUpdated!({1: line});
                 await Future.delayed(const Duration(milliseconds: 25));
               }
-
               if (onEvaluationChanged != null) {
                 onEvaluationChanged!(eval, bestMove, movesStr, 1, depthVal, true, fen);
               }
@@ -287,17 +293,13 @@ class StockfishService {
             }
           }
         }
-      } catch (e) {
-        AppLogger.log('[Stockfish API WARNING] ⚠️ Lichess Cloud failed: $e');
-      }
+      } catch (_) {}
 
       // Fallback to stockfish.online API v2
       try {
         final onlineDepth = effectiveDepth > 20 ? 20 : effectiveDepth;
         final url = 'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$onlineDepth';
-        AppLogger.log('[Stockfish API] 🔍 Querying Stockfish Online: $url');
         final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
-        AppLogger.log('[Stockfish API] 📩 Stockfish Online response: ${response.statusCode}');
 
         if (reqId != _requestId) return;
 
@@ -305,7 +307,6 @@ class StockfishService {
           final data = jsonDecode(response.body);
           if (data['success'] == true) {
             bool isBlackToMove = fen.contains(' b ');
-
             String eval = '0.00';
             if (data['mate'] != null) {
               int mate = data['mate'] as int;
@@ -325,46 +326,32 @@ class StockfishService {
             }
 
             String continuation = data['continuation'] as String? ?? '';
-            AppLogger.log('[Stockfish API] ✅ Stockfish Online Eval: eval=$eval, bestMove=$bestMove');
 
             for (int d = 1; d <= onlineDepth; d += 2) {
               if (reqId != _requestId) return;
               if (onEvaluationChanged != null) {
                 onEvaluationChanged!(eval, bestMove, continuation, 1, d, d >= onlineDepth, fen);
               }
-              final line = AnalysisLine.fromPv(
-                multipv: 1,
-                depth: d,
-                eval: eval,
-                pvString: continuation.isNotEmpty ? continuation : bestMove,
-                startingFen: fen,
-              );
-              if (onMultiPVUpdated != null) {
-                onMultiPVUpdated!({1: line});
-              }
+              final line = AnalysisLine.fromPv(multipv: 1, depth: d, eval: eval, pvString: continuation.isNotEmpty ? continuation : bestMove, startingFen: fen);
+              if (onMultiPVUpdated != null) onMultiPVUpdated!({1: line});
               await Future.delayed(const Duration(milliseconds: 25));
             }
-
             if (onEvaluationChanged != null) {
               onEvaluationChanged!(eval, bestMove, continuation, 1, onlineDepth, true, fen);
             }
             return;
           }
         }
-      } catch (e) {
-        AppLogger.log('[Stockfish API ERROR] ❌ Stockfish Online error: $e');
-      }
+      } catch (_) {}
 
-      // Final fallback: basic material evaluation
       _fallbackBasicEvaluation(fen, effectiveDepth);
 
     } else {
       // ── Native engine path ──
       if (!_nativeReady) {
-        AppLogger.log('[StockfishService] ⏳ Engine not ready yet. Queuing FEN and triggering initEngine...');
+        AppLogger.log('[StockfishService] ⏳ Engine not ready. Queuing FEN and triggering initEngine...');
         _pendingFen = fen;
         _pendingDepth = depth;
-        // Kick off initEngine if not already running — it will drain the queue when ready
         if (!_initInProgress) {
           initEngine();
         }
@@ -375,32 +362,28 @@ class StockfishService {
       _sendCommandForce('ucinewgame');
       _sendCommandForce('position fen $fen');
       final effectiveDepth = depth.clamp(5, 50);
-      AppLogger.log('[STOCKFISH_NATIVE_LOG] 🎯 go depth $effectiveDepth for FEN: $fen');
+      AppLogger.log('[STOCKFISH_NATIVE] 🎯 go depth $effectiveDepth');
       _sendCommandForce('go depth $effectiveDepth');
     }
   }
 
   void _fallbackBasicEvaluation(String fen, int depth) {
-    AppLogger.log('[StockfishService] 💡 Fallback material evaluation for FEN...');
     double evalScore = 0.0;
     try {
       final fenBoard = fen.split(' ')[0];
       final isBlackToMove = fen.contains(' b ');
-
-      int whiteVal = 0;
-      int blackVal = 0;
+      int whiteVal = 0, blackVal = 0;
       for (int i = 0; i < fenBoard.length; i++) {
-        final char = fenBoard[i];
-        if (char == 'P') whiteVal += 1;
-        if (char == 'N' || char == 'B') whiteVal += 3;
-        if (char == 'R') whiteVal += 5;
-        if (char == 'Q') whiteVal += 9;
-        if (char == 'p') blackVal += 1;
-        if (char == 'n' || char == 'b') blackVal += 3;
-        if (char == 'r') blackVal += 5;
-        if (char == 'q') blackVal += 9;
+        final c = fenBoard[i];
+        if (c == 'P') whiteVal += 1;
+        if (c == 'N' || c == 'B') whiteVal += 3;
+        if (c == 'R') whiteVal += 5;
+        if (c == 'Q') whiteVal += 9;
+        if (c == 'p') blackVal += 1;
+        if (c == 'n' || c == 'b') blackVal += 3;
+        if (c == 'r') blackVal += 5;
+        if (c == 'q') blackVal += 9;
       }
-
       int diff = whiteVal - blackVal;
       if (isBlackToMove) diff = -diff;
       evalScore = diff.toDouble();
@@ -410,28 +393,21 @@ class StockfishService {
     if (onEvaluationChanged != null) {
       onEvaluationChanged!(evalStr, '-', '', 1, depth, true, fen);
     }
-    final line = AnalysisLine.fromPv(
-      multipv: 1,
-      depth: depth,
-      eval: evalStr,
-      pvString: '',
-      startingFen: fen,
-    );
-    if (onMultiPVUpdated != null) {
-      onMultiPVUpdated!({1: line});
-    }
+    final line = AnalysisLine.fromPv(multipv: 1, depth: depth, eval: evalStr, pvString: '', startingFen: fen);
+    if (onMultiPVUpdated != null) onMultiPVUpdated!({1: line});
   }
 
-  /// Stops analysis and quits the engine process
-  void dispose() {
+  /// Fully shuts down the engine process. Call only when app exits.
+  void shutdown() {
+    AppLogger.log('[StockfishService] 🔌 shutdown() — killing engine process.');
     _isActive = false;
     _isCustomActive = false;
-    _nativeReady = false;
 
-    if (_nativeReady || _customProcess != null) {
+    if (_nativeReady) {
       _sendCommandForce('stop');
       _sendCommandForce('quit');
     }
+    _nativeReady = false;
 
     _subscription?.cancel();
     _subscription = null;
@@ -441,6 +417,16 @@ class StockfishService {
     _customSubscription?.cancel();
     _customProcess?.kill();
     _customProcess = null;
+
+    onEvaluationChanged = null;
+    onMultiPVUpdated = null;
+  }
+
+  /// Screen-level dispose: stops current analysis but keeps engine alive.
+  void dispose() {
+    AppLogger.log('[StockfishService] 🧹 dispose() — stopping analysis, keeping engine alive (singleton).');
+    stopAnalysis();
+    clearCallbacks();
   }
 
   /// Stops ongoing search without quitting engine
@@ -462,25 +448,23 @@ class StockfishService {
     }
   }
 
-  /// Sends a command to the engine, FORCING it through even if state isn't "ready" yet.
-  /// This is required for UCI init handshake commands (uci, isready) that must be sent
-  /// before the engine transitions to ready state.
+  /// Sends a command directly to the engine stdin, bypassing state checks.
   void _sendCommandForce(String command) {
     AppLogger.log('[Stockfish STDIN] ➡️ $command');
     if (_customProcess != null) {
       try {
         _customProcess!.stdin.writeln(command);
       } catch (e) {
-        AppLogger.log('[Stockfish STDIN ERROR] ❌ Failed to write to custom process: $e');
+        AppLogger.log('[Stockfish STDIN ERROR] ❌ Custom process write failed: $e');
       }
     } else if (_stockfish != null) {
       try {
         _stockfish!.stdin = command;
       } catch (e) {
-        AppLogger.log('[Stockfish STDIN ERROR] ❌ Failed to write to stockfish: $e');
+        AppLogger.log('[Stockfish STDIN ERROR] ❌ Stockfish write failed: $e');
       }
     } else {
-      AppLogger.log('[Stockfish STDIN WARNING] ⚠️ No engine instance available for "$command"');
+      AppLogger.log('[Stockfish STDIN WARNING] ⚠️ No engine for "$command"');
     }
   }
 
@@ -499,27 +483,18 @@ class StockfishService {
         }
       }
 
-      // Mate in N moves
       if (line.contains('score mate')) {
-        final regExp = RegExp(r'score mate (-?\d+)');
-        final match = regExp.firstMatch(line);
+        final match = RegExp(r'score mate (-?\d+)').firstMatch(line);
         if (match != null) {
           int mateIn = int.parse(match.group(1)!);
-          if (isBlackToMove) {
-            mateIn = -mateIn;
-          }
+          if (isBlackToMove) mateIn = -mateIn;
           eval = mateIn > 0 ? 'M$mateIn' : '-M${mateIn.abs()}';
         }
-      } 
-      // Centipawns score (cp)
-      else if (line.contains('score cp')) {
-        final regExp = RegExp(r'score cp (-?\d+)');
-        final match = regExp.firstMatch(line);
+      } else if (line.contains('score cp')) {
+        final match = RegExp(r'score cp (-?\d+)').firstMatch(line);
         if (match != null) {
           int cp = int.parse(match.group(1)!);
-          if (isBlackToMove) {
-            cp = -cp;
-          }
+          if (isBlackToMove) cp = -cp;
           final scoreValue = cp / 100.0;
           eval = scoreValue > 0 ? '+${scoreValue.toStringAsFixed(2)}' : scoreValue.toStringAsFixed(2);
         }
@@ -527,32 +502,24 @@ class StockfishService {
 
       String continuation = '';
       if (line.contains(' pv ')) {
-        final pvIndex = line.indexOf(' pv ');
-        continuation = line.substring(pvIndex + 4).trim();
+        continuation = line.substring(line.indexOf(' pv ') + 4).trim();
       }
 
       int multipv = 1;
       if (line.contains(' multipv ')) {
-        final mvMatch = RegExp(r'multipv\s+(\d+)').firstMatch(line);
-        if (mvMatch != null) {
-          multipv = int.parse(mvMatch.group(1)!);
-        }
+        final m = RegExp(r'multipv\s+(\d+)').firstMatch(line);
+        if (m != null) multipv = int.parse(m.group(1)!);
       }
 
       int currentDepth = 1;
       if (line.contains(' depth ')) {
-        final dMatch = RegExp(r'depth\s+(\d+)').firstMatch(line);
-        if (dMatch != null) {
-          currentDepth = int.parse(dMatch.group(1)!);
-        }
+        final m = RegExp(r'depth\s+(\d+)').firstMatch(line);
+        if (m != null) currentDepth = int.parse(m.group(1)!);
       }
 
       String bestMove = '';
       if (continuation.isNotEmpty) {
-        final tokens = continuation.split(' ');
-        if (tokens.isNotEmpty) {
-          bestMove = tokens[0];
-        }
+        bestMove = continuation.split(' ').first;
       }
 
       if (onEvaluationChanged != null) {
@@ -571,9 +538,8 @@ class StockfishService {
       }
     }
 
-    // Best move found output
     if (line.startsWith('bestmove')) {
-      // Engine finished its search iteration
+      // Engine finished search
     }
   }
 }
