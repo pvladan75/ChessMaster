@@ -75,10 +75,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _initSocket() {
+    // The server derives identity from this token; guests connect without one.
     _socket = io.io(backendUrl, io.OptionBuilder()
       .setTransports(['websocket'])
       .enableForceNewConnection()
       .disableAutoConnect()
+      .setAuth({'token': widget.session.token})
       .build());
 
     _socket.connect();

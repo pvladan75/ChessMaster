@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { pool } = require('../db');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, signDownloadToken, authenticateDownloadToken } = require('../middleware/auth');
 const { checkUserLimits } = require('../limitsService');
 const videoRenderer = require('../videoRenderer');
 
@@ -102,14 +102,16 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET /recordings/:id
+// Scoped to the host and the lesson's participants — a recording contains a full
+// lesson timeline and the trainer's audio, so it must not be readable by id alone.
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT sr.*, u.name as host_name
        FROM session_recordings sr
        LEFT JOIN users u ON sr.host_id = u.id
-       WHERE sr.id = $1`,
-      [req.params.id]
+       WHERE sr.id = $1 AND (sr.host_id = $2 OR $2 = ANY(sr.participants))`,
+      [req.params.id, req.user.id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Snimak nije pronađen.' });
@@ -141,8 +143,15 @@ router.post('/:id/export-mp4', authenticateToken, async (req, res) => {
 
     const recId = req.params.id;
 
-    const recRes = await pool.query('SELECT * FROM session_recordings WHERE id = $1', [recId]);
+    // Only the host may spend server CPU rendering their own lesson.
+    const recRes = await pool.query(
+      'SELECT * FROM session_recordings WHERE id = $1 AND host_id = $2',
+      [recId, req.user.id]
+    );
     const recording = recRes.rows[0];
+    if (!recording) {
+      return res.status(404).json({ error: 'Snimak nije pronađen.' });
+    }
 
     const filename = `recording_${recId}_${pieceStyle || 'alpha'}_${boardTheme || 'wood'}_${resolution || '720p'}_${Date.now()}.mp4`;
     const exportsDir = path.join(__dirname, '..', 'exports');
@@ -189,7 +198,13 @@ router.post('/:id/export-mp4', authenticateToken, async (req, res) => {
 
     const host = req.get('host');
     const protocol = req.protocol;
-    const downloadUrl = `${protocol}://${host}/recordings/export-download/${filename}`;
+    // The client hands this URL to the system browser, which cannot send an
+    // Authorization header — so the grant travels as a short-lived token bound
+    // to this one file.
+    const downloadToken = signDownloadToken(req.user.id, filename);
+    const downloadUrl =
+      `${protocol}://${host}/recordings/export-download/${encodeURIComponent(filename)}` +
+      `?token=${encodeURIComponent(downloadToken)}`;
 
     await pool.query('UPDATE session_recordings SET video_url = $1 WHERE id = $2', [downloadUrl, recId]);
 
@@ -207,13 +222,23 @@ router.post('/:id/export-mp4', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /recordings/export-download/:filename
-router.get('/export-download/:filename', (req, res) => {
-  const filePath = path.join(__dirname, '..', 'exports', req.params.filename);
+// GET /recordings/export-download/:filename?token=...
+// The token is issued by the export route and is bound to a single filename.
+// path.basename is a second line of defence so a traversal sequence can never
+// escape the exports directory even if a token were somehow forged.
+router.get('/export-download/:filename', authenticateDownloadToken, (req, res) => {
+  const safeName = path.basename(req.params.filename);
+  const exportsDir = path.join(__dirname, '..', 'exports');
+  const filePath = path.join(exportsDir, safeName);
+
+  if (!filePath.startsWith(exportsDir + path.sep)) {
+    logger.warn(`[DOWNLOAD] Rejected path outside exports directory: ${req.params.filename}`);
+    return res.status(400).send('Neispravno ime fajla.');
+  }
+
   if (fs.existsSync(filePath)) {
     res.setHeader('Content-Type', 'video/mp4');
-    res.setHeader('Content-Disposition', `attachment; filename="${req.params.filename}"`);
-    res.download(filePath, req.params.filename);
+    res.download(filePath, safeName);
   } else {
     res.status(404).send('Fajl videa nije pronađen.');
   }

@@ -1,14 +1,24 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
+import 'package:chess_app/constants.dart';
 
 class AgoraService {
   static final AgoraService _instance = AgoraService._internal();
   factory AgoraService() => _instance;
   AgoraService._internal();
 
-  static const String appId = "7e604da275014643839b616702e1c0d2";
+  /// Override per build with --dart-define=AGORA_APP_ID=...
+  /// The default is the App ID this project has always shipped with; it is not a
+  /// secret (App IDs are public by design), but the App Certificate on the server
+  /// is what actually protects channels. See /agora/token on the backend.
+  static const String appId = String.fromEnvironment(
+    'AGORA_APP_ID',
+    defaultValue: "7e604da275014643839b616702e1c0d2",
+  );
   RtcEngine? _engine;
   bool _isInitialized = false;
   bool _isJoined = false;
@@ -87,7 +97,42 @@ class AgoraService {
     return a.containsAll(b);
   }
 
-  Future<bool> joinChannel(String channelId, int uid) async {
+  /// Asks the backend for a channel-scoped RTC token.
+  ///
+  /// Returns an empty string when the server has no App Certificate configured,
+  /// which keeps the previous tokenless behaviour working. Once the certificate is
+  /// set server-side, every join is authenticated without any client change.
+  Future<String> _fetchRtcToken(String channelId, int uid, String userToken) async {
+    if (userToken.isEmpty) return '';
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$backendUrl/agora/token'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $userToken',
+            },
+            body: jsonEncode({'channelName': channelId, 'uid': uid}),
+          )
+          .timeout(const Duration(seconds: 5));
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final token = data['token'];
+        if (token is String && token.isNotEmpty) return token;
+        if (data['warning'] != null) {
+          print('[AGORA] ${data['warning']}');
+        }
+      } else {
+        print('[AGORA] Token request failed with status ${res.statusCode}');
+      }
+    } catch (e) {
+      print('[AGORA] Token request error, joining without token: $e');
+    }
+    return '';
+  }
+
+  Future<bool> joinChannel(String channelId, int uid, {String userToken = ''}) async {
     try {
       if (_isJoined) {
         await leaveChannel();
@@ -114,8 +159,10 @@ class AgoraService {
       // Enable audio
       await _engine!.enableAudio();
 
+      final rtcToken = await _fetchRtcToken(channelId, uid, userToken);
+
       await _engine!.joinChannel(
-        token: "",
+        token: rtcToken,
         channelId: channelId,
         uid: uid,
         options: const ChannelMediaOptions(
