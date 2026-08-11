@@ -13,6 +13,8 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/features/analysis_studio/services/position_info_service.dart';
+import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
+import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
 
 class AnalysisStudioScreen extends StatefulWidget {
   final UserSession userSession;
@@ -272,6 +274,63 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     );
   }
 
+  void _showAutoAnalysisDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AutoAnalysisDialog(
+        startNode: _currentNode,
+        stockfishService: _stockfishService,
+        onAnalysisCompleted: () {
+          setState(() {});
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('⚡ Automatska analiza uspešno završena i sačuvana u stablo!'), backgroundColor: Colors.amber),
+          );
+        },
+      ),
+    );
+  }
+
+  void _exportPgn() async {
+    final pgnText = PgnExporterService.exportToPgn(_rootNode);
+    await PgnExporterService.copyToClipboard(pgnText);
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.grey.shade900,
+        title: const Row(
+          children: [
+            Icon(Icons.file_download, color: Colors.lightBlueAccent),
+            SizedBox(width: 8),
+            Text('Izvezeni PGN Tekst', style: TextStyle(color: Colors.white, fontSize: 16)),
+          ],
+        ),
+        content: SizedBox(
+          width: 500,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              pgnText,
+              style: const TextStyle(color: Colors.white, fontFamily: 'monospace', fontSize: 12),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Zatvori'),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.copy, size: 16),
+            label: const Text('Kopirano u Klipbord!'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showSetupDialog() {
     showDialog(
       context: context,
@@ -330,6 +389,16 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
+            tooltip: 'Automatska Analiza ⚡',
+            onPressed: _showAutoAnalysisDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.share, color: Colors.lightBlueAccent),
+            tooltip: 'Izvezi PGN',
+            onPressed: _exportPgn,
+          ),
           IconButton(
             icon: const Icon(Icons.tune, color: Colors.tealAccent),
             tooltip: 'Unos Pozicije / PGN',
