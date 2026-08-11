@@ -15,6 +15,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/constants.dart';
+import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -1799,6 +1800,19 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
   }
 
+  void _exportToAnalysisStudio() {
+    final currentFen = _puzzleBoardController.getFen();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AnalysisStudioScreen(
+          userSession: widget.userSession,
+          initialFen: currentFen,
+        ),
+      ),
+    );
+  }
+
   void _showSnackBar(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
@@ -1960,6 +1974,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         ElevatedButton.icon(
+          icon: const Icon(Icons.biotech, size: 16),
+          label: const Text('Analiza 🔬'),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo.shade800, foregroundColor: Colors.white),
+          onPressed: _exportToAnalysisStudio,
+        ),
+        ElevatedButton.icon(
           icon: const Icon(Icons.refresh, size: 16),
           label: const Text('Probaj Ponovo'),
           style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade800, foregroundColor: Colors.white),
@@ -1999,6 +2019,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            IconButton(
+              icon: const Icon(Icons.biotech, size: 18, color: Colors.indigoAccent),
+              tooltip: 'Analiziraj u Tabli za Analizu 🔬',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: _exportToAnalysisStudio,
+            ),
+            const SizedBox(width: 8),
             IconButton(
               icon: const Icon(Icons.refresh, size: 16, color: Colors.amberAccent),
               tooltip: 'Probaj Ponovo',
@@ -2073,25 +2101,38 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                             children: [
                               Expanded(
                                 child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.biotech, size: 16),
+                                  label: const Text('Analiza 🔬', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.indigo.shade800,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                                  ),
+                                  onPressed: _exportToAnalysisStudio,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: ElevatedButton.icon(
                                   icon: const Icon(Icons.refresh, size: 16),
-                                  label: const Text('Probaj ponovo', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  label: const Text('Probaj ponovo', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.amber.shade900,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                                   ),
                                   onPressed: _restartCurrentPuzzle,
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 4),
                               Expanded(
                                 child: ElevatedButton.icon(
                                   icon: const Icon(Icons.arrow_forward, size: 16),
-                                  label: const Text('Naredna pozicija', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  label: const Text('Naredna pozicija', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.teal.shade800,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                                   ),
                                   onPressed: () {
                                     if (_selectedCategory == 'basic_mate') {

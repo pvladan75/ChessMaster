@@ -7,6 +7,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
+import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/recording_models.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
@@ -518,6 +519,22 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.biotech, color: Colors.tealAccent),
+            tooltip: 'Izvezi u Tablu za Analizu 🔬',
+            onPressed: () {
+              final fen = _boardController.getFen();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (ctx) => AnalysisStudioScreen(
+                    userSession: widget.userSession,
+                    initialFen: fen,
+                  ),
+                ),
+              );
+            },
+          ),
           if (rec.videoUrl != null)
             IconButton(
               tooltip: 'Preuzmi sačuvani MP4 Video',

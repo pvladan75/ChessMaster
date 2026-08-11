@@ -15,6 +15,7 @@ import 'package:chess/chess.dart' as chess;
 
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
+import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -2965,6 +2966,22 @@ class _ChessGamePageState extends State<ChessGamePage> {
         title: Text(isConnected ? gameStatus : 'Uspostavljanje veze...'),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.biotech, color: Colors.tealAccent),
+            tooltip: 'Izvezi u Tablu za Analizu 🔬',
+            onPressed: () {
+              final fen = controller.getFen();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (ctx) => AnalysisStudioScreen(
+                    userSession: widget.userSession,
+                    initialFen: fen,
+                  ),
+                ),
+              );
+            },
+          ),
           Icon(
             isConnected ? Icons.cloud_done : Icons.cloud_off,
             color: isConnected ? Colors.green : Colors.red,
