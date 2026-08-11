@@ -17,7 +17,7 @@ router.post('/trainer/students/add', authenticateToken, async (req, res) => {
   try {
     const studentRes = await pool.query('SELECT id, name, email FROM users WHERE email = $1', [studentEmail]);
     if (studentRes.rows.length === 0) {
-      return res.status(444 || 404).json({ error: 'Korisnik sa datim email-om nije pronađen.' });
+      return res.status(404).json({ error: 'Korisnik sa datim email-om nije pronađen.' });
     }
 
     const student = studentRes.rows[0];

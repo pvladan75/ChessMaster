@@ -436,6 +436,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         _engineArrows = _buildArrowsFromEngineLines(linesMap.values.toList());
       });
     };
+
+    // Register with the shared engine's subscriber stack. Without this, pushing
+    // the Analysis Studio and popping back would leave this screen's callbacks
+    // cleared and the engine silently dead.
+    _stockfishService.attach(
+      this,
+      onEvaluation: _stockfishService.onEvaluationChanged,
+      onMultiPV: _stockfishService.onMultiPVUpdated,
+    );
   }
 
   void _executeOpponentEngineMoveDueToTimeoutOrDepth(String reason) {
@@ -657,7 +666,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   void dispose() {
     _serverHealthTimer?.cancel();
     _verificationTimeoutTimer?.cancel();
-    _stockfishService.dispose();
+    _stockfishService.detach(this);
     super.dispose();
   }
 

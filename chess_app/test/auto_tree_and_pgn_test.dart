@@ -1,8 +1,49 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart';
-import 'package:chess_app/services/stockfish_service.dart';
+import 'package:chess_app/models/analysis_models.dart';
+
+/// Deterministic stand-in for the engine.
+///
+/// Returns the first legal moves of whatever position it is handed, so the
+/// generator's branching, pruning and cancellation logic can be tested without
+/// a real Stockfish process or a network call.
+class _FakeEngine {
+  final List<String> evaluations;
+  final void Function(int callCount)? onCall;
+  int callCount = 0;
+
+  _FakeEngine({this.evaluations = const ['+0.30', '+0.20'], this.onCall});
+
+  Future<List<AnalysisLine>> analyze(
+    String fen, {
+    required int depth,
+    required int multiPV,
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
+    callCount++;
+    onCall?.call(callCount);
+
+    final game = chess.Chess.fromFEN(fen);
+    final legal = game.generate_moves();
+
+    final lines = <AnalysisLine>[];
+    for (var i = 0; i < multiPV && i < legal.length; i++) {
+      final move = legal[i];
+      final uci = move.fromAlgebraic + move.toAlgebraic;
+      lines.add(AnalysisLine.fromPv(
+        multipv: i + 1,
+        depth: depth,
+        eval: i < evaluations.length ? evaluations[i] : '+0.10',
+        pvString: uci,
+        startingFen: fen,
+      ));
+    }
+    return lines;
+  }
+}
 
 void main() {
   group('Analysis Studio Phase 3 Unit Tests', () {
@@ -64,7 +105,7 @@ void main() {
     test('4. AutoTreeGeneratorService generates candidate branches synchronously', () async {
       final service = AutoTreeGeneratorService();
       final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-      final stockfish = StockfishService();
+      final engine = _FakeEngine();
 
       final params = AutoAnalysisParams(
         pliesDepth: 2,
@@ -76,16 +117,59 @@ void main() {
       await service.generateTree(
         startNode: root,
         params: params,
-        stockfishService: stockfish,
+        analyzer: engine.analyze,
       );
 
-      expect(root.children, isNotEmpty);
+      // Two candidates at ply 1, each expanded into two more at ply 2.
+      expect(root.children.length, 2);
+      expect(root.children.first.moveSan, isNotNull);
+      for (final child in root.children) {
+        expect(child.children.length, 2, reason: 'each ply-1 node expands once more');
+      }
+      expect(engine.callCount, 3, reason: 'root plus two ply-1 nodes are analyzed');
     });
 
-    test('5. AutoTreeGeneratorService cancel stops recursion', () {
+    test('5. AutoTreeGeneratorService prunes candidates beyond the delta cutoff', () async {
       final service = AutoTreeGeneratorService();
-      service.cancel();
-      expect(service, isNotNull);
+      final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      // Second candidate is 3 pawns worse than the best, beyond a 1.0 cutoff.
+      final engine = _FakeEngine(evaluations: ['+0.30', '-2.70']);
+
+      await service.generateTree(
+        startNode: root,
+        params: AutoAnalysisParams(
+          pliesDepth: 1,
+          candidateCount: 2,
+          engineDepth: 10,
+          deltaCutoff: 1.0,
+        ),
+        analyzer: engine.analyze,
+      );
+
+      expect(root.children.length, 1, reason: 'the losing candidate is pruned');
+    });
+
+    test('6. AutoTreeGeneratorService cancel stops recursion', () async {
+      final service = AutoTreeGeneratorService();
+      final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      // Cancels as soon as the engine is consulted the first time.
+      final engine = _FakeEngine(onCall: (count) {
+        if (count == 1) service.cancel();
+      });
+
+      await service.generateTree(
+        startNode: root,
+        params: AutoAnalysisParams(
+          pliesDepth: 4,
+          candidateCount: 2,
+          engineDepth: 10,
+          deltaCutoff: 5.0,
+        ),
+        analyzer: engine.analyze,
+      );
+
+      expect(engine.callCount, 1, reason: 'recursion stops after the cancel');
+      expect(root.children, isEmpty);
     });
   });
 }

@@ -19,6 +19,18 @@ class AutoAnalysisParams {
   });
 }
 
+/// How the generator asks for an evaluated position.
+///
+/// [StockfishService.analyzePositionSync] satisfies this directly; tests supply a
+/// deterministic stand-in so the tree logic can be exercised without a real engine
+/// or a network round-trip.
+typedef PositionAnalyzer = Future<List<AnalysisLine>> Function(
+  String fen, {
+  required int depth,
+  required int multiPV,
+  Duration timeout,
+});
+
 class AutoTreeGeneratorService {
   bool _isCancelled = false;
 
@@ -27,21 +39,28 @@ class AutoTreeGeneratorService {
   }
 
   /// Generates variation tree recursively for startNode based on params.
+  ///
+  /// Pass [analyzer] to drive a specific engine; it defaults to the shared
+  /// StockfishService singleton, which is what the app uses.
   Future<void> generateTree({
     required AnalysisNode startNode,
     required AutoAnalysisParams params,
-    required StockfishService stockfishService,
+    PositionAnalyzer? analyzer,
+    StockfishService? stockfishService,
     Function(int processed, int total, String statusMsg)? onProgress,
   }) async {
     _isCancelled = false;
     int processedCount = 0;
     final int estimatedTotal = calculateEstimatedNodes(params.pliesDepth, params.candidateCount);
 
+    final resolvedAnalyzer =
+        analyzer ?? (stockfishService ?? StockfishService()).analyzePositionSync;
+
     await _expandNodeRecursive(
       currentNode: startNode,
       currentPly: 0,
       params: params,
-      stockfishService: stockfishService,
+      analyzer: resolvedAnalyzer,
       onProgress: (msg) {
         processedCount++;
         onProgress?.call(processedCount, estimatedTotal, msg);
@@ -53,7 +72,7 @@ class AutoTreeGeneratorService {
     required AnalysisNode currentNode,
     required int currentPly,
     required AutoAnalysisParams params,
-    required StockfishService stockfishService,
+    required PositionAnalyzer analyzer,
     required Function(String statusMsg) onProgress,
   }) async {
     if (_isCancelled || currentPly >= params.pliesDepth) return;
@@ -65,7 +84,7 @@ class AutoTreeGeneratorService {
     AppLogger.log('[AutoTree] ⏱️ Čekam Stockfish odgovor za depth ${params.engineDepth}...');
     onProgress('Analiziram poziciju (Sloj ${currentPly + 1}/${params.pliesDepth})...');
 
-    final lines = await stockfishService.analyzePositionSync(
+    final lines = await analyzer(
       currentNode.fen,
       depth: params.engineDepth,
       multiPV: params.candidateCount,
@@ -158,7 +177,7 @@ class AutoTreeGeneratorService {
         currentNode: childNode,
         currentPly: currentPly + 1,
         params: params,
-        stockfishService: stockfishService,
+        analyzer: analyzer,
         onProgress: onProgress,
       );
     }

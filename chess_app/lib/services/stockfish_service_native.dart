@@ -237,6 +237,49 @@ class StockfishService {
     onMultiPVUpdated = null;
   }
 
+  // ─── SUBSCRIBER STACK ───
+  // Every screen shares this one engine instance. A screen attaches while it is
+  // on top of the navigation stack and detaches when it pops. Because detaching
+  // reactivates whichever screen is underneath, returning from a pushed screen
+  // no longer leaves the screen below with null callbacks and a silently dead
+  // engine.
+  final List<_EngineSubscriber> _subscribers = [];
+
+  /// Registers [owner]'s callbacks and makes them the active ones.
+  /// Re-attaching the same owner replaces its previous registration.
+  void attach(
+    Object owner, {
+    Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation,
+    Function(Map<int, AnalysisLine> lines)? onMultiPV,
+  }) {
+    _subscribers.removeWhere((s) => identical(s.owner, owner));
+    _subscribers.add(_EngineSubscriber(owner, onEvaluation, onMultiPV));
+    AppLogger.log('[StockfishService] 🔗 attach(${owner.runtimeType}) — ${_subscribers.length} subscriber(s)');
+    _activateTopSubscriber();
+  }
+
+  /// Removes [owner] and hands the engine back to the screen underneath.
+  void detach(Object owner) {
+    final removed = _subscribers.any((s) => identical(s.owner, owner));
+    _subscribers.removeWhere((s) => identical(s.owner, owner));
+    if (removed) {
+      AppLogger.log('[StockfishService] 🔓 detach(${owner.runtimeType}) — ${_subscribers.length} subscriber(s) left');
+    }
+    stopAnalysis();
+    _activateTopSubscriber();
+  }
+
+  void _activateTopSubscriber() {
+    if (_subscribers.isEmpty) {
+      onEvaluationChanged = null;
+      onMultiPVUpdated = null;
+      return;
+    }
+    final top = _subscribers.last;
+    onEvaluationChanged = top.onEvaluation;
+    onMultiPVUpdated = top.onMultiPV;
+  }
+
   /// Sends a FEN position for analysis
   Future<void> analyzePosition(String fen, {int depth = 18, bool isInfinite = false}) async {
     _currentFen = fen;
@@ -474,10 +517,14 @@ class StockfishService {
   }
 
   /// Screen-level dispose: stops current analysis but keeps engine alive.
+  ///
+  /// Deliberately does NOT clear callbacks. This is a singleton, so clearing them
+  /// here would silence whichever screen is still listening. Screens should call
+  /// [detach] when they pop and [stopAnalysis] when they merely switch the engine
+  /// off; this remains only so a stray call degrades to a harmless stop.
   void dispose() {
-    AppLogger.log('[StockfishService] 🧹 dispose() — stopping analysis, keeping engine alive (singleton).');
+    AppLogger.log('[StockfishService] 🧹 dispose() — stopping analysis, keeping engine and subscribers alive.');
     stopAnalysis();
-    clearCallbacks();
   }
 
   /// Stops ongoing search without quitting engine
@@ -593,4 +640,13 @@ class StockfishService {
       // Engine finished search
     }
   }
+}
+
+/// One screen's registration with the shared engine.
+class _EngineSubscriber {
+  final Object owner;
+  final Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation;
+  final Function(Map<int, AnalysisLine> lines)? onMultiPV;
+
+  _EngineSubscriber(this.owner, this.onEvaluation, this.onMultiPV);
 }
