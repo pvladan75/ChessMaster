@@ -14,31 +14,58 @@ const lessonRoutes = require('./routes/lessons');
 const recordingRoutes = require('./routes/recordings');
 const puzzleRoutes = require('./routes/puzzles');
 const socialRoutes = require('./routes/social');
-const { authenticateToken, requireRole } = require('./middleware/auth');
+const agoraRoutes = require('./routes/agora');
+const { authenticateToken, requireRole, verifySocketToken } = require('./middleware/auth');
 
 const app = express();
 const server = http.createServer(app);
 
-// Initialize Socket.io with CORS enabled for frontend connection
+// Browser origins permitted to call the API, as a comma-separated ALLOWED_ORIGINS list.
+// Native Android/Windows clients send no Origin header and are always allowed.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+function isOriginAllowed(origin) {
+  if (!origin) return true; // native client, curl, or same-origin request
+  return ALLOWED_ORIGINS.includes(origin);
+}
+
+if (ALLOWED_ORIGINS.length === 0) {
+  logger.warn('ALLOWED_ORIGINS is empty — browser-based clients will be blocked by CORS. Native clients are unaffected.');
+}
+
+// Initialize Socket.io with an explicit origin allowlist
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+    origin: (origin, callback) => callback(null, isOriginAllowed(origin)),
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
 const PORT = process.env.PORT || 3000;
 
-// Middleware for parsing JSON & Urlencoded with large limit for audio recordings
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ limit: '100mb', extended: true }));
+// Recording uploads carry audio, so they get a larger ceiling than the rest of the API.
+app.use('/recordings', express.json({ limit: '100mb' }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
 // Serve static uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // CORS headers middleware
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin && isOriginAllowed(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else if (origin) {
+    logger.warn(`[CORS] Blocked request from disallowed origin: ${origin}`);
+    return res.status(403).json({ error: 'Origin not allowed' });
+  }
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE');
   if (req.method === 'OPTIONS') {
@@ -52,16 +79,10 @@ app.get(['/', '/health', '/api/health'], (req, res) => {
   res.json({ status: 'ok', message: 'Chess Master backend is running', timestamp: new Date().toISOString() });
 });
 
-// ADMIN ROUTE - RESET ALL USERS & DATA
-app.post('/admin/reset-all-users', async (req, res) => {
-  try {
-    await pool.query('TRUNCATE users RESTART IDENTITY CASCADE;');
-    res.json({ message: 'Svi nalozi i povezani podaci su uspešno izbrisani iz baze.' });
-  } catch (err) {
-    logger.error('Error resetting DB:', err);
-    res.status(500).json({ error: 'Greška pri brisanju podataka.' });
-  }
-});
+// NOTE: the former POST /admin/reset-all-users route was removed. It ran
+// `TRUNCATE users RESTART IDENTITY CASCADE` with no authentication, so any
+// unauthenticated caller could wipe every account, room, lesson and recording.
+// For local resets use `node clear_users.js` against a development database.
 
 // MOUNT ROUTE MODULES
 app.use('/', authRoutes);
@@ -69,6 +90,7 @@ app.use('/rooms', roomRoutes);
 app.use('/lessons', lessonRoutes);
 app.use('/recordings', recordingRoutes);
 app.use('/api', puzzleRoutes);
+app.use('/agora', agoraRoutes);
 app.use('/', socialRoutes);
 
 // SOCKET.IO REALTIME EVENTS
@@ -77,49 +99,109 @@ const roomAudioUsers = {}; // roomId -> { userId -> { socketId, userId, userName
 const onlineUsers = {}; // userId -> { socketId, name, email, role }
 const activeRoomMembers = {}; // roomId -> { userId -> { name, role } }
 
+// Reject connections carrying a bad token; allow tokenless guests through read-only.
+// socket.data.user is the ONLY trusted identity — client-supplied userId/role in event
+// payloads is treated as a hint at best and never as authorization.
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  try {
+    socket.data.user = verifySocketToken(token);
+    next();
+  } catch (err) {
+    logger.warn(`[SOCKET AUTH] Rejected connection ${socket.id}: ${err.message}`);
+    next(new Error('Invalid or expired authentication token'));
+  }
+});
+
+/// True when this socket's authenticated user created the room.
+async function isRoomCreator(roomId, userId) {
+  if (!userId) return false;
+  try {
+    const res = await pool.query('SELECT creator_id FROM rooms WHERE room_code = $1', [roomId]);
+    return res.rows.length > 0 && res.rows[0].creator_id === userId;
+  } catch (e) {
+    logger.error('Error checking room creator:', e);
+    return false;
+  }
+}
+
+/// Guards host-only realtime actions. A socket qualifies if it created the room or
+/// currently holds a host/trener seat granted by the creator.
+async function canAdministerRoom(socket, roomId) {
+  const user = socket.data.user;
+  if (!user) return false;
+  if (await isRoomCreator(roomId, user.id)) return true;
+  const member = activeRoomMembers[roomId] && activeRoomMembers[roomId][user.id];
+  return !!member && (member.role === 'host' || member.role === 'trener');
+}
+
+function denyPrivileged(socket, event, roomId) {
+  logger.warn(
+    `[SOCKET AUTHZ] Denied '${event}' on room ${roomId} for ` +
+    `${socket.data.user ? `user ${socket.data.user.id}` : 'guest'} (socket ${socket.id})`
+  );
+  socket.emit('action_denied', { event, reason: 'Nemate ovlašćenje za ovu akciju u ovoj sobi.' });
+}
+
 io.on('connection', (socket) => {
-  logger.info(`User connected: ${socket.id}`);
+  const authUser = socket.data.user;
+  logger.info(`User connected: ${socket.id} (${authUser ? `user ${authUser.id}` : 'guest'})`);
 
-  // Register online user presence
-  socket.on('register_user', ({ userId, name, email, role }) => {
-    socket.userId = userId;
-    socket.userName = name;
-    socket.userEmail = email;
-    socket.userRole = role;
+  // Register online user presence. Identity comes from the token, not the payload.
+  socket.on('register_user', () => {
+    if (!authUser) {
+      logger.warn(`[ONLINE PRESENCE] Ignoring register_user from unauthenticated socket ${socket.id}`);
+      return;
+    }
 
-    onlineUsers[userId] = {
+    socket.userId = authUser.id;
+    socket.userName = authUser.name;
+    socket.userEmail = authUser.email;
+    socket.userRole = authUser.role;
+
+    onlineUsers[authUser.id] = {
       socketId: socket.id,
-      userId,
-      name,
-      email,
-      role
+      userId: authUser.id,
+      name: authUser.name,
+      email: authUser.email,
+      role: authUser.role
     };
 
-    logger.info(`[ONLINE PRESENCE] User registered: ${name} (ID: ${userId})`);
+    logger.info(`[ONLINE PRESENCE] User registered: ${authUser.name} (ID: ${authUser.id})`);
   });
 
   socket.on('send_lesson_invite', ({ studentId, roomCode }) => {
-    logger.info(`[REALTIME INVITE] Sender: ${socket.userName} -> Student ID: ${studentId} | Room: ${roomCode}`);
+    if (!authUser) {
+      return denyPrivileged(socket, 'send_lesson_invite', roomCode);
+    }
+    logger.info(`[REALTIME INVITE] Sender: ${authUser.name} -> Student ID: ${studentId} | Room: ${roomCode}`);
     const recipient = onlineUsers[studentId];
     if (recipient) {
       io.to(recipient.socketId).emit('lesson_invite_received', {
-        senderId: socket.userId,
-        senderName: socket.userName || 'Trener',
+        senderId: authUser.id,
+        senderName: authUser.name || 'Trener',
         roomCode
       });
     }
   });
 
-  socket.on('joinGame', async ({ roomId, playerColor, userId, userName, role }) => {
+  socket.on('joinGame', async ({ roomId, playerColor }) => {
     socket.join(roomId);
     socket.roomId = roomId;
-    socket.userId = userId || socket.id;
-    socket.userName = userName || 'Gost';
-    socket.userRole = role || 'ucenik';
+    // Guests get a socket-scoped identity so they can watch without impersonating anyone.
+    socket.userId = authUser ? authUser.id : socket.id;
+    socket.userName = authUser ? authUser.name : 'Gost';
 
     if (!activeRoomMembers[roomId]) {
       activeRoomMembers[roomId] = {};
     }
+
+    // The room's creator is the host. Everyone else starts as a student and can only
+    // be promoted by someone who already administers the room.
+    const previousSeat = activeRoomMembers[roomId][socket.userId];
+    const creator = await isRoomCreator(roomId, authUser && authUser.id);
+    socket.userRole = creator ? 'trener' : (previousSeat ? previousSeat.role : 'ucenik');
+
     activeRoomMembers[roomId][socket.userId] = {
       userId: socket.userId,
       name: socket.userName,
@@ -129,6 +211,8 @@ io.on('connection', (socket) => {
 
     logger.info(`User ${socket.userName} (${socket.userId}) joined room: ${roomId} as ${socket.userRole}`);
 
+    // Tell the joiner its authoritative role, then broadcast the refreshed roster.
+    socket.emit('role_changed', { newRole: socket.userRole });
     io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
 
     try {
@@ -145,7 +229,13 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('change_user_role', ({ roomId, targetUserId, newRole }) => {
+  socket.on('change_user_role', async ({ roomId, targetUserId, newRole }) => {
+    if (!(await canAdministerRoom(socket, roomId))) {
+      return denyPrivileged(socket, 'change_user_role', roomId);
+    }
+    if (!['trener', 'host', 'ucenik'].includes(newRole)) {
+      return denyPrivileged(socket, 'change_user_role', roomId);
+    }
     if (activeRoomMembers[roomId] && activeRoomMembers[roomId][targetUserId]) {
       activeRoomMembers[roomId][targetUserId].role = newRole;
       io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
@@ -157,6 +247,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('change_permissions', async ({ roomId, boardControl }) => {
+    if (!(await canAdministerRoom(socket, roomId))) {
+      return denyPrivileged(socket, 'change_permissions', roomId);
+    }
     try {
       await pool.query('UPDATE rooms SET board_control = $1 WHERE room_code = $2', [boardControl, roomId]);
       io.to(roomId).emit('permissions_updated', { boardControl });
@@ -166,7 +259,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('recording_status_update', ({ roomId, status, recordingStartTimeMs, fen, paused }) => {
+  socket.on('recording_status_update', async ({ roomId, status, recordingStartTimeMs, fen, paused }) => {
+    if (!(await canAdministerRoom(socket, roomId))) {
+      return denyPrivileged(socket, 'recording_status_update', roomId);
+    }
     socket.to(roomId).emit('recording_status_changed', {
       status,
       recordingStartTimeMs,
@@ -177,6 +273,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('change_engine_permission', async ({ roomId, allowStudentEngine }) => {
+    if (!(await canAdministerRoom(socket, roomId))) {
+      return denyPrivileged(socket, 'change_engine_permission', roomId);
+    }
     try {
       await pool.query('UPDATE rooms SET allow_student_engine = $1 WHERE room_code = $2', [allowStudentEngine, roomId]);
       io.to(roomId).emit('engine_permission_updated', { allowStudentEngine });
@@ -186,17 +285,43 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('force_flip_board', ({ roomId, orientation }) => {
+  socket.on('force_flip_board', async ({ roomId, orientation }) => {
+    if (!(await canAdministerRoom(socket, roomId))) {
+      return denyPrivileged(socket, 'force_flip_board', roomId);
+    }
     socket.to(roomId).emit('board_flipped', { orientation });
     logger.info(`[FORCE FLIP] Room ${roomId} -> orientation: ${orientation}`);
   });
 
-  socket.on('toggle_blunder_alert', ({ roomId, enabled }) => {
+  socket.on('toggle_blunder_alert', async ({ roomId, enabled }) => {
+    if (!(await canAdministerRoom(socket, roomId))) {
+      return denyPrivileged(socket, 'toggle_blunder_alert', roomId);
+    }
     socket.to(roomId).emit('blunder_alert_toggled', { enabled });
     logger.info(`[BLUNDER ALERT] Room ${roomId} -> enabled: ${enabled}`);
   });
 
+  /// Enforces the room's board_control setting server-side. Rooms that do not exist in
+  /// the database (e.g. the local 'STUDIO' board) have no shared state to protect.
+  async function canMoveInRoom(roomId) {
+    let room;
+    try {
+      const res = await pool.query('SELECT board_control FROM rooms WHERE room_code = $1', [roomId]);
+      room = res.rows[0];
+    } catch (err) {
+      logger.error('Error checking board control:', err);
+      return false;
+    }
+    if (!room) return true;
+    const control = room.board_control || 'host_only';
+    if (control !== 'host_only' && control !== 'trainer_only') return true;
+    return canAdministerRoom(socket, roomId);
+  }
+
   socket.on('move', async ({ roomId, move, currentFen, role, currentMoveIndex, movePath }) => {
+    if (!(await canMoveInRoom(roomId))) {
+      return denyPrivileged(socket, 'move', roomId);
+    }
     socket.to(roomId).emit('move', { move, currentFen, role, currentMoveIndex, movePath });
     try {
       await pool.query('UPDATE rooms SET current_fen = $1 WHERE room_code = $2', [currentFen, roomId]);
@@ -205,33 +330,39 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('pgn_loaded', ({ roomId, pgn }) => {
+  socket.on('pgn_loaded', async ({ roomId, pgn }) => {
+    if (!(await canMoveInRoom(roomId))) {
+      return denyPrivileged(socket, 'pgn_loaded', roomId);
+    }
     socket.to(roomId).emit('pgn_loaded', { pgn });
   });
 
-  socket.on('audio_join', ({ roomId, userId, userName, role, isMuted }) => {
+  socket.on('audio_join', ({ roomId, isMuted }) => {
     socket.join(roomId);
+    const audioUserId = socket.userId || (authUser ? authUser.id : socket.id);
     socket.audioRoomId = roomId;
-    socket.audioUserId = userId;
+    socket.audioUserId = audioUserId;
 
     if (!roomAudioUsers[roomId]) {
       roomAudioUsers[roomId] = {};
     }
 
-    roomAudioUsers[roomId][userId] = {
+    const seat = activeRoomMembers[roomId] && activeRoomMembers[roomId][audioUserId];
+    roomAudioUsers[roomId][audioUserId] = {
       socketId: socket.id,
-      userId,
-      userName: userName || 'Korisnik',
-      role: role || 'ucenik',
+      userId: audioUserId,
+      userName: socket.userName || (authUser ? authUser.name : 'Gost'),
+      role: seat ? seat.role : 'ucenik',
       isMuted: isMuted !== undefined ? isMuted : false,
       handRaised: false
     };
 
     io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
-    logger.info(`[AUDIO] User ${userName} (${userId}) joined audio in room ${roomId}`);
+    logger.info(`[AUDIO] User ${roomAudioUsers[roomId][audioUserId].userName} (${audioUserId}) joined audio in room ${roomId}`);
   });
 
-  socket.on('audio_leave', ({ roomId, userId }) => {
+  socket.on('audio_leave', ({ roomId }) => {
+    const userId = socket.audioUserId;
     if (roomAudioUsers[roomId] && roomAudioUsers[roomId][userId]) {
       delete roomAudioUsers[roomId][userId];
       if (Object.keys(roomAudioUsers[roomId]).length === 0) {
@@ -244,14 +375,23 @@ io.on('connection', (socket) => {
     logger.info(`[AUDIO] User ${userId} left audio in room ${roomId}`);
   });
 
-  socket.on('audio_mute_toggle', ({ roomId, userId, isMuted }) => {
-    if (roomAudioUsers[roomId] && roomAudioUsers[roomId][userId]) {
-      roomAudioUsers[roomId][userId].isMuted = isMuted;
+  // Users may always mute themselves; muting someone else is a host action.
+  socket.on('audio_mute_toggle', async ({ roomId, userId, isMuted }) => {
+    const targetId = userId === undefined || userId === null ? socket.audioUserId : userId;
+    const isSelf = String(targetId) === String(socket.audioUserId);
+    if (!isSelf && !(await canAdministerRoom(socket, roomId))) {
+      return denyPrivileged(socket, 'audio_mute_toggle', roomId);
+    }
+    if (roomAudioUsers[roomId] && roomAudioUsers[roomId][targetId]) {
+      roomAudioUsers[roomId][targetId].isMuted = isMuted;
       io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
     }
   });
 
-  socket.on('audio_mute_all_students', ({ roomId }) => {
+  socket.on('audio_mute_all_students', async ({ roomId }) => {
+    if (!(await canAdministerRoom(socket, roomId))) {
+      return denyPrivileged(socket, 'audio_mute_all_students', roomId);
+    }
     if (roomAudioUsers[roomId]) {
       Object.keys(roomAudioUsers[roomId]).forEach(uId => {
         if (roomAudioUsers[roomId][uId].role !== 'host' && roomAudioUsers[roomId][uId].role !== 'trener') {
@@ -263,15 +403,17 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('audio_hand_raise_toggle', ({ roomId, userId, handRaised }) => {
+  // Raising a hand only ever applies to the socket that sent it.
+  socket.on('audio_hand_raise_toggle', ({ roomId, handRaised }) => {
+    const userId = socket.audioUserId;
     if (roomAudioUsers[roomId] && roomAudioUsers[roomId][userId]) {
       roomAudioUsers[roomId][userId].handRaised = handRaised;
       io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
     }
   });
 
-  socket.on('audio_speaker_active', ({ roomId, userId, isSpeaking }) => {
-    socket.to(roomId).emit('audio_speaker_active', { userId, isSpeaking });
+  socket.on('audio_speaker_active', ({ roomId, isSpeaking }) => {
+    socket.to(roomId).emit('audio_speaker_active', { userId: socket.audioUserId, isSpeaking });
   });
 
   socket.on('disconnect', () => {

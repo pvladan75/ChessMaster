@@ -81,18 +81,34 @@ async function initDB() {
     logger.info('Verified database table: puzzles (with solutions column)');
 
     // Create saved_lessons table
+    // user_id is the lesson's owner; trainer_id is the trainer who shared it with
+    // their students. routes/lessons.js writes both, and limitsService counts by
+    // either, so a fresh database must have both columns.
     await client.query(`
       CREATE TABLE IF NOT EXISTS saved_lessons (
         id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         trainer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         title VARCHAR(255) NOT NULL,
         description TEXT,
         tags VARCHAR(255)[],
         fen VARCHAR(255) NOT NULL,
         pgn TEXT,
+        position_list JSONB,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Bring pre-existing databases up to the same shape.
+    await client.query(`
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+    `);
+    await client.query(`
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS position_list JSONB;
+    `);
+    logger.info('Verified database table: saved_lessons (with user_id & position_list)');
 
     // Create trainer_students table
     await client.query(`

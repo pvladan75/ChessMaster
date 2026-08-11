@@ -30,6 +30,39 @@ class StockfishService {
     onMultiPVUpdated = null;
   }
 
+  // ─── SUBSCRIBER STACK ───
+  // Mirrors the native implementation: screens attach while on top of the
+  // navigation stack, and detaching reactivates the screen underneath rather
+  // than leaving the shared engine with no listener.
+  final List<_EngineSubscriber> _subscribers = [];
+
+  void attach(
+    Object owner, {
+    Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation,
+    Function(Map<int, AnalysisLine> lines)? onMultiPV,
+  }) {
+    _subscribers.removeWhere((s) => identical(s.owner, owner));
+    _subscribers.add(_EngineSubscriber(owner, onEvaluation, onMultiPV));
+    _activateTopSubscriber();
+  }
+
+  void detach(Object owner) {
+    _subscribers.removeWhere((s) => identical(s.owner, owner));
+    stopAnalysis();
+    _activateTopSubscriber();
+  }
+
+  void _activateTopSubscriber() {
+    if (_subscribers.isEmpty) {
+      onEvaluationChanged = null;
+      onMultiPVUpdated = null;
+      return;
+    }
+    final top = _subscribers.last;
+    onEvaluationChanged = top.onEvaluation;
+    onMultiPVUpdated = top.onMultiPV;
+  }
+
   Future<void> analyzePosition(String fen, {int depth = 10, bool isInfinite = false}) async {
     _isActive = true;
 
@@ -96,9 +129,9 @@ class StockfishService {
 
   void setMultiPV(int count) {}
 
+  /// Deliberately does not clear callbacks — see the native implementation.
   void dispose() {
     stopAnalysis();
-    clearCallbacks();
   }
 
   void shutdown() {
@@ -117,4 +150,13 @@ class StockfishService {
     return _engineLines.values.toList();
   }
 
+}
+
+/// One screen's registration with the shared engine.
+class _EngineSubscriber {
+  final Object owner;
+  final Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation;
+  final Function(Map<int, AnalysisLine> lines)? onMultiPV;
+
+  _EngineSubscriber(this.owner, this.onEvaluation, this.onMultiPV);
 }

@@ -157,6 +157,17 @@ class _ChessGamePageState extends State<ChessGamePage> {
       });
     };
 
+    // Register with the shared engine's subscriber stack so that pushing another
+    // engine-using screen and popping back restores this listener.
+    // This screen builds its own engineLines from the evaluation stream and never
+    // uses the MultiPV callback, so it registers none rather than inheriting
+    // whichever one happened to be active.
+    _stockfishService.attach(
+      this,
+      onEvaluation: _stockfishService.onEvaluationChanged,
+      onMultiPV: null,
+    );
+
     _initAudioChat();
   }
 
@@ -173,7 +184,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.disconnect();
     socket.dispose();
     _agoraService.leaveChannel();
-    _stockfishService.dispose();
+    _stockfishService.detach(this);
     commentController.dispose();
     fenPasteController.dispose();
     pgnPasteController.dispose();
@@ -222,7 +233,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
     };
 
-    final success = await _agoraService.joinChannel(widget.roomCode, widget.userSession.id);
+    final success = await _agoraService.joinChannel(
+      widget.roomCode,
+      widget.userSession.id,
+      userToken: widget.userSession.token,
+    );
     if (!success && mounted) {
       setState(() {
         isAudioConnecting = false;
@@ -290,7 +305,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           engineLines.clear();
           _triggerEngineAnalysis();
         } else {
-          _stockfishService.dispose();
+          _stockfishService.stopAnalysis();
           setState(() {
             currentEngineEval = "0.00";
             bestEngineMove = "-";
@@ -510,7 +525,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       });
                       if (isEngineEnabled) {
                         // Restart engine
-                        _stockfishService.dispose();
+                        _stockfishService.stopAnalysis();
                         await _stockfishService.initEngine();
                         _triggerEngineAnalysis();
                       }
@@ -535,7 +550,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         });
                         if (isEngineEnabled) {
                           // Restart engine with new custom executable
-                          _stockfishService.dispose();
+                          _stockfishService.stopAnalysis();
                           await _stockfishService.initEngine();
                           _triggerEngineAnalysis();
                         }
@@ -587,11 +602,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   void initSocket() {
-    // Configure socket.io client connection to server
+    // Configure socket.io client connection to server.
+    // The auth token is what the server trusts for identity and host privileges —
+    // the role sent in joinGame below is only an optimistic local default.
     socket = io.io(backendUrl, io.OptionBuilder()
       .setTransports(['websocket'])
       .enableForceNewConnection()
       .disableAutoConnect()
+      .setAuth({'token': widget.userSession.token})
       .build());
 
     socket.connect();
@@ -617,6 +635,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
         isConnected = false;
         gameStatus = "Prekinuta veza sa serverom";
       });
+    });
+
+    // The server rejects privileged actions it did not authorize; surface that
+    // instead of letting the action fail silently.
+    socket.on('action_denied', (data) {
+      if (!mounted) return;
+      final reason = (data is Map && data['reason'] != null)
+          ? data['reason'].toString()
+          : 'Nemate ovlašćenje za ovu akciju.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(reason), backgroundColor: Colors.redAccent),
+      );
     });
 
     socket.on('gameState', (data) {
@@ -658,7 +688,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           // If permission is revoked, force disable and turn off engine for ucenik
           if (!allowStudentEngine && widget.userSession.role == 'ucenik') {
             isEngineEnabled = false;
-            _stockfishService.dispose();
+            _stockfishService.stopAnalysis();
             currentEngineEval = "0.00";
             bestEngineMove = "-";
             engineLines.clear();

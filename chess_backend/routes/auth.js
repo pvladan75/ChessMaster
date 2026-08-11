@@ -3,8 +3,26 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const { pool } = require('../db');
 const { JWT_SECRET } = require('../middleware/auth');
+const mailService = require('../services/mailService');
+
+// Credential endpoints are the prime target for brute force and enumeration,
+// so they get a tighter budget than the rest of the API.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Previše pokušaja. Pokušajte ponovo za 15 minuta.' },
+});
+
+router.use(['/register', '/login', '/verify-email', '/auth/verify-email', '/google', '/auth/google'], authLimiter);
+
+function generateVerificationCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 // POST /register
 router.post('/register', async (req, res) => {
@@ -22,9 +40,16 @@ router.post('/register', async (req, res) => {
       const existing = userCheck.rows[0];
       if (!existing.is_verified) {
         // Generate new verification code for unverified existing registration
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const verificationCode = generateVerificationCode();
         await pool.query('UPDATE users SET verification_code = $1 WHERE email = $2', [verificationCode, email]);
-        logger.info({ code: verificationCode, email }, 'Verification code re-generated');
+
+        try {
+          await mailService.sendVerificationCode(email, verificationCode, existing.name);
+        } catch (mailErr) {
+          logger.error(`Failed to send verification code to ${email}: ${mailErr.message}`);
+          return res.status(500).json({ error: 'Nije moguće poslati verifikacioni kod. Kontaktirajte podršku.' });
+        }
+
         return res.status(200).json({
           requiresVerification: true,
           email,
@@ -36,14 +61,21 @@ router.post('/register', async (req, res) => {
 
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationCode = generateVerificationCode();
 
-    await pool.query(
+    const insertResult = await pool.query(
       'INSERT INTO users (email, password_hash, name, role, is_verified, verification_code) VALUES ($1, $2, $3, $4, FALSE, $5) RETURNING id, email, name, role, is_verified',
       [email, passwordHash, name, assignedRole, verificationCode]
     );
 
-    logger.info({ code: verificationCode, email }, 'Verification code generated');
+    try {
+      await mailService.sendVerificationCode(email, verificationCode, name);
+    } catch (mailErr) {
+      // Roll the registration back so the address stays free for a retry.
+      await pool.query('DELETE FROM users WHERE id = $1', [insertResult.rows[0].id]);
+      logger.error(`Failed to send verification code to ${email}: ${mailErr.message}`);
+      return res.status(500).json({ error: 'Nije moguće poslati verifikacioni kod. Kontaktirajte podršku.' });
+    }
 
     res.status(201).json({
       requiresVerification: true,
@@ -167,33 +199,69 @@ router.post('/login', async (req, res) => {
   }
 });
 
+/// Verifies a Google ID token and returns its verified claims.
+/// Throws when the token is absent, unverifiable, issued to another app, or unverified.
+async function verifyGoogleIdToken(idToken) {
+  if (!idToken || idToken.trim() === '') {
+    throw new Error('Google ID token je obavezan.');
+  }
+
+  const verifyUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
+  let payload;
+  try {
+    const response = await fetch(verifyUrl);
+    if (!response.ok) {
+      throw new Error(`tokeninfo responded ${response.status}`);
+    }
+    payload = await response.json();
+  } catch (e) {
+    throw new Error(`Google nije potvrdio identitet (${e.message}).`);
+  }
+
+  // The audience must be this application, otherwise a token minted for any other
+  // Google app would be accepted here.
+  const expectedAudiences = (process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  if (expectedAudiences.length === 0) {
+    throw new Error('GOOGLE_CLIENT_IDS nije konfigurisan na serveru.');
+  }
+  if (!expectedAudiences.includes(payload.aud)) {
+    throw new Error('Google token nije izdat za ovu aplikaciju.');
+  }
+
+  const issuerOk = payload.iss === 'accounts.google.com' || payload.iss === 'https://accounts.google.com';
+  if (!issuerOk) {
+    throw new Error('Neispravan izdavalac Google tokena.');
+  }
+  if (!payload.email) {
+    throw new Error('Google token ne sadrži email adresu.');
+  }
+  if (payload.email_verified !== true && payload.email_verified !== 'true') {
+    throw new Error('Google email adresa nije verifikovana.');
+  }
+
+  return { email: payload.email, name: payload.name };
+}
+
 // POST /google and /auth/google
 router.post(['/google', '/auth/google'], async (req, res) => {
   try {
-    logger.info('[GOOGLE_AUTH] Incoming login request:', req.body);
-    const { idToken, accessToken, email: reqEmail, name: reqName } = req.body;
-
-    let email = reqEmail;
-    let name = reqName;
-
-    if (idToken) {
-      try {
-        const verifyUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
-        const response = await fetch(verifyUrl);
-        if (response.ok) {
-          const payload = await response.json();
-          if (payload.email) email = payload.email;
-          if (payload.name) name = payload.name;
-        }
-      } catch (e) {
-        logger.info('[GOOGLE_AUTH] Google ID token verification fallback:', e.message);
-      }
+    // The request body is never trusted for identity — only the verified token is.
+    // Previously a missing or invalid idToken fell back to req.body.email, which let
+    // anyone mint a session for any account by posting that account's address.
+    let verified;
+    try {
+      verified = await verifyGoogleIdToken(req.body.idToken);
+    } catch (verifyErr) {
+      logger.warn(`[GOOGLE_AUTH] Rejected sign-in: ${verifyErr.message}`);
+      return res.status(401).json({ error: 'Google prijava nije uspela: ' + verifyErr.message });
     }
 
-    if (!email) {
-      logger.warn('[GOOGLE_AUTH] No email resolved from token or request body.');
-      return res.status(400).json({ error: 'Nije moguće verifikovati Google nalog (nedostaje email).' });
-    }
+    const email = verified.email;
+    const name = verified.name;
 
     let userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     let user;

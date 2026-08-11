@@ -1,9 +1,31 @@
 const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const geminiService = require('../geminiService');
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+// /puzzles/verify fans out to third-party evaluation APIs and is reachable by guests,
+// so it is capped per-IP to keep it from being used as a free evaluation proxy.
+const verifyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, status: 'REJECTED', reason: 'Previše zahteva. Sačekajte trenutak.' },
+});
+
+// The Gemini call costs money per request, so it gets a tighter budget still.
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Previše AI zahteva. Sačekajte trenutak.' },
+});
 
 // GET /api/puzzles/next - Fetch next puzzle from clean puzzles_23 and winning_chess dataset
 router.get('/puzzles/next', authenticateToken, async (req, res) => {
@@ -196,6 +218,25 @@ router.post('/puzzles/submit', authenticateToken, async (req, res) => {
   }
 });
 
+/// Strips control characters and caps length on every string in the debug log payload,
+/// so a client cannot forge log lines or flood the log with a single request.
+function sanitizeLogDetails(details) {
+  if (!details || typeof details !== 'object') return null;
+
+  const clean = {};
+  for (const [key, value] of Object.entries(details)) {
+    if (typeof value === 'string') {
+      clean[key] = Array.from(value)
+        .filter((ch) => ch.codePointAt(0) >= 32 && ch.codePointAt(0) !== 127)
+        .join('')
+        .slice(0, 300);
+    } else if (typeof value === 'number' || typeof value === 'boolean') {
+      clean[key] = value;
+    }
+  }
+  return clean;
+}
+
 // Worker Queue lock to ensure single atomic Stockfish requests
 let isStockfishBusy = false;
 const stockfishQueue = [];
@@ -218,7 +259,7 @@ function runAtomicStockfishTask(taskFn) {
 }
 
 // POST /api/puzzles/verify - Atomic Stockfish Move Verification with 2000ms Hard Timeout
-router.post('/puzzles/verify', async (req, res) => {
+router.post('/puzzles/verify', verifyLimiter, async (req, res) => {
   const { fen, userMove, mode, remainingNeeded, orientation } = req.body;
 
   try {
@@ -295,9 +336,14 @@ router.post('/puzzles/verify', async (req, res) => {
 });
 
 // POST /api/puzzles/log - Stream live position state & user actions directly to backend console
-router.post('/puzzles/log', (req, res) => {
+// Development instrumentation only. It echoes client-supplied strings into the server
+// log, so in production it accepts and discards the payload rather than writing it.
+router.post('/puzzles/log', verifyLimiter, (req, res) => {
+  if (isProduction) {
+    return res.json({ success: true, logged: false });
+  }
   try {
-    const { details } = req.body;
+    const details = sanitizeLogDetails(req.body.details);
     if (details) {
       if (details.type === 'engineStream') {
         logger.info(`[ENGINE STREAM] Received eval for FEN: ${details.fen} | Depth: ${details.depth} | Best Move: ${details.bestMove}`);
@@ -378,7 +424,7 @@ router.post('/puzzles/log', (req, res) => {
 });
 
 // POST /api/ai/explain-position - AI Chess Coach powered by Gemini SDK (@google/genai)
-router.post('/ai/explain-position', authenticateToken, async (req, res) => {
+router.post('/ai/explain-position', aiLimiter, authenticateToken, async (req, res) => {
   const { fen, evals, userLanguage } = req.body;
   if (!fen) {
     return res.status(400).json({ error: 'FEN kod je obavezan parametar.' });

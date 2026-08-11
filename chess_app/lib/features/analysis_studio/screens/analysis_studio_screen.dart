@@ -63,7 +63,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
   @override
   void dispose() {
-    _stockfishService.dispose();
+    // Hands the shared engine back to the screen that pushed this one.
+    _stockfishService.detach(this);
     super.dispose();
   }
 
@@ -78,36 +79,38 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
   Future<void> _initEngine() async {
     await _stockfishService.initEngine();
-    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv, depth, isFinal, analyzedFen) {
-      if (!mounted) return;
-      if (!_showEvaluation && !_showEvalBar) return;
+    _stockfishService.attach(
+      this,
+      onEvaluation: (evaluation, bestMove, continuation, multipv, depth, isFinal, analyzedFen) {
+        if (!mounted) return;
+        if (!_showEvaluation && !_showEvalBar) return;
 
-      double parsedEval = 0.0;
-      final numVal = double.tryParse(evaluation);
-      if (numVal != null) {
-        parsedEval = numVal;
-      } else if (evaluation.contains('M')) {
-        final mateNum = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-        parsedEval = evaluation.contains('-') ? (-10000.0 + mateNum) : (10000.0 - mateNum);
-      }
+        double parsedEval = 0.0;
+        final numVal = double.tryParse(evaluation);
+        if (numVal != null) {
+          parsedEval = numVal;
+        } else if (evaluation.contains('M')) {
+          final mateNum = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+          parsedEval = evaluation.contains('-') ? (-10000.0 + mateNum) : (10000.0 - mateNum);
+        }
 
-      if (multipv == 1) {
+        if (multipv == 1) {
+          setState(() {
+            _currentRawEval = parsedEval;
+            _currentEvalString = evaluation;
+            _currentEvalDepth = depth;
+            _currentNode.eval = parsedEval;
+          });
+        }
+      },
+      onMultiPV: (linesMap) {
+        if (!mounted) return;
         setState(() {
-          _currentRawEval = parsedEval;
-          _currentEvalString = evaluation;
-          _currentEvalDepth = depth;
-          _currentNode.eval = parsedEval;
+          _engineLinesMap = linesMap;
+          _engineArrows = _buildArrowsFromEngineLines(linesMap.values.toList());
         });
-      }
-    };
-
-    _stockfishService.onMultiPVUpdated = (linesMap) {
-      if (!mounted) return;
-      setState(() {
-        _engineLinesMap = linesMap;
-        _engineArrows = _buildArrowsFromEngineLines(linesMap.values.toList());
-      });
-    };
+      },
+    );
 
     _triggerEngineAnalysis();
   }
