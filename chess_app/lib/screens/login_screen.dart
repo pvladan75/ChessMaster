@@ -23,12 +23,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   final _nameController = TextEditingController();
   final _codeController = TextEditingController();
 
-  late final GoogleSignIn _googleSignIn = GoogleSignIn(
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  late final Future<void> _googleSignInInit = _googleSignIn.initialize(
     clientId: (kIsWeb && googleWebClientId.isNotEmpty) ? googleWebClientId : null,
     serverClientId: googleWebClientId.isNotEmpty ? googleWebClientId : null,
-    scopes: ['email'],
   );
-  
+
   bool _isLogin = true;
   bool _isAwaitingVerification = false;
   bool _isLoading = false;
@@ -42,38 +42,43 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-        final String? idToken = googleAuth.idToken;
-        final String? accessToken = googleAuth.accessToken;
+      await _googleSignInInit;
+      if (!_googleSignIn.supportsAuthenticate()) {
+        _showError('Google Sign-In nije podržan na ovoj platformi.');
+        return;
+      }
 
-        final Map<String, dynamic> reqPayload = {
-          if (idToken != null && idToken.isNotEmpty) 'idToken': idToken,
-          if (accessToken != null && accessToken.isNotEmpty) 'accessToken': accessToken,
-          'email': googleUser.email,
-          'name': googleUser.displayName,
-        };
+      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
+      final String? idToken = googleUser.authentication.idToken;
 
-        final response = await http.post(
-          Uri.parse('$backendUrl/auth/google'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(reqPayload),
-        );
+      final Map<String, dynamic> reqPayload = {
+        if (idToken != null && idToken.isNotEmpty) 'idToken': idToken,
+        'email': googleUser.email,
+        'name': googleUser.displayName,
+      };
 
-        if (response.statusCode == 200) {
+      final response = await http.post(
+        Uri.parse('$backendUrl/auth/google'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(reqPayload),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final session = UserSession.fromJson(data['user'], data['token']);
+        await _saveSession(session);
+        _navigateToHome(session);
+      } else {
+        try {
           final data = jsonDecode(response.body);
-          final session = UserSession.fromJson(data['user'], data['token']);
-          await _saveSession(session);
-          _navigateToHome(session);
-        } else {
-          try {
-            final data = jsonDecode(response.body);
-            _showError(data['error'] ?? 'Google prijava nije uspela.');
-          } catch (_) {
-            _showError('Greška na serveru prilikom Google prijave (Status ${response.statusCode}).');
-          }
+          _showError(data['error'] ?? 'Google prijava nije uspela.');
+        } catch (_) {
+          _showError('Greška na serveru prilikom Google prijave (Status ${response.statusCode}).');
         }
+      }
+    } on GoogleSignInException catch (e) {
+      if (e.code != GoogleSignInExceptionCode.canceled) {
+        _showError('Google Sign-In Error: ${e.description ?? e.code}');
       }
     } catch (e) {
       _showError('Google Sign-In Error: $e');

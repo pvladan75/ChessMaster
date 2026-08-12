@@ -19,7 +19,7 @@ dependencies:
   shared_preferences: ^2.2.0
   agora_rtc_engine: ^6.6.3
   permission_handler: ^13.0.0
-  google_sign_in: ^6.2.1
+  google_sign_in: ^7.0.0
   audioplayers: ^6.0.0
   flutter_riverpod: ^2.5.1
   url_launcher: ^6.2.0
