@@ -15,6 +15,7 @@ const recordingRoutes = require('./routes/recordings');
 const puzzleRoutes = require('./routes/puzzles');
 const socialRoutes = require('./routes/social');
 const agoraRoutes = require('./routes/agora');
+const analysisRoutes = require('./routes/analysis');
 const { authenticateToken, requireRole, verifySocketToken } = require('./middleware/auth');
 
 const app = express();
@@ -91,6 +92,7 @@ app.use('/lessons', lessonRoutes);
 app.use('/recordings', recordingRoutes);
 app.use('/api', puzzleRoutes);
 app.use('/agora', agoraRoutes);
+app.use('/analysis', analysisRoutes);
 app.use('/', socialRoutes);
 
 // SOCKET.IO REALTIME EVENTS

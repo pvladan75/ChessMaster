@@ -73,4 +73,38 @@ class AnalysisNode {
   void removeChild(AnalysisNode child) {
     children.removeWhere((c) => c.id == child.id);
   }
+
+  /// Serializes this node and its full subtree. [parent] is intentionally
+  /// omitted — it's reconstructed by [fromJson] from tree structure alone.
+  Map<String, dynamic> toJson() {
+    return {
+      'fen': fen,
+      'moveSan': moveSan,
+      'moveUci': moveUci,
+      'comment': comment,
+      'nag': nag,
+      'eval': eval,
+      'children': children.map((c) => c.toJson()).toList(),
+    };
+  }
+
+  /// Rebuilds a node and its full subtree from [toJson] output, wiring each
+  /// child's [parent] back-reference as it goes.
+  factory AnalysisNode.fromJson(Map<String, dynamic> json, {AnalysisNode? parent}) {
+    final node = AnalysisNode(
+      fen: json['fen'] as String,
+      moveSan: json['moveSan'] as String?,
+      moveUci: json['moveUci'] as String?,
+      comment: json['comment'] as String? ?? '',
+      nag: json['nag'] as String?,
+      eval: (json['eval'] as num?)?.toDouble(),
+      parent: parent,
+    );
+    final childrenJson = (json['children'] as List?) ?? const [];
+    node.children = childrenJson
+        .whereType<Map>()
+        .map((c) => AnalysisNode.fromJson(Map<String, dynamic>.from(c), parent: node))
+        .toList();
+    return node;
+  }
 }

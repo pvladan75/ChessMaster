@@ -21,6 +21,7 @@ import 'package:chess_app/features/analysis_studio/widgets/syzygy_panel_widget.d
 import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
+import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
 
 class AnalysisStudioScreen extends StatefulWidget {
@@ -691,6 +692,227 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     }
   }
 
+  /// Entry point for the cloud icon: lets the user save the current tree or
+  /// browse/load/delete previously saved ones. Requires a logged-in account
+  /// since the data lives server-side, scoped to the user.
+  void _showSavedAnalysesDialog() {
+    if (widget.userSession.isGuest) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Čuvanje analize zahteva prijavljen nalog.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          Future<List<SavedAnalysisSummary>>? future =
+              AnalysisPersistenceService.instance.listSavedAnalyses(userToken: widget.userSession.token);
+
+          void refresh() {
+            setDialogState(() {
+              future = AnalysisPersistenceService.instance.listSavedAnalyses(userToken: widget.userSession.token);
+            });
+          }
+
+          return AlertDialog(
+            backgroundColor: Colors.grey.shade900,
+            title: const Row(
+              children: [
+                Icon(Icons.cloud_outlined, color: Colors.lightBlueAccent),
+                SizedBox(width: 8),
+                Text('Sačuvane analize', style: TextStyle(color: Colors.white, fontSize: 16)),
+              ],
+            ),
+            content: SizedBox(
+              width: 400,
+              height: 400,
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.save, size: 16),
+                      label: const Text('Sačuvaj trenutnu analizu'),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await _promptSaveAnalysis();
+                      },
+                    ),
+                  ),
+                  const Divider(height: 24),
+                  Expanded(
+                    child: FutureBuilder<List<SavedAnalysisSummary>>(
+                      future: future,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState != ConnectionState.done) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        final items = snapshot.data ?? [];
+                        if (items.isEmpty) {
+                          return const Center(
+                            child: Text('Nema sačuvanih analiza.', style: TextStyle(color: Colors.grey)),
+                          );
+                        }
+                        return ListView.separated(
+                          itemCount: items.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.white12),
+                          itemBuilder: (context, index) {
+                            final item = items[index];
+                            return ListTile(
+                              dense: true,
+                              title: Text(item.title, style: const TextStyle(color: Colors.white)),
+                              subtitle: Text(
+                                '${item.createdAt.day.toString().padLeft(2, '0')}.${item.createdAt.month.toString().padLeft(2, '0')}.${item.createdAt.year}. ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}',
+                                style: const TextStyle(color: Colors.grey, fontSize: 11),
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                                tooltip: 'Obriši',
+                                onPressed: () async {
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (confirmCtx) => AlertDialog(
+                                      backgroundColor: Colors.grey.shade900,
+                                      title: const Text('Obriši analizu?', style: TextStyle(color: Colors.white)),
+                                      content: Text('"${item.title}" će biti trajno obrisana.', style: const TextStyle(color: Colors.grey)),
+                                      actions: [
+                                        TextButton(child: const Text('Otkaži'), onPressed: () => Navigator.pop(confirmCtx, false)),
+                                        TextButton(
+                                          child: const Text('Obriši', style: TextStyle(color: Colors.redAccent)),
+                                          onPressed: () => Navigator.pop(confirmCtx, true),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirmed == true) {
+                                    final ok = await AnalysisPersistenceService.instance
+                                        .deleteAnalysis(id: item.id, userToken: widget.userSession.token);
+                                    if (ok) refresh();
+                                  }
+                                },
+                              ),
+                              onTap: () async {
+                                Navigator.pop(ctx);
+                                await _loadSavedAnalysis(item);
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(child: const Text('Zatvori'), onPressed: () => Navigator.pop(ctx)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _promptSaveAnalysis() async {
+    final controller = TextEditingController(
+      text: 'Analiza ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}.',
+    );
+    final title = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.grey.shade900,
+        title: const Text('Sačuvaj analizu', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: 'Naziv analize',
+            hintStyle: TextStyle(color: Colors.grey),
+            filled: true,
+            fillColor: Colors.black45,
+          ),
+        ),
+        actions: [
+          TextButton(child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx)),
+          ElevatedButton(
+            child: const Text('Sačuvaj'),
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+          ),
+        ],
+      ),
+    );
+
+    if (title == null || title.isEmpty) return;
+
+    final result = await AnalysisPersistenceService.instance.saveAnalysis(
+      title: title,
+      rootNode: _rootNode,
+      userToken: widget.userSession.token,
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result != null ? '✅ Analiza "${result.title}" sačuvana.' : '⚠️ Čuvanje nije uspelo. Proverite konekciju.'),
+        backgroundColor: result != null ? Colors.teal : Colors.red,
+      ),
+    );
+  }
+
+  Future<void> _loadSavedAnalysis(SavedAnalysisSummary summary) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.grey.shade900,
+        title: const Text('Učitaj analizu?', style: TextStyle(color: Colors.white)),
+        content: Text(
+          'Trenutno stablo analize (nesačuvano) će biti zamenjeno sa "${summary.title}".',
+          style: const TextStyle(color: Colors.grey),
+        ),
+        actions: [
+          TextButton(child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx, false)),
+          ElevatedButton(child: const Text('Učitaj'), onPressed: () => Navigator.pop(ctx, true)),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final loadedRoot = await AnalysisPersistenceService.instance.loadAnalysis(
+      id: summary.id,
+      userToken: widget.userSession.token,
+    );
+
+    if (!mounted) return;
+
+    if (loadedRoot == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ Učitavanje nije uspelo. Proverite konekciju.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() {
+      _rootNode = loadedRoot;
+      _currentNode = loadedRoot;
+      _chessGame = chess.Chess.fromFEN(loadedRoot.fen);
+      _boardController.loadFen(loadedRoot.fen);
+      final side = loadedRoot.fen.split(' ')[1];
+      _orientation = side == 'b' ? PlayerColor.black : PlayerColor.white;
+    });
+    _triggerEngineAnalysis();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('✅ Učitano: "${summary.title}"'), backgroundColor: Colors.teal),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -732,6 +954,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             icon: const Icon(Icons.share, color: Colors.lightBlueAccent),
             tooltip: 'Izvezi PGN',
             onPressed: _exportPgn,
+          ),
+          IconButton(
+            icon: const Icon(Icons.cloud_outlined, color: Colors.lightBlueAccent),
+            tooltip: 'Sačuvane analize',
+            onPressed: _showSavedAnalysesDialog,
           ),
           IconButton(
             icon: const Icon(Icons.tune, color: Colors.tealAccent),

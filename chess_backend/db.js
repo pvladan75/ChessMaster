@@ -110,6 +110,20 @@ async function initDB() {
     `);
     logger.info('Verified database table: saved_lessons (with user_id & position_list)');
 
+    // Create saved_analyses table (Analysis Studio: save/load a variation tree,
+    // readable from any device the user logs into).
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS saved_analyses (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        starting_fen VARCHAR(255) NOT NULL,
+        tree_json JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    logger.info('Verified database table: saved_analyses');
+
     // Create trainer_students table
     await client.query(`
       CREATE TABLE IF NOT EXISTS trainer_students (
