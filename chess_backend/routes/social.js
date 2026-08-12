@@ -201,11 +201,13 @@ router.post('/notifications/:id/read', authenticateToken, async (req, res) => {
 
 // POST /invitations/send
 router.post('/invitations/send', authenticateToken, async (req, res) => {
-  const { studentId, roomCode } = req.body;
+  const { studentId, friendIds, roomCode } = req.body;
   const senderId = req.user.id;
 
-  if (!studentId || !roomCode) {
-    return res.status(400).json({ error: 'Parametri studentId i roomCode su obavezni.' });
+  const targetIds = Array.isArray(friendIds) ? friendIds : (studentId ? [studentId] : []);
+
+  if (targetIds.length === 0 || !roomCode) {
+    return res.status(400).json({ error: 'Parametri primaoca (studentId/friendIds) i roomCode su obavezni.' });
   }
 
   try {
@@ -215,11 +217,13 @@ router.post('/invitations/send', authenticateToken, async (req, res) => {
     const title = 'Poziv na čas šaha';
     const message = `${senderName} vas poziva da se pridružite šahovskom času u sobi: ${roomCode}`;
 
-    await pool.query(
-      `INSERT INTO user_notifications (user_id, sender_id, room_code, title, message)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [studentId, senderId, roomCode, title, message]
-    );
+    for (const targetId of targetIds) {
+      await pool.query(
+        `INSERT INTO user_notifications (user_id, sender_id, room_code, title, message)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [targetId, senderId, roomCode, title, message]
+      );
+    }
 
     res.json({ success: true, message: 'Pozivnica uspešno poslata.' });
   } catch (err) {

@@ -531,7 +531,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
-        final roomCode = data['room_code'];
+        final roomCode = data['room_code'] ?? data['room']?['room_code'];
 
         if (friendIds.isNotEmpty) {
           await http.post(
@@ -870,7 +870,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        final String createdRoomCode = data['room_code'];
+        final String createdRoomCode = data['room_code'] ?? data['room']?['room_code'] ?? '';
 
         _socket.emit('send_lesson_invite', {
           'studentId': studentId,
@@ -926,7 +926,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
-        final roomCode = data['room_code'];
+        final roomCode = data['room_code'] ?? data['room']?['room_code'];
         _navigateToGame(roomCode);
       } else {
         _showError(data['error'] ?? 'Failed to create room');

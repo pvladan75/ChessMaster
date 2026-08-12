@@ -25,7 +25,10 @@ router.post('/create', authenticateToken, async (req, res) => {
       [roomCode, creatorId]
     );
 
-    res.status(201).json({ room: result.rows[0] });
+    res.status(201).json({
+      room: result.rows[0],
+      room_code: roomCode,
+    });
   } catch (err) {
     logger.error('Room creation error:', err);
     res.status(500).json({ error: 'Server error during room creation' });
