@@ -118,10 +118,10 @@ class TacticalMotifDetector {
         defenderColor: defenderColor,
       );
 
-      final fork = detectFork(game, attackerColor: moverColor, targetColor: defenderColor, lastMoveUci: lastMoveUci);
+      final fork = _detectFork(game, attackerColor: moverColor, targetColor: defenderColor, lastMoveUci: lastMoveUci);
       final pinSkewer = _detectPinAndSkewer(game, attackerColor: moverColor, targetColor: defenderColor);
-      final discovered = detectDiscoveredAttack(game, attackerColor: moverColor, targetColor: defenderColor, lastMoveUci: lastMoveUci);
-      final overload = detectOverloading(game, attackerColor: moverColor, targetColor: defenderColor);
+      final discovered = _detectDiscoveredAttack(game, attackerColor: moverColor, targetColor: defenderColor, lastMoveUci: lastMoveUci);
+      final overload = _detectOverloading(game, attackerColor: moverColor, targetColor: defenderColor);
 
       final motifs = <TacticalMotif>[];
       final affectedSquares = <String>{};
@@ -201,7 +201,7 @@ class TacticalMotifDetector {
   // 1. FORK (VILJUŠKA)
   // =========================================================================
 
-  _ForkResult detectFork(
+  _ForkResult _detectFork(
     chess.Chess game, {
     chess.Color? attackerColor,
     chess.Color? targetColor,
@@ -374,7 +374,7 @@ class TacticalMotifDetector {
   // 3. DISCOVERED ATTACK / CHECK (OTKRIVENI NAPAD / ŠAH)
   // =========================================================================
 
-  _DiscoveredAttackResult detectDiscoveredAttack(
+  _DiscoveredAttackResult _detectDiscoveredAttack(
     chess.Chess game, {
     chess.Color? attackerColor,
     chess.Color? targetColor,
@@ -482,7 +482,7 @@ class TacticalMotifDetector {
   // 4. OVERLOADING (PREOPTEREĆENA FIGURA)
   // =========================================================================
 
-  _OverloadingResult detectOverloading(
+  _OverloadingResult _detectOverloading(
     chess.Chess game, {
     chess.Color? attackerColor,
     chess.Color? targetColor,

@@ -491,13 +491,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
           width: 28,
           height: 28,
           decoration: BoxDecoration(
-            color: color.withOpacity(isSelected ? 1.0 : 0.4),
+            color: color.withValues(alpha: isSelected ? 1.0 : 0.4),
             shape: BoxShape.circle,
             border: isSelected
                 ? Border.all(color: Colors.white, width: 2.0)
                 : Border.all(color: Colors.transparent),
             boxShadow: isSelected
-                ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 6, spreadRadius: 1)]
+                ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6, spreadRadius: 1)]
                 : [],
           ),
           child: isSelected
@@ -840,14 +840,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
       if (mounted) {
         setState(() {
           roomMembers = data;
-          if (roomMembers is List) {
-            final me = (roomMembers as List).firstWhere(
-              (m) => m['userId'] == widget.userSession.id,
-              orElse: () => null,
-            );
-            if (me != null && me['role'] != null) {
-              activeRole = me['role'];
-            }
+          final me = roomMembers.firstWhere(
+            (m) => m['userId'] == widget.userSession.id,
+            orElse: () => null,
+          );
+          if (me != null && me['role'] != null) {
+            activeRole = me['role'];
           }
         });
       }
@@ -1055,6 +1053,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
       print('Error starting Agora audio recording: $e');
     }
 
+    if (!mounted) return;
+
     setState(() {
       isRecording = true;
       isRecordingPaused = false;
@@ -1148,6 +1148,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
       print('[RECORDING_LOG] 2. Agora audio recording stop error/timeout: $e');
     }
 
+    if (!mounted) return;
+
     final titleController = TextEditingController(text: 'Čas ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}');
 
     final confirm = await showDialog<bool>(
@@ -1206,11 +1208,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
       print('[RECORDING_LOG] 1. Saving recording instantly on device...');
       final eventsCopy = List<TimelineEvent>.from(recordedEvents);
       final List<int> participantIds = [];
-      if (roomMembers is List) {
-        for (var m in roomMembers) {
-          if (m is Map && m['userId'] is int) {
-            participantIds.add(m['userId'] as int);
-          }
+      for (var m in roomMembers) {
+        if (m is Map && m['userId'] is int) {
+          participantIds.add(m['userId'] as int);
         }
       }
 
@@ -1221,6 +1221,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
         audioPath: _currentAudioPath,
         participants: participantIds,
       );
+
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1234,6 +1236,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       unawaited(LocalRecordingService.syncPendingRecordings(widget.userSession.token));
     } catch (e) {
       print('[RECORDING_LOG_ERROR] Exception in instant local save: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Greška pri čuvanju lokalnog snimka: $e'), backgroundColor: Colors.redAccent),
       );
@@ -1968,9 +1971,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
         margin: const EdgeInsets.only(top: 8),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.grey.withOpacity(0.1),
+          color: Colors.grey.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2202,7 +2205,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     icon: const Icon(Icons.share, size: 16),
                     label: const Text('Prikaži moju poziciju treneru'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber.withOpacity(0.2),
+                      backgroundColor: Colors.amber.withValues(alpha: 0.2),
                       foregroundColor: Colors.amberAccent,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
@@ -2455,7 +2458,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 SwitchListTile(
                   title: const Text('Dozvoli učeniku Stockfish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                   value: allowStudentEngine,
-                  activeColor: Colors.tealAccent,
+                  activeThumbColor: Colors.tealAccent,
                   contentPadding: EdgeInsets.zero,
                   onChanged: (val) {
                     setState(() {
@@ -2471,7 +2474,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   title: const Text('Uključi Blunder Alert', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                   subtitle: const Text('Upozori igrače pri kardinalnim greškama', style: TextStyle(fontSize: 11, color: Colors.grey)),
                   value: isBlunderAlertEnabled,
-                  activeColor: Colors.amberAccent,
+                  activeThumbColor: Colors.amberAccent,
                   contentPadding: EdgeInsets.zero,
                   onChanged: (val) {
                     setState(() {
@@ -2487,7 +2490,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   title: const Text('Šah na Slepo (Blindfold)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                   subtitle: const Text('Sakrij figure radi vežbanja vizuelizacije', style: TextStyle(fontSize: 11, color: Colors.grey)),
                   value: isBlindfoldMode,
-                  activeColor: Colors.purpleAccent,
+                  activeThumbColor: Colors.purpleAccent,
                   contentPadding: EdgeInsets.zero,
                   onChanged: (val) {
                     setState(() {
@@ -2710,7 +2713,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 ],
                               ),
                             );
-                          }).toList(),
+                          }),
                           if (isTrener && !isStudio) ...[
                             const SizedBox(height: 8),
                             SizedBox(
@@ -2842,7 +2845,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 ],
                               ),
                             );
-                          }).toList(),
+                          }),
                           if (audioUsers.isEmpty)
                             const Text(
                               'Nema povezanih korisnika.',

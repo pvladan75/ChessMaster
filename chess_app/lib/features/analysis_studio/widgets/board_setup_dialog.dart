@@ -30,7 +30,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
 
   // Tab 2: PGN Import
   final TextEditingController _pgnTextController = TextEditingController();
-  bool _isPgnValid = true;
+  final bool _isPgnValid = true;
 
   // Tab 3: Manual Board Builder
   late List<List<String>> _builderBoard; // 8x8 grid

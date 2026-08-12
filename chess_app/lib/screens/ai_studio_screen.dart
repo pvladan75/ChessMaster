@@ -1,6 +1,5 @@
 import 'package:chess_app/services/puzzle_api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:chess_app/widgets/ai_studio/studio_info_header.dart';
 import 'package:chess_app/widgets/ai_studio/category_selection_hub.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/ai_studio/solution_tree_models.dart';
@@ -61,7 +60,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   final StockfishService _stockfishService = StockfishService();
 
   // Engine Analysis State
-  bool _isEngineEnabled = false;
+  final bool _isEngineEnabled = false;
   Map<int, AnalysisLine> _engineLinesMap = {};
   List<ChessArrow> _engineArrows = [];
 
@@ -84,7 +83,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   Map<String, dynamic>? _currentPuzzle;
   Map<String, dynamic> _rootSolutionsTree = {};
   Map<String, dynamic>? _currentSolutionsNode;
-  List<VariationBranchPoint> _activeBranchPoints = [];
+  final List<VariationBranchPoint> _activeBranchPoints = [];
   bool _isReplayingSolution = false;
   bool _showSolutionTree = false;
   chess.Chess? _puzzleGame;
@@ -841,7 +840,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
   }
 
-  void _recordMoveInTree(String from, String to, {String san = '', String promotion = ''}) {
+  void _recordMoveInTree(String from, String to, {String san = ''}) {
     if (_puzzleGame == null || _puzzleMoveTree == null) return;
     final displaySan = san.isNotEmpty ? san : '$from$to';
     final fen = _puzzleGame!.fen;
@@ -926,7 +925,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       final testGame = chess.Chess.fromFEN(_puzzleGame!.fen);
       final moveRes = testGame.move({'from': from, 'to': to, 'promotion': 'q'});
 
-      if (moveRes != null) {
+      if (moveRes) {
         String promoPiece = 'q';
         final promoMoves = _puzzleGame!.moves({'verbose': true}).where(
           (m) => m['from'] == from && m['to'] == to && m['promotion'] != null && m['promotion'].toString().isNotEmpty,
@@ -1124,7 +1123,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
       dynamic subBranch = _currentSolutionsNode?[userLan];
       // Case-insensitive fallback for promotion moves (e.g. h7h8q vs h7h8Q)
-      if (subBranch == null && userLan != null && _currentSolutionsNode != null) {
+      if (subBranch == null) {
         final lower = userLan.toLowerCase();
         for (var k in _currentSolutionsNode!.keys) {
           if (k.toString().toLowerCase() == lower) {
@@ -1164,7 +1163,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
         final bool isTerminalCheckmate = (subBranch == "CHECKMATE" || _puzzleGame!.in_checkmate);
 
-        if (isTerminalCheckmate || (subBranch is Map && (subBranch as Map).isEmpty)) {
+        if (isTerminalCheckmate || (subBranch is Map && subBranch.isEmpty)) {
           // DEDUPLICATION: Clean up any pending opponent moves in active branch points that are ALSO satisfied by userLan!
           if (userLan != null) {
             final String lowerUserLan = userLan.toLowerCase();
@@ -1264,7 +1263,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         }
 
         if (subBranch is Map) {
-          final Map<String, dynamic> oppTree = Map<String, dynamic>.from(subBranch as Map);
+          final Map<String, dynamic> oppTree = Map<String, dynamic>.from(subBranch);
           
           // Check unicity: do all opponent replies require identical user responses?
           final bool isIdenticalUserMoves = _areUserMovesIdenticalForAllOpponentReplies(oppTree);
@@ -1315,7 +1314,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               final oppPromo = oppMoveLan.length > 4 ? oppMoveLan[4] : null;
 
               final moveObj = _puzzleGame!.move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
-              if (moveObj != null) {
+              if (moveObj) {
                 _puzzleBoardController.loadFen(_puzzleGame!.fen);
                 _activeFen = _puzzleGame!.fen;
                 _lastMoveFrom = oppFrom;
@@ -1405,9 +1404,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       final oppSub = oppBranchMap[oppMove];
       String moveSignature = '';
       if (oppSub is Map) {
-        moveSignature = (oppSub as Map).keys.join(',');
+        moveSignature = oppSub.keys.join(',');
       } else if (oppSub is List) {
-        moveSignature = (oppSub as List).join(',');
+        moveSignature = oppSub.join(',');
       } else if (oppSub is String) {
         moveSignature = oppSub.toString();
       }
@@ -1627,7 +1626,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
       final oppBranch = current[userMove];
       if (oppBranch is Map && oppBranch.isNotEmpty) {
-        final oppMove = (oppBranch as Map).keys.first.toString();
+        final oppMove = oppBranch.keys.first.toString();
         final oppFrom = oppMove.substring(0, 2);
         final oppTo = oppMove.substring(2, 4);
         final oppPromo = oppMove.length > 4 ? oppMove[4] : null;
@@ -2613,7 +2612,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 color: isCurrentPos ? Colors.amber.shade700 : Colors.teal.shade900,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: isCurrentPos ? Colors.amberAccent : Colors.tealAccent.withOpacity(0.5),
+                  color: isCurrentPos ? Colors.amberAccent : Colors.tealAccent.withValues(alpha: 0.5),
                   width: isCurrentPos ? 2 : 1,
                 ),
               ),
@@ -2764,7 +2763,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           size: Size(canvasWidth, canvasHeight),
                           painter: TreeEdgesPainter(positionedNodes: positionedNodes, activeFen: _activeFen),
                         ),
-                        ...positionedNodes.map((pn) => _buildGraphNodeWidget(pn)).toList(),
+                        ...positionedNodes.map((pn) => _buildGraphNodeWidget(pn)),
                       ],
                     ),
                   ),
@@ -3020,10 +3019,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         final dynamic sub = treeMap[whiteMoveUci];
         List<SolutionGraphNode> children = [];
 
-        if (sub is Map && (sub as Map).isNotEmpty) {
+        if (sub is Map && sub.isNotEmpty) {
           children = _buildSolutionGraphNodes(
             fenAfterWhite,
-            Map<String, dynamic>.from(sub as Map),
+            Map<String, dynamic>.from(sub),
             false,
             nodeId,
           );
@@ -3047,9 +3046,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         final sub = treeMap[oppMoveUci];
         String sig = '';
         if (sub is Map) {
-          sig = (sub as Map).keys.join(',');
+          sig = sub.keys.join(',');
         } else if (sub is List) {
-          sig = (sub as List).join(',');
+          sig = sub.join(',');
         } else {
           sig = sub.toString();
         }
@@ -3085,10 +3084,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           final fenAfterBlack = game.fen;
 
           List<SolutionGraphNode> children = [];
-          if (sub is Map && (sub as Map).isNotEmpty) {
+          if (sub is Map && sub.isNotEmpty) {
             children = _buildSolutionGraphNodes(
               fenAfterBlack,
-              Map<String, dynamic>.from(sub as Map),
+              Map<String, dynamic>.from(sub),
               true,
               nodeId,
             );
@@ -3115,10 +3114,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           final fenAfterSelected = game.fen;
 
           List<SolutionGraphNode> children = [];
-          if (sub is Map && (sub as Map).isNotEmpty) {
+          if (sub is Map && sub.isNotEmpty) {
             children = _buildSolutionGraphNodes(
               fenAfterSelected,
-              Map<String, dynamic>.from(sub as Map),
+              Map<String, dynamic>.from(sub),
               true,
               nodeId,
             );

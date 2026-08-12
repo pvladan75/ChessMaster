@@ -55,7 +55,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   int _currentEvalDepth = 18;
   Map<int, AnalysisLine> _engineLinesMap = {};
   List<EngineArrow> _engineArrows = [];
-  bool _showEngineOverlay = true;
+  final bool _showEngineOverlay = true;
 
   // Syzygy tablebase state
   final SyzygyTablebaseService _syzygyService = SyzygyTablebaseService.instance;
@@ -522,7 +522,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: AppLogger.formattedLogs));
-              if (ctx.mounted) {
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('✅ Logovi kopirani u klipbord!'), backgroundColor: Colors.teal),
                 );

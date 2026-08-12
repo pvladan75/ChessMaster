@@ -189,6 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Uri.parse('$backendUrl/trainer/students/$studentId'),
         headers: {'Authorization': 'Bearer ${widget.session.token}'},
       );
+      if (!mounted) return;
       if (res.statusCode == 200) {
         _fetchStudents();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -215,6 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       final data = jsonDecode(response.body);
+      if (!mounted) return;
       if (response.statusCode == 200) {
         _studentEmailController.clear();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -870,6 +872,8 @@ class _HomeScreenState extends State<HomeScreen> {
         headers: {'Authorization': 'Bearer ${widget.session.token}'},
       );
 
+      if (!mounted) return;
+
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final String createdRoomCode = data['room_code'] ?? data['room']?['room_code'] ?? '';
@@ -904,6 +908,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Greška pri kreiranju sobe: $e')),
       );

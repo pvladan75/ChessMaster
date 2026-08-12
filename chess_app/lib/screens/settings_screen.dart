@@ -124,41 +124,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               Card(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Column(
-                  children: [
-                    RadioListTile<ThemeMode>(
-                      title: const Text('🌙 Tamna Tema (Dark Mode)'),
-                      subtitle: const Text('Elegantne tamne nijanse za ugodniji rad noću'),
-                      value: ThemeMode.dark,
-                      groupValue: _settings.themeMode,
-                      activeColor: Colors.deepPurpleAccent,
-                      onChanged: (val) {
-                        if (val != null) _settings.setThemeMode(val);
-                      },
-                    ),
-                    const Divider(height: 1),
-                    RadioListTile<ThemeMode>(
-                      title: const Text('☀️ Svetla Tema (Light Mode)'),
-                      subtitle: const Text('Čist svetao izgled sa visokim kontrastom'),
-                      value: ThemeMode.light,
-                      groupValue: _settings.themeMode,
-                      activeColor: Colors.deepPurpleAccent,
-                      onChanged: (val) {
-                        if (val != null) _settings.setThemeMode(val);
-                      },
-                    ),
-                    const Divider(height: 1),
-                    RadioListTile<ThemeMode>(
-                      title: const Text('🌓 Sistemska Tema'),
-                      subtitle: const Text('Automatsko prilagođavanje podešavanjima vašeg uređaja'),
-                      value: ThemeMode.system,
-                      groupValue: _settings.themeMode,
-                      activeColor: Colors.deepPurpleAccent,
-                      onChanged: (val) {
-                        if (val != null) _settings.setThemeMode(val);
-                      },
-                    ),
-                  ],
+                child: RadioGroup<ThemeMode>(
+                  groupValue: _settings.themeMode,
+                  onChanged: (val) {
+                    if (val != null) _settings.setThemeMode(val);
+                  },
+                  child: Column(
+                    children: [
+                      RadioListTile<ThemeMode>(
+                        title: const Text('🌙 Tamna Tema (Dark Mode)'),
+                        subtitle: const Text('Elegantne tamne nijanse za ugodniji rad noću'),
+                        value: ThemeMode.dark,
+                        activeColor: Colors.deepPurpleAccent,
+                      ),
+                      const Divider(height: 1),
+                      RadioListTile<ThemeMode>(
+                        title: const Text('☀️ Svetla Tema (Light Mode)'),
+                        subtitle: const Text('Čist svetao izgled sa visokim kontrastom'),
+                        value: ThemeMode.light,
+                        activeColor: Colors.deepPurpleAccent,
+                      ),
+                      const Divider(height: 1),
+                      RadioListTile<ThemeMode>(
+                        title: const Text('🌓 Sistemska Tema'),
+                        subtitle: const Text('Automatsko prilagođavanje podešavanjima vašeg uređaja'),
+                        value: ThemeMode.system,
+                        activeColor: Colors.deepPurpleAccent,
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
@@ -168,28 +162,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               Card(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Column(
-                  children: [
-                    RadioListTile<String>(
-                      title: const Text('🇷🇸 Srpski'),
-                      value: 'sr',
-                      groupValue: _settings.language,
-                      activeColor: Colors.tealAccent,
-                      onChanged: (val) {
-                        if (val != null) _settings.setLanguage(val);
-                      },
-                    ),
-                    const Divider(height: 1),
-                    RadioListTile<String>(
-                      title: const Text('🇬🇧 English'),
-                      value: 'en',
-                      groupValue: _settings.language,
-                      activeColor: Colors.tealAccent,
-                      onChanged: (val) {
-                        if (val != null) _settings.setLanguage(val);
-                      },
-                    ),
-                  ],
+                child: RadioGroup<String>(
+                  groupValue: _settings.language,
+                  onChanged: (val) {
+                    if (val != null) _settings.setLanguage(val);
+                  },
+                  child: Column(
+                    children: [
+                      RadioListTile<String>(
+                        title: const Text('🇷🇸 Srpski'),
+                        value: 'sr',
+                        activeColor: Colors.tealAccent,
+                      ),
+                      const Divider(height: 1),
+                      RadioListTile<String>(
+                        title: const Text('🇬🇧 English'),
+                        value: 'en',
+                        activeColor: Colors.tealAccent,
+                      ),
+                    ],
+                  ),
                 ),
               ),
 

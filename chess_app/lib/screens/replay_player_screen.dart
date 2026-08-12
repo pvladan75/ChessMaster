@@ -270,7 +270,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: selectedPieceStyle,
+                  initialValue: selectedPieceStyle,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -290,7 +290,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: selectedBoardTheme,
+                  initialValue: selectedBoardTheme,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -310,29 +310,29 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Expanded(
-                      child: RadioListTile<String>(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Bela (Trener)', style: TextStyle(fontSize: 11)),
-                        value: 'trainer',
-                        groupValue: selectedPerspective,
-                        onChanged: (val) => setDialogState(() => selectedPerspective = val!),
+                RadioGroup<String>(
+                  groupValue: selectedPerspective,
+                  onChanged: (val) => setDialogState(() => selectedPerspective = val!),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: RadioListTile<String>(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Bela (Trener)', style: TextStyle(fontSize: 11)),
+                          value: 'trainer',
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: RadioListTile<String>(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Crna (Učenik)', style: TextStyle(fontSize: 11)),
-                        value: 'student',
-                        groupValue: selectedPerspective,
-                        onChanged: (val) => setDialogState(() => selectedPerspective = val!),
+                      Expanded(
+                        child: RadioListTile<String>(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Crna (Učenik)', style: TextStyle(fontSize: 11)),
+                          value: 'student',
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const Divider(),
                 const Text(
@@ -374,7 +374,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: selectedResolution,
+                  initialValue: selectedResolution,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),

@@ -75,8 +75,8 @@ class OpeningExplorerResult {
   factory OpeningExplorerResult.fromJson(String fen, Map<String, dynamic> json) {
     final movesJson = (json['moves'] as List?) ?? const [];
     final moves = movesJson
-        .where((e) => e is Map)
-        .map((e) => OpeningExplorerMove.fromJson(Map<String, dynamic>.from(e as Map)))
+        .whereType<Map>()
+        .map((e) => OpeningExplorerMove.fromJson(Map<String, dynamic>.from(e)))
         .toList()
       ..sort((a, b) => b.total.compareTo(a.total));
 
