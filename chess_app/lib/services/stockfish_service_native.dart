@@ -566,6 +566,7 @@ class StockfishService {
     if (_currentMultiPV == count) return;
     _currentMultiPV = count;
     if (_nativeReady) {
+      _sendCommandForce('stop');
       _sendCommandForce('setoption name MultiPV value $count');
     }
   }
@@ -661,7 +662,11 @@ class StockfishService {
     }
 
     if (line.startsWith('bestmove')) {
-      // Engine finished search
+      final parts = line.split(' ');
+      final bestMove = parts.length > 1 ? parts[1] : '';
+      if (onEvaluationChanged != null) {
+        onEvaluationChanged!('', bestMove, '', 1, 0, true, _currentFen);
+      }
     }
   }
 }
