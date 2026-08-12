@@ -36,6 +36,7 @@ class StockfishService {
   // Pending position to analyze if engine is still initializing
   String? _pendingFen;
   int? _pendingDepth;
+  int _currentMultiPV = 1;
 
   bool get isCustomEngineActive => _isCustomActive;
 
@@ -297,7 +298,7 @@ class StockfishService {
     final active = top.isEnabled?.call() ?? true;
     final currentFen = top.getFen?.call();
 
-    if (active && currentFen != null && currentFen.isNotEmpty) {
+    if (active && currentFen != null && currentFen.isNotEmpty && _currentFen != currentFen) {
       AppLogger.log('[StockfishService] 🔄 Auto-triggering evaluation for top subscriber (${top.owner.runtimeType}) | FEN: $currentFen');
       analyzePosition(currentFen);
     }
@@ -425,7 +426,6 @@ class StockfishService {
       }
 
       _sendCommandForce('stop');
-      _sendCommandForce('ucinewgame');
       _sendCommandForce('position fen $fen');
       final effectiveDepth = depth.clamp(5, 50);
       AppLogger.log('[STOCKFISH_NATIVE] 🎯 go depth $effectiveDepth');
@@ -558,12 +558,13 @@ class StockfishService {
     AppLogger.log('[StockfishService] 🛑 stopAnalysis (requestId=$_requestId)');
     if (_nativeReady) {
       _sendCommandForce('stop');
-      _sendCommandForce('ucinewgame');
     }
   }
 
   /// Sets MultiPV option on engine
   void setMultiPV(int count) {
+    if (_currentMultiPV == count) return;
+    _currentMultiPV = count;
     if (_nativeReady) {
       _sendCommandForce('setoption name MultiPV value $count');
     }
