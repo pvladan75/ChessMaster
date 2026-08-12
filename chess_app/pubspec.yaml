@@ -18,7 +18,7 @@ dependencies:
   stockfish: ^1.4.0
   shared_preferences: ^2.2.0
   agora_rtc_engine: ^6.6.3
-  permission_handler: ^12.0.1
+  permission_handler: ^13.0.0
   google_sign_in: ^6.2.1
   audioplayers: ^6.0.0
   flutter_riverpod: ^2.5.1
@@ -40,3 +40,7 @@ flutter:
 
 dependency_overrides:
   ffi: ^2.2.0
+  # permission_handler_android 14.0.0 has a broken build.gradle.kts (uses the
+  # `kotlin { compilerOptions {...} }` DSL without applying the Kotlin plugin),
+  # pin to the last working release until upstream fixes it.
+  permission_handler_android: 13.0.1
