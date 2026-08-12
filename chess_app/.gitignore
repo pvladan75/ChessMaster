@@ -47,4 +47,5 @@ app.*.map.json
 # Environment secrets
 .env
 *.env
+dart_defines.json
 

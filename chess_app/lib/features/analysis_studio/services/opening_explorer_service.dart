@@ -107,8 +107,7 @@ class OpeningExplorerService {
     defaultValue: '',
   );
 
-  static bool hasTokenFor(String userConfiguredToken) =>
-      _envToken.isNotEmpty || userConfiguredToken.trim().isNotEmpty;
+  static bool get hasToken => _envToken.isNotEmpty;
 
   static const _baseUrl = 'https://explorer.lichess.ovh/lichess';
 
@@ -119,12 +118,10 @@ class OpeningExplorerService {
   /// are fixed steps (1000, 1200, ... 2200, 2500); pass null for all ratings.
   Future<OpeningExplorerResult?> lookup(
     String fen, {
-    String? token,
     int movesLimit = 12,
     int? minRating,
   }) async {
-    final effectiveToken = (_envToken.isNotEmpty ? _envToken : (token ?? '')).trim();
-    if (effectiveToken.isEmpty) return null;
+    if (_envToken.isEmpty) return null;
 
     final cacheKey = '$fen|$movesLimit|${minRating ?? 'all'}';
     if (_cache.containsKey(cacheKey)) return _cache[cacheKey];
@@ -137,7 +134,7 @@ class OpeningExplorerService {
       });
       final res = await http.get(
         uri,
-        headers: {'Authorization': 'Bearer $effectiveToken'},
+        headers: {'Authorization': 'Bearer $_envToken'},
       ).timeout(const Duration(seconds: 6));
 
       AppLogger.log('[OpeningExplorer] 🌐 HTTP ${res.statusCode} | body: ${res.body.length} bytes | FEN: $fen');

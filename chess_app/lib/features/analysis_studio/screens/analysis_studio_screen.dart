@@ -170,13 +170,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   }
 
   Future<void> _fetchOpeningExplorerIfEligible() async {
-    final token = AppSettingsService.instance.lichessApiToken;
     final reqId = ++_openingExplorerRequestId;
-    final hasToken = OpeningExplorerService.hasTokenFor(token);
 
-    AppLogger.log('[OpeningExplorer] 🔍 hasToken=$hasToken | FEN: ${_currentNode.fen}');
+    AppLogger.log('[OpeningExplorer] 🔍 hasToken=${OpeningExplorerService.hasToken} | FEN: ${_currentNode.fen}');
 
-    if (!hasToken) {
+    if (!OpeningExplorerService.hasToken) {
       AppLogger.log('[OpeningExplorer] ⛔ Nema tokena — preskačem lookup');
       if (_openingExplorerResult != null || _openingExplorerLoading) {
         setState(() {
@@ -194,7 +192,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
     final result = await _openingExplorerService.lookup(
       _currentNode.fen,
-      token: token,
       minRating: _openingExplorerMinRating,
     );
     if (!mounted || reqId != _openingExplorerRequestId) return;
@@ -833,7 +830,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                           onMoveSelected: _playUciMove,
                         ),
                         OpeningExplorerPanelWidget(
-                          hasToken: OpeningExplorerService.hasTokenFor(AppSettingsService.instance.lichessApiToken),
+                          hasToken: OpeningExplorerService.hasToken,
                           isLoading: _openingExplorerLoading,
                           result: _openingExplorerResult,
                           minRating: _openingExplorerMinRating,
@@ -986,7 +983,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                           onMoveSelected: _playUciMove,
                         ),
                         OpeningExplorerPanelWidget(
-                          hasToken: OpeningExplorerService.hasTokenFor(AppSettingsService.instance.lichessApiToken),
+                          hasToken: OpeningExplorerService.hasToken,
                           isLoading: _openingExplorerLoading,
                           result: _openingExplorerResult,
                           minRating: _openingExplorerMinRating,

@@ -15,19 +15,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _settings = AppSettingsService.instance;
-  late final TextEditingController _lichessTokenController;
-
-  @override
-  void initState() {
-    super.initState();
-    _lichessTokenController = TextEditingController(text: _settings.lichessApiToken);
-  }
-
-  @override
-  void dispose() {
-    _lichessTokenController.dispose();
-    super.dispose();
-  }
 
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
@@ -299,48 +286,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
-
-              const SizedBox(height: 24),
-              const Text('LICHESS INTEGRACIJA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
-              const SizedBox(height: 8),
-
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Lichess API Token (Opening Explorer):', style: TextStyle(fontWeight: FontWeight.w500)),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _lichessTokenController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          hintText: 'lip_...',
-                          border: const OutlineInputBorder(),
-                          isDense: true,
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.save, color: Colors.tealAccent),
-                            tooltip: 'Sačuvaj token',
-                            onPressed: () {
-                              _settings.setLichessApiToken(_lichessTokenController.text);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Lichess token sačuvan.')),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Potreban za prikaz statistike poteza (Opening Explorer). Generišite ličan token na lichess.org/account/oauth/token — ne treba nijedan poseban scope.',
-                        style: TextStyle(fontSize: 11, color: Colors.grey[400]),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
 
               const SizedBox(height: 32),
               Center(
