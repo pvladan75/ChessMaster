@@ -153,7 +153,7 @@ router.post('/:id/export-mp4', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Snimak nije pronađen.' });
     }
 
-    const filename = `recording_${recId}_${pieceStyle || 'alpha'}_${boardTheme || 'wood'}_${resolution || '720p'}_${Date.now()}.mp4`;
+    const filename = `recording_${recId}_${pieceStyle || 'classic'}_${boardTheme || 'wood'}_${resolution || '720p'}_${Date.now()}.mp4`;
     const exportsDir = path.join(__dirname, '..', 'exports');
     if (!fs.existsSync(exportsDir)) {
       fs.mkdirSync(exportsDir, { recursive: true });
@@ -187,7 +187,7 @@ router.post('/:id/export-mp4', authenticateToken, async (req, res) => {
       durationSeconds: duration,
       perspective: perspective || 'trainer',
       resolution: resolution || '720p',
-      pieceStyle: pieceStyle || 'alpha',
+      pieceStyle: pieceStyle || 'classic',
       boardTheme: boardTheme || 'wood',
       showTitle,
       showTimer,

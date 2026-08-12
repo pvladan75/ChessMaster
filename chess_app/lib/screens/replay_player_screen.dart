@@ -241,7 +241,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   void _showExportMp4Dialog() {
     String selectedPerspective = 'trainer';
     String selectedResolution = '720p';
-    String selectedPieceStyle = 'alpha';
+    String selectedPieceStyle = 'classic';
     String selectedBoardTheme = 'wood';
     bool showTitle = true;
     bool showTimer = true;
@@ -276,8 +276,9 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'alpha', child: Text('Alpha / Lichess (Preporučeno - Oštre figure)')),
-                    DropdownMenuItem(value: 'staunton', child: Text('Classic Staunton (Tradicionalne)')),
+                    DropdownMenuItem(value: 'classic', child: Text('Classic (Isto kao u aplikaciji) — Preporučeno')),
+                    DropdownMenuItem(value: 'alpha', child: Text('Alpha / Lichess (Oštre figure)')),
+                    DropdownMenuItem(value: 'staunton', child: Text('Staunton (Tradicionalne)')),
                   ],
                   onChanged: (val) {
                     if (val != null) setDialogState(() => selectedPieceStyle = val);

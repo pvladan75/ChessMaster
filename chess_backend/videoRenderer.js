@@ -2,7 +2,7 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
-const { alphaPieceSvgs } = require('./pieceThemes');
+const { alphaPieceSvgs, classicPieceSvgs } = require('./pieceThemes');
 
 // Standard Staunton SVG definitions
 const stauntonPieceSvgs = {
@@ -22,10 +22,14 @@ const stauntonPieceSvgs = {
 
 const loadedPieceSets = {};
 
-async function preloadPieceSet(style = 'alpha') {
-  const normalizedStyle = (style || 'alpha').toLowerCase().trim();
+async function preloadPieceSet(style = 'classic') {
+  const normalizedStyle = (style || 'classic').toLowerCase().trim();
   if (loadedPieceSets[normalizedStyle]) return loadedPieceSets[normalizedStyle];
-  const dict = (normalizedStyle === 'staunton') ? stauntonPieceSvgs : alphaPieceSvgs;
+  const dict = normalizedStyle === 'staunton'
+    ? stauntonPieceSvgs
+    : normalizedStyle === 'alpha'
+      ? alphaPieceSvgs
+      : classicPieceSvgs;
   const loaded = {};
   for (const [key, svg] of Object.entries(dict)) {
     const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
@@ -76,7 +80,7 @@ async function renderFrameBuffer({
   timestampSec,
   totalDurationSec,
   resolution = '720p',
-  pieceStyle = 'alpha',
+  pieceStyle = 'classic',
   boardTheme = 'wood',
   showTitle = true,
   showTimer = true,
@@ -215,7 +219,7 @@ async function renderRecordingToMP4({
   durationSeconds,
   perspective,
   resolution = '720p',
-  pieceStyle = 'alpha',
+  pieceStyle = 'classic',
   boardTheme = 'wood',
   showTitle = true,
   showTimer = true,

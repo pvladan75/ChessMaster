@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
+import 'package:chess_app/widgets/board_thumbnail.dart';
 
 class BoardSetupDialog extends StatefulWidget {
   final Function(String fen) onFenGenerated;
@@ -25,11 +26,6 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
   String turn = 'w';
   bool wk = true, wq = true, bk = true, bq = true;
   String? selectedPiece = 'P';
-
-  final Map<String, String> pieceIcons = {
-    'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
-    'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟',
-  };
 
   String generateFen() {
     List<String> rankStrings = [];
@@ -102,7 +98,7 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                             color: isSel ? Colors.teal : Colors.transparent,
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Text(pieceIcons[p]!, style: const TextStyle(fontSize: 22, color: Colors.white)),
+                          child: chessPieceWidget(p, size: 26),
                         ),
                       );
                     }).toList(),
@@ -120,7 +116,7 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                             color: isSel ? Colors.teal : Colors.transparent,
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Text(pieceIcons[p]!, style: const TextStyle(fontSize: 22, color: Colors.amberAccent)),
+                          child: chessPieceWidget(p, size: 26),
                         ),
                       );
                     }).toList(),
@@ -169,19 +165,7 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                       },
                       child: Container(
                         color: isLight ? const ui.Color(0xFFEEEED2) : const ui.Color(0xFF769656),
-                        child: Center(
-                          child: p != null
-                              ? Text(
-                                  pieceIcons[p] ?? p,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: 'KQRBNP'.contains(p) ? Colors.white : Colors.black,
-                                    shadows: const [Shadow(blurRadius: 2, color: Colors.black)],
-                                  ),
-                                )
-                              : null,
-                        ),
+                        child: Center(child: chessPieceWidget(p, size: 32)),
                       ),
                     );
                   },

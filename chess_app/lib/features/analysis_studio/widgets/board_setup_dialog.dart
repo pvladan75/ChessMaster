@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
+import 'package:chess_app/widgets/board_thumbnail.dart';
 
 class AnalysisBoardSetupDialog extends StatefulWidget {
   final String initialFen;
@@ -346,11 +347,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
   }
 
   Widget _buildManualBuilderTab() {
-    final Map<String, String> pieceSymbols = {
-      'P': '♙', 'N': '♘', 'B': '♗', 'R': '♖', 'Q': '♕', 'K': '♔',
-      'p': '♟', 'n': '♞', 'b': '♝', 'r': '♜', 'q': '♛', 'k': '♚',
-      'CLEAR': '❌',
-    };
+    const paletteKeys = ['P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k', 'CLEAR'];
 
     return Column(
       children: [
@@ -358,16 +355,18 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: pieceSymbols.entries.map((entry) {
-              final isSelected = _selectedPalettePiece == entry.key;
+            children: paletteKeys.map((key) {
+              final isSelected = _selectedPalettePiece == key;
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2.0),
                 child: ChoiceChip(
-                  label: Text(entry.value, style: const TextStyle(fontSize: 18)),
+                  label: key == 'CLEAR'
+                      ? const Icon(Icons.close, size: 18, color: Colors.redAccent)
+                      : SizedBox(width: 22, height: 22, child: chessPieceWidget(key, size: 22)),
                   selected: isSelected,
                   selectedColor: Colors.teal,
                   onSelected: (_) {
-                    setState(() => _selectedPalettePiece = entry.key);
+                    setState(() => _selectedPalettePiece = key);
                   },
                 ),
               );
@@ -438,16 +437,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
                     },
                     child: Container(
                       color: isDarkSquare ? Colors.teal.shade900 : Colors.teal.shade100,
-                      child: Center(
-                        child: Text(
-                          pieceSymbols[piece] ?? '',
-                          style: TextStyle(
-                            fontSize: 22,
-                            color: RegExp(r'[A-Z]').hasMatch(piece) ? Colors.white : Colors.black87,
-                            shadows: const [Shadow(blurRadius: 1, color: Colors.black45)],
-                          ),
-                        ),
-                      ),
+                      child: Center(child: chessPieceWidget(piece.isEmpty ? null : piece, size: 28)),
                     ),
                   );
                 },
