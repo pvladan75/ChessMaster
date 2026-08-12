@@ -109,8 +109,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         if (!mounted) return;
         setState(() {
           _engineLinesMap = linesMap;
-          _engineArrows = _buildArrowsFromEngineLines(linesMap.values.toList());
         });
+        // Stored candidates take precedence over live lines, so route through
+        // the same chooser the navigation path uses.
+        _refreshArrows();
       },
     );
 
@@ -160,12 +162,68 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     return arrows;
   }
 
+  /// Builds arrows from the candidate moves already stored under [node].
+  ///
+  /// After an automatic analysis every node carries its n best replies as
+  /// children with their evaluations, so walking the generated tree shows the
+  /// candidates at each intermediate step without waiting for the engine to
+  /// re-analyze the position.
+  List<EngineArrow> _buildArrowsFromChildren(AnalysisNode node) {
+    if (!_showEngineOverlay || node.children.isEmpty) return [];
+
+    final isWhiteToMove = node.fen.split(' ').length > 1 && node.fen.split(' ')[1] == 'w';
+
+    // Rank by how good the reply is for the side to move.
+    final ranked = node.children.where((c) => c.moveUci != null && c.moveUci!.length >= 4).toList()
+      ..sort((a, b) {
+        final ea = a.eval;
+        final eb = b.eval;
+        if (ea == null && eb == null) return 0;
+        if (ea == null) return 1;
+        if (eb == null) return -1;
+        return isWhiteToMove ? eb.compareTo(ea) : ea.compareTo(eb);
+      });
+
+    final arrows = <EngineArrow>[];
+    for (var i = 0; i < ranked.length; i++) {
+      final child = ranked[i];
+      final uci = child.moveUci!;
+      arrows.add(EngineArrow(
+        from: uci.substring(0, 2),
+        to: uci.substring(2, 4),
+        evalText: child.eval != null
+            ? (child.eval! > 0 ? '+${child.eval!.toStringAsFixed(2)}' : child.eval!.toStringAsFixed(2))
+            : (child.moveSan ?? ''),
+        rank: i + 1,
+      ));
+    }
+    return arrows;
+  }
+
+  /// Chooses which candidate arrows to draw for the current node.
+  ///
+  /// Stored children win when they exist: they are the result the user asked
+  /// for after an automatic analysis, and they stay stable while navigating.
+  /// Live engine lines cover nodes that have not been expanded yet.
+  void _refreshArrows() {
+    final stored = _buildArrowsFromChildren(_currentNode);
+    setState(() {
+      _engineArrows = stored.isNotEmpty
+          ? stored
+          : _buildArrowsFromEngineLines(_engineLinesMap.values.toList());
+    });
+  }
+
   void _jumpToNode(AnalysisNode node) {
     setState(() {
       _currentNode = node;
       _chessGame = chess.Chess.fromFEN(node.fen);
       _boardController.loadFen(node.fen);
+      _engineLinesMap.clear();
     });
+    // Show this node's stored candidates immediately; the engine may still be
+    // several seconds away from producing lines for the new position.
+    _refreshArrows();
     _triggerEngineAnalysis();
   }
 
@@ -197,8 +255,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       setState(() {
         _currentNode = childNode;
         _boardController.loadFen(newFen);
+        _engineLinesMap.clear();
       });
 
+      _refreshArrows();
       _triggerEngineAnalysis();
     }
   }
@@ -385,7 +445,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         startNode: _currentNode,
         stockfishService: _stockfishService,
         onAnalysisCompleted: () {
-          setState(() {});
+          // The start node now has candidate children — surface them as arrows.
+          _refreshArrows();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('⚡ Automatska analiza uspešno završena i sačuvana u stablo!'), backgroundColor: Colors.amber),
           );
@@ -453,21 +514,64 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     );
   }
 
+  /// Imports a PGN game as a full move tree.
+  ///
+  /// Replays the game's SAN history onto the analysis tree rather than keeping
+  /// only the final position, so the imported game is navigable and can carry
+  /// variations, comments and NAGs like any hand-played line.
   void _importPgn(String pgn) {
     try {
       final tempGame = chess.Chess();
-      if (tempGame.load_pgn(pgn)) {
-        final newFen = tempGame.fen;
-        _initAnalysisTree(newFen);
-        _triggerEngineAnalysis();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ PGN partija uspešno učitana!'), backgroundColor: Colors.teal),
-        );
-      } else {
+      if (!tempGame.load_pgn(pgn)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('⚠️ Neispravan PGN format.'), backgroundColor: Colors.red),
         );
+        return;
       }
+
+      // A PGN may start from a custom position via the SetUp/FEN headers.
+      final headerFen = tempGame.header['FEN'] as String?;
+      final startFen = (headerFen != null && headerFen.trim().isNotEmpty)
+          ? headerFen.trim()
+          : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+      // SAN encodes promotions, so replaying by SAN reproduces the game exactly.
+      final sanHistory = tempGame.getHistory().cast<String>();
+
+      _initAnalysisTree(startFen);
+
+      final replay = chess.Chess.fromFEN(startFen);
+      var node = _rootNode;
+      var imported = 0;
+
+      for (final san in sanHistory) {
+        if (!replay.move(san)) {
+          AppLogger.log('[AnalysisStudio] ⚠️ PGN uvoz zaustavljen na nelegalnom potezu: $san');
+          break;
+        }
+        final moveObj = replay.history.last.move;
+        final uci = moveObj.fromAlgebraic +
+            moveObj.toAlgebraic +
+            (moveObj.promotion?.name ?? '');
+        node = node.addChild(childFen: replay.fen, san: san, uci: uci);
+        imported++;
+      }
+
+      // Land on the final position; the tree is there to walk back through.
+      setState(() {
+        _currentNode = node;
+        _chessGame = chess.Chess.fromFEN(node.fen);
+        _boardController.loadFen(node.fen);
+      });
+      _triggerEngineAnalysis();
+
+      AppLogger.log('[AnalysisStudio] 📥 PGN uvezen: $imported poteza od ${sanHistory.length}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ PGN učitan — $imported poteza u stablu.'),
+          backgroundColor: Colors.teal,
+        ),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Greška pri uvozu PGN-a: $e'), backgroundColor: Colors.red),

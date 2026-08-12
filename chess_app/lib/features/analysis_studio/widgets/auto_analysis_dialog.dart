@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:flutter/material.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
@@ -38,6 +40,20 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
   int _processedNodes = 0;
   int _totalEstimatedNodes = 10;
   String _statusMsg = '';
+
+  /// Positions the engine will be asked to evaluate, before delta pruning:
+  /// 1 at the root, n at the next ply, n^2 after that, and so on.
+  int get _worstCasePositions =>
+      _generatorService.calculateAnalyzedPositions(_pliesDepth, _candidateCount);
+
+  /// Rough wall-clock estimate. Search cost grows sharply with depth, so this is
+  /// a ballpark meant to stop obviously runaway settings, not a promise.
+  int get _estimatedSeconds {
+    final perPosition = 0.08 * math.pow(1.35, _engineDepth - 8);
+    return (_worstCasePositions * perPosition).round();
+  }
+
+  bool get _isHeavy => _estimatedSeconds > 120;
 
   @override
   void dispose() {
@@ -162,6 +178,54 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 divisions: 25,
                 activeColor: Colors.amberAccent,
                 onChanged: (val) => setState(() => _deltaCutoff = val),
+              ),
+
+              // d: Engine depth per position — the single biggest driver of runtime.
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Dubina motora (d): $_engineDepth', style: const TextStyle(fontSize: 12, color: Colors.white)),
+                  Text('depth $_engineDepth', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orangeAccent)),
+                ],
+              ),
+              Slider(
+                value: _engineDepth.toDouble(),
+                min: 8,
+                max: 22,
+                divisions: 14,
+                activeColor: Colors.orangeAccent,
+                onChanged: (val) => setState(() => _engineDepth = val.round()),
+              ),
+
+              // Cost preview: N, n and d multiply out fast, so show the damage first.
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.black38,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _isHeavy ? Colors.redAccent : Colors.grey.shade700),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _isHeavy ? Icons.warning_amber : Icons.timer_outlined,
+                      size: 16,
+                      color: _isHeavy ? Colors.redAccent : Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Do $_worstCasePositions pozicija na dubini $_engineDepth · procena ~$_estimatedSeconds s'
+                        '${_isHeavy ? '\nSmanjite N, n ili d da skratite analizu.' : ''}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _isHeavy ? Colors.redAccent : Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 16),

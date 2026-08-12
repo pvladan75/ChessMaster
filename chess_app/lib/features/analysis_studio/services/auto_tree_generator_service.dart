@@ -52,7 +52,7 @@ class AutoTreeGeneratorService {
   }) async {
     _isCancelled = false;
     int processedCount = 0;
-    final int estimatedTotal = calculateEstimatedNodes(params.pliesDepth, params.candidateCount);
+    final int estimatedTotal = calculateAnalyzedPositions(params.pliesDepth, params.candidateCount);
 
     final resolvedAnalyzer =
         analyzer ?? (stockfishService ?? StockfishService()).analyzePositionSync;
@@ -196,12 +196,27 @@ class AutoTreeGeneratorService {
     }
   }
 
+  /// Nodes the tree will contain: n at ply 1, n^2 at ply 2, and so on.
   int calculateEstimatedNodes(int plies, int candidates) {
     int total = 0;
     int currentLevel = 1;
     for (int i = 0; i < plies; i++) {
       currentLevel *= candidates;
       total += currentLevel;
+    }
+    return total;
+  }
+
+  /// Positions the engine is actually asked to evaluate: one at the start node,
+  /// n at the next ply, n^2 after that, up to ply N-1. This is what progress is
+  /// reported against — counting created nodes instead left the bar short of
+  /// 100% by roughly a factor of n.
+  int calculateAnalyzedPositions(int plies, int candidates) {
+    int total = 0;
+    int currentLevel = 1;
+    for (int i = 0; i < plies; i++) {
+      total += currentLevel;
+      currentLevel *= candidates;
     }
     return total;
   }

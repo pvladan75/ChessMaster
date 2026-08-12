@@ -102,6 +102,34 @@ void main() {
       expect(estimated, equals(30));
     });
 
+    test('3b. Analyzed-position count matches what progress actually reports', () async {
+      final service = AutoTreeGeneratorService();
+
+      // Root plus each ply below the last: 1 + 2 + 4 + 8 = 15 engine calls.
+      expect(service.calculateAnalyzedPositions(4, 2), equals(15));
+      expect(service.calculateAnalyzedPositions(1, 3), equals(1));
+      expect(service.calculateAnalyzedPositions(3, 3), equals(13));
+
+      // The estimate must match the real number of engine calls, otherwise the
+      // progress bar cannot reach 100%.
+      final engine = _FakeEngine();
+      int? reportedTotal;
+      await service.generateTree(
+        startNode: AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'),
+        params: AutoAnalysisParams(
+          pliesDepth: 3,
+          candidateCount: 2,
+          engineDepth: 10,
+          deltaCutoff: 5.0,
+        ),
+        analyzer: engine.analyze,
+        onProgress: (processed, total, _) => reportedTotal = total,
+      );
+
+      expect(engine.callCount, equals(service.calculateAnalyzedPositions(3, 2)));
+      expect(reportedTotal, equals(engine.callCount));
+    });
+
     test('4. AutoTreeGeneratorService generates candidate branches synchronously', () async {
       final service = AutoTreeGeneratorService();
       final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
