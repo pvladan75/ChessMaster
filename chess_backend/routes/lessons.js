@@ -26,6 +26,51 @@ router.post('/save', authenticateToken, async (req, res) => {
   }
 });
 
+// PUT /lessons/:id — update a lesson you own (either creator or the trainer who shared it)
+router.put('/:id', authenticateToken, async (req, res) => {
+  const { title, description, tags, fen, pgn, positionList } = req.body;
+
+  if (!title || (!fen && (!positionList || positionList.length === 0))) {
+    return res.status(400).json({ error: 'Title and either FEN or positionList are required' });
+  }
+
+  const initialFen = fen || (positionList && positionList.length > 0 ? positionList[0].fen : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+
+  try {
+    const result = await pool.query(
+      `UPDATE saved_lessons
+       SET title = $1, description = $2, tags = $3, fen = $4, pgn = $5, position_list = $6
+       WHERE id = $7 AND (user_id = $8 OR trainer_id = $8)
+       RETURNING *`,
+      [title, description || null, tags || null, initialFen, pgn || null, positionList ? JSON.stringify(positionList) : null, req.params.id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Lekcija nije pronađena ili nemate dozvolu za izmenu.' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    logger.error('Update lesson error:', err);
+    res.status(500).json({ error: 'Server error while updating lesson' });
+  }
+});
+
+// DELETE /lessons/:id — delete a lesson you own
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM saved_lessons WHERE id = $1 AND (user_id = $2 OR trainer_id = $2) RETURNING id',
+      [req.params.id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Lekcija nije pronađena ili nemate dozvolu za brisanje.' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('Delete lesson error:', err);
+    res.status(500).json({ error: 'Server error while deleting lesson' });
+  }
+});
+
 // GET /lessons/labels
 router.get('/labels', authenticateToken, async (req, res) => {
   try {

@@ -12,6 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   socket_io_client: ^3.0.0
   flutter_chess_board: ^1.0.1
+  chess_vectors_flutter: ^1.1.0
   http: ^1.2.0
   chess: ^0.7.0
   file_picker: ^11.0.0

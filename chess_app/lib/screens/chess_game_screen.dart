@@ -24,6 +24,7 @@ import 'package:chess_app/services/local_recording_service.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/board_setup_dialog.dart';
+import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/create_course_dialog.dart';
 import 'package:chess_app/widgets/save_position_dialog.dart';
 import 'package:chess_app/widgets/matrix_filter_panel.dart';
@@ -109,6 +110,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
   List<String> _selectedExcludeTags = [];
   String _filterMatchMode = 'all'; // 'all' (AND) or 'any' (OR)
   String _lessonCategoryFilter = 'all'; // 'all', 'mine', 'trainer'
+
+  // Active course being stepped through live (trainer-driven; students just see
+  // whatever position loadLessonPosition broadcasts).
+  List<dynamic>? _activeCourseItems;
+  int _activeCourseIndex = 0;
+  String? _activeCourseTitle;
 
   bool get isHost => activeRole == 'host' || activeRole == 'trener' || widget.roomCode == 'STUDIO';
   bool get isTrener => isHost;
@@ -1360,6 +1367,106 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
   }
 
+  Future<void> _confirmDeleteLesson(Map<String, dynamic> lesson) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Obriši lekciju?'),
+        content: Text('"${lesson['title']}" će biti trajno obrisana.'),
+        actions: [
+          TextButton(child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx, false)),
+          TextButton(
+            child: const Text('Obriši', style: TextStyle(color: Colors.redAccent)),
+            onPressed: () => Navigator.pop(ctx, true),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      final response = await http.delete(
+        Uri.parse('$backendUrl/lessons/${lesson['id']}'),
+        headers: {'Authorization': 'Bearer ${widget.userSession.token}'},
+      );
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        _showSuccess('Lekcija obrisana.');
+        fetchLessons();
+      } else {
+        _showError('Brisanje nije uspelo.');
+      }
+    } catch (e) {
+      if (mounted) _showError('Greška na mreži pri brisanju.');
+    }
+  }
+
+  // Rename/re-describe a single (non-course) saved position. FEN/PGN stay
+  // untouched — reposition it via Board Setup and save a new one for that.
+  Future<void> _editSinglePosition(Map<String, dynamic> lesson) async {
+    final titleController = TextEditingController(text: lesson['title'] ?? '');
+    final descController = TextEditingController(text: lesson['description'] ?? '');
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Izmeni poziciju'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Naziv'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descController,
+              decoration: const InputDecoration(labelText: 'Opis (opciono)'),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx, false)),
+          ElevatedButton(child: const Text('Sačuvaj'), onPressed: () => Navigator.pop(ctx, true)),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final title = titleController.text.trim();
+    if (title.isEmpty) {
+      _showError('Unesite naziv.');
+      return;
+    }
+
+    try {
+      final response = await http.put(
+        Uri.parse('$backendUrl/lessons/${lesson['id']}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.userSession.token}',
+        },
+        body: jsonEncode({
+          'title': title,
+          'description': descController.text.trim(),
+          'tags': lesson['tags'],
+          'fen': lesson['fen'],
+          'pgn': lesson['pgn'],
+        }),
+      );
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        _showSuccess('Pozicija izmenjena.');
+        fetchLessons();
+      } else {
+        _showError('Izmena nije uspela.');
+      }
+    } catch (e) {
+      if (mounted) _showError('Greška na mreži pri izmeni.');
+    }
+  }
+
   // REST API: Save current board FEN with description and tags
   Future<void> saveCurrentPosition(String title, String description, List<String> tags) async {
     try {
@@ -1444,6 +1551,79 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     _showSuccess('Pozicija učitana i sinhronizovana!');
     _triggerEngineAnalysis();
+  }
+
+  // Steps the active live course to [newIndex] and broadcasts that step's
+  // position (with its own PGN/comments, if any) via loadLessonPosition.
+  void _goToCourseStep(int newIndex) {
+    final items = _activeCourseItems;
+    if (items == null || newIndex < 0 || newIndex >= items.length) return;
+    setState(() => _activeCourseIndex = newIndex);
+    final step = items[newIndex];
+    loadLessonPosition(step['fen'], step['pgn']);
+    _showSuccess('Korak ${newIndex + 1}/${items.length}: "${step['title'] ?? _activeCourseTitle ?? ''}"');
+  }
+
+  Widget _buildCourseStepBar() {
+    final items = _activeCourseItems;
+    if (items == null || !isTrener) return const SizedBox.shrink();
+    return Container(
+      color: Colors.deepPurple.shade900,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Row(
+        children: [
+          const Icon(Icons.collections_bookmark, color: Colors.white, size: 16),
+          const SizedBox(width: 6),
+          Expanded(
+            child: PopupMenuButton<int>(
+              tooltip: 'Skoči na korak',
+              initialValue: _activeCourseIndex,
+              onSelected: _goToCourseStep,
+              itemBuilder: (ctx) => List.generate(items.length, (i) {
+                final stepTitle = items[i]['title']?.toString() ?? 'Korak ${i + 1}';
+                return PopupMenuItem<int>(
+                  value: i,
+                  child: Row(
+                    children: [
+                      if (i == _activeCourseIndex) const Icon(Icons.check, size: 16, color: Colors.deepPurple) else const SizedBox(width: 16),
+                      const SizedBox(width: 6),
+                      Expanded(child: Text('${i + 1}. $stepTitle', overflow: TextOverflow.ellipsis)),
+                    ],
+                  ),
+                );
+              }),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${_activeCourseTitle ?? 'Kurs'} — korak ${_activeCourseIndex + 1}/${items.length}',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 18),
+                ],
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_left, color: Colors.white),
+            tooltip: 'Prethodni korak',
+            onPressed: _activeCourseIndex > 0 ? () => _goToCourseStep(_activeCourseIndex - 1) : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right, color: Colors.white),
+            tooltip: 'Sledeći korak',
+            onPressed: _activeCourseIndex < items.length - 1 ? () => _goToCourseStep(_activeCourseIndex + 1) : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+            tooltip: 'Zatvori kurs',
+            onPressed: () => setState(() => _activeCourseItems = null),
+          ),
+        ],
+      ),
+    );
   }
 
   // Jump to specific MoveNode in active history and broadcast state
@@ -1728,13 +1908,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
-  void _showCreateCourseDialog() {
+  void _showCreateCourseDialog({Map<String, dynamic>? existingLesson}) {
     showDialog(
       context: context,
       builder: (ctx) => CreateCourseDialog(
         userSession: widget.userSession,
         lessons: lessons,
         onCourseCreated: () => fetchLessons(),
+        existingLesson: existingLesson,
       ),
     );
   }
@@ -2282,13 +2463,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           return Card(
                             margin: const EdgeInsets.symmetric(vertical: 4),
                             child: ListTile(
-                              leading: Icon(
-                                isCourse
-                                    ? Icons.collections_bookmark
-                                    : (isTrainerLesson ? Icons.school : Icons.person),
-                                color: isCourse
-                                    ? Colors.deepPurpleAccent
-                                    : (isTrainerLesson ? Colors.amberAccent : Colors.tealAccent),
+                              leading: BoardThumbnail(
+                                fen: isCourse
+                                    ? ((positionList.first['fen'] as String?) ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
+                                    : ((lesson['fen'] as String?) ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'),
+                                size: 40,
                               ),
                               title: Text(
                                 lesson['title'],
@@ -2316,12 +2495,37 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   ],
                                 ],
                               ),
+                              trailing: isTrainerLesson
+                                  ? null
+                                  : Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.grey),
+                                          tooltip: 'Izmeni',
+                                          onPressed: () => isCourse
+                                              ? _showCreateCourseDialog(existingLesson: Map<String, dynamic>.from(lesson))
+                                              : _editSinglePosition(Map<String, dynamic>.from(lesson)),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                                          tooltip: 'Obriši',
+                                          onPressed: () => _confirmDeleteLesson(Map<String, dynamic>.from(lesson)),
+                                        ),
+                                      ],
+                                    ),
                               onTap: () {
                                 if (isCourse) {
+                                  setState(() {
+                                    _activeCourseItems = positionList;
+                                    _activeCourseIndex = 0;
+                                    _activeCourseTitle = lesson['title'];
+                                  });
                                   final firstPos = positionList[0];
                                   loadLessonPosition(firstPos['fen'], firstPos['pgn']);
-                                  _showSuccess('Učitana 1. pozicija iz kursa: "${firstPos['title'] ?? lesson['title']}"');
+                                  _showSuccess('Učitan korak 1/${positionList.length} iz kursa: "${firstPos['title'] ?? lesson['title']}"');
                                 } else {
+                                  setState(() => _activeCourseItems = null);
                                   loadLessonPosition(lesson['fen'], lesson['pgn']);
                                 }
                               },
@@ -3055,7 +3259,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
       ),
       // Mobile layout has a Drawer for lessons listing (if Trainer)
       drawer: (!isWide && isTrener) ? Drawer(child: buildLeftSidebar()) : null,
-      body: isWide
+      body: Column(children: [
+        _buildCourseStepBar(),
+        Expanded(child: isWide
           ? Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -3149,6 +3355,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 ),
               ],
             ),
+        ),
+      ]),
     );
   }
 }
