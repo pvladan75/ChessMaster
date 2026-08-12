@@ -1,3 +1,4 @@
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:flutter/material.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart';
@@ -24,8 +25,14 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
 
   int _pliesDepth = 4; // N
   int _candidateCount = 2; // n
-  int _engineDepth = 12; // d
+  late int _engineDepth; // d
   double _deltaCutoff = 1.5; // delta
+
+  @override
+  void initState() {
+    super.initState();
+    _engineDepth = AppSettingsService.instance.defaultEngineDepth;
+  }
 
   bool _isAnalyzing = false;
   int _processedNodes = 0;

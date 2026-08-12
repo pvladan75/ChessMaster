@@ -1,3 +1,4 @@
+import 'package:chess_app/services/app_settings_service.dart';
 import 'dart:async';
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
@@ -14,9 +15,9 @@ class AutoAnalysisParams {
   AutoAnalysisParams({
     this.pliesDepth = 4,
     this.candidateCount = 2,
-    this.engineDepth = 12,
+    int? engineDepth,
     this.deltaCutoff = 1.5,
-  });
+  }) : engineDepth = engineDepth ?? AppSettingsService.instance.defaultEngineDepth;
 }
 
 /// How the generator asks for an evaluated position.
@@ -138,8 +139,15 @@ class AutoTreeGeneratorService {
       final tempGame = chess.Chess.fromFEN(currentNode.fen);
       bool moveOk = false;
 
-      // Try UCI format first (e.g. e2e4)
-      if (moveUci.length >= 4) {
+      // Try SAN format first (most robust on current FEN state)
+      if (moveSanStr.isNotEmpty) {
+        try {
+          moveOk = tempGame.move(moveSanStr);
+        } catch (_) {}
+      }
+
+      // Try UCI format if SAN failed
+      if (!moveOk && moveUci.length >= 4) {
         final from = moveUci.substring(0, 2);
         final to = moveUci.substring(2, 4);
         final promo = moveUci.length > 4 ? moveUci.substring(4, 5) : null;
@@ -148,11 +156,16 @@ class AutoTreeGeneratorService {
         } catch (_) {}
       }
 
-      // Try SAN format if UCI failed
-      if (!moveOk && moveSanStr.isNotEmpty) {
-        try {
-          moveOk = tempGame.move(moveSanStr);
-        } catch (_) {}
+      // Fallback: match by legal moves in tempGame if LAN string didn't match directly
+      if (!moveOk && moveUci.length >= 4) {
+        final from = moveUci.substring(0, 2);
+        final to = moveUci.substring(2, 4);
+        for (var m in tempGame.moves({'verbose': true})) {
+          if (m['from'] == from && m['to'] == to) {
+            moveOk = tempGame.move(m);
+            if (moveOk) break;
+          }
+        }
       }
 
       if (!moveOk) {
