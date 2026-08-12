@@ -22,6 +22,7 @@ import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/services/local_recording_service.dart';
 
 import 'package:chess_app/widgets/board_overlay_painter.dart';
+import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/board_setup_dialog.dart';
 import 'package:chess_app/widgets/create_course_dialog.dart';
 import 'package:chess_app/widgets/save_position_dialog.dart';
@@ -66,6 +67,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   final StockfishService _stockfishService = StockfishService();
   bool isEngineEnabled = false;
+  bool _showEvalBar = false;
+  double _currentRawEval = 0.0;
+  int _currentEvalDepth = 0;
   bool isBlunderAlertEnabled = true;
   bool isBlindfoldMode = false;
   String currentEngineEval = "0.00";
@@ -134,38 +138,54 @@ class _ChessGamePageState extends State<ChessGamePage> {
     // Set up Stockfish service evaluation listener
     _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv, depth, isFinal, [analyzedFen = '']) {
       if (!mounted) return;
+      if (!isEngineEnabled) return;
+
+      double parsedEval = 0.0;
+      final numVal = double.tryParse(evaluation);
+      if (numVal != null) {
+        parsedEval = numVal;
+      } else if (evaluation.contains('M')) {
+        final mateNum = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+        parsedEval = evaluation.contains('-') ? (-10000.0 + mateNum) : (10000.0 - mateNum);
+      }
+
       setState(() {
+        if (multipv == 1) {
+          _currentRawEval = parsedEval;
+          _currentEvalDepth = depth;
+          currentEngineEval = evaluation;
+        }
+
         if (evaluation.isNotEmpty || continuation.isNotEmpty) {
           final currentFen = moveTree.current.fen;
           final updatedLine = AnalysisLine.fromPv(
             multipv: multipv,
+            depth: depth,
             eval: evaluation.isNotEmpty ? evaluation : (engineLines[multipv]?.evaluation ?? '0.00'),
             pvString: continuation,
             startingFen: currentFen,
           );
           engineLines[multipv] = updatedLine;
 
-          if (multipv == 1) {
-            if (evaluation.isNotEmpty) {
-              currentEngineEval = updatedLine.evaluation;
-            }
-            if (updatedLine.bestMoveSan.isNotEmpty) {
-              bestEngineMove = updatedLine.bestMoveSan;
-            }
+          if (multipv == 1 && updatedLine.bestMoveSan.isNotEmpty) {
+            bestEngineMove = updatedLine.bestMoveSan;
           }
         }
       });
     };
 
-    // Register with the shared engine's subscriber stack so that pushing another
-    // engine-using screen and popping back restores this listener.
-    // This screen builds its own engineLines from the evaluation stream and never
-    // uses the MultiPV callback, so it registers none rather than inheriting
-    // whichever one happened to be active.
+    _stockfishService.onMultiPVUpdated = (linesMap) {
+      if (!mounted) return;
+      if (!isEngineEnabled) return;
+      setState(() {
+        engineLines.addAll(linesMap);
+      });
+    };
+
     _stockfishService.attach(
       this,
       onEvaluation: _stockfishService.onEvaluationChanged,
-      onMultiPV: null,
+      onMultiPV: _stockfishService.onMultiPVUpdated,
     );
 
     _initAudioChat();
@@ -271,9 +291,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
         engineLines.clear();
         currentEngineEval = "0.00";
         bestEngineMove = "-";
+        _currentRawEval = 0.0;
+        _currentEvalDepth = 0;
       });
       final depth = engineThinkingMode == 'fast' ? 10 : 16;
       final isInfinite = engineThinkingMode == 'infinite';
+      _stockfishService.setMultiPV(3);
       _stockfishService.analyzePosition(
         controller.getFen(),
         depth: depth,
@@ -296,6 +319,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
       isCustomEngineActive: _stockfishService.isCustomEngineActive,
       lines: linesList,
       orientation: boardOrientation,
+      isShowEvalBarEnabled: _showEvalBar,
+      onToggleShowEvalBar: () {
+        setState(() {
+          _showEvalBar = !_showEvalBar;
+        });
+      },
       onToggleEngine: () async {
         setState(() {
           isEngineEnabled = !isEngineEnabled;
@@ -322,7 +351,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   Widget _buildChessBoardWithOverlay(double boardSize) {
-    final isHost = activeRole == 'host' || widget.roomCode == 'STUDIO';
+    final isHost = activeRole == 'host' || activeRole == 'trener' || widget.userSession.role == 'trener' || widget.roomCode == 'STUDIO';
     final isAllowedToMove = isHost || (boardControl != 'host_only' && boardControl != 'trainer_only');
     final isAllowedToUseEngine = isHost || allowStudentEngine;
 
@@ -2303,7 +2332,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
 
     Widget buildRightSidebar() {
-      final isHost = activeRole == 'host' || widget.roomCode == 'STUDIO';
+      final isHost = activeRole == 'host' || activeRole == 'trener' || widget.userSession.role == 'trener' || widget.roomCode == 'STUDIO';
       final isStudio = widget.roomCode == 'STUDIO';
 
       return Container(
@@ -3037,7 +3066,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             isHost ? "Igrate kao Beli (Host)" : "Igrate kao Crni (Korisnik)",
                             style: TextStyle(color: Colors.grey[400], fontSize: 15),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 12),
+                          if (_showEvalBar) ...[
+                            SizedBox(
+                              width: boardSize,
+                              child: HorizontalEvalBarWidget(
+                                eval: _currentRawEval,
+                                evalString: currentEngineEval,
+                                depth: _currentEvalDepth,
+                                orientation: boardOrientation,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                           _buildChessBoardWithOverlay(boardSize),
                           const SizedBox(height: 12),
                           // PGN navigators
@@ -3060,37 +3101,48 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 buildRightSidebar(),
               ],
             )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    isHost ? "Igrate kao Beli (Host)" : "Igrate kao Crni (Korisnik)",
-                    style: TextStyle(color: Colors.grey[400], fontSize: 14),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildChessBoardWithOverlay(boardSize),
-                  const SizedBox(height: 12),
-                  // PGN navigators on mobile
+          : Column(
+              children: [
+                const SizedBox(height: 8),
+                Text(
+                  isHost ? "Igrate kao Beli (Host)" : "Igrate kao Crni (Korisnik)",
+                  style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                ),
+                const SizedBox(height: 6),
+                if (_showEvalBar) ...[
                   SizedBox(
                     width: boardSize,
-                    child: buildNavigationControls(),
+                    child: HorizontalEvalBarWidget(
+                      eval: _currentRawEval,
+                      evalString: currentEngineEval,
+                      depth: _currentEvalDepth,
+                      orientation: boardOrientation,
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  // Stockfish analysis widget directly UNDER board on mobile
-                  SizedBox(
-                    width: boardSize,
-                    child: _buildStockfishAnalysisWidget(),
-                  ),
-                  const SizedBox(height: 16),
-                  // In Mobile mode, we present Right Sidebar content as a card beneath the board
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  const SizedBox(height: 6),
+                ],
+                _buildChessBoardWithOverlay(boardSize),
+                const SizedBox(height: 8),
+                // PGN navigators on mobile (fixed)
+                SizedBox(
+                  width: boardSize,
+                  child: buildNavigationControls(),
+                ),
+                const SizedBox(height: 6),
+                // Stockfish analysis widget directly UNDER board on mobile (fixed)
+                SizedBox(
+                  width: boardSize,
+                  child: _buildStockfishAnalysisWidget(),
+                ),
+                const SizedBox(height: 8),
+                // Scrollable sidebar & controls below fixed board
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                     child: buildRightSidebar(),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
     );
   }
