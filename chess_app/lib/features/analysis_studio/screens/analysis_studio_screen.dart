@@ -100,6 +100,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
   Future<void> _initEngine() async {
     await _stockfishService.initEngine();
+    // Set before attach() so the auto-triggered first analysis (fired
+    // synchronously inside attach(), see below) already uses the configured
+    // MultiPV count instead of whatever the previous screen left behind.
+    _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
     _stockfishService.attach(
       this,
       getFen: () => _currentNode.fen,
@@ -137,7 +141,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       },
     );
 
-    _triggerEngineAnalysis();
+    // attach() above already auto-triggers engine analysis for the current FEN
+    // (StockfishService._activateTopSubscriber). Calling _triggerEngineAnalysis()
+    // here too used to fire a second, near-simultaneous stop/position/go
+    // sequence, and the two writes to the native engine's stdin raced and
+    // corrupted each other (Stockfish would log "Unknown command: 'sstop'" or a
+    // mangled FEN and silently drop the request). Only kick off the lookups
+    // that attach() doesn't cover.
+    _fetchSyzygyIfEligible();
+    _fetchOpeningExplorerIfEligible();
   }
 
   Future<void> _fetchSyzygyIfEligible() async {
