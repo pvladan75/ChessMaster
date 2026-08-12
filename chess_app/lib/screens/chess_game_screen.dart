@@ -568,7 +568,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 ElevatedButton.icon(
                   onPressed: () async {
                     try {
-                      final result = await FilePicker.platform.pickFiles(
+                      final result = await FilePicker.pickFiles(
                         type: FileType.custom,
                         allowedExtensions: ['exe'],
                       );
@@ -1593,7 +1593,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   Future<void> _openLocalPgnFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pgn'],
         withData: true,
