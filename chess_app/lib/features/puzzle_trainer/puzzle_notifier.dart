@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/services/puzzle_api_service.dart';
 import 'package:chess_app/services/puzzle_engine.dart';
