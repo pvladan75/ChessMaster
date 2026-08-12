@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
+import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 
 class AnalysisBoardSetupDialog extends StatefulWidget {
   final String initialFen;
@@ -40,13 +41,21 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
   bool _blackCastleQ = true;
   String _selectedPalettePiece = 'P'; // Default White Pawn, 'CLEAR' for eraser
 
+  // Tab 4: Opening Search
+  final TextEditingController _openingSearchController = TextEditingController();
+  List<OpeningBookEntry> _openingSearchResults = [];
+  bool _openingBookLoading = true;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _fenTextController = TextEditingController(text: widget.initialFen);
     _validateFen(widget.initialFen);
     _initBuilderBoardFromFen(widget.initialFen);
+    OpeningBookService.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() => _openingBookLoading = false);
+    });
   }
 
   @override
@@ -54,7 +63,14 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
     _tabController.dispose();
     _fenTextController.dispose();
     _pgnTextController.dispose();
+    _openingSearchController.dispose();
     super.dispose();
+  }
+
+  void _onOpeningSearchChanged(String query) {
+    setState(() {
+      _openingSearchResults = OpeningBookService.instance.search(query);
+    });
   }
 
   void _validateFen(String fen) {
@@ -176,6 +192,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
                 Tab(icon: Icon(Icons.edit_note, size: 18), text: 'FEN String'),
                 Tab(icon: Icon(Icons.file_upload, size: 18), text: 'PGN Uvoz'),
                 Tab(icon: Icon(Icons.grid_on, size: 18), text: 'Ručno Slaganje'),
+                Tab(icon: Icon(Icons.travel_explore, size: 18), text: 'Otvaranja'),
               ],
             ),
             const SizedBox(height: 12),
@@ -186,6 +203,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
                   _buildFenInputTab(),
                   _buildPgnImportTab(),
                   _buildManualBuilderTab(),
+                  _buildOpeningSearchTab(),
                 ],
               ),
             ),
@@ -504,6 +522,70 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
               Navigator.pop(context);
             },
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOpeningSearchTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Pretražite otvaranja i varijante po imenu (npr. "Najdorf"):',
+          style: TextStyle(fontSize: 13, color: Colors.grey),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _openingSearchController,
+          enabled: !_openingBookLoading,
+          style: const TextStyle(color: Colors.white, fontSize: 13),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.black45,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            hintText: _openingBookLoading ? 'Učitavanje baze otvaranja...' : 'Naziv otvaranja ili varijante...',
+            hintStyle: const TextStyle(color: Colors.grey),
+            prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          ),
+          onChanged: _onOpeningSearchChanged,
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: _openingSearchResults.isEmpty
+              ? Center(
+                  child: Text(
+                    _openingBookLoading
+                        ? ''
+                        : (_openingSearchController.text.trim().isEmpty
+                            ? 'Ukucajte naziv otvaranja da vidite rezultate.'
+                            : 'Nema rezultata.'),
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _openingSearchResults.length,
+                  itemBuilder: (context, index) {
+                    final entry = _openingSearchResults[index];
+                    return ListTile(
+                      dense: true,
+                      title: Text(
+                        entry.name,
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        '${entry.eco} · ${entry.pgn}',
+                        style: const TextStyle(color: Colors.grey, fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () {
+                        widget.onPgnLoaded?.call(entry.pgn);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
         ),
       ],
     );

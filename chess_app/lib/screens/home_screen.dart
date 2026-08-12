@@ -1,3 +1,4 @@
+import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -62,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _fetchNotifications();
       _fetchScheduledSessions();
     }
+    OpeningBookService.instance.ensureLoaded();
   }
 
   @override

@@ -16,6 +16,11 @@ import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/features/analysis_studio/services/position_info_service.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
+import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
+import 'package:chess_app/features/analysis_studio/widgets/syzygy_panel_widget.dart';
+import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
+import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
+import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
 
 class AnalysisStudioScreen extends StatefulWidget {
@@ -52,6 +57,19 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   List<EngineArrow> _engineArrows = [];
   bool _showEngineOverlay = true;
 
+  // Syzygy tablebase state
+  final SyzygyTablebaseService _syzygyService = SyzygyTablebaseService.instance;
+  SyzygyResult? _syzygyResult;
+  bool _syzygyLoading = false;
+  int _syzygyRequestId = 0;
+
+  // Lichess Opening Explorer state
+  final OpeningExplorerService _openingExplorerService = OpeningExplorerService.instance;
+  OpeningExplorerResult? _openingExplorerResult;
+  bool _openingExplorerLoading = false;
+  int _openingExplorerRequestId = 0;
+  int? _openingExplorerMinRating;
+
   @override
   void initState() {
     super.initState();
@@ -59,6 +77,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     AppLogger.log('[AnalysisStudio] 🎬 initState initialized with FEN: $startFen');
     _initAnalysisTree(startFen);
     _initEngine();
+    OpeningBookService.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -119,8 +140,84 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _triggerEngineAnalysis();
   }
 
+  Future<void> _fetchSyzygyIfEligible() async {
+    final fen = _currentNode.fen;
+    final phaseInfo = PositionInfoService.analyzeFen(fen);
+    final reqId = ++_syzygyRequestId;
+
+    if (!phaseInfo.isSyzygyReady) {
+      if (_syzygyResult != null || _syzygyLoading) {
+        setState(() {
+          _syzygyResult = null;
+          _syzygyLoading = false;
+        });
+      }
+      return;
+    }
+
+    setState(() {
+      _syzygyLoading = true;
+      _syzygyResult = null;
+    });
+
+    final result = await _syzygyService.lookup(fen);
+    if (!mounted || reqId != _syzygyRequestId) return;
+
+    setState(() {
+      _syzygyResult = result;
+      _syzygyLoading = false;
+    });
+  }
+
+  Future<void> _fetchOpeningExplorerIfEligible() async {
+    final token = AppSettingsService.instance.lichessApiToken;
+    final reqId = ++_openingExplorerRequestId;
+
+    if (token.isEmpty) {
+      if (_openingExplorerResult != null || _openingExplorerLoading) {
+        setState(() {
+          _openingExplorerResult = null;
+          _openingExplorerLoading = false;
+        });
+      }
+      return;
+    }
+
+    setState(() {
+      _openingExplorerLoading = true;
+      _openingExplorerResult = null;
+    });
+
+    final result = await _openingExplorerService.lookup(
+      _currentNode.fen,
+      token,
+      minRating: _openingExplorerMinRating,
+    );
+    if (!mounted || reqId != _openingExplorerRequestId) return;
+
+    setState(() {
+      _openingExplorerResult = result;
+      _openingExplorerLoading = false;
+    });
+  }
+
+  void _onOpeningExplorerMinRatingChanged(int? minRating) {
+    setState(() => _openingExplorerMinRating = minRating);
+    _fetchOpeningExplorerIfEligible();
+  }
+
+  void _playUciMove(String uci) {
+    if (uci.length < 4) return;
+    final from = uci.substring(0, 2);
+    final to = uci.substring(2, 4);
+    final promotion = uci.length > 4 ? uci.substring(4, 5) : '';
+    _handleUserMove(from, to, promotion);
+  }
+
   void _triggerEngineAnalysis() {
     AppLogger.log('[AnalysisStudio] ⚡ _triggerEngineAnalysis fired | showEval: $_showEvaluation | showEvalBar: $_showEvalBar | Current FEN: ${_currentNode.fen}');
+    _fetchSyzygyIfEligible();
+    _fetchOpeningExplorerIfEligible();
     if (_showEvaluation || _showEvalBar) {
       // Validate FEN before sending to engine
       try {
@@ -688,46 +785,56 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 Builder(
                   builder: (ctx) {
                     final phaseInfo = PositionInfoService.analyzeFen(_currentNode.fen);
-                    return Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: phaseInfo.isEndgame ? Colors.indigo.shade900 : Colors.grey.shade900,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
-                          width: 1,
+                    final bookEntry = OpeningBookService.instance.lookupByFen(_currentNode.fen);
+                    final displayOpeningName = (!phaseInfo.isEndgame && bookEntry != null)
+                        ? '${bookEntry.eco} · ${bookEntry.name}'
+                        : phaseInfo.openingName;
+                    return Column(
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: phaseInfo.isEndgame ? Colors.indigo.shade900 : Colors.grey.shade900,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                phaseInfo.isEndgame ? Icons.auto_awesome : Icons.menu_book,
+                                color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  displayOpeningName,
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            phaseInfo.isEndgame ? Icons.auto_awesome : Icons.menu_book,
-                            color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              phaseInfo.openingName,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                          ),
-                          if (phaseInfo.isSyzygyReady)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.cyanAccent.shade700,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'Syzygy Ready',
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
-                              ),
-                            ),
-                        ],
-                      ),
+                        SyzygyPanelWidget(
+                          isEligible: phaseInfo.isSyzygyReady,
+                          isLoading: _syzygyLoading,
+                          result: _syzygyResult,
+                          onMoveSelected: _playUciMove,
+                        ),
+                        OpeningExplorerPanelWidget(
+                          hasToken: AppSettingsService.instance.lichessApiToken.isNotEmpty,
+                          isLoading: _openingExplorerLoading,
+                          result: _openingExplorerResult,
+                          minRating: _openingExplorerMinRating,
+                          onMoveSelected: _playUciMove,
+                          onMinRatingChanged: _onOpeningExplorerMinRatingChanged,
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -831,46 +938,56 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 Builder(
                   builder: (ctx) {
                     final phaseInfo = PositionInfoService.analyzeFen(_currentNode.fen);
-                    return Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: phaseInfo.isEndgame ? Colors.indigo.shade900 : Colors.grey.shade900,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
-                          width: 1,
+                    final bookEntry = OpeningBookService.instance.lookupByFen(_currentNode.fen);
+                    final displayOpeningName = (!phaseInfo.isEndgame && bookEntry != null)
+                        ? '${bookEntry.eco} · ${bookEntry.name}'
+                        : phaseInfo.openingName;
+                    return Column(
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: phaseInfo.isEndgame ? Colors.indigo.shade900 : Colors.grey.shade900,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                phaseInfo.isEndgame ? Icons.auto_awesome : Icons.menu_book,
+                                color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  displayOpeningName,
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            phaseInfo.isEndgame ? Icons.auto_awesome : Icons.menu_book,
-                            color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              phaseInfo.openingName,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                          ),
-                          if (phaseInfo.isSyzygyReady)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.cyanAccent.shade700,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'Syzygy Ready',
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
-                              ),
-                            ),
-                        ],
-                      ),
+                        SyzygyPanelWidget(
+                          isEligible: phaseInfo.isSyzygyReady,
+                          isLoading: _syzygyLoading,
+                          result: _syzygyResult,
+                          onMoveSelected: _playUciMove,
+                        ),
+                        OpeningExplorerPanelWidget(
+                          hasToken: AppSettingsService.instance.lichessApiToken.isNotEmpty,
+                          isLoading: _openingExplorerLoading,
+                          result: _openingExplorerResult,
+                          minRating: _openingExplorerMinRating,
+                          onMoveSelected: _playUciMove,
+                          onMinRatingChanged: _onOpeningExplorerMinRatingChanged,
+                        ),
+                      ],
                     );
                   },
                 ),

@@ -11,12 +11,14 @@ class AppSettingsService extends ChangeNotifier {
   int _defaultEngineDepth = 18;
   int _defaultEngineMoveTimeSeconds = 2;
   int _defaultMultiPV = 3;
+  String _lichessApiToken = '';
 
   ThemeMode get themeMode => _themeMode;
   String get language => _language;
   int get defaultEngineDepth => _defaultEngineDepth;
   int get defaultEngineMoveTimeSeconds => _defaultEngineMoveTimeSeconds;
   int get defaultMultiPV => _defaultMultiPV;
+  String get lichessApiToken => _lichessApiToken;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -33,6 +35,7 @@ class AppSettingsService extends ChangeNotifier {
     _defaultEngineDepth = (prefs.getInt('app_engine_depth') ?? 18).clamp(5, 50);
     _defaultEngineMoveTimeSeconds = (prefs.getInt('app_engine_movetime') ?? 2).clamp(1, 60);
     _defaultMultiPV = (prefs.getInt('app_multi_pv') ?? 3).clamp(1, 5);
+    _lichessApiToken = prefs.getString('app_lichess_token') ?? '';
     notifyListeners();
   }
 
@@ -72,5 +75,12 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('app_multi_pv', _defaultMultiPV);
+  }
+
+  Future<void> setLichessApiToken(String token) async {
+    _lichessApiToken = token.trim();
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_lichess_token', _lichessApiToken);
   }
 }
