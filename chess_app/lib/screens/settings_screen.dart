@@ -299,6 +299,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
+
               const SizedBox(height: 24),
               const Text('LICHESS INTEGRACIJA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
               const SizedBox(height: 8),

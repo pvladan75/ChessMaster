@@ -172,8 +172,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   Future<void> _fetchOpeningExplorerIfEligible() async {
     final token = AppSettingsService.instance.lichessApiToken;
     final reqId = ++_openingExplorerRequestId;
+    final hasToken = OpeningExplorerService.hasTokenFor(token);
 
-    if (token.isEmpty) {
+    AppLogger.log('[OpeningExplorer] 🔍 hasToken=$hasToken | FEN: ${_currentNode.fen}');
+
+    if (!hasToken) {
+      AppLogger.log('[OpeningExplorer] ⛔ Nema tokena — preskačem lookup');
       if (_openingExplorerResult != null || _openingExplorerLoading) {
         setState(() {
           _openingExplorerResult = null;
@@ -190,10 +194,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
     final result = await _openingExplorerService.lookup(
       _currentNode.fen,
-      token,
+      token: token,
       minRating: _openingExplorerMinRating,
     );
     if (!mounted || reqId != _openingExplorerRequestId) return;
+
+    AppLogger.log('[OpeningExplorer] 📊 Rezultat: ${result == null ? "null" : "${result.moves.length} poteza, ${result.total} partija"}');
 
     setState(() {
       _openingExplorerResult = result;
@@ -827,7 +833,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                           onMoveSelected: _playUciMove,
                         ),
                         OpeningExplorerPanelWidget(
-                          hasToken: AppSettingsService.instance.lichessApiToken.isNotEmpty,
+                          hasToken: OpeningExplorerService.hasTokenFor(AppSettingsService.instance.lichessApiToken),
                           isLoading: _openingExplorerLoading,
                           result: _openingExplorerResult,
                           minRating: _openingExplorerMinRating,
@@ -980,7 +986,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                           onMoveSelected: _playUciMove,
                         ),
                         OpeningExplorerPanelWidget(
-                          hasToken: AppSettingsService.instance.lichessApiToken.isNotEmpty,
+                          hasToken: OpeningExplorerService.hasTokenFor(AppSettingsService.instance.lichessApiToken),
                           isLoading: _openingExplorerLoading,
                           result: _openingExplorerResult,
                           minRating: _openingExplorerMinRating,

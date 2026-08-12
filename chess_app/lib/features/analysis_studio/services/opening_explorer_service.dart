@@ -75,12 +75,13 @@ class OpeningExplorerResult {
   factory OpeningExplorerResult.fromJson(String fen, Map<String, dynamic> json) {
     final movesJson = (json['moves'] as List?) ?? const [];
     final moves = movesJson
-        .whereType<Map<String, dynamic>>()
-        .map(OpeningExplorerMove.fromJson)
+        .where((e) => e is Map)
+        .map((e) => OpeningExplorerMove.fromJson(Map<String, dynamic>.from(e as Map)))
         .toList()
       ..sort((a, b) => b.total.compareTo(a.total));
 
-    final openingJson = json['opening'] as Map<String, dynamic>?;
+    final rawOpening = json['opening'];
+    final openingJson = rawOpening is Map ? Map<String, dynamic>.from(rawOpening) : null;
 
     return OpeningExplorerResult(
       fen: fen,
@@ -94,13 +95,20 @@ class OpeningExplorerResult {
 }
 
 /// Looks up real game statistics (move popularity, opening name, win rates)
-/// from the Lichess Opening Explorer. As of the 2026 anti-abuse changes this
-/// endpoint requires a personal Lichess OAuth token (see
-/// lichess.org/account/oauth/token) sent as a Bearer header; without one the
-/// lookup is skipped entirely rather than surfacing a 401 to the user.
+/// from the Lichess Opening Explorer.
 class OpeningExplorerService {
   OpeningExplorerService._();
   static final OpeningExplorerService instance = OpeningExplorerService._();
+
+  /// Optional compile-time token passed via:
+  ///   flutter build --dart-define=LICHESS_API_TOKEN=lip_...
+  static const String _envToken = String.fromEnvironment(
+    'LICHESS_API_TOKEN',
+    defaultValue: '',
+  );
+
+  static bool hasTokenFor(String userConfiguredToken) =>
+      _envToken.isNotEmpty || userConfiguredToken.trim().isNotEmpty;
 
   static const _baseUrl = 'https://explorer.lichess.ovh/lichess';
 
@@ -110,12 +118,13 @@ class OpeningExplorerService {
   /// selects games whose average rating falls in the 2500+ bucket). Buckets
   /// are fixed steps (1000, 1200, ... 2200, 2500); pass null for all ratings.
   Future<OpeningExplorerResult?> lookup(
-    String fen,
-    String apiToken, {
+    String fen, {
+    String? token,
     int movesLimit = 12,
     int? minRating,
   }) async {
-    if (apiToken.isEmpty) return null;
+    final effectiveToken = (_envToken.isNotEmpty ? _envToken : (token ?? '')).trim();
+    if (effectiveToken.isEmpty) return null;
 
     final cacheKey = '$fen|$movesLimit|${minRating ?? 'all'}';
     if (_cache.containsKey(cacheKey)) return _cache[cacheKey];
@@ -128,8 +137,10 @@ class OpeningExplorerService {
       });
       final res = await http.get(
         uri,
-        headers: {'Authorization': 'Bearer $apiToken'},
+        headers: {'Authorization': 'Bearer $effectiveToken'},
       ).timeout(const Duration(seconds: 6));
+
+      AppLogger.log('[OpeningExplorer] 🌐 HTTP ${res.statusCode} | body: ${res.body.length} bytes | FEN: $fen');
 
       if (res.statusCode != 200) {
         AppLogger.log('[OpeningExplorer] ⚠️ HTTP ${res.statusCode} for FEN: $fen');
@@ -138,6 +149,7 @@ class OpeningExplorerService {
 
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final result = OpeningExplorerResult.fromJson(fen, data);
+      AppLogger.log('[OpeningExplorer] ✅ Parsed: ${result.moves.length} poteza, ${result.total} partija');
       _cache[cacheKey] = result;
       return result;
     } catch (e) {
