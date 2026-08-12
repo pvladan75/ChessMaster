@@ -81,6 +81,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     await _stockfishService.initEngine();
     _stockfishService.attach(
       this,
+      getFen: () => _currentNode.fen,
+      isEnabled: () => _showEvaluation || _showEvalBar,
       onEvaluation: (evaluation, bestMove, continuation, multipv, depth, isFinal, analyzedFen) {
         if (!mounted) return;
         if (!_showEvaluation && !_showEvalBar) return;

@@ -184,6 +184,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     _stockfishService.attach(
       this,
+      getFen: () => controller.getFen(),
+      isEnabled: () => isEngineEnabled,
       onEvaluation: _stockfishService.onEvaluationChanged,
       onMultiPV: _stockfishService.onMultiPVUpdated,
     );

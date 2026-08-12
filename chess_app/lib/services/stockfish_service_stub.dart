@@ -40,14 +40,21 @@ class StockfishService {
     Object owner, {
     Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation,
     Function(Map<int, AnalysisLine> lines)? onMultiPV,
+    String Function()? getFen,
+    bool Function()? isEnabled,
   }) {
     _subscribers.removeWhere((s) => identical(s.owner, owner));
-    _subscribers.add(_EngineSubscriber(owner, onEvaluation, onMultiPV));
+    _subscribers.add(_EngineSubscriber(owner, onEvaluation, onMultiPV, getFen: getFen, isEnabled: isEnabled));
     _activateTopSubscriber();
   }
 
   void detach(Object owner) {
     _subscribers.removeWhere((s) => identical(s.owner, owner));
+    stopAnalysis();
+    _activateTopSubscriber();
+  }
+
+  void reactivateTopSubscriber() {
     stopAnalysis();
     _activateTopSubscriber();
   }
@@ -61,6 +68,12 @@ class StockfishService {
     final top = _subscribers.last;
     onEvaluationChanged = top.onEvaluation;
     onMultiPVUpdated = top.onMultiPV;
+
+    final active = top.isEnabled?.call() ?? true;
+    final currentFen = top.getFen?.call();
+    if (active && currentFen != null && currentFen.isNotEmpty) {
+      analyzePosition(currentFen);
+    }
   }
 
   Future<void> analyzePosition(String fen, {int depth = 10, bool isInfinite = false}) async {
@@ -157,6 +170,8 @@ class _EngineSubscriber {
   final Object owner;
   final Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation;
   final Function(Map<int, AnalysisLine> lines)? onMultiPV;
+  final String Function()? getFen;
+  final bool Function()? isEnabled;
 
-  _EngineSubscriber(this.owner, this.onEvaluation, this.onMultiPV);
+  _EngineSubscriber(this.owner, this.onEvaluation, this.onMultiPV, {this.getFen, this.isEnabled});
 }

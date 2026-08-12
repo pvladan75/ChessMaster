@@ -251,9 +251,17 @@ class StockfishService {
     Object owner, {
     Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation,
     Function(Map<int, AnalysisLine> lines)? onMultiPV,
+    String Function()? getFen,
+    bool Function()? isEnabled,
   }) {
     _subscribers.removeWhere((s) => identical(s.owner, owner));
-    _subscribers.add(_EngineSubscriber(owner, onEvaluation, onMultiPV));
+    _subscribers.add(_EngineSubscriber(
+      owner,
+      onEvaluation,
+      onMultiPV,
+      getFen: getFen,
+      isEnabled: isEnabled,
+    ));
     AppLogger.log('[StockfishService] 🔗 attach(${owner.runtimeType}) — ${_subscribers.length} subscriber(s)');
     _activateTopSubscriber();
   }
@@ -269,6 +277,12 @@ class StockfishService {
     _activateTopSubscriber();
   }
 
+  /// Manually triggers re-analysis for the active top subscriber (e.g. after settings dialog closes or route resumes)
+  void reactivateTopSubscriber() {
+    stopAnalysis();
+    _activateTopSubscriber();
+  }
+
   void _activateTopSubscriber() {
     if (_subscribers.isEmpty) {
       onEvaluationChanged = null;
@@ -278,6 +292,15 @@ class StockfishService {
     final top = _subscribers.last;
     onEvaluationChanged = top.onEvaluation;
     onMultiPVUpdated = top.onMultiPV;
+
+    // Automatically trigger analysis for current visible board position if engine is ON
+    final active = top.isEnabled?.call() ?? true;
+    final currentFen = top.getFen?.call();
+
+    if (active && currentFen != null && currentFen.isNotEmpty) {
+      AppLogger.log('[StockfishService] 🔄 Auto-triggering evaluation for top subscriber (${top.owner.runtimeType}) | FEN: $currentFen');
+      analyzePosition(currentFen);
+    }
   }
 
   /// Sends a FEN position for analysis
@@ -647,6 +670,14 @@ class _EngineSubscriber {
   final Object owner;
   final Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation;
   final Function(Map<int, AnalysisLine> lines)? onMultiPV;
+  final String Function()? getFen;
+  final bool Function()? isEnabled;
 
-  _EngineSubscriber(this.owner, this.onEvaluation, this.onMultiPV);
+  _EngineSubscriber(
+    this.owner,
+    this.onEvaluation,
+    this.onMultiPV, {
+    this.getFen,
+    this.isEnabled,
+  });
 }
