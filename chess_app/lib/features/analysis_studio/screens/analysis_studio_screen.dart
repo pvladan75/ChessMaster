@@ -35,6 +35,9 @@ import 'package:chess_app/features/analysis_studio/widgets/positional_findings_p
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
+import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.dart';
+import 'package:chess_app/features/analysis_studio/widgets/extract_puzzles_dialog.dart';
+import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
 import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart' as dialogs;
 
 class AnalysisStudioScreen extends StatefulWidget {
@@ -635,6 +638,40 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     dialogs.exportPgnDialog(context, _rootNode);
   }
 
+  void _showGameReviewDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => GameReviewDialog(
+        rootNode: _rootNode,
+        stockfishService: _stockfishService,
+        onCompleted: () {
+          setState(() {});
+          _saveDraft();
+        },
+      ),
+    );
+  }
+
+  void _showExtractPuzzlesDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => ExtractPuzzlesDialog(
+        rootNode: _rootNode,
+        stockfishService: _stockfishService,
+        onPuzzleSelected: (LocalPuzzle puzzle) {
+          setState(() {
+            _initAnalysisTree(puzzle.fen);
+          });
+          _saveDraft();
+          _triggerEngineAnalysis();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('🧩 ${puzzle.themeLabel}'), backgroundColor: Colors.teal),
+          );
+        },
+      ),
+    );
+  }
+
   void _showSetupDialog() {
     showDialog(
       context: context,
@@ -808,6 +845,16 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             icon: Icon(Icons.auto_awesome, color: context.colors.warning),
             tooltip: 'Automatska Analiza ⚡',
             onPressed: _showAutoAnalysisDialog,
+          ),
+          IconButton(
+            icon: Icon(Icons.fact_check, color: context.colors.accent),
+            tooltip: 'Analiziraj celu partiju',
+            onPressed: _showGameReviewDialog,
+          ),
+          IconButton(
+            icon: Icon(Icons.extension, color: context.colors.accent),
+            tooltip: 'Pretvori partiju u vežbe',
+            onPressed: _showExtractPuzzlesDialog,
           ),
           IconButton(
             icon: Icon(Icons.share, color: context.colors.info),
