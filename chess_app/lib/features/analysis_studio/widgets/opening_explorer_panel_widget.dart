@@ -226,7 +226,13 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
         'to': uci.substring(2, 4),
         if (uci.length > 4) 'promotion': uci.substring(4, 5),
       });
-      if (ok) return game.move_to_san(game.history.last.move);
+      // move_to_san() on an already-played move isn't reliable in this
+      // package; history.last.san (populated by move() itself) is the
+      // pattern used everywhere else in this codebase for this reason.
+      if (ok && game.history.isNotEmpty) {
+        final dynamic lastHist = game.history.last;
+        return (lastHist.san as String?) ?? uci;
+      }
     } catch (_) {}
     return uci;
   }

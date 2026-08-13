@@ -15,6 +15,11 @@ class AppSettingsService extends ChangeNotifier {
   Set<String> _hiddenPanels = {};
   String _lichessApiToken = '';
 
+  /// Which opening database the Analysis Studio Opening Explorer panel
+  /// queries: 'lichess' (real-game move popularity, needs an API token) or
+  /// 'chessdb' (ChessDB.cn's shared engine analysis, no token needed).
+  String _openingDbSource = 'lichess';
+
   ThemeMode get themeMode => _themeMode;
   int get defaultEngineDepth => _defaultEngineDepth;
   int get defaultEngineMoveTimeSeconds => _defaultEngineMoveTimeSeconds;
@@ -22,6 +27,7 @@ class AppSettingsService extends ChangeNotifier {
   String get customEnginePath => _customEnginePath;
   double get boardSizeScale => _boardSizeScale;
   String get lichessApiToken => _lichessApiToken;
+  String get openingDbSource => _openingDbSource;
 
   /// Panels default to visible; only explicitly hidden keys are stored, so
   /// new panels added later don't need a migration to stay visible.
@@ -44,6 +50,8 @@ class AppSettingsService extends ChangeNotifier {
     _boardSizeScale = (prefs.getDouble('app_board_scale') ?? 1.0).clamp(0.6, 1.0);
     _hiddenPanels = (prefs.getStringList('app_hidden_panels') ?? []).toSet();
     _lichessApiToken = prefs.getString('lichess_api_token') ?? '';
+    final storedSource = prefs.getString('app_opening_db_source');
+    _openingDbSource = (storedSource == 'chessdb') ? 'chessdb' : 'lichess';
     notifyListeners();
   }
 
@@ -99,5 +107,12 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('lichess_api_token', _lichessApiToken);
+  }
+
+  Future<void> setOpeningDbSource(String source) async {
+    _openingDbSource = (source == 'chessdb') ? 'chessdb' : 'lichess';
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_opening_db_source', _openingDbSource);
   }
 }

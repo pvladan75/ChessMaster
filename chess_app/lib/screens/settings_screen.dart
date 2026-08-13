@@ -331,7 +331,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 24),
-              Text('LICHESS OPENING EXPLORER', style: AppText.bodyBold.copyWith(color: context.colors.textMuted)),
+              Text('BAZA OTVARANJA (OPENING EXPLORER)', style: AppText.bodyBold.copyWith(color: context.colors.textMuted)),
               const SizedBox(height: 8),
 
               Card(
@@ -341,6 +341,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const Text('Izvor podataka:', style: TextStyle(fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('Lichess'),
+                              selected: _settings.openingDbSource == 'lichess',
+                              onSelected: (_) => _settings.setOpeningDbSource('lichess'),
+                              avatar: const Icon(Icons.bar_chart, size: 16),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('ChessDB'),
+                              selected: _settings.openingDbSource == 'chessdb',
+                              onSelected: (_) => _settings.setOpeningDbSource('chessdb'),
+                              avatar: const Icon(Icons.memory, size: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _settings.openingDbSource == 'lichess'
+                            ? 'Lichess: popularnost poteza iz stvarno odigranih partija igrača. Zahteva besplatni API token ispod — bez njega se automatski koristi ChessDB.'
+                            : 'ChessDB: procena kvaliteta poteza iz deljene baze motorske analize (chessdb.cn) — ne zahteva token, ali ne pokazuje statistiku partija.',
+                        style: AppText.caption.copyWith(color: context.colors.textMuted),
+                      ),
+                      const Divider(height: 24),
                       Text(
                         'Lichess sada zahteva lični API token za pristup bazi otvaranja (statistika poteza iz odigranih partija). Napravite besplatan token na lichess.org/account/oauth/token (nije potrebna nijedna dozvola/scope) i nalepite ga ovde.',
                         style: AppText.caption.copyWith(color: context.colors.textMuted),

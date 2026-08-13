@@ -260,10 +260,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   Future<void> _fetchOpeningExplorerIfEligible() async {
     final reqId = ++_openingExplorerRequestId;
 
-    AppLogger.log('[OpeningExplorer] 🔍 hasToken=${OpeningExplorerService.hasToken} | FEN: ${_currentNode.fen}');
+    final wantsChessDb = AppSettingsService.instance.openingDbSource == 'chessdb';
+    AppLogger.log('[OpeningExplorer] 🔍 hasToken=${OpeningExplorerService.hasToken} | wantsChessDb=$wantsChessDb | FEN: ${_currentNode.fen}');
 
-    if (!OpeningExplorerService.hasToken) {
-      AppLogger.log('[OpeningExplorer] ⛔ Nema tokena — koristim ChessDB fallback');
+    if (wantsChessDb || !OpeningExplorerService.hasToken) {
+      AppLogger.log(wantsChessDb
+          ? '[OpeningExplorer] ⚙️ Korisnik je izabrao ChessDB'
+          : '[OpeningExplorer] ⛔ Nema tokena — koristim ChessDB fallback');
       if (_openingExplorerResult != null || _openingExplorerLoading) {
         setState(() {
           _openingExplorerResult = null;
@@ -919,7 +922,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               ),
             if (AppSettingsService.instance.isPanelVisible('opening_explorer'))
               OpeningExplorerPanelWidget(
-                hasToken: OpeningExplorerService.hasToken,
+                hasToken: OpeningExplorerService.hasToken && AppSettingsService.instance.openingDbSource != 'chessdb',
                 isLoading: _openingExplorerLoading,
                 result: _openingExplorerResult,
                 minRating: _openingExplorerMinRating,
