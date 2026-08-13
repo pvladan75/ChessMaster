@@ -14,6 +14,7 @@ class AppSettingsService extends ChangeNotifier {
   double _boardSizeScale = 1.0;
   Set<String> _hiddenPanels = {};
   String _lichessApiToken = '';
+  bool _manualCommentMode = false;
 
   /// Which opening database the Analysis Studio Opening Explorer panel
   /// queries: 'lichess' (real-game move popularity, needs an API token) or
@@ -28,6 +29,11 @@ class AppSettingsService extends ChangeNotifier {
   double get boardSizeScale => _boardSizeScale;
   String get lichessApiToken => _lichessApiToken;
   String get openingDbSource => _openingDbSource;
+
+  /// When true, moves no longer get an auto-generated tactical comment —
+  /// the user picks which findings to keep (plus their own text) through
+  /// the comment dialog's checklist instead.
+  bool get manualCommentMode => _manualCommentMode;
 
   /// Panels default to visible; only explicitly hidden keys are stored, so
   /// new panels added later don't need a migration to stay visible.
@@ -50,6 +56,7 @@ class AppSettingsService extends ChangeNotifier {
     _boardSizeScale = (prefs.getDouble('app_board_scale') ?? 1.0).clamp(0.6, 1.0);
     _hiddenPanels = (prefs.getStringList('app_hidden_panels') ?? []).toSet();
     _lichessApiToken = prefs.getString('lichess_api_token') ?? '';
+    _manualCommentMode = prefs.getBool('app_manual_comment_mode') ?? false;
     final storedSource = prefs.getString('app_opening_db_source');
     _openingDbSource = (storedSource == 'chessdb') ? 'chessdb' : 'lichess';
     notifyListeners();
@@ -107,6 +114,13 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('lichess_api_token', _lichessApiToken);
+  }
+
+  Future<void> setManualCommentMode(bool enabled) async {
+    _manualCommentMode = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('app_manual_comment_mode', _manualCommentMode);
   }
 
   Future<void> setOpeningDbSource(String source) async {

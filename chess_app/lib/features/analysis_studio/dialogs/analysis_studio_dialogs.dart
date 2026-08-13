@@ -13,13 +13,15 @@ import 'package:chess_app/features/analysis_studio/services/analysis_persistence
 /// here (instead of as private methods on the State) is what keeps the
 /// screen file from re-growing every time a toolbar dialog changes.
 
-void showCommentDialog(BuildContext context, String initialComment, ValueChanged<String> onSaved) {
+void showCommentDialog(
+    BuildContext context, String initialComment, ValueChanged<String> onSaved) {
   final controller = TextEditingController(text: initialComment);
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
       backgroundColor: Colors.grey.shade900,
-      title: const Text('Dodaj / Izmeni Komentar', style: TextStyle(color: Colors.white)),
+      title: const Text('Dodaj / Izmeni Komentar',
+          style: TextStyle(color: Colors.white)),
       content: TextField(
         controller: controller,
         maxLines: 4,
@@ -48,12 +50,160 @@ void showCommentDialog(BuildContext context, String initialComment, ValueChanged
   );
 }
 
+/// Manual-mode comment editor: a free-text field plus two checklists of
+/// candidate findings — tactical ([TacticalMotifDetector]) and positional
+/// ([PositionalEvaluatorService]) — the user picks from individually
+/// instead of getting the whole auto-generated comment.
+void showManualCommentDialog(
+  BuildContext context,
+  String initialComment,
+  List<String> tacticalCandidates,
+  List<String> positionalCandidates,
+  ValueChanged<String> onSaved,
+) {
+  final freeTextController = TextEditingController(text: initialComment);
+  final selectedTactical = <String>{};
+  final selectedPositional = <String>{};
+
+  showDialog(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setDialogState) {
+        Widget buildChecklist(
+            String title, List<String> candidates, Set<String> selected,
+            {required String emptyHint}) {
+          return Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        color: Colors.tealAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13)),
+                const SizedBox(height: 4),
+                if (candidates.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      emptyHint,
+                      style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic),
+                    ),
+                  )
+                else
+                  ...candidates.map((line) => CheckboxListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        visualDensity: VisualDensity.compact,
+                        title: Text(line,
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 12)),
+                        value: selected.contains(line),
+                        onChanged: (checked) {
+                          setDialogState(() {
+                            if (checked == true) {
+                              selected.add(line);
+                            } else {
+                              selected.remove(line);
+                            }
+                          });
+                        },
+                      )),
+              ],
+            ),
+          );
+        }
+
+        return AlertDialog(
+          backgroundColor: Colors.grey.shade900,
+          title: const Text('Dodaj / Izmeni Komentar',
+              style: TextStyle(color: Colors.white)),
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 560,
+              maxHeight: MediaQuery.of(ctx).size.height * 0.6,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: freeTextController,
+                    maxLines: 3,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      hintText: 'Sopstveni komentar (opciono)...',
+                      hintStyle: TextStyle(color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.black45,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        buildChecklist(
+                          'Taktički motivi',
+                          tacticalCandidates,
+                          selectedTactical,
+                          emptyHint: 'Nema taktičkih nalaza za ovaj potez.',
+                        ),
+                        const SizedBox(width: 16),
+                        buildChecklist(
+                          'Pozicioni faktori',
+                          positionalCandidates,
+                          selectedPositional,
+                          emptyHint: 'Nema pozicionih nalaza za ovaj potez.',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Otkaži'),
+              onPressed: () => Navigator.pop(ctx),
+            ),
+            ElevatedButton(
+              child: const Text('Sačuvaj'),
+              onPressed: () {
+                // Preserve each checklist's own order rather than click order.
+                final chosen = [
+                  ...tacticalCandidates.where(selectedTactical.contains),
+                  ...positionalCandidates.where(selectedPositional.contains),
+                ];
+                final parts = <String>[
+                  if (freeTextController.text.trim().isNotEmpty)
+                    freeTextController.text.trim(),
+                  ...chosen,
+                ];
+                onSaved(parts.join(' | '));
+                Navigator.pop(ctx);
+              },
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
 void showNagSelector(BuildContext context, ValueChanged<String?> onSelected) {
   final nags = ['!!', '!', '?', '??', '!?', '!□', 'clear'];
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.grey.shade900,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
     builder: (ctx) {
       return SafeArea(
         child: Padding(
@@ -62,8 +212,10 @@ void showNagSelector(BuildContext context, ValueChanged<String?> onSelected) {
             spacing: 8,
             children: nags.map((n) {
               return ActionChip(
-                label: Text(n == 'clear' ? 'Ukloni NAG' : n, style: const TextStyle(fontWeight: FontWeight.bold)),
-                backgroundColor: n == 'clear' ? Colors.red.shade900 : Colors.teal.shade900,
+                label: Text(n == 'clear' ? 'Ukloni NAG' : n,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                backgroundColor:
+                    n == 'clear' ? Colors.red.shade900 : Colors.teal.shade900,
                 labelStyle: const TextStyle(color: Colors.white),
                 onPressed: () {
                   onSelected(n == 'clear' ? null : n);
@@ -90,11 +242,13 @@ void showLogsDialog(BuildContext context) {
             children: [
               Icon(Icons.terminal, color: Colors.amberAccent),
               SizedBox(width: 8),
-              Text('Logovi Engine-a 📜', style: TextStyle(color: Colors.white, fontSize: 16)),
+              Text('Logovi Engine-a 📜',
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
             ],
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+            icon: const Icon(Icons.delete_outline,
+                color: Colors.redAccent, size: 20),
             tooltip: 'Očisti logove',
             onPressed: () {
               AppLogger.clear();
@@ -112,7 +266,8 @@ void showLogsDialog(BuildContext context) {
             final logs = AppLogger.logs;
             if (logs.isEmpty) {
               return const Center(
-                child: Text('Nema zabeleženih logova.', style: TextStyle(color: Colors.grey)),
+                child: Text('Nema zabeleženih logova.',
+                    style: TextStyle(color: Colors.grey)),
               );
             }
             return Container(
@@ -141,12 +296,16 @@ void showLogsDialog(BuildContext context) {
         ElevatedButton.icon(
           icon: const Icon(Icons.copy, size: 16),
           label: const Text('Kopiraj Logove'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal, foregroundColor: Colors.white),
           onPressed: () async {
-            await Clipboard.setData(ClipboardData(text: AppLogger.formattedLogs));
+            await Clipboard.setData(
+                ClipboardData(text: AppLogger.formattedLogs));
             if (ctx.mounted) {
               ScaffoldMessenger.of(ctx).showSnackBar(
-                const SnackBar(content: Text('✅ Logovi kopirani u klipbord!'), backgroundColor: Colors.teal),
+                const SnackBar(
+                    content: Text('✅ Logovi kopirani u klipbord!'),
+                    backgroundColor: Colors.teal),
               );
             }
           },
@@ -160,7 +319,8 @@ void showLogsDialog(BuildContext context) {
   );
 }
 
-Future<void> exportPgnDialog(BuildContext context, AnalysisNode rootNode) async {
+Future<void> exportPgnDialog(
+    BuildContext context, AnalysisNode rootNode) async {
   final pgnText = PgnExporterService.exportToPgn(rootNode);
   await PgnExporterService.copyToClipboard(pgnText);
 
@@ -173,7 +333,8 @@ Future<void> exportPgnDialog(BuildContext context, AnalysisNode rootNode) async 
         children: [
           Icon(Icons.file_download, color: Colors.lightBlueAccent),
           SizedBox(width: 8),
-          Text('Izvezeni PGN Tekst', style: TextStyle(color: Colors.white, fontSize: 16)),
+          Text('Izvezeni PGN Tekst',
+              style: TextStyle(color: Colors.white, fontSize: 16)),
         ],
       ),
       content: SizedBox(
@@ -181,7 +342,8 @@ Future<void> exportPgnDialog(BuildContext context, AnalysisNode rootNode) async 
         child: SingleChildScrollView(
           child: SelectableText(
             pgnText,
-            style: const TextStyle(color: Colors.white, fontFamily: 'monospace', fontSize: 12),
+            style: const TextStyle(
+                color: Colors.white, fontFamily: 'monospace', fontSize: 12),
           ),
         ),
       ),
@@ -193,7 +355,8 @@ Future<void> exportPgnDialog(BuildContext context, AnalysisNode rootNode) async 
         ElevatedButton.icon(
           icon: const Icon(Icons.copy, size: 16),
           label: const Text('Kopirano u Klipbord!'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal, foregroundColor: Colors.white),
           onPressed: () => Navigator.pop(ctx),
         ),
       ],
@@ -203,19 +366,25 @@ Future<void> exportPgnDialog(BuildContext context, AnalysisNode rootNode) async 
 
 /// "Replace the current unsaved tree with this saved one?" guard shown before
 /// loading a saved analysis over whatever is currently on the board.
-Future<bool> confirmReplaceAnalysisDialog(BuildContext context, String title) async {
+Future<bool> confirmReplaceAnalysisDialog(
+    BuildContext context, String title) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       backgroundColor: Colors.grey.shade900,
-      title: const Text('Učitaj analizu?', style: TextStyle(color: Colors.white)),
+      title:
+          const Text('Učitaj analizu?', style: TextStyle(color: Colors.white)),
       content: Text(
         'Trenutno stablo analize (nesačuvano) će biti zamenjeno sa "$title".',
         style: const TextStyle(color: Colors.grey),
       ),
       actions: [
-        TextButton(child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx, false)),
-        ElevatedButton(child: const Text('Učitaj'), onPressed: () => Navigator.pop(ctx, true)),
+        TextButton(
+            child: const Text('Otkaži'),
+            onPressed: () => Navigator.pop(ctx, false)),
+        ElevatedButton(
+            child: const Text('Učitaj'),
+            onPressed: () => Navigator.pop(ctx, true)),
       ],
     ),
   );
@@ -231,13 +400,15 @@ Future<void> promptSaveAnalysisDialog(
   required UserSession userSession,
 }) async {
   final controller = TextEditingController(
-    text: 'Analiza ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}.',
+    text:
+        'Analiza ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}.',
   );
   final title = await showDialog<String>(
     context: context,
     builder: (ctx) => AlertDialog(
       backgroundColor: Colors.grey.shade900,
-      title: const Text('Sačuvaj analizu', style: TextStyle(color: Colors.white)),
+      title:
+          const Text('Sačuvaj analizu', style: TextStyle(color: Colors.white)),
       content: TextField(
         controller: controller,
         autofocus: true,
@@ -250,7 +421,8 @@ Future<void> promptSaveAnalysisDialog(
         ),
       ),
       actions: [
-        TextButton(child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx)),
+        TextButton(
+            child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx)),
         ElevatedButton(
           child: const Text('Sačuvaj'),
           onPressed: () => Navigator.pop(ctx, controller.text.trim()),
@@ -270,7 +442,9 @@ Future<void> promptSaveAnalysisDialog(
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
-      content: Text(result != null ? '✅ Analiza "${result.title}" sačuvana.' : '⚠️ Čuvanje nije uspelo. Proverite konekciju.'),
+      content: Text(result != null
+          ? '✅ Analiza "${result.title}" sačuvana.'
+          : '⚠️ Čuvanje nije uspelo. Proverite konekciju.'),
       backgroundColor: result != null ? Colors.teal : Colors.red,
     ),
   );
@@ -303,12 +477,14 @@ void showSavedAnalysesDialog(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setDialogState) {
-        Future<List<SavedAnalysisSummary>>? future =
-            AnalysisPersistenceService.instance.listSavedAnalyses(userToken: userSession.token);
+        Future<List<SavedAnalysisSummary>>? future = AnalysisPersistenceService
+            .instance
+            .listSavedAnalyses(userToken: userSession.token);
 
         void refresh() {
           setDialogState(() {
-            future = AnalysisPersistenceService.instance.listSavedAnalyses(userToken: userSession.token);
+            future = AnalysisPersistenceService.instance
+                .listSavedAnalyses(userToken: userSession.token);
           });
         }
 
@@ -318,7 +494,8 @@ void showSavedAnalysesDialog(
             children: [
               Icon(Icons.cloud_outlined, color: Colors.lightBlueAccent),
               SizedBox(width: 8),
-              Text('Sačuvane analize', style: TextStyle(color: Colors.white, fontSize: 16)),
+              Text('Sačuvane analize',
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
             ],
           ),
           content: SizedBox(
@@ -331,10 +508,13 @@ void showSavedAnalysesDialog(
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.save, size: 16),
                     label: const Text('Sačuvaj trenutnu analizu'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white),
                     onPressed: () async {
                       Navigator.pop(ctx);
-                      await promptSaveAnalysisDialog(context, rootNode: rootNode, userSession: userSession);
+                      await promptSaveAnalysisDialog(context,
+                          rootNode: rootNode, userSession: userSession);
                     },
                   ),
                 ),
@@ -349,43 +529,61 @@ void showSavedAnalysesDialog(
                       final items = snapshot.data ?? [];
                       if (items.isEmpty) {
                         return const Center(
-                          child: Text('Nema sačuvanih analiza.', style: TextStyle(color: Colors.grey)),
+                          child: Text('Nema sačuvanih analiza.',
+                              style: TextStyle(color: Colors.grey)),
                         );
                       }
                       return ListView.separated(
                         itemCount: items.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.white12),
+                        separatorBuilder: (_, __) =>
+                            const Divider(height: 1, color: Colors.white12),
                         itemBuilder: (context, index) {
                           final item = items[index];
                           return ListTile(
                             dense: true,
-                            title: Text(item.title, style: const TextStyle(color: Colors.white)),
+                            title: Text(item.title,
+                                style: const TextStyle(color: Colors.white)),
                             subtitle: Text(
                               '${item.createdAt.day.toString().padLeft(2, '0')}.${item.createdAt.month.toString().padLeft(2, '0')}.${item.createdAt.year}. ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}',
-                              style: const TextStyle(color: Colors.grey, fontSize: 11),
+                              style: const TextStyle(
+                                  color: Colors.grey, fontSize: 11),
                             ),
                             trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                              icon: const Icon(Icons.delete_outline,
+                                  color: Colors.redAccent, size: 20),
                               tooltip: 'Obriši',
                               onPressed: () async {
                                 final confirmed = await showDialog<bool>(
                                   context: context,
                                   builder: (confirmCtx) => AlertDialog(
                                     backgroundColor: Colors.grey.shade900,
-                                    title: const Text('Obriši analizu?', style: TextStyle(color: Colors.white)),
-                                    content: Text('"${item.title}" će biti trajno obrisana.', style: const TextStyle(color: Colors.grey)),
+                                    title: const Text('Obriši analizu?',
+                                        style: TextStyle(color: Colors.white)),
+                                    content: Text(
+                                        '"${item.title}" će biti trajno obrisana.',
+                                        style: const TextStyle(
+                                            color: Colors.grey)),
                                     actions: [
-                                      TextButton(child: const Text('Otkaži'), onPressed: () => Navigator.pop(confirmCtx, false)),
                                       TextButton(
-                                        child: const Text('Obriši', style: TextStyle(color: Colors.redAccent)),
-                                        onPressed: () => Navigator.pop(confirmCtx, true),
+                                          child: const Text('Otkaži'),
+                                          onPressed: () =>
+                                              Navigator.pop(confirmCtx, false)),
+                                      TextButton(
+                                        child: const Text('Obriši',
+                                            style: TextStyle(
+                                                color: Colors.redAccent)),
+                                        onPressed: () =>
+                                            Navigator.pop(confirmCtx, true),
                                       ),
                                     ],
                                   ),
                                 );
                                 if (confirmed == true) {
-                                  final ok = await AnalysisPersistenceService.instance
-                                      .deleteAnalysis(id: item.id, userToken: userSession.token);
+                                  final ok = await AnalysisPersistenceService
+                                      .instance
+                                      .deleteAnalysis(
+                                          id: item.id,
+                                          userToken: userSession.token);
                                   if (ok) refresh();
                                 }
                               },
@@ -404,7 +602,9 @@ void showSavedAnalysesDialog(
             ),
           ),
           actions: [
-            TextButton(child: const Text('Zatvori'), onPressed: () => Navigator.pop(ctx)),
+            TextButton(
+                child: const Text('Zatvori'),
+                onPressed: () => Navigator.pop(ctx)),
           ],
         );
       },

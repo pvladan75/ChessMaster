@@ -26,6 +26,12 @@ import 'package:chess_app/features/analysis_studio/services/opening_explorer_ser
 import 'package:chess_app/features/analysis_studio/services/chessdb_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
+import 'package:chess_app/core/models/tactical_motif.dart';
+import 'package:chess_app/core/services/tactical_motif_detector.dart';
+import 'package:chess_app/features/analysis_studio/widgets/tactical_findings_panel_widget.dart';
+import 'package:chess_app/core/models/positional_factor.dart';
+import 'package:chess_app/core/services/positional_evaluator_service.dart';
+import 'package:chess_app/features/analysis_studio/widgets/positional_findings_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
@@ -86,6 +92,41 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   ChessDbResult? _chessDbResult;
   bool _chessDbLoading = false;
   int? _openingExplorerMinRating;
+
+  // Tactical motifs for _currentNode, memoized by fen+move so the frequent
+  // setState calls while the engine streams eval updates don't re-run the
+  // detector for a position that hasn't actually changed.
+  final _tacticalDetector = const TacticalMotifDetector();
+  String? _tacticalCacheKey;
+  MotifResult _tacticalResult = MotifResult.empty();
+
+  MotifResult _computeTacticalFindings() {
+    final key = '${_currentNode.fen}|${_currentNode.moveUci}';
+    if (key != _tacticalCacheKey) {
+      _tacticalCacheKey = key;
+      _tacticalResult = _tacticalDetector.detect(
+        fen: _currentNode.fen,
+        lastMoveUci: _currentNode.moveUci,
+        evalText: _currentEvalString,
+      );
+    }
+    return _tacticalResult;
+  }
+
+  // Positional factors for _currentNode — same memoization approach; eval
+  // text doesn't factor into positional findings, so the key is just the fen.
+  final _positionalEvaluator = const PositionalEvaluatorService();
+  String? _positionalCacheKey;
+  PositionalResult _positionalResult = PositionalResult.empty();
+
+  PositionalResult _computePositionalFindings() {
+    final key = _currentNode.fen;
+    if (key != _positionalCacheKey) {
+      _positionalCacheKey = key;
+      _positionalResult = _positionalEvaluator.evaluate(fen: _currentNode.fen);
+    }
+    return _positionalResult;
+  }
 
   @override
   void initState() {
@@ -490,6 +531,22 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         uci: uci,
       );
 
+      if (!AppSettingsService.instance.manualCommentMode && childNode.comment.isEmpty) {
+        final tacticalDiff = _tacticalDetector.explainMove(
+          beforeFen: _currentNode.fen,
+          afterFen: newFen,
+          lastMoveUci: uci,
+        );
+        final positionalDiff = _positionalEvaluator.explainMove(beforeFen: _currentNode.fen, afterFen: newFen);
+        final autoComment = [
+          _tacticalDetector.describeMoveDiff(tacticalDiff),
+          _positionalEvaluator.describeMoveDiff(positionalDiff),
+        ].where((s) => s.isNotEmpty).join(' | ');
+        if (autoComment.isNotEmpty) {
+          childNode.comment = autoComment;
+        }
+      }
+
       setState(() {
         _currentNode = childNode;
         _boardController.loadFen(newFen);
@@ -527,6 +584,24 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   }
 
   void _showCommentDialog() {
+    final parentFen = _currentNode.parent?.fen;
+    final moveUci = _currentNode.moveUci;
+
+    if (AppSettingsService.instance.manualCommentMode && parentFen != null && moveUci != null) {
+      final tacticalDiff = _tacticalDetector.explainMove(
+        beforeFen: parentFen,
+        afterFen: _currentNode.fen,
+        lastMoveUci: moveUci,
+      );
+      final positionalDiff = _positionalEvaluator.explainMove(beforeFen: parentFen, afterFen: _currentNode.fen);
+      final tacticalCandidates = _tacticalDetector.candidateCommentLines(tacticalDiff);
+      final positionalCandidates = _positionalEvaluator.candidateCommentLines(positionalDiff);
+      dialogs.showManualCommentDialog(context, _currentNode.comment, tacticalCandidates, positionalCandidates, (comment) {
+        setState(() => _currentNode.comment = comment);
+      });
+      return;
+    }
+
     dialogs.showCommentDialog(context, _currentNode.comment, (comment) {
       setState(() => _currentNode.comment = comment);
     });
@@ -923,6 +998,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 ],
               ),
             ),
+            if (AppSettingsService.instance.isPanelVisible('tactical_motifs'))
+              TacticalFindingsPanelWidget(result: _computeTacticalFindings()),
+            if (AppSettingsService.instance.isPanelVisible('positional_factors'))
+              PositionalFindingsPanelWidget(result: _computePositionalFindings()),
             if (AppSettingsService.instance.isPanelVisible('syzygy'))
               SyzygyPanelWidget(
                 isEligible: phaseInfo.isSyzygyReady,

@@ -25,6 +25,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   static const List<(String, String)> _analysisPanelToggles = [
     ('Stablo poteza', 'move_tree'),
+    ('Taktički motivi', 'tactical_motifs'),
+    ('Pozicioni faktori', 'positional_factors'),
     ('Opening Explorer (baza otvaranja)', 'opening_explorer'),
     ('Tablebase (Syzygy)', 'syzygy'),
     ('Panel analize engine-a', 'engine_analysis'),
@@ -325,6 +327,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _settings.setPanelVisible(panel.$2, val ?? true);
                             },
                           )),
+                      const Divider(height: 24),
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        value: _settings.manualCommentMode,
+                        title: const Text('Ručno biranje komentara u stablu poteza', style: AppText.bodyLarge),
+                        subtitle: Text(
+                          'Isključi automatski komentar — sam biraš koje nalaze da zadržiš iz ponuđene liste.',
+                          style: AppText.caption.copyWith(color: context.colors.textMuted),
+                        ),
+                        activeColor: context.colors.accent,
+                        onChanged: (val) {
+                          _settings.setManualCommentMode(val ?? false);
+                        },
+                      ),
                     ],
                   ),
                 ),
