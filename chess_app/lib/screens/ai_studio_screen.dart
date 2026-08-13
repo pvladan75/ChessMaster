@@ -23,6 +23,7 @@ import 'package:chess_app/widgets/board_overlay_painter.dart';
 
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
+import 'package:chess_app/widgets/engine_settings_dialog.dart';
 
 enum PuzzleGameState {
   idle,
@@ -58,6 +59,28 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   final ChessBoardController _puzzleBoardController = ChessBoardController();
 
   final StockfishService _stockfishService = StockfishService();
+
+  Future<void> _openEngineSettings() async {
+    await showEngineSettingsDialog(
+      context,
+      stockfishService: _stockfishService,
+      isEngineEnabled: _showEvaluation || _showEvalBar,
+    );
+    if (mounted) setState(() {});
+  }
+
+  /// Interrupts whatever the engine is doing and restarts a fresh evaluation
+  /// of the current board position using the configured depth/MultiPV.
+  void _restartEngineEvaluation() {
+    _stockfishService.stopAnalysis();
+    _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
+    final targetDepth = AppSettingsService.instance.defaultEngineDepth;
+    setState(() {
+      _engineLinesMap.clear();
+      _engineArrows.clear();
+    });
+    _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: targetDepth);
+  }
 
   // Engine Analysis State
   final bool _isEngineEnabled = false;
@@ -2013,7 +2036,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       final padding = MediaQuery.of(context).padding;
       final double safeHeight = screenSize.height - padding.top - padding.bottom;
       final double availableVerticalHeight = safeHeight - (28.0 + (_showEvalBar ? 20.0 : 0.0));
-      final double boardSize = math.max(160.0, availableVerticalHeight - 16.0);
+      final double boardSize = math.max(160.0, availableVerticalHeight - 16.0) * AppSettingsService.instance.boardSizeScale;
 
       final landscapeTopHeader = SizedBox(
         height: 24,
@@ -2165,6 +2188,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               isAllowedToUseEngine: true,
                               isOnline: _stockfishService.isOnline,
                               isCustomEngineActive: _stockfishService.isCustomEngineActive,
+                              onOpenSettings: isCustomEngineSupported ? _openEngineSettings : null,
+                              onForceRestart: _restartEngineEvaluation,
                               lines: _engineLinesMap.values.toList(),
                               orientation: _puzzleOrientation,
                               isShowEvalBarEnabled: _showEvalBar,
@@ -2203,7 +2228,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
 
     // PORTRAIT LAYOUT: Static Board & Scrollable Controls Below
-    final double boardSize = math.min(screenSize.width - 32.0, 380.0);
+    final double boardSize = math.min(screenSize.width - 32.0, 700.0) * AppSettingsService.instance.boardSizeScale;
 
     return Column(
       children: [
@@ -2254,6 +2279,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                         isAllowedToUseEngine: true,
                         isOnline: _stockfishService.isOnline,
                         isCustomEngineActive: _stockfishService.isCustomEngineActive,
+                        onOpenSettings: isCustomEngineSupported ? _openEngineSettings : null,
+                        onForceRestart: _restartEngineEvaluation,
                         lines: _engineLinesMap.values.toList(),
                         orientation: _puzzleOrientation,
                         isShowEvalBarEnabled: _showEvalBar,

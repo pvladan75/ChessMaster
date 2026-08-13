@@ -68,8 +68,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _socket.disconnect();
-    _socket.dispose();
+    if (!widget.session.isGuest) {
+      _socket.disconnect();
+      _socket.dispose();
+    }
     _codeController.dispose();
     _studentEmailController.dispose();
     _friendEmailController.dispose();
@@ -173,11 +175,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (response.statusCode == 200) {
         setState(() {
-          _students = jsonDecode(response.body);
+          _students = jsonDecode(response.body)['students'] ?? [];
         });
       }
     } catch (e) {
-      print("Error fetching friends: $e");
+      print("Error fetching students: $e");
     } finally {
       if (mounted) setState(() => _isLoadingStudents = false);
     }
@@ -305,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
         headers: {'Authorization': 'Bearer ${widget.session.token}'},
       );
       if (res.statusCode == 200) {
-        setState(() => _friends = jsonDecode(res.body));
+        setState(() => _friends = jsonDecode(res.body)['friends'] ?? []);
       }
     } catch (e) {
       print("Error fetching friends: $e");
@@ -362,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
         headers: {'Authorization': 'Bearer ${widget.session.token}'},
       );
       if (res.statusCode == 200) {
-        setState(() => _notifications = jsonDecode(res.body));
+        setState(() => _notifications = jsonDecode(res.body)['notifications'] ?? []);
       }
     } catch (e) {
       print("Error fetching notifications: $e");
@@ -567,7 +569,7 @@ class _HomeScreenState extends State<HomeScreen> {
         headers: {'Authorization': 'Bearer ${widget.session.token}'},
       );
       if (res.statusCode == 200) {
-        setState(() => _scheduledSessions = jsonDecode(res.body));
+        setState(() => _scheduledSessions = jsonDecode(res.body)['sessions'] ?? []);
       }
     } catch (e) {
       print("Error fetching scheduled sessions: $e");

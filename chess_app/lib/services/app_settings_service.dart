@@ -11,12 +11,23 @@ class AppSettingsService extends ChangeNotifier {
   int _defaultEngineDepth = 18;
   int _defaultEngineMoveTimeSeconds = 2;
   int _defaultMultiPV = 3;
+  String _customEnginePath = '';
+  double _boardSizeScale = 1.0;
+  Set<String> _hiddenPanels = {};
+  String _lichessApiToken = '';
 
   ThemeMode get themeMode => _themeMode;
   String get language => _language;
   int get defaultEngineDepth => _defaultEngineDepth;
   int get defaultEngineMoveTimeSeconds => _defaultEngineMoveTimeSeconds;
   int get defaultMultiPV => _defaultMultiPV;
+  String get customEnginePath => _customEnginePath;
+  double get boardSizeScale => _boardSizeScale;
+  String get lichessApiToken => _lichessApiToken;
+
+  /// Panels default to visible; only explicitly hidden keys are stored, so
+  /// new panels added later don't need a migration to stay visible.
+  bool isPanelVisible(String key) => !_hiddenPanels.contains(key);
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -33,6 +44,18 @@ class AppSettingsService extends ChangeNotifier {
     _defaultEngineDepth = (prefs.getInt('app_engine_depth') ?? 18).clamp(5, 50);
     _defaultEngineMoveTimeSeconds = (prefs.getInt('app_engine_movetime') ?? 2).clamp(1, 60);
     _defaultMultiPV = (prefs.getInt('app_multi_pv') ?? 3).clamp(1, 5);
+    _customEnginePath = prefs.getString('custom_engine_path') ?? '';
+    _boardSizeScale = (prefs.getDouble('app_board_scale') ?? 1.0).clamp(0.6, 1.0);
+    _hiddenPanels = (prefs.getStringList('app_hidden_panels') ?? []).toSet();
+    _lichessApiToken = prefs.getString('lichess_api_token') ?? '';
+    notifyListeners();
+  }
+
+  /// Re-reads the engine path from prefs (call after EngineDownloadService
+  /// or the manual file picker writes a new one).
+  Future<void> refreshCustomEnginePath() async {
+    final prefs = await SharedPreferences.getInstance();
+    _customEnginePath = prefs.getString('custom_engine_path') ?? '';
     notifyListeners();
   }
 
@@ -72,5 +95,30 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('app_multi_pv', _defaultMultiPV);
+  }
+
+  Future<void> setBoardSizeScale(double scale) async {
+    _boardSizeScale = scale.clamp(0.6, 1.0);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('app_board_scale', _boardSizeScale);
+  }
+
+  Future<void> setPanelVisible(String key, bool visible) async {
+    if (visible) {
+      _hiddenPanels.remove(key);
+    } else {
+      _hiddenPanels.add(key);
+    }
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('app_hidden_panels', _hiddenPanels.toList());
+  }
+
+  Future<void> setLichessApiToken(String token) async {
+    _lichessApiToken = token.trim();
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('lichess_api_token', _lichessApiToken);
   }
 }

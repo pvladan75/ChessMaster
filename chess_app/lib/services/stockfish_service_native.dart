@@ -323,38 +323,56 @@ class StockfishService {
 
         if (reqId == _requestId && cloudRes.statusCode == 200) {
           final cloudData = jsonDecode(cloudRes.body);
-          if (cloudData['pvs'] != null && (cloudData['pvs'] as List).isNotEmpty) {
-            final pv = cloudData['pvs'][0];
-            final movesStr = (pv['moves'] as String? ?? '').trim();
+          final pvsRaw = cloudData['pvs'] as List?;
+          if (pvsRaw != null && pvsRaw.isNotEmpty) {
             final depthVal = ((cloudData['depth'] as int?) ?? effectiveDepth).clamp(5, 50);
+            final bool isBlackToMove = fen.contains(' b ');
+            // Lichess returns up to 5 PVs when the position is in its DB;
+            // surface as many as the user asked for instead of only the top one.
+            final pvsToUse = pvsRaw.take(_currentMultiPV).toList();
 
-            if (movesStr.isNotEmpty) {
-              final movesList = movesStr.split(RegExp(r'\s+'));
-              final bestMove = movesList.first;
-              bool isBlackToMove = fen.contains(' b ');
-
-              String eval = '0.00';
+            String evalFor(dynamic pv) {
               if (pv['cp'] != null) {
                 double score = (pv['cp'] as num) / 100.0;
                 if (isBlackToMove) score = -score;
-                eval = score > 0 ? '+${score.toStringAsFixed(2)}' : score.toStringAsFixed(2);
+                return score > 0 ? '+${score.toStringAsFixed(2)}' : score.toStringAsFixed(2);
               } else if (pv['mate'] != null) {
                 int mate = pv['mate'] as int;
                 if (isBlackToMove) mate = -mate;
-                eval = mate > 0 ? 'M$mate' : '-M${mate.abs()}';
+                return mate > 0 ? 'M$mate' : '-M${mate.abs()}';
               }
+              return '0.00';
+            }
+
+            final topMoves = pvsToUse
+                .map((pv) => (pv['moves'] as String? ?? '').trim())
+                .toList();
+            if (topMoves.isNotEmpty && topMoves.first.isNotEmpty) {
+              final bestMove = topMoves.first.split(RegExp(r'\s+')).first;
+              final bestEval = evalFor(pvsToUse.first);
 
               for (int d = 1; d <= depthVal; d += 2) {
                 if (reqId != _requestId) return;
                 if (onEvaluationChanged != null) {
-                  onEvaluationChanged!(eval, bestMove, movesStr, 1, d, d >= depthVal, fen);
+                  onEvaluationChanged!(bestEval, bestMove, topMoves.first, 1, d, d >= depthVal, fen);
                 }
-                final line = AnalysisLine.fromPv(multipv: 1, depth: d, eval: eval, pvString: movesStr, startingFen: fen);
-                if (onMultiPVUpdated != null) onMultiPVUpdated!({1: line});
+                final linesMap = <int, AnalysisLine>{};
+                for (int i = 0; i < pvsToUse.length; i++) {
+                  final movesStr = topMoves[i];
+                  if (movesStr.isEmpty) continue;
+                  linesMap[i + 1] = AnalysisLine.fromPv(
+                    multipv: i + 1,
+                    depth: d,
+                    eval: evalFor(pvsToUse[i]),
+                    pvString: movesStr,
+                    startingFen: fen,
+                  );
+                }
+                if (onMultiPVUpdated != null) onMultiPVUpdated!(linesMap);
                 await Future.delayed(const Duration(milliseconds: 25));
               }
               if (onEvaluationChanged != null) {
-                onEvaluationChanged!(eval, bestMove, movesStr, 1, depthVal, true, fen);
+                onEvaluationChanged!(bestEval, bestMove, topMoves.first, 1, depthVal, true, fen);
               }
               return;
             }

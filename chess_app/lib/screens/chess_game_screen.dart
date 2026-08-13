@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/services/agora_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -19,6 +18,7 @@ import 'package:chess_app/features/analysis_studio/screens/analysis_studio_scree
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/stockfish_service.dart';
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/local_recording_service.dart';
 
 import 'package:chess_app/widgets/board_overlay_painter.dart';
@@ -32,6 +32,7 @@ import 'package:chess_app/widgets/move_history_view.dart';
 import 'package:chess_app/widgets/game_selector_dialog.dart';
 import 'package:chess_app/widgets/share_position_dialog.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
+import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/models/recording_models.dart';
 
 // 3. MULTIPLAYER CHESS GAME PAGE
@@ -60,6 +61,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   late ChessBoardController controller;
   late io.Socket socket;
   bool isConnected = false;
+  bool _isDisposing = false;
   String gameStatus = "Spajanje na game server...";
   
   PlayerColor boardOrientation = PlayerColor.white;
@@ -202,6 +204,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   @override
   void dispose() {
+    _isDisposing = true;
+    _stockfishService.detach(this);
     socket.emit('leaveGame', {
       'roomId': widget.roomCode,
       'userId': widget.userSession.id,
@@ -213,7 +217,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.disconnect();
     socket.dispose();
     _agoraService.leaveChannel();
-    _stockfishService.detach(this);
     commentController.dispose();
     fenPasteController.dispose();
     pgnPasteController.dispose();
@@ -352,6 +355,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
         }
       },
       onOpenSettings: (!kIsWeb && Platform.isWindows) ? _showEngineSettingsDialog : null,
+      onForceRestart: () {
+        _stockfishService.stopAnalysis();
+        _triggerEngineAnalysis();
+      },
       onLoadFenToMainBoard: (fen) {
         loadLessonPosition(fen, null);
         _showSuccess('Učitana pozicija iz linije analize!');
@@ -516,101 +523,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   Future<void> _showEngineSettingsDialog() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? currentPath = prefs.getString('custom_engine_path') ?? '';
-
     if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final hasCustom = currentPath != null && currentPath!.isNotEmpty;
-            return AlertDialog(
-              title: const Text('Podešavanja Šahovskog Engine-a'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Trenutni engine:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    hasCustom
-                        ? 'Sopstveni lokalni engine:\n$currentPath'
-                        : 'Podrazumevani (Online / FFI paket)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: hasCustom ? Colors.tealAccent : Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Možete izabrati bilo koji UCI kompatibilan šahovski engine (.exe) sa vašeg računara.',
-                    style: TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                ],
-              ),
-              actions: [
-                if (hasCustom)
-                  TextButton.icon(
-                    onPressed: () async {
-                      await prefs.remove('custom_engine_path');
-                      setDialogState(() {
-                        currentPath = '';
-                      });
-                      if (isEngineEnabled) {
-                        // Restart engine
-                        _stockfishService.stopAnalysis();
-                        await _stockfishService.initEngine();
-                        _triggerEngineAnalysis();
-                      }
-                      setState(() {});
-                    },
-                    icon: const Icon(Icons.delete, color: Colors.redAccent, size: 16),
-                    label: const Text('Resetuj', style: TextStyle(color: Colors.redAccent)),
-                  ),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      final result = await FilePicker.pickFiles(
-                        type: FileType.custom,
-                        allowedExtensions: ['exe'],
-                      );
-
-                      if (result != null && result.files.single.path != null) {
-                        final path = result.files.single.path!;
-                        await prefs.setString('custom_engine_path', path);
-                        setDialogState(() {
-                          currentPath = path;
-                        });
-                        if (isEngineEnabled) {
-                          // Restart engine with new custom executable
-                          _stockfishService.stopAnalysis();
-                          await _stockfishService.initEngine();
-                          _triggerEngineAnalysis();
-                        }
-                        setState(() {});
-                      }
-                    } catch (e) {
-                      _showError('Greška pri izboru fajla: $e');
-                    }
-                  },
-                  icon: const Icon(Icons.folder_open, size: 16),
-                  label: const Text('Izaberi .exe'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Zatvori'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+    await showEngineSettingsDialog(
+      context,
+      stockfishService: _stockfishService,
+      isEngineEnabled: isEngineEnabled,
     );
+    if (mounted) setState(() {});
   }
 
   List<String> getPathToNode(MoveNode node) {
@@ -669,6 +588,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     });
 
     socket.onDisconnect((_) {
+      if (_isDisposing || !mounted) return;
       setState(() {
         isConnected = false;
         gameStatus = "Prekinuta veza sa serverom";
@@ -2140,9 +2060,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final isWide = media.size.width > 900;
 
     // Sizing of ChessBoard
-    final boardSize = isWide
-        ? min(media.size.height * 0.62, media.size.width * 0.42)
-        : min(media.size.height * 0.65, media.size.width * 0.9);
+    final boardSize = (isWide
+            ? min(media.size.height * 0.62, media.size.width * 0.42)
+            : min(media.size.height * 0.65, media.size.width * 0.9)) *
+        AppSettingsService.instance.boardSizeScale;
 
     Widget buildCommentBox() {
       final isTrener = activeRole == 'trener' || widget.roomCode == 'STUDIO';
@@ -2394,7 +2315,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 ),
                 const SizedBox(height: 12),
               ],
-              Row(
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 4,
+                runSpacing: 4,
                 children: [
                   const Text(
                     'Kategorija: ',
@@ -2407,7 +2331,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       if (val) setState(() => _lessonCategoryFilter = 'all');
                     },
                   ),
-                  const SizedBox(width: 4),
                   ChoiceChip(
                     label: const Text('Moje', style: TextStyle(fontSize: 10)),
                     selected: _lessonCategoryFilter == 'mine',
@@ -2415,7 +2338,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       if (val) setState(() => _lessonCategoryFilter = 'mine');
                     },
                   ),
-                  const SizedBox(width: 4),
                   ChoiceChip(
                     label: const Text('Od trenera', style: TextStyle(fontSize: 10)),
                     selected: _lessonCategoryFilter == 'trainer',

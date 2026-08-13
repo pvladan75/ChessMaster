@@ -15,6 +15,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
   final bool isShowEvalBarEnabled;
   final VoidCallback? onToggleShowEvalBar;
   final VoidCallback? onOpenSettings;
+  final VoidCallback? onForceRestart;
   final Function(String fen)? onLoadFenToMainBoard;
 
   const StockfishAnalysisWidget({
@@ -29,6 +30,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
     this.isShowEvalBarEnabled = false,
     this.onToggleShowEvalBar,
     this.onOpenSettings,
+    this.onForceRestart,
     this.onLoadFenToMainBoard,
   });
 
@@ -81,6 +83,19 @@ class StockfishAnalysisWidget extends StatelessWidget {
                                 child: const MouseRegion(
                                   cursor: SystemMouseCursors.click,
                                   child: Icon(Icons.settings, size: 14, color: Colors.grey),
+                                ),
+                              ),
+                            ],
+                            if (onForceRestart != null && isEngineEnabled) ...[
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: onForceRestart,
+                                child: const MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: Tooltip(
+                                    message: 'Prekini i ponovo pokreni analizu trenutne pozicije',
+                                    child: Icon(Icons.restart_alt, size: 15, color: Colors.tealAccent),
+                                  ),
                                 ),
                               ),
                             ],

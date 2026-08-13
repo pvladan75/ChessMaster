@@ -40,6 +40,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
   int _processedNodes = 0;
   int _totalEstimatedNodes = 10;
   String _statusMsg = '';
+  bool _isDone = false;
 
   /// Positions the engine will be asked to evaluate, before delta pruning:
   /// 1 at the root, n at the next ply, n^2 after that, and so on.
@@ -91,7 +92,9 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
 
     if (mounted) {
       widget.onAnalysisCompleted();
-      Navigator.pop(context);
+      setState(() {
+        _isDone = true;
+      });
     }
   }
 
@@ -190,9 +193,9 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               ),
               Slider(
                 value: _engineDepth.toDouble(),
-                min: 8,
-                max: 22,
-                divisions: 14,
+                min: 5,
+                max: 50,
+                divisions: 45,
                 activeColor: Colors.orangeAccent,
                 onChanged: (val) => setState(() => _engineDepth = val.round()),
               ),
@@ -242,6 +245,36 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                   onPressed: _startAnalysis,
                 ),
               ),
+            ] else if (_isDone) ...[
+              // Done view — pruning almost always stops the real count well
+              // short of the worst-case ceiling, so spell that out instead of
+              // just vanishing on whatever number the progress bar last showed.
+              Center(
+                child: Column(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.tealAccent, size: 36),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Gotovo! Analizirano $_processedNodes pozicija.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.tealAccent, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Gornja granica je bila $_totalEstimatedNodes (da nije bilo orezivanja). '
+                      'Grane čiji je eval bio gori od najboljeg poteza za više od ${_deltaCutoff.toStringAsFixed(1)} pešaka su preskočene — to je očekivano, ne greška.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade700, foregroundColor: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Zatvori'),
+                    ),
+                  ],
+                ),
+              ),
             ] else ...[
               // Progress view
               Center(
@@ -258,6 +291,12 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                       _statusMsg,
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Napomena: broj iznad je gornja granica bez orezivanja — grane sa slabijim potezima se preskaču pa se stvarni broj skoro uvek zaustavi mnogo ranije.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 10, color: Colors.grey),
                     ),
                     const SizedBox(height: 16),
                     OutlinedButton.icon(

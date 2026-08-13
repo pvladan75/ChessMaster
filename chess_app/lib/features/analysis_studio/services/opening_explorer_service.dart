@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:chess_app/services/app_logger.dart';
+import 'package:chess_app/services/app_settings_service.dart';
 
 class OpeningInfo {
   final String eco;
@@ -107,7 +108,16 @@ class OpeningExplorerService {
     defaultValue: '',
   );
 
-  static bool get hasToken => _envToken.isNotEmpty;
+  /// The Lichess Explorer now rejects unauthenticated requests, so a token
+  /// is required either way — prefer the one the user pasted into Settings
+  /// over the compile-time flag, since that's the only one an installed
+  /// build can actually offer end users.
+  static String get _token {
+    final userToken = AppSettingsService.instance.lichessApiToken;
+    return userToken.isNotEmpty ? userToken : _envToken;
+  }
+
+  static bool get hasToken => _token.isNotEmpty;
 
   static const _baseUrl = 'https://explorer.lichess.ovh/lichess';
 
@@ -121,7 +131,8 @@ class OpeningExplorerService {
     int movesLimit = 12,
     int? minRating,
   }) async {
-    if (_envToken.isEmpty) return null;
+    final token = _token;
+    if (token.isEmpty) return null;
 
     final cacheKey = '$fen|$movesLimit|${minRating ?? 'all'}';
     if (_cache.containsKey(cacheKey)) return _cache[cacheKey];
@@ -134,7 +145,7 @@ class OpeningExplorerService {
       });
       final res = await http.get(
         uri,
-        headers: {'Authorization': 'Bearer $_envToken'},
+        headers: {'Authorization': 'Bearer $token'},
       ).timeout(const Duration(seconds: 6));
 
       AppLogger.log('[OpeningExplorer] 🌐 HTTP ${res.statusCode} | body: ${res.body.length} bytes | FEN: $fen');

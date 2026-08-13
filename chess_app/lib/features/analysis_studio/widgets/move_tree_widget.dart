@@ -91,13 +91,23 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                         ),
                       ),
                     ),
+                    if (_showVisualGraph) ...[
+                      const SizedBox(width: 4),
+                      IconButton(
+                        onPressed: () => _openFullscreen(context),
+                        tooltip: 'Prikaži preko celog ekrana',
+                        icon: const Icon(Icons.open_in_full, size: 16, color: Colors.tealAccent),
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.all(4),
+                      ),
+                    ],
                   ],
                 ),
               ],
             ),
             const Divider(height: 16, color: Colors.white24),
             Container(
-              constraints: const BoxConstraints(maxHeight: 220),
+              constraints: const BoxConstraints(maxHeight: 420),
               width: double.infinity,
               child: _showVisualGraph
                   ? VisualMoveTreeWidget(
@@ -118,6 +128,65 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
           ],
         ),
       ),
+    );
+  }
+
+  void _openFullscreen(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(16),
+          backgroundColor: Colors.grey.shade900,
+          child: SizedBox(
+            width: double.maxFinite,
+            height: MediaQuery.of(dialogContext).size.height * 0.85,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.account_tree, color: Colors.tealAccent, size: 18),
+                          SizedBox(width: 6),
+                          Text(
+                            'Stablo Varijanti',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        icon: const Icon(Icons.close, color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: Colors.white24),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: VisualMoveTreeWidget(
+                      rootNode: widget.rootNode,
+                      activeNode: widget.activeNode,
+                      onSelectNode: (node) {
+                        widget.onSelectNode(node);
+                        Navigator.pop(dialogContext);
+                      },
+                      onPromoteNode: widget.onPromoteNode,
+                      onDeleteNode: widget.onDeleteNode,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

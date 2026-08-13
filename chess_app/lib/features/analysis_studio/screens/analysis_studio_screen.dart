@@ -10,6 +10,7 @@ import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
+import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
@@ -19,6 +20,7 @@ import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service
 import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/syzygy_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
+import 'package:chess_app/features/analysis_studio/services/chessdb_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
@@ -69,6 +71,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   OpeningExplorerResult? _openingExplorerResult;
   bool _openingExplorerLoading = false;
   int _openingExplorerRequestId = 0;
+
+  final ChessDbService _chessDbService = ChessDbService.instance;
+  ChessDbResult? _chessDbResult;
+  bool _chessDbLoading = false;
   int? _openingExplorerMinRating;
 
   @override
@@ -188,13 +194,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     AppLogger.log('[OpeningExplorer] 🔍 hasToken=${OpeningExplorerService.hasToken} | FEN: ${_currentNode.fen}');
 
     if (!OpeningExplorerService.hasToken) {
-      AppLogger.log('[OpeningExplorer] ⛔ Nema tokena — preskačem lookup');
+      AppLogger.log('[OpeningExplorer] ⛔ Nema tokena — koristim ChessDB fallback');
       if (_openingExplorerResult != null || _openingExplorerLoading) {
         setState(() {
           _openingExplorerResult = null;
           _openingExplorerLoading = false;
         });
       }
+      await _fetchChessDbFallback(reqId);
       return;
     }
 
@@ -217,6 +224,23 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     });
   }
 
+  Future<void> _fetchChessDbFallback(int reqId) async {
+    setState(() {
+      _chessDbLoading = true;
+      _chessDbResult = null;
+    });
+
+    final result = await _chessDbService.lookup(_currentNode.fen);
+    if (!mounted || reqId != _openingExplorerRequestId) return;
+
+    AppLogger.log('[ChessDB] 📊 Rezultat: ${result == null ? "null" : "${result.moves.length} poteza"}');
+
+    setState(() {
+      _chessDbResult = result;
+      _chessDbLoading = false;
+    });
+  }
+
   void _onOpeningExplorerMinRatingChanged(int? minRating) {
     setState(() => _openingExplorerMinRating = minRating);
     _fetchOpeningExplorerIfEligible();
@@ -228,6 +252,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     final to = uci.substring(2, 4);
     final promotion = uci.length > 4 ? uci.substring(4, 5) : '';
     _handleUserMove(from, to, promotion);
+  }
+
+  Future<void> _openEngineSettings() async {
+    await showEngineSettingsDialog(
+      context,
+      stockfishService: _stockfishService,
+      isEngineEnabled: _showEvaluation || _showEvalBar,
+    );
+    if (mounted) setState(() {});
   }
 
   void _triggerEngineAnalysis() {
@@ -917,9 +950,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    final double boardSize = isLandscape
-        ? math.min(screenSize.height - 120.0, 360.0)
-        : math.min(screenSize.width - 32.0, 380.0);
+    // Landscape: board width must leave room for the panel column next to it
+    // (kMinPanelWidth), so its true ceiling is screen-derived, not a fixed
+    // constant — on a big monitor the board should actually get bigger.
+    const double kMinPanelWidth = 300.0;
+    final double landscapeHeightBudget = screenSize.height - 120.0 - (_showEvalBar ? 30.0 : 0.0);
+    final double boardSize = (isLandscape
+            ? math.min(landscapeHeightBudget, screenSize.width - kMinPanelWidth - 28.0)
+            : math.min(screenSize.width - 32.0, 700.0)) *
+        AppSettingsService.instance.boardSizeScale;
 
     return Scaffold(
       appBar: AppBar(
@@ -1062,12 +1101,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                             ],
                           ),
                         ),
+                        if (AppSettingsService.instance.isPanelVisible('syzygy'))
                         SyzygyPanelWidget(
                           isEligible: phaseInfo.isSyzygyReady,
                           isLoading: _syzygyLoading,
                           result: _syzygyResult,
                           onMoveSelected: _playUciMove,
                         ),
+                        if (AppSettingsService.instance.isPanelVisible('opening_explorer'))
                         OpeningExplorerPanelWidget(
                           hasToken: OpeningExplorerService.hasToken,
                           isLoading: _openingExplorerLoading,
@@ -1075,11 +1116,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                           minRating: _openingExplorerMinRating,
                           onMoveSelected: _playUciMove,
                           onMinRatingChanged: _onOpeningExplorerMinRatingChanged,
+                          chessDbResult: _chessDbResult,
+                          isLoadingChessDb: _chessDbLoading,
                         ),
                       ],
                     );
                   },
                 ),
+                if (AppSettingsService.instance.isPanelVisible('move_tree'))
                 AnalysisMoveTreeWidget(
                   rootNode: _rootNode,
                   activeNode: _currentNode,
@@ -1099,11 +1143,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   },
                 ),
                 const SizedBox(height: 8),
+                if (AppSettingsService.instance.isPanelVisible('engine_analysis'))
                 StockfishAnalysisWidget(
                   isEngineEnabled: _showEvaluation,
                   isAllowedToUseEngine: true,
                   isOnline: _stockfishService.isOnline,
                   isCustomEngineActive: _stockfishService.isCustomEngineActive,
+                  onOpenSettings: isCustomEngineSupported ? _openEngineSettings : null,
+                  onForceRestart: _triggerEngineAnalysis,
                   lines: _engineLinesMap.values.toList(),
                   orientation: _orientation,
                   isShowEvalBarEnabled: _showEvalBar,
@@ -1215,12 +1262,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                             ],
                           ),
                         ),
+                        if (AppSettingsService.instance.isPanelVisible('syzygy'))
                         SyzygyPanelWidget(
                           isEligible: phaseInfo.isSyzygyReady,
                           isLoading: _syzygyLoading,
                           result: _syzygyResult,
                           onMoveSelected: _playUciMove,
                         ),
+                        if (AppSettingsService.instance.isPanelVisible('opening_explorer'))
                         OpeningExplorerPanelWidget(
                           hasToken: OpeningExplorerService.hasToken,
                           isLoading: _openingExplorerLoading,
@@ -1228,11 +1277,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                           minRating: _openingExplorerMinRating,
                           onMoveSelected: _playUciMove,
                           onMinRatingChanged: _onOpeningExplorerMinRatingChanged,
+                          chessDbResult: _chessDbResult,
+                          isLoadingChessDb: _chessDbLoading,
                         ),
                       ],
                     );
                   },
                 ),
+                if (AppSettingsService.instance.isPanelVisible('move_tree'))
                 AnalysisMoveTreeWidget(
                     rootNode: _rootNode,
                     activeNode: _currentNode,
@@ -1252,11 +1304,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                     },
                   ),
                   const SizedBox(height: 8),
+                  if (AppSettingsService.instance.isPanelVisible('engine_analysis'))
                   StockfishAnalysisWidget(
                     isEngineEnabled: _showEvaluation,
                     isAllowedToUseEngine: true,
                     isOnline: _stockfishService.isOnline,
                     isCustomEngineActive: _stockfishService.isCustomEngineActive,
+                  onOpenSettings: isCustomEngineSupported ? _openEngineSettings : null,
+                  onForceRestart: _triggerEngineAnalysis,
                     lines: _engineLinesMap.values.toList(),
                     orientation: _orientation,
                     isShowEvalBarEnabled: _showEvalBar,

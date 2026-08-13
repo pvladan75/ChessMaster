@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/screens/login_screen.dart';
+import 'package:chess_app/widgets/engine_settings_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   final UserSession session;
@@ -15,6 +17,37 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _settings = AppSettingsService.instance;
+  final _stockfishService = StockfishService();
+  late final _lichessTokenController = TextEditingController(text: _settings.lichessApiToken);
+
+  static const List<(String, String)> _analysisPanelToggles = [
+    ('Stablo poteza', 'move_tree'),
+    ('Opening Explorer (baza otvaranja)', 'opening_explorer'),
+    ('Tablebase (Syzygy)', 'syzygy'),
+    ('Panel analize engine-a', 'engine_analysis'),
+  ];
+
+  Future<void> _openEngineSettings() async {
+    await showEngineSettingsDialog(context, stockfishService: _stockfishService);
+    await _settings.refreshCustomEnginePath();
+  }
+
+  Future<void> _saveLichessToken() async {
+    await _settings.setLichessApiToken(_lichessTokenController.text);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_settings.lichessApiToken.isEmpty ? 'Token uklonjen.' : 'Lichess token sačuvan.'),
+        backgroundColor: Colors.teal,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _lichessTokenController.dispose();
+    super.dispose();
+  }
 
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
@@ -273,11 +306,133 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         'Prikazuje od 1 do 5 najboljih alternativnih linija i strelica u poziciji.',
                         style: TextStyle(fontSize: 11, color: Colors.grey[400]),
                       ),
+                      if (isCustomEngineSupported) ...[
+                        const Divider(height: 24),
+                        const Text('Lokalni engine (.exe):', style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 4),
+                        Text(
+                          _settings.customEnginePath.isNotEmpty
+                              ? _settings.customEnginePath
+                              : 'Podrazumevani (Online / FFI paket)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: _settings.customEnginePath.isNotEmpty ? Colors.tealAccent : Colors.grey[400],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: OutlinedButton.icon(
+                            onPressed: _openEngineSettings,
+                            icon: const Icon(Icons.settings_suggest, size: 16),
+                            label: const Text('Podesi lokalni engine'),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
               ),
 
+              const SizedBox(height: 24),
+              const Text('IZGLED TABLE I PANELA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
+              const SizedBox(height: 8),
+
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Veličina table:', style: TextStyle(fontWeight: FontWeight.w500)),
+                          Text(
+                            '${(_settings.boardSizeScale * 100).round()}%',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.tealAccent),
+                          ),
+                        ],
+                      ),
+                      Slider(
+                        value: _settings.boardSizeScale.clamp(0.6, 1.0),
+                        min: 0.6,
+                        max: 1.0,
+                        divisions: 8,
+                        label: '${(_settings.boardSizeScale * 100).round()}%',
+                        activeColor: Colors.tealAccent,
+                        onChanged: (val) {
+                          _settings.setBoardSizeScale(val);
+                        },
+                      ),
+                      Text(
+                        'Smanjite tablu da biste oslobodili više prostora za panele pored nje.',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                      ),
+                      const Divider(height: 24),
+                      const Text('Paneli u Analizi (Tabla za Analizu):', style: TextStyle(fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 4),
+                      ..._analysisPanelToggles.map((panel) => CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            controlAffinity: ListTileControlAffinity.leading,
+                            dense: true,
+                            visualDensity: VisualDensity.compact,
+                            value: _settings.isPanelVisible(panel.$2),
+                            title: Text(panel.$1, style: const TextStyle(fontSize: 13)),
+                            activeColor: Colors.tealAccent,
+                            onChanged: (val) {
+                              _settings.setPanelVisible(panel.$2, val ?? true);
+                            },
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+              const Text('LICHESS OPENING EXPLORER', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
+              const SizedBox(height: 8),
+
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Lichess sada zahteva lični API token za pristup bazi otvaranja (statistika poteza iz odigranih partija). Napravite besplatan token na lichess.org/account/oauth/token (nije potrebna nijedna dozvola/scope) i nalepite ga ovde.',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _lichessTokenController,
+                        obscureText: true,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: InputDecoration(
+                          labelText: 'Lichess API token',
+                          hintText: 'lip_...',
+                          isDense: true,
+                          border: const OutlineInputBorder(),
+                          suffixIcon: _settings.lichessApiToken.isNotEmpty
+                              ? const Icon(Icons.check_circle, color: Colors.tealAccent, size: 18)
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: ElevatedButton.icon(
+                          onPressed: _saveLichessToken,
+                          icon: const Icon(Icons.save, size: 16),
+                          label: const Text('Sačuvaj token'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 32),
               Center(

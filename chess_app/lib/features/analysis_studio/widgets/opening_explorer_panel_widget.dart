@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
+import 'package:chess_app/features/analysis_studio/services/chessdb_service.dart';
 
 // Matches the historical outcome share a move led to across real games —
 // not "good/bad for the mover" (that depends on whose turn it is).
@@ -24,6 +26,9 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
   final int? minRating;
   final void Function(String uci)? onMoveSelected;
   final void Function(int? minRating)? onMinRatingChanged;
+  // Free, no-auth fallback used whenever no Lichess token is configured.
+  final ChessDbResult? chessDbResult;
+  final bool isLoadingChessDb;
 
   const OpeningExplorerPanelWidget({
     super.key,
@@ -33,11 +38,13 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
     this.minRating,
     this.onMoveSelected,
     this.onMinRatingChanged,
+    this.chessDbResult,
+    this.isLoadingChessDb = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (!hasToken) return const SizedBox.shrink();
+    if (!hasToken) return _buildChessDbPanel();
 
     return Container(
       width: double.infinity,
@@ -113,6 +120,113 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildChessDbPanel() {
+    final moves = chessDbResult?.moves ?? [];
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.deepPurple.shade900.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.purpleAccent.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.cloud_outlined, color: Colors.purpleAccent, size: 16),
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  'ChessDB Cloud (konsenzus, ne partije)',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.purpleAccent),
+                ),
+              ),
+              if (isLoadingChessDb)
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.purpleAccent),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Besplatno, bez tokena. Podesite Lichess token u Podešavanjima za pravu statistiku iz odigranih partija.',
+            style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.5)),
+          ),
+          if (!isLoadingChessDb && moves.isEmpty) ...[
+            const SizedBox(height: 6),
+            const Text(
+              'Nema podataka za ovu poziciju.',
+              style: TextStyle(fontSize: 11, color: Colors.white70),
+            ),
+          ],
+          if (!isLoadingChessDb && moves.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: moves.take(8).map((m) => _buildChessDbMoveChip(m, chessDbResult!.fen)).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChessDbMoveChip(ChessDbMove move, String fen) {
+    final san = _sanFromUci(fen, move.uci);
+    final scoreLabel = move.score > 0 ? '+${(move.score / 100).toStringAsFixed(2)}' : (move.score / 100).toStringAsFixed(2);
+    final winrateColor = move.winrate >= 55
+        ? Colors.greenAccent
+        : (move.winrate <= 45 ? Colors.redAccent : Colors.white70);
+    return InkWell(
+      onTap: onMoveSelected != null ? () => onMoveSelected!(move.uci) : null,
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              san,
+              style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '$scoreLabel · ${move.winrate.toStringAsFixed(0)}%',
+              style: TextStyle(fontSize: 10, color: winrateColor, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _sanFromUci(String fen, String uci) {
+    if (uci.length < 4) return uci;
+    try {
+      final game = chess.Chess.fromFEN(fen);
+      final ok = game.move({
+        'from': uci.substring(0, 2),
+        'to': uci.substring(2, 4),
+        if (uci.length > 4) 'promotion': uci.substring(4, 5),
+      });
+      if (ok) return game.move_to_san(game.history.last.move);
+    } catch (_) {}
+    return uci;
   }
 
   Widget _buildMoveChip(OpeningExplorerMove move, int positionTotal) {
