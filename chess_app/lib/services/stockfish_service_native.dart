@@ -38,6 +38,14 @@ class StockfishService {
   int? _pendingDepth;
   int _currentMultiPV = 1;
 
+  // Rapid re-navigation (e.g. clicking through the graphical move tree)
+  // used to fire a fresh "stop"+"position"+"go depth N" at the engine on
+  // every click. At high depths the native engine can take a while to
+  // actually honor "stop" mid-search, so a burst of clicks could pile up
+  // faster than the engine drained them and it would appear to freeze.
+  // Debouncing coalesces a burst into a single request for the last position.
+  Timer? _analyzeDebounceTimer;
+
   bool get isCustomEngineActive => _isCustomActive;
 
   bool get _useOnline {
@@ -304,8 +312,21 @@ class StockfishService {
     }
   }
 
-  /// Sends a FEN position for analysis
+  /// Sends a FEN position for analysis. Debounced: a burst of calls (e.g.
+  /// clicking through several tree nodes quickly) only actually reaches the
+  /// engine for the last one, instead of piling up "stop"+"go" commands
+  /// faster than the engine can honor them.
   Future<void> analyzePosition(String fen, {int depth = 18, bool isInfinite = false}) async {
+    _analyzeDebounceTimer?.cancel();
+    final completer = Completer<void>();
+    _analyzeDebounceTimer = Timer(const Duration(milliseconds: 180), () async {
+      await _runAnalyzePosition(fen, depth: depth, isInfinite: isInfinite);
+      if (!completer.isCompleted) completer.complete();
+    });
+    return completer.future;
+  }
+
+  Future<void> _runAnalyzePosition(String fen, {int depth = 18, bool isInfinite = false}) async {
     _currentFen = fen;
     _engineLines.clear();
     _isActive = true;
