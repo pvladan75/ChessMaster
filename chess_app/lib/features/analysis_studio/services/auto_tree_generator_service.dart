@@ -76,10 +76,17 @@ class AutoTreeGeneratorService {
     required PositionAnalyzer analyzer,
     required Function(String statusMsg) onProgress,
   }) async {
-    if (_isCancelled || currentPly >= params.pliesDepth) return;
+    if (_isCancelled) return;
+    if (currentPly >= params.pliesDepth) {
+      AppLogger.log('[AutoTree] 🏁 Dostignuta max dubina (ply=$currentPly) za FEN: ${currentNode.fen}');
+      return;
+    }
 
     final game = chess.Chess.fromFEN(currentNode.fen);
-    if (game.game_over) return;
+    if (game.game_over) {
+      AppLogger.log('[AutoTree] 🛑 game_over=true za FEN: ${currentNode.fen} (in_checkmate=${game.in_checkmate}, in_stalemate=${game.in_stalemate}, in_draw=${game.in_draw}) — grananje se prekida ovde.');
+      return;
+    }
 
     AppLogger.log('[AutoTree] 🌳 Generišem n=${params.candidateCount} kandidata za čvor na dubini d=${params.engineDepth} | FEN: ${currentNode.fen}');
     AppLogger.log('[AutoTree] ⏱️ Čekam Stockfish odgovor za depth ${params.engineDepth}...');

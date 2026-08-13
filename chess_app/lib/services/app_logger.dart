@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 
 class AppLogger {
   static final List<String> _logs = [];
-  static const int _maxLogs = 200;
+  static const int _maxLogs = 5000;
   static ValueNotifier<int> logUpdateNotifier = ValueNotifier<int>(0);
 
   static void log(String message, {String name = 'App'}) {

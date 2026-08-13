@@ -464,12 +464,73 @@ class StockfishService {
         return;
       }
 
-      _sendCommandForce('stop');
+      await _stopAndDrain();
       _sendCommandForce('position fen $fen');
       final effectiveDepth = depth.clamp(5, 50);
       AppLogger.log('[STOCKFISH_NATIVE] 🎯 go depth $effectiveDepth');
       _sendCommandForce('go depth $effectiveDepth');
+      _searchInFlight = true;
     }
+  }
+
+  /// Whether we're currently waiting out a previous search's trailing output
+  /// (see [_stopAndDrain]). While true, [_parseStockfishLine] discards
+  /// "info"/"bestmove" lines instead of routing them to the active callback.
+  bool _awaitingStopDrain = false;
+
+  /// Whether a "go" has been sent whose "bestmove" hasn't arrived yet.
+  bool _searchInFlight = false;
+
+  Completer<void>? _readyOkCompleter;
+  Completer<void>? _bestMoveCompleter;
+
+  /// Stops the current search and waits for the engine to fully drain it
+  /// before the caller sends a new "position"/"go".
+  ///
+  /// Two things had to be true before a new query was safe to send, and
+  /// getting only one of them wasn't enough in practice:
+  ///
+  /// 1. Wait for "bestmove" — UCI guarantees a "go" is always terminated by
+  ///    exactly one "bestmove", stop included, so that line is the hard
+  ///    proof the old search has nothing left to say.
+  /// 2. *Also* wait for "isready"/"readyok" afterwards — this specific
+  ///    engine was observed sending "readyok" while an "info" line for the
+  ///    old search was still in flight around it (arriving on either side,
+  ///    not strictly before), so "readyok" alone isn't a reliable boundary.
+  ///
+  /// Without both, a deep in-flight search (e.g. depth 30 from a screen's
+  /// live evaluation) keeps emitting "info"/"bestmove" lines for the OLD
+  /// position for a little while after "stop" is sent. Those stray lines
+  /// would otherwise be parsed and handed to whichever callback is
+  /// currently attached — which, for a sequence of quick recursive queries
+  /// (the auto-analysis tree generator), is the NEXT query, not the one
+  /// that just finished. That leaked stale moves in as phantom candidates
+  /// (occasionally outright illegal ones), which then failed to parse or
+  /// got pruned, leaving that branch of the tree with zero children.
+  Future<void> _stopAndDrain({Duration timeout = const Duration(seconds: 3)}) async {
+    _awaitingStopDrain = true;
+
+    if (_searchInFlight) {
+      final bestMoveCompleter = Completer<void>();
+      _bestMoveCompleter = bestMoveCompleter;
+      _sendCommandForce('stop');
+      await bestMoveCompleter.future.timeout(timeout, onTimeout: () {
+        AppLogger.log('[StockfishService] ⚠️ bestmove timeout while draining previous search — proceeding anyway.');
+      });
+      _bestMoveCompleter = null;
+    } else {
+      _sendCommandForce('stop');
+    }
+
+    final readyCompleter = Completer<void>();
+    _readyOkCompleter = readyCompleter;
+    _sendCommandForce('isready');
+    await readyCompleter.future.timeout(timeout, onTimeout: () {
+      AppLogger.log('[StockfishService] ⚠️ isready timeout while draining previous search — proceeding anyway.');
+    });
+    _readyOkCompleter = null;
+
+    _awaitingStopDrain = false;
   }
 
   void _fallbackBasicEvaluation(String fen, int depth) {
@@ -632,7 +693,45 @@ class StockfishService {
 
   /// Parses textual lines returned by Stockfish stdout
   void _parseStockfishLine(String line) {
-    AppLogger.log('[Stockfish STDOUT] ⬅️ $line');
+    // "currmove" progress lines carry no score/pv — dozens fire per depth
+    // iteration and would otherwise dominate the (size-capped) log buffer,
+    // pushing out the diagnostic lines actually needed to debug anything.
+    final bool isCurrmoveNoise = line.contains('currmove') && !line.contains(' pv ');
+    if (!isCurrmoveNoise) {
+      AppLogger.log('[Stockfish STDOUT] ⬅️ $line');
+    }
+
+    if (line.trim() == 'readyok') {
+      _readyOkCompleter?.complete();
+      _readyOkCompleter = null;
+      return;
+    }
+
+    if (line.startsWith('bestmove')) {
+      _searchInFlight = false;
+      if (_awaitingStopDrain) {
+        // The forced end of the search we just told the engine to stop.
+        // UCI guarantees this is the last line that search will ever
+        // produce, so _stopAndDrain can stop waiting once it sees this.
+        _bestMoveCompleter?.complete();
+        _bestMoveCompleter = null;
+        return;
+      }
+      final parts = line.split(' ');
+      final bestMove = parts.length > 1 ? parts[1] : '';
+      if (onEvaluationChanged != null) {
+        onEvaluationChanged!('', bestMove, '', 1, 0, true, _currentFen);
+      }
+      return;
+    }
+
+    if (_awaitingStopDrain) {
+      // Trailing "info" output from the search we just told the engine to
+      // stop — the new position hasn't been sent yet, so this can only be
+      // stale. See _stopAndDrain for why letting it through corrupts the
+      // next query.
+      return;
+    }
 
     if (line.startsWith('info') && line.contains('score')) {
       String eval = '0.00';
@@ -697,14 +796,6 @@ class StockfishService {
       );
       if (onMultiPVUpdated != null) {
         onMultiPVUpdated!(_engineLines);
-      }
-    }
-
-    if (line.startsWith('bestmove')) {
-      final parts = line.split(' ');
-      final bestMove = parts.length > 1 ? parts[1] : '';
-      if (onEvaluationChanged != null) {
-        onEvaluationChanged!('', bestMove, '', 1, 0, true, _currentFen);
       }
     }
   }
