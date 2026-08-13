@@ -1,45 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_settings_service.dart';
-import 'package:chess_app/screens/home_screen.dart';
+import 'package:chess_app/services/session_service.dart';
+import 'package:chess_app/routing/app_router.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppSettingsService.instance.init();
-  final prefs = await SharedPreferences.getInstance();
-  
-  final rememberMe = prefs.getBool('remember_me') ?? false;
-  final token = prefs.getString('user_token');
-  
-  UserSession? savedSession;
-  if (rememberMe && token != null && token.isNotEmpty) {
-    savedSession = UserSession(
-      token: token,
-      id: prefs.getInt('user_id') ?? 0,
-      email: prefs.getString('user_email') ?? '',
-      name: prefs.getString('user_name') ?? '',
-      role: prefs.getString('user_role') ?? 'korisnik',
-    );
-  }
+  // Routes build screens from the session, so it has to be loaded before the
+  // first route is resolved.
+  await SessionService.instance.init();
 
-  runApp(ProviderScope(child: ChessApp(savedSession: savedSession)));
+  runApp(const ProviderScope(child: ChessApp()));
 }
 
 class ChessApp extends StatelessWidget {
-  final UserSession? savedSession;
-
-  const ChessApp({super.key, this.savedSession});
+  const ChessApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: AppSettingsService.instance,
       builder: (context, _) {
-        return MaterialApp(
+        return MaterialApp.router(
           title: 'Chess Master',
+          routerConfig: appRouter,
+          // Pairs with the router's own scope id so Android can rebuild the
+          // navigation stack after the process is killed in the background.
+          restorationScopeId: 'chess_app',
           themeMode: AppSettingsService.instance.themeMode,
           theme: ThemeData(
             brightness: Brightness.light,
@@ -59,7 +48,6 @@ class ChessApp extends StatelessWidget {
             ),
             useMaterial3: true,
           ),
-          home: HomeScreen(session: savedSession ?? UserSession.guest()),
         );
       },
     );

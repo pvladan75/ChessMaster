@@ -14,7 +14,6 @@ import 'package:chess/chess.dart' as chess;
 
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
-import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -33,6 +32,8 @@ import 'package:chess_app/widgets/game_selector_dialog.dart';
 import 'package:chess_app/widgets/share_position_dialog.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
+import 'package:chess_app/routing/app_routes.dart';
+import 'package:go_router/go_router.dart';
 import 'package:chess_app/models/recording_models.dart';
 
 // 3. MULTIPLAYER CHESS GAME PAGE
@@ -3151,7 +3152,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
       );
     }
 
-    return Scaffold(
+    return PopScope(
+      // Leaving disposes the socket, the Agora channel and every buffered
+      // recording event. Never let that happen silently mid-recording.
+      canPop: !isRecording,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop || !isRecording) return;
+        await _confirmLeaveWhileRecording();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(isConnected ? gameStatus : 'Uspostavljanje veze...'),
         centerTitle: true,
@@ -3160,16 +3169,17 @@ class _ChessGamePageState extends State<ChessGamePage> {
             icon: const Icon(Icons.biotech, color: Colors.tealAccent),
             tooltip: 'Izvezi u Tablu za Analizu 🔬',
             onPressed: () {
-              final fen = controller.getFen();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (ctx) => AnalysisStudioScreen(
-                    userSession: widget.userSession,
-                    initialFen: fen,
-                  ),
-                ),
-              );
+              context.push(AppRoutes.analysisPath(fen: controller.getFen()));
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.grey),
+            tooltip: 'Podešavanja',
+            onPressed: () async {
+              // Settings sits on top of the room; the socket and the audio
+              // channel keep running underneath instead of being torn down.
+              await context.push(AppRoutes.preferences);
+              if (mounted) setState(() {});
             },
           ),
           Icon(
@@ -3279,7 +3289,57 @@ class _ChessGamePageState extends State<ChessGamePage> {
             ),
         ),
       ]),
+      ),
     );
+  }
+
+  /// Offers to save the in-progress recording before tearing the room down.
+  Future<void> _confirmLeaveWhileRecording() async {
+    final choice = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Snimanje je u toku'),
+        content: Text(
+          'Napuštanjem sobe prekidate vezu i gubite ${recordedEvents.length} zabeleženih događaja.\n\n'
+          'Da li želite prvo da zaustavite i sačuvate snimak?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'cancel'),
+            child: const Text('Ostani u sobi'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'discard'),
+            child: const Text('Izađi bez čuvanja', style: TextStyle(color: Colors.redAccent)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, 'save'),
+            child: const Text('Zaustavi i sačuvaj'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted || choice == null || choice == 'cancel') return;
+
+    if (choice == 'save') {
+      // _stopRecording runs its own title/save dialog and clears the buffer.
+      await _stopRecording();
+      if (!mounted) return;
+      // Bail out if the user backed out of that dialog and is still recording.
+      if (isRecording) return;
+    } else {
+      setState(() {
+        isRecording = false;
+        isRecordingPaused = false;
+        recordingStartTimeMs = null;
+        recordedEvents.clear();
+      });
+    }
+
+    if (mounted) context.pop();
   }
 }
 

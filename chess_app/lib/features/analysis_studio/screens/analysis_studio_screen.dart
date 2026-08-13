@@ -1,5 +1,6 @@
 import 'package:chess_app/services/app_logger.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -11,6 +12,8 @@ import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
+import 'package:chess_app/routing/app_routes.dart';
+import 'package:go_router/go_router.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
@@ -24,6 +27,7 @@ import 'package:chess_app/features/analysis_studio/services/chessdb_service.dart
 import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
+import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
 
 class AnalysisStudioScreen extends StatefulWidget {
@@ -87,13 +91,72 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     OpeningBookService.instance.ensureLoaded().then((_) {
       if (mounted) setState(() {});
     });
+    // An explicit initialFen means the caller wants that exact position
+    // (e.g. exported from a game), so it must not be overwritten by a draft.
+    if (widget.initialFen == null) {
+      _restoreDraft();
+    }
   }
 
   @override
   void dispose() {
+    // A debounced write would be lost with this screen, so force it out first.
+    unawaited(AnalysisDraftService.instance.flush(
+      rootNode: _rootNode,
+      currentNode: _currentNode,
+      blackOrientation: _orientation == PlayerColor.black,
+    ));
     // Hands the shared engine back to the screen that pushed this one.
     _stockfishService.detach(this);
     super.dispose();
+  }
+
+  /// Persists the working tree so leaving the screen — to change a setting, to
+  /// take a call, or because Android reclaimed memory — never loses analysis.
+  void _saveDraft() {
+    AnalysisDraftService.instance.scheduleSave(
+      rootNode: _rootNode,
+      currentNode: _currentNode,
+      blackOrientation: _orientation == PlayerColor.black,
+    );
+  }
+
+  Future<void> _restoreDraft() async {
+    final draft = await AnalysisDraftService.instance.load();
+    if (!mounted || draft == null) return;
+
+    setState(() {
+      _rootNode = draft.rootNode;
+      _currentNode = draft.resolveCurrentNode();
+      _orientation = draft.blackOrientation ? PlayerColor.black : PlayerColor.white;
+      _chessGame = chess.Chess.fromFEN(_currentNode.fen);
+      _boardController.loadFen(_currentNode.fen);
+      _engineLinesMap.clear();
+    });
+    _refreshArrows();
+    _triggerEngineAnalysis();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Vraćena je vaša poslednja analiza.'),
+        backgroundColor: Colors.teal,
+        duration: const Duration(seconds: 6),
+        action: SnackBarAction(
+          label: 'Počni iznova',
+          textColor: Colors.white,
+          onPressed: () {
+            AnalysisDraftService.instance.clear();
+            setState(() {
+              _initAnalysisTree('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+              _engineLinesMap.clear();
+            });
+            _refreshArrows();
+            _triggerEngineAnalysis();
+          },
+        ),
+      ),
+    );
   }
 
   void _initAnalysisTree(String fen) {
@@ -254,6 +317,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _handleUserMove(from, to, promotion);
   }
 
+  /// Pushes Settings *over* this screen rather than making the user pop back
+  /// to the home shell — the analysis stays mounted underneath, so returning
+  /// lands exactly where they left off.
+  Future<void> _openAppSettings() async {
+    await context.push(AppRoutes.preferences);
+    // Board scale and panel visibility are read during build, so re-read them.
+    if (mounted) setState(() {});
+  }
+
   Future<void> _openEngineSettings() async {
     await showEngineSettingsDialog(
       context,
@@ -367,6 +439,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       _boardController.loadFen(node.fen);
       _engineLinesMap.clear();
     });
+    _saveDraft();
     // Show this node's stored candidates immediately; the engine may still be
     // several seconds away from producing lines for the new position.
     _refreshArrows();
@@ -404,6 +477,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         _engineLinesMap.clear();
       });
 
+      _saveDraft();
       _refreshArrows();
       _triggerEngineAnalysis();
     }
@@ -651,6 +725,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           setState(() {
             _initAnalysisTree(newFen);
           });
+          _saveDraft();
           _triggerEngineAnalysis();
         },
         onPgnLoaded: (pgn) {
@@ -709,6 +784,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         _chessGame = chess.Chess.fromFEN(node.fen);
         _boardController.loadFen(node.fen);
       });
+      _saveDraft();
       _triggerEngineAnalysis();
 
       AppLogger.log('[AnalysisStudio] 📥 PGN uvezen: $imported poteza od ${sanHistory.length}');
@@ -939,6 +1015,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       final side = loadedRoot.fen.split(' ')[1];
       _orientation = side == 'b' ? PlayerColor.black : PlayerColor.white;
     });
+    _saveDraft();
     _triggerEngineAnalysis();
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1000,6 +1077,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             onPressed: _showSavedAnalysesDialog,
           ),
           IconButton(
+            icon: const Icon(Icons.settings, color: Colors.grey),
+            tooltip: 'Podešavanja',
+            onPressed: _openAppSettings,
+          ),
+          IconButton(
             icon: const Icon(Icons.tune, color: Colors.tealAccent),
             tooltip: 'Unos Pozicije / PGN',
             onPressed: _showSetupDialog,
@@ -1014,6 +1096,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               setState(() {
                 _orientation = _orientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
               });
+              _saveDraft();
             },
           ),
         ],
@@ -1132,6 +1215,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                     setState(() {
                       node.parent?.promoteToMainLine(node);
                     });
+                    _saveDraft();
                   },
                   onDeleteNode: (node) {
                     setState(() {
@@ -1140,6 +1224,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                         _jumpToNode(node.parent!);
                       }
                     });
+                    _saveDraft();
                   },
                 ),
                 const SizedBox(height: 8),
@@ -1293,6 +1378,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                       setState(() {
                         node.parent?.promoteToMainLine(node);
                       });
+                      _saveDraft();
                     },
                     onDeleteNode: (node) {
                       setState(() {
@@ -1301,6 +1387,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                           _jumpToNode(node.parent!);
                         }
                       });
+                      _saveDraft();
                     },
                   ),
                   const SizedBox(height: 8),

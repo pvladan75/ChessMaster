@@ -7,7 +7,6 @@ class AppSettingsService extends ChangeNotifier {
   AppSettingsService._internal();
 
   ThemeMode _themeMode = ThemeMode.dark;
-  String _language = 'sr'; // 'sr' or 'en'
   int _defaultEngineDepth = 18;
   int _defaultEngineMoveTimeSeconds = 2;
   int _defaultMultiPV = 3;
@@ -17,7 +16,6 @@ class AppSettingsService extends ChangeNotifier {
   String _lichessApiToken = '';
 
   ThemeMode get themeMode => _themeMode;
-  String get language => _language;
   int get defaultEngineDepth => _defaultEngineDepth;
   int get defaultEngineMoveTimeSeconds => _defaultEngineMoveTimeSeconds;
   int get defaultMultiPV => _defaultMultiPV;
@@ -31,16 +29,14 @@ class AppSettingsService extends ChangeNotifier {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    final themeStr = prefs.getString('app_theme_mode') ?? 'dark';
-    if (themeStr == 'light') {
-      _themeMode = ThemeMode.light;
-    } else if (themeStr == 'system') {
-      _themeMode = ThemeMode.system;
-    } else {
-      _themeMode = ThemeMode.dark;
+    // The UI is dark-only today (hardcoded surfaces/white text), so the theme
+    // picker was removed. Anyone who had already chosen light or system would
+    // otherwise stay stuck there with no control left to escape it.
+    _themeMode = ThemeMode.dark;
+    if (prefs.getString('app_theme_mode') != 'dark') {
+      await prefs.setString('app_theme_mode', 'dark');
     }
 
-    _language = prefs.getString('app_language') ?? 'sr';
     _defaultEngineDepth = (prefs.getInt('app_engine_depth') ?? 18).clamp(5, 50);
     _defaultEngineMoveTimeSeconds = (prefs.getInt('app_engine_movetime') ?? 2).clamp(1, 60);
     _defaultMultiPV = (prefs.getInt('app_multi_pv') ?? 3).clamp(1, 5);
@@ -57,23 +53,6 @@ class AppSettingsService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _customEnginePath = prefs.getString('custom_engine_path') ?? '';
     notifyListeners();
-  }
-
-  Future<void> setThemeMode(ThemeMode mode) async {
-    _themeMode = mode;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    String str = 'dark';
-    if (mode == ThemeMode.light) str = 'light';
-    if (mode == ThemeMode.system) str = 'system';
-    await prefs.setString('app_theme_mode', str);
-  }
-
-  Future<void> setLanguage(String lang) async {
-    _language = lang;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('app_language', lang);
   }
 
   Future<void> setEngineDepth(int depth) async {

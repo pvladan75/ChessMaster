@@ -1,17 +1,15 @@
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:socket_io_client/socket_io_client.dart' as io;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
-import 'package:chess_app/screens/chess_game_screen.dart';
-import 'package:chess_app/screens/login_screen.dart';
+import 'package:chess_app/routing/app_routes.dart';
+import 'package:chess_app/services/session_service.dart';
 
-import 'package:chess_app/screens/replay_player_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
-import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:chess_app/screens/settings_screen.dart';
@@ -27,6 +25,25 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+
+  /// Tabs are built on first visit and kept alive after that. Building all of
+  /// them up front meant AI Studio spun up and attached to the shared engine
+  /// before the user had opened anything.
+  final Set<int> _visitedTabs = {0};
+
+  /// Visit order, so Android back returns to the previous tab instead of
+  /// dropping straight out of the app.
+  final List<int> _tabHistory = [0];
+
+  void _selectTab(int idx) {
+    if (idx == _selectedIndex) return;
+    setState(() {
+      _selectedIndex = idx;
+      _visitedTabs.add(idx);
+      _tabHistory.remove(idx);
+      _tabHistory.add(idx);
+    });
+  }
   final _codeController = TextEditingController();
   bool _isLoading = false;
 
@@ -150,16 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _joinInviteRoom(String roomCode) async {
     _socket.disconnect();
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChessGamePage(
-          userSession: widget.session,
-          roomCode: roomCode,
-          initialRole: 'ucenik',
-        ),
-      ),
-    );
+    await context.push(AppRoutes.roomPath(roomCode, role: 'ucenik'));
     if (mounted) {
       _socket.connect();
     }
@@ -890,16 +898,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
         _socket.disconnect();
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChessGamePage(
-              userSession: widget.session,
-              roomCode: createdRoomCode,
-              initialRole: 'trener',
-            ),
-          ),
-        );
+        await context.push(AppRoutes.roomPath(createdRoomCode, role: 'trener'));
         if (mounted) {
           _socket.connect();
         }
@@ -982,26 +981,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateToGame(String roomCode, [String? sessionRole]) {
+    // The role travels in the URL; the room route rebuilds the session with it.
     final effectiveRole = sessionRole ?? (roomCode == 'STUDIO' ? 'host' : 'korisnik');
-    final sessionForRoom = UserSession(
-      id: widget.session.id,
-      email: widget.session.email,
-      name: widget.session.name,
-      role: effectiveRole,
-      token: widget.session.token,
-      accountType: widget.session.accountType,
-    );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChessGamePage(
-          roomCode: roomCode,
-          userSession: sessionForRoom,
-          initialRole: effectiveRole,
-        ),
-      ),
-    );
+    context.push(AppRoutes.roomPath(roomCode, role: effectiveRole));
   }
 
   void _showSuccess(String message) {
@@ -1039,10 +1021,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginRegisterScreen()),
-                );
+                context.push(AppRoutes.login);
               },
               child: const Text('Prijavi se / Registruj'),
             ),
@@ -1055,19 +1034,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('remember_me');
-    await prefs.remove('user_token');
-    await prefs.remove('user_id');
-    await prefs.remove('user_email');
-    await prefs.remove('user_name');
-    await prefs.remove('user_role');
-
+    await SessionService.instance.signOut();
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginRegisterScreen()),
-    );
+    context.go(AppRoutes.login);
   }
 
   @override
@@ -1075,17 +1044,36 @@ class _HomeScreenState extends State<HomeScreen> {
     final media = MediaQuery.of(context);
     final isWide = media.size.width > 800;
 
-    final List<Widget> pages = [
-      _buildDashboardTab(),
-      AiStudioScreen(userSession: widget.session),
-      _buildBibliotekaTab(),
-      _buildFriendsTab(),
-      SettingsScreen(session: widget.session),
-    ];
+    // Unvisited tabs render as an empty box; once visited they stay in the
+    // stack so their state survives switching away and back.
+    final List<Widget> pages = List.generate(5, (i) {
+      if (!_visitedTabs.contains(i)) return const SizedBox.shrink();
+      switch (i) {
+        case 0:
+          return _buildDashboardTab();
+        case 1:
+          return AiStudioScreen(userSession: widget.session);
+        case 2:
+          return _buildBibliotekaTab();
+        case 3:
+          return _buildFriendsTab();
+        default:
+          return SettingsScreen(session: widget.session);
+      }
+    });
 
     final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
-    return Scaffold(
+    return PopScope(
+      canPop: _tabHistory.length <= 1,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop || _tabHistory.length <= 1) return;
+        setState(() {
+          _tabHistory.removeLast();
+          _selectedIndex = _tabHistory.last;
+        });
+      },
+      child: Scaffold(
       appBar: isLandscape
           ? null
           : AppBar(
@@ -1094,10 +1082,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (widget.session.isGuest)
                   TextButton.icon(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginRegisterScreen()),
-                      );
+                      context.push(AppRoutes.login);
                     },
                     icon: const Icon(Icons.login, color: Colors.white),
                     label: const Text('Prijavi Se', style: TextStyle(color: Colors.white)),
@@ -1115,10 +1100,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
       body: Row(
         children: [
-          if (isWide || (isLandscape && _selectedIndex != 1))
+          // The rail stays visible for every tab in landscape. AI Studio's
+          // landscape board is sized from available *height*, so the rail's
+          // width costs it nothing — and hiding it used to leave that tab with
+          // no AppBar, no bottom bar and no rail, i.e. no way out at all.
+          if (isWide || isLandscape)
             NavigationRail(
               selectedIndex: _selectedIndex,
-              onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
+              onDestinationSelected: _selectTab,
               labelType: NavigationRailLabelType.none,
               destinations: const [
                 NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Početna')),
@@ -1128,7 +1117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Podešavanja')),
               ],
             ),
-          if (isWide || (isLandscape && _selectedIndex != 1)) const VerticalDivider(width: 1, thickness: 1),
+          if (isWide || isLandscape) const VerticalDivider(width: 1, thickness: 1),
           Expanded(
             child: IndexedStack(
               index: _selectedIndex,
@@ -1141,7 +1130,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ? null
           : NavigationBar(
               selectedIndex: _selectedIndex,
-              onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
+              onDestinationSelected: _selectTab,
               destinations: const [
                 NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Početna'),
                 NavigationDestination(icon: Icon(Icons.psychology_outlined), selectedIcon: Icon(Icons.psychology), label: 'Trening'),
@@ -1150,20 +1139,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Podešavanja'),
               ],
             ),
+      ),
     );
   }
 
   void _openStudioRoom() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChessGamePage(
-          userSession: widget.session,
-          roomCode: 'STUDIO',
-          initialRole: 'host',
-        ),
-      ),
-    );
+    context.push(AppRoutes.roomPath('STUDIO', role: 'host'));
   }
 
   Widget _buildDashboardTab() {
@@ -1426,12 +1407,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 label: const Text('Pusti', style: TextStyle(fontSize: 11)),
                                 style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurpleAccent, foregroundColor: Colors.white),
                                 onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ReplayPlayerScreen(recordingId: rec['id'], userSession: widget.session),
-                                    ),
-                                  );
+                                  context.push(AppRoutes.replayPath(rec['id'] as int));
                                 },
                               ),
                             );
@@ -1525,12 +1501,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => AnalysisStudioScreen(userSession: widget.session),
-                              ),
-                            );
+                            context.push(AppRoutes.analysis);
                           },
                         ),
                       ),

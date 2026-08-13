@@ -17,6 +17,20 @@ class UserSession {
 
   bool get isGuest => token.isEmpty;
 
+  /// Rooms override the role for the duration of a session (a trainer can join
+  /// someone else's room as a student), so the room route rebuilds the signed-in
+  /// session with the role carried in the URL.
+  UserSession copyWith({String? role}) {
+    return UserSession(
+      token: token,
+      id: id,
+      email: email,
+      name: name,
+      role: role ?? this.role,
+      accountType: accountType,
+    );
+  }
+
   factory UserSession.guest() {
     return UserSession(
       token: '',

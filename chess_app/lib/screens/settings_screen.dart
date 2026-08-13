@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
-import 'package:chess_app/screens/login_screen.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -50,15 +51,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-
+    // Only the credentials go: prefs.clear() used to also wipe the engine path,
+    // board scale, panel layout and Lichess token, which survive a sign-out.
+    await SessionService.instance.signOut();
     if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginRegisterScreen()),
-      (route) => false,
-    );
+    context.go(AppRoutes.login);
   }
 
   @override
@@ -151,72 +148,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
-              const Text('IZGLED I TEMA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
-              const SizedBox(height: 8),
+              // The light/system options were removed rather than left broken:
+              // the UI hardcodes dark surfaces and white text in ~200 places,
+              // so light mode produced white-on-pale text in several panels.
+              // Restore this picker once the colors go through theme tokens.
 
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: RadioGroup<ThemeMode>(
-                  groupValue: _settings.themeMode,
-                  onChanged: (val) {
-                    if (val != null) _settings.setThemeMode(val);
-                  },
-                  child: Column(
-                    children: [
-                      RadioListTile<ThemeMode>(
-                        title: const Text('🌙 Tamna Tema (Dark Mode)'),
-                        subtitle: const Text('Elegantne tamne nijanse za ugodniji rad noću'),
-                        value: ThemeMode.dark,
-                        activeColor: Colors.deepPurpleAccent,
-                      ),
-                      const Divider(height: 1),
-                      RadioListTile<ThemeMode>(
-                        title: const Text('☀️ Svetla Tema (Light Mode)'),
-                        subtitle: const Text('Čist svetao izgled sa visokim kontrastom'),
-                        value: ThemeMode.light,
-                        activeColor: Colors.deepPurpleAccent,
-                      ),
-                      const Divider(height: 1),
-                      RadioListTile<ThemeMode>(
-                        title: const Text('🌓 Sistemska Tema'),
-                        subtitle: const Text('Automatsko prilagođavanje podešavanjima vašeg uređaja'),
-                        value: ThemeMode.system,
-                        activeColor: Colors.deepPurpleAccent,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-              const Text('JEZIK I REGION', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
-              const SizedBox(height: 8),
-
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: RadioGroup<String>(
-                  groupValue: _settings.language,
-                  onChanged: (val) {
-                    if (val != null) _settings.setLanguage(val);
-                  },
-                  child: Column(
-                    children: [
-                      RadioListTile<String>(
-                        title: const Text('🇷🇸 Srpski'),
-                        value: 'sr',
-                        activeColor: Colors.tealAccent,
-                      ),
-                      const Divider(height: 1),
-                      RadioListTile<String>(
-                        title: const Text('🇬🇧 English'),
-                        value: 'en',
-                        activeColor: Colors.tealAccent,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // A language picker used to live here, but the app has no
+              // localization layer — every string is hardcoded Serbian — so it
+              // silently did nothing. Re-add it together with real i18n.
 
               const SizedBox(height: 24),
               const Text('STOCKFISH ENGINE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),

@@ -14,7 +14,6 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/constants.dart';
-import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -24,6 +23,8 @@ import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
+import 'package:chess_app/routing/app_routes.dart';
+import 'package:go_router/go_router.dart';
 
 enum PuzzleGameState {
   idle,
@@ -1833,15 +1834,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   void _exportToAnalysisStudio() {
     final currentFen = _puzzleBoardController.getFen();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AnalysisStudioScreen(
-          userSession: widget.userSession,
-          initialFen: currentFen,
-        ),
-      ),
-    );
+    context.push(AppRoutes.analysisPath(fen: currentFen));
   }
 
   void _showSnackBar(String msg) {
@@ -2042,7 +2035,23 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         height: 24,
         child: Row(
           children: [
-
+            // Landscape hides the AppBar, so without this there is no way back
+            // to the category hub on platforms with no hardware back button.
+            if (_selectedCategory != null) ...[
+              IconButton(
+                icon: const Icon(Icons.arrow_back, size: 18, color: Colors.white),
+                tooltip: 'Nazad na izbor kategorije',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () {
+                  _resetEngineState();
+                  setState(() {
+                    _selectedCategory = null;
+                  });
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
             Expanded(
               child: Text(
                 headerGoal,

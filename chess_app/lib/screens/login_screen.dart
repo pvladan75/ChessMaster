@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
-import 'package:chess_app/screens/home_screen.dart';
+import 'package:chess_app/routing/app_routes.dart';
+import 'package:chess_app/services/session_service.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -190,29 +191,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   }
 
   Future<void> _saveSession(UserSession session) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (_rememberMe) {
-      await prefs.setBool('remember_me', true);
-      await prefs.setString('user_token', session.token);
-      await prefs.setInt('user_id', session.id);
-      await prefs.setString('user_email', session.email);
-      await prefs.setString('user_name', session.name);
-      await prefs.setString('user_role', session.role);
-    } else {
-      await prefs.remove('remember_me');
-      await prefs.remove('user_token');
-      await prefs.remove('user_id');
-      await prefs.remove('user_email');
-      await prefs.remove('user_name');
-      await prefs.remove('user_role');
-    }
+    await SessionService.instance.signIn(session, rememberMe: _rememberMe);
   }
 
   void _navigateToHome(UserSession session) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => HomeScreen(session: session)),
-    );
+    // go() rather than push(): after signing in there is nothing meaningful to
+    // go "back" to, and the login screen should not stay on the stack.
+    context.go(AppRoutes.home);
   }
 
   void _showError(String message) {
