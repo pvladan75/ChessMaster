@@ -464,13 +464,23 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       if (promotion.isNotEmpty) 'promotion': promotion,
     };
 
+    // The chess package's history entries carry no SAN string at all (only
+    // from/to/flags/piece) — has to come from the verbose pre-move
+    // candidate list, which does have a 'san' key, so look it up there
+    // before actually playing the move.
+    String san = '$from$to';
+    final promo = promotion.isEmpty ? null : promotion;
+    for (final m in _chessGame!.moves({'verbose': true})) {
+      if (m['from'] == from && m['to'] == to) {
+        if (promo == null || m['promotion'] == promo || m['promotion'] == promo.toLowerCase()) {
+          san = (m['san'] as String?) ?? san;
+          break;
+        }
+      }
+    }
+
     final success = _chessGame!.move(moveMap);
     if (success) {
-      String san = '$from$to';
-      try {
-        final dynamic lastHist = _chessGame!.history.last;
-        san = (lastHist.san as String?) ?? '$from$to';
-      } catch (_) {}
       final uci = '$from$to${promotion.toLowerCase()}';
       final newFen = _chessGame!.fen;
 

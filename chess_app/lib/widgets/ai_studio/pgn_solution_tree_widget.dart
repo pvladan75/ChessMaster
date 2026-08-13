@@ -80,16 +80,21 @@ class PgnSolutionTreeWidget extends StatelessWidget {
         final to = uciMove.substring(2, 4);
         final promo = uciMove.length > 4 ? uciMove[4] : null;
 
-        final bool moveOk = tempBoard.move({'from': from, 'to': to, 'promotion': promo});
+        // The chess package's history entries carry no SAN string at all
+        // (only from/to/flags/piece) — has to come from the verbose
+        // pre-move candidate list, which does have a 'san' key, so look
+        // it up there before actually playing the move.
         String sanStr = uciMove;
-        if (moveOk && tempBoard.history.isNotEmpty) {
-          try {
-            final dynamic lastHist = tempBoard.history.last;
-            sanStr = lastHist.san ?? uciMove;
-          } catch (_) {
-            sanStr = uciMove;
+        for (final m in tempBoard.moves({'verbose': true})) {
+          if (m['from'] == from && m['to'] == to) {
+            if (promo == null || m['promotion'] == promo || m['promotion'] == promo.toLowerCase()) {
+              sanStr = (m['san'] as String?) ?? uciMove;
+              break;
+            }
           }
         }
+
+        tempBoard.move({'from': from, 'to': to, 'promotion': promo});
 
         final targetFen = tempBoard.fen;
         final String labelStr = isWhite ? '$num. $sanStr' : '$num... $sanStr';

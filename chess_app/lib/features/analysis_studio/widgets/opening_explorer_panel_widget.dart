@@ -221,17 +221,19 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
     if (uci.length < 4) return uci;
     try {
       final game = chess.Chess.fromFEN(fen);
-      final ok = game.move({
-        'from': uci.substring(0, 2),
-        'to': uci.substring(2, 4),
-        if (uci.length > 4) 'promotion': uci.substring(4, 5),
-      });
-      // move_to_san() on an already-played move isn't reliable in this
-      // package; history.last.san (populated by move() itself) is the
-      // pattern used everywhere else in this codebase for this reason.
-      if (ok && game.history.isNotEmpty) {
-        final dynamic lastHist = game.history.last;
-        return (lastHist.san as String?) ?? uci;
+      final from = uci.substring(0, 2);
+      final to = uci.substring(2, 4);
+      final promo = uci.length > 4 ? uci.substring(4, 5) : null;
+      // The chess package's history entries carry no SAN string at all
+      // (State only has from/to/flags/piece) — verbose pre-move candidates
+      // are the only place a 'san' key actually exists, so look the move up
+      // there instead of playing it and hoping history recorded it.
+      for (final m in game.moves({'verbose': true})) {
+        if (m['from'] == from && m['to'] == to) {
+          if (promo == null || m['promotion'] == promo || m['promotion'] == promo.toLowerCase()) {
+            return (m['san'] as String?) ?? uci;
+          }
+        }
       }
     } catch (_) {}
     return uci;
