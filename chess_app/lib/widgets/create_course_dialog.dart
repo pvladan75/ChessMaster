@@ -65,14 +65,16 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
 
   Future<void> _pickAnalysisToAdd() async {
     setState(() => isAddingAnalysis = true);
-    final analyses = await AnalysisPersistenceService.instance.listSavedAnalyses(
+    final analyses =
+        await AnalysisPersistenceService.instance.listSavedAnalyses(
       userToken: widget.userSession.token,
     );
     if (!mounted) return;
     setState(() => isAddingAnalysis = false);
 
     if (analyses.isEmpty) {
-      _showError('Nema sačuvanih analiza. Sačuvajte jednu u Studiju za analizu.');
+      _showError(
+          'Nema sačuvanih analiza. Sačuvajte jednu u Studiju za analizu.');
       return;
     }
 
@@ -80,26 +82,31 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.grey.shade900,
-        title: const Text('Izaberi sačuvanu analizu', style: TextStyle(color: Colors.white, fontSize: 15)),
+        title: const Text('Izaberi sačuvanu analizu',
+            style: TextStyle(color: Colors.white, fontSize: 15)),
         content: SizedBox(
           width: 340,
           height: 300,
           child: ListView.separated(
             itemCount: analyses.length,
-            separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.white12),
+            separatorBuilder: (_, __) =>
+                const Divider(height: 1, color: Colors.white12),
             itemBuilder: (context, index) {
               final a = analyses[index];
               return ListTile(
                 dense: true,
-                leading: const Icon(Icons.biotech, color: Colors.tealAccent, size: 18),
-                title: Text(a.title, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                leading: const Icon(Icons.biotech,
+                    color: Colors.tealAccent, size: 18),
+                title: Text(a.title,
+                    style: const TextStyle(color: Colors.white, fontSize: 13)),
                 onTap: () => Navigator.pop(ctx, a),
               );
             },
           ),
         ),
         actions: [
-          TextButton(child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx)),
+          TextButton(
+              child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx)),
         ],
       ),
     );
@@ -161,7 +168,9 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
 
       if (!mounted) return;
 
-      final ok = updateInPlace ? response.statusCode == 200 : response.statusCode == 201;
+      final ok = updateInPlace
+          ? response.statusCode == 200
+          : response.statusCode == 201;
       if (ok) {
         _showSuccess(updateInPlace
             ? 'Lekcija je izmenjena (${selectedPositions.length} koraka)!'
@@ -169,7 +178,9 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
         widget.onCourseCreated();
         Navigator.pop(context);
       } else {
-        _showError(updateInPlace ? 'Neuspešna izmena lekcije.' : 'Neuspešno kreiranje lekcije.');
+        _showError(updateInPlace
+            ? 'Neuspešna izmena lekcije.'
+            : 'Neuspešno kreiranje lekcije.');
       }
     } catch (e) {
       _showError('Greška na mreži.');
@@ -181,18 +192,23 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
   @override
   Widget build(BuildContext context) {
     // A saved course (position_list already set) can't itself be nested as a step.
-    final availablePositions = widget.lessons.where((l) => l['position_list'] == null).toList();
+    final availablePositions =
+        widget.lessons.where((l) => l['position_list'] == null).toList();
 
     return AlertDialog(
       title: Row(
         children: [
-          const Icon(Icons.collections_bookmark, color: Colors.deepPurpleAccent),
+          const Icon(Icons.collections_bookmark,
+              color: Colors.deepPurpleAccent),
           const SizedBox(width: 8),
-          Text(isEditing ? 'Izmeni lekciju' : 'Kreiraj lekciju (Više koraka)', style: const TextStyle(fontSize: 16)),
+          Text(isEditing ? 'Izmeni lekciju' : 'Kreiraj lekciju (Više koraka)',
+              style: const TextStyle(fontSize: 16)),
         ],
       ),
-      content: SizedBox(
-        width: 380,
+      content: ConstrainedBox(
+        constraints: BoxConstraints(
+            maxWidth: 380,
+            maxHeight: MediaQuery.of(context).size.height * 0.75),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -227,24 +243,33 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: availablePositions.isEmpty
-                    ? const Center(child: Text('Nema sačuvanih pozicija.', style: TextStyle(fontSize: 11, color: Colors.grey)))
+                    ? const Center(
+                        child: Text('Nema sačuvanih pozicija.',
+                            style: TextStyle(fontSize: 11, color: Colors.grey)))
                     : ListView.builder(
                         shrinkWrap: true,
                         itemCount: availablePositions.length,
                         itemBuilder: (context, index) {
                           final lesson = availablePositions[index];
-                          final isSelected = selectedPositions.any((p) => p['id'] == lesson['id']);
+                          final isSelected = selectedPositions
+                              .any((p) => p['id'] == lesson['id']);
                           return CheckboxListTile(
                             dense: true,
-                            title: Text(lesson['title'] ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                            subtitle: Text(lesson['fen'] ?? '', style: const TextStyle(fontSize: 10, color: Colors.grey), maxLines: 1),
+                            title: Text(lesson['title'] ?? '',
+                                style: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.bold)),
+                            subtitle: Text(lesson['fen'] ?? '',
+                                style: const TextStyle(
+                                    fontSize: 10, color: Colors.grey),
+                                maxLines: 1),
                             value: isSelected,
                             onChanged: (val) {
                               setState(() {
                                 if (val == true) {
                                   selectedPositions.add(lesson);
                                 } else {
-                                  selectedPositions.removeWhere((p) => p['id'] == lesson['id']);
+                                  selectedPositions.removeWhere(
+                                      (p) => p['id'] == lesson['id']);
                                 }
                               });
                             },
@@ -257,7 +282,10 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   icon: isAddingAnalysis
-                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.biotech, size: 16),
                   label: const Text('Dodaj sačuvanu analizu'),
                   onPressed: isAddingAnalysis ? null : _pickAnalysisToAdd,
@@ -285,32 +313,40 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                     },
                     itemBuilder: (context, index) {
                       final item = selectedPositions[index];
-                      final isAnalysis = item['pgn'] != null && item['pgn'].toString().isNotEmpty && item['id'] == null;
+                      final isAnalysis = item['pgn'] != null &&
+                          item['pgn'].toString().isNotEmpty &&
+                          item['id'] == null;
                       return Card(
                         key: ValueKey(identityHashCode(item)),
                         margin: const EdgeInsets.symmetric(vertical: 2),
                         child: ListTile(
                           dense: true,
                           leading: Icon(
-                            isAnalysis ? Icons.biotech : Icons.push_pin_outlined,
+                            isAnalysis
+                                ? Icons.biotech
+                                : Icons.push_pin_outlined,
                             color: isAnalysis ? Colors.tealAccent : Colors.grey,
                             size: 18,
                           ),
                           title: Text(
                             '${index + 1}. ${item['title'] ?? ''}',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.close, size: 18, color: Colors.redAccent),
+                                icon: const Icon(Icons.close,
+                                    size: 18, color: Colors.redAccent),
                                 tooltip: 'Ukloni',
-                                onPressed: () => setState(() => selectedPositions.removeAt(index)),
+                                onPressed: () => setState(
+                                    () => selectedPositions.removeAt(index)),
                               ),
                               ReorderableDragStartListener(
                                 index: index,
-                                child: const Icon(Icons.drag_handle, size: 18, color: Colors.grey),
+                                child: const Icon(Icons.drag_handle,
+                                    size: 18, color: Colors.grey),
                               ),
                             ],
                           ),
@@ -337,7 +373,10 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
         ElevatedButton(
           onPressed: isSaving ? null : () => _submit(asNew: !isEditing),
           child: isSaving
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
               : Text(isEditing ? 'Sačuvaj izmene' : 'Sačuvaj lekciju'),
         ),
       ],

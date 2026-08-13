@@ -25,53 +25,73 @@ void showGroupedMovesDialog({
               SizedBox(width: 8),
               Text(
                 'Odbrambene Varijante',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Izaberite odbrambeni potez protivnika za prikaz na tabli:',
-                style: TextStyle(color: Colors.grey.shade300, fontSize: 13),
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+                maxWidth: 480,
+                maxHeight: MediaQuery.of(context).size.height * 0.6),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Izaberite odbrambeni potez protivnika za prikaz na tabli:',
+                    style: TextStyle(color: Colors.grey.shade300, fontSize: 13),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(node.groupedOpponentMoves.length,
+                        (index) {
+                      final isSelected = (index == selectedIndex);
+                      final san = node.groupedOpponentMoves[index];
+                      return ChoiceChip(
+                        selected: isSelected,
+                        selectedColor: const ui.Color(0xFF0D9488),
+                        backgroundColor: const ui.Color(0xFF1E293B),
+                        side: BorderSide(
+                            color: isSelected
+                                ? Colors.tealAccent
+                                : const ui.Color(0xFF475569)),
+                        avatar: isSelected
+                            ? const Icon(Icons.check,
+                                size: 16, color: Colors.white)
+                            : null,
+                        label: Text(
+                          san,
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : const ui.Color(0xFFE0E7FF),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        onSelected: (_) {
+                          setDialogState(() {
+                            selectedIndex = index;
+                          });
+                        },
+                      );
+                    }),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: List.generate(node.groupedOpponentMoves.length, (index) {
-                  final isSelected = (index == selectedIndex);
-                  final san = node.groupedOpponentMoves[index];
-                  return ChoiceChip(
-                    selected: isSelected,
-                    selectedColor: const ui.Color(0xFF0D9488),
-                    backgroundColor: const ui.Color(0xFF1E293B),
-                    side: BorderSide(color: isSelected ? Colors.tealAccent : const ui.Color(0xFF475569)),
-                    avatar: isSelected ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
-                    label: Text(
-                      san,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : const ui.Color(0xFFE0E7FF),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    onSelected: (_) {
-                      setDialogState(() {
-                        selectedIndex = index;
-                      });
-                    },
-                  );
-                }),
-              ),
-            ],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Zatvori', style: TextStyle(color: Colors.grey)),
+              child:
+                  const Text('Zatvori', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton.icon(
               icon: const Icon(Icons.gamepad, size: 16),

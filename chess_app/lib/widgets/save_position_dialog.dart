@@ -4,7 +4,8 @@ class SavePositionDialog extends StatefulWidget {
   final List<String> availableUserLabels;
   final List<String> initialPersistedLabels;
   final bool initialShouldPersist;
-  final Function(String title, String desc, List<String> tags, bool shouldPersist) onSave;
+  final Function(
+      String title, String desc, List<String> tags, bool shouldPersist) onSave;
 
   const SavePositionDialog({
     super.key,
@@ -29,7 +30,9 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
   @override
   void initState() {
     super.initState();
-    dialogActiveTags = widget.initialShouldPersist ? List<String>.from(widget.initialPersistedLabels) : [];
+    dialogActiveTags = widget.initialShouldPersist
+        ? List<String>.from(widget.initialPersistedLabels)
+        : [];
     persistChecked = widget.initialShouldPersist;
   }
 
@@ -53,13 +56,16 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
   Widget build(BuildContext context) {
     final suggestions = widget.availableUserLabels
         .where((l) => !dialogActiveTags.contains(l))
-        .where((l) => tagInputController.text.isEmpty || l.toLowerCase().contains(tagInputController.text.toLowerCase()))
+        .where((l) =>
+            tagInputController.text.isEmpty ||
+            l.toLowerCase().contains(tagInputController.text.toLowerCase()))
         .toList();
 
     return AlertDialog(
       title: const Text('Sačuvaj trenutnu lekciju / poziciju'),
-      content: SizedBox(
-        width: 360,
+      content: ConstrainedBox(
+        constraints: BoxConstraints(
+            maxWidth: 360, maxHeight: MediaQuery.of(context).size.height * 0.7),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -109,7 +115,8 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                         hintText: 'Ukucaj i dodaj labelu...',
                         isDense: true,
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       ),
                       style: const TextStyle(fontSize: 12),
                       onChanged: (_) => setState(() {}),
@@ -119,17 +126,21 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () => addTag(tagInputController.text),
-                    style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
+                    style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12)),
                     child: const Text('Dodaj'),
                   ),
                 ],
               ),
-              if (suggestions.isNotEmpty && tagInputController.text.isNotEmpty) ...[
+              if (suggestions.isNotEmpty &&
+                  tagInputController.text.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Container(
                   constraints: const BoxConstraints(maxHeight: 120),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                    border:
+                        Border.all(color: Colors.grey.withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: ListView.builder(
@@ -139,7 +150,8 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                       final suggestion = suggestions[index];
                       return ListTile(
                         dense: true,
-                        title: Text(suggestion, style: const TextStyle(fontSize: 12)),
+                        title: Text(suggestion,
+                            style: const TextStyle(fontSize: 12)),
                         onTap: () => addTag(suggestion),
                       );
                     },
@@ -177,7 +189,9 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
 
             if (title.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Unesite naziv lekcije.'), backgroundColor: Colors.redAccent),
+                const SnackBar(
+                    content: Text('Unesite naziv lekcije.'),
+                    backgroundColor: Colors.redAccent),
               );
               return;
             }

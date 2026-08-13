@@ -53,7 +53,8 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
               const SizedBox(width: 8),
               Text(
                 'Linija #${widget.line.multipv} (${widget.line.evaluation})',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -65,80 +66,95 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
             ),
             child: Text(
               widget.line.evaluation,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.tealAccent),
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.tealAccent),
             ),
           ),
         ],
       ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Full SAN text representation
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.black26,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-              ),
-              child: SelectableText(
-                widget.line.continuationSan.isNotEmpty
-                    ? widget.line.continuationSan
-                    : 'Nema dostupnih poteza.',
-                style: const TextStyle(fontSize: 13, height: 1.4, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Mini interactive board preview
-            SizedBox(
-              width: 280,
-              height: 280,
-              child: ChessBoard(
-                controller: previewController,
-                boardColor: BoardColor.green,
-                boardOrientation: widget.orientation,
-                enableUserMoves: false,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Navigation stepper buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.first_page),
-                  onPressed: currentIndex > 0 ? () => _goToIndex(0) : null,
-                  tooltip: 'Početak linije',
+      content: ConstrainedBox(
+        constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Full SAN text representation
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.black26,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.navigate_before),
-                  onPressed: currentIndex > 0 ? () => _goToIndex(currentIndex - 1) : null,
-                  tooltip: 'Prethodni potez',
+                child: SelectableText(
+                  widget.line.continuationSan.isNotEmpty
+                      ? widget.line.continuationSan
+                      : 'Nema dostupnih poteza.',
+                  style: const TextStyle(
+                      fontSize: 13, height: 1.4, color: Colors.white),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                  child: Text(
-                    '$currentIndex / $maxIndex',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              const SizedBox(height: 14),
+
+              // Mini interactive board preview
+              SizedBox(
+                width: 280,
+                height: 280,
+                child: ChessBoard(
+                  controller: previewController,
+                  boardColor: BoardColor.green,
+                  boardOrientation: widget.orientation,
+                  enableUserMoves: false,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Navigation stepper buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.first_page),
+                    onPressed: currentIndex > 0 ? () => _goToIndex(0) : null,
+                    tooltip: 'Početak linije',
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.navigate_next),
-                  onPressed: currentIndex < maxIndex ? () => _goToIndex(currentIndex + 1) : null,
-                  tooltip: 'Sledeći potez',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.last_page),
-                  onPressed: currentIndex < maxIndex ? () => _goToIndex(maxIndex) : null,
-                  tooltip: 'Kraj linije',
-                ),
-              ],
-            ),
-          ],
+                  IconButton(
+                    icon: const Icon(Icons.navigate_before),
+                    onPressed: currentIndex > 0
+                        ? () => _goToIndex(currentIndex - 1)
+                        : null,
+                    tooltip: 'Prethodni potez',
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                    child: Text(
+                      '$currentIndex / $maxIndex',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.navigate_next),
+                    onPressed: currentIndex < maxIndex
+                        ? () => _goToIndex(currentIndex + 1)
+                        : null,
+                    tooltip: 'Sledeći potez',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.last_page),
+                    onPressed: currentIndex < maxIndex
+                        ? () => _goToIndex(maxIndex)
+                        : null,
+                    tooltip: 'Kraj linije',
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -146,7 +162,8 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Zatvori'),
         ),
-        if (widget.onLoadFenToMainBoard != null && widget.line.fenList.isNotEmpty)
+        if (widget.onLoadFenToMainBoard != null &&
+            widget.line.fenList.isNotEmpty)
           ElevatedButton.icon(
             onPressed: () {
               widget.onLoadFenToMainBoard!(widget.line.fenList[currentIndex]);
