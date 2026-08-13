@@ -22,14 +22,18 @@ Designed for chess trainers and students, it provides real-time interactive ches
   - Fetches real-time game popularity and outcome statistics (White %, Draw %, Black %) from the Lichess Opening Explorer API.
   - Supports rating bucket filtering (`Svi rejtinzi`, `1600+`, `1800+`, `2000+`, `2200+`, `2500+`).
   - Interactive candidate move chips: tapping any opening move chip plays the move on the board and branches into the move tree.
-  - Authenticated requests via compile-time `--dart-define=LICHESS_API_TOKEN=lip_...` or user Settings screen.
+  - Token supplied at build time (`--dart-define-from-file=dart_defines.json`), never entered manually by users.
 - **Syzygy Tablebase Explorer (`SyzygyTablebaseService` & `SyzygyPanelWidget`)**:
   - Automatically activates when $\le 7$ pieces remain on the board.
   - Displays exact WDL (Win/Draw/Loss) evaluations, distance-to-zero (DTZ), and winning/drawing candidate move chips.
 - **AutoTree Variation Generator (`AutoTreeGeneratorService` & `AutoTreeDialog`)**:
   - Automated Stockfish-driven recursion tree generator for deep variation analysis with delta cutoff pruning and global depth configuration.
+- **Save & Load Analyses (`AnalysisPersistenceService`) (NEW!)**:
+  - Variation trees (moves, comments, NAGs, eval) save to the `saved_analyses` table and reload on any device the user logs into.
+  - Cloud icon in the AppBar opens a save/list/load/delete dialog, scoped per user account.
 - **In-App Live Log Viewer**:
   - Top bar terminal icon 📜 for real-time inspection of engine commands, Lichess HTTP responses, and system events.
+- **Consistent Board Setup Editor**: the manual position builder (FEN/PGN/drag-to-place tabs) renders pieces with the same `chess_vectors_flutter` artwork used by every live board in the app, instead of plain Unicode glyphs.
 
 ### 3. 🎯 Universal Tactical Motif Detector (`TacticalMotifDetector`) (NEW!)
 - **Pure Stateless Core Service**: Located in `lib/core/services/tactical_motif_detector.dart` for use across all modules (Training, Live Classroom, Lesson Replay, Analysis Studio).
@@ -46,12 +50,21 @@ Designed for chess trainers and students, it provides real-time interactive ches
 - **Agora Voice RTC**: Integrated voice audio communication with mute/unmute and hand-raising mechanics.
 - **Dynamic Role Management**: Host (`Trener`) can promote any participant to Co-Host (`Trener`) or demote to `Učenik`.
 
-### 3. 📹 Complete Session Recording & MP4 Video Rendering
+### 5. 📚 Lesson Builder & Multi-Step Courses (NEW!)
+- **Ordered Course Steps**: a lesson is a reorderable sequence of steps — bare positions and/or full Analysis Studio trees (embedded as PGN with variations/comments/eval via `PgnExporterService`) — assembled and drag-reordered in `CreateCourseDialog`.
+- **Live Step-Through**: opening a course in a session shows a trainer-only step bar (`◀ ▶` plus a tap-to-jump-to-step-N menu); each step broadcasts to students the same way a single position does.
+- **Full Editing**: rename, add/remove/reorder steps, and either overwrite the saved lesson or save the edit as a new one; single (non-course) positions get a lightweight rename dialog. Any own lesson can be deleted.
+- **Automatic Sharing**: every lesson a trainer saves is already visible to their linked students (`trainer_students`) — no separate share step needed.
+- **Mini Board Previews**: each lesson in the list shows a real board thumbnail (`BoardThumbnail`) instead of a generic icon.
+- Backend: `PUT`/`DELETE /lessons/:id`, ownership-checked, alongside the existing `POST /lessons/save` and `GET /lessons`.
+
+### 6. 📹 Complete Session Recording & MP4 Video Rendering
 - **Timeline Recording**: Records move timestamps, FEN positions, arrow annotations, and trainer voice audio during live lessons.
 - **In-Session Pause & Resume**: Pause and resume recording mid-session with gap-free timestamp calculations.
 - **Synced Interactive Replay & Server-Side MP4 Export**: Dedicated `ReplayPlayerScreen` and FFmpeg server-side video rendering.
+- **App-Matching Piece Theme (NEW!)**: rendered videos default to a "Classic" piece set transcribed directly from the app's own `chess_vectors_flutter` artwork, so exported video looks identical to the live app instead of merely similar (Alpha/Staunton remain available as alternates).
 
-### 4. 👥 Friends List, Room Invites & Google Calendar
+### 7. 👥 Friends List, Room Invites & Google Calendar
 - **Friends Management & Invitations**: Pre-session and in-session friend invites with persistent offline notification badges.
 - **1-Click Google Calendar Sync**: Scheduled sessions pre-fill Google Calendar events for hosts and students.
 
