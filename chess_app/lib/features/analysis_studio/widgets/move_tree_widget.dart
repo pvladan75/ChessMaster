@@ -11,6 +11,11 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
   final Function(AnalysisNode node)? onPromoteNode;
   final Function(AnalysisNode node)? onDeleteNode;
 
+  /// deltaCutoff the tree was last auto-generated with, if any — caps the
+  /// graphical view's post-hoc display-filter slider so it can't be dragged
+  /// past the point where it would stop doing anything.
+  final double? maxEvalDisplayCutoff;
+
   const AnalysisMoveTreeWidget({
     super.key,
     required this.rootNode,
@@ -18,6 +23,7 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
     required this.onSelectNode,
     this.onPromoteNode,
     this.onDeleteNode,
+    this.maxEvalDisplayCutoff,
   });
 
   @override
@@ -118,6 +124,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       onSelectNode: widget.onSelectNode,
                       onPromoteNode: widget.onPromoteNode,
                       onDeleteNode: widget.onDeleteNode,
+                      maxDisplayCutoff: widget.maxEvalDisplayCutoff,
                     )
                   : SingleChildScrollView(
                       child: Wrap(
@@ -175,12 +182,15 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                     child: VisualMoveTreeWidget(
                       rootNode: widget.rootNode,
                       activeNode: widget.activeNode,
-                      onSelectNode: (node) {
-                        widget.onSelectNode(node);
-                        Navigator.pop(dialogContext);
-                      },
+                      onSelectNode: widget.onSelectNode,
+                      // A direct tap on a node closes the fullscreen dialog
+                      // (the point was to jump there and see it on the main
+                      // board); the auto-player's own steps must not, or
+                      // playback would close the dialog after its first move.
+                      onNodeTapped: () => Navigator.pop(dialogContext),
                       onPromoteNode: widget.onPromoteNode,
                       onDeleteNode: widget.onDeleteNode,
+                      maxDisplayCutoff: widget.maxEvalDisplayCutoff,
                     ),
                   ),
                 ),

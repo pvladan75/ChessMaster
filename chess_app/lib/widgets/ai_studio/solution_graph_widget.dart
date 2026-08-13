@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -26,6 +27,16 @@ List<SolutionGraphNode> findPathToGraphNode(List<SolutionGraphNode> currentLevel
   return [];
 }
 
+enum _PlaySpeed {
+  slow(Duration(milliseconds: 1400), 'Sporo'),
+  normal(Duration(milliseconds: 800), 'Normalno'),
+  fast(Duration(milliseconds: 350), 'Brzo');
+
+  final Duration interval;
+  final String label;
+  const _PlaySpeed(this.interval, this.label);
+}
+
 /// Renders the puzzle's solution tree as a pannable/zoomable node graph.
 ///
 /// The tree-building and layout math (turning the raw `{uci: {uci: ...}}`
@@ -35,7 +46,14 @@ List<SolutionGraphNode> findPathToGraphNode(List<SolutionGraphNode> currentLevel
 /// back through [onNodeTap] / [onGroupedMoveSelected]; the screen still owns
 /// applying that to the board, since it also has to update the engine and
 /// the shared board controller.
-class SolutionGraphWidget extends StatelessWidget {
+///
+/// Also owns an auto-player: steps through every node in the tree currently
+/// shown (a preorder walk — a variation is played to its end before
+/// backtracking to the next one), reusing the same [onNodeTap] navigation a
+/// manual click would use. Grouped nodes are advanced directly rather than
+/// popping the "choose a variant" dialog, since that would stall playback
+/// waiting on input — it follows whichever variant is already selected.
+class SolutionGraphWidget extends StatefulWidget {
   final bool visible;
   final String? initialFen;
   final Map<String, dynamic> solutions;
@@ -60,18 +78,90 @@ class SolutionGraphWidget extends StatelessWidget {
   });
 
   @override
+  State<SolutionGraphWidget> createState() => _SolutionGraphWidgetState();
+}
+
+class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
+  Timer? _playTimer;
+  _PlaySpeed _playSpeed = _PlaySpeed.normal;
+  List<SolutionGraphNode> _playbackOrder = [];
+
+  bool get _isPlaying => _playTimer != null;
+
+  @override
+  void dispose() {
+    _playTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant SolutionGraphWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.visible && _isPlaying) {
+      _stopPlay();
+    }
+  }
+
+  void _togglePlay() {
+    if (_isPlaying) {
+      _stopPlay();
+    } else {
+      _startPlay();
+    }
+  }
+
+  void _startPlay() {
+    if (_playbackOrder.isEmpty) return;
+    setState(() {
+      _playTimer = Timer.periodic(_playSpeed.interval, (_) => _advancePlay());
+    });
+    _advancePlay();
+  }
+
+  void _stopPlay() {
+    if (!_isPlaying) return;
+    setState(() {
+      _playTimer?.cancel();
+      _playTimer = null;
+    });
+  }
+
+  void _setPlaySpeed(_PlaySpeed speed) {
+    setState(() => _playSpeed = speed);
+    if (_isPlaying) {
+      _playTimer?.cancel();
+      _playTimer = Timer.periodic(_playSpeed.interval, (_) => _advancePlay());
+    }
+  }
+
+  void _advancePlay() {
+    if (_playbackOrder.isEmpty) {
+      _stopPlay();
+      return;
+    }
+    final activeBoard = widget.activeFen?.split(' ')[0];
+    final currentIdx = _playbackOrder.indexWhere((n) => n.fen.split(' ')[0] == activeBoard);
+    final nextIdx = currentIdx + 1;
+    if (nextIdx >= _playbackOrder.length) {
+      _stopPlay();
+      return;
+    }
+    widget.onNodeTap(_playbackOrder[nextIdx]);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (!visible || solutions.isEmpty || initialFen == null) {
+    if (!widget.visible || widget.solutions.isEmpty || widget.initialFen == null) {
       return const SizedBox.shrink();
     }
 
     final List<SolutionGraphNode> rootNodes = _buildSolutionGraphNodes(
-      initialFen!,
-      solutions,
+      widget.initialFen!,
+      widget.solutions,
       true,
       'root',
     );
-    onNodesBuilt(rootNodes);
+    widget.onNodesBuilt(rootNodes);
     if (rootNodes.isEmpty) return const SizedBox.shrink();
 
     final List<PositionedNode> positionedNodes = [];
@@ -96,6 +186,10 @@ class SolutionGraphWidget extends StatelessWidget {
       );
       currentLeft += w + siblingSpacing;
     }
+
+    // Preorder = exactly the order _layoutGraphNodes just walked the tree
+    // in, so this doubles as the auto-player's script.
+    _playbackOrder = positionedNodes.map((pn) => pn.node).toList();
 
     double maxRight = 0.0;
     double maxBottom = 0.0;
@@ -146,13 +240,34 @@ class SolutionGraphWidget extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  mateDepthLabel,
+                  widget.mateDepthLabel,
                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ui.Color(0xFF38BDF8)),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              InkWell(
+                onTap: _togglePlay,
+                borderRadius: BorderRadius.circular(16),
+                child: Icon(
+                  _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
+                  size: 26,
+                  color: const ui.Color(0xFF38BDF8),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _isPlaying ? 'Reprodukcija rešenja...' : 'Pusti rešenje automatski',
+                style: const TextStyle(fontSize: 11, color: Colors.white70),
+              ),
+              const Spacer(),
+              _buildSpeedButton(),
+            ],
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             height: math.min(canvasHeight + 20.0, MediaQuery.of(context).orientation == Orientation.landscape ? math.max(280.0, MediaQuery.of(context).size.height - 180.0) : 340.0),
             child: ClipRRect(
@@ -172,7 +287,7 @@ class SolutionGraphWidget extends StatelessWidget {
                       children: [
                         CustomPaint(
                           size: Size(canvasWidth, canvasHeight),
-                          painter: TreeEdgesPainter(positionedNodes: positionedNodes, activeFen: activeFen),
+                          painter: TreeEdgesPainter(positionedNodes: positionedNodes, activeFen: widget.activeFen),
                         ),
                         ...positionedNodes.map((pn) => _buildGraphNodeWidget(context, pn)),
                       ],
@@ -187,9 +302,45 @@ class SolutionGraphWidget extends StatelessWidget {
     );
   }
 
+  Widget _buildSpeedButton() {
+    return PopupMenuButton<_PlaySpeed>(
+      tooltip: 'Brzina: ${_playSpeed.label}',
+      initialValue: _playSpeed,
+      color: Colors.grey.shade900,
+      onSelected: _setPlaySpeed,
+      itemBuilder: (ctx) => _PlaySpeed.values.map((s) {
+        return PopupMenuItem<_PlaySpeed>(
+          value: s,
+          child: Row(
+            children: [
+              Icon(s == _playSpeed ? Icons.check : null, size: 14, color: const ui.Color(0xFF38BDF8)),
+              const SizedBox(width: 6),
+              Text(s.label, style: const TextStyle(color: Colors.white)),
+            ],
+          ),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const ui.Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.speed, size: 13, color: ui.Color(0xFF38BDF8)),
+            const SizedBox(width: 4),
+            Text(_playSpeed.label, style: const TextStyle(fontSize: 11, color: Colors.white)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildGraphNodeWidget(BuildContext context, PositionedNode pn) {
     final node = pn.node;
-    final bool isActive = (activeFen != null && activeFen!.split(' ')[0] == node.fen.split(' ')[0]);
+    final bool isActive = (widget.activeFen != null && widget.activeFen!.split(' ')[0] == node.fen.split(' ')[0]);
 
     ui.Color bgColor;
     ui.Color borderColor;
@@ -230,14 +381,15 @@ class SolutionGraphWidget extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
+            _stopPlay();
             if (node.isGrouped && node.groupedOpponentMoves.isNotEmpty) {
               showGroupedMovesDialog(
                 context: context,
                 node: node,
-                onMoveSelected: onGroupedMoveSelected,
+                onMoveSelected: widget.onGroupedMoveSelected,
               );
             } else {
-              onNodeTap(node);
+              widget.onNodeTap(node);
             }
           },
           borderRadius: BorderRadius.circular(10),
@@ -406,7 +558,7 @@ class SolutionGraphWidget extends StatelessWidget {
             children: children,
           ));
         } else {
-          final int selectedIdx = (selectedGroupedMoveIndices[nodeId] ?? 0).clamp(0, oppMovesList.length - 1);
+          final int selectedIdx = (widget.selectedGroupedMoveIndices[nodeId] ?? 0).clamp(0, oppMovesList.length - 1);
           final selectedOppMove = oppMovesList[selectedIdx];
           final game = chess.Chess.fromFEN(currentFen);
           final from = selectedOppMove.substring(0, 2);

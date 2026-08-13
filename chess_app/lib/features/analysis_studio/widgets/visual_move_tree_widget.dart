@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -24,6 +25,18 @@ class VisualMoveTreeWidget extends StatefulWidget {
   final Function(AnalysisNode node)? onPromoteNode;
   final Function(AnalysisNode node)? onDeleteNode;
 
+  /// deltaCutoff the tree was last auto-generated with, if any — caps how
+  /// far the post-hoc display-filter slider can be dragged, so it can't be
+  /// set past the point where it stops doing anything (those branches were
+  /// never generated in the first place). Null (e.g. a hand-built tree with
+  /// no auto-analysis run yet) falls back to a fixed default range.
+  final double? maxDisplayCutoff;
+
+  /// Fired on a direct tap on a node card, in addition to [onSelectNode] —
+  /// lets a host (e.g. the fullscreen dialog) react to *manual* navigation
+  /// specifically, without also firing for the auto-player's own steps.
+  final VoidCallback? onNodeTapped;
+
   const VisualMoveTreeWidget({
     super.key,
     required this.rootNode,
@@ -31,6 +44,8 @@ class VisualMoveTreeWidget extends StatefulWidget {
     required this.onSelectNode,
     this.onPromoteNode,
     this.onDeleteNode,
+    this.maxDisplayCutoff,
+    this.onNodeTapped,
   });
 
   @override
@@ -38,7 +53,7 @@ class VisualMoveTreeWidget extends StatefulWidget {
 }
 
 class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
-  static const double _nodeWidth = 100.0;
+  static const double _nodeWidth = 124.0;
   static const double _nodeHeight = 40.0;
   static const double _levelSpacing = 34.0;
   static const double _siblingSpacing = 14.0;
@@ -52,11 +67,89 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
   Size _viewportSize = Size.zero;
   String? _lastCenteredNodeId;
 
+  // Post-hoc display filter: hides children whose eval is worse than their
+  // best sibling by more than this many pawns. Purely visual — it reads the
+  // eval each node already got at generation time and never touches
+  // AnalysisNode.children, so nothing here is destructive. Lets the user
+  // react to a tree that came out too wide (too weak a deltaCutoff when
+  // generating it) without re-running the engine.
+  bool _filterEnabled = false;
+  double _displayCutoff = 1.5;
+
+  /// Ceiling for [_displayCutoff]'s slider — see [VisualMoveTreeWidget.maxDisplayCutoff].
+  double get _effectiveMaxCutoff =>
+      (widget.maxDisplayCutoff ?? 5.0).clamp(0.5, 10.0);
+
+  /// [_displayCutoff] kept within the current [_effectiveMaxCutoff] — read
+  /// this everywhere instead of the raw field so a generation that used a
+  /// smaller cutoff than the slider's last position can never push the
+  /// Slider widget itself out of its own min/max range.
+  double get _clampedDisplayCutoff =>
+      _displayCutoff.clamp(0.1, _effectiveMaxCutoff);
+
+  // Auto-player: steps through every node the tree currently shows (i.e.
+  // respecting the eval filter above) in the same order they're laid out —
+  // a preorder walk, so it visits a variation in full before backtracking
+  // to try the next one. Reuses the existing onSelectNode navigation, the
+  // same as a manual click would.
+  Timer? _playTimer;
+  bool get _isPlaying => _playTimer != null;
+  _PlaySpeed _playSpeed = _PlaySpeed.normal;
+  List<AnalysisNode> _playbackOrder = [];
+
   @override
   void dispose() {
+    _playTimer?.cancel();
     _transformController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _togglePlay() {
+    if (_isPlaying) {
+      _stopPlay();
+    } else {
+      _startPlay();
+    }
+  }
+
+  void _startPlay() {
+    if (_playbackOrder.isEmpty) return;
+    setState(() {
+      _playTimer = Timer.periodic(_playSpeed.interval, (_) => _advancePlay());
+    });
+    _advancePlay();
+  }
+
+  void _stopPlay() {
+    if (!_isPlaying) return;
+    setState(() {
+      _playTimer?.cancel();
+      _playTimer = null;
+    });
+  }
+
+  void _setPlaySpeed(_PlaySpeed speed) {
+    setState(() => _playSpeed = speed);
+    if (_isPlaying) {
+      _playTimer?.cancel();
+      _playTimer = Timer.periodic(_playSpeed.interval, (_) => _advancePlay());
+    }
+  }
+
+  void _advancePlay() {
+    if (_playbackOrder.isEmpty) {
+      _stopPlay();
+      return;
+    }
+    final currentIdx =
+        _playbackOrder.indexWhere((n) => n.id == widget.activeNode.id);
+    final nextIdx = currentIdx + 1;
+    if (nextIdx >= _playbackOrder.length) {
+      _stopPlay();
+      return;
+    }
+    widget.onSelectNode(_playbackOrder[nextIdx]);
   }
 
   void _selectParent() {
@@ -161,12 +254,55 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
   double get _siblingUnit => _isHorizontal ? _nodeHeight : _nodeWidth;
   double get _levelUnit => _isHorizontal ? _nodeWidth : _nodeHeight;
 
+  /// True if [node] is the active node or one of its ancestors — the
+  /// currently selected line is never hidden by the eval filter, so turning
+  /// the cutoff down can't make the position you're looking at disappear.
+  bool _isOnActivePath(AnalysisNode node) {
+    AnalysisNode? cur = widget.activeNode;
+    while (cur != null) {
+      if (cur.id == node.id) return true;
+      cur = cur.parent;
+    }
+    return false;
+  }
+
+  /// [node]'s children that should actually be laid out, given the current
+  /// eval filter. A child survives if its eval is within [_displayCutoff]
+  /// pawns of the best sibling eval — "best" meaning highest for White to
+  /// move, lowest for Black, same convention the tree generator's own
+  /// deltaCutoff uses. Children without an eval (e.g. hand-played moves)
+  /// are always kept, since there's nothing to judge them against.
+  List<AnalysisNode> _visibleChildren(AnalysisNode node) {
+    final children = node.children;
+    if (!_filterEnabled || children.length <= 1) return children;
+
+    final isWhiteMove = node.fen.contains(' w ');
+    double? bestEval;
+    for (final c in children) {
+      final e = c.eval;
+      if (e == null) continue;
+      if (bestEval == null || (isWhiteMove ? e > bestEval : e < bestEval)) {
+        bestEval = e;
+      }
+    }
+    if (bestEval == null) return children;
+
+    return children.where((c) {
+      final e = c.eval;
+      if (e == null) return true;
+      if (_isOnActivePath(c)) return true;
+      final delta = isWhiteMove ? (bestEval! - e) : (e - bestEval!);
+      return delta <= _clampedDisplayCutoff;
+    }).toList();
+  }
+
   double _subtreeExtent(AnalysisNode node) {
-    if (node.children.isEmpty) return _siblingUnit;
+    final children = _visibleChildren(node);
+    if (children.isEmpty) return _siblingUnit;
     double sum = 0;
-    for (int i = 0; i < node.children.length; i++) {
+    for (int i = 0; i < children.length; i++) {
       if (i > 0) sum += _siblingSpacing;
-      sum += _subtreeExtent(node.children[i]);
+      sum += _subtreeExtent(children[i]);
     }
     return math.max(_siblingUnit, sum);
   }
@@ -187,11 +323,22 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     out.add(posNode);
 
     double currentCross = crossStart;
-    for (final child in node.children) {
+    for (final child in _visibleChildren(node)) {
       _layout(child, currentCross, mainStart + _levelUnit + _levelSpacing,
           posNode, out);
       currentCross += _subtreeExtent(child) + _siblingSpacing;
     }
+  }
+
+  /// Formats a node's stored eval (White's-perspective pawns, with mate
+  /// lines encoded as ±(1000 - movesToMate) — see AutoTreeGeneratorService)
+  /// back into the usual "+2.80" / "-1.35" / "M3" / "-M4" notation.
+  String _formatEval(double val) {
+    if (val.abs() > 500) {
+      final mateNum = (val > 0 ? (1000 - val) : (1000 + val)).round();
+      return val > 0 ? 'M$mateNum' : '-M$mateNum';
+    }
+    return val > 0 ? '+${val.toStringAsFixed(2)}' : val.toStringAsFixed(2);
   }
 
   void _zoomBy(double factor, {Offset? focalViewportPoint}) {
@@ -242,6 +389,10 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     final List<_PositionedNode> positioned = [];
     _layout(widget.rootNode, 0.0, 0.0, null, positioned);
     final transpositionGroups = _buildTranspositionGroups();
+
+    // Preorder = exactly the order _layout just walked the (filtered) tree
+    // in, so this doubles as the auto-player's script.
+    _playbackOrder = positioned.map((pn) => pn.node).toList();
 
     double maxRight = 0.0;
     double maxBottom = 0.0;
@@ -313,6 +464,13 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                   top: 6,
                   child: _buildToolbar(positioned),
                 ),
+                if (_filterEnabled)
+                  Positioned(
+                    left: 8,
+                    right: 8,
+                    bottom: 8,
+                    child: _buildCutoffBar(),
+                  ),
               ],
             ),
           );
@@ -340,6 +498,91 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
             _isHorizontal ? Icons.swap_vert : Icons.swap_horiz,
             _isHorizontal ? 'Vertikalni raspored' : 'Horizontalni raspored',
             () => setState(() => _isHorizontal = !_isHorizontal),
+          ),
+          _toolbarButton(
+            _filterEnabled ? Icons.filter_alt : Icons.filter_alt_off,
+            _filterEnabled
+                ? 'Isključi naknadni filter po eval-u'
+                : 'Uključi naknadni filter po eval-u (sakrij slabije grane)',
+            () => setState(() => _filterEnabled = !_filterEnabled),
+          ),
+          const Divider(height: 6, color: Colors.white24),
+          _toolbarButton(
+            _isPlaying ? Icons.pause : Icons.play_arrow,
+            _isPlaying
+                ? 'Pauziraj automatsko prikazivanje'
+                : 'Pusti automatsko prikazivanje svih (vidljivih) linija',
+            _togglePlay,
+          ),
+          _buildSpeedButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpeedButton() {
+    return PopupMenuButton<_PlaySpeed>(
+      tooltip: 'Brzina prikazivanja: ${_playSpeed.label}',
+      initialValue: _playSpeed,
+      color: Colors.grey.shade900,
+      onSelected: _setPlaySpeed,
+      itemBuilder: (ctx) => _PlaySpeed.values.map((s) {
+        return PopupMenuItem<_PlaySpeed>(
+          value: s,
+          child: Row(
+            children: [
+              Icon(
+                s == _playSpeed ? Icons.check : null,
+                size: 14,
+                color: context.colors.accent,
+              ),
+              const SizedBox(width: 6),
+              Text(s.label, style: TextStyle(color: context.colors.textPrimary)),
+            ],
+          ),
+        );
+      }).toList(),
+      child: Tooltip(
+        message: 'Brzina prikazivanja: ${_playSpeed.label}',
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Icon(Icons.speed, size: 16, color: context.colors.textSecondary),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCutoffBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.filter_alt, size: 14, color: context.colors.warning),
+          const SizedBox(width: 6),
+          Text(
+            'Prag: ${_clampedDisplayCutoff.toStringAsFixed(1)} / ${_effectiveMaxCutoff.toStringAsFixed(1)}',
+            style: TextStyle(fontSize: 11, color: context.colors.textPrimary),
+          ),
+          Expanded(
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 2.0,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+              ),
+              child: Slider(
+                value: _clampedDisplayCutoff,
+                min: 0.1,
+                max: _effectiveMaxCutoff,
+                divisions: (((_effectiveMaxCutoff - 0.1) * 10).round()).clamp(1, 200),
+                activeColor: context.colors.warning,
+                onChanged: (v) => setState(() => _displayCutoff = v),
+              ),
+            ),
           ),
         ],
       ),
@@ -403,6 +646,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
       label = '${node.moveSan ?? ""}${node.nag ?? ""}';
       if (node.eval != null) {
         final val = node.eval!;
+        label += ' (${_formatEval(val)})';
         if (val.abs() > 500) {
           evalBg = val > 0 ? Colors.amber.shade800 : Colors.red.shade900;
         } else if (val > 0.3) {
@@ -426,7 +670,9 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
             child: InkWell(
               onTap: () {
                 _focusNode.requestFocus();
+                _stopPlay();
                 widget.onSelectNode(node);
+                widget.onNodeTapped?.call();
               },
               onLongPress: node.isRoot
                   ? null
@@ -572,6 +818,16 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
       },
     );
   }
+}
+
+enum _PlaySpeed {
+  slow(Duration(milliseconds: 1800), 'Sporo'),
+  normal(Duration(milliseconds: 900), 'Normalno'),
+  fast(Duration(milliseconds: 400), 'Brzo');
+
+  final Duration interval;
+  final String label;
+  const _PlaySpeed(this.interval, this.label);
 }
 
 class _PositionedNode {

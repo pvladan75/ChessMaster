@@ -11,7 +11,13 @@ import 'package:chess_app/theme/app_typography.dart';
 class AutoAnalysisDialog extends StatefulWidget {
   final AnalysisNode startNode;
   final StockfishService stockfishService;
-  final VoidCallback onAnalysisCompleted;
+
+  /// Called with the deltaCutoff the tree was actually generated with, so
+  /// the tree view's post-hoc display filter can cap its slider there —
+  /// letting the user pick a display cutoff *higher* than what generation
+  /// used would silently do nothing (those branches were never generated),
+  /// which would be a misleading control to offer.
+  final ValueChanged<double> onAnalysisCompleted;
 
   const AutoAnalysisDialog({
     super.key,
@@ -93,7 +99,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
     );
 
     if (mounted) {
-      widget.onAnalysisCompleted();
+      widget.onAnalysisCompleted(_deltaCutoff);
       setState(() {
         _isDone = true;
       });

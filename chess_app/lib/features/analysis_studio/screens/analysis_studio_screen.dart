@@ -65,6 +65,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   List<EngineArrow> _engineArrows = [];
   final bool _showEngineOverlay = true;
 
+  // deltaCutoff the auto-analysis tree was last generated with, so the tree
+  // view's post-hoc display filter can cap its slider there instead of
+  // offering a range that would silently do nothing above that value.
+  double? _lastAutoAnalysisDeltaCutoff;
+
   // Syzygy tablebase state
   final SyzygyTablebaseService _syzygyService = SyzygyTablebaseService.instance;
   SyzygyResult? _syzygyResult;
@@ -526,8 +531,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       builder: (ctx) => AutoAnalysisDialog(
         startNode: _currentNode,
         stockfishService: _stockfishService,
-        onAnalysisCompleted: () {
+        onAnalysisCompleted: (deltaCutoffUsed) {
           // The start node now has candidate children — surface them as arrows.
+          setState(() => _lastAutoAnalysisDeltaCutoff = deltaCutoffUsed);
           _refreshArrows();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('⚡ Automatska analiza uspešno završena i sačuvana u stablo!'), backgroundColor: Colors.amber),
@@ -937,6 +943,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           AnalysisMoveTreeWidget(
             rootNode: _rootNode,
             activeNode: _currentNode,
+            maxEvalDisplayCutoff: _lastAutoAnalysisDeltaCutoff,
             onSelectNode: _jumpToNode,
             onPromoteNode: (node) {
               setState(() {
