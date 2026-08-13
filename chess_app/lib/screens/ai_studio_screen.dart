@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chess_app/widgets/ai_studio/category_selection_hub.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/ai_studio/solution_tree_models.dart';
-import 'package:chess_app/widgets/ai_studio/grouped_moves_dialog.dart';
+import 'package:chess_app/widgets/ai_studio/solution_graph_widget.dart';
+import 'package:chess_app/widgets/ai_studio/pgn_solution_tree_widget.dart';
+import 'package:chess_app/widgets/ai_studio/move_history_navigation_widget.dart';
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:http/http.dart' as http;
@@ -2190,10 +2191,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          if (_selectedCategory == 'mate_puzzle')
-                            _buildGraphicalSolutionTreeWidget()
-                          else
-                            _buildPgnSolutionTreeWidget(),
+                          _buildSolutionTreeSection(),
                           const SizedBox(height: 8),
                           if (_selectedCategory != 'mate_puzzle')
                             StockfishAnalysisWidget(
@@ -2227,7 +2225,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               },
                             ),
                           const SizedBox(height: 8),
-                          _buildMoveHistoryNavigationWidget(),
+                          MoveHistoryNavigationWidget(
+                            moveTree: _puzzleMoveTree,
+                            onNavigate: _navigateToNode,
+                          ),
                         ],
                       ),
                     ),
@@ -2318,12 +2319,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                         },
                       ),
                     const SizedBox(height: 12),
-                    if (_selectedCategory == 'mate_puzzle')
-                      _buildGraphicalSolutionTreeWidget()
-                    else
-                      _buildPgnSolutionTreeWidget(),
+                    _buildSolutionTreeSection(),
                     const SizedBox(height: 12),
-                    _buildMoveHistoryNavigationWidget(),
+                    MoveHistoryNavigationWidget(
+                      moveTree: _puzzleMoveTree,
+                      onNavigate: _navigateToNode,
+                    ),
                   ],
                 ),
               ),
@@ -2412,132 +2413,6 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   );
 }
 
-  Widget _buildMoveHistoryNavigationWidget() {
-    if (_puzzleMoveTree == null) return const SizedBox.shrink();
-
-    final currentNode = _puzzleMoveTree!.current;
-    final mainLineNodes = <MoveNode>[];
-    MoveNode? curr = currentNode;
-    while (curr != null && curr.parent != null) {
-      mainLineNodes.insert(0, curr);
-      curr = curr.parent;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.blueGrey.shade900.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white24),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                ActionChip(
-                  avatar: const Icon(Icons.flag, size: 14, color: Colors.amberAccent),
-                  label: const Text('Početak', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                  backgroundColor: currentNode == _puzzleMoveTree!.root ? Colors.amber.shade900 : Colors.blueGrey.shade800,
-                  onPressed: () => _navigateToNode(_puzzleMoveTree!.root),
-                ),
-                const SizedBox(width: 6),
-                ...mainLineNodes.map((node) {
-                  final isCurrent = (node == currentNode);
-                  final labelText = _formatMoveWithNumber(node, _puzzleMoveTree!.root);
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 6.0),
-                    child: ChoiceChip(
-                      label: Text(labelText, style: TextStyle(fontSize: 11, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal, color: isCurrent ? Colors.white : Colors.white70)),
-                      selected: isCurrent,
-                      selectedColor: Colors.teal.shade700,
-                      backgroundColor: Colors.blueGrey.shade800,
-                      onSelected: (_) => _navigateToNode(node),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.first_page, size: 20),
-                tooltip: 'Početna pozicija',
-                onPressed: () => _navigateToNode(_puzzleMoveTree!.root),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_left, size: 20),
-                tooltip: 'Prethodni potez',
-                onPressed: currentNode.parent != null ? () => _navigateToNode(currentNode.parent!) : null,
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right, size: 20),
-                tooltip: 'Naredni potez',
-                onPressed: currentNode.children.isNotEmpty ? () => _navigateToNode(currentNode.children.first) : null,
-              ),
-              IconButton(
-                icon: const Icon(Icons.last_page, size: 20),
-                tooltip: 'Poslednji potez',
-                onPressed: () {
-                  MoveNode target = currentNode;
-                  while (target.children.isNotEmpty) {
-                    target = target.children.first;
-                  }
-                  _navigateToNode(target);
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatMoveWithNumber(MoveNode node, MoveNode rootNode) {
-    if (node.parent == null) return 'Početak';
-
-    final path = <MoveNode>[];
-    MoveNode? curr = node;
-    while (curr != null && curr.parent != null) {
-      path.insert(0, curr);
-      curr = curr.parent;
-    }
-
-    final rootFen = rootNode.fen;
-    final rootParts = rootFen.split(' ');
-    final rootIsWhite = rootParts.length > 1 ? (rootParts[1] == 'w') : true;
-    final rootMoveNum = rootParts.length > 5 ? (int.tryParse(rootParts[5]) ?? 1) : 1;
-
-    final moveIndex = path.indexOf(node);
-    if (moveIndex < 0) return node.san;
-
-    int currentMoveNum;
-    bool isWhiteMove;
-
-    if (rootIsWhite) {
-      currentMoveNum = rootMoveNum + (moveIndex ~/ 2);
-      isWhiteMove = (moveIndex % 2 == 0);
-    } else {
-      currentMoveNum = rootMoveNum + ((moveIndex + 1) ~/ 2);
-      isWhiteMove = (moveIndex % 2 == 1);
-    }
-
-    if (isWhiteMove) {
-      return '$currentMoveNum. ${node.san}';
-    } else {
-      if (moveIndex == 0 && !rootIsWhite) {
-        return '$currentMoveNum... ${node.san}';
-      } else {
-        return node.san;
-      }
-    }
-  }
-
   void _navigateToNode(MoveNode node) {
     if (_puzzleGame == null || _puzzleMoveTree == null) return;
     _puzzleMoveTree!.current = node;
@@ -2552,362 +2427,50 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _stockfishService.analyzePosition(node.fen, depth: AppSettingsService.instance.defaultEngineDepth);
     }
   }
-  Widget _buildPgnSolutionTreeWidget() {
-    if (!_showSolutionTree && !_puzzleSolved && !_puzzleFailed && !_isReplayingSolution) {
-      return const SizedBox.shrink();
-    }
-    if (_currentPuzzle == null || _currentPuzzle!['solutions'] == null) {
-      return const SizedBox.shrink();
-    }
-    final solutions = Map<String, dynamic>.from(_currentPuzzle!['solutions'] ?? {});
-    if (solutions.isEmpty) return const SizedBox.shrink();
-
-    final List<Widget> chips = _buildPgnChipsFromSolutions(solutions);
-    if (chips.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade900,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.teal.shade700, width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.account_tree, color: Colors.tealAccent, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Stablo Rešenja (PGN):',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: chips,
-          ),
-        ],
-      ),
+  /// The mate-puzzle graph view and the plain-puzzle PGN chip view are
+  /// mutually exclusive renderings of the same solutions map; see
+  /// [SolutionGraphWidget] and [PgnSolutionTreeWidget].
+  Widget _buildSolutionTreeSection() {
+    final visible = _showSolutionTree || _puzzleSolved || _puzzleFailed || _isReplayingSolution;
+    final solutions = Map<String, dynamic>.from(
+      (_currentPuzzle?['solutions'] as Map?)?.cast<String, dynamic>() ?? {},
     );
-  }
 
-  List<Widget> _buildPgnChipsFromSolutions(Map<String, dynamic> solutions) {
-    final List<Widget> chips = [];
-    if (_initialPuzzleFen == null) return chips;
-
-    final tempBoard = chess.Chess.fromFEN(_initialPuzzleFen!);
-    final fenParts = _initialPuzzleFen!.split(' ');
-    int moveNum = fenParts.length > 5 ? (int.tryParse(fenParts[5]) ?? 1) : 1;
-    bool isWhiteToMove = (tempBoard.turn == chess.Color.WHITE);
-
-    void traverseNode(Map<String, dynamic> node, int num, bool isWhite, String prefix) {
-      for (var uciMove in node.keys) {
-        if (uciMove.length < 4) continue;
-        final from = uciMove.substring(0, 2);
-        final to = uciMove.substring(2, 4);
-        final promo = uciMove.length > 4 ? uciMove[4] : null;
-
-        final bool moveOk = tempBoard.move({'from': from, 'to': to, 'promotion': promo});
-        String sanStr = uciMove;
-        if (moveOk && tempBoard.history.isNotEmpty) {
-          try {
-            final dynamic lastHist = tempBoard.history.last;
-            sanStr = lastHist.san ?? uciMove;
-          } catch (_) {
-            sanStr = uciMove;
-          }
-        }
-
-        final targetFen = tempBoard.fen;
-        final String labelStr = isWhite ? '$num. $sanStr' : '$num... $sanStr';
-        final bool isCurrentPos = (_activeFen == targetFen);
-
-        chips.add(
-          InkWell(
-            onTap: () {
-              _sendBackendLog({
-                'type': 'pgnChipClick',
-                'moveSan': labelStr,
-                'targetFen': targetFen,
-              });
-              setState(() {
-                _puzzleGame = chess.Chess.fromFEN(targetFen);
-                _puzzleBoardController.loadFen(targetFen);
-                _activeFen = targetFen;
-                _lastMoveFrom = from;
-                _lastMoveTo = to;
-              });
-            },
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: isCurrentPos ? Colors.amber.shade700 : Colors.teal.shade900,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isCurrentPos ? Colors.amberAccent : Colors.tealAccent.withValues(alpha: 0.5),
-                  width: isCurrentPos ? 2 : 1,
-                ),
-              ),
-              child: Text(
-                labelStr,
-                style: TextStyle(
-                  color: isCurrentPos ? Colors.white : Colors.tealAccent,
-                  fontWeight: isCurrentPos ? FontWeight.bold : FontWeight.normal,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ),
-        );
-
-        final subVal = node[uciMove];
-        if (subVal is Map && subVal.isNotEmpty) {
-          final nextMap = Map<String, dynamic>.from(subVal);
-          final nextIsWhite = !isWhite;
-          final nextNum = nextIsWhite ? num + 1 : num;
-          traverseNode(nextMap, nextNum, nextIsWhite, prefix);
-        }
-
-        tempBoard.undo();
-      }
-    }
-
-    traverseNode(solutions, moveNum, isWhiteToMove, '');
-    return chips;
-  }
-
-  Widget _buildGraphicalSolutionTreeWidget() {
-    if (!_showSolutionTree && !_puzzleSolved && !_puzzleFailed && !_isReplayingSolution) {
-      return const SizedBox.shrink();
-    }
-    if (_currentPuzzle == null || _currentPuzzle!['solutions'] == null || _initialPuzzleFen == null) {
-      return const SizedBox.shrink();
-    }
-    final solutions = Map<String, dynamic>.from(_currentPuzzle!['solutions'] ?? {});
-    if (solutions.isEmpty) return const SizedBox.shrink();
-
-    final List<SolutionGraphNode> rootNodes = _buildSolutionGraphNodes(
-      _initialPuzzleFen!,
-      solutions,
-      true,
-      'root',
-    );
-    _solutionGraphNodesCache = rootNodes;
-    if (rootNodes.isEmpty) return const SizedBox.shrink();
-
-    final List<PositionedNode> positionedNodes = [];
-    double currentLeft = 0.0;
-    const double nodeWidth = 115.0;
-    const double nodeHeight = 44.0;
-    const double levelSpacing = 36.0;
-    const double siblingSpacing = 16.0;
-
-    for (var rNode in rootNodes) {
-      final w = _calculateSubtreeWidth(rNode, nodeWidth, siblingSpacing);
-      _layoutGraphNodes(
-        rNode,
-        currentLeft,
-        0.0,
-        nodeWidth,
-        nodeHeight,
-        levelSpacing,
-        siblingSpacing,
-        null,
-        positionedNodes,
+    if (_selectedCategory == 'mate_puzzle') {
+      return SolutionGraphWidget(
+        visible: visible,
+        initialFen: _initialPuzzleFen,
+        solutions: solutions,
+        mateDepthLabel: 'Mat u ${int.tryParse(_selectedMateDepth) ?? 1}',
+        activeFen: _activeFen,
+        selectedGroupedMoveIndices: _selectedGroupedMoveIndices,
+        onNodesBuilt: (nodes) => _solutionGraphNodesCache = nodes,
+        onNodeTap: _jumpToGraphNodePosition,
+        onGroupedMoveSelected: _jumpToGroupedOpponentMove,
       );
-      currentLeft += w + siblingSpacing;
     }
-
-    double maxRight = 0.0;
-    double maxBottom = 0.0;
-    for (var pn in positionedNodes) {
-      if (pn.x + pn.width > maxRight) maxRight = pn.x + pn.width;
-      if (pn.y + pn.height > maxBottom) maxBottom = pn.y + pn.height;
-    }
-
-    final double canvasWidth = math.max(maxRight + 20.0, MediaQuery.of(context).size.width - 32.0);
-    final double canvasHeight = maxBottom + 20.0;
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const ui.Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const ui.Color(0xFF0284C7), width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-            color: ui.Color(0x400284C7),
-            blurRadius: 10,
-            spreadRadius: 1,
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: const [
-                  Icon(Icons.account_tree_outlined, color: ui.Color(0xFF38BDF8), size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'Grafičko Stablo Poteza',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const ui.Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Mat u ${int.tryParse(_selectedMateDepth) ?? 1}',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ui.Color(0xFF38BDF8)),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: math.min(canvasHeight + 20.0, MediaQuery.of(context).orientation == Orientation.landscape ? math.max(280.0, MediaQuery.of(context).size.height - 180.0) : 340.0),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                color: const ui.Color(0xFF020617),
-                child: InteractiveViewer(
-                  constrained: false,
-                  boundaryMargin: const EdgeInsets.all(40),
-                  minScale: 0.5,
-                  maxScale: 2.5,
-                  child: Container(
-                    width: canvasWidth,
-                    height: canvasHeight,
-                    padding: const EdgeInsets.all(10),
-                    child: Stack(
-                      children: [
-                        CustomPaint(
-                          size: Size(canvasWidth, canvasHeight),
-                          painter: TreeEdgesPainter(positionedNodes: positionedNodes, activeFen: _activeFen),
-                        ),
-                        ...positionedNodes.map((pn) => _buildGraphNodeWidget(pn)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+    return PgnSolutionTreeWidget(
+      visible: visible,
+      initialFen: _initialPuzzleFen,
+      solutions: solutions,
+      activeFen: _activeFen,
+      onMoveSelected: _onPgnChipSelected,
     );
   }
 
-  Widget _buildGraphNodeWidget(PositionedNode pn) {
-    final node = pn.node;
-    final bool isActive = (_activeFen != null && _activeFen!.split(' ')[0] == node.fen.split(' ')[0]);
-
-    ui.Color bgColor;
-    ui.Color borderColor;
-    ui.Color textColor;
-    IconData? iconData;
-
-    if (isActive) {
-      bgColor = const ui.Color(0xFF0284C7);
-      borderColor = const ui.Color(0xFF38BDF8);
-      textColor = Colors.white;
-      iconData = Icons.play_arrow_rounded;
-    } else if (node.isCheckmate) {
-      bgColor = const ui.Color(0xFF065F46);
-      borderColor = const ui.Color(0xFF34D399);
-      textColor = const ui.Color(0xFFECFDF5);
-      iconData = Icons.emoji_events;
-    } else if (node.isGrouped) {
-      bgColor = const ui.Color(0xFF312E81);
-      borderColor = const ui.Color(0xFF818CF8);
-      textColor = const ui.Color(0xFFE0E7FF);
-      iconData = Icons.filter_list;
-    } else if (node.isWhite) {
-      bgColor = const ui.Color(0xFF1E293B);
-      borderColor = const ui.Color(0xFF475569);
-      textColor = const ui.Color(0xFFF8FAFC);
-    } else {
-      bgColor = const ui.Color(0xFF0F172A);
-      borderColor = const ui.Color(0xFF334155);
-      textColor = const ui.Color(0xFF94A3B8);
-    }
-
-    return Positioned(
-      left: pn.x,
-      top: pn.y,
-      width: pn.width,
-      height: pn.height,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            if (node.isGrouped && node.groupedOpponentMoves.isNotEmpty) {
-              _showGroupedMovesDialog(node);
-            } else {
-              _jumpToGraphNodePosition(node);
-            }
-          },
-          borderRadius: BorderRadius.circular(10),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: borderColor, width: isActive ? 2.5 : 1.5),
-              boxShadow: isActive
-                  ? [
-                      const BoxShadow(
-                        color: ui.Color(0x8038BDF8),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      )
-                    ]
-                  : null,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (iconData != null) ...[
-                  Icon(iconData, size: 14, color: textColor),
-                  const SizedBox(width: 4),
-                ],
-                Flexible(
-                  child: Text(
-                    node.moveSan,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: isActive || node.isCheckmate ? FontWeight.bold : FontWeight.w600,
-                      color: textColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  void _onPgnChipSelected(String from, String to, String targetFen, String labelSan) {
+    _sendBackendLog({
+      'type': 'pgnChipClick',
+      'moveSan': labelSan,
+      'targetFen': targetFen,
+    });
+    setState(() {
+      _puzzleGame = chess.Chess.fromFEN(targetFen);
+      _puzzleBoardController.loadFen(targetFen);
+      _activeFen = targetFen;
+      _lastMoveFrom = from;
+      _lastMoveTo = to;
+    });
   }
 
   List<SolutionGraphNode> _solutionGraphNodesCache = [];
@@ -2920,7 +2483,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       String? lastTo = targetNode.moveUci.length >= 4 ? targetNode.moveUci.substring(2, 4) : null;
 
       if (_initialPuzzleFen != null && _selectedCategory == 'mate_puzzle') {
-        final List<SolutionGraphNode> path = _findPathToGraphNode(_solutionGraphNodesCache, targetNode);
+        final List<SolutionGraphNode> path = findPathToGraphNode(_solutionGraphNodesCache, targetNode);
         if (path.isNotEmpty) {
           try {
             final game = chess.Chess.fromFEN(_initialPuzzleFen!);
@@ -2965,31 +2528,6 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
   }
 
-  List<SolutionGraphNode> _findPathToGraphNode(List<SolutionGraphNode> currentLevel, SolutionGraphNode target) {
-    for (var node in currentLevel) {
-      if (node.id == target.id) {
-        return [node];
-      }
-      if (node.children.isNotEmpty) {
-        final subPath = _findPathToGraphNode(node.children, target);
-        if (subPath.isNotEmpty) {
-          return [node, ...subPath];
-        }
-      }
-    }
-    return [];
-  }
-
-  void _showGroupedMovesDialog(SolutionGraphNode node) {
-    showGroupedMovesDialog(
-      context: context,
-      node: node,
-      onMoveSelected: (n, selectedIndex) {
-        _jumpToGroupedOpponentMove(n, selectedIndex);
-      },
-    );
-  }
-
   void _jumpToGroupedOpponentMove(SolutionGraphNode node, int moveIndex) {
     _selectedGroupedMoveIndices[node.id] = moveIndex;
     node.selectedGroupedIndex = moveIndex;
@@ -3022,244 +2560,6 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _showSnackBar('Prikazana pozicija za potez protivnika: $sanLabel');
   }
 
-  List<SolutionGraphNode> _buildSolutionGraphNodes(
-    String currentFen,
-    Map<String, dynamic> treeMap,
-    bool isWhiteMove,
-    String parentIdPath,
-  ) {
-    final List<SolutionGraphNode> nodes = [];
-
-    if (isWhiteMove) {
-      int moveIdx = 0;
-      for (var whiteMoveUci in treeMap.keys) {
-        if (whiteMoveUci.length < 4) continue;
-        moveIdx++;
-        final nodeId = '${parentIdPath}_w$moveIdx';
-        final game = chess.Chess.fromFEN(currentFen);
-
-        final from = whiteMoveUci.substring(0, 2);
-        final to = whiteMoveUci.substring(2, 4);
-        final promo = whiteMoveUci.length > 4 ? whiteMoveUci[4] : null;
-
-        String san = '$from$to';
-        for (var m in game.moves({'verbose': true})) {
-          if (m['from'] == from && m['to'] == to) {
-            if (promo == null || m['promotion'] == promo || m['promotion'] == promo.toLowerCase()) {
-              san = m['san'] ?? san;
-              break;
-            }
-          }
-        }
-
-        game.move({'from': from, 'to': to, 'promotion': promo});
-        final fenAfterWhite = game.fen;
-        final isMate = game.in_checkmate;
-
-        final dynamic sub = treeMap[whiteMoveUci];
-        List<SolutionGraphNode> children = [];
-
-        if (sub is Map && sub.isNotEmpty) {
-          children = _buildSolutionGraphNodes(
-            fenAfterWhite,
-            Map<String, dynamic>.from(sub),
-            false,
-            nodeId,
-          );
-        }
-
-        nodes.add(SolutionGraphNode(
-          id: nodeId,
-          moveUci: whiteMoveUci,
-          moveSan: san,
-          fen: fenAfterWhite,
-          isWhite: true,
-          isCheckmate: isMate || sub == "CHECKMATE",
-          children: children,
-        ));
-      }
-    } else {
-      final Map<String, List<String>> signatureToOpponentMoves = {};
-      final Map<String, dynamic> signatureToSubTree = {};
-
-      for (var oppMoveUci in treeMap.keys) {
-        final sub = treeMap[oppMoveUci];
-        String sig = '';
-        if (sub is Map) {
-          sig = sub.keys.join(',');
-        } else if (sub is List) {
-          sig = sub.join(',');
-        } else {
-          sig = sub.toString();
-        }
-
-        signatureToOpponentMoves.putIfAbsent(sig, () => []).add(oppMoveUci.toString());
-        signatureToSubTree[sig] = sub;
-      }
-
-      int groupIdx = 0;
-      for (var sig in signatureToOpponentMoves.keys) {
-        groupIdx++;
-        final oppMovesList = signatureToOpponentMoves[sig]!;
-        final sub = signatureToSubTree[sig];
-        final nodeId = '${parentIdPath}_b$groupIdx';
-
-        if (oppMovesList.length == 1) {
-          final oppMoveUci = oppMovesList.first;
-          if (oppMoveUci.length < 4) continue;
-          final game = chess.Chess.fromFEN(currentFen);
-          final from = oppMoveUci.substring(0, 2);
-          final to = oppMoveUci.substring(2, 4);
-          final promo = oppMoveUci.length > 4 ? oppMoveUci[4] : null;
-
-          String san = '$from$to';
-          for (var m in game.moves({'verbose': true})) {
-            if (m['from'] == from && m['to'] == to) {
-              san = m['san'] ?? san;
-              break;
-            }
-          }
-
-          game.move({'from': from, 'to': to, 'promotion': promo});
-          final fenAfterBlack = game.fen;
-
-          List<SolutionGraphNode> children = [];
-          if (sub is Map && sub.isNotEmpty) {
-            children = _buildSolutionGraphNodes(
-              fenAfterBlack,
-              Map<String, dynamic>.from(sub),
-              true,
-              nodeId,
-            );
-          }
-
-          nodes.add(SolutionGraphNode(
-            id: nodeId,
-            moveUci: oppMoveUci,
-            moveSan: '..$san',
-            fen: fenAfterBlack,
-            parentFen: currentFen,
-            isWhite: false,
-            children: children,
-          ));
-        } else {
-          final int selectedIdx = (_selectedGroupedMoveIndices[nodeId] ?? 0).clamp(0, oppMovesList.length - 1);
-          final selectedOppMove = oppMovesList[selectedIdx];
-          final game = chess.Chess.fromFEN(currentFen);
-          final from = selectedOppMove.substring(0, 2);
-          final to = selectedOppMove.substring(2, 4);
-          final promo = selectedOppMove.length > 4 ? selectedOppMove[4] : null;
-
-          game.move({'from': from, 'to': to, 'promotion': promo});
-          final fenAfterSelected = game.fen;
-
-          List<SolutionGraphNode> children = [];
-          if (sub is Map && sub.isNotEmpty) {
-            children = _buildSolutionGraphNodes(
-              fenAfterSelected,
-              Map<String, dynamic>.from(sub),
-              true,
-              nodeId,
-            );
-          }
-
-          final List<String> sanList = [];
-          final List<String> uciList = [];
-          for (var mUci in oppMovesList) {
-            if (mUci.length < 4) continue;
-            final gTest = chess.Chess.fromFEN(currentFen);
-            final f = mUci.substring(0, 2);
-            final t = mUci.substring(2, 4);
-            final pr = mUci.length > 4 ? mUci[4] : null;
-            String s = '$f$t';
-            for (var vm in gTest.moves({'verbose': true})) {
-              if (vm['from'] == f && vm['to'] == t) {
-                if (pr == null || vm['promotion'] == pr || vm['promotion'] == pr.toLowerCase()) {
-                  s = vm['san'] ?? s;
-                  break;
-                }
-              }
-            }
-            sanList.add('..$s');
-            uciList.add(mUci);
-          }
-
-          nodes.add(SolutionGraphNode(
-            id: nodeId,
-            moveUci: selectedOppMove,
-            moveSan: '.. [${oppMovesList.length} varijanti]',
-            fen: fenAfterSelected,
-            parentFen: currentFen,
-            isWhite: false,
-            isGrouped: true,
-            selectedGroupedIndex: selectedIdx,
-            groupedOpponentMoves: sanList,
-            groupedOpponentMovesUci: uciList,
-            children: children,
-          ));
-        }
-      }
-    }
-
-    return nodes;
-  }
-
-  double _calculateSubtreeWidth(SolutionGraphNode node, double nodeWidth, double siblingSpacing) {
-    if (node.children.isEmpty) {
-      return nodeWidth;
-    }
-    double sum = 0;
-    for (int i = 0; i < node.children.length; i++) {
-      if (i > 0) sum += siblingSpacing;
-      sum += _calculateSubtreeWidth(node.children[i], nodeWidth, siblingSpacing);
-    }
-    return math.max(nodeWidth, sum);
-  }
-
-  void _layoutGraphNodes(
-    SolutionGraphNode node,
-    double leftX,
-    double topY,
-    double nodeWidth,
-    double nodeHeight,
-    double levelSpacing,
-    double siblingSpacing,
-    PositionedNode? parentPosNode,
-    List<PositionedNode> outNodes,
-  ) {
-    final subtreeWidth = _calculateSubtreeWidth(node, nodeWidth, siblingSpacing);
-    final nodeX = leftX + (subtreeWidth - nodeWidth) / 2;
-
-    final posNode = PositionedNode(
-      node: node,
-      x: nodeX,
-      y: topY,
-      width: nodeWidth,
-      height: nodeHeight,
-      parent: parentPosNode,
-    );
-    if (parentPosNode != null) {
-      parentPosNode.children.add(posNode);
-    }
-    outNodes.add(posNode);
-
-    double currentLeft = leftX;
-    for (var child in node.children) {
-      final childSubtreeWidth = _calculateSubtreeWidth(child, nodeWidth, siblingSpacing);
-      _layoutGraphNodes(
-        child,
-        currentLeft,
-        topY + nodeHeight + levelSpacing,
-        nodeWidth,
-        nodeHeight,
-        levelSpacing,
-        siblingSpacing,
-        posNode,
-        outNodes,
-      );
-      currentLeft += childSubtreeWidth + siblingSpacing;
-    }
-  }
 } // end _AiStudioScreenState
 
 

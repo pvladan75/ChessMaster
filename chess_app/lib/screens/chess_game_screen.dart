@@ -22,6 +22,10 @@ import 'package:chess_app/services/local_recording_service.dart';
 
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
+import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/game_screen/arrow_color_button.dart';
+import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
+import 'package:chess_app/widgets/game_screen/course_step_bar.dart';
 import 'package:chess_app/widgets/board_setup_dialog.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/create_course_dialog.dart';
@@ -385,142 +389,58 @@ class _ChessGamePageState extends State<ChessGamePage> {
             .toList()
         : [];
 
-    return Stack(
-      children: [
-        IgnorePointer(
-          ignoring: !isAllowedToMove || isDrawingMode,
-          child: Opacity(
-            opacity: isBlindfoldMode ? 0.05 : 1.0,
-            child: ChessBoard(
-              controller: controller,
-              boardColor: BoardColor.brown,
-              boardOrientation: boardOrientation,
-              size: boardSize,
-              onMove: () {
-                final lastMove = controller.getPossibleMoves().isEmpty
-                    ? null
-                    : controller.game.history.last;
-                if (lastMove != null) {
-                  final from = lastMove.move.fromAlgebraic;
-                  final to = lastMove.move.toAlgebraic;
-                  _handleLocalMoveMade(from, to);
-                }
-              },
-            ),
-          ),
-        ),
-        if (isBlindfoldMode)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.25),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.visibility_off, size: 56, color: Colors.amberAccent),
-                      SizedBox(height: 6),
-                      Text('🙈 Šah Na Slepo', style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text('Figure su skrivene radi vežbanja vizuelizacije', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        // Interactive paint overlay for trainer drawing arrows
-        IgnorePointer(
-          ignoring: !isDrawingMode,
-          child: GestureDetector(
-            onTapDown: (details) {
-              if (!isDrawingMode) return;
-              final localPos = details.localPosition;
-              final square = getSquareFromOffset(localPos, boardSize, boardOrientation);
-              
-              setState(() {
-                if (drawingStartSquare == null) {
-                  drawingStartSquare = square;
-                } else {
-                  final start = drawingStartSquare!;
-                  drawingStartSquare = null;
-                  if (start != square) {
-                    moveTree.current.arrows.add(ChessArrow(
-                      from: start,
-                      to: square,
-                      colorCode: selectedArrowColorCode,
-                    ));
-                    _recordEvent('arrow_drawn', {
-                      'arrows': moveTree.current.arrows.map((a) => {
-                        'from': a.from,
-                        'to': a.to,
-                        'colorCode': a.colorCode
-                      }).toList()
-                    });
-                    socket.emit('pgn_loaded', {
-                      'roomId': widget.roomCode,
-                      'pgn': moveTree.exportToPgn(),
-                    });
-                  }
-                }
+    return ChessBoardWithOverlay(
+      controller: controller,
+      boardOrientation: boardOrientation,
+      boardSize: boardSize,
+      isAllowedToMove: isAllowedToMove,
+      isDrawingMode: isDrawingMode,
+      isBlindfoldMode: isBlindfoldMode,
+      drawingStartSquare: drawingStartSquare,
+      arrows: moveTree.current.arrows,
+      engineArrows: engineArrows,
+      onMove: _handleLocalMoveMade,
+      onSquareTapForDrawing: (square) {
+        setState(() {
+          if (drawingStartSquare == null) {
+            drawingStartSquare = square;
+          } else {
+            final start = drawingStartSquare!;
+            drawingStartSquare = null;
+            if (start != square) {
+              moveTree.current.arrows.add(ChessArrow(
+                from: start,
+                to: square,
+                colorCode: selectedArrowColorCode,
+              ));
+              _recordEvent('arrow_drawn', {
+                'arrows': moveTree.current.arrows.map((a) => {
+                  'from': a.from,
+                  'to': a.to,
+                  'colorCode': a.colorCode
+                }).toList()
               });
-            },
-            child: CustomPaint(
-              size: Size(boardSize, boardSize),
-              painter: ChessBoardPainter(
-                arrows: moveTree.current.arrows,
-                engineArrows: engineArrows,
-                boardSize: boardSize,
-                orientation: boardOrientation,
-                highlightedSquare: drawingStartSquare,
-              ),
-            ),
-          ),
-        ),
-        // Non-interactive overlay to draw arrows for both when not in drawing mode
-        if (!isDrawingMode)
-          IgnorePointer(
-            child: CustomPaint(
-              size: Size(boardSize, boardSize),
-              painter: ChessBoardPainter(
-                arrows: moveTree.current.arrows,
-                engineArrows: engineArrows,
-                boardSize: boardSize,
-                orientation: boardOrientation,
-              ),
-            ),
-          ),
-      ],
+              socket.emit('pgn_loaded', {
+                'roomId': widget.roomCode,
+                'pgn': moveTree.exportToPgn(),
+              });
+            }
+          }
+        });
+      },
     );
   }
 
   Widget _buildColorButton(String code, ui.Color color, String tooltip) {
-    final isSelected = selectedArrowColorCode == code;
-    return GestureDetector(
+    return ArrowColorButton(
+      color: color,
+      tooltip: tooltip,
+      isSelected: selectedArrowColorCode == code,
       onTap: () {
         setState(() {
           selectedArrowColorCode = code;
         });
       },
-      child: Tooltip(
-        message: tooltip,
-        child: Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: isSelected ? 1.0 : 0.4),
-            shape: BoxShape.circle,
-            border: isSelected
-                ? Border.all(color: Colors.white, width: 2.0)
-                : Border.all(color: Colors.transparent),
-            boxShadow: isSelected
-                ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6, spreadRadius: 1)]
-                : [],
-          ),
-          child: isSelected
-              ? const Icon(Icons.check, size: 16, color: Colors.white)
-              : null,
-        ),
-      ),
     );
   }
 
@@ -1489,62 +1409,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
   Widget _buildCourseStepBar() {
     final items = _activeCourseItems;
     if (items == null || !isTrener) return const SizedBox.shrink();
-    return Container(
-      color: Colors.deepPurple.shade900,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Row(
-        children: [
-          const Icon(Icons.collections_bookmark, color: Colors.white, size: 16),
-          const SizedBox(width: 6),
-          Expanded(
-            child: PopupMenuButton<int>(
-              tooltip: 'Skoči na korak',
-              initialValue: _activeCourseIndex,
-              onSelected: _goToCourseStep,
-              itemBuilder: (ctx) => List.generate(items.length, (i) {
-                final stepTitle = items[i]['title']?.toString() ?? 'Korak ${i + 1}';
-                return PopupMenuItem<int>(
-                  value: i,
-                  child: Row(
-                    children: [
-                      if (i == _activeCourseIndex) const Icon(Icons.check, size: 16, color: Colors.deepPurple) else const SizedBox(width: 16),
-                      const SizedBox(width: 6),
-                      Expanded(child: Text('${i + 1}. $stepTitle', overflow: TextOverflow.ellipsis)),
-                    ],
-                  ),
-                );
-              }),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${_activeCourseTitle ?? 'Kurs'} — korak ${_activeCourseIndex + 1}/${items.length}',
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 18),
-                ],
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_left, color: Colors.white),
-            tooltip: 'Prethodni korak',
-            onPressed: _activeCourseIndex > 0 ? () => _goToCourseStep(_activeCourseIndex - 1) : null,
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, color: Colors.white),
-            tooltip: 'Sledeći korak',
-            onPressed: _activeCourseIndex < items.length - 1 ? () => _goToCourseStep(_activeCourseIndex + 1) : null,
-          ),
-          IconButton(
-            icon: const Icon(Icons.close, color: Colors.white70, size: 18),
-            tooltip: 'Zatvori kurs',
-            onPressed: () => setState(() => _activeCourseItems = null),
-          ),
-        ],
-      ),
+    return CourseStepBar(
+      items: items,
+      activeIndex: _activeCourseIndex,
+      courseTitle: _activeCourseTitle,
+      onGoToStep: _goToCourseStep,
+      onClose: () => setState(() => _activeCourseItems = null),
     );
   }
 
@@ -1996,60 +1866,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
   Widget buildNavigationControls() {
     final isTrener = widget.userSession.role == 'trener';
     final isAllowedToMove = isTrener || (boardControl != 'trainer_only');
-    final canGoBack = currentNode != moveTree.root;
-    final canGoForward = currentNode.children.isNotEmpty;
-    final bool canNavigate = isAllowedToMove;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.first_page),
-            onPressed: canNavigate && canGoBack
-                ? () => _selectNode(moveTree.root)
-                : null,
-            tooltip: 'Idi na početak',
-          ),
-          IconButton(
-            icon: const Icon(Icons.navigate_before),
-            onPressed: canNavigate && canGoBack
-                ? () => _selectNode(currentNode.parent!)
-                : null,
-            tooltip: 'Prethodni potez',
-          ),
-          const Text(
-            'Navigacija',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          IconButton(
-            icon: const Icon(Icons.navigate_next),
-            onPressed: canNavigate && canGoForward
-                ? () => _selectNode(currentNode.children[0])
-                : null,
-            tooltip: 'Sledeći potez',
-          ),
-          IconButton(
-            icon: const Icon(Icons.last_page),
-            onPressed: canNavigate && canGoForward
-                ? () {
-                    MoveNode curr = currentNode;
-                    while (curr.children.isNotEmpty) {
-                      curr = curr.children[0];
-                    }
-                    _selectNode(curr);
-                  }
-                : null,
-            tooltip: 'Idi na kraj',
-          ),
-        ],
-      ),
+    return MoveNavigationControls(
+      moveTree: moveTree,
+      currentNode: currentNode,
+      canNavigate: isAllowedToMove,
+      onSelectNode: _selectNode,
     );
   }
 
