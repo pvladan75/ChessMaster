@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/features/analysis_studio/services/chessdb_service.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 // Matches the historical outcome share a move led to across real games —
 // not "good/bad for the mover" (that depends on whose turn it is).
@@ -44,7 +46,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!hasToken) return _buildChessDbPanel();
+    if (!hasToken) return _buildChessDbPanel(context);
 
     return Container(
       width: double.infinity,
@@ -60,7 +62,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.travel_explore, color: Colors.purpleAccent, size: 16),
+              Icon(Icons.travel_explore, color: context.colors.accentAlt, size: 16),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -68,16 +70,16 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
                       ? '${result!.opening!.eco} · ${result!.opening!.name}'
                       : 'Lichess Opening Explorer',
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.purpleAccent),
+                  style: AppText.bodyBold.copyWith(color: context.colors.accentAlt),
                 ),
               ),
               if (isLoading)
-                const Padding(
-                  padding: EdgeInsets.only(right: 8),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
                   child: SizedBox(
                     width: 12,
                     height: 12,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.purpleAccent),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.accentAlt),
                   ),
                 ),
               if (onMinRatingChanged != null)
@@ -86,8 +88,8 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
                   isDense: true,
                   underline: const SizedBox.shrink(),
                   dropdownColor: Colors.grey.shade900,
-                  icon: const Icon(Icons.expand_more, color: Colors.purpleAccent, size: 16),
-                  style: const TextStyle(fontSize: 10, color: Colors.purpleAccent, fontWeight: FontWeight.bold),
+                  icon: Icon(Icons.expand_more, color: context.colors.accentAlt, size: 16),
+                  style: AppText.micro.copyWith(color: context.colors.accentAlt, fontWeight: FontWeight.bold),
                   items: kOpeningExplorerRatingOptions
                       .map((r) => DropdownMenuItem<int?>(value: r, child: Text(ratingOptionLabel(r))))
                       .toList(),
@@ -99,14 +101,14 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '${result!.total} partija',
-              style: const TextStyle(fontSize: 10, color: Colors.white54),
+              style: AppText.micro.copyWith(color: context.colors.textMuted),
             ),
           ],
           if (!isLoading && (result == null || result!.total == 0)) ...[
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Nema statistike za ovu poziciju.',
-              style: TextStyle(fontSize: 11, color: Colors.white70),
+              style: AppText.caption.copyWith(color: context.colors.textSecondary),
             ),
           ],
           if (!isLoading && result != null && result!.moves.isNotEmpty) ...[
@@ -122,7 +124,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildChessDbPanel() {
+  Widget _buildChessDbPanel(BuildContext context) {
     final moves = chessDbResult?.moves ?? [];
     return Container(
       width: double.infinity,
@@ -138,33 +140,33 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.cloud_outlined, color: Colors.purpleAccent, size: 16),
+              Icon(Icons.cloud_outlined, color: context.colors.accentAlt, size: 16),
               const SizedBox(width: 6),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'ChessDB Cloud (konsenzus, ne partije)',
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.purpleAccent),
+                  style: AppText.bodyBold.copyWith(color: context.colors.accentAlt),
                 ),
               ),
               if (isLoadingChessDb)
-                const SizedBox(
+                SizedBox(
                   width: 12,
                   height: 12,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.purpleAccent),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.accentAlt),
                 ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Besplatno, bez tokena. Podesite Lichess token u Podešavanjima za pravu statistiku iz odigranih partija.',
-            style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.5)),
+            style: AppText.micro.copyWith(color: context.colors.textPrimary.withValues(alpha: 0.5)),
           ),
           if (!isLoadingChessDb && moves.isEmpty) ...[
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Nema podataka za ovu poziciju.',
-              style: TextStyle(fontSize: 11, color: Colors.white70),
+              style: AppText.caption.copyWith(color: context.colors.textSecondary),
             ),
           ],
           if (!isLoadingChessDb && moves.isNotEmpty) ...[
@@ -202,12 +204,12 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
           children: [
             Text(
               san,
-              style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
+              style: AppText.caption.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 2),
             Text(
               '$scoreLabel · ${move.winrate.toStringAsFixed(0)}%',
-              style: TextStyle(fontSize: 10, color: winrateColor, fontWeight: FontWeight.w600),
+              style: AppText.micro.copyWith(color: winrateColor, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -247,7 +249,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
           children: [
             Text(
               '${move.san} ($percent%)',
-              style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
+              style: AppText.caption.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 3),
             ClipRRect(

@@ -33,6 +33,7 @@ import 'package:chess_app/widgets/share_position_dialog.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/routing/app_routes.dart';
+import 'package:chess_app/theme/breakpoints.dart';
 import 'package:go_router/go_router.dart';
 import 'package:chess_app/models/recording_models.dart';
 
@@ -2058,7 +2059,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final isHost = activeRole == 'host' || activeRole == 'trener' || isStudio;
     final isAllowedToMove = isHost || isStudio || (boardControl != 'host_only' && boardControl != 'trainer_only');
     final media = MediaQuery.of(context);
-    final isWide = media.size.width > 900;
+    final isWide = Breakpoints.isWide(context);
 
     // Sizing of ChessBoard
     final boardSize = (isWide

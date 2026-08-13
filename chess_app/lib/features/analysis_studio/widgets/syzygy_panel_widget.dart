@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 class _CategoryStyle {
   final String label;
@@ -69,9 +71,9 @@ class SyzygyPanelWidget extends StatelessWidget {
             children: [
               const Icon(Icons.table_chart, color: Colors.cyanAccent, size: 16),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 'Syzygy Tablebase',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.cyanAccent),
+                style: AppText.bodyBold.copyWith(color: Colors.cyanAccent),
               ),
               const Spacer(),
               if (isLoading)
@@ -86,9 +88,9 @@ class SyzygyPanelWidget extends StatelessWidget {
           ),
           if (!isLoading && result == null) ...[
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Tablebase nije dostupan za ovu poziciju.',
-              style: TextStyle(fontSize: 11, color: Colors.white70),
+              style: AppText.caption.copyWith(color: context.colors.textSecondary),
             ),
           ],
           if (!isLoading && result != null && result!.moves.isNotEmpty) ...[
@@ -116,7 +118,7 @@ class SyzygyPanelWidget extends StatelessWidget {
       ),
       child: Text(
         dtz != null ? '${style.label} · $dtz' : style.label,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: style.color),
+        style: AppText.micro.copyWith(fontWeight: FontWeight.bold, color: style.color),
       ),
     );
   }
@@ -136,7 +138,7 @@ class SyzygyPanelWidget extends StatelessWidget {
         ),
         child: Text(
           dtz != null ? '${move.san} ($dtz)' : move.san,
-          style: TextStyle(fontSize: 11, color: style.color, fontWeight: FontWeight.w600),
+          style: AppText.caption.copyWith(color: style.color, fontWeight: FontWeight.w600),
         ),
       ),
     );

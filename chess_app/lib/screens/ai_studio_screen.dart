@@ -1870,7 +1870,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                         IconButton(
                           icon: const Icon(Icons.arrow_back, size: 18),
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                          // The 38px toolbar has just enough room for a tap
+                          // target a bit past the bare 18px icon — better
+                          // than nothing, though still short of the 48dp
+                          // Material guideline (no room for that here).
+                          constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                           onPressed: () {
                             _resetEngineState();
                             setState(() {

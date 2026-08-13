@@ -7,6 +7,8 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
+import 'package:chess_app/theme/breakpoints.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/services/session_service.dart';
 
 import 'package:chess_app/screens/ai_studio_screen.dart';
@@ -188,6 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print("Error fetching students: $e");
+      if (mounted) AppFeedback.error(context, 'Greška pri učitavanju učenika.');
     } finally {
       if (mounted) setState(() => _isLoadingStudents = false);
     }
@@ -208,6 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print("Error deleting friend: $e");
+      if (mounted) AppFeedback.error(context, 'Greška pri uklanjanju.');
     }
   }
 
@@ -240,6 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print("Error adding student: $e");
+      if (mounted) AppFeedback.error(context, 'Greška pri dodavanju učenika.');
     }
   }
 
@@ -257,6 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print("Error fetching user stats: $e");
+      if (mounted) AppFeedback.error(context, 'Greška pri učitavanju statistike.');
     } finally {
       setState(() => _isLoadingStats = false);
     }
@@ -276,6 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print("Error fetching recordings: $e");
+      if (mounted) AppFeedback.error(context, 'Greška pri učitavanju snimaka.');
     } finally {
       setState(() => _isLoadingRecordings = false);
     }
@@ -304,6 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print("Error updating account type: $e");
+      if (mounted) AppFeedback.error(context, 'Greška pri promeni tipa naloga.');
     }
   }
 
@@ -319,6 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print("Error fetching friends: $e");
+      if (mounted) AppFeedback.error(context, 'Greška pri učitavanju prijatelja.');
     } finally {
       if (mounted) setState(() => _isLoadingFriends = false);
     }
@@ -390,6 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _fetchNotifications();
     } catch (e) {
       print("Error marking notification read: $e");
+      if (mounted) AppFeedback.error(context, 'Greška pri ažuriranju obaveštenja.');
     }
   }
 
@@ -1042,7 +1052,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final isWide = media.size.width > 800;
+    final isWide = Breakpoints.isWide(context);
 
     // Unvisited tabs render as an empty box; once visited they stay in the
     // stack so their state survives switching away and back.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/routing/app_router.dart';
+import 'package:chess_app/theme/app_colors.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -47,6 +48,7 @@ class ChessApp extends StatelessWidget {
               brightness: Brightness.dark,
             ),
             useMaterial3: true,
+            extensions: const [AppColorTokens.dark],
           ),
         );
       },

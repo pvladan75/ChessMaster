@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -1042,54 +1044,54 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         titleSpacing: 8.0,
         title: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.biotech, color: Colors.tealAccent, size: 20),
-            SizedBox(width: 6),
-            Flexible(
+          children: [
+            Icon(Icons.biotech, color: context.colors.accent, size: 20),
+            const SizedBox(width: 6),
+            const Flexible(
               child: Text(
                 'Tabla za Analizu',
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: AppText.title,
               ),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.terminal, color: Colors.amberAccent),
+            icon: Icon(Icons.terminal, color: context.colors.warning),
             tooltip: 'Logovi Engine-a 📜',
             onPressed: _showLogsDialog,
           ),
           IconButton(
-            icon: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
+            icon: Icon(Icons.auto_awesome, color: context.colors.warning),
             tooltip: 'Automatska Analiza ⚡',
             onPressed: _showAutoAnalysisDialog,
           ),
           IconButton(
-            icon: const Icon(Icons.share, color: Colors.lightBlueAccent),
+            icon: Icon(Icons.share, color: context.colors.info),
             tooltip: 'Izvezi PGN',
             onPressed: _exportPgn,
           ),
           IconButton(
-            icon: const Icon(Icons.cloud_outlined, color: Colors.lightBlueAccent),
+            icon: Icon(Icons.cloud_outlined, color: context.colors.info),
             tooltip: 'Sačuvane analize',
             onPressed: _showSavedAnalysesDialog,
           ),
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.grey),
+            icon: Icon(Icons.settings, color: context.colors.textMuted),
             tooltip: 'Podešavanja',
             onPressed: _openAppSettings,
           ),
           IconButton(
-            icon: const Icon(Icons.tune, color: Colors.tealAccent),
+            icon: Icon(Icons.tune, color: context.colors.accent),
             tooltip: 'Unos Pozicije / PGN',
             onPressed: _showSetupDialog,
           ),
           IconButton(
             icon: Icon(
               _orientation == PlayerColor.white ? Icons.rotate_right : Icons.rotate_left,
-              color: Colors.amberAccent,
+              color: context.colors.warning,
             ),
             tooltip: 'Okreni Tablu',
             onPressed: () {

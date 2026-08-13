@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 class AutoAnalysisDialog extends StatefulWidget {
   final AnalysisNode startNode;
@@ -105,7 +107,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
         : 0.0;
 
     return Dialog(
-      backgroundColor: Colors.grey.shade900,
+      backgroundColor: context.colors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: 480,
@@ -115,20 +117,20 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              children: const [
-                Icon(Icons.auto_awesome, color: Colors.amberAccent, size: 22),
-                SizedBox(width: 8),
+              children: [
+                Icon(Icons.auto_awesome, color: context.colors.warning, size: 22),
+                const SizedBox(width: 8),
                 Text(
                   'Automatska Analiza Pozicije',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: AppText.title.copyWith(color: context.colors.textPrimary),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             if (!_isAnalyzing) ...[
-              const Text(
+              Text(
                 'Podesite parametre za automatsku izgradnju stabla varijanti:',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: AppText.body.copyWith(color: context.colors.textMuted),
               ),
               const SizedBox(height: 12),
 
@@ -136,8 +138,8 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Dubina pretrage (N polupoteza): $_pliesDepth', style: const TextStyle(fontSize: 12, color: Colors.white)),
-                  Text('$_pliesDepth polupoteza', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.tealAccent)),
+                  Text('Dubina pretrage (N polupoteza): $_pliesDepth', style: AppText.body.copyWith(color: context.colors.textPrimary)),
+                  Text('$_pliesDepth polupoteza', style: AppText.bodyBold.copyWith(color: context.colors.accent)),
                 ],
               ),
               Slider(
@@ -145,7 +147,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 min: 2,
                 max: 6,
                 divisions: 4,
-                activeColor: Colors.tealAccent,
+                activeColor: context.colors.accent,
                 onChanged: (val) => setState(() => _pliesDepth = val.round()),
               ),
 
@@ -153,7 +155,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Kandidat potezi (n linija): $_candidateCount', style: const TextStyle(fontSize: 12, color: Colors.white)),
+                  Text('Kandidat potezi (n linija): $_candidateCount', style: AppText.body.copyWith(color: context.colors.textPrimary)),
                   Text('Top $_candidateCount poteza', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent)),
                 ],
               ),
@@ -170,8 +172,8 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Cutoff prag (delta): ${_deltaCutoff.toStringAsFixed(1)} pešaka', style: const TextStyle(fontSize: 12, color: Colors.white)),
-                  Text('${(_deltaCutoff * 100).round()} cp', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent)),
+                  Text('Cutoff prag (delta): ${_deltaCutoff.toStringAsFixed(1)} pešaka', style: AppText.body.copyWith(color: context.colors.textPrimary)),
+                  Text('${(_deltaCutoff * 100).round()} cp', style: AppText.bodyBold.copyWith(color: context.colors.warning)),
                 ],
               ),
               Slider(
@@ -179,7 +181,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 min: 0.5,
                 max: 3.0,
                 divisions: 25,
-                activeColor: Colors.amberAccent,
+                activeColor: context.colors.warning,
                 onChanged: (val) => setState(() => _deltaCutoff = val),
               ),
 
@@ -187,7 +189,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Dubina motora (d): $_engineDepth', style: const TextStyle(fontSize: 12, color: Colors.white)),
+                  Text('Dubina motora (d): $_engineDepth', style: AppText.body.copyWith(color: context.colors.textPrimary)),
                   Text('depth $_engineDepth', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orangeAccent)),
                 ],
               ),
@@ -207,23 +209,22 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 decoration: BoxDecoration(
                   color: Colors.black38,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _isHeavy ? Colors.redAccent : Colors.grey.shade700),
+                  border: Border.all(color: _isHeavy ? context.colors.danger : Colors.grey.shade700),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       _isHeavy ? Icons.warning_amber : Icons.timer_outlined,
                       size: 16,
-                      color: _isHeavy ? Colors.redAccent : Colors.grey,
+                      color: _isHeavy ? context.colors.danger : context.colors.textMuted,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Do $_worstCasePositions pozicija na dubini $_engineDepth · procena ~$_estimatedSeconds s'
                         '${_isHeavy ? '\nSmanjite N, n ili d da skratite analizu.' : ''}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: _isHeavy ? Colors.redAccent : Colors.grey,
+                        style: AppText.caption.copyWith(
+                          color: _isHeavy ? context.colors.danger : context.colors.textMuted,
                         ),
                       ),
                     ),
@@ -252,19 +253,19 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Center(
                 child: Column(
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.tealAccent, size: 36),
+                    Icon(Icons.check_circle, color: context.colors.accent, size: 36),
                     const SizedBox(height: 12),
                     Text(
                       'Gotovo! Analizirano $_processedNodes pozicija.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.tealAccent, fontSize: 14),
+                      style: AppText.subtitle.copyWith(color: context.colors.accent),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Gornja granica je bila $_totalEstimatedNodes (da nije bilo orezivanja). '
                       'Grane čiji je eval bio gori od najboljeg poteza za više od ${_deltaCutoff.toStringAsFixed(1)} pešaka su preskočene — to je očekivano, ne greška.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      style: AppText.caption.copyWith(color: context.colors.textMuted),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
@@ -280,28 +281,28 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Center(
                 child: Column(
                   children: [
-                    LinearProgressIndicator(value: progressPct, backgroundColor: Colors.grey.shade800, color: Colors.amberAccent),
+                    LinearProgressIndicator(value: progressPct, backgroundColor: Colors.grey.shade800, color: context.colors.warning),
                     const SizedBox(height: 16),
                     Text(
                       'Obrađeno čvorova: $_processedNodes / $_totalEstimatedNodes',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.tealAccent, fontSize: 13),
+                      style: AppText.bodyLargeBold.copyWith(color: context.colors.accent),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       _statusMsg,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      style: AppText.body.copyWith(color: context.colors.textMuted),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Napomena: broj iznad je gornja granica bez orezivanja — grane sa slabijim potezima se preskaču pa se stvarni broj skoro uvek zaustavi mnogo ranije.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                      style: AppText.micro.copyWith(color: context.colors.textMuted),
                     ),
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
-                      icon: const Icon(Icons.cancel, color: Colors.redAccent),
-                      label: const Text('Otkaži', style: TextStyle(color: Colors.redAccent)),
+                      icon: Icon(Icons.cancel, color: context.colors.danger),
+                      label: Text('Otkaži', style: TextStyle(color: context.colors.danger)),
                       onPressed: () {
                         _generatorService.cancel();
                         Navigator.pop(context);

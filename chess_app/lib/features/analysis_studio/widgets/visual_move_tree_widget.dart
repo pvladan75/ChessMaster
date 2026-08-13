@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/services.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 /// Graphical move tree: absolutely-positioned node cards connected by curved
 /// edges inside a pannable/zoomable canvas — the same layout approach as the
@@ -345,14 +347,18 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
   }
 
   Widget _toolbarButton(IconData icon, String tooltip, VoidCallback onPressed) {
+    // 10px padding around a 16px icon gives a 36px tap target — short of the
+    // 48dp guideline, but this is a 5-button column floating over the tree
+    // canvas, so a full 48dp each would make the toolbar dominate a phone
+    // screen. 36px is the practical middle ground.
     return Tooltip(
       message: tooltip,
       child: InkWell(
         onTap: onPressed,
         borderRadius: BorderRadius.circular(6),
         child: Padding(
-          padding: const EdgeInsets.all(6.0),
-          child: Icon(icon, size: 16, color: Colors.white70),
+          padding: const EdgeInsets.all(10.0),
+          child: Icon(icon, size: 16, color: context.colors.textSecondary),
         ),
       ),
     );
@@ -504,7 +510,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
       [List<AnalysisNode>? transpositionGroup]) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.grey.shade900,
+      backgroundColor: context.colors.surface,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) {
@@ -516,9 +522,9 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.star, color: Colors.amberAccent),
-                title: const Text('Unapredi u Glavnu Liniju (Main Line)',
-                    style: TextStyle(color: Colors.white)),
+                leading: Icon(Icons.star, color: ctx.colors.warning),
+                title: Text('Unapredi u Glavnu Liniju (Main Line)',
+                    style: TextStyle(color: ctx.colors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   if (node.parent != null) {
@@ -527,36 +533,33 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.delete, color: Colors.redAccent),
-                title: const Text('Obriši Ovu Varijantu',
-                    style: TextStyle(color: Colors.white)),
+                leading: Icon(Icons.delete, color: ctx.colors.danger),
+                title: Text('Obriši Ovu Varijantu',
+                    style: TextStyle(color: ctx.colors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   widget.onDeleteNode?.call(node);
                 },
               ),
               if (others.isNotEmpty) ...[
-                const Divider(color: Colors.white24, height: 1),
+                Divider(color: ctx.colors.border, height: 1),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Ista pozicija dostignuta i preko:',
-                      style: TextStyle(
-                          color: Colors.grey.shade400,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold),
+                      style: AppText.captionBold.copyWith(color: ctx.colors.textMuted),
                     ),
                   ),
                 ),
                 for (final other in others)
                   ListTile(
                     leading:
-                        const Icon(Icons.call_split, color: Colors.amberAccent),
+                        Icon(Icons.call_split, color: ctx.colors.warning),
                     title: Text(_movePathLabel(other),
                         style:
-                            const TextStyle(color: Colors.white, fontSize: 13)),
+                            AppText.bodyLarge.copyWith(color: ctx.colors.textPrimary)),
                     onTap: () {
                       Navigator.pop(ctx);
                       widget.onSelectNode(other);

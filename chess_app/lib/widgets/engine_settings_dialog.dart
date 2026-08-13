@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/engine_download_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 /// True on platforms where a local custom UCI engine (.exe) can be configured.
 /// The underlying StockfishService only looks at `custom_engine_path` on
@@ -134,36 +136,32 @@ Future<void> showEngineSettingsDialog(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Trenutni engine:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  ),
+                  const Text('Trenutni engine:', style: AppText.bodyLargeBold),
                   const SizedBox(height: 4),
                   Text(
                     hasCustom
                         ? 'Sopstveni lokalni engine:\n$currentPath'
                         : 'Podrazumevani (Online / FFI paket)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: hasCustom ? Colors.tealAccent : Colors.grey,
+                    style: AppText.body.copyWith(
+                      color: hasCustom ? context.colors.accent : context.colors.textMuted,
                     ),
                   ),
                   const SizedBox(height: 16),
                   if (isBusy) ...[
-                    Text(statusMessage, style: const TextStyle(fontSize: 12)),
+                    Text(statusMessage, style: AppText.body),
                     const SizedBox(height: 8),
                     LinearProgressIndicator(value: progress),
                   ] else ...[
-                    const Text(
+                    Text(
                       'Preuzmite zvanični Stockfish engine sa interneta i automatski ga podesite, ili izaberite bilo koji UCI kompatibilan .exe sa svog računara.',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                      style: AppText.caption.copyWith(color: context.colors.textMuted),
                     ),
                   ],
                   if (errorMessage != null) ...[
                     const SizedBox(height: 8),
                     Text(
                       errorMessage!,
-                      style: const TextStyle(fontSize: 11, color: Colors.redAccent),
+                      style: AppText.caption.copyWith(color: context.colors.danger),
                     ),
                   ],
                 ],
@@ -173,8 +171,8 @@ Future<void> showEngineSettingsDialog(
               if (hasCustom && !isBusy)
                 TextButton.icon(
                   onPressed: reset,
-                  icon: const Icon(Icons.delete, color: Colors.redAccent, size: 16),
-                  label: const Text('Resetuj', style: TextStyle(color: Colors.redAccent)),
+                  icon: Icon(Icons.delete, color: context.colors.danger, size: 16),
+                  label: Text('Resetuj', style: TextStyle(color: context.colors.danger)),
                 ),
               if (!isBusy) ...[
                 TextButton.icon(
