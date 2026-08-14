@@ -19,6 +19,8 @@ import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/local_recording_service.dart';
+import 'package:chess_app/services/game_session_service.dart';
+import 'package:chess_app/models/pending_session_intent.dart';
 
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
@@ -141,6 +143,25 @@ class _ChessGamePageState extends State<ChessGamePage> {
       boardOrientation = activeRole == 'host'
           ? PlayerColor.white
           : PlayerColor.black;
+
+      if (widget.userSession.isGuest) {
+        // A guest reached a real room directly (shared link, restored deep
+        // link...), bypassing Home's login gate. Send them to log in first,
+        // then straight back into this same room once they have.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          context.go(
+            AppRoutes.login,
+            extra: PendingSessionIntent.joinInviteRoom(widget.roomCode, role: widget.initialRole),
+          );
+        });
+      } else {
+        // Marks this room as the user's active session so they can find
+        // their way back to it after stepping away (Home shows a "resume"
+        // banner) and so Home blocks starting/joining a different one until
+        // they explicitly leave — see the AppBar's "Napusti sesiju" action.
+        GameSessionService.instance.setActive(widget.roomCode, activeRole);
+      }
     }
     controller = ChessBoardController();
     moveTree = MoveTree(startingFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
@@ -2992,7 +3013,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
       canPop: !isRecording,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop || !isRecording) return;
-        await _confirmLeaveWhileRecording();
+        // Just stepping out — the active session stays intact so the user
+        // can resume it later (see the "Napusti sesiju" action for the only
+        // thing that actually ends it).
+        final proceed = await _resolveRecordingBeforeLeaving();
+        if (!context.mounted || !proceed) return;
+        context.pop();
       },
       child: Scaffold(
       appBar: AppBar(
@@ -3016,6 +3042,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
               if (mounted) setState(() {});
             },
           ),
+          if (widget.roomCode != 'STUDIO')
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.redAccent),
+              tooltip: 'Napusti sesiju',
+              onPressed: _leaveSessionExplicitly,
+            ),
           Icon(
             isConnected ? Icons.cloud_done : Icons.cloud_off,
             color: isConnected ? Colors.green : Colors.red,
@@ -3127,8 +3159,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
-  /// Offers to save the in-progress recording before tearing the room down.
-  Future<void> _confirmLeaveWhileRecording() async {
+  /// Offers to save the in-progress recording before leaving the room.
+  /// Returns true once the recording is resolved (stopped/saved or
+  /// discarded) and it's safe to proceed with leaving; false if the user
+  /// backed out and is still recording.
+  Future<bool> _resolveRecordingBeforeLeaving() async {
     final choice = await showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -3156,14 +3191,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
       ),
     );
 
-    if (!mounted || choice == null || choice == 'cancel') return;
+    if (!mounted || choice == null || choice == 'cancel') return false;
 
     if (choice == 'save') {
       // _stopRecording runs its own title/save dialog and clears the buffer.
       await _stopRecording();
-      if (!mounted) return;
+      if (!mounted) return false;
       // Bail out if the user backed out of that dialog and is still recording.
-      if (isRecording) return;
+      if (isRecording) return false;
     } else {
       setState(() {
         isRecording = false;
@@ -3173,7 +3208,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
       });
     }
 
-    if (mounted) context.pop();
+    return true;
+  }
+
+  /// The only path that actually ends the session (as opposed to just
+  /// stepping out of the screen): clears [GameSessionService] so Home stops
+  /// offering to resume it and no longer blocks starting/joining another.
+  Future<void> _leaveSessionExplicitly() async {
+    if (isRecording && !await _resolveRecordingBeforeLeaving()) return;
+    await GameSessionService.instance.clear();
+    if (!mounted) return;
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.home);
+    }
   }
 }
 

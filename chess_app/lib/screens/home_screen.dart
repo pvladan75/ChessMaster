@@ -6,10 +6,12 @@ import 'dart:convert';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/models/pending_session_intent.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/services/session_service.dart';
+import 'package:chess_app/services/game_session_service.dart';
 
 import 'package:chess_app/screens/ai_studio_screen.dart';
 
@@ -22,7 +24,11 @@ import 'package:chess_app/widgets/home/friends_tab.dart';
 class HomeScreen extends StatefulWidget {
   final UserSession session;
 
-  const HomeScreen({super.key, required this.session});
+  /// A login-gated action to resume now that the user is signed in — see
+  /// login_screen.dart's `_navigateToHome` and this screen's `initState`.
+  final PendingSessionIntent? pendingIntent;
+
+  const HomeScreen({super.key, required this.session, this.pendingIntent});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -86,6 +92,14 @@ class _HomeScreenState extends State<HomeScreen> {
       _fetchScheduledSessions();
     }
     OpeningBookService.instance.ensureLoaded();
+    GameSessionService.instance.addListener(_onGameSessionChanged);
+
+    final intent = widget.pendingIntent;
+    if (intent != null) {
+      // Deferred to after the first frame: the actions below (pushing a
+      // route, opening a dialog) need a settled BuildContext.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _resumePendingIntent(intent));
+    }
   }
 
   @override
@@ -94,10 +108,38 @@ class _HomeScreenState extends State<HomeScreen> {
       _socket.disconnect();
       _socket.dispose();
     }
+    GameSessionService.instance.removeListener(_onGameSessionChanged);
     _codeController.dispose();
     _studentEmailController.dispose();
     _friendEmailController.dispose();
     super.dispose();
+  }
+
+  void _onGameSessionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Runs the action that sent a guest to /login, now that they're signed in.
+  void _resumePendingIntent(PendingSessionIntent intent) {
+    if (!mounted) return;
+    switch (intent.action) {
+      case PendingSessionAction.createRoom:
+        _createRoom();
+        break;
+      case PendingSessionAction.showCreateRoomDialog:
+        _showCreateRoomWithFriendsDialog();
+        break;
+      case PendingSessionAction.joinRoomByCode:
+        _codeController.text = intent.roomCode ?? '';
+        _joinRoom();
+        break;
+      case PendingSessionAction.joinInviteRoom:
+        if (intent.roomCode != null) _joinInviteRoom(intent.roomCode!);
+        break;
+      case PendingSessionAction.inviteStudent:
+        if (intent.studentId != null) _inviteStudent(intent.studentId!);
+        break;
+    }
   }
 
   void _initSocket() {
@@ -154,6 +196,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _joinInviteRoom(String roomCode) async {
+    if (!_checkAuthRequired(PendingSessionIntent.joinInviteRoom(roomCode))) return;
+    if (!_checkNoActiveSession(targetRoomCode: roomCode)) return;
     _socket.disconnect();
     await context.push(AppRoutes.roomPath(roomCode, role: 'ucenik'));
     if (mounted) {
@@ -401,6 +445,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showCreateRoomWithFriendsDialog() {
+    if (!_checkAuthRequired(const PendingSessionIntent.showCreateRoomDialog())) return;
+    if (!_checkNoActiveSession()) return;
     final availableFriends = _students.isNotEmpty ? _students : _friends;
     dialogs.showCreateRoomWithFriendsDialog(
       context,
@@ -410,6 +456,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _createRoomWithInvites(List<int> friendIds) async {
+    if (!_checkNoActiveSession()) return;
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
@@ -515,7 +562,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _inviteStudent(int studentId) async {
-    if (!_checkAuthRequired()) return;
+    if (!_checkAuthRequired(PendingSessionIntent.inviteStudent(studentId))) return;
+    if (!_checkNoActiveSession()) return;
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
@@ -560,7 +608,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _createRoom() async {
-    if (!_checkAuthRequired()) return;
+    if (!_checkAuthRequired(const PendingSessionIntent.createRoom())) return;
+    if (!_checkNoActiveSession()) return;
     setState(() => _isLoading = true);
 
     try {
@@ -588,12 +637,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _joinRoom() async {
-    if (!_checkAuthRequired()) return;
     final code = _codeController.text.trim();
+    if (!_checkAuthRequired(PendingSessionIntent.joinRoomByCode(code))) return;
     if (code.length != 6) {
       _showError('Enter a valid 6-digit code');
       return;
     }
+    if (!_checkNoActiveSession(targetRoomCode: code)) return;
 
     setState(() => _isLoading = true);
 
@@ -645,15 +695,34 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  bool _checkAuthRequired() {
+  /// Redirects a guest straight to /login (carrying [intent] so the action
+  /// resumes automatically after signing in) instead of asking first —
+  /// entering or creating a session always requires being logged in.
+  bool _checkAuthRequired(PendingSessionIntent intent) {
     if (widget.session.isGuest) {
-      dialogs.showAuthRequiredDialog(context, onLogin: () => context.push(AppRoutes.login));
+      context.push(AppRoutes.login, extra: intent);
       return false;
     }
     return true;
   }
 
+  /// Blocks starting/joining a *different* room while one is already active
+  /// — rejoining the same room (e.g. resuming) is always allowed.
+  bool _checkNoActiveSession({String? targetRoomCode}) {
+    final gs = GameSessionService.instance;
+    if (!gs.hasActiveSession || (targetRoomCode != null && gs.isSameSession(targetRoomCode))) {
+      return true;
+    }
+    dialogs.showActiveSessionBlockedDialog(
+      context,
+      roomCode: gs.roomCode!,
+      onGoToSession: () => context.push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
+    );
+    return false;
+  }
+
   Future<void> _logout() async {
+    await GameSessionService.instance.clear();
     await SessionService.instance.signOut();
     if (!mounted) return;
     context.go(AppRoutes.login);
@@ -738,30 +807,37 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-      body: Row(
+      body: Column(
         children: [
-          // The rail stays visible for every tab in landscape. AI Studio's
-          // landscape board is sized from available *height*, so the rail's
-          // width costs it nothing — and hiding it used to leave that tab with
-          // no AppBar, no bottom bar and no rail, i.e. no way out at all.
-          if (isWide || isLandscape)
-            NavigationRail(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: _selectTab,
-              labelType: NavigationRailLabelType.none,
-              destinations: const [
-                NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Početna')),
-                NavigationRailDestination(icon: Icon(Icons.psychology_outlined), selectedIcon: Icon(Icons.psychology), label: Text('Trening')),
-                NavigationRailDestination(icon: Icon(Icons.library_books_outlined), selectedIcon: Icon(Icons.library_books), label: Text('Biblioteka')),
-                NavigationRailDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: Text('Prijatelji')),
-                NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Podešavanja')),
-              ],
-            ),
-          if (isWide || isLandscape) const VerticalDivider(width: 1, thickness: 1),
+          _buildActiveSessionBanner(),
           Expanded(
-            child: IndexedStack(
-              index: _selectedIndex,
-              children: pages,
+            child: Row(
+              children: [
+                // The rail stays visible for every tab in landscape. AI Studio's
+                // landscape board is sized from available *height*, so the rail's
+                // width costs it nothing — and hiding it used to leave that tab with
+                // no AppBar, no bottom bar and no rail, i.e. no way out at all.
+                if (isWide || isLandscape)
+                  NavigationRail(
+                    selectedIndex: _selectedIndex,
+                    onDestinationSelected: _selectTab,
+                    labelType: NavigationRailLabelType.none,
+                    destinations: const [
+                      NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Početna')),
+                      NavigationRailDestination(icon: Icon(Icons.psychology_outlined), selectedIcon: Icon(Icons.psychology), label: Text('Trening')),
+                      NavigationRailDestination(icon: Icon(Icons.library_books_outlined), selectedIcon: Icon(Icons.library_books), label: Text('Biblioteka')),
+                      NavigationRailDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: Text('Prijatelji')),
+                      NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Podešavanja')),
+                    ],
+                  ),
+                if (isWide || isLandscape) const VerticalDivider(width: 1, thickness: 1),
+                Expanded(
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: pages,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -787,4 +863,38 @@ class _HomeScreenState extends State<HomeScreen> {
     context.push(AppRoutes.roomPath('STUDIO', role: 'host'));
   }
 
+  /// Lets the user find their way back into a room after stepping away from
+  /// it (back button, switching tabs, app restart) — see chess_game_screen's
+  /// "Napusti sesiju" action for the only thing that clears this.
+  Widget _buildActiveSessionBanner() {
+    final gs = GameSessionService.instance;
+    if (!gs.hasActiveSession) return const SizedBox.shrink();
+
+    return Material(
+      color: Colors.teal.shade700,
+      child: InkWell(
+        onTap: () => context.push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              const Icon(Icons.podcasts, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Aktivna sesija (kod: ${gs.roomCode}) — dodirnite da nastavite',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+              TextButton(
+                onPressed: () => context.push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
+                child: const Text('Nastavi sesiju'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

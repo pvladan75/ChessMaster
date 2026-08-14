@@ -435,25 +435,29 @@ void showPremiumModal(BuildContext context, {required bool isPremium, required v
   );
 }
 
-void showAuthRequiredDialog(BuildContext context, {required VoidCallback onLogin}) {
+void showActiveSessionBlockedDialog(
+  BuildContext context, {
+  required String roomCode,
+  required VoidCallback onGoToSession,
+}) {
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Potrebna Prijava'),
-      content: const Text(
-        'Za pokretanje ili priključivanje sesijama uživo (Agora predavanja / igra u dvoje) potrebna je prijava ili registracija.',
+      title: const Text('Već imate aktivnu sesiju'),
+      content: Text(
+        'Već ste u sesiji (kod: $roomCode). Napustite je (dugme "Napusti sesiju" u sobi) pre nego što napravite ili se priključite drugoj.',
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Odustani'),
+          child: const Text('Otkaži'),
         ),
         ElevatedButton(
           onPressed: () {
             Navigator.pop(ctx);
-            onLogin();
+            onGoToSession();
           },
-          child: const Text('Prijavi se / Registruj'),
+          child: const Text('Idi na sesiju'),
         ),
       ],
     ),

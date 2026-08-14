@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/session_service.dart';
+import 'package:chess_app/models/pending_session_intent.dart';
 import 'package:chess_app/screens/home_screen.dart';
 import 'package:chess_app/screens/login_screen.dart';
 import 'package:chess_app/screens/settings_screen.dart';
@@ -21,11 +22,14 @@ final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(
       path: AppRoutes.login,
-      builder: (context, state) => const LoginRegisterScreen(),
+      builder: (context, state) => LoginRegisterScreen(pendingIntent: state.extra as PendingSessionIntent?),
     ),
     GoRoute(
       path: AppRoutes.home,
-      builder: (context, state) => HomeScreen(session: SessionService.instance.current),
+      builder: (context, state) => HomeScreen(
+        session: SessionService.instance.current,
+        pendingIntent: state.extra as PendingSessionIntent?,
+      ),
     ),
     GoRoute(
       path: AppRoutes.room,

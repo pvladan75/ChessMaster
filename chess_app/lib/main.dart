@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
+import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/routing/app_router.dart';
 import 'package:chess_app/theme/app_colors.dart';
 
@@ -12,6 +13,7 @@ void main() async {
   // Routes build screens from the session, so it has to be loaded before the
   // first route is resolved.
   await SessionService.instance.init();
+  await GameSessionService.instance.init();
 
   runApp(const ProviderScope(child: ChessApp()));
 }

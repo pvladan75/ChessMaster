@@ -5,13 +5,19 @@ import 'dart:convert';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/models/pending_session_intent.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/session_service.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class LoginRegisterScreen extends StatefulWidget {
-  const LoginRegisterScreen({super.key});
+  /// The login-gated action (create/join a room, invite a student...) that
+  /// sent the user here, if any — resumed automatically by HomeScreen once
+  /// signing in succeeds. See home_screen.dart's `_checkAuthRequired`.
+  final PendingSessionIntent? pendingIntent;
+
+  const LoginRegisterScreen({super.key, this.pendingIntent});
 
   @override
   State<LoginRegisterScreen> createState() => _LoginRegisterScreenState();
@@ -197,7 +203,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   void _navigateToHome(UserSession session) {
     // go() rather than push(): after signing in there is nothing meaningful to
     // go "back" to, and the login screen should not stay on the stack.
-    context.go(AppRoutes.home);
+    // A guest declining to log in must not silently run a login-gated action.
+    context.go(AppRoutes.home, extra: session.isGuest ? null : widget.pendingIntent);
   }
 
   void _showError(String message) {
