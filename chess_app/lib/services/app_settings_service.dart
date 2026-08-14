@@ -16,6 +16,15 @@ class AppSettingsService extends ChangeNotifier {
   String _lichessApiToken = '';
   bool _manualCommentMode = false;
 
+  /// How the user makes a move on the board: 'drag' (drag-and-drop, default)
+  /// or 'tap' (tap piece, then tap destination square).
+  String _moveInputMode = 'drag';
+
+  /// How long a piece takes to slide from its origin to destination square
+  /// after a move. 0 disables the animation (piece snaps instantly, as
+  /// flutter_chess_board does natively).
+  int _moveAnimationDurationMs = 200;
+
   /// Which opening database the Analysis Studio Opening Explorer panel
   /// queries: 'lichess' (real-game move popularity, needs an API token) or
   /// 'chessdb' (ChessDB.cn's shared engine analysis, no token needed).
@@ -34,6 +43,9 @@ class AppSettingsService extends ChangeNotifier {
   /// the user picks which findings to keep (plus their own text) through
   /// the comment dialog's checklist instead.
   bool get manualCommentMode => _manualCommentMode;
+
+  String get moveInputMode => _moveInputMode;
+  int get moveAnimationDurationMs => _moveAnimationDurationMs;
 
   /// Panels default to visible; only explicitly hidden keys are stored, so
   /// new panels added later don't need a migration to stay visible.
@@ -57,6 +69,8 @@ class AppSettingsService extends ChangeNotifier {
     _hiddenPanels = (prefs.getStringList('app_hidden_panels') ?? []).toSet();
     _lichessApiToken = prefs.getString('lichess_api_token') ?? '';
     _manualCommentMode = prefs.getBool('app_manual_comment_mode') ?? false;
+    _moveInputMode = (prefs.getString('app_move_input_mode') == 'tap') ? 'tap' : 'drag';
+    _moveAnimationDurationMs = (prefs.getInt('app_move_animation_ms') ?? 200).clamp(0, 500);
     final storedSource = prefs.getString('app_opening_db_source');
     _openingDbSource = (storedSource == 'chessdb') ? 'chessdb' : 'lichess';
     notifyListeners();
@@ -121,6 +135,20 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('app_manual_comment_mode', _manualCommentMode);
+  }
+
+  Future<void> setMoveInputMode(String mode) async {
+    _moveInputMode = (mode == 'tap') ? 'tap' : 'drag';
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_move_input_mode', _moveInputMode);
+  }
+
+  Future<void> setMoveAnimationDurationMs(int ms) async {
+    _moveAnimationDurationMs = ms.clamp(0, 500);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('app_move_animation_ms', _moveAnimationDurationMs);
   }
 
   Future<void> setOpeningDbSource(String source) async {

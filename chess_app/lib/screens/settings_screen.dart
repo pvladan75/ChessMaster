@@ -313,6 +313,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: AppText.caption.copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
+                      const Text('Način izvođenja poteza:', style: TextStyle(fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('Prevlačenje (drag)'),
+                              selected: _settings.moveInputMode == 'drag',
+                              onSelected: (_) => _settings.setMoveInputMode('drag'),
+                              avatar: const Icon(Icons.open_with, size: 16),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('Dodirom (tap)'),
+                              selected: _settings.moveInputMode == 'tap',
+                              onSelected: (_) => _settings.setMoveInputMode('tap'),
+                              avatar: const Icon(Icons.touch_app, size: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'Dodirom: prvo dodirni figuru, pa odredišno polje.',
+                        style: AppText.caption.copyWith(color: context.colors.textMuted),
+                      ),
+                      const Divider(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Animacija poteza:', style: TextStyle(fontWeight: FontWeight.w500)),
+                          Text(
+                            _settings.moveAnimationDurationMs == 0 ? 'Isključeno' : '${_settings.moveAnimationDurationMs} ms',
+                            style: TextStyle(fontWeight: FontWeight.bold, color: context.colors.accent),
+                          ),
+                        ],
+                      ),
+                      Slider(
+                        value: _settings.moveAnimationDurationMs.toDouble(),
+                        min: 0,
+                        max: 500,
+                        divisions: 10,
+                        label: _settings.moveAnimationDurationMs == 0 ? 'Isključeno' : '${_settings.moveAnimationDurationMs} ms',
+                        activeColor: context.colors.accent,
+                        onChanged: (val) {
+                          _settings.setMoveAnimationDurationMs(val.round());
+                        },
+                      ),
+                      Text(
+                        'Koliko dugo figura klizi ka odredišnom polju. Krajnje levo isključuje animaciju.',
+                        style: AppText.caption.copyWith(color: context.colors.textMuted),
+                      ),
+                      const Divider(height: 24),
                       const Text('Paneli u Analizi (Tabla za Analizu):', style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: 4),
                       ..._analysisPanelToggles.map((panel) => CheckboxListTile(

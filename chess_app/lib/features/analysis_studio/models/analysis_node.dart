@@ -8,6 +8,14 @@ class AnalysisNode {
   String comment;
   String? nag; // '!!', '!', '?', '??', '!?', '!□'
   double? eval;
+
+  /// Engine depth [eval] was computed at. Lets a shallower, later analysis
+  /// (e.g. the live eval bar re-triggering for whatever node is on screen)
+  /// avoid silently overwriting a deeper, more authoritative eval that a
+  /// prior whole-game review already wrote — see the live-analysis callback
+  /// in AnalysisStudioScreen.
+  int? evalDepth;
+
   List<AnalysisNode> children;
   AnalysisNode? parent;
 
@@ -19,6 +27,7 @@ class AnalysisNode {
     this.comment = '',
     this.nag,
     this.eval,
+    this.evalDepth,
     List<AnalysisNode>? children,
     this.parent,
   })  : id = id ?? _generateId(),
@@ -84,6 +93,7 @@ class AnalysisNode {
       'comment': comment,
       'nag': nag,
       'eval': eval,
+      'evalDepth': evalDepth,
       'children': children.map((c) => c.toJson()).toList(),
     };
   }
@@ -98,6 +108,7 @@ class AnalysisNode {
       comment: json['comment'] as String? ?? '',
       nag: json['nag'] as String?,
       eval: (json['eval'] as num?)?.toDouble(),
+      evalDepth: (json['evalDepth'] as num?)?.toInt(),
       parent: parent,
     );
     final childrenJson = (json['children'] as List?) ?? const [];

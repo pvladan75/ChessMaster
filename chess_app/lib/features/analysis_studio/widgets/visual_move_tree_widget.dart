@@ -97,6 +97,15 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
   _PlaySpeed _playSpeed = _PlaySpeed.normal;
   List<AnalysisNode> _playbackOrder = [];
 
+  // Index into _playbackOrder for the step _advancePlay last moved to.
+  // _playbackOrder can (deliberately, see _buildPlaybackOrder) contain the
+  // same node twice — once on the way down a line, once again as the "back
+  // to the branch point" step before diving into the next line — so looking
+  // up "where am I" by node id on every tick would always find the first
+  // occurrence and get stuck replaying the same subtree. An explicit cursor
+  // that only gets (re)synced to activeNode when play starts sidesteps that.
+  int? _playbackCursor;
+
   @override
   void dispose() {
     _playTimer?.cancel();
@@ -115,6 +124,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
 
   void _startPlay() {
     if (_playbackOrder.isEmpty) return;
+    final startIdx = _playbackOrder.indexWhere((n) => n.id == widget.activeNode.id);
+    _playbackCursor = startIdx == -1 ? null : startIdx;
     setState(() {
       _playTimer = Timer.periodic(_playSpeed.interval, (_) => _advancePlay());
     });
@@ -142,14 +153,32 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
       _stopPlay();
       return;
     }
-    final currentIdx =
-        _playbackOrder.indexWhere((n) => n.id == widget.activeNode.id);
-    final nextIdx = currentIdx + 1;
+    final nextIdx = (_playbackCursor ?? -1) + 1;
     if (nextIdx >= _playbackOrder.length) {
       _stopPlay();
       return;
     }
+    _playbackCursor = nextIdx;
     widget.onSelectNode(_playbackOrder[nextIdx]);
+  }
+
+  /// Inserts the branch point node between two consecutive [preorder] steps
+  /// whenever the second isn't a direct child of the first — i.e. whenever
+  /// playback is about to jump from the end of one line into a sibling
+  /// variation. [preorder]'s own node is that branch point (curr.parent),
+  /// so it just gets revisited rather than skipped over.
+  List<AnalysisNode> _expandWithBranchReturns(List<AnalysisNode> preorder) {
+    if (preorder.isEmpty) return preorder;
+    final result = <AnalysisNode>[preorder.first];
+    for (int i = 1; i < preorder.length; i++) {
+      final prev = preorder[i - 1];
+      final curr = preorder[i];
+      if (curr.parent != null && curr.parent!.id != prev.id) {
+        result.add(curr.parent!);
+      }
+      result.add(curr);
+    }
+    return result;
   }
 
   void _selectParent() {
@@ -391,8 +420,12 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     final transpositionGroups = _buildTranspositionGroups();
 
     // Preorder = exactly the order _layout just walked the (filtered) tree
-    // in, so this doubles as the auto-player's script.
-    _playbackOrder = positioned.map((pn) => pn.node).toList();
+    // in, so this doubles as the auto-player's script — except a bare
+    // preorder walk jumps straight from the last move of one line to the
+    // first move of the next, skipping past the branch point. Expanding it
+    // to revisit that node first plays back naturally: finish a line, step
+    // back to where it forked, then head down the next one.
+    _playbackOrder = _expandWithBranchReturns(positioned.map((pn) => pn.node).toList());
 
     double maxRight = 0.0;
     double maxBottom = 0.0;

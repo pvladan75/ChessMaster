@@ -1,10 +1,17 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/core/models/game_moment.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
 import 'package:chess_app/core/services/positional_evaluator_service.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart' show PositionAnalyzer;
+import 'package:chess_app/models/analysis_models.dart';
+import 'package:chess_app/core/services/eval_parsing.dart';
+
+/// Which side's mistakes a blunder alert should flag — see
+/// [GameAnalysisWalkerService.tagBlunders].
+enum BlunderAlertSide { white, black, both }
 
 /// Walks an already-known sequence of moves (a real game, not engine-searched
 /// branches) one ply at a time: gets the engine eval at every position,
@@ -68,16 +75,21 @@ class GameAnalysisWalkerService {
 
     final total = fens.length;
     final evalsRaw = <String?>[];
+    final linesRaw = <AnalysisLine?>[];
     for (var i = 0; i < fens.length; i++) {
       if (_cancelled) return const [];
       String? eval;
+      AnalysisLine? line;
       try {
         final lines = await analyzer(fens[i], depth: depth, multiPV: 1, timeout: const Duration(seconds: 12));
-        eval = lines.isNotEmpty ? lines.first.evaluation : null;
+        line = lines.isNotEmpty ? lines.first : null;
+        eval = line?.evaluation;
       } catch (_) {
         eval = null;
+        line = null;
       }
       evalsRaw.add(eval);
+      linesRaw.add(line);
       onProgress?.call(i + 1, total);
     }
 
@@ -105,6 +117,7 @@ class GameAnalysisWalkerService {
         fenBefore: fenBefore,
         fenAfter: fenAfter,
         moverColor: moverColor,
+        engineLineBefore: linesRaw[i],
         evalBeforeRaw: evalsRaw[i],
         evalAfterRaw: evalsRaw[i + 1],
         evalBeforeForMover: beforeForMover,
@@ -118,28 +131,34 @@ class GameAnalysisWalkerService {
     return moments;
   }
 
-  /// Walks [rootNode]'s main line (first child at every step) and writes
-  /// each move's combined tactical+positional comment and White-relative
-  /// eval into the corresponding node. Existing non-empty comments are left
-  /// alone unless [overwriteExisting] is true.
-  Future<void> annotateNodeChain({
-    required AnalysisNode rootNode,
+  /// Walks [startNode]'s main line (first child at every step — [startNode]
+  /// need not be the tree's true root, so this also covers "analyze just
+  /// from here onward" over a sub-sequence of the game) and writes each
+  /// move's combined tactical+positional comment and White-relative eval
+  /// into the corresponding node. Existing non-empty comments are left alone
+  /// unless [overwriteExisting] is true.
+  ///
+  /// Returns the walked node chain alongside the raw [GameMoment]s so a
+  /// caller can run further passes (e.g. [tagBlunders], puzzle extraction)
+  /// over the same engine walk instead of re-analyzing the game.
+  Future<({List<AnalysisNode> chain, List<GameMoment> moments})> annotateNodeChain({
+    required AnalysisNode startNode,
     required PositionAnalyzer analyzer,
     int depth = _defaultDepth,
     bool overwriteExisting = false,
     void Function(int processed, int total)? onProgress,
   }) async {
     final chain = <AnalysisNode>[];
-    var cur = rootNode;
+    var cur = startNode;
     while (cur.children.isNotEmpty) {
       cur = cur.children.first;
       chain.add(cur);
     }
-    if (chain.isEmpty) return;
+    if (chain.isEmpty) return (chain: chain, moments: const <GameMoment>[]);
 
     final uciMoves = chain.map((n) => n.moveUci ?? '').toList();
     final moments = await analyzeGame(
-      startingFen: rootNode.fen,
+      startingFen: startNode.fen,
       uciMoves: uciMoves,
       analyzer: analyzer,
       depth: depth,
@@ -156,34 +175,93 @@ class GameAnalysisWalkerService {
         }
       }
 
-      final afterEval = _parseWhiteRelativeEval(moment.evalAfterRaw);
+      final afterEval = parseWhiteRelativeEval(moment.evalAfterRaw);
       if (afterEval != null) {
         node.eval = afterEval;
+        node.evalDepth = depth;
       }
+    }
+
+    return (chain: chain, moments: moments);
+  }
+
+  /// Marks every move in [chain] that lost at least [threshold] pawns for
+  /// the side in [side] with a '??' NAG, and — when [insertAlternativeLine]
+  /// is true — inserts the engine's own suggestion from that point as a
+  /// short sibling variation (capped at [alternativeLinePlies] plies) so the
+  /// better continuation is visible right next to the mistake.
+  ///
+  /// Once a position is already decided (the mover's own eval before the
+  /// move was at least [decidedEvalCutoff] pawns either way), an ordinary
+  /// [threshold]-sized swing is normal noise between winning-technique lines
+  /// rather than a real mistake — simplifying into a won endgame routinely
+  /// costs a few pawns of raw eval without changing the outcome. In that
+  /// case the swing has to clear the larger [decidedSwingThreshold] instead,
+  /// so only a swing that actually changes the position's character (e.g.
+  /// +15 collapsing to +6) still gets flagged.
+  ///
+  /// Returns how many moves were tagged as blunders.
+  int tagBlunders({
+    required List<AnalysisNode> chain,
+    required List<GameMoment> moments,
+    required double threshold,
+    BlunderAlertSide side = BlunderAlertSide.both,
+    bool insertAlternativeLine = true,
+    int alternativeLinePlies = 4,
+    double decidedEvalCutoff = 8.0,
+    double decidedSwingThreshold = 6.0,
+  }) {
+    var tagged = 0;
+    for (var i = 0; i < moments.length && i < chain.length; i++) {
+      final moment = moments[i];
+
+      final alreadyDecided = moment.evalBeforeForMover != null && moment.evalBeforeForMover!.abs() >= decidedEvalCutoff;
+      final effectiveThreshold = alreadyDecided ? math.max(threshold, decidedSwingThreshold) : threshold;
+      if (!moment.isBlunderBeyond(effectiveThreshold)) continue;
+      if (side == BlunderAlertSide.white && moment.moverColor != chess.Color.WHITE) continue;
+      if (side == BlunderAlertSide.black && moment.moverColor != chess.Color.BLACK) continue;
+
+      final node = chain[i];
+      node.nag = '??';
+      tagged++;
+
+      if (!insertAlternativeLine) continue;
+      final betterLine = moment.engineLineBefore;
+      final parent = node.parent;
+      if (betterLine == null || parent == null || betterLine.sanMoveList.isEmpty) continue;
+      if (betterLine.bestMoveLan == moment.moveUci) continue;
+
+      _insertAlternativeLine(parent, betterLine, alternativeLinePlies);
+    }
+    return tagged;
+  }
+
+  /// Replays up to [maxPlies] moves of [line]'s principal variation onto
+  /// [parent] as a new branch (or reuses an existing one with the same first
+  /// move), tagging the first move '!' with a "Bolji potez" comment.
+  void _insertAlternativeLine(AnalysisNode parent, AnalysisLine line, int maxPlies) {
+    final plies = line.sanMoveList.take(maxPlies).toList();
+    if (plies.isEmpty) return;
+
+    final game = chess.Chess.fromFEN(parent.fen);
+    var cur = parent;
+    for (var i = 0; i < plies.length; i++) {
+      final san = plies[i];
+      if (!game.move(san)) break;
+      final moveObj = game.history.last.move;
+      final uci = moveObj.fromAlgebraic + moveObj.toAlgebraic + (moveObj.promotion?.name ?? '');
+      final child = cur.addChild(childFen: game.fen, san: san, uci: uci);
+      if (i == 0) {
+        child.nag = '!';
+        if (child.comment.isEmpty) child.comment = 'Bolji potez';
+      }
+      cur = child;
     }
   }
 
   double? _evalForMover(String? whiteRelativeRaw, chess.Color moverColor) {
-    final whiteRelative = _parseWhiteRelativeEval(whiteRelativeRaw);
+    final whiteRelative = parseWhiteRelativeEval(whiteRelativeRaw);
     if (whiteRelative == null) return null;
     return moverColor == chess.Color.WHITE ? whiteRelative : -whiteRelative;
-  }
-
-  /// Parses an engine eval string ("1.23", "-0.50", "M4", "-M4") into a
-  /// White-relative pawn-unit value. Mate scores collapse to a large but
-  /// finite magnitude (100 minus the mate distance) so they still compare
-  /// sensibly against ordinary evals without needing special-casing at every
-  /// call site.
-  double? _parseWhiteRelativeEval(String? raw) {
-    if (raw == null || raw.isEmpty) return null;
-
-    final numeric = double.tryParse(raw);
-    if (numeric != null) return numeric;
-
-    final mateMatch = RegExp(r'(-)?M(\d+)').firstMatch(raw);
-    if (mateMatch == null) return null;
-    final distance = int.tryParse(mateMatch.group(2)!) ?? 1;
-    final magnitude = 100.0 - distance;
-    return mateMatch.group(1) != null ? -magnitude : magnitude;
   }
 }

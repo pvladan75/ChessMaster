@@ -14,6 +14,14 @@ class LocalPuzzle {
   final String sourceMoveSan;
   final int sourcePlyIndex;
 
+  /// Position right before the blunder, and the blunder move itself in UCI
+  /// (e.g. "e2e4") — kept so the puzzle-viewing UI can show the position
+  /// before the mistake and then play/highlight the move that caused it,
+  /// instead of dropping the solver straight into [fen]. Nullable so puzzles
+  /// persisted before this field existed still deserialize.
+  final String? fenBefore;
+  final String? moveUci;
+
   const LocalPuzzle({
     required this.id,
     required this.fen,
@@ -22,6 +30,8 @@ class LocalPuzzle {
     required this.swing,
     required this.sourceMoveSan,
     required this.sourcePlyIndex,
+    this.fenBefore,
+    this.moveUci,
   });
 
   /// Shape consumed by the rest of the app's puzzle-solving flow (see
@@ -42,6 +52,30 @@ class LocalPuzzle {
       'sourceMoveSan': sourceMoveSan,
     };
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'fen': fen,
+        'themeLabel': themeLabel,
+        'themeKey': themeKey,
+        'swing': swing,
+        'sourceMoveSan': sourceMoveSan,
+        'sourcePlyIndex': sourcePlyIndex,
+        'fenBefore': fenBefore,
+        'moveUci': moveUci,
+      };
+
+  factory LocalPuzzle.fromJson(Map<String, dynamic> json) => LocalPuzzle(
+        id: json['id'] as String,
+        fen: json['fen'] as String,
+        themeLabel: json['themeLabel'] as String,
+        themeKey: json['themeKey'] as String?,
+        swing: (json['swing'] as num?)?.toDouble() ?? 0,
+        sourceMoveSan: json['sourceMoveSan'] as String,
+        sourcePlyIndex: (json['sourcePlyIndex'] as num?)?.toInt() ?? 0,
+        fenBefore: json['fenBefore'] as String?,
+        moveUci: json['moveUci'] as String?,
+      );
 }
 
 /// Turns a played game into a set of tactical exercises: walks the game
@@ -79,15 +113,23 @@ class LocalPuzzleExtractorService {
       onProgress: onProgress,
     );
 
+    return buildPuzzlesFromMoments(moments, blunderThreshold: blunderThreshold, maxPuzzles: maxPuzzles);
+  }
+
+  /// Same blunder-selection logic as [extractPuzzles], but over an
+  /// already-computed set of [GameMoment]s — lets a caller that already ran
+  /// an engine walk for another purpose (e.g. whole-game review) extract
+  /// puzzles from it too, without a second pass over the engine.
+  List<LocalPuzzle> buildPuzzlesFromMoments(
+    List<GameMoment> moments, {
+    required double blunderThreshold,
+    required int maxPuzzles,
+  }) {
     final blunders = moments.where((m) => m.isBlunderBeyond(blunderThreshold)).toList()
       // Worst blunders (most negative swing) first.
       ..sort((a, b) => a.swingForMover!.compareTo(b.swingForMover!));
 
-    final puzzles = <LocalPuzzle>[];
-    for (final moment in blunders.take(maxPuzzles)) {
-      puzzles.add(_buildPuzzle(moment));
-    }
-    return puzzles;
+    return blunders.take(maxPuzzles).map(_buildPuzzle).toList();
   }
 
   LocalPuzzle _buildPuzzle(GameMoment moment) {
@@ -108,6 +150,8 @@ class LocalPuzzleExtractorService {
       swing: moment.swingForMover ?? 0,
       sourceMoveSan: moment.moveSan,
       sourcePlyIndex: moment.plyIndex,
+      fenBefore: moment.fenBefore,
+      moveUci: moment.moveUci,
     );
   }
 }

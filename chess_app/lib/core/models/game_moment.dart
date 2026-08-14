@@ -1,4 +1,5 @@
 import 'package:chess/chess.dart' as chess;
+import 'package:chess_app/models/analysis_models.dart';
 
 /// One played move, annotated with engine eval (before/after, from the
 /// perspective of whoever played it) and tactical/positional commentary.
@@ -10,6 +11,13 @@ class GameMoment {
   final String fenBefore;
   final String fenAfter;
   final chess.Color moverColor;
+
+  /// The engine's own top line for [fenBefore] — i.e. what it would have
+  /// played instead of [moveSan]. Free byproduct of the eval walk (the
+  /// engine is already queried at every position anyway), kept around so a
+  /// blunder can be paired with a short "better move" line without a second
+  /// engine pass. Null when the engine returned no line for this position.
+  final AnalysisLine? engineLineBefore;
 
   /// Raw engine eval strings (White-relative, e.g. "1.23" or "-M4") for the
   /// positions before and after this move — kept around for display/PGN
@@ -37,6 +45,7 @@ class GameMoment {
     required this.fenBefore,
     required this.fenAfter,
     required this.moverColor,
+    this.engineLineBefore,
     required this.evalBeforeRaw,
     required this.evalAfterRaw,
     required this.evalBeforeForMover,

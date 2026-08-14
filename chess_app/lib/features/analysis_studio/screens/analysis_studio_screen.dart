@@ -35,9 +35,11 @@ import 'package:chess_app/features/analysis_studio/widgets/positional_findings_p
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
+import 'package:chess_app/features/analysis_studio/widgets/quick_extend_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.dart';
-import 'package:chess_app/features/analysis_studio/widgets/extract_puzzles_dialog.dart';
+import 'package:chess_app/features/analysis_studio/widgets/saved_puzzle_sets_dialog.dart';
 import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
+import 'package:chess_app/core/services/eval_parsing.dart';
 import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart' as dialogs;
 
 class AnalysisStudioScreen extends StatefulWidget {
@@ -61,8 +63,35 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   late AnalysisNode _rootNode;
   late AnalysisNode _currentNode;
   chess.Chess? _chessGame;
+  String? _selectedSquareForTap;
+  // A list rather than a single nullable slot: two moves made back-to-back
+  // faster than the animation duration would otherwise have the second
+  // move's trigger tear down the first's AnimatedMovePiece mid-flight, so
+  // the piece snaps into place instead of visibly sliding there.
+  final List<PendingMoveAnimation> _pendingAnimations = [];
 
   PlayerColor _orientation = PlayerColor.white;
+
+  // Player identity from the last imported PGN's headers (White/Black/Elo/
+  // Result) — null until a PGN with those headers is loaded, so the AppBar
+  // falls back to the generic title otherwise. Purely informational.
+  String? _pgnWhiteName;
+  String? _pgnBlackName;
+  String? _pgnWhiteElo;
+  String? _pgnBlackElo;
+  String? _pgnResult;
+
+  // Puzzle-viewing mode: when non-null, the board is walking through
+  // [_activePuzzleSet] (extracted from a game) instead of free analysis.
+  // Entering a puzzle shows the position *before* the opponent's mistake
+  // first, then plays that move after a short delay so the solver actually
+  // sees what happened, highlighting the from/to squares via [_lastMoveFrom]
+  // / [_lastMoveTo].
+  List<LocalPuzzle>? _activePuzzleSet;
+  int _activePuzzleIndex = 0;
+  String? _lastMoveFrom;
+  String? _lastMoveTo;
+  Timer? _puzzleRevealTimer;
 
   // Engine evaluation state
   bool _showEvaluation = true;
@@ -150,6 +179,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
   @override
   void dispose() {
+    _puzzleRevealTimer?.cancel();
     // A debounced write would be lost with this screen, so force it out first.
     unawaited(AnalysisDraftService.instance.flush(
       rootNode: _rootNode,
@@ -216,6 +246,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _boardController.loadFen(fen);
     final side = fen.split(' ')[1];
     _orientation = side == 'b' ? PlayerColor.black : PlayerColor.white;
+    _lastMoveFrom = null;
+    _lastMoveTo = null;
+    _pgnWhiteName = null;
+    _pgnBlackName = null;
+    _pgnWhiteElo = null;
+    _pgnBlackElo = null;
+    _pgnResult = null;
   }
 
   Future<void> _initEngine() async {
@@ -232,21 +269,21 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         if (!mounted) return;
         if (!_showEvaluation && !_showEvalBar) return;
 
-        double parsedEval = 0.0;
-        final numVal = double.tryParse(evaluation);
-        if (numVal != null) {
-          parsedEval = numVal;
-        } else if (evaluation.contains('M')) {
-          final mateNum = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-          parsedEval = evaluation.contains('-') ? (-10000.0 + mateNum) : (10000.0 - mateNum);
-        }
+        final parsedEval = parseWhiteRelativeEval(evaluation) ?? 0.0;
 
         if (multipv == 1) {
           setState(() {
             _currentRawEval = parsedEval;
             _currentEvalString = evaluation;
             _currentEvalDepth = depth;
-            _currentNode.eval = parsedEval;
+            // Never let a shallower live pass (e.g. this node just came back
+            // into view while the engine is still climbing toward its
+            // target depth) regress an eval a prior whole-game review
+            // already computed at a greater depth.
+            if (_currentNode.evalDepth == null || depth >= _currentNode.evalDepth!) {
+              _currentNode.eval = parsedEval;
+              _currentNode.evalDepth = depth;
+            }
           });
         }
       },
@@ -486,12 +523,30 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   }
 
   void _jumpToNode(AnalysisNode node) {
+    // A single ply forward (stepping to a direct child — "next", or one
+    // step of tree playback/auto-play) has an unambiguous from/to to
+    // animate. Jumps elsewhere in the tree (a distant node click, "first",
+    // going back to the parent) change more than one piece's story at once,
+    // so those still just snap to the target position as before.
+    final isSingleStepForward = node.parent?.id == _currentNode.id;
+    final moveUci = node.moveUci;
+
     setState(() {
       _currentNode = node;
       _chessGame = chess.Chess.fromFEN(node.fen);
       _boardController.loadFen(node.fen);
       _engineLinesMap.clear();
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
     });
+
+    if (isSingleStepForward && moveUci != null && moveUci.length >= 4) {
+      final from = moveUci.substring(0, 2);
+      final to = moveUci.substring(2, 4);
+      final piece = _chessGame!.get(to);
+      if (piece != null) _triggerMoveAnimation(from, to, piece);
+    }
+
     _saveDraft();
     // Show this node's stored candidates immediately; the engine may still be
     // several seconds away from producing lines for the new position.
@@ -501,6 +556,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
   void _handleUserMove(String from, String to, String promotion) {
     if (_chessGame == null) return;
+
+    final movingPiece = _chessGame!.get(from);
 
     final moveMap = {
       'from': from,
@@ -554,7 +611,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         _currentNode = childNode;
         _boardController.loadFen(newFen);
         _engineLinesMap.clear();
+        _lastMoveFrom = null;
+        _lastMoveTo = null;
       });
+      // Read the piece back from its destination (post-move) rather than
+      // using movingPiece directly: on a promotion, the piece sitting on
+      // `to` is already the queen the real board now shows, while
+      // movingPiece is still the pre-move pawn.
+      final animatedPiece = _chessGame!.get(to) ?? movingPiece;
+      if (animatedPiece != null) _triggerMoveAnimation(from, to, animatedPiece);
 
       _saveDraft();
       _refreshArrows();
@@ -562,8 +627,30 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     }
   }
 
+  void _triggerMoveAnimation(String from, String to, chess.Piece movingPiece) {
+    final durationMs = AppSettingsService.instance.moveAnimationDurationMs;
+    if (durationMs <= 0) return;
+    setState(() {
+      _pendingAnimations.add(PendingMoveAnimation(from: from, to: to, piece: movingPiece));
+    });
+  }
+
   void _goFirst() {
-    _jumpToNode(_rootNode);
+    _jumpToNode(_nearestLineStart(_currentNode));
+  }
+
+  /// Walks up from [node] to the nearest ancestor that is itself a branch
+  /// point (has more than one child) — i.e. the node the current line
+  /// diverged from. If the path back to the root never branches, that's
+  /// effectively the same as "the line's start", so this falls back to it.
+  AnalysisNode _nearestLineStart(AnalysisNode node) {
+    var cur = node;
+    while (!cur.isRoot) {
+      final parent = cur.parent!;
+      if (parent.children.length > 1) return parent;
+      cur = parent;
+    }
+    return cur;
   }
 
   void _goPrevious() {
@@ -586,26 +673,31 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _jumpToNode(curr);
   }
 
+  /// Always opens the checklist editor (see [dialogs.showManualCommentDialog])
+  /// rather than a plain free-text box, regardless of the "manualCommentMode"
+  /// app setting — that setting only controls whether a *freshly played*
+  /// move gets auto-commented, not how an existing comment is edited. Every
+  /// clause the current comment is already built from — auto-generated or
+  /// not — comes back pre-checked, so editing means picking which findings
+  /// to keep, not retyping the whole thing.
   void _showCommentDialog() {
     final parentFen = _currentNode.parent?.fen;
     final moveUci = _currentNode.moveUci;
 
-    if (AppSettingsService.instance.manualCommentMode && parentFen != null && moveUci != null) {
+    final tacticalCandidates = <String>[];
+    final positionalCandidates = <String>[];
+    if (parentFen != null && moveUci != null) {
       final tacticalDiff = _tacticalDetector.explainMove(
         beforeFen: parentFen,
         afterFen: _currentNode.fen,
         lastMoveUci: moveUci,
       );
       final positionalDiff = _positionalEvaluator.explainMove(beforeFen: parentFen, afterFen: _currentNode.fen);
-      final tacticalCandidates = _tacticalDetector.candidateCommentLines(tacticalDiff);
-      final positionalCandidates = _positionalEvaluator.candidateCommentLines(positionalDiff);
-      dialogs.showManualCommentDialog(context, _currentNode.comment, tacticalCandidates, positionalCandidates, (comment) {
-        setState(() => _currentNode.comment = comment);
-      });
-      return;
+      tacticalCandidates.addAll(_tacticalDetector.candidateCommentLines(tacticalDiff));
+      positionalCandidates.addAll(_positionalEvaluator.candidateCommentLines(positionalDiff));
     }
 
-    dialogs.showCommentDialog(context, _currentNode.comment, (comment) {
+    dialogs.showManualCommentDialog(context, _currentNode.comment, tacticalCandidates, positionalCandidates, (comment) {
       setState(() => _currentNode.comment = comment);
     });
   }
@@ -634,6 +726,22 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     );
   }
 
+  void _showQuickExtendDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => QuickExtendDialog(
+        startNode: _currentNode,
+        stockfishService: _stockfishService,
+        onCompleted: (lastAdded) {
+          if (lastAdded != null) {
+            _jumpToNode(lastAdded);
+          }
+        },
+      ),
+    );
+  }
+
   void _exportPgn() {
     dialogs.exportPgnDialog(context, _rootNode);
   }
@@ -641,35 +749,137 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   void _showGameReviewDialog() {
     showDialog(
       context: context,
+      // Long-running engine walk — barrier tap must not silently discard it.
+      barrierDismissible: false,
       builder: (ctx) => GameReviewDialog(
         rootNode: _rootNode,
+        currentNode: _currentNode,
         stockfishService: _stockfishService,
-        onCompleted: () {
+        onCompleted: ({extractedPuzzles}) {
           setState(() {});
           _saveDraft();
+          if (extractedPuzzles != null && extractedPuzzles.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('🧩 Izvučeno ${extractedPuzzles.length} vežbi (sačuvano)'),
+                backgroundColor: Colors.teal,
+                duration: const Duration(seconds: 6),
+                action: SnackBarAction(
+                  label: 'Prikaži',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    setState(() => _activePuzzleSet = extractedPuzzles);
+                    _loadPuzzleAtIndex(0);
+                  },
+                ),
+              ),
+            );
+          }
         },
       ),
     );
   }
 
-  void _showExtractPuzzlesDialog() {
+  void _showSavedPuzzleSetsDialog() {
     showDialog(
       context: context,
-      builder: (ctx) => ExtractPuzzlesDialog(
-        rootNode: _rootNode,
-        stockfishService: _stockfishService,
-        onPuzzleSelected: (LocalPuzzle puzzle) {
-          setState(() {
-            _initAnalysisTree(puzzle.fen);
-          });
-          _saveDraft();
-          _triggerEngineAnalysis();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('🧩 ${puzzle.themeLabel}'), backgroundColor: Colors.teal),
-          );
+      builder: (ctx) => SavedPuzzleSetsDialog(
+        onPuzzleSetOpened: (puzzles, startIndex) {
+          setState(() => _activePuzzleSet = puzzles);
+          _loadPuzzleAtIndex(startIndex);
         },
       ),
     );
+  }
+
+  /// Loads puzzle [index] of [_activePuzzleSet]: shows the position right
+  /// before the mistake first, then (after a short pause so the solver can
+  /// register the starting position) plays that move and highlights its
+  /// from/to squares — rather than dropping the solver straight into the
+  /// post-mistake position with no context, as before.
+  void _loadPuzzleAtIndex(int index) {
+    _puzzleRevealTimer?.cancel();
+    final puzzle = _activePuzzleSet![index];
+    _activePuzzleIndex = index;
+
+    final canReveal = puzzle.fenBefore != null && puzzle.moveUci != null;
+    setState(() {
+      _initAnalysisTree(canReveal ? puzzle.fenBefore! : puzzle.fen);
+    });
+    _refreshArrows();
+    _saveDraft();
+    _triggerEngineAnalysis();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('🧩 ${puzzle.themeLabel}'), backgroundColor: Colors.teal),
+    );
+
+    if (canReveal) {
+      _puzzleRevealTimer = Timer(const Duration(milliseconds: 900), () {
+        if (!mounted) return;
+        _applyPuzzleOpponentMove(puzzle);
+      });
+    }
+  }
+
+  /// Plays the blunder move ([LocalPuzzle.moveUci]) onto the current
+  /// position (the puzzle's "before" FEN) and highlights it, landing on the
+  /// same post-blunder position the rest of the app treats as [puzzle.fen].
+  void _applyPuzzleOpponentMove(LocalPuzzle puzzle) {
+    if (_chessGame == null) return;
+    final uci = puzzle.moveUci!;
+    final from = uci.substring(0, 2);
+    final to = uci.substring(2, 4);
+    final promo = uci.length > 4 ? uci.substring(4) : '';
+
+    String san = '$from$to';
+    final promoLower = promo.isEmpty ? null : promo.toLowerCase();
+    for (final m in _chessGame!.moves({'verbose': true})) {
+      if (m['from'] == from && m['to'] == to) {
+        if (promoLower == null || m['promotion'] == promoLower) {
+          san = (m['san'] as String?) ?? san;
+          break;
+        }
+      }
+    }
+
+    final moveMap = {
+      'from': from,
+      'to': to,
+      if (promo.isNotEmpty) 'promotion': promo,
+    };
+    final success = _chessGame!.move(moveMap);
+    if (!success) return;
+
+    final newFen = _chessGame!.fen;
+    final childNode = _currentNode.addChild(childFen: newFen, san: san, uci: uci);
+
+    setState(() {
+      _currentNode = childNode;
+      _boardController.loadFen(newFen);
+      _lastMoveFrom = from;
+      _lastMoveTo = to;
+      _engineLinesMap.clear();
+    });
+    _refreshArrows();
+    _saveDraft();
+    _triggerEngineAnalysis();
+  }
+
+  void _goToPuzzle(int delta) {
+    final set = _activePuzzleSet;
+    if (set == null) return;
+    final newIndex = _activePuzzleIndex + delta;
+    if (newIndex < 0 || newIndex >= set.length) return;
+    _loadPuzzleAtIndex(newIndex);
+  }
+
+  void _exitPuzzleSet() {
+    _puzzleRevealTimer?.cancel();
+    setState(() {
+      _activePuzzleSet = null;
+      _activePuzzleIndex = 0;
+    });
   }
 
   void _showSetupDialog() {
@@ -716,6 +926,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       final sanHistory = tempGame.getHistory().cast<String>();
 
       _initAnalysisTree(startFen);
+      _pgnWhiteName = (tempGame.header['White'] as String?)?.trim();
+      _pgnBlackName = (tempGame.header['Black'] as String?)?.trim();
+      _pgnWhiteElo = (tempGame.header['WhiteElo'] as String?)?.trim();
+      _pgnBlackElo = (tempGame.header['BlackElo'] as String?)?.trim();
+      _pgnResult = (tempGame.header['Result'] as String?)?.trim();
+      if (_pgnWhiteName != null && (_pgnWhiteName!.isEmpty || _pgnWhiteName == '?')) _pgnWhiteName = null;
+      if (_pgnBlackName != null && (_pgnBlackName!.isEmpty || _pgnBlackName == '?')) _pgnBlackName = null;
 
       final replay = chess.Chess.fromFEN(startFen);
       var node = _rootNode;
@@ -825,13 +1042,31 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           children: [
             Icon(Icons.biotech, color: context.colors.accent, size: 20),
             const SizedBox(width: 6),
-            const Flexible(
-              child: Text(
-                'Tabla za Analizu',
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                style: AppText.title,
-              ),
+            Flexible(
+              child: (_pgnWhiteName != null || _pgnBlackName != null)
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${_pgnWhiteName ?? '?'}${_pgnWhiteElo != null ? ' ($_pgnWhiteElo)' : ''} — ${_pgnBlackName ?? '?'}${_pgnBlackElo != null ? ' ($_pgnBlackElo)' : ''}',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: AppText.title,
+                        ),
+                        if (_pgnResult != null && _pgnResult!.isNotEmpty && _pgnResult != '*')
+                          Text(
+                            _pgnResult!,
+                            style: AppText.micro.copyWith(color: context.colors.textMuted),
+                          ),
+                      ],
+                    )
+                  : const Text(
+                      'Tabla za Analizu',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: AppText.title,
+                    ),
             ),
           ],
         ),
@@ -847,14 +1082,19 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             onPressed: _showAutoAnalysisDialog,
           ),
           IconButton(
+            icon: Icon(Icons.trending_flat, color: context.colors.accent),
+            tooltip: 'Produži granu (najbolja linija motora)',
+            onPressed: _showQuickExtendDialog,
+          ),
+          IconButton(
             icon: Icon(Icons.fact_check, color: context.colors.accent),
             tooltip: 'Analiziraj celu partiju',
             onPressed: _showGameReviewDialog,
           ),
           IconButton(
             icon: Icon(Icons.extension, color: context.colors.accent),
-            tooltip: 'Pretvori partiju u vežbe',
-            onPressed: _showExtractPuzzlesDialog,
+            tooltip: 'Sačuvane vežbe',
+            onPressed: _showSavedPuzzleSetsDialog,
           ),
           IconButton(
             icon: Icon(Icons.share, color: context.colors.info),
@@ -898,6 +1138,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   Widget _buildPortraitLayout(double boardSize) {
     return Column(
       children: [
+        if (_activePuzzleSet != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: _buildPuzzleSetBar(),
+          ),
         // Static Fixed Board at top
         Padding(
           padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
@@ -919,6 +1164,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
         // Navigation Toolbar
         _buildNavigationToolbar(),
+        _buildCurrentCommentPanel(),
 
         // Scrollable Controls Below Board
         Expanded(
@@ -955,6 +1201,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (_activePuzzleSet != null)
+                SizedBox(
+                  width: boardSize,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 4.0),
+                    child: _buildPuzzleSetBar(),
+                  ),
+                ),
               SizedBox(
                 width: boardSize,
                 height: boardSize,
@@ -983,6 +1237,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               SizedBox(
                 width: boardSize,
                 child: _buildNavigationToolbar(),
+              ),
+              SizedBox(
+                width: boardSize,
+                child: _buildCurrentCommentPanel(),
               ),
             ],
           ),
@@ -1129,23 +1387,83 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     );
   }
 
+  void _handleTapMoveInput(String square) {
+    final game = _chessGame;
+    if (game == null) return;
+    final piece = game.get(square);
+    final isOwnPiece = piece != null && piece.color == game.turn;
+
+    if (isOwnPiece) {
+      setState(() => _selectedSquareForTap = (square == _selectedSquareForTap) ? null : square);
+      return;
+    }
+
+    final from = _selectedSquareForTap;
+    if (from == null || from == square) return;
+
+    setState(() => _selectedSquareForTap = null);
+    // Auto-queen, same as the rest of the app's tap-to-move; the chess
+    // package ignores the promotion key for non-promoting moves.
+    _handleUserMove(from, square, 'q');
+  }
+
   Widget _buildBoardWidget(double size) {
+    final useTapToMove = AppSettingsService.instance.moveInputMode == 'tap';
+
     return Stack(
       children: [
-        ChessBoard(
-          controller: _boardController,
-          boardOrientation: _orientation,
-          onMove: () {
-            final history = _boardController.game.history;
-            if (history.isNotEmpty) {
-              final lastMove = history.last;
-              final from = lastMove.move.fromAlgebraic;
-              final to = lastMove.move.toAlgebraic;
-              final promo = lastMove.move.promotion?.name ?? '';
-              _handleUserMove(from, to, promo);
-            }
-          },
+        IgnorePointer(
+          ignoring: useTapToMove,
+          child: ChessBoard(
+            controller: _boardController,
+            boardOrientation: _orientation,
+            onMove: () {
+              final history = _boardController.game.history;
+              if (history.isNotEmpty) {
+                final lastMove = history.last;
+                final from = lastMove.move.fromAlgebraic;
+                final to = lastMove.move.toAlgebraic;
+                final promo = lastMove.move.promotion?.name ?? '';
+                _handleUserMove(from, to, promo);
+              }
+            },
+          ),
         ),
+        if (useTapToMove)
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapUp: (details) {
+                final square = getSquareFromOffset(details.localPosition, size, _orientation);
+                _handleTapMoveInput(square);
+              },
+              child: CustomPaint(
+                size: Size(size, size),
+                painter: _selectedSquareForTap != null
+                    ? SelectedSquarePainter(
+                        selectedSquare: _selectedSquareForTap!,
+                        boardSize: size,
+                        orientation: _orientation,
+                      )
+                    : null,
+              ),
+            ),
+          ),
+        if (_lastMoveFrom != null && _lastMoveTo != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                size: Size(size, size),
+                painter: ChessBoardPainter(
+                  arrows: const [],
+                  boardSize: size,
+                  orientation: _orientation,
+                  lastMoveFrom: _lastMoveFrom,
+                  lastMoveTo: _lastMoveTo,
+                ),
+              ),
+            ),
+          ),
         if (_showEngineOverlay && _engineArrows.isNotEmpty)
           Positioned.fill(
             child: IgnorePointer(
@@ -1160,7 +1478,59 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               ),
             ),
           ),
+        for (final pendingAnim in _pendingAnimations)
+          AnimatedMovePiece(
+            key: ValueKey(pendingAnim),
+            pending: pendingAnim,
+            boardSize: size,
+            orientation: _orientation,
+            duration: Duration(milliseconds: AppSettingsService.instance.moveAnimationDurationMs),
+            onCompleted: () {
+              if (mounted) setState(() => _pendingAnimations.remove(pendingAnim));
+            },
+          ),
       ],
+    );
+  }
+
+  /// Shown above the board while stepping through an extracted puzzle set:
+  /// which puzzle this is, and controls to move to the next/previous one or
+  /// leave puzzle mode back to free analysis.
+  Widget _buildPuzzleSetBar() {
+    final set = _activePuzzleSet;
+    if (set == null) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.teal.shade900,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left, size: 20, color: Colors.white),
+            tooltip: 'Prethodna vežba',
+            onPressed: _activePuzzleIndex > 0 ? () => _goToPuzzle(-1) : null,
+          ),
+          Text(
+            'Vežba ${_activePuzzleIndex + 1} / ${set.length}',
+            style: AppText.bodyBold.copyWith(color: Colors.white),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right, size: 20, color: Colors.white),
+            tooltip: 'Sledeća vežba',
+            onPressed: _activePuzzleIndex < set.length - 1 ? () => _goToPuzzle(1) : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 20, color: Colors.white70),
+            tooltip: 'Zatvori vežbe',
+            onPressed: _exitPuzzleSet,
+          ),
+        ],
+      ),
     );
   }
 
@@ -1176,7 +1546,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.first_page, size: 20),
-            tooltip: 'Početak (<<)',
+            tooltip: 'Početak linije (<<)',
             onPressed: _currentNode.isRoot ? null : _goFirst,
           ),
           IconButton(
@@ -1205,8 +1575,124 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             tooltip: 'NAG Simboli (!, ?)',
             onPressed: _showNagSelector,
           ),
+          IconButton(
+            icon: Icon(Icons.delete_outline, size: 18, color: context.colors.danger),
+            tooltip: 'Obriši ovaj potez (i granu iza njega)',
+            onPressed: _currentNode.isRoot ? null : _confirmDeleteCurrentNode,
+          ),
         ],
       ),
     );
+  }
+
+  /// Shows [_currentNode]'s move + NAG + comment right under the board, so
+  /// browsing an already-annotated game (or one just run through "Analiziraj
+  /// partiju") surfaces its commentary without having to go hunting for it
+  /// in the move-tree text below. Collapses to nothing on a move with no
+  /// comment/NAG, so it doesn't add empty chrome while stepping through an
+  /// unannotated game.
+  Widget _buildCurrentCommentPanel() {
+    final comment = _currentNode.comment;
+    final nag = _currentNode.nag;
+    if (comment.isEmpty && nag == null) return const SizedBox.shrink();
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: _showCommentDialog,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade900,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: context.colors.info.withValues(alpha: 0.35)),
+        ),
+        // A long auto-generated comment (several concatenated findings) can
+        // wrap several lines — capping the panel's height and letting it
+        // scroll internally keeps it from pushing the board/toolbar around,
+        // or overflowing the layout on the landscape side column, which has
+        // no scrollable ancestor of its own to absorb extra height.
+        constraints: const BoxConstraints(maxHeight: 90),
+        child: SingleChildScrollView(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.comment, size: 16, color: context.colors.info),
+              const SizedBox(width: 8),
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    style: AppText.caption.copyWith(color: context.colors.textPrimary),
+                    children: [
+                      if (_currentNode.moveSan != null)
+                        TextSpan(
+                          text: _currentNode.moveSan,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      if (nag != null)
+                        TextSpan(
+                          text: ' $nag',
+                          style: TextStyle(color: context.colors.warning, fontWeight: FontWeight.bold),
+                        ),
+                      if (comment.isNotEmpty) TextSpan(text: '  $comment'),
+                    ],
+                  ),
+                ),
+              ),
+              Icon(Icons.edit, size: 14, color: context.colors.textMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Counts [node] itself plus every descendant — used only to tell the user
+  /// how much a deletion actually removes (a single move vs. a long branch).
+  int _subtreeSize(AnalysisNode node) {
+    var count = 1;
+    for (final child in node.children) {
+      count += _subtreeSize(child);
+    }
+    return count;
+  }
+
+  /// Deletes [_currentNode] and everything under it (the whole branch from
+  /// that move onward), after confirming — this can't be undone, and a
+  /// sideline can easily hide many moves behind one node.
+  Future<void> _confirmDeleteCurrentNode() async {
+    final node = _currentNode;
+    final parent = node.parent;
+    if (parent == null) return;
+
+    final removedCount = _subtreeSize(node);
+    final label = node.moveSan ?? 'ovaj potez';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.colors.surface,
+        title: Text('Obriši potez?', style: TextStyle(color: context.colors.textPrimary)),
+        content: Text(
+          removedCount > 1
+              ? 'Ovo briše "$label" i svih preostalih $removedCount poteza u ovoj grani (uključujući varijacije). Ne može se opozvati.'
+              : 'Ovo briše "$label". Ne može se opozvati.',
+          style: TextStyle(color: context.colors.textMuted),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Otkaži')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: context.colors.danger, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    parent.removeChild(node);
+    _jumpToNode(parent);
   }
 }

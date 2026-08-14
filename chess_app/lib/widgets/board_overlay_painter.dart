@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
+import 'package:chess/chess.dart' as chess;
+import 'package:chess_vectors_flutter/chess_vectors_flutter.dart';
 import 'package:chess_app/move_tree.dart';
 
 class EngineArrow {
@@ -290,5 +292,157 @@ class ChessBoardPainter extends CustomPainter {
         oldDelegate.highlightedSquare != highlightedSquare ||
         oldDelegate.lastMoveFrom != lastMoveFrom ||
         oldDelegate.lastMoveTo != lastMoveTo;
+  }
+}
+
+/// A move whose visual result (piece already moved on the underlying board
+/// state) needs a one-shot fly-over animation from [from] to [to] before it
+/// settles. [piece] is the piece that moved, captured *before* board state
+/// changed since the destination square already holds it by the time this
+/// is used.
+class PendingMoveAnimation {
+  final String from;
+  final String to;
+  final chess.Piece piece;
+
+  const PendingMoveAnimation({required this.from, required this.to, required this.piece});
+}
+
+Widget pieceImageForAnimation(chess.Piece piece) {
+  final isWhite = piece.color == chess.Color.WHITE;
+  switch (piece.type.name) {
+    case 'p':
+      return isWhite ? WhitePawn() : BlackPawn();
+    case 'n':
+      return isWhite ? WhiteKnight() : BlackKnight();
+    case 'b':
+      return isWhite ? WhiteBishop() : BlackBishop();
+    case 'r':
+      return isWhite ? WhiteRook() : BlackRook();
+    case 'q':
+      return isWhite ? WhiteQueen() : BlackQueen();
+    case 'k':
+      return isWhite ? WhiteKing() : BlackKing();
+    default:
+      return isWhite ? WhitePawn() : BlackPawn();
+  }
+}
+
+String _boardAssetPath(BoardColor color) {
+  switch (color) {
+    case BoardColor.brown:
+      return 'images/brown_board.png';
+    case BoardColor.darkBrown:
+      return 'images/dark_brown_board.png';
+    case BoardColor.green:
+      return 'images/green_board.png';
+    case BoardColor.orange:
+      return 'images/orange_board.png';
+  }
+}
+
+/// Slides a piece sprite from [pending].from to [pending].to over [duration],
+/// then calls [onCompleted]. The underlying board state has already moved
+/// the piece to [pending].to by the time this plays (see [PendingMoveAnimation]),
+/// so left alone the real piece would sit there, fully visible, from frame
+/// one — the sprite would then look like it's sliding into (and merging
+/// with) a piece that's already arrived, instead of visibly delivering it.
+/// A crop of the board's own square texture is layered over the destination
+/// square for the duration of the slide to hide that, removed the instant
+/// the sprite (and this whole widget) completes.
+class AnimatedMovePiece extends StatefulWidget {
+  final PendingMoveAnimation pending;
+  final double boardSize;
+  final PlayerColor orientation;
+  final Duration duration;
+  final VoidCallback onCompleted;
+  final BoardColor boardColor;
+
+  const AnimatedMovePiece({
+    super.key,
+    required this.pending,
+    required this.boardSize,
+    required this.orientation,
+    required this.duration,
+    required this.onCompleted,
+    this.boardColor = BoardColor.brown,
+  });
+
+  @override
+  State<AnimatedMovePiece> createState() => _AnimatedMovePieceState();
+}
+
+class _AnimatedMovePieceState extends State<AnimatedMovePiece> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<Offset> _offset;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    final start = getSquareCenter(widget.pending.from, widget.boardSize, widget.orientation);
+    final end = getSquareCenter(widget.pending.to, widget.boardSize, widget.orientation);
+    _offset = Tween<Offset>(begin: start, end: end).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+    _controller.forward().whenComplete(() {
+      if (mounted) widget.onCompleted();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final squareSize = widget.boardSize / 8;
+    final destTopLeft =
+        getSquareCenter(widget.pending.to, widget.boardSize, widget.orientation) - Offset(squareSize / 2, squareSize / 2);
+
+    return Stack(
+      children: [
+        Positioned(
+          left: destTopLeft.dx,
+          top: destTopLeft.dy,
+          width: squareSize,
+          height: squareSize,
+          // The outer Positioned gives this inner Stack tight squareSize x
+          // squareSize constraints, so its default hardEdge clip crops the
+          // oversized, negatively-offset board image down to just this
+          // square's slice — the same trick as a sprite-sheet crop.
+          child: IgnorePointer(
+            child: Stack(
+              children: [
+                Positioned(
+                  left: -destTopLeft.dx,
+                  top: -destTopLeft.dy,
+                  width: widget.boardSize,
+                  height: widget.boardSize,
+                  child: Image.asset(
+                    _boardAssetPath(widget.boardColor),
+                    package: 'flutter_chess_board',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedBuilder(
+          animation: _offset,
+          builder: (context, child) => Positioned(
+            left: _offset.value.dx - squareSize / 2,
+            top: _offset.value.dy - squareSize / 2,
+            width: squareSize,
+            height: squareSize,
+            child: IgnorePointer(child: child!),
+          ),
+          child: pieceImageForAnimation(widget.pending.piece),
+        ),
+      ],
+    );
   }
 }

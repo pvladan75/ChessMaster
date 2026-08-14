@@ -50,10 +50,17 @@ void showCommentDialog(
   );
 }
 
-/// Manual-mode comment editor: a free-text field plus two checklists of
-/// candidate findings — tactical ([TacticalMotifDetector]) and positional
-/// ([PositionalEvaluatorService]) — the user picks from individually
-/// instead of getting the whole auto-generated comment.
+/// Comment editor: a free-text field plus two checklists of candidate
+/// findings — tactical ([TacticalMotifDetector]) and positional
+/// ([PositionalEvaluatorService]) — the user toggles individually instead of
+/// keeping or discarding the whole comment as one block.
+///
+/// [initialComment] is a ' | '-joined string (see how comments get built
+/// throughout the analysis feature); whichever of its parts still match a
+/// currently-available candidate come back pre-checked here, and anything
+/// left over (the user's own note, or a clause whose exact wording no
+/// longer matches — e.g. after an app update) lands in the free-text field
+/// instead of being silently dropped.
 void showManualCommentDialog(
   BuildContext context,
   String initialComment,
@@ -61,9 +68,13 @@ void showManualCommentDialog(
   List<String> positionalCandidates,
   ValueChanged<String> onSaved,
 ) {
-  final freeTextController = TextEditingController(text: initialComment);
-  final selectedTactical = <String>{};
-  final selectedPositional = <String>{};
+  final existingParts = initialComment.split(' | ').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+  final selectedTactical = <String>{...tacticalCandidates.where(existingParts.contains)};
+  final selectedPositional = <String>{...positionalCandidates.where(existingParts.contains)};
+  final leftoverText = existingParts
+      .where((p) => !selectedTactical.contains(p) && !selectedPositional.contains(p))
+      .join(' | ');
+  final freeTextController = TextEditingController(text: leftoverText);
 
   showDialog(
     context: context,
@@ -144,25 +155,32 @@ void showManualCommentDialog(
                     ),
                   ),
                   const SizedBox(height: 12),
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        buildChecklist(
-                          'Taktički motivi',
-                          tacticalCandidates,
-                          selectedTactical,
-                          emptyHint: 'Nema taktičkih nalaza za ovaj potez.',
-                        ),
-                        const SizedBox(width: 16),
-                        buildChecklist(
-                          'Pozicioni faktori',
-                          positionalCandidates,
-                          selectedPositional,
-                          emptyHint: 'Nema pozicionih nalaza za ovaj potez.',
-                        ),
-                      ],
-                    ),
+                  // Plain Row, not IntrinsicHeight — IntrinsicHeight forces
+                  // every CheckboxListTile in both columns to the height of
+                  // the *tallest* column's own intrinsic-height computation,
+                  // which undercounts wrapped multi-line finding text (a
+                  // known Flutter/Material ListTile quirk) and produced a
+                  // few-pixel RenderFlex overflow whenever a long finding
+                  // was present. Each column just sizing to its own natural
+                  // height (letting the outer SingleChildScrollView absorb
+                  // any excess) has no such mismatch.
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      buildChecklist(
+                        'Taktički motivi',
+                        tacticalCandidates,
+                        selectedTactical,
+                        emptyHint: 'Nema taktičkih nalaza za ovaj potez.',
+                      ),
+                      const SizedBox(width: 16),
+                      buildChecklist(
+                        'Pozicioni faktori',
+                        positionalCandidates,
+                        selectedPositional,
+                        emptyHint: 'Nema pozicionih nalaza za ovaj potez.',
+                      ),
+                    ],
                   ),
                 ],
               ),

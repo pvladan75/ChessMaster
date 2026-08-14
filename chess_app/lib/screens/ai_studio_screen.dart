@@ -136,6 +136,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   String? _lastMoveFrom;
   String? _lastMoveTo;
   String? _selectedSquare;
+  // A list rather than a single nullable slot: two moves made back-to-back
+  // faster than the animation duration would otherwise have the second
+  // move's trigger tear down the first's AnimatedMovePiece mid-flight, so
+  // the piece snaps into place instead of visibly sliding there.
+  final List<PendingMoveAnimation> _pendingAnimations = [];
   MoveTree? _puzzleMoveTree;
   String? _initialPuzzleFen;
 
@@ -154,6 +159,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     super.initState();
     _initStockfish();
     _startServerHealthCheck();
+    // Settings is reached through a shared shell here (no local push/pop to
+    // hang a setState off), so listen directly for live updates like the
+    // move-input-mode toggle.
+    AppSettingsService.instance.addListener(_onAppSettingsChanged);
+  }
+
+  void _onAppSettingsChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   void _startServerHealthCheck() {
@@ -690,6 +704,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   void dispose() {
     _serverHealthTimer?.cancel();
     _verificationTimeoutTimer?.cancel();
+    AppSettingsService.instance.removeListener(_onAppSettingsChanged);
     _stockfishService.detach(this);
     super.dispose();
   }
@@ -951,12 +966,18 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       final moveRes = testGame.move({'from': from, 'to': to, 'promotion': 'q'});
 
       if (moveRes) {
-        String promoPiece = 'q';
+        // Must stay null for a non-promoting move: _onUserPuzzleMoveMade
+        // matches candidates by requiring promo == manualPromo exactly, and
+        // an ordinary move's candidate has promo == '' — passing 'q'
+        // unconditionally here made every non-promotion tap-move silently
+        // fail to match (no candidate has 'q' when none is a promotion).
+        String? promoPiece;
         final promoMoves = _puzzleGame!.moves({'verbose': true}).where(
           (m) => m['from'] == from && m['to'] == to && m['promotion'] != null && m['promotion'].toString().isNotEmpty,
         );
 
         if (promoMoves.isNotEmpty) {
+          promoPiece = 'q';
           _currentSolutionsNode ??= Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
           if (_currentSolutionsNode != null) {
             for (var pm in promoMoves) {
@@ -969,9 +990,19 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           }
         }
 
+        final movingPiece = _puzzleGame!.get(from);
+        if (movingPiece != null) _triggerMoveAnimation(from, to, movingPiece);
         _onUserPuzzleMoveMade(manualFrom: from, manualTo: to, manualPromo: promoPiece);
       }
     }
+  }
+
+  void _triggerMoveAnimation(String from, String to, chess.Piece movingPiece) {
+    final durationMs = AppSettingsService.instance.moveAnimationDurationMs;
+    if (durationMs <= 0) return;
+    setState(() {
+      _pendingAnimations.add(PendingMoveAnimation(from: from, to: to, piece: movingPiece));
+    });
   }
 
   void _playPuzzleMove(String lanMove) {
@@ -990,11 +1021,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           }
         }
         _puzzleGame!.move({'from': fromStr, 'to': toStr, 'promotion': lanMove.length > 4 ? lanMove[4] : 'q'});
+        final animatedPiece = _puzzleGame!.get(toStr);
+        if (animatedPiece != null) _triggerMoveAnimation(fromStr, toStr, animatedPiece);
         _puzzleBoardController.loadFen(_puzzleGame!.fen);
         _activeFen = _puzzleGame!.fen;
         _recordMoveInTree(fromStr, toStr, san: san);
       } else {
         _puzzleBoardController.makeMove(from: fromStr, to: toStr);
+        final animatedPiece = _puzzleBoardController.game.get(toStr);
+        if (animatedPiece != null) _triggerMoveAnimation(fromStr, toStr, animatedPiece);
         _activeFen = _puzzleBoardController.getFen();
       }
       setState(() {
@@ -1247,6 +1282,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 final oppPromo = nextOppMove.length > 4 ? nextOppMove[4] : null;
 
                 _puzzleGame!.move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
+                final animatedPiece = _puzzleGame!.get(oppTo);
+                if (animatedPiece != null) _triggerMoveAnimation(oppFrom, oppTo, animatedPiece);
                 _puzzleBoardController.loadFen(_puzzleGame!.fen);
                 _activeFen = _puzzleGame!.fen;
                 _lastMoveFrom = oppFrom;
@@ -1340,6 +1377,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
               final moveObj = _puzzleGame!.move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
               if (moveObj) {
+                final animatedPiece = _puzzleGame!.get(oppTo);
+                if (animatedPiece != null) _triggerMoveAnimation(oppFrom, oppTo, animatedPiece);
                 _puzzleBoardController.loadFen(_puzzleGame!.fen);
                 _activeFen = _puzzleGame!.fen;
                 _lastMoveFrom = oppFrom;
@@ -1642,6 +1681,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       if (!mounted) return;
 
       _puzzleGame!.move({'from': from, 'to': to, 'promotion': promo});
+      final replayPiece = _puzzleGame!.get(to);
+      if (replayPiece != null) _triggerMoveAnimation(from, to, replayPiece);
       _puzzleBoardController.loadFen(_puzzleGame!.fen);
       _activeFen = _puzzleGame!.fen;
       setState(() {
@@ -1660,6 +1701,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         if (!mounted) return;
 
         _puzzleGame!.move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
+        final replayOppPiece = _puzzleGame!.get(oppTo);
+        if (replayOppPiece != null) _triggerMoveAnimation(oppFrom, oppTo, replayOppPiece);
         _puzzleBoardController.loadFen(_puzzleGame!.fen);
         _activeFen = _puzzleGame!.fen;
         setState(() {
@@ -1843,6 +1886,17 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  /// The board defaults to the solver's side each time a new puzzle loads
+  /// (see the `_puzzleOrientation = turnIsWhite ? ... ` assignments), but
+  /// the user should still be able to flip it manually — e.g. to study the
+  /// position from the opponent's perspective — without that being undone
+  /// until the next puzzle.
+  void _toggleOrientation() {
+    setState(() {
+      _puzzleOrientation = _puzzleOrientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
@@ -1966,6 +2020,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 });
               },
             ),
+            IconButton(
+              icon: const Icon(Icons.swap_vert, size: 20),
+              tooltip: 'Okreni tablu',
+              onPressed: _toggleOrientation,
+            ),
           ],
         ),
       ),
@@ -2064,6 +2123,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            IconButton(
+              icon: const Icon(Icons.swap_vert, size: 18, color: Colors.white70),
+              tooltip: 'Okreni tablu',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: _toggleOrientation,
+            ),
+            const SizedBox(width: 8),
             IconButton(
               icon: const Icon(Icons.biotech, size: 18, color: Colors.indigoAccent),
               tooltip: 'Analiziraj u Tabli za Analizu 🔬',
@@ -2337,12 +2404,19 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   Widget _buildBoardWithTapAndHighlights(double boardSize) {
     final squareSize = boardSize / 8.0;
+    final useTapToMove = AppSettingsService.instance.moveInputMode == 'tap';
 
     return SizedBox(
       width: boardSize,
       height: boardSize,
       child: GestureDetector(
+      // Every layer inside the Stack is IgnorePointer-wrapped when tap mode
+      // is on (the board itself, plus the always-ignoring arrow/selection
+      // paint overlays), so with the default deferToChild behavior this
+      // detector would never see a hit — nothing beneath it ever reports one.
+      behavior: HitTestBehavior.opaque,
       onTapUp: (details) {
+        if (!useTapToMove) return;
         if (_isOpponentTurn || _puzzleSolved) return;
         final localOffset = details.localPosition;
         final x = localOffset.dx;
@@ -2369,12 +2443,26 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       child: Stack(
         children: [
           IgnorePointer(
-            ignoring: _isOpponentTurn || _puzzleSolved || _puzzleFailed || _gameState != PuzzleGameState.idle,
+            ignoring: _isOpponentTurn || _puzzleSolved || _puzzleFailed || _gameState != PuzzleGameState.idle || useTapToMove,
             child: ChessBoard(
               controller: _puzzleBoardController,
               boardOrientation: _puzzleOrientation,
               onMove: () {
                 _selectedSquare = null;
+                final lastMove = _puzzleBoardController.getPossibleMoves().isEmpty
+                    ? null
+                    : _puzzleBoardController.game.history.last;
+                if (lastMove != null) {
+                  // On a promotion, move.piece is still the pre-move pawn;
+                  // move.promotion (when set) is what the destination square
+                  // actually shows now, so prefer it for the sprite.
+                  final pieceType = lastMove.move.promotion ?? lastMove.move.piece;
+                  _triggerMoveAnimation(
+                    lastMove.move.fromAlgebraic,
+                    lastMove.move.toAlgebraic,
+                    chess.Piece(pieceType, lastMove.move.color),
+                  );
+                }
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   _onUserPuzzleMoveMade();
                 });
@@ -2406,6 +2494,17 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   ),
                 ),
               ),
+            ),
+          for (final pendingAnim in _pendingAnimations)
+            AnimatedMovePiece(
+              key: ValueKey(pendingAnim),
+              pending: pendingAnim,
+              boardSize: boardSize,
+              orientation: _puzzleOrientation,
+              duration: Duration(milliseconds: AppSettingsService.instance.moveAnimationDurationMs),
+              onCompleted: () {
+                if (mounted) setState(() => _pendingAnimations.remove(pendingAnim));
+              },
             ),
         ],
       ),

@@ -160,7 +160,12 @@ class StockfishService {
     Duration timeout = const Duration(seconds: 10),
   }) async {
     await analyzePosition(fen, depth: depth);
-    return _engineLines.values.toList();
+    // A concurrent call to analyzePosition() for a different fen can
+    // supersede this one's request (see the `reqId != _requestId` guard
+    // above) and leave `_engineLines` holding that other call's result —
+    // don't hand a caller an answer for a position it didn't ask about.
+    final lines = _engineLines.values.where((line) => line.startingFen.isEmpty || line.startingFen == fen).toList();
+    return lines;
   }
 
 }

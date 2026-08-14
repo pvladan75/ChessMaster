@@ -21,14 +21,22 @@ class EngineLineDialog extends StatefulWidget {
 class _EngineLineDialogState extends State<EngineLineDialog> {
   int currentIndex = 0;
   late ChessBoardController previewController;
+  late PlayerColor _orientation;
 
   @override
   void initState() {
     super.initState();
+    _orientation = widget.orientation;
     previewController = ChessBoardController();
     if (widget.line.fenList.isNotEmpty) {
       previewController.loadFen(widget.line.fenList[0]);
     }
+  }
+
+  void _toggleOrientation() {
+    setState(() {
+      _orientation = _orientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
+    });
   }
 
   void _goToIndex(int index) {
@@ -107,7 +115,7 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
                 child: ChessBoard(
                   controller: previewController,
                   boardColor: BoardColor.green,
-                  boardOrientation: widget.orientation,
+                  boardOrientation: _orientation,
                   enableUserMoves: false,
                 ),
               ),
@@ -117,6 +125,11 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.swap_vert),
+                    tooltip: 'Okreni tablu',
+                    onPressed: _toggleOrientation,
+                  ),
                   IconButton(
                     icon: const Icon(Icons.first_page),
                     onPressed: currentIndex > 0 ? () => _goToIndex(0) : null,

@@ -564,7 +564,29 @@ class StockfishService {
   }
 
   
-  /// Synchronously awaits MultiPV analysis for a position up to target depth or timeout.
+  /// Synchronously awaits MultiPV analysis for a position up to target depth
+  /// or timeout — used by callers that need one accurate, isolated answer
+  /// for exactly [fen] (whole-game review, puzzle extraction, auto-tree
+  /// generation), as opposed to the live/streaming eval bar.
+  ///
+  /// Two defenses against cross-talk with whatever else is using this shared
+  /// singleton engine at the same time (e.g. a screen's live eval bar still
+  /// attached behind a modal dialog that's running this):
+  ///
+  /// 1. Goes straight to [_runAnalyzePosition] instead of the public
+  ///    [analyzePosition], which debounces via a single shared `Timer` — a
+  ///    concurrent unrelated call to [analyzePosition] within that debounce
+  ///    window cancels *this* call's pending timer too (it's the same
+  ///    field), silently orphaning it. This method's call pattern is always
+  ///    one deliberate, already-awaited-by-its-caller request, so it never
+  ///    needed debouncing in the first place.
+  /// 2. Verifies every callback invocation actually reports on [fen] before
+  ///    accepting it. `onEvaluationChanged`/`onMultiPVUpdated` are shared
+  ///    singleton fields; while this method has them hijacked, only a
+  ///    genuine answer for [fen] should be able to resolve it — otherwise a
+  ///    stray result meant for whatever the live screen is showing gets
+  ///    silently accepted as this position's eval (this was observed to
+  ///    falsely tag a game's opening move as a blunder).
   Future<List<AnalysisLine>> analyzePositionSync(
     String fen, {
     required int depth,
@@ -594,6 +616,8 @@ class StockfishService {
     });
 
     onMultiPVUpdated = (linesMap) {
+      final forThisFen = linesMap.values.every((line) => line.startingFen.isEmpty || line.startingFen == fen);
+      if (!forThisFen) return;
       capturedLines.addAll(linesMap);
       bool allReachedDepth = linesMap.length >= multiPV &&
           linesMap.values.every((line) => line.depth >= depth);
@@ -603,13 +627,14 @@ class StockfishService {
     };
 
     onEvaluationChanged = (eval, bestMove, continuation, multipv, currentDepth, isFinal, analyzedFen) {
+      if (analyzedFen != fen) return;
       if (isFinal) {
         finish(capturedLines.values.toList());
       }
     };
 
     setMultiPV(multiPV);
-    await analyzePosition(fen, depth: depth);
+    await _runAnalyzePosition(fen, depth: depth);
 
     return completer.future;
   }

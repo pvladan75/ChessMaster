@@ -144,6 +144,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
     controller = ChessBoardController();
     moveTree = MoveTree(startingFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    // The Preferences route overlays this screen without unmounting it, so a
+    // toggle like move-input-mode needs an explicit listener to take effect
+    // immediately rather than waiting for some unrelated setState.
+    AppSettingsService.instance.addListener(_onAppSettingsChanged);
     initSocket();
     
     // Fetch saved positions & user labels for all users
@@ -208,9 +212,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
     _initAudioChat();
   }
 
+  void _onAppSettingsChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
   @override
   void dispose() {
     _isDisposing = true;
+    AppSettingsService.instance.removeListener(_onAppSettingsChanged);
     _stockfishService.detach(this);
     socket.emit('leaveGame', {
       'roomId': widget.roomCode,
@@ -396,6 +406,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       isAllowedToMove: isAllowedToMove,
       isDrawingMode: isDrawingMode,
       isBlindfoldMode: isBlindfoldMode,
+      useTapToMove: AppSettingsService.instance.moveInputMode == 'tap',
       drawingStartSquare: drawingStartSquare,
       arrows: moveTree.current.arrows,
       engineArrows: engineArrows,

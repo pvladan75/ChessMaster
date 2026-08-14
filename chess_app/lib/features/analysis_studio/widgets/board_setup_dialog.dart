@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:chess/chess.dart' as chess;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
+import 'package:chess_app/move_tree.dart' show PgnGameInfo, MoveTree;
 import 'package:chess_app/widgets/board_thumbnail.dart';
+import 'package:chess_app/widgets/game_selector_dialog.dart';
 
 class AnalysisBoardSetupDialog extends StatefulWidget {
   final String initialFen;
@@ -66,6 +71,76 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
     _pgnTextController.dispose();
     _openingSearchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickPgnFile() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pgn'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final pickedFile = result.files.single;
+      String content;
+      if (pickedFile.bytes != null) {
+        content = utf8.decode(pickedFile.bytes!);
+      } else if (pickedFile.path != null) {
+        content = await File(pickedFile.path!).readAsString();
+      } else {
+        _showPgnFileError('Nemoguće pročitati sadržaj fajla.');
+        return;
+      }
+
+      _loadPgnContent(content);
+    } catch (e) {
+      _showPgnFileError('Greška pri učitavanju fajla: $e');
+    }
+  }
+
+  /// A pasted or loaded PGN blob may contain more than one game (e.g. a
+  /// lichess game-history export) — [MoveTree.splitGames] tells them apart
+  /// by header blocks. A single game goes straight into the text box as
+  /// before; more than one prompts the user to pick which one via the same
+  /// [GameSelectorDialog] used for multi-game files elsewhere in the app.
+  void _loadPgnContent(String content) {
+    final games = MoveTree.splitGames(content);
+    if (games.length <= 1) {
+      setState(() => _pgnTextController.text = content.trim());
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => GameSelectorDialog(
+        games: games,
+        onGameSelected: (game) {
+          setState(() => _pgnTextController.text = _reconstructPgnText(game));
+        },
+      ),
+    );
+  }
+
+  /// [PgnGameInfo] keeps headers and move text separate; PGN import here
+  /// goes through `chess.Chess.load_pgn`, which reads player names/Elo/FEN
+  /// etc. straight from `[Tag "value"]` header lines, so they need to be
+  /// re-attached to the move text rather than passed as a bare movetext.
+  String _reconstructPgnText(PgnGameInfo game) {
+    final buffer = StringBuffer();
+    for (final entry in game.headers.entries) {
+      buffer.writeln('[${entry.key} "${entry.value}"]');
+    }
+    buffer.writeln();
+    buffer.writeln(game.pgnBody);
+    return buffer.toString();
+  }
+
+  void _showPgnFileError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+    );
   }
 
   void _onOpeningSearchChanged(String query) {
@@ -315,10 +390,16 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
               label: const Text('Zalepi PGN'),
               onPressed: () async {
                 final data = await Clipboard.getData('text/plain');
-                if (data != null && data.text != null) {
-                  _pgnTextController.text = data.text!.trim();
+                if (data != null && data.text != null && data.text!.trim().isNotEmpty) {
+                  _loadPgnContent(data.text!);
                 }
               },
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.folder_open, size: 16),
+              label: const Text('Učitaj .pgn fajl'),
+              onPressed: _pickPgnFile,
             ),
           ],
         ),
