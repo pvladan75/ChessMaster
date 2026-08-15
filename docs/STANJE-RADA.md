@@ -375,6 +375,43 @@ u jednom smeru, kad `backendUrl` bude promenjen.
 > važi za `zlib.zstd*` u CI-ju i za `DB_CA_PATH`, koji namerno obara proces ako
 > fajl ne postoji, umesto da se vrati na neproverenu vezu.
 
+## Otvoren problem: ko je trener, a ko učenik — niko to ne odlučuje
+
+Primećeno 15.8.2026: **učenik može treneru da zada zadatak i lekciju.** To nije
+propust u proveri nego posledica modela — provere rade tačno ono što piše u
+njima.
+
+Dva pojma se ovde mešaju, a samo jedan nešto znači:
+
+- **`users.role`** se pri registraciji **uvek** postavlja na `'korisnik'`
+  ([auth.js:35](../chess_backend/routes/auth.js) — vrednost je zakucana). Kolona
+  poznaje `'trener'` i `'ucenik'`, ali ih ništa nikad ne upisuje. `requireRole`
+  se koristi na tačno dva mesta, oba za `'admin'`. Uloga u sesiji sobe je opet
+  treća stvar — ona se dodeljuje po ulasku u sobu i nema veze sa podučavanjem.
+- **`trainer_students`** je jedino što stvarno određuje odnos. Red nastaje u
+  `POST /trainer/students/add` ([social.js:9](../chess_backend/routes/social.js)),
+  koji sme da pozove **bilo koji prijavljen korisnik za bilo koju tuđu adresu**,
+  bez provere uloge i **bez pristanka druge strane**. Uz to se upisuju i
+  simetrični redovi u `friends`.
+
+Zato je „trener" prosto onaj ko je prvi kliknuo „dodaj učenika". Ako obojica
+dodaju jedan drugog, obojica mogu da zadaju zadatke — što je tačno ono što se
+videlo.
+
+Vredi znati dokle to seže: `POST /assignments/report/:studentId` proverava isti
+taj odnos ([assignments.js:202](../chess_backend/routes/assignments.js)) i onda
+pravi **izveštaj o aktivnosti tog korisnika**, sa deljivim linkom. Provera je
+ispravna, ali nasleđuje slabost veze koju proverava — a reč je o podacima dece.
+
+**Predlog, po redosledu:**
+
+1. **Pristanak i smer.** „Dodaj učenika" postaje poziv koji druga strana
+   prihvata; prava daje tek prihvaćena veza. Ovo rešava viđeno ponašanje i
+   ujedno je jedini ispravan model kad se podaci tiču dece.
+2. **Uloga.** Pri registraciji se bira „trener", a zadavanje i dodavanje traže
+   tu ulogu. Ovo se **ne može uključiti pre** koraka 1 ili dodele uloga — danas
+   nijedan nalog nije `'trener'`, pa bi provera zaključala sve.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,

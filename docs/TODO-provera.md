@@ -86,7 +86,11 @@ Testovi renderuju dijaloge na 360×640 i 320×568 i hvataju prelivanje, ali
 **„Moji zadaci" i izveštaj o učeniku nisu pokriveni** — oni zovu server pri
 otvaranju, pa bi test visio. Njih treba pogledati okom.
 
-## 7. Uvoz partija sa Chess.com/Lichess — novo, nikad kliknuto
+## 7. Uvoz partija sa Chess.com/Lichess — ✅ obe strane potvrđene uživo
+
+**Lichess potvrđen 15.8.2026** (korisnik isprobao). Chess.com je potvrđen ranije
+istog dana, uz bag koji je usput nađen i popravljen — vidi niže.
+
 
 **Kako:** Analysis Studio → dugme za „Unos Pozicije" → kartica „Chess.com/Lichess" →
 izaberi platformu, unesi korisničko ime → „Preuzmi Partije". Sleće na karticu
