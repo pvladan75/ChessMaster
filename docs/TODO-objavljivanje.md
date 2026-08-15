@@ -169,17 +169,19 @@ Redosled:
 - [ ] Kreirati droplet: **Ubuntu 26.04 LTS**, AMS3, postojeći SSH ključ izabran
       pri kreiranju. Veličina kao dosad (1 vCPU / 1 GB) uz swap; MP4 izvoz je
       jedino što naglo traži RAM.
-- [ ] `apt update && apt full-upgrade`, pa restart.
-- [ ] **Node 22 LTS ili noviji.** Prvo pogledati šta nudi sam 26.04
-      (`apt policy nodejs`); ako je manje od 22.15, uzeti NodeSource. Ispod te
-      verzije uvoz Lichess zagonetki pada sa `zlib.zstdDecompressSync is not a
-      function` — ista greška koja je obarala CI.
-- [ ] Ograničiti `journald`: `SystemMaxUse=200M` u `/etc/systemd/journald.conf`.
-      Na staroj mašini je dnevnik narastao na **2,3 GB** iako na njoj ništa nije
-      radilo — to je 10% diska pojedeno ni za šta.
-- [ ] Swap i `swappiness` ponovo (5 minuta, postupak je zapisan).
-- [ ] Nalog za raspoređivanje koji nije `root`; **Java se ne instalira** — backend
-      je Node, a Android se gradi u CI-ju i na radnoj stanici.
+- [ ] **Pokrenuti [`deploy/provision.sh`](../deploy/provision.sh)** — jedna
+      komanda umesto šest koraka:
+
+      scp deploy/provision.sh root@HOST:/tmp/ && ssh root@HOST 'bash /tmp/provision.sh'
+
+      Radi zakrpe, Node 22+ (iz distribucije ako je dovoljno nov, inače
+      NodeSource), `ffmpeg` — koji **nije opcion**, jer ga `audioTrimmer.js` i
+      `videoRenderer.js` pozivaju po imenu — swap i `swappiness`, `journald`
+      ograničen na 200 MB, `ufw`, nalog `chess` koji nije `root`, i automatske
+      bezbednosne zakrpe. Na kraju sam proveri da `zlib.zstd*` postoji. Skripta
+      je idempotentna, može da se pokrene ponovo bez štete. **Java se ne
+      instalira** — backend je Node, Android se gradi u CI-ju.
+- [ ] Restart posle nadogradnje jezgra.
 - [ ] Obrisati stari zapis iz `known_hosts` na radnoj stanici, inače SSH prijavi
       neslaganje ključa.
 - [ ] Tek onda: `backendUrl` u aplikaciji sa LAN adrese na pravi host.

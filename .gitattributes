@@ -1,0 +1,4 @@
+# Shell scripts must keep LF even when checked out on Windows: these are copied
+# straight from the working copy to a Linux host, and CRLF makes bash fail with
+# "$'\r': command not found".
+*.sh text eol=lf
