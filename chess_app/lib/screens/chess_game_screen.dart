@@ -21,6 +21,7 @@ import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/local_recording_service.dart';
 import 'package:chess_app/services/lesson_recorder.dart';
 import 'package:chess_app/services/game_session_service.dart';
+import 'package:chess_app/core/services/board_control_rules.dart' as rules;
 import 'package:chess_app/models/pending_session_intent.dart';
 
 import 'package:chess_app/widgets/board_overlay_painter.dart';
@@ -128,6 +129,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   bool get isHost => activeRole == 'host' || activeRole == 'trener' || widget.roomCode == 'STUDIO';
   bool get isTrener => isHost;
+
+  /// Whether this client may drive the shared board — either by moving a piece
+  /// or by stepping through the move tree. Both broadcast the new position to
+  /// everyone in the room, so they answer to one rule rather than two.
+  ///
+  /// Navigation used to test `userSession.role` alone, so the room's own host —
+  /// seated 'trener' by the server but registered 'korisnik' — failed the
+  /// check, and since [boardControl] defaults to 'trainer_only' the whole
+  /// navigation bar came up disabled. See [rules.canDriveSharedBoard].
+  bool get canDriveSharedBoard => rules.canDriveSharedBoard(
+        seatRole: activeRole,
+        accountRole: widget.userSession.role,
+        boardControl: boardControl,
+        isStudio: widget.roomCode == 'STUDIO',
+      );
 
   @override
   void initState() {
@@ -404,7 +420,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   Widget _buildChessBoardWithOverlay(double boardSize) {
     final isHost = activeRole == 'host' || activeRole == 'trener' || widget.userSession.role == 'trener' || widget.roomCode == 'STUDIO';
-    final isAllowedToMove = isHost || (boardControl != 'host_only' && boardControl != 'trainer_only');
+    final isAllowedToMove = canDriveSharedBoard;
     final isAllowedToUseEngine = isHost || allowStudentEngine;
 
     final List<EngineArrow> engineArrows = (isEngineEnabled && isAllowedToUseEngine)
@@ -1867,13 +1883,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   Widget buildNavigationControls() {
-    final isTrener = widget.userSession.role == 'trener';
-    final isAllowedToMove = isTrener || (boardControl != 'trainer_only');
-
     return MoveNavigationControls(
       moveTree: moveTree,
       currentNode: currentNode,
-      canNavigate: isAllowedToMove,
+      canNavigate: canDriveSharedBoard,
       onSelectNode: _selectNode,
       onFlipBoard: _toggleLocalOrientation,
     );
