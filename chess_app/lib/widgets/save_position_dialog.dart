@@ -63,117 +63,123 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
 
     return AlertDialog(
       title: const Text('Sačuvaj trenutnu lekciju / poziciju'),
-      content: ConstrainedBox(
-        constraints: BoxConstraints(
-            maxWidth: 360, maxHeight: MediaQuery.of(context).size.height * 0.7),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Naziv lekcije / pozicije',
-                  hintText: 'Npr. Sicilijanska odbrana - Najdorf',
+      // The width must be tight: AlertDialog wraps its children in an
+      // IntrinsicWidth, and a loose maxWidth would let that intrinsic pass
+      // descend into the suggestion list below, which cannot report intrinsics.
+      content: SizedBox(
+        width: 360,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Naziv lekcije / pozicije',
+                    hintText: 'Npr. Sicilijanska odbrana - Najdorf',
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: descController,
-                decoration: const InputDecoration(
-                  labelText: 'Opis (opciono)',
-                  hintText: 'Kratke napomene za učenike...',
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descController,
+                  decoration: const InputDecoration(
+                    labelText: 'Opis (opciono)',
+                    hintText: 'Kratke napomene za učenike...',
+                  ),
+                  maxLines: 2,
                 ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Labele (Oznake):',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  ...dialogActiveTags.map((t) => Chip(
-                        label: Text(t, style: const TextStyle(fontSize: 11)),
-                        deleteIcon: const Icon(Icons.close, size: 14),
-                        onDeleted: () => removeTag(t),
-                        backgroundColor: Colors.teal.withValues(alpha: 0.2),
-                      )),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: tagInputController,
-                      decoration: const InputDecoration(
-                        hintText: 'Ukucaj i dodaj labelu...',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                const SizedBox(height: 16),
+                const Text(
+                  'Labele (Oznake):',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    ...dialogActiveTags.map((t) => Chip(
+                          label: Text(t, style: const TextStyle(fontSize: 11)),
+                          deleteIcon: const Icon(Icons.close, size: 14),
+                          onDeleted: () => removeTag(t),
+                          backgroundColor: Colors.teal.withValues(alpha: 0.2),
+                        )),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: tagInputController,
+                        decoration: const InputDecoration(
+                          hintText: 'Ukucaj i dodaj labelu...',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
+                        style: const TextStyle(fontSize: 12),
+                        onChanged: (_) => setState(() {}),
+                        onSubmitted: (val) => addTag(val),
                       ),
-                      style: const TextStyle(fontSize: 12),
-                      onChanged: (_) => setState(() {}),
-                      onSubmitted: (val) => addTag(val),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () => addTag(tagInputController.text),
+                      style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12)),
+                      child: const Text('Dodaj'),
+                    ),
+                  ],
+                ),
+                if (suggestions.isNotEmpty &&
+                    tagInputController.text.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 120),
+                    decoration: BoxDecoration(
+                      border:
+                          Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: suggestions.length,
+                      itemBuilder: (context, index) {
+                        final suggestion = suggestions[index];
+                        return ListTile(
+                          dense: true,
+                          title: Text(suggestion,
+                              style: const TextStyle(fontSize: 12)),
+                          onTap: () => addTag(suggestion),
+                        );
+                      },
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () => addTag(tagInputController.text),
-                    style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 12)),
-                    child: const Text('Dodaj'),
-                  ),
                 ],
-              ),
-              if (suggestions.isNotEmpty &&
-                  tagInputController.text.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 120),
-                  decoration: BoxDecoration(
-                    border:
-                        Border.all(color: Colors.grey.withValues(alpha: 0.3)),
-                    borderRadius: BorderRadius.circular(6),
+                const SizedBox(height: 16),
+                CheckboxListTile(
+                  title: const Text(
+                    'Zapamti ove Labele za sledeće pozicije',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: suggestions.length,
-                    itemBuilder: (context, index) {
-                      final suggestion = suggestions[index];
-                      return ListTile(
-                        dense: true,
-                        title: Text(suggestion,
-                            style: const TextStyle(fontSize: 12)),
-                        onTap: () => addTag(suggestion),
-                      );
-                    },
-                  ),
+                  value: persistChecked,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  onChanged: (val) {
+                    setState(() {
+                      persistChecked = val ?? false;
+                    });
+                  },
                 ),
               ],
-              const SizedBox(height: 16),
-              CheckboxListTile(
-                title: const Text(
-                  'Zapamti ove Labele za sledeće pozicije',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-                value: persistChecked,
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                onChanged: (val) {
-                  setState(() {
-                    persistChecked = val ?? false;
-                  });
-                },
-              ),
-            ],
+            ),
           ),
         ),
       ),
