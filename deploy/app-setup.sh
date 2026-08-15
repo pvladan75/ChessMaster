@@ -30,6 +30,18 @@ PORT=3000
 
 log() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 
+# Sets KEY=VALUE in an env file, appending the line when it is not there yet.
+# A bare `sed -i s/^KEY=.*/` is a silent no-op when the key is absent, so a
+# variable added to .env.example later would simply never reach the server.
+set_env() {
+  local key="$1" value="$2" file="$3"
+  if grep -q "^${key}=" "$file"; then
+    sed -i "s|^${key}=.*|${key}=${value}|" "$file"
+  else
+    printf '%s=%s\n' "$key" "$value" >> "$file"
+  fi
+}
+
 [[ $EUID -eq 0 ]] || { echo "Run as root." >&2; exit 1; }
 [[ -n "${HOST:-}" ]] || { echo "Set HOST, e.g. HOST=209-38-55-151.sslip.io" >&2; exit 1; }
 [[ -n "${LE_EMAIL:-}" ]] || { echo "Set LE_EMAIL — Let's Encrypt sends expiry warnings there." >&2; exit 1; }
@@ -61,70 +73,26 @@ sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && npm ci --omit=dev"
 
 log "Environment file"
 ENV_FILE="${BACKEND_DIR}/.env"
+EXAMPLE_FILE="${BACKEND_DIR}/.env.example"
 if [[ ! -f "$ENV_FILE" ]]; then
-  install -m 600 -o "$APP_USER" -g "$APP_USER" /dev/null "$ENV_FILE"
-  cat > "$ENV_FILE" <<EOF
-# Never in the repository. The full set the backend reads — anything left empty
-# disables its feature rather than crashing, except the ones marked CHANGE_ME.
-#
-# Fastest correct route: copy the working .env from the development machine and
-# change only DB_HOST, DB_CA_PATH and ALLOWED_ORIGINS. That keeps JWT_SECRET
-# identical, and a different JWT_SECRET signs out every existing user at once.
-
-PORT=${PORT}
-NODE_ENV=production
-LOG_LEVEL=info
-
-# Database — private VPC host from Overview -> Connection details -> VPC network.
-# DB_CA_PATH is what turns encryption into verified encryption.
-DB_HOST=CHANGE_ME
-DB_PORT=25060
-DB_USER=doadmin
-DB_DATABASE=defaultdb
-DB_PASSWORD=CHANGE_ME
-DB_CA_PATH=/home/${APP_USER}/do-postgres-ca.crt
-
-# Sessions. Must match the value already in use, or everyone is logged out.
-JWT_SECRET=CHANGE_ME
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_IDS=
-
-# Browser clients only; the Flutter app does not go through CORS.
-ALLOWED_ORIGINS=https://${HOST}
-
-# Live lessons — without these, voice in a room does not work.
-AGORA_APP_ID=
-AGORA_APP_CERTIFICATE=
-AGORA_TOKEN_TTL_SECONDS=
-
-# Verification and notification mail.
-SMTP_HOST=
-SMTP_PORT=
-SMTP_USER=
-SMTP_PASSWORD=
-MAIL_FROM=
-
-# Position commentary.
-GEMINI_API_KEY=
-
-# Play billing. PLAY_RTDN_SECRET also appears in the Pub/Sub push URL.
-GOOGLE_PLAY_PACKAGE_NAME=
-GOOGLE_PLAY_SA_EMAIL=
-GOOGLE_PLAY_SA_PRIVATE_KEY=
-PLAY_RTDN_SECRET=
-PLAY_PRODUCT_TIERS=
-ENABLE_LIMITS=
-USAGE_UNIT_COSTS=
-
-# Exported MP4s are regenerable, so they age out; uploads/ audio never does.
-EXPORT_RETENTION_DAYS=
-EOF
-  chown "$APP_USER:$APP_USER" "$ENV_FILE"
+  # Seeded from the repository's own .env.example rather than a copy kept here.
+  # Two lists of the same variables drift, and the one in the repository is the
+  # one that gets updated when a variable is added.
+  sudo -u "$APP_USER" cp "$EXAMPLE_FILE" "$ENV_FILE"
   chmod 600 "$ENV_FILE"
-  echo "Template written to ${ENV_FILE}"
+
+  # Only the values that follow from *this host* are filled in; secrets are not
+  # invented here.
+  set_env NODE_ENV production "$ENV_FILE"
+  set_env DB_CA_PATH "/home/${APP_USER}/do-postgres-ca.crt" "$ENV_FILE"
+  set_env ALLOWED_ORIGINS "https://${HOST}" "$ENV_FILE"
+  set_env PORT "${PORT}" "$ENV_FILE"
+  chown "$APP_USER:$APP_USER" "$ENV_FILE"
+  echo "Seeded ${ENV_FILE} from .env.example — secrets still need filling in."
 else
   echo "${ENV_FILE} exists — left untouched."
 fi
+
 
 log "systemd service"
 cat > "/etc/systemd/system/${SERVICE}.service" <<EOF
@@ -206,14 +174,20 @@ fi
 systemctl reload nginx
 
 log "Service"
-if grep -q 'CHANGE_ME' "$ENV_FILE"; then
+# Only the three that must be real are checked. The Play and metering entries
+# ship with example values on purpose — absent, they disable their feature
+# rather than breaking startup.
+if grep -qE '^(DB_HOST|DB_PASSWORD|JWT_SECRET)=.*(your_|_here)' "$ENV_FILE"; then
   cat <<EOF
-${ENV_FILE} still contains CHANGE_ME, so ${SERVICE} was NOT started.
+${ENV_FILE} still holds example values, so ${SERVICE} was NOT started.
 
-Fill in DB_HOST, DB_PASSWORD and JWT_SECRET, put the cluster CA at
-/home/${APP_USER}/do-postgres-ca.crt, then:
+Fill in DB_HOST (the private VPC name), DB_PASSWORD and JWT_SECRET, put the
+cluster CA at /home/${APP_USER}/do-postgres-ca.crt, then:
 
   systemctl start ${SERVICE} && systemctl status ${SERVICE}
+
+JWT_SECRET must match the one already in use — a new one signs out every
+existing user at once. Copying the working .env across is the safer route.
 EOF
 else
   systemctl restart "$SERVICE"
