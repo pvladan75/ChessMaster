@@ -191,10 +191,15 @@ nginx -t
 systemctl reload nginx
 
 log "TLS certificate"
-# Let's Encrypt rate-limits certificates per name, so ask only when there is
-# not already a live one for this host.
+# Let's Encrypt rate-limits issuance per name, so an existing certificate is
+# never re-requested — but it must still be *re-installed*, because the site
+# file above was just rewritten from a template that has no 443 block. Skipping
+# this step entirely (the obvious reading of "already present") leaves the host
+# answering on port 80 only, and the failure appears one run later than the
+# change that caused it.
 if certbot certificates 2>/dev/null | grep -q "Domains: ${HOST}\$"; then
-  echo "Certificate for ${HOST} already present — not requesting another."
+  echo "Certificate for ${HOST} exists — reinstalling it into the nginx config."
+  certbot install --nginx --cert-name "$HOST" --redirect -n
 else
   certbot --nginx -d "$HOST" -m "$LE_EMAIL" --agree-tos --no-eff-email -n --redirect
 fi
