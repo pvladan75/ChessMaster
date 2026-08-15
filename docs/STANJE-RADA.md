@@ -322,8 +322,11 @@ nije ni raspoređen: nema procesa, ništa ne sluša osim `sshd` i `systemd-resol
 backend radi na tvojoj mašini (`backendUrl` u aplikaciji podrazumevano gađa LAN
 adresu), a na DigitalOcean-u je samo upravljana PostgreSQL baza.
 
-Praktično: nema šta da se popravlja na serveru, ali kad dođe raspoređivanje —
-instalirati **Node 22 LTS ili noviji odmah**, ne 20. Stavka je dopisana u
+Uz to je mašina **Ubuntu 25.04 — izdanje van podrške**, bez bezbednosnih zakrpa,
+sa 2,3 GB dnevnika i punim `openjdk-17-jdk` iz avgusta 2025. Odlučeno 15.8.2026:
+**pravi se nov droplet sa 26.04 LTS, stari se briše** — nadogradnja u mestu bila
+bi dva `do-release-upgrade` skoka na 1 GB RAM-a, a na mašini nema ničega što bi
+se sačuvalo. Spisak koraka, i ono malo što se prenosi, u
 [TODO-objavljivanje.md](TODO-objavljivanje.md).
 
 ## Sledeće na redu

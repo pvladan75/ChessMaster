@@ -143,14 +143,46 @@ sati na 25 GB. Sledeće troje nije hitno, ali svako od njih zagrize tiho.
       `/etc/sysctl.d/99-swappiness.conf` da se ne koristi agresivno u normalnom
       radu — samo kao zaštita kad MP4 izvoz naglo potroši RAM. Backup originalnog
       `fstab`-a je na droplet-u kao `/etc/fstab.bak-swap`.
-- [ ] **Raspoređivanje backend-a na droplet — još nije počelo.** Provereno
-      15.8.2026: na mašini nema Node-a (ni `apt`, ni `nvm`, ni fajl na disku),
-      nema koda, ništa ne sluša osim SSH-a. Backend i dalje radi lokalno, a
-      `backendUrl` u aplikaciji podrazumevano gađa LAN adresu — to mora da se
-      promeni pre bilo kakvog testa van kuće. Kad se krene: **Node 22 LTS ili
-      noviji**, jer uvoz Lichess zagonetki koristi `zlib.zstd*` koji postoji tek
-      od v22.15.0 (na Node 20 pada sa `is not a function` — to je bilo i ono što
-      je obaralo CI).
+### Nov droplet pre raspoređivanja — odlučeno 15.8.2026
+
+Postojeći droplet je **Ubuntu 25.04, izdanje van podrške** (interim izdanja žive
+9 meseci). Na njemu nema ničega našeg: nema Node-a, nema koda, nema baze — samo
+SSH sluša. Nadogradnja u mestu bi bila dva `do-release-upgrade` skoka
+(25.04 → 25.10 → 26.04) na 1 GB RAM-a, sa arhivom koja se seli na `old-releases`.
+Zato: **nova mašina sa 26.04 LTS**, stara se briše. Ništa se ne migrira.
+
+Sa stare mašine se nosi tačno ovo (provereno, nema više ničega):
+
+- swap 2 GB + `vm.swappiness=10` (postupak niže u ovom fajlu),
+- `ufw` sa jedinim pravilom `OpenSSH` — 80/443 tek kad dođe nginx,
+- SSH ključ radne stanice; ključ „DOTTY" je privremeni ključ DO web-konzole i
+  ističe sam, ne prenosi se.
+
+Redosled:
+
+- [ ] **Pre brisanja: proveriti „Trusted Sources" na upravljanoj PostgreSQL
+      bazi.** Ako je stari droplet tamo naveden, nov mora da se doda a stari
+      ukloni — inače backend posle prebacivanja ne može do baze, a greška izgleda
+      kao pogrešna lozinka.
+- [ ] **Rezervisati IP (Reserved IP) i zakačiti ga na novu mašinu.** Bez toga
+      svako sledeće presipanje menja adresu, pa i DNS i whitelist baze.
+- [ ] Kreirati droplet: **Ubuntu 26.04 LTS**, AMS3, postojeći SSH ključ izabran
+      pri kreiranju. Veličina kao dosad (1 vCPU / 1 GB) uz swap; MP4 izvoz je
+      jedino što naglo traži RAM.
+- [ ] `apt update && apt full-upgrade`, pa restart.
+- [ ] **Node 22 LTS ili noviji.** Prvo pogledati šta nudi sam 26.04
+      (`apt policy nodejs`); ako je manje od 22.15, uzeti NodeSource. Ispod te
+      verzije uvoz Lichess zagonetki pada sa `zlib.zstdDecompressSync is not a
+      function` — ista greška koja je obarala CI.
+- [ ] Ograničiti `journald`: `SystemMaxUse=200M` u `/etc/systemd/journald.conf`.
+      Na staroj mašini je dnevnik narastao na **2,3 GB** iako na njoj ništa nije
+      radilo — to je 10% diska pojedeno ni za šta.
+- [ ] Swap i `swappiness` ponovo (5 minuta, postupak je zapisan).
+- [ ] Nalog za raspoređivanje koji nije `root`; **Java se ne instalira** — backend
+      je Node, a Android se gradi u CI-ju i na radnoj stanici.
+- [ ] Obrisati stari zapis iz `known_hosts` na radnoj stanici, inače SSH prijavi
+      neslaganje ključa.
+- [ ] Tek onda: `backendUrl` u aplikaciji sa LAN adrese na pravi host.
 - [ ] **Veća baza pre punog Lichess seta.** 50k zagonetki je zanemarljivo, ali
       punih 6,1M sa GIN indeksom po temama neće udobno stati u 1 GB RAM-a.
 
