@@ -130,15 +130,19 @@ Trenutno: baza 1 GB RAM / 10 GiB, droplet 1 vCPU / 1 GB RAM / 25 GB (AMS3).
 Za testiranje je dovoljno; mereno je ~11 MB zvuka po satu časa, što je ~1600
 sati na 25 GB. Sledeće troje nije hitno, ali svako od njih zagrize tiho.
 
-- [ ] **Politika zadržavanja fajlova.** Jedini `unlink` u backendu je privremeni
-      fajl iz `audioTrimmer`-a. `uploads/` (zvuk) i `exports/` (MP4) rastu
-      zauvek. Kad se disk napuni, sve staje odjednom i bez upozorenja. Najmanje:
-      brisati MP4 izvoze starije od N dana — oni se uvek mogu ponovo napraviti
-      iz snimka, za razliku od zvuka.
-- [ ] **Dodati 1–2 GB swap-a na droplet.** DO ga ne pravi sam. MP4 izvoz je
-      jedina stvar koja skoči u memoriji (canvas 720p); ako baš tada ponestane
-      RAM-a, OOM killer ubija Node, a s njim i **sve žive sesije**, ne samo
-      izvoz. Pet minuta posla.
+- [x] **Politika zadržavanja fajlova — ✅ urađeno 15.8.2026.**
+      `services/retentionService.js` briše MP4 izvoze starije od
+      `EXPORT_RETENTION_DAYS` (podrazumevano 14 dana) — pokreće se pri startu
+      servera i zatim svaka 24h (`server.js`). Redovi u `session_recordings`
+      čiji je `video_url` pokazivao na obrisan fajl se čiste (`video_url = NULL`),
+      da dugme za preuzimanje ne ponudi 404 — sam snimak i zvuk ostaju netaknuti.
+      `uploads/` (zvuk) namerno nije uključen: to je jedina kopija časa i ne
+      sme da se briše automatski.
+- [x] **Swap na droplet-u — ✅ urađeno 15.8.2026.** 2GB `/swapfile`, upisan u
+      `/etc/fstab` (preživljava restart), `vm.swappiness=10` u
+      `/etc/sysctl.d/99-swappiness.conf` da se ne koristi agresivno u normalnom
+      radu — samo kao zaštita kad MP4 izvoz naglo potroši RAM. Backup originalnog
+      `fstab`-a je na droplet-u kao `/etc/fstab.bak-swap`.
 - [ ] **Veća baza pre punog Lichess seta.** 50k zagonetki je zanemarljivo, ali
       punih 6,1M sa GIN indeksom po temama neće udobno stati u 1 GB RAM-a.
 

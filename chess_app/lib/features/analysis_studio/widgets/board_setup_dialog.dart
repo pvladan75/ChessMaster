@@ -9,6 +9,7 @@ import 'package:chess_app/features/analysis_studio/services/opening_book_service
 import 'package:chess_app/move_tree.dart' show PgnGameInfo, MoveTree;
 import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/game_selector_dialog.dart';
+import 'package:chess_app/features/analysis_studio/services/chess_platform_import_service.dart';
 
 class AnalysisBoardSetupDialog extends StatefulWidget {
   final String initialFen;
@@ -52,10 +53,15 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
   List<OpeningBookEntry> _openingSearchResults = [];
   bool _openingBookLoading = true;
 
+  // Tab 5: Import from Chess.com / Lichess
+  ChessPlatform _importPlatform = ChessPlatform.lichess;
+  final TextEditingController _importUsernameController = TextEditingController();
+  bool _importLoading = false;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _fenTextController = TextEditingController(text: widget.initialFen);
     _validateFen(widget.initialFen);
     _initBuilderBoardFromFen(widget.initialFen);
@@ -70,7 +76,39 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
     _fenTextController.dispose();
     _pgnTextController.dispose();
     _openingSearchController.dispose();
+    _importUsernameController.dispose();
     super.dispose();
+  }
+
+  /// Fetches the user's recent games from the selected platform and hands the
+  /// PGN blob to [_loadPgnContent] — the same path a pasted or file-loaded PGN
+  /// already goes through, including the multi-game picker. Landing on the PGN
+  /// tab afterward lets the user review what was loaded before confirming with
+  /// the existing "Uvezi PGN Partiju" button, rather than importing blind.
+  Future<void> _fetchFromPlatform() async {
+    final username = _importUsernameController.text.trim();
+    if (username.isEmpty) {
+      _showPgnFileError('Unesite korisničko ime.');
+      return;
+    }
+    setState(() => _importLoading = true);
+    try {
+      final pgn = await ChessPlatformImportService.instance.fetchRecentGames(_importPlatform, username);
+      if (!mounted) return;
+      // Waits for the multi-game picker (if it appears) to actually close
+      // before switching tabs — otherwise the tab underneath flips to "PGN
+      // Uvoz" while the picker is still open, and the still-empty text box
+      // is what greets the user once they pick a game and it closes.
+      await _loadPgnContent(pgn);
+      if (!mounted) return;
+      _tabController.animateTo(1);
+    } on ChessImportException catch (e) {
+      _showPgnFileError(e.message);
+    } catch (e) {
+      _showPgnFileError('Greška pri preuzimanju partija: $e');
+    } finally {
+      if (mounted) setState(() => _importLoading = false);
+    }
   }
 
   Future<void> _pickPgnFile() async {
@@ -104,14 +142,18 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
   /// by header blocks. A single game goes straight into the text box as
   /// before; more than one prompts the user to pick which one via the same
   /// [GameSelectorDialog] used for multi-game files elsewhere in the app.
-  void _loadPgnContent(String content) {
+  /// Awaits the picker dialog rather than firing it and moving on, so a
+  /// caller that needs to act after the text is loaded (e.g. switching tabs
+  /// once a platform-fetched game is chosen) doesn't race ahead of the user's
+  /// selection — see `_fetchFromPlatform`.
+  Future<void> _loadPgnContent(String content) async {
     final games = MoveTree.splitGames(content);
     if (games.length <= 1) {
       setState(() => _pgnTextController.text = content.trim());
       return;
     }
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (ctx) => GameSelectorDialog(
         games: games,
@@ -236,7 +278,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: 550,
-        height: 580,
+        height: 620,
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
@@ -261,6 +303,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
             ),
             TabBar(
               controller: _tabController,
+              isScrollable: true,
               indicatorColor: Colors.tealAccent,
               labelColor: Colors.tealAccent,
               unselectedLabelColor: Colors.grey,
@@ -269,6 +312,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
                 Tab(icon: Icon(Icons.file_upload, size: 18), text: 'PGN Uvoz'),
                 Tab(icon: Icon(Icons.grid_on, size: 18), text: 'Ručno Slaganje'),
                 Tab(icon: Icon(Icons.travel_explore, size: 18), text: 'Otvaranja'),
+                Tab(icon: Icon(Icons.cloud_download, size: 18), text: 'Chess.com/Lichess'),
               ],
             ),
             const SizedBox(height: 12),
@@ -280,6 +324,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
                   _buildPgnImportTab(),
                   _buildManualBuilderTab(),
                   _buildOpeningSearchTab(),
+                  _buildPlatformImportTab(),
                 ],
               ),
             ),
@@ -657,6 +702,80 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
                     );
                   },
                 ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlatformImportTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Unesite korisničko ime da preuzmete poslednje partije:',
+          style: TextStyle(fontSize: 13, color: Colors.grey),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            ChoiceChip(
+              label: const Text('Lichess'),
+              selected: _importPlatform == ChessPlatform.lichess,
+              selectedColor: Colors.teal,
+              onSelected: _importLoading
+                  ? null
+                  : (_) => setState(() => _importPlatform = ChessPlatform.lichess),
+            ),
+            const SizedBox(width: 8),
+            ChoiceChip(
+              label: const Text('Chess.com'),
+              selected: _importPlatform == ChessPlatform.chessCom,
+              selectedColor: Colors.teal,
+              onSelected: _importLoading
+                  ? null
+                  : (_) => setState(() => _importPlatform = ChessPlatform.chessCom),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _importUsernameController,
+          enabled: !_importLoading,
+          style: const TextStyle(color: Colors.white, fontSize: 13),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.black45,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            hintText: 'korisničko ime',
+            hintStyle: const TextStyle(color: Colors.grey),
+            prefixIcon: const Icon(Icons.person, color: Colors.grey),
+          ),
+          onSubmitted: (_) => _fetchFromPlatform(),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Učitava poslednjih 20 partija; ako ih ima više, birate koju uvozite.',
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+        ),
+        const Spacer(),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            icon: _importLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.cloud_download),
+            label: Text(_importLoading ? 'Preuzimanje...' : 'Preuzmi Partije'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            onPressed: _importLoading ? null : _fetchFromPlatform,
+          ),
         ),
       ],
     );

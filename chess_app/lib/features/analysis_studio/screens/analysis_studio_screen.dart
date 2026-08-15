@@ -40,6 +40,7 @@ import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.da
 import 'package:chess_app/features/analysis_studio/widgets/saved_puzzle_sets_dialog.dart';
 import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
+import 'package:chess_app/pgn_parser.dart' show PgnParser;
 import 'package:chess_app/services/puzzle_api_service.dart';
 import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart' as dialogs;
 
@@ -1087,8 +1088,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// Replays the game's SAN history onto the analysis tree rather than keeping
   /// only the final position, so the imported game is navigable and can carry
   /// variations, comments and NAGs like any hand-played line.
-  void _importPgn(String pgn) {
+  void _importPgn(String rawPgn) {
     try {
+      final pgn = PgnParser.sanitizeForLoadPgn(rawPgn);
       final tempGame = chess.Chess();
       if (!tempGame.load_pgn(pgn)) {
         ScaffoldMessenger.of(context).showSnackBar(

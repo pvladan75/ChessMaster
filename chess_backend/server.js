@@ -22,6 +22,7 @@ const reportRoutes = require('./routes/reports');
 const reviewRoutes = require('./routes/reviews');
 const { authenticateToken, requireRole, verifySocketToken } = require('./middleware/auth');
 const entitlementService = require('./services/entitlementService');
+const { cleanupOldExports } = require('./services/retentionService');
 
 const app = express();
 const server = http.createServer(app);
@@ -495,6 +496,16 @@ async function startServer() {
     server.listen(PORT, () => {
       logger.info(`Server is listening on port ${PORT}`);
     });
+
+    // exports/ holds rendered MP4s, which are always reproducible from the
+    // recording that made them — unlike uploads/ audio, they are safe to age
+    // out automatically before the droplet's disk fills silently.
+    const retentionDays = Number(process.env.EXPORT_RETENTION_DAYS) || undefined;
+    const runCleanup = () =>
+      cleanupOldExports(pool, retentionDays ? { maxAgeDays: retentionDays } : undefined)
+        .catch((err) => logger.error(`[RETENTION] Export cleanup failed: ${err.message}`));
+    runCleanup();
+    setInterval(runCleanup, 24 * 60 * 60 * 1000);
   } catch (err) {
     logger.error('Failed to start server due to DB initialization failure:', err);
     process.exit(1);

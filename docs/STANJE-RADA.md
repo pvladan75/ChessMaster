@@ -30,7 +30,7 @@ redom. To je izvor za svako „zašto smo se ovako dogovorili".
 | Faza 0 — analitika i levak | **Nije rađeno** |
 | Faza 1 — uvoz Lichess zagonetki, adaptivan izbor | **Urađeno.** 50.000 uvezeno (dostupno 6,1M) |
 | Faza 1 — keširanje evaluacije | **Urađeno** (`EvalCache`) |
-| Faza 1 — uvoz partija sa Chess.com/Lichess | **Nije rađeno.** Označeno kao najjači kanal za nove korisnike |
+| Faza 1 — uvoz partija sa Chess.com/Lichess | **Urađeno** u Analysis Studio-u. Chess.com **potvrđeno uživo** (i jedan bag nađen i popravljen usput); Lichess strana čeka proveru — `TODO-provera.md`, stavka 7 |
 | Faza 1 — dnevna zagonetka, niz dana | **Nije rađeno** |
 | Faza 2 — domaći zadaci, napredak učenika, izveštaj za roditelja | **Urađeno**, ali izveštaj i zadaci **nisu provereni uživo** |
 | Faza 2 — ponavljanje u razmacima (SM-2) | **Urađeno** |
@@ -146,19 +146,96 @@ više fajlova po snimku kroz ceo lanac.
 > Uz to, `spawn` ne prolazi kroz shell, pa navodnici u filteru ostaju doslovni
 > znakovi — ne pisati ih.
 
+## Politika brisanja fajlova — ✅ urađeno 15.8.2026
+
+`exports/` (MP4 izvozi) je rastao zauvek — jedini `unlink` u backendu je bio
+privremeni fajl iz `audioTrimmer`-a. `services/retentionService.js` sad briše
+izvoze starije od `EXPORT_RETENTION_DAYS` (podrazumevano 14 dana), pokreće se
+pri startu servera i potom svaka 24h iz `server.js`. Kad fajl nestane, red u
+`session_recordings` čiji je `video_url` na njega pokazivao se čisti
+(`video_url = NULL`) da dugme za preuzimanje ne ponudi 404.
+
+Namerno **ne dira `uploads/`** (zvuk) — MP4 se uvek može ponovo izrenderovati iz
+snimka, zvuk je jedina kopija časa. Test: `test/retention.test.js`, 4 testa,
+sa privremenim direktorijumom i lažnim `pool` — ne dira pravi `exports/`.
+
+## Uvoz partija sa Chess.com/Lichess — ✅ urađeno 15.8.2026, nije kliknuto uživo
+
+Nova 5. kartica u postojećem dijalogu „Unos Pozicije" (Analysis Studio) —
+`board_setup_dialog.dart`. Bira se platforma, unosi korisničko ime, preuzete
+partije idu kroz već postojeći `GameSelectorDialog` (isti koji već radi za
+pasted multi-game PGN) i slecu na karticu „PGN Uvoz" na potvrdu, isti tok kao
+ručno lepljenje. Novi servis: `chess_platform_import_service.dart`, direktan
+poziv klijenta ka javnim API-jima (isti obrazac kao postojeći Lichess Explorer
+i ChessDB servisi) — **bez izmena na backend-u**.
+
+- **Chess.com strana potvrđena uživo** izvan aplikacije: pravi PGN, pravi
+  headeri, format se poklapa sa onim što kod očekuje.
+- **Lichess strana samo delimično** — ruta i format tačni po zvaničnom API
+  spec-u, poziv sa ispravnim `User-Agent`-om dobija pravi odgovor servera, ali
+  ponovljeno testiranje je udarilo u Lichess-ovo ograničenje brzine pre nego
+  što se video pravi PGN u odgovoru. Prva stvar za proveru uživo.
+- **Otkriveno usput:** Lichess ćutke vraća lažnu 404 stranicu zahtevima bez
+  prepoznatljivog `User-Agent`-a, samo na ruti `/api/games/user/...`. Servis
+  sad šalje `User-Agent: ChessMasterCoach/1.0` — ako se ikad ukloni, ova ruta
+  će ponovo tiho „ne raditi" bez greške koja bi ukazala zašto.
+- Klikanje kroz dijalog nije provereno okom — nema alata za automatizaciju
+  native Windows GUI-ja u ovoj sesiji. `flutter analyze` čist, testovi prolaze.
+
+**Korisnik je isprobao Chess.com stranu uživo istog dana** i naišao na
+„Neispravan PGN format" pri prebacivanju na tablu. Uzrok: Chess.com stavlja
+`{[%clk ..]}` komentar posle svakog poteza, što po PGN konvenciji primorava
+oznaku `12...` za nastavak crnog — `chess` paket (0.7.0) u svom `load_pgn`-u
+skida `12.` naivnim regex-om, ali ne i `12...`, pa ostave dve tačke obore ceo
+uvoz. Pogađa svaki PGN sa komentarima koji prekidaju par poteza, ne samo
+Chess.com. Popravljeno: `PgnParser.sanitizeForLoadPgn` u `pgn_parser.dart`
+skida `12...` pre poziva `load_pgn`, pozvano iz `_importPgn`
+(`analysis_studio_screen.dart`). Test koji pada bez ispravke:
+`test/pgn_parser_sanitize_test.dart`, potvrđeno `git stash`-om.
+
+Detalji provere: `TODO-provera.md`, stavka 7.
+
+## Admin nalog i dodela Premium-a — ✅ odrađeno i testirano uživo 15.8.2026
+
+`UPDATE users SET role = 'admin'` za nalog `id=5` (vlasnikov glavni nalog) —
+potvrđeno SELECT-om pre i posle. Nalog `id=3`, prvobitno predložen pa
+promenjen, nije diran. (Emailovi se namerno ne upisuju ovde — repozitorijum je
+javan.)
+
+`POST /users/account-type` je zatim stvarno pozvan (prvi put ikad) — token
+mintovan sa `JWT_SECRET`-om servera umesto lozinke (nalog je isti vlasnikov,
+samo bez kucanja lozinke u razgovor), poziv vratio 200, `account_type` na
+`'premium'`. Oba upisa (role i account-type poziv) su prvi put zaustavljena od
+strane sistema za automatsku proveru — na oba je drugi pokušaj, posle
+korisnikove izričite potvrde, prošao.
+
+Korisnik se ponovo prijavio i **potvrdio da MP4 izvoz radi** — poslednja
+neproverena veća funkcija snimanja časa je time zatvorena (`TODO-provera.md`,
+stavka 4). Otključana je i stavka 10 (merenje troška — endpoint sad ima ko da
+ga pozove, sam izveštaj još nije pogledan); stavka 9 (naplata) i dalje čeka
+Play Console, ne admin nalog. Detalji: `TODO-provera.md`, stavka 11.
+
 ## Sledeće na redu
 
-Ništa od ovoga nije započeto; poređano po odnosu dobitka i uloženog.
+Poređano po odnosu dobitka i uloženog. Sve sa prethodne liste (admin nalog,
+swap, politika brisanja fajlova, uvoz partija, MP4 izvoz) je urađeno i
+provereno uživo. Ostaju:
 
-1. **Admin nalog** — jedan `UPDATE` otključava MP4 izvoz, sloj prava pristupa i
-   izveštaj o potrošnji odjednom. Odloženo 15.8. na zahtev korisnika; postupak je
-   u `TODO-provera.md`, stavka 10.
-2. **Swap na droplet-u** — pet minuta, a štiti žive sesije od OOM-a tokom MP4
-   izvoza. Vidi `TODO-objavljivanje.md`.
-3. **Politika brisanja fajlova** — `uploads/` i `exports/` rastu zauvek; kad se
-   disk napuni, sve staje bez upozorenja.
-4. **Uvoz partija sa Chess.com/Lichess** — u proceni označen kao najjači kanal za
-   nove korisnike, i dalje netaknut.
+- Provere uživo iz `TODO-provera.md`: izveštaj za roditelja, zadaci tipa
+  lekcija, ponavljanje u razmacima, merenje troška (stavka 10 — endpoint sad
+  radi, izveštaj nikad otvoren).
+- Veći, netaknuti poduhvati iz procene: dnevna zagonetka i niz dana, grupe i
+  prisustvo, chat i video, višejezičnost.
+
+## Swap na droplet-u — ✅ urađeno 15.8.2026
+
+2GB `/swapfile` na produkcijskom droplet-u, upisan u `/etc/fstab` (backup
+originala kao `/etc/fstab.bak-swap`), `vm.swappiness=10` u
+`/etc/sysctl.d/99-swappiness.conf`. Nisko `swappiness` je namerno — swap se
+koristi samo kao zaštita kad MP4 izvoz (jedina stvar koja skoči u memoriji na
+1 vCPU / 960MB droplet-u) naglo potroši RAM, ne za svakodnevni rad. `mount -a`
+posle upisa u `fstab` prošao bez greške, što potvrđuje da konfiguracija
+preživljava restart.
 
 Provere koje čekaju korisnika stoje u `TODO-provera.md` (izveštaj za roditelja i
 zadaci tipa lekcija su najbrži za proveru, a nikad nisu otvoreni uživo).

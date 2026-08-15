@@ -8,6 +8,21 @@ class PgnGame {
 }
 
 class PgnParser {
+  /// Neutralises a quirk in the `chess` package's own `load_pgn`: it strips
+  /// plain move numbers ("12.") with a naive regex, but PGN convention writes
+  /// a resumed black move as "12..." whenever a comment interrupts the pair —
+  /// and every game exported from Chess.com carries a `{[%clk ..]}` comment
+  /// after each move, so this hits every single import from there. The naive
+  /// regex only eats the first dot, leaving ".." behind as a stray token that
+  /// then fails to parse as a move and rejects the whole PGN.
+  ///
+  /// Removing the elided-number pattern ourselves, before handing the PGN to
+  /// `load_pgn`, leaves it exactly as if the black move had never been
+  /// interrupted — headers and comments are untouched.
+  static String sanitizeForLoadPgn(String pgn) {
+    return pgn.replaceAll(RegExp(r'\d+\.\.\.'), '');
+  }
+
   static PgnGame? parse(String pgn) {
     if (pgn.trim().isEmpty) return null;
 

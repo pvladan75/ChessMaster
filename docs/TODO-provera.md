@@ -63,9 +63,9 @@ ikad opet odluta, prvo potraži `[AUDIO TRIM] Cut N pause(s), Xms total` u logu
 servera — bez te linije sečenje nije ni pokušano (`ffmpeg` van PATH-a ili
 `pauseIntervals` nije stigao).
 
-**Ostaje neprovereno: MP4 izvoz.** Stoji iza `MP4_EXPORT` prava, a nalog nema
-Premium — vidi stavku 10. To je jedina veća funkcija snimanja koja nikad nije
-pokrenuta, a i najskuplja po CPU na droplet-u od 1 vCPU.
+**MP4 izvoz — ✅ provereno uživo 15.8.2026.** Poslednja neproverena veća funkcija
+snimanja, i najskuplja po CPU na droplet-u od 1 vCPU. Čekala je na admin nalog i
+Premium (stavka 11) — posle toga korisnik potvrdio da izvoz radi.
 
 ## 5. Keširanje evaluacija
 
@@ -86,7 +86,44 @@ Testovi renderuju dijaloge na 360×640 i 320×568 i hvataju prelivanje, ali
 **„Moji zadaci" i izveštaj o učeniku nisu pokriveni** — oni zovu server pri
 otvaranju, pa bi test visio. Njih treba pogledati okom.
 
-## 7. Preimenovanje paketa
+## 7. Uvoz partija sa Chess.com/Lichess — novo, nikad kliknuto
+
+**Kako:** Analysis Studio → dugme za „Unos Pozicije" → kartica „Chess.com/Lichess" →
+izaberi platformu, unesi korisničko ime → „Preuzmi Partije". Sleće na karticu
+„PGN Uvoz" sa popunjenim tekstom; ako ima više partija, prvo pita koju kroz isti
+birač kao kod PGN fajla sa više partija.
+
+**Na šta obratiti pažnju:**
+- Chess.com strana je uživo isprobana direktnim pozivom (van aplikacije) i radi —
+  pravi PGN, pravi headeri.
+- Lichess strana je **samo delimično potvrđena uživo**: ruta i format su tačni po
+  zvaničnom API spec-u, i sam poziv sa ispravnim `User-Agent`-om je dobio pravi
+  odgovor servera (ne generičku grešku), ali test je posle nekoliko pokušaja
+  udario u Lichess-ovo ograničenje brzine i nisam uspeo da vidim pravi PGN u
+  odgovoru. Prva stvar za proveru kad se ovo isproba uživo.
+- **Napomena za dalji rad:** Lichess ćutke vraća lažnu 404 stranicu zahtevima bez
+  prepoznatljivog `User-Agent`-a — samo na ovoj ruti (`/api/games/user/...`), ne
+  i na `/api/user/...`. Servis sad šalje `User-Agent: ChessMasterCoach/1.0`; ako
+  se ikad ukloni ili promeni, ova ruta će ponovo tiho „ne raditi" umesto da
+  vrati grešku.
+- Samo klikanje kroz dijalog (tab, dugme, layout) nije provereno okom — nema
+  alata za automatizaciju native Windows GUI-ja u ovoj sesiji. `flutter analyze`
+  je čist, testovi prolaze.
+
+**✅ Nađeno i popravljeno 15.8.2026, korisnik je isprobao uživo:** uvoz sa
+Chess.com je javljao „Neispravan PGN format" pri prebacivanju na tablu. Uzrok:
+Chess.com stavlja `{[%clk ..]}` komentar posle svakog poteza, što po PGN
+konvenciji primorava oznaku `12...` za nastavak crnog — a `chess` paket (0.7.0)
+u svom `load_pgn`-u skida obično `12.` naivnim regex-om, ali ne i `12...`,
+pa ostave dve tačke kao otpadak koji se tumači kao nepostojeći potez i obara
+ceo uvoz. Ovo pogađa **svaki** PGN sa komentarima koji prekidaju par poteza, ne
+samo Chess.com — uključujući ručno nalepljen PGN sa sajtova koji izvoze satove
+ili engine-komentare. Popravka: `PgnParser.sanitizeForLoadPgn` (`pgn_parser.dart`)
+skida `12...` pre poziva `load_pgn`, pozvano iz `_importPgn` u
+`analysis_studio_screen.dart`. Test koji pada bez ispravke:
+`test/pgn_parser_sanitize_test.dart` (potvrđeno `git stash`-om).
+
+## 8. Preimenovanje paketa
 
 Aplikacija je sada `rs.pejovic.chesscoach`.
 
@@ -97,7 +134,7 @@ Aplikacija je sada `rs.pejovic.chesscoach`.
 - [ ] Na Windows-u su podaci sada u `AppData\Roaming\rs.pejovic\chess_app` —
       preuzeti Stockfish je ostao na staroj putanji.
 
-## 8. Naplata — nije isprobana uopšte
+## 9. Naplata — nije isprobana uopšte
 
 Ceo sloj (prava pristupa, Play verifikacija, RTDN, kvote) radi po testovima, ali
 **nijedna prava kupovina nije obavljena** jer Play Console nalog još ne postoji.
@@ -105,7 +142,7 @@ Prvi stvarni `purchaseToken` je jedini pravi dokaz.
 
 Vidi `TODO-objavljivanje.md`.
 
-## 9. Merenje troška — nikad pogledano
+## 10. Merenje troška — nikad pogledano
 
 Agora sekunde i MP4 renderi se beleže od prvog dana, ali izveštaj nije otvaran:
 
@@ -113,31 +150,27 @@ Agora sekunde i MP4 renderi se beleže od prvog dana, ali izveštaj nije otvaran
 curl -s "$BACKEND_URL/billing/usage?month=2026-08" -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
-Traži **admin nalog**, a nijedan još ne postoji — svi se registruju kao
-`korisnik`. Prvog admina napraviti ručno u bazi:
-
-```sql
-UPDATE users SET role = 'admin' WHERE email = 'vas@email';
-```
+Admin nalog sad postoji (stavka 11) — ovo je jedino što je nedostajalo. Ostaje
+samo da se izveštaj stvarno otvori i pogleda da li brojevi imaju smisla.
 
 Posle toga se **morate ponovo prijaviti** da bi token nosio novu ulogu.
 
-## 10. Admin dodela naloga — nikad korišćena
+## 11. Admin dodela naloga — ✅ odrađeno i testirano uživo 15.8.2026
 
-`POST /users/account-type` je jedini način da se nekome da Premium dok naplata ne
-proradi. Traži isti admin nalog kao stavka 9.
+`UPDATE users SET role = 'admin'` za nalog `id=5` (vlasnikov glavni nalog),
+potvrđeno pre i posle upisa. Nalog `id=3`, prvobitno predložen pa promenjen,
+nije diran. (Emailovi se namerno ne upisuju ovde — repozitorijum je javan.)
 
-### Jedan potez otključava tri stavke
+`POST /users/account-type` je zatim **stvarno pozvan** (ne direktan upis u
+bazu) — admin token mintovan sa istim `JWT_SECRET`-om koji server koristi,
+poziv vraćen 200: `account_type` za taj nalog promenjen na
+`'premium'`. Ovo je prvi put da je ovaj endpoint uopšte pozvan — bio je
+napisan i testiran jedinično, ali nikad pogođen uživo.
 
-Stavke 4 (MP4 izvoz), 8 (prava pristupa) i 9 (merenje troška) sve čekaju na isto:
-nijedan korisnik nema `role = 'admin'`. Redosled je:
+Korisnik se ponovo prijavio i potvrdio da **MP4 izvoz radi** (stavka 4) —
+ceo lanac je sad zatvoren.
 
-1. `UPDATE users SET role = 'admin' WHERE email = 'vas@email';`
-2. Ponovna prijava — token mora da ponese novu ulogu.
-3. Kroz aplikaciju dodeliti sebi Premium, pa probati MP4 izvoz.
-
-Odloženo 15.8.2026. na zahtev korisnika (promena privilegija u živoj bazi je
-njegova odluka). Vredi uraditi rano iz dva razloga: MP4 snimak časa je u proceni
-označen kao glavni diferencijator u odnosu na Lichess, i ujedno je najskuplja
-operacija na droplet-u od 1 vCPU — bolje izmeriti pre nego što neko drugi klikne
-to dugme.
+Stavka 10 (merenje troška) je sad otključana admin nalogom — `GET
+/billing/usage` sam izveštaj i dalje nije otvoren okom. Stavka 9 (naplata)
+ostaje blokirana na nešto drugo: pravu kupovinu, koja čeka Play Console, ne
+admin nalog.
