@@ -18,6 +18,7 @@ import 'package:go_router/go_router.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
+import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/features/analysis_studio/services/position_info_service.dart';
 import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
@@ -644,6 +645,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
   void _goFirst() {
     _jumpToNode(_nearestLineStart(_currentNode));
+  }
+
+  /// Orientation is part of the saved draft, so flipping persists the board
+  /// the way the user left it rather than resetting on the next visit.
+  void _flipBoard() {
+    setState(() {
+      _orientation = _orientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
+    });
+    _saveDraft();
   }
 
   /// Walks up from [node] to the nearest ancestor that is itself a branch
@@ -1299,19 +1309,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             tooltip: 'Unos Pozicije / PGN',
             onPressed: _showSetupDialog,
           ),
-          IconButton(
-            icon: Icon(
-              _orientation == PlayerColor.white ? Icons.rotate_right : Icons.rotate_left,
-              color: context.colors.warning,
-            ),
-            tooltip: 'Okreni Tablu',
-            onPressed: () {
-              setState(() {
-                _orientation = _orientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
-              });
-              _saveDraft();
-            },
-          ),
         ],
       ),
       body: isLandscape ? _buildLandscapeLayout(boardSize) : _buildPortraitLayout(boardSize),
@@ -1743,6 +1740,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             tooltip: 'Kraj Glavne Linije (>>)',
             onPressed: _currentNode.children.isEmpty ? null : _goLast,
           ),
+          BoardFlipButton(size: 20, onPressed: _flipBoard),
           const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.comment, size: 18, color: Colors.lightBlueAccent),

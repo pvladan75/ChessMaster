@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/models/analysis_models.dart';
+import 'package:chess_app/widgets/board_flip_button.dart';
 
 class EngineLineDialog extends StatefulWidget {
   final AnalysisLine line;
@@ -126,11 +127,6 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.swap_vert),
-                    tooltip: 'Okreni tablu',
-                    onPressed: _toggleOrientation,
-                  ),
-                  IconButton(
                     icon: const Icon(Icons.first_page),
                     onPressed: currentIndex > 0 ? () => _goToIndex(0) : null,
                     tooltip: 'Početak linije',
@@ -164,6 +160,7 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
                         : null,
                     tooltip: 'Kraj linije',
                   ),
+                  BoardFlipButton(onPressed: _toggleOrientation),
                 ],
               ),
             ],

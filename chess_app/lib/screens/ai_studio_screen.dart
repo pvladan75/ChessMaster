@@ -1,11 +1,12 @@
 import 'package:chess_app/services/puzzle_api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/ai_studio/category_selection_hub.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/ai_studio/solution_tree_models.dart';
 import 'package:chess_app/widgets/ai_studio/solution_graph_widget.dart';
 import 'package:chess_app/widgets/ai_studio/pgn_solution_tree_widget.dart';
-import 'package:chess_app/widgets/ai_studio/move_history_navigation_widget.dart';
+import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -2021,11 +2022,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 });
               },
             ),
-            IconButton(
-              icon: const Icon(Icons.swap_vert, size: 20),
-              tooltip: 'Okreni tablu',
-              onPressed: _toggleOrientation,
-            ),
+            BoardFlipButton(size: 20, onPressed: _toggleOrientation),
           ],
         ),
       ),
@@ -2124,13 +2121,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.swap_vert, size: 18, color: Colors.white70),
-              tooltip: 'Okreni tablu',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: _toggleOrientation,
-            ),
+            BoardFlipButton(size: 18, color: Colors.white70, onPressed: _toggleOrientation),
             const SizedBox(width: 8),
             IconButton(
               icon: const Icon(Icons.biotech, size: 18, color: Colors.indigoAccent),
@@ -2293,10 +2284,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               },
                             ),
                           const SizedBox(height: 8),
-                          MoveHistoryNavigationWidget(
-                            moveTree: _puzzleMoveTree,
-                            onNavigate: _navigateToNode,
-                          ),
+                          if (_puzzleMoveTree != null)
+                            MoveNavigationControls(
+                              moveTree: _puzzleMoveTree!,
+                              currentNode: _puzzleMoveTree!.current,
+                              onSelectNode: _navigateToNode,
+                              showMoveChips: true,
+                            ),
                         ],
                       ),
                     ),
@@ -2389,10 +2383,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     const SizedBox(height: 12),
                     _buildSolutionTreeSection(),
                     const SizedBox(height: 12),
-                    MoveHistoryNavigationWidget(
-                      moveTree: _puzzleMoveTree,
-                      onNavigate: _navigateToNode,
-                    ),
+                    if (_puzzleMoveTree != null)
+                      MoveNavigationControls(
+                        moveTree: _puzzleMoveTree!,
+                        currentNode: _puzzleMoveTree!.current,
+                        onSelectNode: _navigateToNode,
+                        showMoveChips: true,
+                      ),
                   ],
                 ),
               ),

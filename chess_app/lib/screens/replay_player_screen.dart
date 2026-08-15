@@ -11,6 +11,7 @@ import 'package:chess_app/constants.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/recording_models.dart';
+import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -565,9 +566,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             icon: const Icon(Icons.video_call, color: Colors.deepPurpleAccent),
             onPressed: _showExportMp4Dialog,
           ),
-          IconButton(
-            tooltip: 'Okreni tablu (Flip Board)',
-            icon: const Icon(Icons.swap_vert),
+          BoardFlipButton(
             onPressed: () {
               setState(() {
                 boardOrientation = boardOrientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;

@@ -7,6 +7,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import '../models/tactics_puzzle.dart';
@@ -355,9 +356,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       appBar: AppBar(
         title: Text(widget.assignmentTitle ?? 'Taktika'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.flip_camera_android),
-            tooltip: 'Okreni tablu',
+          BoardFlipButton(
             onPressed: () => setState(() {
               _orientation = _orientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
             }),

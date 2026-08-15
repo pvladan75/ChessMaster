@@ -215,12 +215,98 @@ stavka 4). Otključana je i stavka 10 (merenje troška — endpoint sad ima ko d
 ga pozove, sam izveštaj još nije pogledan); stavka 9 (naplata) i dalje čeka
 Play Console, ne admin nalog. Detalji: `TODO-provera.md`, stavka 11.
 
+## Navigacija poteza u sesiji — ✅ popravljeno 15.8.2026
+
+Korisnik je prijavio da navigacija poteza u sesiji ne radi. Uzrok: u sobi
+postoje **dve različite uloge**, a kod je proveravao pogrešnu.
+
+- `userSession.role` — globalna uloga naloga; svi se registruju kao `korisnik`.
+- `activeRole` — sedište koje **server** dodeli u sobi; kreator dobija `trener`.
+
+`buildNavigationControls()` je gledao samo globalnu ulogu, a `boardControl`
+podrazumevano jeste `'trainer_only'` (`chess_game_screen.dart:77`) — pa je
+`false || false` isključilo celu traku, i to baš onome ko drži čas. Tabla je
+radila jer ona proverava `activeRole`.
+
+Isto pravilo je u tom fajlu bilo ispisano **četiri puta u tri verzije**, a
+navigacija je imala petu, pogrešnu. Izvučeno u čistu funkciju
+`lib/core/services/board_control_rules.dart`; test
+`test/board_control_rules_test.dart` pada na staroj logici (provereno
+privremenim vraćanjem). Commit `21ae682`.
+
+## Unifikacija table i okolnih elemenata — faza 1 gotova, čeka proveru
+
+Korisnik je primetio da isti elementi izgledaju različito po ekranima (dugme za
+okretanje table nekad ispod table, nekad gore desno). Izmereno stanje pre rada:
+
+| Element | Zatečeno |
+|---|---|
+| Tabla | `ChessBoardWithOverlay` **već postoji**, koriste ga 4 ekrana; još 4 mesta grade sirov `ChessBoard` |
+| Navigacija poteza | **6 zasebnih implementacija** istog niza dugmadi |
+| Okretanje table | **4 ikone** (`flip`, `flip_camera_android`, `swap_vert`, `rotate_*`) na **2 mesta** |
+
+**Zašto je iscepkano** — ispod stoje **tri različita modela poteza**, pa „izvuci
+widget" ne prolazi bez sloja-adaptera:
+
+- `MoveTree`/`MoveNode` — sesija i AI Studio *(isti model, čista duplikacija)*
+- linearni `_moveIndex` u listu FEN-ova — lekcije i ponavljanje
+- `AnalysisNode` — Analysis Studio
+
+**Faza 1 (urađeno):** jedan `BoardFlipButton` (`swap_vert`, jedan tooltip) na
+svih 7 mesta; dugme premešteno iz zaglavlja u traku ispod table tamo gde ta
+traka postoji (lekcije, Analysis Studio); u engine dijalogu pomereno s početka
+na kraj reda. Dve `MoveTree` navigacije spojene — `MoveHistoryNavigationWidget`
+obrisan, `MoveNavigationControls` dobio opcione `showMoveChips` i `onFlipBoard`.
+Time i `navigate_before` vs `chevron_left` postaje jedno.
+
+**Faza 2 (dogovoreno, nije započeto):** `MoveCursor` adapter
+(`canGoBack/canGoForward/first/prev/next/last/currentFen`) sa tri
+implementacije, pa lekcije, ponavljanje i Analysis Studio pređu na istu traku.
+Dogovor je: faza po faza, korisnik proverava svaku, vraćamo se ako ne valja.
+
+**Na šta gledati pri proveri faze 1:**
+
+- **Lekcije i Analysis Studio** — dugme za okretanje više nije gore desno nego
+  ispod table. Najveća vidljiva promena.
+- **AI Studio** — traka sa čipovima poteza sad koristi `cardColor` umesto
+  tamnoplave sa ivicom, pa je svetlija nego ranije.
+- **Analysis Studio** — okretanje se i dalje mora pamtiti u nacrtu
+  (`_flipBoard` zove `_saveDraft`).
+- Sesija — navigacija poteza (gore).
+
+## CI je crven, i to nije od ovog posla
+
+GitHub Actions pada na koraku **„Run Backend Tests"** (`npm test` u
+`chess_backend`). Flutter analiza i Flutter testovi **prolaze**.
+
+Bitno: pao je i na commit-u **`661329a`**, dakle *pre* bilo čega iz ovog
+ciklusa. Nije regresija, nasleđeno je crveno stanje.
+
+Isključeno tokom istrage:
+
+- **Nije `.env`** (CI ga nema, u `.gitignore` je) — testovi prolaze i bez njega,
+  provereno privremenim sklanjanjem uz kopiju.
+- **Nije API noviji od Node 20** — pretraženo, nema ga u backend kodu ni
+  testovima.
+- **Nije `puzzles/*.zst`** — 304 MB fajl nije u gitu, ali ga testovi ne dodiruju
+  (`import_lichess_puzzles` je uredno iza `require.main === module`).
+
+Ostaje kao razlika: CI je **Node 20 / Linux**, lokalno **Node 25 / Windows**.
+Logovi se nisu mogli pročitati — GitHub ih daje samo uz autentikaciju (403), a
+`gh` CLI nije instaliran. **Najjeftiniji sledeći korak: prekopirati ispis iz
+koraka „Run Backend Tests"**, umesto pogađanja ili probnih push-eva.
+
+Cena čekanja: koraci posle testova se preskaču, pa se **APK ne gradi** i crven
+CI maskira svaku buduću pravu grešku.
+
 ## Sledeće na redu
 
-Poređano po odnosu dobitka i uloženog. Sve sa prethodne liste (admin nalog,
-swap, politika brisanja fajlova, uvoz partija, MP4 izvoz) je urađeno i
-provereno uživo. Ostaju:
+Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
+politika brisanja fajlova, uvoz partija, MP4 izvoz) je urađeno i provereno
+uživo. Ostaju:
 
+- **Provera faze 1** unifikacije (spisak gore), pa **faza 2 — `MoveCursor`**.
+- **CI** — čeka ispis logova.
 - Provere uživo iz `TODO-provera.md`: izveštaj za roditelja, zadaci tipa
   lekcija, ponavljanje u razmacima, merenje troška (stavka 10 — endpoint sad
   radi, izveštaj nikad otvoren).

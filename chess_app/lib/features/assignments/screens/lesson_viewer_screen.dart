@@ -5,6 +5,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
@@ -161,16 +162,6 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
         title: Text(widget.detail.assignment.title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.flip_camera_android),
-            tooltip: 'Okreni tablu',
-            onPressed: () => setState(() {
-              _orientation =
-                  _orientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
-            }),
-          ),
-        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
           child: LinearProgressIndicator(
@@ -295,6 +286,12 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
               tooltip: 'Na kraj',
               onPressed:
                   _moveIndex >= _moves.length ? null : () => _applyMovesUpTo(_moves.length),
+            ),
+            BoardFlipButton(
+              onPressed: () => setState(() {
+                _orientation =
+                    _orientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
+              }),
             ),
           ],
         ),
