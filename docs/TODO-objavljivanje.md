@@ -55,10 +55,53 @@ Publika ID tokena se ne menja preimenovanjem paketa.
 - [ ] Popuniti označena polja: ime/naziv, adresa, email za privatnost, rokovi
       čuvanja snimaka, hosting provajder i region.
 - [ ] **Objaviti politiku privatnosti na javnom URL-u.** Play Console traži link
-      pre nego što pusti aplikaciju — bez toga se ne može objaviti.
+      pre nego što pusti aplikaciju — bez toga se ne može objaviti. Gde tačno:
+      vidi korak 3a niže.
 - [ ] Uneti taj URL u Play Console → App content → Privacy policy.
 - [ ] Popuniti **Data safety** formu u Play Console-u prema onome što piše u
       politici (email, glas, snimci, rezultati vežbi).
+
+## 3a. Sajt — nije marketing, nego preduslov
+
+Lako ga je odložiti kao „kad stignemo", ali **korak 3 zavisi od njega**: Play
+neće pustiti aplikaciju bez javnog URL-a politike privatnosti, a Play traži i
+kontakt podrške. Sajt je mesto gde oba žive. Uz to je i jedini način da se
+desktop verzija uopšte podeli — nju Play ne raznosi.
+
+**Odluke koje treba doneti pre pisanja ijedne stranice:**
+
+- [ ] **Domen.** Isti onaj koji čeka backend. Uobičajena podela: sajt na korenu
+      (`primer.rs`), API na poddomenu (`api.primer.rs`). Jedan sertifikat po
+      imenu, oba na istoj mašini. Ovo je još jedan razlog da se `sslip.io` ne
+      zadrži — na njemu sajt ne izgleda kao nešto čemu roditelj poverava dete.
+- [ ] **Gde stoji.** Najjeftinije i najprostije: statičke stranice sa istog
+      droplet-a, kroz nginx koji već radi i certbot koji već obnavlja
+      sertifikate. Nema novog troška ni novog naloga. Alternativa je GitHub
+      Pages, ali onda su sajt i API na dva mesta bez potrebe.
+
+**Šta sajt mora da nosi:**
+
+- [ ] Politika privatnosti i saglasnost roditelja — iz `docs/`, na stalnim
+      URL-ovima koji se ne menjaju (Play ih pamti).
+- [ ] **Kontakt podrške.** Play traži adresu; za početak je dovoljna jedna
+      stranica i email. Sistem za tikete je preterivanje dok nema korisnika.
+- [ ] Opis i spisak mogućnosti. Piše se **jednom** i koristi i kao tekst u Play
+      listingu. Pri tom: ime „Chess Master" / „Chessmaster" se **ne koristi** —
+      to je Ubisoft-ov brend (vidi „Odvojeno: ime aplikacije" niže).
+
+**Preuzimanje se razlikuje po platformi, i to je prava tema:**
+
+- [ ] **Android — link ka Play-u, ne APK.** Direktan APK uči korisnika da
+      isključi zaštitu i gubi automatska ažuriranja. APK samo za probu, na
+      skrivenoj stranici.
+- [ ] **Windows — instalacija, i tu je trošak.** Nepotpisan `.exe` dočekuje
+      SmartScreen upozorenjem koje većinu ljudi vrati nazad. Sertifikat za
+      potpisivanje koda je godišnji trošak reda nekoliko stotina evra. Odluka:
+      platiti, ili prihvatiti upozorenje i objasniti ga na stranici za
+      preuzimanje.
+- [ ] **iOS / macOS — nije ni građeno.** Flutter to može, ali traži Apple
+      Developer nalog ($99 godišnje) i Mac za potpisivanje. Dok se ne odluči,
+      sajt ne sme da ih pominje.
 
 ## 4. Proizvodi za pretplatu
 
