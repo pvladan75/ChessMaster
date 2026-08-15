@@ -143,33 +143,27 @@ sati na 25 GB. Sledeće troje nije hitno, ali svako od njih zagrize tiho.
       `/etc/sysctl.d/99-swappiness.conf` da se ne koristi agresivno u normalnom
       radu — samo kao zaštita kad MP4 izvoz naglo potroši RAM. Backup originalnog
       `fstab`-a je na droplet-u kao `/etc/fstab.bak-swap`.
-### Nov droplet pre raspoređivanja — odlučeno 15.8.2026
+### Nov droplet — ✅ napravljen i postavljen 15.8.2026
 
-Postojeći droplet je **Ubuntu 25.04, izdanje van podrške** (interim izdanja žive
-9 meseci). Na njemu nema ničega našeg: nema Node-a, nema koda, nema baze — samo
-SSH sluša. Nadogradnja u mestu bi bila dva `do-release-upgrade` skoka
-(25.04 → 25.10 → 26.04) na 1 GB RAM-a, sa arhivom koja se seli na `old-releases`.
-Zato: **nova mašina sa 26.04 LTS**, stara se briše. Ništa se ne migrira.
+Stari droplet (Ubuntu 25.04, van podrške) je **obrisan**; na njemu nije bilo
+ničega našeg. Nova mašina je `chess-backend-ams3`: Ubuntu 26.04 LTS, 1 vCPU /
+2 GB / 50 GB, AMS3, dnevne rezervne kopije, rezervisani IP, tag `chess-backend`.
 
-Sa stare mašine se nosi tačno ovo (provereno, nema više ničega):
+Sve je postavljeno i provereno, ali servis je **namerno ugašen i isključen iz
+automatskog podizanja** dok aplikacija ne pređe na njega — dva backend-a nad
+istom bazom razdvajaju `uploads/` i stanje sesija.
 
-- swap 2 GB + `vm.swappiness=10` (postupak niže u ovom fajlu),
-- `ufw` sa jedinim pravilom `OpenSSH` — 80/443 tek kad dođe nginx,
-- SSH ključ radne stanice; ključ „DOTTY" je privremeni ključ DO web-konzole i
-  ističe sam, ne prenosi se.
+Redosled (odrađeno):
 
-Redosled:
-
-- [ ] **Pre brisanja: proveriti „Trusted Sources" na upravljanoj PostgreSQL
-      bazi.** Ako je stari droplet tamo naveden, nov mora da se doda a stari
-      ukloni — inače backend posle prebacivanja ne može do baze, a greška izgleda
-      kao pogrešna lozinka.
-- [ ] **Rezervisati IP (Reserved IP) i zakačiti ga na novu mašinu.** Bez toga
-      svako sledeće presipanje menja adresu, pa i DNS i whitelist baze.
-- [ ] Kreirati droplet: **Ubuntu 26.04 LTS**, AMS3, postojeći SSH ključ izabran
-      pri kreiranju. Veličina kao dosad (1 vCPU / 1 GB) uz swap; MP4 izvoz je
-      jedino što naglo traži RAM.
-- [ ] **Pokrenuti [`deploy/provision.sh`](../deploy/provision.sh)** — jedna
+- [x] **„Trusted Sources" na bazi** — dodat **tag** `chess-backend`, ne pojedina
+      mašina, pa buduće presipanje servera ne traži izmenu na bazi. Stari droplet
+      skinut. (Da je promašeno, backend ne bi mogao do baze, a greška izgleda kao
+      pogrešna lozinka.)
+- [x] **Rezervisani IP** `209.38.55.151` zakačen. Napomena: mašina tu adresu
+      **ne vidi** na svojim interfejsima — DO je rutira spolja, pa sve mora da
+      sluša na `0.0.0.0`, nikad na konkretnoj adresi.
+- [x] Kreiran droplet: Ubuntu 26.04 LTS, AMS3, postojeći SSH ključ.
+- [x] **Pokrenut [`deploy/provision.sh`](../deploy/provision.sh)** — jedna
       komanda umesto šest koraka:
 
       scp deploy/provision.sh root@HOST:/tmp/ && ssh root@HOST 'bash /tmp/provision.sh'
@@ -181,18 +175,26 @@ Redosled:
       bezbednosne zakrpe. Na kraju sam proveri da `zlib.zstd*` postoji. Skripta
       je idempotentna, može da se pokrene ponovo bez štete. **Java se ne
       instalira** — backend je Node, Android se gradi u CI-ju.
-- [ ] Restart posle nadogradnje jezgra.
-- [ ] Obrisati stari zapis iz `known_hosts` na radnoj stanici, inače SSH prijavi
-      neslaganje ključa.
-- [ ] **Baza: privatni host i provera sertifikata.** U `.env` na serveru
-      `DB_HOST` mora biti `private-...` ime iz Overview → Connection details →
-      VPC network, a `DB_CA_PATH` putanja do CA sertifikata klastera. Provereno
-      15.8.2026 sa same mašine (`openssl s_client -starttls postgres`): SAN
-      sertifikata sadrži i privatno ime, pa `verify-full` prolazi — to nije bilo
-      sigurno unapred, jer se sertifikati često izdaju samo za javno ime. Bez
-      `DB_CA_PATH` veza je šifrovana ali neproverena; vidi `buildSslConfig` u
-      `db.js` i `test/db_ssl_config.test.js`.
-- [ ] Tek onda: `backendUrl` u aplikaciji sa LAN adrese na pravi host.
+- [x] Restart posle nadogradnje jezgra.
+- [x] Obrisan stari zapis iz `known_hosts` na radnoj stanici.
+- [x] **Pokrenut [`deploy/app-setup.sh`](../deploy/app-setup.sh)** — nginx,
+      Let's Encrypt sertifikat, `systemd` servis. Tri stvari u njemu nose težinu:
+      `client_max_body_size 120m` (backend prima snimke do 100 MB, a nginx
+      podrazumevano odbija preko 1 MB — greška bi izgledala kao kvar snimanja),
+      `Upgrade`/`Connection` zaglavlja bez kojih Socket.IO tiho pada na
+      polling, i izričito imenovana grana pri kloniranju.
+- [x] **Baza: privatni host i provera sertifikata.** `DB_HOST` je `private-...`
+      ime, `DB_CA_PATH` pokazuje na CA klastera. Provereno na živoj vezi:
+      `rejectUnauthorized: true`, `TLS socket authorized: true`, PostgreSQL 17.10.
+      Pre toga `openssl s_client -starttls postgres` potvrdio da SAN sertifikata
+      sadrži i privatno ime — nije bilo sigurno unapred, jer se sertifikati često
+      izdaju samo za javno ime. Vidi `buildSslConfig` u `db.js` i
+      `test/db_ssl_config.test.js`.
+- [ ] **Domen** — trenutno je ime privremeno: `209-38-55-151.sslip.io`, jer
+      Let's Encrypt ne izdaje sertifikat za golu IP adresu. Kad domen bude
+      izabran, ponovo pokrenuti `app-setup.sh` sa novim `HOST`.
+- [ ] **Prebacivanje:** `systemctl enable --now chess-backend`, pa `backendUrl` u
+      aplikaciji sa LAN adrese na pravi host. Jedan smer u jednom trenutku.
 - [ ] **Veća baza pre punog Lichess seta.** 50k zagonetki je zanemarljivo, ali
       punih 6,1M sa GIN indeksom po temama neće udobno stati u 1 GB RAM-a.
 

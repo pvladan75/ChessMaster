@@ -43,6 +43,10 @@ Aplikacija radi na Windows-u u debug režimu. Sesija, snimanje časa, čuvanje i
 reprodukcija sa zvukom — sve prošlo uživo. Backend na `chess_backend` (Node +
 PostgreSQL na DigitalOcean), pokreće se sa `npm run dev`.
 
+Od 15.8.2026. postoji i **pravi server, potpuno postavljen i proveren, ali
+namerno ugašen** — vidi „Nov server" niže. Aplikacija i dalje gađa lokalni
+backend; prebacivanje čeka odluku o domenu.
+
 Stanje provere funkcionalnosti se vodi u [TODO-provera.md](TODO-provera.md),
 koraci za objavljivanje u [TODO-objavljivanje.md](TODO-objavljivanje.md).
 
@@ -315,19 +319,61 @@ Node-u baca jasnu poruku umesto „is not a function".
 > kao odvajkada postojeći deo `zlib`-a. Pouka: verziju API-ja proveriti u
 > dokumentaciji („Added in:"), ne po osećaju o starosti modula.
 
-**Provereno na droplet-u (15.8.2026, preko SSH):** Node tamo **uopšte nije
-instaliran** — ni `apt` paket, ni `nvm`, ni jedan izvršni fajl na disku. Backend
-nije ni raspoređen: nema procesa, ništa ne sluša osim `sshd` i `systemd-resolved`,
-`/root` i `/srv` su prazni. Droplet je zasad samo mašina sa podešenim swap-om;
-backend radi na tvojoj mašini (`backendUrl` u aplikaciji podrazumevano gađa LAN
-adresu), a na DigitalOcean-u je samo upravljana PostgreSQL baza.
+Provera je usput otkrila da na tadašnjem droplet-u Node **uopšte nije bio
+instaliran**, niti je backend bio raspoređen — vidi sledeći odeljak.
 
-Uz to je mašina **Ubuntu 25.04 — izdanje van podrške**, bez bezbednosnih zakrpa,
-sa 2,3 GB dnevnika i punim `openjdk-17-jdk` iz avgusta 2025. Odlučeno 15.8.2026:
-**pravi se nov droplet sa 26.04 LTS, stari se briše** — nadogradnja u mestu bila
-bi dva `do-release-upgrade` skoka na 1 GB RAM-a, a na mašini nema ničega što bi
-se sačuvalo. Spisak koraka, i ono malo što se prenosi, u
-[TODO-objavljivanje.md](TODO-objavljivanje.md).
+## Nov server — ✅ urađeno 15.8.2026, čeka prebacivanje
+
+**Šta je zatečeno.** Stari droplet je bio Ubuntu 25.04 — izdanje **van
+podrške**, bez bezbednosnih zakrpa, sa 2,3 GB dnevnika i punim `openjdk-17-jdk`
+iz avgusta 2025. Na njemu nije bilo ničega našeg: ni Node-a, ni koda, ni
+procesa; slušao je samo `sshd`. Cela istorija komandi te mašine (provereno u
+`.bash_history` pre brisanja) svodi se na `apt upgrade`, pravljenje naloga,
+`ufw`, i jedan pokušaj sa Javom. Backend je sve vreme radio na radnoj stanici.
+
+**Odluka: nova mašina, ne nadogradnja.** Put 25.04 → 26.04 nije jedan skok nego
+dva `do-release-upgrade` ciklusa na 1 GB RAM-a, sa arhivom preseljenom na
+`old-releases` — a nije se imalo šta sačuvati.
+
+**Šta sad postoji:** `chess-backend-ams3`, Ubuntu 26.04 LTS, 1 vCPU / 2 GB /
+50 GB, AMS3, dnevne rezervne kopije, rezervisani IP. Node 22.23.2, ffmpeg 8.0.1,
+swap 2 GB, `journald` ograničen na 200 MB, `ufw` propušta 22/80/443, nalog
+`chess` bez `sudo`. Postavljeno skriptama
+[`deploy/provision.sh`](../deploy/provision.sh) i
+[`deploy/app-setup.sh`](../deploy/app-setup.sh) — obe idempotentne, da se sledeća
+mašina podigne istim redosledom.
+
+**Šta je dokazano, ne pretpostavljeno:**
+
+- `https://209-38-55-151.sslip.io` odgovara sa `200`, sertifikat prolazi proveru
+  spolja, `http` se preusmerava. Ime je privremeno (`sslip.io` pravi DNS zapis od
+  IP adrese) jer domen još nije izabran; Let's Encrypt za golu IP adresu ne
+  izdaje sertifikat.
+- Backend se povezuje na bazu **privatnom VPC mrežom** i sa punom proverom
+  sertifikata: `rejectUnauthorized: true`, `TLS socket authorized: true`,
+  PostgreSQL 17.10. Pre toga je `openssl s_client` potvrdio da SAN sertifikata
+  sadrži i privatno ime — što nije bilo sigurno unapred.
+- `initDB` je prošao kroz sve migracije nad postojećom bazom bez izmene podataka.
+
+**Servis je namerno ugašen i isključen iz automatskog podizanja.** Dok aplikacija
+gađa lokalni backend, dva servera nad istom bazom znače razdvojeno stanje: čas
+snimljen preko jednog nije na disku drugog, a baza tvrdi da postoji. Prebacuje se
+u jednom smeru, kad `backendUrl` bude promenjen.
+
+**Dve greške u sopstvenim skriptama, obe uhvaćene ponovnim pokretanjem:**
+
+1. Skripta je pri svakom prolazu iznova ispisivala nginx konfiguraciju iz
+   šablona, koji nema TLS blok — njega dodaje certbot. Zaštita „ne traži
+   sertifikat ako postoji" preskakala je jedini korak koji bi TLS vratio, pa je
+   server tiho spao na port 80. **Ništa nije prijavilo grešku u tom trenutku.**
+   Popravljeno sa `certbot install --cert-name`.
+2. `sed s/^KEY=.*/` ne radi ništa kad ključa nema, i to ćutke — promenljiva
+   dodata u `.env.example` sutra ne bi stigla na server. Zamenjeno funkcijom
+   `set_env` koja dopisuje red ako ga nema.
+
+> Pouka koja se ponavlja kroz ceo dan: **tiho preskakanje je gore od pada.** Isto
+> važi za `zlib.zstd*` u CI-ju i za `DB_CA_PATH`, koji namerno obara proces ako
+> fajl ne postoji, umesto da se vrati na neproverenu vezu.
 
 ## Sledeće na redu
 
@@ -335,6 +381,12 @@ Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
 politika brisanja fajlova, uvoz partija, MP4 izvoz) je urađeno i provereno
 uživo. Ostaju:
 
+- **Domen** — jedina odluka koja blokira ostatak raspoređivanja. Bez pravog imena
+  ostaje `sslip.io`, a `backendUrl` se menja opet kad domen dođe. Sve tri stvari
+  traže isto ime: sertifikat, `backendUrl` u aplikaciji, RTDN adresa za Play.
+- **Prebacivanje na server** kad domen bude rešen: `systemctl enable --now
+  chess-backend` i `backendUrl` u [constants.dart](../chess_app/lib/constants.dart)
+  sa LAN adrese na pravi host.
 - **Faza 2 unifikacije — `MoveCursor`** (faza 1 proverena uživo 15.8.2026).
 - Provere uživo iz `TODO-provera.md`: izveštaj za roditelja, zadaci tipa
   lekcija, ponavljanje u razmacima, merenje troška (stavka 10 — endpoint sad
