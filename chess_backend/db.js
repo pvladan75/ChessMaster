@@ -1,6 +1,35 @@
 require('dotenv').config();
+const fs = require('fs');
 const { Pool } = require('pg');
 const logger = require('./services/logger');
+
+/// Decides how the connection is secured, from the environment alone.
+///
+/// Three states, in order of preference:
+///
+///   DB_CA_PATH set  — the managed cluster's CA is on disk, so the certificate
+///                     chain *and* the hostname are verified. This is what
+///                     DigitalOcean calls `verify-full`, and the only setting
+///                     under which encryption actually proves who answered.
+///   DB_SSL=true     — encrypted but unverified, the historical behaviour. Kept
+///                     as a fallback so an environment without the CA file
+///                     still starts; over the public internet it is open to an
+///                     active man in the middle.
+///   neither         — plaintext, for a local PostgreSQL that has no TLS.
+///
+/// Exported for the tests: this is a security setting where "probably right"
+/// is not good enough, and it is the kind of thing an .env edit breaks quietly.
+function buildSslConfig(env = process.env) {
+  if (env.DB_CA_PATH) {
+    // Deliberately unguarded: a CA path that does not resolve must stop the
+    // process, not silently downgrade the connection to unverified.
+    return { ca: fs.readFileSync(env.DB_CA_PATH, 'utf8'), rejectUnauthorized: true };
+  }
+  if (env.DB_SSL === 'true') {
+    return { rejectUnauthorized: false };
+  }
+  return false;
+}
 
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -8,7 +37,7 @@ const pool = new Pool({
   database: process.env.DB_DATABASE,
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+  ssl: buildSslConfig()
 });
 
 async function initDB() {
@@ -472,5 +501,6 @@ async function initDB() {
 module.exports = {
   pool,
   initDB,
-  initializeDatabase: initDB
+  initializeDatabase: initDB,
+  buildSslConfig
 };

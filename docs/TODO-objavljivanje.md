@@ -184,6 +184,14 @@ Redosled:
 - [ ] Restart posle nadogradnje jezgra.
 - [ ] Obrisati stari zapis iz `known_hosts` na radnoj stanici, inače SSH prijavi
       neslaganje ključa.
+- [ ] **Baza: privatni host i provera sertifikata.** U `.env` na serveru
+      `DB_HOST` mora biti `private-...` ime iz Overview → Connection details →
+      VPC network, a `DB_CA_PATH` putanja do CA sertifikata klastera. Provereno
+      15.8.2026 sa same mašine (`openssl s_client -starttls postgres`): SAN
+      sertifikata sadrži i privatno ime, pa `verify-full` prolazi — to nije bilo
+      sigurno unapred, jer se sertifikati često izdaju samo za javno ime. Bez
+      `DB_CA_PATH` veza je šifrovana ali neproverena; vidi `buildSslConfig` u
+      `db.js` i `test/db_ssl_config.test.js`.
 - [ ] Tek onda: `backendUrl` u aplikaciji sa LAN adrese na pravi host.
 - [ ] **Veća baza pre punog Lichess seta.** 50k zagonetki je zanemarljivo, ali
       punih 6,1M sa GIN indeksom po temama neće udobno stati u 1 GB RAM-a.
