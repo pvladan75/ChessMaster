@@ -45,10 +45,15 @@ jobs:
       # The backend suite covers the entitlement and purchase-verification logic,
       # where a mistake either gives a paid feature away or revokes one someone
       # paid for. It needs Node and the backend's dependencies.
+      #
+      # Node 22 is a floor, not a preference: the Lichess puzzle import decodes a
+      # multi-frame zstd dump through `zlib.zstdCompressSync` / `zstdDecompressSync`,
+      # which exist only from v22.15.0 (and v23.8.0). On v20 they are undefined and
+      # both the importer and its test die with "is not a function".
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: chess_backend/package-lock.json
 

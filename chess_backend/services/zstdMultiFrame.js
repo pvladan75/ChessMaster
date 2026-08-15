@@ -15,6 +15,13 @@
 const fs = require('fs');
 const zlib = require('zlib');
 
+// Node grew a zstd codec only in v22.15.0 (and v23.8.0). Older runtimes leave
+// these undefined, and the failure otherwise surfaces mid-import as
+// "zlib.zstdDecompressSync is not a function", which reads like a typo.
+if (typeof zlib.zstdDecompressSync !== 'function') {
+  throw new Error(`zstd support requires Node >= 22.15.0 (running ${process.version})`);
+}
+
 const ZSTD_MAGIC = 0xfd2fb528;
 const SKIPPABLE_MIN = 0x184d2a50;
 const SKIPPABLE_MAX = 0x184d2a5f;

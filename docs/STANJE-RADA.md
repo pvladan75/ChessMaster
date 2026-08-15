@@ -76,6 +76,25 @@ bi greška zvuka oborila ceo `_play()`. Uz to su bili ispaljeni bez `await`, pa 
 zvuk ide posle kroz `_startAudioFrom` sa `await`-ovima i `try/catch`. Time je
 rešeno oboje — i Play i zvuk.
 
+**4. Zamrzavanje pri otvaranju „Kreiraj lekciju"** —
+[create_course_dialog.dart](../chess_app/lib/widgets/create_course_dialog.dart).
+`AlertDialog` svoju decu uvek umotava u `IntrinsicWidth`
+([dialog.dart:925](https://github.com/flutter/flutter/blob/master/packages/flutter/lib/src/material/dialog.dart)).
+Kad `content` **nije čvrste širine**, taj intrinsic prolaz siđe kroz
+`SingleChildScrollView` do `Column`-a, a `RenderFlex` pri računanju poprečne
+veličine traži *glavnu* (visinu) od svoje dece — i tako stigne do `ListView`-a i
+`ReorderableListView`-a sa `shrinkWrap: true`. Lenji viewport ne ume da vrati
+intrinsic dimenzije i baci `RenderShrinkWrappingViewport does not support
+returning intrinsic dimensions`, pa dijalog ostane neraspoređen. Popravka:
+`SizedBox(width: 380)` oko sadržaja — `RenderConstrainedBox` kod čvrste širine
+vraća broj **bez** silaska u dete ([proxy_box.dart:250](https://github.com/flutter/flutter/blob/master/packages/flutter/lib/src/rendering/proxy_box.dart)),
+pa lanac nikad ne krene. Visina ostaje `maxHeight`, izgled nepromenjen.
+Isti obrazac je preventivno popravljen i u
+[save_position_dialog.dart](../chess_app/lib/widgets/save_position_dialog.dart)
+(lista predloga labela puca isto, čim se ukuca slovo). Ostali dijalozi sa lenjim
+listama već koriste čvrst `SizedBox`. Pokriveno testom
+[dialog_layout_test.dart](../chess_app/test/dialog_layout_test.dart).
+
 **Ostalo:** tap-to-move je postao dodatak prevlačenju (overlay je
 `HitTestBehavior.translucent`, pa ne guta gest), podešavanje „Način izvođenja
 poteza" je zato uklonjeno u celosti, i animacija klizanja figure je izbačena sa
@@ -274,30 +293,38 @@ Dogovor je: faza po faza, korisnik proverava svaku, vraćamo se ako ne valja.
   (`_flipBoard` zove `_saveDraft`).
 - Sesija — navigacija poteza (gore).
 
-## CI je crven, i to nije od ovog posla
+## CI je bio crven — ✅ rešeno 15.8.2026
 
-GitHub Actions pada na koraku **„Run Backend Tests"** (`npm test` u
-`chess_backend`). Flutter analiza i Flutter testovi **prolaze**.
+GitHub Actions je padao na koraku **„Run Backend Tests"** (`npm test` u
+`chess_backend`), i to još od commit-a `661329a` — dakle pre ovog ciklusa.
+Flutter analiza i Flutter testovi su prolazili sve vreme.
 
-Bitno: pao je i na commit-u **`661329a`**, dakle *pre* bilo čega iz ovog
-ciklusa. Nije regresija, nasleđeno je crveno stanje.
+**Uzrok:** `TypeError: zlib.zstdCompressSync is not a function` u
+[zstd_multiframe.test.js](../chess_backend/test/zstd_multiframe.test.js). Node
+je dobio zstd kodek tek u **v22.15.0** (i v23.8.0), a workflow je bio pinovan na
+**Node 20**. Lokalno je Node 25, pa se greška nikad nije videla — svih 96
+backend testova tu prolazi.
 
-Isključeno tokom istrage:
+**Popravka:** `node-version: '22'` u [ci_cd.yml](../.github/workflows/ci_cd.yml),
+`engines.node >= 22.15.0` u `package.json`, i provera na vrhu
+[zstdMultiFrame.js](../chess_backend/services/zstdMultiFrame.js) koja na starijem
+Node-u baca jasnu poruku umesto „is not a function".
 
-- **Nije `.env`** (CI ga nema, u `.gitignore` je) — testovi prolaze i bez njega,
-  provereno privremenim sklanjanjem uz kopiju.
-- **Nije API noviji od Node 20** — pretraženo, nema ga u backend kodu ni
-  testovima.
-- **Nije `puzzles/*.zst`** — 304 MB fajl nije u gitu, ali ga testovi ne dodiruju
-  (`import_lichess_puzzles` je uredno iza `require.main === module`).
+> Ranija istraga je ovo pogrešno isključila („nema API novijeg od Node 20") —
+> pretraga je gledala jezičke i `fs`/`stream` novitete, a `zlib.zstd*` je izgledao
+> kao odvajkada postojeći deo `zlib`-a. Pouka: verziju API-ja proveriti u
+> dokumentaciji („Added in:"), ne po osećaju o starosti modula.
 
-Ostaje kao razlika: CI je **Node 20 / Linux**, lokalno **Node 25 / Windows**.
-Logovi se nisu mogli pročitati — GitHub ih daje samo uz autentikaciju (403), a
-`gh` CLI nije instaliran. **Najjeftiniji sledeći korak: prekopirati ispis iz
-koraka „Run Backend Tests"**, umesto pogađanja ili probnih push-eva.
+**Provereno na droplet-u (15.8.2026, preko SSH):** Node tamo **uopšte nije
+instaliran** — ni `apt` paket, ni `nvm`, ni jedan izvršni fajl na disku. Backend
+nije ni raspoređen: nema procesa, ništa ne sluša osim `sshd` i `systemd-resolved`,
+`/root` i `/srv` su prazni. Droplet je zasad samo mašina sa podešenim swap-om;
+backend radi na tvojoj mašini (`backendUrl` u aplikaciji podrazumevano gađa LAN
+adresu), a na DigitalOcean-u je samo upravljana PostgreSQL baza.
 
-Cena čekanja: koraci posle testova se preskaču, pa se **APK ne gradi** i crven
-CI maskira svaku buduću pravu grešku.
+Praktično: nema šta da se popravlja na serveru, ali kad dođe raspoređivanje —
+instalirati **Node 22 LTS ili noviji odmah**, ne 20. Stavka je dopisana u
+[TODO-objavljivanje.md](TODO-objavljivanje.md).
 
 ## Sledeće na redu
 
@@ -305,8 +332,7 @@ Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
 politika brisanja fajlova, uvoz partija, MP4 izvoz) je urađeno i provereno
 uživo. Ostaju:
 
-- **Provera faze 1** unifikacije (spisak gore), pa **faza 2 — `MoveCursor`**.
-- **CI** — čeka ispis logova.
+- **Faza 2 unifikacije — `MoveCursor`** (faza 1 proverena uživo 15.8.2026).
 - Provere uživo iz `TODO-provera.md`: izveštaj za roditelja, zadaci tipa
   lekcija, ponavljanje u razmacima, merenje troška (stavka 10 — endpoint sad
   radi, izveštaj nikad otvoren).

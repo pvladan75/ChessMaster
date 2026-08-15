@@ -143,6 +143,14 @@ sati na 25 GB. Sledeće troje nije hitno, ali svako od njih zagrize tiho.
       `/etc/sysctl.d/99-swappiness.conf` da se ne koristi agresivno u normalnom
       radu — samo kao zaštita kad MP4 izvoz naglo potroši RAM. Backup originalnog
       `fstab`-a je na droplet-u kao `/etc/fstab.bak-swap`.
+- [ ] **Raspoređivanje backend-a na droplet — još nije počelo.** Provereno
+      15.8.2026: na mašini nema Node-a (ni `apt`, ni `nvm`, ni fajl na disku),
+      nema koda, ništa ne sluša osim SSH-a. Backend i dalje radi lokalno, a
+      `backendUrl` u aplikaciji podrazumevano gađa LAN adresu — to mora da se
+      promeni pre bilo kakvog testa van kuće. Kad se krene: **Node 22 LTS ili
+      noviji**, jer uvoz Lichess zagonetki koristi `zlib.zstd*` koji postoji tek
+      od v22.15.0 (na Node 20 pada sa `is not a function` — to je bilo i ono što
+      je obaralo CI).
 - [ ] **Veća baza pre punog Lichess seta.** 50k zagonetki je zanemarljivo, ali
       punih 6,1M sa GIN indeksom po temama neće udobno stati u 1 GB RAM-a.
 
