@@ -404,7 +404,6 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
                     boardSize: boardSize,
                     isAllowedToMove: !_boardLocked,
                     isDrawingMode: false,
-                    useTapToMove: true,
                     drawingStartSquare: null,
                     arrows: const [],
                     engineArrows: const [],

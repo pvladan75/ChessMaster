@@ -2405,19 +2405,18 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   Widget _buildBoardWithTapAndHighlights(double boardSize) {
     final squareSize = boardSize / 8.0;
-    final useTapToMove = AppSettingsService.instance.moveInputMode == 'tap';
 
     return SizedBox(
       width: boardSize,
       height: boardSize,
       child: GestureDetector(
-      // Every layer inside the Stack is IgnorePointer-wrapped when tap mode
-      // is on (the board itself, plus the always-ignoring arrow/selection
-      // paint overlays), so with the default deferToChild behavior this
-      // detector would never see a hit — nothing beneath it ever reports one.
+      // Opaque so this detector is always in the hit-test path, including
+      // over the arrow/selection overlays that never report a hit themselves.
+      // It does not shut the board out: children are hit-tested first, so a
+      // drag still reaches the board and wins the arena, while a stationary
+      // tap is claimed here. Tap is an addition to dragging, not a swap.
       behavior: HitTestBehavior.opaque,
       onTapUp: (details) {
-        if (!useTapToMove) return;
         if (_isOpponentTurn || _puzzleSolved) return;
         final localOffset = details.localPosition;
         final x = localOffset.dx;
@@ -2444,26 +2443,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       child: Stack(
         children: [
           IgnorePointer(
-            ignoring: _isOpponentTurn || _puzzleSolved || _puzzleFailed || _gameState != PuzzleGameState.idle || useTapToMove,
+            ignoring: _isOpponentTurn || _puzzleSolved || _puzzleFailed || _gameState != PuzzleGameState.idle,
             child: ChessBoard(
               controller: _puzzleBoardController,
               boardOrientation: _puzzleOrientation,
               onMove: () {
                 _selectedSquare = null;
-                final lastMove = _puzzleBoardController.getPossibleMoves().isEmpty
-                    ? null
-                    : _puzzleBoardController.game.history.last;
-                if (lastMove != null) {
-                  // On a promotion, move.piece is still the pre-move pawn;
-                  // move.promotion (when set) is what the destination square
-                  // actually shows now, so prefer it for the sprite.
-                  final pieceType = lastMove.move.promotion ?? lastMove.move.piece;
-                  _triggerMoveAnimation(
-                    lastMove.move.fromAlgebraic,
-                    lastMove.move.toAlgebraic,
-                    chess.Piece(pieceType, lastMove.move.color),
-                  );
-                }
+                // Deliberately not animated: the piece has already travelled
+                // to its destination under the user's pointer, so replaying
+                // the slide shows the same move a second time.
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   _onUserPuzzleMoveMade();
                 });

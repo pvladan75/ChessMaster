@@ -127,53 +127,6 @@ class PuzzleApiService {
     return null;
   }
 
-  Future<Map<String, dynamic>> verifyStockfishMove({
-    required String fen,
-    required String userMove,
-    String? mode,
-    int? remainingNeeded,
-    String? orientation,
-  }) async {
-    try {
-      final res = await http
-          .post(
-            Uri.parse('$backendUrl/api/puzzles/verify'),
-            headers: _headers(),
-            body: jsonEncode({
-              'fen': fen,
-              'userMove': userMove,
-              'mode': mode,
-              'remainingNeeded': remainingNeeded,
-              'orientation': orientation,
-            }),
-          )
-          .timeout(const Duration(seconds: 4));
-
-      if (res.statusCode == 200) {
-        return jsonDecode(res.body) as Map<String, dynamic>;
-      }
-    } catch (e) {
-      print('[PUZZLE_API_SERVICE] Error verifying Stockfish move: $e');
-    }
-    return {
-      'success': false,
-      'status': 'REJECTED',
-      'reason': 'Greška na mrežnoj konekciji pri verifikaciji.',
-    };
-  }
-
-  Future<void> sendLogDetails(Map<String, dynamic> details) async {
-    try {
-      await http
-          .post(
-            Uri.parse('$backendUrl/api/puzzles/log'),
-            headers: _headers(),
-            body: jsonEncode({'details': details}),
-          )
-          .timeout(const Duration(seconds: 3));
-    } catch (_) {}
-  }
-
   Future<Map<String, dynamic>?> explainPosition({
     required String fen,
     required Map<String, dynamic> evals,
@@ -198,6 +151,51 @@ class PuzzleApiService {
       }
     } catch (e) {
       print('[PUZZLE_API_SERVICE] Error explaining position: $e');
+    }
+    return null;
+  }
+
+  Future<String?> generateMoveComment({
+    required String moveSan,
+    double? evalBefore,
+    double? evalAfter,
+    required List<Map<String, dynamic>> tacticalFindings,
+    required List<Map<String, dynamic>> positionalFindings,
+    // Comparative context — all optional, see analysis_studio_screen.dart's
+    // _generateAiComment() for how each is gathered.
+    Map<String, dynamic>? previousMove,
+    Map<String, dynamic>? engineAlternative,
+    Map<String, dynamic>? nextMoveEval,
+    List<Map<String, dynamic>>? siblingAlternatives,
+    String userLanguage = 'sr',
+    required String userToken,
+  }) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$backendUrl/api/ai/generate-move-comment'),
+            headers: _headers(userToken),
+            body: jsonEncode({
+              'moveSan': moveSan,
+              'evalBefore': evalBefore,
+              'evalAfter': evalAfter,
+              'tacticalFindings': tacticalFindings,
+              'positionalFindings': positionalFindings,
+              if (previousMove != null) 'previousMove': previousMove,
+              if (engineAlternative != null) 'engineAlternative': engineAlternative,
+              if (nextMoveEval != null) 'nextMoveEval': nextMoveEval,
+              if (siblingAlternatives != null && siblingAlternatives.isNotEmpty)
+                'siblingAlternatives': siblingAlternatives,
+              'userLanguage': userLanguage,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 200) {
+        return (jsonDecode(res.body) as Map<String, dynamic>)['comment'] as String?;
+      }
+    } catch (e) {
+      print('[PUZZLE_API_SERVICE] Error generating move comment: $e');
     }
     return null;
   }

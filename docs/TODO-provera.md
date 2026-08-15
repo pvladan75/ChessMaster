@@ -41,7 +41,44 @@ poruku → „Napravi" → otvori link.
 - Da li se ocenjeni korak vraća na red kad mu dođe vreme.
 - Da „Ponovo" vrati korak istog dana, a „Lako" ga odgurne daleko.
 
-## 4. Mobilni raspored
+## 4. Snimanje časa — ✅ provereno 15.8.2026
+
+Ceo tok je prošao uživo: snimanje → potezi → pauza → nastavak → zaustavljanje →
+čuvanje → reprodukcija, uključujući i zvuk (koji do tada nikad nije radio).
+
+Provereno i na podacima, ne samo okom: snimak `id=13` ima svih 10 događaja i na
+uređaju i u bazi, sa istim vremenima. Razmak između poteza je ~1–2 s osim jednog
+od 4830 ms tačno na mestu pauze — dakle mrtvo vreme pauze **jeste** oduzeto, što
+je i bio razlog refaktora u `LessonRecorder`.
+
+**Sinhronizacija zvuka posle pauze — ✅ provereno.** Agora ne ume da pauzira
+snimanje, pa mikrofon radi kroz pauzu dok je vremenska osa table zamrznuta. Sad
+klijent uz snimak šalje intervale pauza, a server ih iseče iz zvuka
+(`services/audioTrimmer.js`) pri čuvanju. Provereno uživo: snimanje sa pauzom pa
+reprodukcija — tabla i glas idu zajedno do kraja.
+
+Sečenje je namerno „best effort": ako FFmpeg zakaže, snimak se svejedno sačuva sa
+neisečenim zvukom. Bolje neusklađen zvuk nego izgubljen čas. Ako sinhronizacija
+ikad opet odluta, prvo potraži `[AUDIO TRIM] Cut N pause(s), Xms total` u logu
+servera — bez te linije sečenje nije ni pokušano (`ffmpeg` van PATH-a ili
+`pauseIntervals` nije stigao).
+
+**Ostaje neprovereno: MP4 izvoz.** Stoji iza `MP4_EXPORT` prava, a nalog nema
+Premium — vidi stavku 10. To je jedina veća funkcija snimanja koja nikad nije
+pokrenuta, a i najskuplja po CPU na droplet-u od 1 vCPU.
+
+## 5. Keširanje evaluacija
+
+**Kako:** u Analysis Studiju uradi „Analiziraj celu partiju", pa **odmah zatim**
+„Automatska analiza" nad istim pozicijama.
+
+Druga operacija treba da bude osetno brža. U logovima se vidi linija
+`[EvalCache] ... iz keša (N%)`.
+
+Ako promenite motor u podešavanjima, keš se prazni — druga analiza posle toga
+opet ide punom brzinom, i to je namerno.
+
+## 6. Mobilni raspored
 
 **Kako:** pokrenuti na telefonu (ili suziti prozor na ~360 px).
 
@@ -49,7 +86,7 @@ Testovi renderuju dijaloge na 360×640 i 320×568 i hvataju prelivanje, ali
 **„Moji zadaci" i izveštaj o učeniku nisu pokriveni** — oni zovu server pri
 otvaranju, pa bi test visio. Njih treba pogledati okom.
 
-## 5. Preimenovanje paketa
+## 7. Preimenovanje paketa
 
 Aplikacija je sada `rs.pejovic.chesscoach`.
 
@@ -60,7 +97,7 @@ Aplikacija je sada `rs.pejovic.chesscoach`.
 - [ ] Na Windows-u su podaci sada u `AppData\Roaming\rs.pejovic\chess_app` —
       preuzeti Stockfish je ostao na staroj putanji.
 
-## 6. Naplata — nije isprobana uopšte
+## 8. Naplata — nije isprobana uopšte
 
 Ceo sloj (prava pristupa, Play verifikacija, RTDN, kvote) radi po testovima, ali
 **nijedna prava kupovina nije obavljena** jer Play Console nalog još ne postoji.
@@ -68,7 +105,7 @@ Prvi stvarni `purchaseToken` je jedini pravi dokaz.
 
 Vidi `TODO-objavljivanje.md`.
 
-## 7. Merenje troška — nikad pogledano
+## 9. Merenje troška — nikad pogledano
 
 Agora sekunde i MP4 renderi se beleže od prvog dana, ali izveštaj nije otvaran:
 
@@ -85,7 +122,22 @@ UPDATE users SET role = 'admin' WHERE email = 'vas@email';
 
 Posle toga se **morate ponovo prijaviti** da bi token nosio novu ulogu.
 
-## 8. Admin dodela naloga — nikad korišćena
+## 10. Admin dodela naloga — nikad korišćena
 
 `POST /users/account-type` je jedini način da se nekome da Premium dok naplata ne
-proradi. Traži isti admin nalog kao stavka 7.
+proradi. Traži isti admin nalog kao stavka 9.
+
+### Jedan potez otključava tri stavke
+
+Stavke 4 (MP4 izvoz), 8 (prava pristupa) i 9 (merenje troška) sve čekaju na isto:
+nijedan korisnik nema `role = 'admin'`. Redosled je:
+
+1. `UPDATE users SET role = 'admin' WHERE email = 'vas@email';`
+2. Ponovna prijava — token mora da ponese novu ulogu.
+3. Kroz aplikaciju dodeliti sebi Premium, pa probati MP4 izvoz.
+
+Odloženo 15.8.2026. na zahtev korisnika (promena privilegija u živoj bazi je
+njegova odluka). Vredi uraditi rano iz dva razloga: MP4 snimak časa je u proceni
+označen kao glavni diferencijator u odnosu na Lichess, i ujedno je najskuplja
+operacija na droplet-u od 1 vCPU — bolje izmeriti pre nego što neko drugi klikne
+to dugme.

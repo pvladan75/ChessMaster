@@ -9,6 +9,7 @@ const { authenticateToken, signDownloadToken, authenticateDownloadToken } = requ
 const { requireEntitlement } = require('../middleware/entitlements');
 const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
 const videoRenderer = require('../videoRenderer');
+const { trimPauses } = require('../services/audioTrimmer');
 
 const uploadStorage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -50,10 +51,21 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
     return res.status(400).json({ error: 'Polja roomId, title i timelineJson su obavezna.' });
   }
 
+  let pauseIntervals = req.body.pauseIntervals;
+  if (typeof pauseIntervals === 'string') {
+    try {
+      pauseIntervals = JSON.parse(pauseIntervals);
+    } catch (e) {
+      pauseIntervals = [];
+    }
+  }
+
   try {
     let finalAudioUrl = req.body.audioUrl || null;
+    let savedAudioPath = null;
 
     if (req.file) {
+      savedAudioPath = req.file.path;
       finalAudioUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
       logger.info(`[RECORDING] Multipart audio saved: ${req.file.path}, URL: ${finalAudioUrl}`);
     } else if (req.body.audioBase64 && req.body.audioBase64.length > 0) {
@@ -61,8 +73,16 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
       const audioPath = path.join(__dirname, '..', 'uploads', audioFileName);
       const buffer = Buffer.from(req.body.audioBase64, 'base64');
       fs.writeFileSync(audioPath, buffer);
+      savedAudioPath = audioPath;
       finalAudioUrl = `${req.protocol}://${req.get('host')}/uploads/${audioFileName}`;
       logger.info(`[RECORDING] Base64 audio saved to ${audioPath}, URL: ${finalAudioUrl}`);
+    }
+
+    // The microphone ran through every pause while the board timeline did not,
+    // so the two only line up once those stretches are cut out of the audio.
+    // Best effort: audio that still contains its pauses beats a failed save.
+    if (savedAudioPath) {
+      await trimPauses(savedAudioPath, pauseIntervals);
     }
 
     let participantIds = [];

@@ -19,6 +19,7 @@ import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/local_recording_service.dart';
+import 'package:chess_app/services/lesson_recorder.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/models/pending_session_intent.dart';
 
@@ -33,7 +34,6 @@ import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/create_course_dialog.dart';
 import 'package:chess_app/widgets/save_position_dialog.dart';
 import 'package:chess_app/widgets/matrix_filter_panel.dart';
-import 'package:chess_app/widgets/move_history_view.dart';
 import 'package:chess_app/widgets/game_selector_dialog.dart';
 import 'package:chess_app/widgets/share_position_dialog.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
@@ -41,7 +41,6 @@ import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:go_router/go_router.dart';
-import 'package:chess_app/models/recording_models.dart';
 
 // 3. MULTIPLAYER CHESS GAME PAGE
 class ChessGamePage extends StatefulWidget {
@@ -64,7 +63,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
   late String activeRole;
   bool isRecording = false;
   int? recordingStartTimeMs;
-  List<TimelineEvent> recordedEvents = [];
+  /// Owns the recording clock and timeline. See [LessonRecorder] for why the
+  /// pause arithmetic lives outside this screen.
+  final LessonRecorder _recorder = LessonRecorder();
 
   late ChessBoardController controller;
   late io.Socket socket;
@@ -81,8 +82,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
   bool _showEvalBar = false;
   double _currentRawEval = 0.0;
   int _currentEvalDepth = 0;
-  bool isBlunderAlertEnabled = true;
-  bool isBlindfoldMode = false;
   String currentEngineEval = "0.00";
   String bestEngineMove = "-";
   Map<int, AnalysisLine> engineLines = {};
@@ -426,8 +425,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
       boardSize: boardSize,
       isAllowedToMove: isAllowedToMove,
       isDrawingMode: isDrawingMode,
-      isBlindfoldMode: isBlindfoldMode,
-      useTapToMove: AppSettingsService.instance.moveInputMode == 'tap',
       drawingStartSquare: drawingStartSquare,
       arrows: moveTree.current.arrows,
       engineArrows: engineArrows,
@@ -623,16 +620,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
             duration: const Duration(seconds: 2),
           ),
         );
-      }
-    });
-
-    socket.on('blunder_alert_toggled', (data) {
-      if (data != null && mounted) {
-        final enabled = data['enabled'] ?? true;
-        setState(() {
-          isBlunderAlertEnabled = enabled;
-        });
-        _showSuccess('Blunder Alert je ${enabled ? "UKLJUČEN" : "ISKLJUČEN"} od strane ${data['updatedBy'] ?? "domaćina"}');
       }
     });
 
@@ -910,18 +897,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
     });
   }
 
+  /// Mirrors whether *someone in the room* is recording, which the server tells
+  /// every client. Separate from [_recorder], which is only ever active on the
+  /// device that actually started the recording — a student sees the indicator
+  /// but buffers nothing.
   bool isRecordingPaused = false;
-  int pauseStartTimeMs = 0;
-  int totalPauseDurationMs = 0;
 
   void _recordEvent(String eventType, Map<String, dynamic> data) {
-    if (!isRecording || isRecordingPaused || recordingStartTimeMs == null) return;
-    final nowMs = (DateTime.now().millisecondsSinceEpoch - recordingStartTimeMs!) - totalPauseDurationMs;
-    recordedEvents.add(TimelineEvent(
-      timestampMs: nowMs,
-      eventType: eventType,
-      data: data,
-    ));
+    // The recorder decides whether to keep this; callers are scattered all over
+    // this screen and each one checking first is how one of them forgets.
+    _recorder.record(eventType, data);
   }
 
   String? _currentAudioPath;
@@ -936,23 +921,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     if (!mounted) return;
 
+    _recorder.start(
+      initialEventType: 'init',
+      initialData: {
+        'fen': moveTree.current.fen,
+        'orientation': boardOrientation == PlayerColor.white ? 'white' : 'black',
+        'boardControl': boardControl,
+      },
+    );
+
     setState(() {
       isRecording = true;
       isRecordingPaused = false;
-      pauseStartTimeMs = 0;
-      totalPauseDurationMs = 0;
-      recordingStartTimeMs = DateTime.now().millisecondsSinceEpoch;
-      recordedEvents = [
-        TimelineEvent(
-          timestampMs: 0,
-          eventType: 'init',
-          data: {
-            'fen': moveTree.current.fen,
-            'orientation': boardOrientation == PlayerColor.white ? 'white' : 'black',
-            'boardControl': boardControl,
-          },
-        ),
-      ];
+      recordingStartTimeMs = _recorder.startedAtMs;
     });
 
     socket.emit('recording_status_update', {
@@ -973,10 +954,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   void _pauseRecording() {
     if (!isRecording || isRecordingPaused) return;
-    setState(() {
-      isRecordingPaused = true;
-      pauseStartTimeMs = DateTime.now().millisecondsSinceEpoch;
-    });
+    _recorder.pause();
+    setState(() => isRecordingPaused = true);
 
     socket.emit('recording_status_update', {
       'roomId': widget.roomCode,
@@ -995,11 +974,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   void _resumeRecording() {
     if (!isRecording || !isRecordingPaused) return;
-    final pauseDuration = DateTime.now().millisecondsSinceEpoch - pauseStartTimeMs;
-    setState(() {
-      totalPauseDurationMs += pauseDuration;
-      isRecordingPaused = false;
-    });
+    _recorder.resume();
+    setState(() => isRecordingPaused = false);
 
     socket.emit('recording_status_update', {
       'roomId': widget.roomCode,
@@ -1052,7 +1028,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Ukupno zabeleženo događaja: ${recordedEvents.length}',
+              'Ukupno zabeleženo događaja: ${_recorder.eventCount}',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
@@ -1073,11 +1049,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     if (confirm != true) {
       print('[RECORDING_LOG] User cancelled recording save.');
+      _recorder.reset();
       setState(() {
         isRecording = false;
         isRecordingPaused = false;
         recordingStartTimeMs = null;
-        recordedEvents.clear();
       });
       return;
     }
@@ -1087,7 +1063,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     try {
       print('[RECORDING_LOG] 1. Saving recording instantly on device...');
-      final eventsCopy = List<TimelineEvent>.from(recordedEvents);
+      // stop() hands over its own copies, so the reset below cannot empty them
+      // out from under the upload.
+      final recorded = _recorder.stop();
       final List<int> participantIds = [];
       for (var m in roomMembers) {
         if (m is Map && m['userId'] is int) {
@@ -1098,7 +1076,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
       await LocalRecordingService.saveLocally(
         roomId: widget.roomCode,
         title: title,
-        events: eventsCopy,
+        events: recorded.events,
+        pauses: recorded.pauses,
         audioPath: _currentAudioPath,
         participants: participantIds,
       );
@@ -1126,7 +1105,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         isRecording = false;
         isRecordingPaused = false;
         recordingStartTimeMs = null;
-        recordedEvents.clear();
+        _recorder.reset();
       });
     }
   }
@@ -1887,14 +1866,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
-  Widget _buildMoveHistoryContainer() {
-    return MoveHistoryView(
-      moveTree: moveTree,
-      currentNode: currentNode,
-      onSelectNode: _selectNode,
-    );
-  }
-
   Widget buildNavigationControls() {
     final isTrener = widget.userSession.role == 'trener';
     final isAllowedToMove = isTrener || (boardControl != 'trainer_only');
@@ -1904,6 +1875,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       currentNode: currentNode,
       canNavigate: isAllowedToMove,
       onSelectNode: _selectNode,
+      onFlipBoard: _toggleLocalOrientation,
     );
   }
 
@@ -1914,69 +1886,20 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final isAllowedToMove = isHost || isStudio || (boardControl != 'host_only' && boardControl != 'trainer_only');
     final media = MediaQuery.of(context);
     final isWide = Breakpoints.isWide(context);
+    // A phone in landscape is rarely "wide" by dp width, but stacking
+    // everything vertically (the portrait layout) leaves no room for
+    // anything but the board in that limited height — it needs the same
+    // side-by-side board+sidebar split as wide layouts, just without the
+    // inline left (lessons) sidebar, which stays in the Drawer.
+    final isLandscape = media.orientation == Orientation.landscape;
 
     // Sizing of ChessBoard
     final boardSize = (isWide
             ? min(media.size.height * 0.62, media.size.width * 0.42)
-            : min(media.size.height * 0.65, media.size.width * 0.9)) *
+            : isLandscape
+                ? min(media.size.height * 0.75, media.size.width * 0.42)
+                : min(media.size.height * 0.65, media.size.width * 0.9)) *
         AppSettingsService.instance.boardSizeScale;
-
-    Widget buildCommentBox() {
-      final isTrener = activeRole == 'trener' || widget.roomCode == 'STUDIO';
-      final hasComment = currentNode.comment.isNotEmpty;
-      
-      return Container(
-        margin: const EdgeInsets.only(top: 8),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Komentar za potez ${currentNode.san}:',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 6),
-            if (isTrener) ...[
-              TextField(
-                controller: commentController,
-                decoration: const InputDecoration(
-                  hintText: 'Unesite komentar...',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                ),
-                style: const TextStyle(fontSize: 13),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    currentNode.comment = commentController.text.trim();
-                  });
-                  // Sync PGN to students
-                  socket.emit('pgn_loaded', {
-                    'roomId': widget.roomCode,
-                    'pgn': moveTree.exportToPgn(),
-                  });
-                  _showSuccess('Komentar sačuvan i sinhronizovan!');
-                },
-                child: const Text('Sačuvaj komentar', style: TextStyle(fontSize: 12)),
-              ),
-            ] else ...[
-              Text(
-                hasComment ? currentNode.comment : 'Nema komentara za ovaj potez.',
-                style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
-              ),
-            ],
-          ],
-        ),
-      );
-    }
 
     // Left Sidebar Content (Lessons Management)
     Widget buildLeftSidebar() {
@@ -2322,14 +2245,20 @@ class _ChessGamePageState extends State<ChessGamePage> {
       final isHost = activeRole == 'host' || activeRole == 'trener' || widget.userSession.role == 'trener' || widget.roomCode == 'STUDIO';
       final isStudio = widget.roomCode == 'STUDIO';
 
-      return Container(
+      // Material, not a coloured Container: the sidebar hosts a SwitchListTile,
+      // and a ColoredBox between a ListTile and its nearest Material hides the
+      // tile's own background and ink splashes behind an opaque layer. Flutter
+      // asserts on exactly that, every frame, which is enough to drown the UI
+      // thread in error output on desktop.
+      return SizedBox(
         width: isWide ? 300 : double.infinity,
-        color: Theme.of(context).cardColor,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
+        child: Material(
+          color: Theme.of(context).cardColor,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 isStudio ? 'Studio Kontrole' : (isHost ? 'Host Kontrole & Istorija' : 'Kontrola i Istorija'),
@@ -2338,12 +2267,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
               const SizedBox(height: 16),
 
               if (isStudio) ...[
-                ElevatedButton.icon(
-                  onPressed: _toggleLocalOrientation,
-                  icon: const Icon(Icons.flip),
-                  label: const Text('Okreni tablu'),
-                ),
-                const SizedBox(height: 12),
                 const Divider(height: 12),
                 const Text(
                   'Crtanje strelica',
@@ -2451,46 +2374,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       'allowStudentEngine': val,
                     });
                   },
-                ),
-                SwitchListTile(
-                  title: const Text('Uključi Blunder Alert', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                  subtitle: const Text('Upozori igrače pri kardinalnim greškama', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                  value: isBlunderAlertEnabled,
-                  activeThumbColor: Colors.amberAccent,
-                  contentPadding: EdgeInsets.zero,
-                  onChanged: (val) {
-                    setState(() {
-                      isBlunderAlertEnabled = val;
-                    });
-                    socket.emit('toggle_blunder_alert', {
-                      'roomId': widget.roomCode,
-                      'enabled': val,
-                    });
-                  },
-                ),
-                SwitchListTile(
-                  title: const Text('Šah na Slepo (Blindfold)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                  subtitle: const Text('Sakrij figure radi vežbanja vizuelizacije', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                  value: isBlindfoldMode,
-                  activeThumbColor: Colors.purpleAccent,
-                  contentPadding: EdgeInsets.zero,
-                  onChanged: (val) {
-                    setState(() {
-                      isBlindfoldMode = val;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _toggleLocalOrientation,
-                        icon: const Icon(Icons.flip),
-                        label: const Text('Okreni tablu'),
-                      ),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: 12),
                 const Text(
@@ -2611,18 +2494,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       ),
                     ],
                   ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _toggleLocalOrientation,
-                        icon: const Icon(Icons.flip),
-                        label: const Text('Okreni tablu'),
-                      ),
-                    ),
-                  ],
-                ),
               ],
 
               if (!isStudio) ...[
@@ -2953,55 +2824,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     ),
                   ),
                 ],
-
-                const Divider(height: 24),
-              const Text(
-                'Potezi',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 180,
-                child: _buildMoveHistoryContainer(),
-              ),
-              const SizedBox(height: 8),
-              buildCommentBox(),
-              const SizedBox(height: 12),
-              // Reset Board Button
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton.icon(
-                      onPressed: isAllowedToMove
-                          ? () {
-                              controller.resetBoard();
-                              final startFen = controller.getFen();
-                              socket.emit('move', {
-                                'roomId': widget.roomCode,
-                                'move': null,
-                                'currentFen': startFen,
-                                'role': widget.userSession.role,
-                                'movePath': <String>[],
-                              });
-                              socket.emit('pgn_loaded', {
-                                'roomId': widget.roomCode,
-                                'pgn': '',
-                              });
-                              setState(() {
-                                gameStatus = "Tabla je resetovana.";
-                                moveTree = MoveTree(startingFen: startFen);
-                                commentController.text = '';
-                              });
-                              _triggerEngineAnalysis();
-                            }
-                          : null,
-                      icon: const Icon(Icons.restart_alt, color: Colors.redAccent),
-                      label: const Text('Resetuj za sve', style: TextStyle(color: Colors.redAccent)),
-                    ),
-                  ),
-                ],
-              ),
             ],
+            ),
           ),
         ),
       );
@@ -3110,49 +2934,111 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 buildRightSidebar(),
               ],
             )
-          : Column(
-              children: [
-                const SizedBox(height: 8),
-                Text(
-                  isHost ? "Igrate kao Beli (Host)" : "Igrate kao Crni (Korisnik)",
-                  style: TextStyle(color: Colors.grey[400], fontSize: 13),
-                ),
-                const SizedBox(height: 6),
-                if (_showEvalBar) ...[
-                  SizedBox(
-                    width: boardSize,
-                    child: HorizontalEvalBarWidget(
-                      eval: _currentRawEval,
-                      evalString: currentEngineEval,
-                      depth: _currentEvalDepth,
-                      orientation: boardOrientation,
+          : isLandscape
+              // Phone landscape: no room to stack board + everything else
+              // vertically, so it goes side by side instead — board (+nav)
+              // on the left, everything else in one scrollable pane on the
+              // right. The left (lessons) sidebar stays in the Drawer.
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 8),
+                            Text(
+                              isHost ? "Igrate kao Beli (Host)" : "Igrate kao Crni (Korisnik)",
+                              style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                            ),
+                            const SizedBox(height: 6),
+                            if (_showEvalBar) ...[
+                              SizedBox(
+                                width: boardSize,
+                                child: HorizontalEvalBarWidget(
+                                  eval: _currentRawEval,
+                                  evalString: currentEngineEval,
+                                  depth: _currentEvalDepth,
+                                  orientation: boardOrientation,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                            ],
+                            _buildChessBoardWithOverlay(boardSize),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: boardSize,
+                              child: buildNavigationControls(),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                ],
-                _buildChessBoardWithOverlay(boardSize),
-                const SizedBox(height: 8),
-                // PGN navigators on mobile (fixed)
-                SizedBox(
-                  width: boardSize,
-                  child: buildNavigationControls(),
+                    const VerticalDivider(width: 1, thickness: 1),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildStockfishAnalysisWidget(),
+                            const SizedBox(height: 8),
+                            buildRightSidebar(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  children: [
+                    const SizedBox(height: 8),
+                    Text(
+                      isHost ? "Igrate kao Beli (Host)" : "Igrate kao Crni (Korisnik)",
+                      style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    if (_showEvalBar) ...[
+                      SizedBox(
+                        width: boardSize,
+                        child: HorizontalEvalBarWidget(
+                          eval: _currentRawEval,
+                          evalString: currentEngineEval,
+                          depth: _currentEvalDepth,
+                          orientation: boardOrientation,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                    ],
+                    _buildChessBoardWithOverlay(boardSize),
+                    const SizedBox(height: 8),
+                    // PGN navigators on mobile (fixed)
+                    SizedBox(
+                      width: boardSize,
+                      child: buildNavigationControls(),
+                    ),
+                    const SizedBox(height: 8),
+                    // Scrollable sidebar below the fixed board — the Stockfish
+                    // eval toggles ("Prikaži evaluaciju" / "Prikaži
+                    // evaluacionu liniju") live in here too now instead of
+                    // being pinned above it, so they scroll with everything
+                    // else rather than staying fixed on screen.
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildStockfishAnalysisWidget(),
+                            const SizedBox(height: 8),
+                            buildRightSidebar(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                // Stockfish analysis widget directly UNDER board on mobile (fixed)
-                SizedBox(
-                  width: boardSize,
-                  child: _buildStockfishAnalysisWidget(),
-                ),
-                const SizedBox(height: 8),
-                // Scrollable sidebar & controls below fixed board
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: buildRightSidebar(),
-                  ),
-                ),
-              ],
-            ),
         ),
       ]),
       ),
@@ -3170,7 +3056,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       builder: (ctx) => AlertDialog(
         title: const Text('Snimanje je u toku'),
         content: Text(
-          'Napuštanjem sobe prekidate vezu i gubite ${recordedEvents.length} zabeleženih događaja.\n\n'
+          'Napuštanjem sobe prekidate vezu i gubite ${_recorder.eventCount} zabeleženih događaja.\n\n'
           'Da li želite prvo da zaustavite i sačuvate snimak?',
         ),
         actions: [
@@ -3204,7 +3090,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         isRecording = false;
         isRecordingPaused = false;
         recordingStartTimeMs = null;
-        recordedEvents.clear();
+        _recorder.reset();
       });
     }
 

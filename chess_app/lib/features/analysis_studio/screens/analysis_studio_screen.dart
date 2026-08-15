@@ -40,6 +40,7 @@ import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.da
 import 'package:chess_app/features/analysis_studio/widgets/saved_puzzle_sets_dialog.dart';
 import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
+import 'package:chess_app/services/puzzle_api_service.dart';
 import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart' as dialogs;
 
 class AnalysisStudioScreen extends StatefulWidget {
@@ -150,6 +151,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   final _positionalEvaluator = const PositionalEvaluatorService();
   String? _positionalCacheKey;
   PositionalResult _positionalResult = PositionalResult.empty();
+
+  bool _isGeneratingAiComment = false;
 
   PositionalResult _computePositionalFindings() {
     final key = _currentNode.fen;
@@ -554,7 +557,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _triggerEngineAnalysis();
   }
 
-  void _handleUserMove(String from, String to, String promotion) {
+  /// [animate] is off for moves the user made by dragging: the piece has
+  /// already travelled to [to] under their pointer, so sliding it along the
+  /// same path again reads as the move happening twice.
+  void _handleUserMove(String from, String to, String promotion, {bool animate = true}) {
     if (_chessGame == null) return;
 
     final movingPiece = _chessGame!.get(from);
@@ -619,7 +625,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       // `to` is already the queen the real board now shows, while
       // movingPiece is still the pre-move pawn.
       final animatedPiece = _chessGame!.get(to) ?? movingPiece;
-      if (animatedPiece != null) _triggerMoveAnimation(from, to, animatedPiece);
+      if (animate && animatedPiece != null) _triggerMoveAnimation(from, to, animatedPiece);
 
       _saveDraft();
       _refreshArrows();
@@ -698,6 +704,181 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     }
 
     dialogs.showManualCommentDialog(context, _currentNode.comment, tacticalCandidates, positionalCandidates, (comment) {
+      setState(() => _currentNode.comment = comment);
+    });
+  }
+
+  Map<String, dynamic> _motifFindingToJson(MotifFinding f) => {
+        'motifs': f.motifs.map((m) => m.name).toList(),
+        'description': f.description,
+        'significance': f.significance,
+        'favorsMover': f.favorsMover,
+      };
+  Map<String, dynamic> _positionalFindingToJson(PositionalFinding f) => {
+        'factors': f.factors.map((p) => p.name).toList(),
+        'description': f.description,
+        'significance': f.significance,
+        'favorsMover': f.favorsMover,
+      };
+
+  /// Tactical + positional finding diff between two positions, serialized
+  /// for the AI endpoint — the same computation [_generateAiComment] needs
+  /// for the played move, the previous move, engine alternatives, and
+  /// sibling variations alike, just with different (beforeFen, afterFen).
+  ({List<Map<String, dynamic>> tactical, List<Map<String, dynamic>> positional}) _findingsPairFor(
+    String beforeFen,
+    String afterFen,
+    String lastMoveUci,
+  ) {
+    final tacticalDiff = _tacticalDetector.explainMove(beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: lastMoveUci);
+    final positionalDiff = _positionalEvaluator.explainMove(beforeFen: beforeFen, afterFen: afterFen);
+    return (
+      tactical: [...tacticalDiff.created, ...tacticalDiff.resolved].map(_motifFindingToJson).toList(),
+      positional: [...positionalDiff.created, ...positionalDiff.resolved].map(_positionalFindingToJson).toList(),
+    );
+  }
+
+  /// Sends the move's tactical/positional finding diff (the same data
+  /// [_showCommentDialog] already computes) plus its eval swing to the
+  /// backend's Gemini-backed endpoint, then opens the same checklist editor
+  /// pre-filled with the generated prose. Free-flowing AI text never matches
+  /// a candidate finding line, so [dialogs.showManualCommentDialog] naturally
+  /// drops it into its free-text box — reviewable/editable there, nothing is
+  /// saved until the user hits "Sačuvaj".
+  ///
+  /// Also gathers comparative context so the model can contrast what was
+  /// played against what else was possible: the previous move, an unplayed
+  /// sibling variation (if this move was played from a branch point), and
+  /// the engine's own alternative to what was actually played.
+  Future<void> _generateAiComment() async {
+    final parent = _currentNode.parent;
+    final moveUci = _currentNode.moveUci;
+    if (parent == null || moveUci == null) return;
+
+    final played = _findingsPairFor(parent.fen, _currentNode.fen, moveUci);
+    final tacticalCandidates = _tacticalDetector.candidateCommentLines(
+      _tacticalDetector.explainMove(beforeFen: parent.fen, afterFen: _currentNode.fen, lastMoveUci: moveUci),
+    );
+    final positionalCandidates = _positionalEvaluator.candidateCommentLines(
+      _positionalEvaluator.explainMove(beforeFen: parent.fen, afterFen: _currentNode.fen),
+    );
+
+    // Previous move — what led into the position this move was played from.
+    Map<String, dynamic>? previousMoveData;
+    final grandparent = parent.parent;
+    final parentMoveUci = parent.moveUci;
+    if (grandparent != null && parentMoveUci != null) {
+      final pair = _findingsPairFor(grandparent.fen, parent.fen, parentMoveUci);
+      previousMoveData = {
+        'moveSan': parent.moveSan ?? '',
+        'tacticalFindings': pair.tactical,
+        'positionalFindings': pair.positional,
+      };
+    }
+
+    // Sibling variation(s) — only present if the played move came from a
+    // branch point (parent has more than one explored child).
+    final siblingAlternatives = <Map<String, dynamic>>[];
+    for (final sibling in parent.children) {
+      if (sibling.id == _currentNode.id) continue;
+      final siblingUci = sibling.moveUci;
+      if (siblingUci == null) continue;
+      final pair = _findingsPairFor(parent.fen, sibling.fen, siblingUci);
+      siblingAlternatives.add({
+        'moveSan': sibling.moveSan ?? '',
+        'tacticalFindings': pair.tactical,
+        'positionalFindings': pair.positional,
+      });
+    }
+
+    setState(() => _isGeneratingAiComment = true);
+
+    // Engine's alternative to the played move, from the same (parent)
+    // position — the expensive part. analyzePositionSync interrupts the
+    // live eval panel's own search to answer this one-off query, so the
+    // panel is always re-triggered afterward regardless of outcome.
+    Map<String, dynamic>? engineAlternativeData;
+    try {
+      final lines = await _stockfishService.analyzePositionSync(
+        parent.fen,
+        depth: 14,
+        multiPV: 1,
+        timeout: const Duration(seconds: 8),
+      );
+      if (lines.isNotEmpty) {
+        final best = lines.first;
+        if (best.bestMoveLan.isNotEmpty && best.bestMoveLan != moveUci) {
+          final altGame = chess.Chess.fromFEN(parent.fen);
+          bool moveOk = false;
+          if (best.bestMoveSan.isNotEmpty) {
+            try {
+              moveOk = altGame.move(best.bestMoveSan);
+            } catch (_) {}
+          }
+          if (!moveOk && best.bestMoveLan.length >= 4) {
+            final from = best.bestMoveLan.substring(0, 2);
+            final to = best.bestMoveLan.substring(2, 4);
+            final promo = best.bestMoveLan.length > 4 ? best.bestMoveLan.substring(4, 5) : null;
+            try {
+              moveOk = altGame.move({'from': from, 'to': to, if (promo != null) 'promotion': promo});
+            } catch (_) {}
+          }
+          if (moveOk) {
+            final pair = _findingsPairFor(parent.fen, altGame.fen, best.bestMoveLan);
+            engineAlternativeData = {
+              'moveSan': best.bestMoveSan.isNotEmpty ? best.bestMoveSan : best.bestMoveLan,
+              'eval': best.evaluation,
+              'tacticalFindings': pair.tactical,
+              'positionalFindings': pair.positional,
+            };
+          }
+        }
+      }
+    } catch (e) {
+      print('[AnalysisStudio] Engine alternative query for AI comment failed: $e');
+    } finally {
+      // Resume live analysis for the position actually on screen.
+      _triggerEngineAnalysis();
+    }
+
+    // Cheap fallback: if there's no fresh engine alternative, but the game
+    // actually continued past this move, that reply's eval is already
+    // sitting in the tree — free forward-looking context, no extra query.
+    Map<String, dynamic>? nextMoveEvalData;
+    if (engineAlternativeData == null && _currentNode.children.isNotEmpty) {
+      final nextChild = _currentNode.children.first;
+      if (nextChild.eval != null) {
+        nextMoveEvalData = {'moveSan': nextChild.moveSan ?? '', 'eval': nextChild.eval};
+      }
+    }
+
+    String? aiComment;
+    try {
+      aiComment = await PuzzleApiService.instance.generateMoveComment(
+        moveSan: _currentNode.moveSan ?? '',
+        evalBefore: parent.eval,
+        evalAfter: _currentNode.eval,
+        tacticalFindings: played.tactical,
+        positionalFindings: played.positional,
+        previousMove: previousMoveData,
+        engineAlternative: engineAlternativeData,
+        nextMoveEval: nextMoveEvalData,
+        siblingAlternatives: siblingAlternatives,
+        userToken: widget.userSession.token,
+      );
+    } finally {
+      if (mounted) setState(() => _isGeneratingAiComment = false);
+    }
+
+    if (!mounted) return;
+    if (aiComment == null || aiComment.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Greška pri generisanju AI komentara.'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
+    dialogs.showManualCommentDialog(context, aiComment, tacticalCandidates, positionalCandidates, (comment) {
       setState(() => _currentNode.comment = comment);
     });
   }
@@ -1408,31 +1589,27 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   }
 
   Widget _buildBoardWidget(double size) {
-    final useTapToMove = AppSettingsService.instance.moveInputMode == 'tap';
-
     return Stack(
       children: [
-        IgnorePointer(
-          ignoring: useTapToMove,
-          child: ChessBoard(
-            controller: _boardController,
-            boardOrientation: _orientation,
-            onMove: () {
-              final history = _boardController.game.history;
-              if (history.isNotEmpty) {
-                final lastMove = history.last;
-                final from = lastMove.move.fromAlgebraic;
-                final to = lastMove.move.toAlgebraic;
-                final promo = lastMove.move.promotion?.name ?? '';
-                _handleUserMove(from, to, promo);
-              }
-            },
-          ),
+        ChessBoard(
+          controller: _boardController,
+          boardOrientation: _orientation,
+          onMove: () {
+            final history = _boardController.game.history;
+            if (history.isNotEmpty) {
+              final lastMove = history.last;
+              final from = lastMove.move.fromAlgebraic;
+              final to = lastMove.move.toAlgebraic;
+              final promo = lastMove.move.promotion?.name ?? '';
+              _handleUserMove(from, to, promo, animate: false);
+            }
+          },
         ),
-        if (useTapToMove)
-          Positioned.fill(
+        // Translucent, so the tap overlay joins the gesture arena without
+        // reporting a hit — dragging still reaches the board beneath it.
+        Positioned.fill(
             child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+              behavior: HitTestBehavior.translucent,
               onTapUp: (details) {
                 final square = getSquareFromOffset(details.localPosition, size, _orientation);
                 _handleTapMoveInput(square);
@@ -1569,6 +1746,17 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             icon: const Icon(Icons.comment, size: 18, color: Colors.lightBlueAccent),
             tooltip: 'Dodaj Komentar',
             onPressed: _showCommentDialog,
+          ),
+          IconButton(
+            icon: _isGeneratingAiComment
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.auto_awesome, size: 18, color: Colors.tealAccent),
+            tooltip: 'Generiši AI komentar',
+            onPressed: (_isGeneratingAiComment || _currentNode.isRoot) ? null : _generateAiComment,
           ),
           IconButton(
             icon: const Icon(Icons.style, size: 18, color: Colors.amberAccent),

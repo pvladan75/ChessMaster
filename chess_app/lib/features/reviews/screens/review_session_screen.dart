@@ -217,7 +217,6 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                     boardSize: boardSize,
                     isAllowedToMove: false,
                     isDrawingMode: false,
-                    useTapToMove: false,
                     drawingStartSquare: null,
                     arrows: const [],
                     engineArrows: const [],

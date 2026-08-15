@@ -6,7 +6,7 @@ import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart' show Select
 import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/services/app_settings_service.dart';
 
-/// The live game board plus its arrow/blindfold/drawing overlays.
+/// The live game board plus its arrow/drawing overlays.
 ///
 /// A tap while [isDrawingMode] is on can mean "start an arrow" or "finish
 /// one" depending on [drawingStartSquare] — that two-step decision (and the
@@ -14,8 +14,14 @@ import 'package:chess_app/services/app_settings_service.dart';
 /// [onSquareTapForDrawing], since drawn arrows live on the shared move tree,
 /// not in this widget.
 ///
-/// When [useTapToMove] is on, the package's drag-and-drop is switched off
-/// and a tap-to-select-then-tap-destination overlay drives moves instead.
+/// Moves can be made either way, always: drag a piece, or tap it and then tap
+/// its destination. The tap overlay is translucent to hit testing so it never
+/// swallows the gesture — a stationary click is claimed by its tap recogniser,
+/// a drag falls through to the board underneath and wins the arena as usual.
+/// This used to be an either/or setting, and picking tap switched dragging off
+/// outright, which to anyone reaching for it out of habit was indistinguishable
+/// from a board that had stopped working.
+///
 /// The selected square is purely a rendering concern local to the board, so
 /// it's kept as internal state rather than plumbed through the host screen.
 class ChessBoardWithOverlay extends StatefulWidget {
@@ -24,8 +30,6 @@ class ChessBoardWithOverlay extends StatefulWidget {
   final double boardSize;
   final bool isAllowedToMove;
   final bool isDrawingMode;
-  final bool isBlindfoldMode;
-  final bool useTapToMove;
   final String? drawingStartSquare;
   final List<ChessArrow> arrows;
   final List<EngineArrow> engineArrows;
@@ -39,8 +43,6 @@ class ChessBoardWithOverlay extends StatefulWidget {
     required this.boardSize,
     required this.isAllowedToMove,
     required this.isDrawingMode,
-    required this.isBlindfoldMode,
-    required this.useTapToMove,
     required this.drawingStartSquare,
     required this.arrows,
     required this.engineArrows,
@@ -75,7 +77,9 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
       oldWidget.controller.removeListener(_clearSelection);
       widget.controller.addListener(_clearSelection);
     }
-    if (!widget.useTapToMove && _selectedSquare != null) {
+    // Drawing borrows the taps, so a half-finished selection must not survive
+    // into it and fire a move on the next tap.
+    if (widget.isDrawingMode && _selectedSquare != null) {
       _selectedSquare = null;
     }
   }
@@ -136,61 +140,38 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    final tapModeActive = widget.useTapToMove && widget.isAllowedToMove && !widget.isDrawingMode;
+    final tapModeActive = widget.isAllowedToMove && !widget.isDrawingMode;
 
     return Stack(
       children: [
         IgnorePointer(
-          ignoring: !widget.isAllowedToMove || widget.isDrawingMode || widget.useTapToMove,
-          child: Opacity(
-            opacity: widget.isBlindfoldMode ? 0.05 : 1.0,
-            child: ChessBoard(
-              controller: widget.controller,
-              boardColor: BoardColor.brown,
-              boardOrientation: widget.boardOrientation,
-              size: widget.boardSize,
-              onMove: () {
-                final lastMove = widget.controller.getPossibleMoves().isEmpty
-                    ? null
-                    : widget.controller.game.history.last;
-                if (lastMove != null) {
-                  final from = lastMove.move.fromAlgebraic;
-                  final to = lastMove.move.toAlgebraic;
-                  // On a promotion, move.piece is still the pre-move pawn;
-                  // move.promotion (when set) is what the destination square
-                  // actually shows now, so prefer it for the sprite.
-                  final pieceType = lastMove.move.promotion ?? lastMove.move.piece;
-                  _triggerMoveAnimation(from, to, Piece(pieceType, lastMove.move.color));
-                  widget.onMove(from, to);
-                }
-              },
-            ),
+          ignoring: !widget.isAllowedToMove || widget.isDrawingMode,
+          child: ChessBoard(
+            controller: widget.controller,
+            boardColor: BoardColor.brown,
+            boardOrientation: widget.boardOrientation,
+            size: widget.boardSize,
+            onMove: () {
+              final lastMove = widget.controller.getPossibleMoves().isEmpty
+                  ? null
+                  : widget.controller.game.history.last;
+              if (lastMove != null) {
+                // Deliberately not animated: the user just dragged the piece
+                // to this square themselves, so sliding it along the same path
+                // again reads as the move happening twice.
+                widget.onMove(lastMove.move.fromAlgebraic, lastMove.move.toAlgebraic);
+              }
+            },
           ),
         ),
-        if (widget.isBlindfoldMode)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.25),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.visibility_off, size: 56, color: Colors.amberAccent),
-                      SizedBox(height: 6),
-                      Text('🙈 Šah Na Slepo', style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text('Figure su skrivene radi vežbanja vizuelizacije', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        // Tap-to-move interactive overlay (selects a piece, then a destination)
+        // Tap-to-move interactive overlay (selects a piece, then a destination).
+        // Translucent, not opaque: it must take part in hit testing without
+        // reporting a hit, so the board underneath still receives the pointer
+        // and dragging keeps working while this is active.
         IgnorePointer(
           ignoring: !tapModeActive,
           child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
+            behavior: HitTestBehavior.translucent,
             onTapUp: (details) {
               final square = getSquareFromOffset(details.localPosition, widget.boardSize, widget.boardOrientation);
               _handleSquareTapForMove(square);

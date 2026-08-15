@@ -13,6 +13,7 @@ class LocalRecordingService {
     required String roomId,
     required String title,
     required List<TimelineEvent> events,
+    List<PauseInterval> pauses = const [],
     String? audioPath,
     List<int>? participants,
   }) async {
@@ -25,6 +26,9 @@ class LocalRecordingService {
       'title': title,
       'createdAt': DateTime.now().toIso8601String(),
       'timelineEvents': events.map((e) => e.toJson()).toList(),
+      // Carried alongside the audio so the server can cut these stretches out
+      // of it; the microphone ran straight through them.
+      'pauseIntervals': pauses.map((p) => p.toJson()).toList(),
       'audioPath': audioPath,
       'participants': participants ?? [],
       'isSynced': false,
@@ -67,6 +71,7 @@ class LocalRecordingService {
         request.fields['roomId'] = item['roomId'] ?? '';
         request.fields['title'] = item['title'] ?? 'Snimak časa';
         request.fields['timelineJson'] = jsonEncode(item['timelineEvents'] ?? []);
+        request.fields['pauseIntervals'] = jsonEncode(item['pauseIntervals'] ?? []);
         request.fields['participants'] = jsonEncode(item['participants'] ?? []);
 
         final String? audioPath = item['audioPath'];

@@ -12,9 +12,9 @@ const geminiService = require('../geminiService');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-// /puzzles/verify fans out to third-party evaluation APIs and is reachable by guests,
-// so it is capped per-IP to keep it from being used as a free evaluation proxy.
-const verifyLimiter = rateLimit({
+// /puzzles/log is reachable without a session and the client also uses it as a
+// connectivity check, so it is capped per-IP.
+const debugLogLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,
   standardHeaders: true,
@@ -421,108 +421,10 @@ function sanitizeLogDetails(details) {
   return clean;
 }
 
-// Worker Queue lock to ensure single atomic Stockfish requests
-let isStockfishBusy = false;
-const stockfishQueue = [];
-
-function processStockfishQueue() {
-  if (isStockfishBusy || stockfishQueue.length === 0) return;
-  const task = stockfishQueue.shift();
-  isStockfishBusy = true;
-  task().finally(() => {
-    isStockfishBusy = false;
-    processStockfishQueue();
-  });
-}
-
-function runAtomicStockfishTask(taskFn) {
-  return new Promise((resolve, reject) => {
-    stockfishQueue.push(() => taskFn().then(resolve).catch(reject));
-    processStockfishQueue();
-  });
-}
-
-// POST /api/puzzles/verify - Atomic Stockfish Move Verification with 2000ms Hard Timeout
-router.post('/puzzles/verify', verifyLimiter, async (req, res) => {
-  const { fen, userMove, mode, remainingNeeded, orientation } = req.body;
-
-  try {
-    const result = await runAtomicStockfishTask(async () => {
-      const verifyPromise = (async () => {
-        try {
-          const cloudUrl = `https://lichess.org/api/cloud-eval?fen=${encodeURIComponent(fen)}`;
-          const response = await fetch(cloudUrl);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.pvs && data.pvs.length > 0) {
-              const pv = data.pvs[0];
-              const isBlackToMove = fen.includes(' b ');
-              let mateVal = null;
-              if (pv.mate !== undefined && pv.mate !== null) {
-                mateVal = pv.mate;
-                if (isBlackToMove) mateVal = -mateVal;
-              }
-
-              const isWhite = (orientation === 'white');
-              let isMateForUser = false;
-              if (mateVal !== null) {
-                if (isWhite && mateVal > 0 && mateVal <= (remainingNeeded || 3)) isMateForUser = true;
-                if (!isWhite && mateVal < 0 && Math.abs(mateVal) <= (remainingNeeded || 3)) isMateForUser = true;
-              }
-
-              if (isMateForUser) {
-                return { success: true, status: 'ACCEPTED', mateVal: Math.abs(mateVal), depth: data.depth || 25 };
-              }
-            }
-          }
-        } catch (_) {}
-
-        try {
-          const sfUrl = `https://stockfish.online/api/s/v2.php?fen=${encodeURIComponent(fen)}&depth=12`;
-          const sfRes = await fetch(sfUrl);
-          if (sfRes.ok) {
-            const sfData = await sfRes.json();
-            if (sfData.success) {
-              const isBlackToMove = fen.includes(' b ');
-              let mateVal = sfData.mate;
-              if (mateVal !== null && mateVal !== undefined) {
-                if (isBlackToMove) mateVal = -mateVal;
-                const isWhite = (orientation === 'white');
-                if (isWhite && mateVal > 0 && mateVal <= (remainingNeeded || 3)) {
-                  return { success: true, status: 'ACCEPTED', mateVal: Math.abs(mateVal), depth: 12 };
-                }
-                if (!isWhite && mateVal < 0 && Math.abs(mateVal) <= (remainingNeeded || 3)) {
-                  return { success: true, status: 'ACCEPTED', mateVal: Math.abs(mateVal), depth: 12 };
-                }
-              }
-            }
-          }
-        } catch (_) {}
-
-        return { success: false, status: 'REJECTED', reason: 'Netačan potez (Nije pronađen mat u zadatom broju poteza).' };
-      })();
-
-      const timeoutPromise = new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ success: false, status: 'TIMEOUT_REJECTED', reason: 'Evaluacija je istekla (Timeout 2000ms).' });
-        }, 2000);
-      });
-
-      return Promise.race([verifyPromise, timeoutPromise]);
-    });
-
-    logger.info(`[VERIFY ENDPOINT] FEN: ${fen} | Move: ${userMove} | Result: ${result.status} (${result.reason || 'OK'})`);
-    return res.json(result);
-  } catch (err) {
-    logger.error('Error in /api/puzzles/verify:', err);
-    return res.json({ success: false, status: 'REJECTED', reason: 'Greška na serveru pri verifikaciji.' });
-  }
-});
-
 // POST /api/puzzles/log - Stream live position state & user actions directly to backend console
 // Development instrumentation only. It echoes client-supplied strings into the server
 // log, so in production it accepts and discards the payload rather than writing it.
-router.post('/puzzles/log', verifyLimiter, (req, res) => {
+router.post('/puzzles/log', debugLogLimiter, (req, res) => {
   if (isProduction) {
     return res.json({ success: true, logged: false });
   }

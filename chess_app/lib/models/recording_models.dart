@@ -1,5 +1,33 @@
 import 'dart:convert';
 
+/// A stretch the recording was paused for, measured in wall-clock milliseconds
+/// from the moment recording started.
+///
+/// Deliberately *not* on the same clock as [TimelineEvent.timestampMs], which
+/// has paused time subtracted out. This one is the microphone's clock: Agora
+/// offers no way to pause a recording, so it keeps capturing straight through a
+/// pause and the resulting file still contains those seconds. These intervals
+/// are what the server cuts out so the audio ends up the same length as the
+/// board timeline.
+class PauseInterval {
+  final int startMs;
+  final int endMs;
+
+  const PauseInterval({required this.startMs, required this.endMs});
+
+  int get durationMs => endMs - startMs;
+
+  Map<String, dynamic> toJson() => {'startMs': startMs, 'endMs': endMs};
+
+  factory PauseInterval.fromJson(Map<String, dynamic> json) => PauseInterval(
+        startMs: json['startMs'] ?? 0,
+        endMs: json['endMs'] ?? 0,
+      );
+
+  @override
+  String toString() => 'PauseInterval($startMs..$endMs)';
+}
+
 class TimelineEvent {
   final int timestampMs;
   final String eventType; // 'init', 'move', 'fen_change', 'arrow_drawn', 'lesson_loaded', 'orientation_changed'

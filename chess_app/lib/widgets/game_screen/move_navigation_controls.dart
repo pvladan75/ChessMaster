@@ -8,6 +8,7 @@ class MoveNavigationControls extends StatelessWidget {
   final MoveNode currentNode;
   final bool canNavigate;
   final ValueChanged<MoveNode> onSelectNode;
+  final VoidCallback onFlipBoard;
 
   const MoveNavigationControls({
     super.key,
@@ -15,6 +16,7 @@ class MoveNavigationControls extends StatelessWidget {
     required this.currentNode,
     required this.canNavigate,
     required this.onSelectNode,
+    required this.onFlipBoard,
   });
 
   @override
@@ -69,6 +71,11 @@ class MoveNavigationControls extends StatelessWidget {
                   }
                 : null,
             tooltip: 'Idi na kraj',
+          ),
+          IconButton(
+            icon: const Icon(Icons.flip),
+            onPressed: onFlipBoard,
+            tooltip: 'Okreni tablu',
           ),
         ],
       ),

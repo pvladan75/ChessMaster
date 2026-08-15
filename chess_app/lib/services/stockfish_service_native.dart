@@ -1,3 +1,4 @@
+import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -75,6 +76,12 @@ class StockfishService {
     }
     _initInProgress = true;
     AppLogger.log('[StockfishService] 🛠️ initEngine called | CustomActive: $_isCustomActive | UseOnline: $_useOnline');
+
+    // Cached evaluations belong to whichever engine produced them, and the
+    // engine's identity is not part of the cache key. Starting a different
+    // binary — or switching between the local and online engine — must not
+    // inherit the previous one's answers.
+    EvalCache.instance.clear();
     
     // Check if custom engine path is set (Windows only)
     try {

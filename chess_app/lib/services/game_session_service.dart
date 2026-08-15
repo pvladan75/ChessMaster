@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -42,7 +43,7 @@ class GameSessionService extends ChangeNotifier {
     if (roomCode == 'STUDIO') return;
     _roomCode = roomCode;
     _role = role;
-    notifyListeners();
+    _notifyAfterThisFrame();
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_roomCodeKey, roomCode);
@@ -55,10 +56,21 @@ class GameSessionService extends ChangeNotifier {
   Future<void> clear() async {
     _roomCode = null;
     _role = null;
-    notifyListeners();
+    _notifyAfterThisFrame();
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_roomCodeKey);
     await prefs.remove(_roleKey);
+  }
+
+  /// [setActive]/[clear] can run from a StatefulWidget's initState (e.g.
+  /// ChessGamePage marking itself active as soon as it's mounted) — a widget
+  /// still further down the *same* build could be a listener (HomeScreen,
+  /// still mounted underneath the pushed room route) and calling its
+  /// setState synchronously from there is illegal ("setState() or
+  /// markNeedsBuild() called during build"). Deferring to after the current
+  /// frame finishes sidesteps that.
+  void _notifyAfterThisFrame() {
+    SchedulerBinding.instance.addPostFrameCallback((_) => notifyListeners());
   }
 }

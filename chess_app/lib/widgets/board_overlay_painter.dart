@@ -402,47 +402,59 @@ class _AnimatedMovePieceState extends State<AnimatedMovePiece> with SingleTicker
     final destTopLeft =
         getSquareCenter(widget.pending.to, widget.boardSize, widget.orientation) - Offset(squareSize / 2, squareSize / 2);
 
-    return Stack(
-      children: [
-        Positioned(
-          left: destTopLeft.dx,
-          top: destTopLeft.dy,
-          width: squareSize,
-          height: squareSize,
-          // The outer Positioned gives this inner Stack tight squareSize x
-          // squareSize constraints, so its default hardEdge clip crops the
-          // oversized, negatively-offset board image down to just this
-          // square's slice — the same trick as a sprite-sheet crop.
-          child: IgnorePointer(
-            child: Stack(
-              children: [
-                Positioned(
-                  left: -destTopLeft.dx,
-                  top: -destTopLeft.dy,
-                  width: widget.boardSize,
-                  height: widget.boardSize,
-                  child: Image.asset(
-                    _boardAssetPath(widget.boardColor),
-                    package: 'flutter_chess_board',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        AnimatedBuilder(
-          animation: _offset,
-          builder: (context, child) => Positioned(
-            left: _offset.value.dx - squareSize / 2,
-            top: _offset.value.dy - squareSize / 2,
+    // Sized explicitly, because every child below is Positioned and a Stack
+    // with no non-positioned child falls back to filling whatever its parent
+    // offers. The room screen puts the board in a scrolling Column, where the
+    // offered height is infinite — the Stack then failed its size.isFinite
+    // assertion mid-layout, and an exception escaping layout leaves Flutter's
+    // mouse tracker permanently wedged, so every later frame threw too. The
+    // overlay is board-sized by definition, so it should never have been
+    // asking the parent in the first place.
+    return SizedBox(
+      width: widget.boardSize,
+      height: widget.boardSize,
+      child: Stack(
+        children: [
+          Positioned(
+            left: destTopLeft.dx,
+            top: destTopLeft.dy,
             width: squareSize,
             height: squareSize,
-            child: IgnorePointer(child: child!),
+            // The outer Positioned gives this inner Stack tight squareSize x
+            // squareSize constraints, so its default hardEdge clip crops the
+            // oversized, negatively-offset board image down to just this
+            // square's slice — the same trick as a sprite-sheet crop.
+            child: IgnorePointer(
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: -destTopLeft.dx,
+                    top: -destTopLeft.dy,
+                    width: widget.boardSize,
+                    height: widget.boardSize,
+                    child: Image.asset(
+                      _boardAssetPath(widget.boardColor),
+                      package: 'flutter_chess_board',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          child: pieceImageForAnimation(widget.pending.piece),
-        ),
-      ],
+          AnimatedBuilder(
+            animation: _offset,
+            builder: (context, child) => Positioned(
+              left: _offset.value.dx - squareSize / 2,
+              top: _offset.value.dy - squareSize / 2,
+              width: squareSize,
+              height: squareSize,
+              child: IgnorePointer(child: child!),
+            ),
+            child: pieceImageForAnimation(widget.pending.piece),
+          ),
+        ],
+      ),
     );
   }
 }

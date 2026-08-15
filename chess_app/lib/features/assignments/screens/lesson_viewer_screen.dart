@@ -204,7 +204,6 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
                         // The student is reading a lesson, not playing it.
                         isAllowedToMove: false,
                         isDrawingMode: false,
-                        useTapToMove: false,
                         drawingStartSquare: null,
                         arrows: const [],
                         engineArrows: const [],

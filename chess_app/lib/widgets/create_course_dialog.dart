@@ -304,9 +304,10 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                     shrinkWrap: true,
                     buildDefaultDragHandles: false,
                     itemCount: selectedPositions.length,
-                    onReorder: (oldIndex, newIndex) {
+                    // onReorderItem (unlike the deprecated onReorder) already
+                    // adjusts newIndex for the removed item at oldIndex.
+                    onReorderItem: (oldIndex, newIndex) {
                       setState(() {
-                        if (newIndex > oldIndex) newIndex -= 1;
                         final item = selectedPositions.removeAt(oldIndex);
                         selectedPositions.insert(newIndex, item);
                       });

@@ -2,6 +2,7 @@ import 'package:chess_app/services/app_settings_service.dart';
 import 'dart:async';
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/models/analysis_models.dart';
@@ -58,8 +59,12 @@ class AutoTreeGeneratorService {
     int processedCount = 0;
     final int estimatedTotal = calculateAnalyzedPositions(params.pliesDepth, params.candidateCount);
 
-    final resolvedAnalyzer =
-        analyzer ?? (stockfishService ?? StockfishService()).analyzePositionSync;
+    // Wrapped in the shared cache so a position already evaluated by a game
+    // review — or by an earlier run over the same branch — is not searched again.
+    // An explicitly supplied analyzer is left alone: tests inject their own and
+    // must see exactly the calls they make.
+    final resolvedAnalyzer = analyzer ??
+        EvalCache.instance.wrap((stockfishService ?? StockfishService()).analyzePositionSync);
 
     await _expandNodeRecursive(
       currentNode: startNode,

@@ -87,7 +87,12 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           isLoading = false;
           if (rec.audioUrl != null && rec.audioUrl!.isNotEmpty) {
             isAudioAvailable = true;
-            _audioPlayer.setSourceUrl(rec.audioUrl!);
+            // Pre-buffering is best effort — an unhandled rejection here would
+            // surface as a crash on a screen that can play perfectly well
+            // without sound.
+            _audioPlayer.setSourceUrl(rec.audioUrl!).catchError((Object e) {
+              debugPrint('[Replay] Zvuk se ne može učitati: $e');
+            });
           }
           if (rec.timelineEvents.isNotEmpty) {
             maxDurationMs = rec.timelineEvents.last.timestampMs;
@@ -113,26 +118,14 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   void _play() {
     if (currentMs >= maxDurationMs) {
       currentMs = 0;
-      if (isAudioAvailable && recording?.audioUrl != null) {
-        _audioPlayer.seek(Duration.zero);
-      }
     }
     setState(() => isPlaying = true);
-    if (isAudioAvailable && recording?.audioUrl != null) {
-      final url = recording!.audioUrl!;
-      _audioPlayer.setVolume(1.0);
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        _audioPlayer.play(UrlSource(url));
-      } else if (File(url).existsSync()) {
-        _audioPlayer.play(DeviceFileSource(url));
-      } else {
-        final filename = url.split('/').last.split('\\').last;
-        _audioPlayer.play(UrlSource('$backendUrl/uploads/$filename'));
-      }
-      if (currentMs > 0) {
-        _audioPlayer.seek(Duration(milliseconds: currentMs));
-      }
-    }
+
+    // The board timeline is started before the audio and never depends on it.
+    // These calls used to sit ahead of the timer, so an audio backend that
+    // refuses the file (Windows does not decode every format) could take the
+    // whole replay down with it — pressing Play then did nothing at all,
+    // rather than replaying the lesson silently.
     _playbackTimer?.cancel();
     const intervalMs = 50;
     _playbackTimer = Timer.periodic(Duration(milliseconds: intervalMs), (timer) {
@@ -144,9 +137,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           currentMs = maxDurationMs;
           isPlaying = false;
         });
-        if (isAudioAvailable) {
-          _audioPlayer.pause();
-        }
+        _audioSafely(() => _audioPlayer.pause());
         _applyEventAt(maxDurationMs);
         timer.cancel();
       } else {
@@ -154,21 +145,55 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
         _applyEventAt(newMs);
       }
     });
+
+    _startAudioFrom(currentMs);
+  }
+
+  /// Starts the voice track alongside the board.
+  ///
+  /// Failures are swallowed on purpose: a lesson whose audio will not play is
+  /// still worth watching, and the indicator above the scrubber drops to
+  /// "moves and arrows only" so the silence is explained rather than mysterious.
+  Future<void> _startAudioFrom(int positionMs) async {
+    if (!isAudioAvailable || recording?.audioUrl == null) return;
+    final url = recording!.audioUrl!;
+    try {
+      await _audioPlayer.setVolume(1.0);
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        await _audioPlayer.play(UrlSource(url));
+      } else if (File(url).existsSync()) {
+        await _audioPlayer.play(DeviceFileSource(url));
+      } else {
+        final filename = url.split('/').last.split('\\').last;
+        await _audioPlayer.play(UrlSource('$backendUrl/uploads/$filename'));
+      }
+      if (positionMs > 0) {
+        await _audioPlayer.seek(Duration(milliseconds: positionMs));
+      }
+    } catch (e) {
+      debugPrint('[Replay] Zvuk se ne može reprodukovati: $e');
+      if (mounted) setState(() => isAudioAvailable = false);
+    }
+  }
+
+  /// Audio is a nice-to-have next to the board; nothing it does may abort the
+  /// caller, which is always in the middle of driving the replay itself.
+  void _audioSafely(Future<void> Function() action) {
+    if (!isAudioAvailable) return;
+    action().catchError((Object e) {
+      debugPrint('[Replay] Greška zvuka: $e');
+    });
   }
 
   void _pause() {
     _playbackTimer?.cancel();
-    if (isAudioAvailable) {
-      _audioPlayer.pause();
-    }
+    _audioSafely(() => _audioPlayer.pause());
     setState(() => isPlaying = false);
   }
 
   void _seekTo(int targetMs) {
     setState(() => currentMs = targetMs);
-    if (isAudioAvailable) {
-      _audioPlayer.seek(Duration(milliseconds: targetMs));
-    }
+    _audioSafely(() => _audioPlayer.seek(Duration(milliseconds: targetMs)));
     _applyEventAt(targetMs);
   }
 

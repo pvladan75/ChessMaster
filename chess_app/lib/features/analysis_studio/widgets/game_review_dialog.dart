@@ -1,3 +1,4 @@
+import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:flutter/material.dart';
 import 'package:chess_app/core/services/game_analysis_walker_service.dart';
 import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
@@ -99,7 +100,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
 
     final result = await _walker.annotateNodeChain(
       startNode: _effectiveStartNode,
-      analyzer: widget.stockfishService.analyzePositionSync,
+      analyzer: EvalCache.instance.wrap(widget.stockfishService.analyzePositionSync),
       depth: _engineDepth,
       overwriteExisting: _overwriteExisting,
       onProgress: (processed, total) {

@@ -5,12 +5,26 @@ Redosled je bitan: svaki korak zavisi od prethodnog.
 
 ---
 
-## 1. Google Play Console nalog
+## 1. Google Play Console nalog — ✅ već postoji
 
-- [ ] Otvoriti **developer nalog kao fizičko lice** — jednokratno $25.
-- [ ] Srbija je podržana i za registraciju i za **merchant** (prodaju), sa USD kao
-      podrazumevanom valutom. Provereno na Google-ovoj tabeli podržanih lokacija.
-- [ ] Uneti podatke za isplatu (bankovni račun, deviznii priliv).
+Nalog je otvoren i **kroz njega je već objavljena aplikacija**:
+[Chess Brain Trainer: Puzzles](https://play.google.com/store/apps/details?id=com.program.braintrainer)
+(`com.program.braintrainer`).
+
+Time otpada ceo ovaj korak: $25 je plaćeno, identitet potvrđen, Play review je
+već jednom prošao. Ostaje samo:
+
+- [ ] Proveriti da je **merchant nalog** (prodaja, ne samo objavljivanje) aktivan
+      i da su uneti podaci za isplatu — Brain Trainer je verovatno besplatan bez
+      kupovina, pa merchant možda nikad nije ni podešen. To je preduslov za
+      Play Billing, i jedina stvar iz ovog koraka koja može još da nedostaje.
+- [ ] Novu aplikaciju napraviti kao **zaseban unos** pod istim nalogom, paket
+      `rs.pejovic.chesscoach`.
+
+Uz to, postojeća aplikacija je i **kanal**: publika koja već rešava šahovske
+zagonetke je tačno publika ove aplikacije. Unakrsna promocija između dva unosa
+pod istim nalogom je najjeftinije sticanje korisnika koje imate — vredi razmotriti
+pre plaćenog oglašavanja.
 
 ## 2. Google prijava mora ponovo da se registruje
 
@@ -109,3 +123,26 @@ Windows verzija sada koristi `AppData\Roaming\rs.pejovic\chess_app` umesto
 `AppData\Roaming\com.example\chess_app`. Preuzeti Stockfish i podešavanja su
 ostali na staroj putanji. Prekopirati folder ili pustiti aplikaciju da ponovo
 preuzme motor.
+
+## Infrastruktura — pre nego što aplikacija izađe iz testiranja
+
+Trenutno: baza 1 GB RAM / 10 GiB, droplet 1 vCPU / 1 GB RAM / 25 GB (AMS3).
+Za testiranje je dovoljno; mereno je ~11 MB zvuka po satu časa, što je ~1600
+sati na 25 GB. Sledeće troje nije hitno, ali svako od njih zagrize tiho.
+
+- [ ] **Politika zadržavanja fajlova.** Jedini `unlink` u backendu je privremeni
+      fajl iz `audioTrimmer`-a. `uploads/` (zvuk) i `exports/` (MP4) rastu
+      zauvek. Kad se disk napuni, sve staje odjednom i bez upozorenja. Najmanje:
+      brisati MP4 izvoze starije od N dana — oni se uvek mogu ponovo napraviti
+      iz snimka, za razliku od zvuka.
+- [ ] **Dodati 1–2 GB swap-a na droplet.** DO ga ne pravi sam. MP4 izvoz je
+      jedina stvar koja skoči u memoriji (canvas 720p); ako baš tada ponestane
+      RAM-a, OOM killer ubija Node, a s njim i **sve žive sesije**, ne samo
+      izvoz. Pet minuta posla.
+- [ ] **Veća baza pre punog Lichess seta.** 50k zagonetki je zanemarljivo, ali
+      punih 6,1M sa GIN indeksom po temama neće udobno stati u 1 GB RAM-a.
+
+Nije uzrok brige: Stockfish radi na klijentu, a glas nosi Agora — server ne
+analizira pozicije niti prenosi zvuk uživo, pa je 1 vCPU sasvim dovoljan za
+sesije. MP4 izvoz renderuje jedan frejm po sekundi časa i `await`-uje između
+njih, pa ne blokira Socket.IO.
