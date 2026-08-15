@@ -115,8 +115,11 @@ Zašto je to bitno, a ne anegdota:
 
 - **Play Console nalog postoji**, $25 je plaćeno, identitet potvrđen, review već
   jednom prošao. To je bila prva stavka u `TODO-objavljivanje.md` i otpada.
-  Ostaje samo provera da li je **merchant** deo aktivan — bez njega nema Play
-  Billing-a, a besplatna aplikacija bez kupovina ga možda nikad nije tražila.
+- **Merchant nalog radi — potvrđeno 15.8.2026.** Brain Trainer prodaje Premium za
+  pravi novac, a korisnik je sam kupio i potom **povratio novac**. Time su i
+  naplata, i isplata, i refund tok već prošli kroz Google na ovom nalogu. Ovo je
+  bila zabeležena nepoznanica; više nije. Za ovu aplikaciju ostaje samo da se
+  naprave proizvodi i servisni nalog.
 - **Postojeća publika** rešava šahovske zagonetke — to je tačno publika ove
   aplikacije. Unakrsna promocija između dva unosa pod istim nalogom je
   najjeftiniji kanal koji postoji.

@@ -138,11 +138,23 @@ Aplikacija je sada `rs.pejovic.chesscoach`.
 - [ ] Na Windows-u su podaci sada u `AppData\Roaming\rs.pejovic\chess_app` —
       preuzeti Stockfish je ostao na staroj putanji.
 
-## 9. Naplata — nije isprobana uopšte
+## 9. Naplata — nije isprobana u ovoj aplikaciji
 
 Ceo sloj (prava pristupa, Play verifikacija, RTDN, kvote) radi po testovima, ali
-**nijedna prava kupovina nije obavljena** jer Play Console nalog još ne postoji.
-Prvi stvarni `purchaseToken` je jedini pravi dokaz.
+**nijedna prava kupovina nije obavljena kroz ovu aplikaciju**. Prvi stvarni
+`purchaseToken` je jedini pravi dokaz.
+
+**Nalog nije prepreka — provereno 15.8.2026.** Play Console i merchant deo rade:
+korisnikova druga aplikacija (`com.program.braintrainer`) prodaje Premium za
+pravi novac, i sam je obavio kupovinu i povraćaj. Ostaje ono što je vezano za
+ovu aplikaciju: unos u Play Console za `rs.pejovic.chesscoach`, proizvodi koji
+odgovaraju `PLAY_PRODUCT_TIERS`, servisni nalog (`GOOGLE_PLAY_SA_*`) i RTDN
+adresa — a ona traži domen.
+
+> Za probu **ne treba ponovo plaćati sopstvenim novcem**. Play Console →
+> Setup → License testing prima naloge koji kupuju bez naplate, uz pun
+> `purchaseToken` i RTDN obaveštenja. Isto važi i za obnovu pretplate, koja se
+> testnim nalozima ubrzava na nekoliko minuta umesto mesec dana.
 
 Vidi `TODO-objavljivanje.md`.
 
