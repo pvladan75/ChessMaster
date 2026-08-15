@@ -76,6 +76,39 @@ function signDownloadToken(userId, filename) {
   );
 }
 
+/// Mints a token for one parent report.
+///
+/// The link goes to a parent who has no account, so the token *is* the
+/// credential. It is therefore bound to a single report id and expires, which
+/// caps how long a child's record stays reachable by anyone holding the link.
+function signReportToken(reportId, days) {
+  return jwt.sign(
+    { purpose: 'report', report: reportId },
+    JWT_SECRET,
+    { expiresIn: `${days}d` }
+  );
+}
+
+/// Verifies a report token supplied as ?token=... against the report being asked
+/// for, so one report's link cannot be used to read another.
+function authenticateReportToken(req, res, next) {
+  const token = req.query.token;
+  if (!token) {
+    return res.status(401).json({ error: 'Link nije potpun.' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, payload) => {
+    if (err || payload.purpose !== 'report') {
+      return res.status(403).json({ error: 'Link je istekao ili nije ispravan.' });
+    }
+    if (String(payload.report) !== String(req.params.id)) {
+      return res.status(403).json({ error: 'Link ne odgovara traženom izveštaju.' });
+    }
+    req.reportToken = payload;
+    next();
+  });
+}
+
 /// Verifies a download token supplied as ?token=... and confirms it was issued
 /// for exactly the file being requested.
 function authenticateDownloadToken(req, res, next) {
@@ -116,6 +149,8 @@ module.exports = {
   requireRole,
   signDownloadToken,
   authenticateDownloadToken,
+  signReportToken,
+  authenticateReportToken,
   verifySocketToken,
   JWT_SECRET,
 };

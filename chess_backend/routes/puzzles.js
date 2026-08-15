@@ -4,6 +4,10 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { requireQuota, refundQuota } = require('../middleware/entitlements');
+const { ENT } = require('../services/entitlementService');
+const puzzleSelection = require('../services/puzzleSelectionService');
+const assignmentService = require('../services/assignmentService');
 const geminiService = require('../geminiService');
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -151,6 +155,186 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Error fetching endgame puzzle:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju završnice.' });
+  }
+});
+
+// GET /api/puzzles/adaptive - Next Lichess puzzle chosen for this user.
+//
+// Unlike /puzzles/next, which serves a random row from a fixed category, this
+// targets the motif the user is measurably weakest at, at a rating just below
+// their own. Themes and ratings here are the dataset's real ones.
+router.get('/puzzles/adaptive', authenticateToken, async (req, res) => {
+  const { theme, phase, excludeId } = req.query;
+
+  try {
+    const result = await puzzleSelection.selectAdaptivePuzzle(pool, req.user.id, {
+      theme: theme || null,
+      phase: phase || null,
+      excludeId: excludeId || null,
+    });
+
+    if (!result) {
+      return res.status(404).json({
+        error: 'Nema dostupnih zagonetki. Da li je baza uvezena (import_lichess_puzzles.js)?',
+      });
+    }
+
+    res.json({
+      puzzle: puzzleSelection.toClientPuzzle(result.puzzle),
+      selection: {
+        targetTheme: result.targetTheme,
+        targetRating: result.targetRating,
+        band: result.band,
+      },
+    });
+  } catch (err) {
+    logger.error('Error selecting adaptive puzzle:', err);
+    res.status(500).json({ error: 'Greška pri izboru zagonetke.' });
+  }
+});
+
+// GET /api/puzzles/themes - the user's rating per motif, weakest first.
+// Also the data a trainer's progress view will read.
+router.get('/puzzles/themes', authenticateToken, async (req, res) => {
+  try {
+    const profile = await puzzleSelection.getUserRatingProfile(pool, req.user.id);
+
+    const themes = puzzleSelection.TRAINABLE_THEMES.map((theme) => ({
+      theme,
+      rating: profile.themeRatings[theme] ?? null,
+      attempts: profile.themeAttempts[theme] || 0,
+      measured: (profile.themeAttempts[theme] || 0) >= puzzleSelection.MIN_ATTEMPTS_FOR_WEAKNESS,
+    }));
+
+    // Unmeasured themes sort last: they are unknowns, not weaknesses.
+    themes.sort((a, b) => {
+      if (a.measured !== b.measured) return a.measured ? -1 : 1;
+      return (a.rating ?? Infinity) - (b.rating ?? Infinity);
+    });
+
+    res.json({ overallRating: profile.overallRating, themes });
+  } catch (err) {
+    logger.error('Error reading theme ratings:', err);
+    res.status(500).json({ error: 'Greška pri čitanju rejtinga po temama.' });
+  }
+});
+
+// POST /api/puzzles/attempt - Records a Lichess puzzle attempt and updates ratings.
+//
+// The puzzle's own rating is read from the database rather than taken from the
+// request: a client that reported its own difficulty could inflate a rating at
+// will. Every trainable theme on the puzzle moves, so a fork-and-pin puzzle
+// informs both.
+router.post('/puzzles/attempt', authenticateToken, async (req, res) => {
+  const { puzzleId, solved, msTaken } = req.body;
+  const userId = req.user.id;
+
+  if (!puzzleId || typeof solved !== 'boolean') {
+    return res.status(400).json({ error: 'puzzleId i solved su obavezni.' });
+  }
+
+  try {
+    const puzzleRes = await pool.query(
+      'SELECT rating, themes FROM lichess_puzzles WHERE puzzle_id = $1',
+      [puzzleId]
+    );
+    if (puzzleRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Zagonetka nije pronađena.' });
+    }
+
+    const puzzleRating = puzzleRes.rows[0].rating;
+    const themes = puzzleSelection.trainableThemes(puzzleRes.rows[0].themes);
+
+    const userRes = await pool.query(
+      'SELECT overall_rating, theme_ratings, puzzles_solved, puzzles_failed FROM user_puzzle_ratings WHERE user_id = $1',
+      [userId]
+    );
+
+    const currentRating = userRes.rows[0]?.overall_rating || 1500;
+    const themeRatings = { ...(userRes.rows[0]?.theme_ratings || {}) };
+    let solvedCount = userRes.rows[0]?.puzzles_solved || 0;
+    let failedCount = userRes.rows[0]?.puzzles_failed || 0;
+
+    const K = 32;
+    const actual = solved ? 1 : 0;
+    const elo = (rating) => {
+      const expected = 1 / (1 + Math.pow(10, (puzzleRating - rating) / 400));
+      return Math.max(600, rating + Math.round(K * (actual - expected)));
+    };
+
+    const newRating = elo(currentRating);
+    for (const theme of themes) {
+      themeRatings[theme] = elo(themeRatings[theme] ?? currentRating);
+    }
+
+    if (solved) solvedCount++;
+    else failedCount++;
+
+    await pool.query(
+      `INSERT INTO user_puzzle_ratings (user_id, overall_rating, theme_ratings, puzzles_solved, puzzles_failed, updated_at)
+       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+       ON CONFLICT (user_id) DO UPDATE SET
+         overall_rating = EXCLUDED.overall_rating,
+         theme_ratings = EXCLUDED.theme_ratings,
+         puzzles_solved = EXCLUDED.puzzles_solved,
+         puzzles_failed = EXCLUDED.puzzles_failed,
+         updated_at = CURRENT_TIMESTAMP`,
+      [userId, newRating, JSON.stringify(themeRatings), solvedCount, failedCount]
+    );
+
+    // Written even for a repeat, so the selector's "already seen" check and the
+    // future progress view both stay honest.
+    await pool.query(
+      `INSERT INTO user_puzzle_attempts
+         (user_id, puzzle_id, source, solved, puzzle_rating, rating_before, rating_after, themes, ms_taken)
+       VALUES ($1, $2, 'lichess', $3, $4, $5, $6, $7, $8)`,
+      [userId, puzzleId, solved, puzzleRating, currentRating, newRating, themes, Number.isInteger(msTaken) ? msTaken : null]
+    );
+
+    // Homework is marked from the same attempt rather than from a separate
+    // action: the student solves an assigned puzzle exactly like any other, and
+    // asking them to remember which were set would leave most of it unmarked.
+    const markedItems = await assignmentService.recordPuzzleResult(pool, {
+      studentId: userId,
+      puzzleId,
+      solved,
+      msTaken,
+    });
+
+    res.json({
+      success: true,
+      newRating,
+      ratingChange: newRating - currentRating,
+      puzzleRating,
+      themes,
+      themeRatings,
+      puzzlesSolved: solvedCount,
+      puzzlesFailed: failedCount,
+      assignmentItemsMarked: markedItems,
+    });
+  } catch (err) {
+    logger.error('Error recording puzzle attempt:', err);
+    res.status(500).json({ error: 'Greška pri čuvanju rezultata.' });
+  }
+});
+
+// GET /api/puzzles/by-id/:puzzleId - one specific Lichess puzzle.
+//
+// Needed because an assignment names its puzzles: the student must get exactly
+// what the trainer set, not whatever the adaptive selector would have chosen.
+router.get('/puzzles/by-id/:puzzleId', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM lichess_puzzles WHERE puzzle_id = $1',
+      [req.params.puzzleId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Zagonetka nije pronađena.' });
+    }
+    res.json({ puzzle: puzzleSelection.toClientPuzzle(result.rows[0]) });
+  } catch (err) {
+    logger.error('Error fetching puzzle by id:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju zagonetke.' });
   }
 });
 
@@ -424,9 +608,12 @@ router.post('/puzzles/log', verifyLimiter, (req, res) => {
 });
 
 // POST /api/ai/explain-position - AI Chess Coach powered by Gemini SDK (@google/genai)
-router.post('/ai/explain-position', aiLimiter, authenticateToken, async (req, res) => {
+// The rate limiter caps bursts per IP; the quota caps what an account may spend
+// over a month. They solve different problems, so both apply.
+router.post('/ai/explain-position', aiLimiter, authenticateToken, requireQuota(ENT.AI_COMMENTS), async (req, res) => {
   const { fen, evals, userLanguage } = req.body;
   if (!fen) {
+    await refundQuota(req);
     return res.status(400).json({ error: 'FEN kod je obavezan parametar.' });
   }
 
@@ -437,10 +624,47 @@ router.post('/ai/explain-position', aiLimiter, authenticateToken, async (req, re
       userLanguage: userLanguage || 'sr'
     });
 
-    res.json(explanation);
+    res.json({ ...explanation, quota: { limit: req.quota.limit, used: req.quota.used } });
   } catch (err) {
+    // The user got nothing, so the reserved unit goes back.
+    await refundQuota(req);
     logger.error('Error in AI position explanation route:', err);
     res.status(500).json({ error: 'Greška pri generisanju AI objašnjenja.' });
+  }
+});
+
+// POST /api/ai/generate-move-comment - short move-annotation prose from a
+// move's evaluation swing plus its tactical/positional finding diff.
+router.post('/ai/generate-move-comment', aiLimiter, authenticateToken, requireQuota(ENT.AI_COMMENTS), async (req, res) => {
+  const {
+    moveSan, evalBefore, evalAfter, tacticalFindings, positionalFindings,
+    previousMove, engineAlternative, nextMoveEval, siblingAlternatives,
+    userLanguage
+  } = req.body;
+  if (!moveSan) {
+    await refundQuota(req);
+    return res.status(400).json({ error: 'moveSan je obavezan parametar.' });
+  }
+
+  try {
+    const result = await geminiService.generateMoveComment({
+      moveSan,
+      evalBefore,
+      evalAfter,
+      tacticalFindings: tacticalFindings || [],
+      positionalFindings: positionalFindings || [],
+      previousMove: previousMove || null,
+      engineAlternative: engineAlternative || null,
+      nextMoveEval: nextMoveEval || null,
+      siblingAlternatives: siblingAlternatives || [],
+      userLanguage: userLanguage || 'sr'
+    });
+
+    res.json({ ...result, quota: { limit: req.quota.limit, used: req.quota.used } });
+  } catch (err) {
+    await refundQuota(req);
+    logger.error('Error in AI move comment route:', err);
+    res.status(500).json({ error: 'Greška pri generisanju AI komentara.' });
   }
 });
 

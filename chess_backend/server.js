@@ -16,7 +16,12 @@ const puzzleRoutes = require('./routes/puzzles');
 const socialRoutes = require('./routes/social');
 const agoraRoutes = require('./routes/agora');
 const analysisRoutes = require('./routes/analysis');
+const billingRoutes = require('./routes/billing');
+const assignmentRoutes = require('./routes/assignments');
+const reportRoutes = require('./routes/reports');
+const reviewRoutes = require('./routes/reviews');
 const { authenticateToken, requireRole, verifySocketToken } = require('./middleware/auth');
+const entitlementService = require('./services/entitlementService');
 
 const app = express();
 const server = http.createServer(app);
@@ -93,13 +98,42 @@ app.use('/recordings', recordingRoutes);
 app.use('/api', puzzleRoutes);
 app.use('/agora', agoraRoutes);
 app.use('/analysis', analysisRoutes);
+app.use('/billing', billingRoutes);
+app.use('/assignments', assignmentRoutes);
+app.use('/reports', reportRoutes);
+app.use('/reviews', reviewRoutes);
 app.use('/', socialRoutes);
 
 // SOCKET.IO REALTIME EVENTS
 
 const roomAudioUsers = {}; // roomId -> { userId -> { socketId, userId, userName, role, isMuted, handRaised } }
+
 const onlineUsers = {}; // userId -> { socketId, name, email, role }
 const activeRoomMembers = {}; // roomId -> { userId -> { name, role } }
+
+/// Books the voice time a socket has been connected for.
+///
+/// Agora bills by the minute, so this is the only place the real cost of a
+/// lesson becomes visible. Time is measured server-side between audio_join and
+/// whichever comes first — audio_leave or the socket dropping — because a client
+/// that crashes or loses signal never sends a leave event, and trusting it to
+/// report its own usage would undercount exactly the sessions that ran longest.
+///
+/// Idempotent: clears the start marker so a leave followed by a disconnect books
+/// the interval once.
+async function flushAudioUsage(socket) {
+  const startedAt = socket.audioJoinedAt;
+  const userId = socket.userId;
+  socket.audioJoinedAt = null;
+
+  if (!startedAt || !Number.isInteger(userId)) return; // guests are not billed to anyone
+
+  const seconds = Math.round((Date.now() - startedAt) / 1000);
+  if (seconds <= 0) return;
+
+  await entitlementService.recordUsage(pool, userId, entitlementService.METRIC.AGORA_SECONDS, seconds);
+  logger.info(`[AUDIO] Booked ${seconds}s of voice for user ${userId}`);
+}
 
 // Reject connections carrying a bad token; allow tokenless guests through read-only.
 // socket.data.user is the ONLY trusted identity — client-supplied userId/role in event
@@ -344,6 +378,7 @@ io.on('connection', (socket) => {
     const audioUserId = socket.userId || (authUser ? authUser.id : socket.id);
     socket.audioRoomId = roomId;
     socket.audioUserId = audioUserId;
+    socket.audioJoinedAt = Date.now();
 
     if (!roomAudioUsers[roomId]) {
       roomAudioUsers[roomId] = {};
@@ -365,6 +400,7 @@ io.on('connection', (socket) => {
 
   socket.on('audio_leave', ({ roomId }) => {
     const userId = socket.audioUserId;
+    flushAudioUsage(socket);
     if (roomAudioUsers[roomId] && roomAudioUsers[roomId][userId]) {
       delete roomAudioUsers[roomId][userId];
       if (Object.keys(roomAudioUsers[roomId]).length === 0) {
@@ -436,6 +472,8 @@ io.on('connection', (socket) => {
     }
 
     if (socket.audioRoomId && socket.audioUserId) {
+      // A dropped connection is the common ending for a lesson, not the rare one.
+      flushAudioUsage(socket);
       const rId = socket.audioRoomId;
       const uId = socket.audioUserId;
       if (roomAudioUsers[rId]) {

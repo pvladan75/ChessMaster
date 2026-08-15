@@ -17,6 +17,9 @@ abstract final class AppRoutes {
   /// Recorded lesson playback.
   static const String replay = '/replay/:recordingId';
 
+  /// Adaptive tactics training on the Lichess puzzle set.
+  static const String tactics = '/tactics';
+
   /// App settings pushed *over* the current screen. Distinct from the Settings
   /// tab inside the home shell: this variant keeps the analysis board or a live
   /// room mounted underneath, so closing it returns the user exactly where they

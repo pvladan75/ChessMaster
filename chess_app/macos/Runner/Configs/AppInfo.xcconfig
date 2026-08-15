@@ -8,7 +8,7 @@
 PRODUCT_NAME = chess_app
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.chessApp
+PRODUCT_BUNDLE_IDENTIFIER = rs.pejovic.chesscoach
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 rs.pejovic. All rights reserved.

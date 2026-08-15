@@ -6,7 +6,8 @@ const path = require('path');
 const fs = require('fs');
 const { pool } = require('../db');
 const { authenticateToken, signDownloadToken, authenticateDownloadToken } = require('../middleware/auth');
-const { checkUserLimits } = require('../limitsService');
+const { requireEntitlement } = require('../middleware/entitlements');
+const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
 const videoRenderer = require('../videoRenderer');
 
 const uploadStorage = multer.diskStorage({
@@ -124,7 +125,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /recordings/:id/export-mp4
-router.post('/:id/export-mp4', authenticateToken, async (req, res) => {
+// Rendering a lesson costs real server CPU, so the entitlement is checked before
+// any of that work starts — not inside the handler after the fact.
+router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXPORT), async (req, res) => {
   const {
     perspective,
     resolution,
@@ -136,11 +139,6 @@ router.post('/:id/export-mp4', authenticateToken, async (req, res) => {
     showMoveText = true
   } = req.body;
   try {
-    const limitCheck = await checkUserLimits(pool, req.user.id, 'export_mp4');
-    if (!limitCheck.allowed) {
-      return res.status(403).json({ error: limitCheck.reason });
-    }
-
     const recId = req.params.id;
 
     // Only the host may spend server CPU rendering their own lesson.
@@ -207,6 +205,13 @@ router.post('/:id/export-mp4', authenticateToken, async (req, res) => {
       `?token=${encodeURIComponent(downloadToken)}`;
 
     await pool.query('UPDATE session_recordings SET video_url = $1 WHERE id = $2', [downloadUrl, recId]);
+
+    // Booked only after the render succeeded — a failed job costs CPU but the
+    // user got nothing, and charging for that would be wrong twice over.
+    // Rendered seconds track cost better than a render count, since a 90-minute
+    // lesson and a 3-minute clip are not the same job.
+    await recordUsage(pool, req.user.id, METRIC.MP4_RENDERS, 1);
+    await recordUsage(pool, req.user.id, METRIC.MP4_RENDER_SECONDS, duration);
 
     res.json({
       message: 'MP4 video je uspešno izrenderovan, sačuvan i spreman za preuzimanje!',

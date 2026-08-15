@@ -12,6 +12,11 @@ import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/game_session_service.dart';
+import 'package:chess_app/services/billing_service.dart';
+import 'package:chess_app/features/assignments/screens/my_assignments_screen.dart';
+import 'package:chess_app/features/assignments/screens/student_progress_screen.dart';
+import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
+import 'package:chess_app/features/reviews/services/review_api_service.dart';
 
 import 'package:chess_app/screens/ai_studio_screen.dart';
 
@@ -79,10 +84,17 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> _scheduledSessions = [];
   bool _isLoadingScheduled = false;
 
+  late final BillingService _billing;
+  int _dueReviews = 0;
+
   @override
   void initState() {
     super.initState();
+    _billing = BillingService(authToken: widget.session.token);
     if (!widget.session.isGuest) {
+      // Also picks up a subscription bought on another device and finishes any
+      // purchase whose verification was interrupted.
+      _billing.init();
       _initSocket();
       _fetchStudents();
       _fetchUserStats();
@@ -90,6 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _fetchFriends();
       _fetchNotifications();
       _fetchScheduledSessions();
+      _fetchDueReviews();
     }
     OpeningBookService.instance.ensureLoaded();
     GameSessionService.instance.addListener(_onGameSessionChanged);
@@ -109,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _socket.dispose();
     }
     GameSessionService.instance.removeListener(_onGameSessionChanged);
+    _billing.dispose();
     _codeController.dispose();
     _studentEmailController.dispose();
     _friendEmailController.dispose();
@@ -256,7 +270,9 @@ class _HomeScreenState extends State<HomeScreen> {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${widget.session.token}'
         },
-        body: jsonEncode({'email': email}),
+        // The field is named studentEmail server-side; sending 'email' made
+        // every add fail with "Email učenika/prijatelja je obavezan".
+        body: jsonEncode({'studentEmail': email}),
       );
 
       final data = jsonDecode(response.body);
@@ -318,33 +334,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _updateAccountType(String newType) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$backendUrl/users/account-type'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.session.token}'
-        },
-        body: jsonEncode({'account_type': newType}),
-      );
-      if (response.statusCode == 200) {
-        _fetchUserStats();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Nalog uspešno promenjen na $newType!'),
-              backgroundColor: Colors.teal,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      print("Error updating account type: $e");
-      if (mounted) AppFeedback.error(context, 'Greška pri promeni tipa naloga.');
-    }
-  }
-
   Future<void> _fetchFriends() async {
     setState(() => _isLoadingFriends = true);
     try {
@@ -373,10 +362,12 @@ class _HomeScreenState extends State<HomeScreen> {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${widget.session.token}'
         },
-        body: jsonEncode({'email': email}),
+        body: jsonEncode({'friendEmail': email}),
       );
       final data = jsonDecode(res.body);
-      if (res.statusCode == 201) {
+      // The endpoint answers 200, not 201 — checking for 201 reported a
+      // successful add as a failure.
+      if (res.statusCode == 200) {
         _friendEmailController.clear();
         _fetchFriends();
         _showSuccess(data['message'] ?? 'Prijatelj je uspešno dodat!');
@@ -552,12 +543,53 @@ class _HomeScreenState extends State<HomeScreen> {
     dialogs.showScheduledSuccessDialog(context, message: message, calendarUrl: calendarUrl, roomCode: roomCode);
   }
 
+  void _openStudentProgress(Map<String, dynamic> student) {
+    final id = (student['id'] as num?)?.toInt();
+    if (id == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => StudentProgressScreen(
+          session: widget.session,
+          studentId: id,
+          studentName: student['name']?.toString() ?? 'Učenik',
+        ),
+      ),
+    );
+  }
+
+  void _openMyAssignments() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MyAssignmentsScreen(session: widget.session),
+      ),
+    );
+  }
+
+  Future<void> _openReviews() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ReviewSessionScreen(session: widget.session),
+      ),
+    );
+    // The badge is stale the moment a session ends, so it is refetched rather
+    // than decremented locally — a failed grade must not shrink the count.
+    if (mounted) _fetchDueReviews();
+  }
+
+  Future<void> _fetchDueReviews() async {
+    if (widget.session.isGuest) return;
+    final stats = await ReviewApiService(authToken: widget.session.token).fetchStats();
+    if (mounted) setState(() => _dueReviews = stats.due);
+  }
+
   void _showPremiumModal() {
-    final isPremium = _userStats?['account_type'] == 'premium';
     dialogs.showPremiumModal(
       context,
-      isPremium: isPremium,
-      onToggle: _updateAccountType,
+      billing: _billing,
+      // Refresh the dashboard's tier badge and limit counters once a purchase
+      // has actually been confirmed by the server.
+      onPurchased: _fetchUserStats,
     );
   }
 
@@ -747,6 +779,9 @@ class _HomeScreenState extends State<HomeScreen> {
             isLoadingRecordings: _isLoadingRecordings,
             onCreateSessionTap: _showCreateRoomWithFriendsDialog,
             onOpenStudio: _openStudioRoom,
+            onOpenAssignments: _openMyAssignments,
+            onOpenReviews: _openReviews,
+            dueReviewCount: _dueReviews,
             onJoinRoom: _joinInviteRoom,
             onRefreshRecordings: _fetchRecordings,
             onOpenReplay: (id) => context.push(AppRoutes.replayPath(id)),
@@ -765,6 +800,7 @@ class _HomeScreenState extends State<HomeScreen> {
             students: _students,
             onAddStudent: _addStudent,
             onDeleteStudent: _deleteStudent,
+            onOpenProgress: _openStudentProgress,
           );
         default:
           return SettingsScreen(session: widget.session);

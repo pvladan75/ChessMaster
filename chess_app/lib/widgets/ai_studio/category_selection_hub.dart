@@ -4,12 +4,14 @@ class CategorySelectionHubWidget extends StatelessWidget {
   final Function(String depth) onSelectMatePuzzle;
   final Function(String presetDifficulty) onSelectBasicMate;
   final VoidCallback onSelectWinningPosition;
+  final VoidCallback onSelectTactics;
 
   const CategorySelectionHubWidget({
     super.key,
     required this.onSelectMatePuzzle,
     required this.onSelectBasicMate,
     required this.onSelectWinningPosition,
+    required this.onSelectTactics,
   });
 
   @override
@@ -69,6 +71,55 @@ class CategorySelectionHubWidget extends StatelessWidget {
               ),
 
               const SizedBox(height: 20),
+
+              // CARD 0: Adaptive tactics — listed first because it is the mode
+              // that adjusts to the solver, while the ones below are fixed sets.
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Colors.lightBlueAccent, width: 1.5),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.auto_graph, color: Colors.lightBlueAccent, size: 28),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Taktika po vašoj meri',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Zagonetke iz Lichess baze, birane prema vašem rejtingu i temi '
+                        'koju najslabije rešavate. Rejting se prati po svakom motivu posebno.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('Započni trening'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.lightBlue.shade800,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        ),
+                        onPressed: onSelectTactics,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
 
               // CARD 1: Zagonetke: Mat u 1, 2 ili 3 poteza
               Card(

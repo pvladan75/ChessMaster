@@ -12,6 +12,17 @@
 node_modules/
 chess_backend/node_modules/
 chess_backend/exports/*.mp4
+
+# Uploaded lesson audio. These are recordings of real lessons — user data, and
+# on this project often children's voices. They must never enter the repository.
+chess_backend/uploads/
+
+# Gradle build output. chess_app/.gitignore covers /build/ but not this one.
+chess_app/android/build/
+chess_app/android/.gradle/
+
+# Local agent configuration
+.claude/
 puzzles/*.zst
 puzzles/*.csv
 puzzles/*.json

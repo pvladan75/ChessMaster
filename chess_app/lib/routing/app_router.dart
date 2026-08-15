@@ -10,6 +10,7 @@ import 'package:chess_app/screens/settings_screen.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
 import 'package:chess_app/screens/replay_player_screen.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
+import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 
 /// The app's navigation graph.
 ///
@@ -61,6 +62,12 @@ final GoRouter appRouter = GoRouter(
           userSession: SessionService.instance.current,
         );
       },
+    ),
+    GoRoute(
+      path: AppRoutes.tactics,
+      builder: (context, state) => TacticsTrainerScreen(
+        session: SessionService.instance.current,
+      ),
     ),
     GoRoute(
       path: AppRoutes.preferences,

@@ -2,7 +2,7 @@ const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 const { getUserStats } = require('../limitsService');
 
 // POST /trainer/students/add
@@ -91,18 +91,45 @@ router.get('/users/me/stats', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /users/account-type
-router.post('/users/account-type', authenticateToken, async (req, res) => {
-  const { accountType } = req.body;
+// POST /users/account-type — administrative grant, not a self-service upgrade.
+//
+// This used to be reachable by any authenticated user and changed *their own*
+// account_type, so every paid tier was one request away from being free. Until
+// billing exists, tiers are granted manually by an admin; once it does, the
+// payment provider's webhook becomes the only writer and this stays the manual
+// override for comped and support cases.
+router.post('/users/account-type', authenticateToken, requireRole('admin'), async (req, res) => {
+  const { accountType, userId } = req.body;
   const validTypes = ['free', 'premium', 'club', 'pro'];
 
   if (!accountType || !validTypes.includes(accountType)) {
     return res.status(400).json({ error: 'Nevažeći tip naloga.' });
   }
 
+  const targetId = Number.parseInt(userId, 10);
+  if (!Number.isInteger(targetId)) {
+    return res.status(400).json({ error: 'userId je obavezan i mora biti broj.' });
+  }
+
   try {
-    await pool.query('UPDATE users SET account_type = $1 WHERE id = $2', [accountType, req.user.id]);
-    res.json({ success: true, message: `Tip naloga uspešno promenjen na '${accountType}'.` });
+    const result = await pool.query(
+      'UPDATE users SET account_type = $1 WHERE id = $2 RETURNING id, email, account_type',
+      [accountType, targetId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Korisnik nije pronađen.' });
+    }
+
+    const updated = result.rows[0];
+    logger.info(
+      { adminId: req.user.id, targetUserId: updated.id, accountType },
+      'Account type granted by admin'
+    );
+    res.json({
+      success: true,
+      message: `Tip naloga za ${updated.email} promenjen na '${accountType}'.`,
+      user: updated
+    });
   } catch (err) {
     logger.error('Error updating account type:', err);
     res.status(500).json({ error: 'Greška pri ažuriranju tipa naloga.' });

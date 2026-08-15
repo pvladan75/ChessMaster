@@ -1,4 +1,4 @@
-package com.example.chess_app
+package rs.pejovic.chesscoach
 
 import io.flutter.embedding.android.FlutterActivity
 

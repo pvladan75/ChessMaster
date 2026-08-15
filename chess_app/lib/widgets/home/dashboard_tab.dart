@@ -11,6 +11,11 @@ class HomeDashboardTab extends StatelessWidget {
   final bool isLoadingRecordings;
   final VoidCallback onCreateSessionTap;
   final VoidCallback onOpenStudio;
+  final VoidCallback onOpenAssignments;
+  final VoidCallback onOpenReviews;
+
+  /// Positions waiting to be reviewed; drives the badge.
+  final int dueReviewCount;
   final ValueChanged<String> onJoinRoom;
   final VoidCallback onRefreshRecordings;
   final ValueChanged<int> onOpenReplay;
@@ -24,6 +29,9 @@ class HomeDashboardTab extends StatelessWidget {
     required this.isLoadingRecordings,
     required this.onCreateSessionTap,
     required this.onOpenStudio,
+    required this.onOpenAssignments,
+    required this.onOpenReviews,
+    this.dueReviewCount = 0,
     required this.onJoinRoom,
     required this.onRefreshRecordings,
     required this.onOpenReplay,
@@ -136,6 +144,112 @@ class HomeDashboardTab extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Homework. Sits directly under the session shortcuts because for
+              // a student it is the reason to open the app between lessons.
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Colors.lightBlueAccent, width: 1.5),
+                ),
+                child: InkWell(
+                  onTap: onOpenAssignments,
+                  borderRadius: BorderRadius.circular(16),
+                  child: const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.assignment_turned_in, size: 32, color: Colors.lightBlueAccent),
+                        SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Moji zadaci',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.lightBlueAccent,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Vežbe koje vam je trener zadao i vaš napredak po temama.',
+                                style: TextStyle(fontSize: 11, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: Colors.grey),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Spaced repetition. Shown even at zero so the student learns the
+              // feature exists before anything is due; the badge is what pulls
+              // them back on the days it is not.
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: dueReviewCount > 0 ? Colors.orangeAccent : Colors.grey.shade700,
+                    width: 1.5,
+                  ),
+                ),
+                child: InkWell(
+                  onTap: onOpenReviews,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Badge(
+                          isLabelVisible: dueReviewCount > 0,
+                          label: Text('$dueReviewCount'),
+                          child: Icon(
+                            Icons.repeat,
+                            size: 32,
+                            color: dueReviewCount > 0 ? Colors.orangeAccent : Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ponavljanje',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: dueReviewCount > 0 ? Colors.orangeAccent : Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                dueReviewCount > 0
+                                    ? '$dueReviewCount ${dueReviewCount == 1 ? 'pozicija čeka' : 'pozicija čeka'} na ponavljanje.'
+                                    : 'Pozicije iz lekcija vraćaju se na ponavljanje kad im dođe vreme.',
+                                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: Colors.grey),
+                      ],
+                    ),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 16),

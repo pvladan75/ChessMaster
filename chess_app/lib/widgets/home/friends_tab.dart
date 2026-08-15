@@ -8,6 +8,10 @@ class HomeFriendsTab extends StatelessWidget {
   final VoidCallback onAddStudent;
   final ValueChanged<int> onDeleteStudent;
 
+  /// Opens the student's progress report. Receives the raw row so the caller
+  /// keeps the id and the display name together.
+  final void Function(Map<String, dynamic> student) onOpenProgress;
+
   const HomeFriendsTab({
     super.key,
     required this.studentEmailController,
@@ -15,6 +19,7 @@ class HomeFriendsTab extends StatelessWidget {
     required this.students,
     required this.onAddStudent,
     required this.onDeleteStudent,
+    required this.onOpenProgress,
   });
 
   @override
@@ -88,9 +93,20 @@ class HomeFriendsTab extends StatelessWidget {
                               leading: const CircleAvatar(child: Icon(Icons.person)),
                               title: Text(s['name'] ?? 'Prijatelj', style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Text(s['email'] ?? ''),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20),
-                                onPressed: () => onDeleteStudent(s['id']),
+                              onTap: () => onOpenProgress(Map<String, dynamic>.from(s)),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.insights, size: 20),
+                                    tooltip: 'Napredak i zadaci',
+                                    onPressed: () => onOpenProgress(Map<String, dynamic>.from(s)),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20),
+                                    onPressed: () => onDeleteStudent(s['id']),
+                                  ),
+                                ],
                               ),
                             );
                           },

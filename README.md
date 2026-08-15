@@ -9,8 +9,11 @@ Designed for chess trainers and students, it provides real-time interactive ches
 ## 🌟 Key Features
 
 ### 1. 🤖 AI Chess Coach & Adaptive Puzzles
-- **Lichess Puzzle Database**: PostgreSQL `puzzles` table indexed with B-tree (rating) and GIN (themes) arrays.
-- **Adaptive Rating Tracking**: Per-user overall rating and tactical theme breakdown (`fork`, `pin`, `discoveredAttack`, `mateIn1`, `mateIn2`, `endgame`, `skewer`, `deflection`) with Elo updates.
+- **Lichess Puzzle Database (6.1M puzzles)**: `lichess_puzzles` table with the dataset's real ratings, themes, popularity and opening tags — B-tree index on rating, GIN index on the themes array. Loaded by `import_lichess_puzzles.js`, which streams the CC0 zstd dump (`--dry-run`, `--limit`, `--min-rating` and `--min-popularity` supported for partial loads).
+  - The dump is written by `pzstd` as many independent frames, which Node's own zstd stream stops at; `services/zstdMultiFrame.js` walks the frame chain so the whole file is read rather than only its first 32 MiB.
+- **Adaptive Selection (`puzzleSelectionService`)**: `GET /api/puzzles/adaptive` targets the motif the user is measurably weakest at, inside a rating band centred slightly *below* their rating so a session stays mostly solvable. A theme needs several attempts before it counts as a weakness, and a share of requests deliberately explore untried motifs so the picture keeps filling in.
+- **Per-Theme Rating Tracking**: `POST /api/puzzles/attempt` updates the overall rating and every trainable theme on the puzzle, using the puzzle's stored rating (never a client-supplied one). `user_puzzle_attempts` keeps per-attempt history — what a trainer's progress view will read.
+- **Note on the older `puzzles` table**: the mate-in-N and "winning position" modules still use it. It carries an engine-verified solution tree rather than a Lichess move line, which is why the two live in separate tables.
 - **Google Gemini SDK Integration (`@google/genai`)**: Natural language position coaching in Serbian/English explaining tactical motifs, step-by-step plans, and recommended moves.
 - **Interactive Move Animation**: Tapping AI-recommended move chips animates board moves and draws visual direction arrows.
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:chess_app/services/billing_service.dart';
+
 /// Dialogs used by [HomeScreen] that are pure UI: they read whatever they
 /// need from their parameters and report the result back through a callback
 /// rather than touching the screen's state directly.
@@ -365,74 +367,139 @@ void showScheduledSuccessDialog(BuildContext context, {required String message, 
   );
 }
 
-void showPremiumModal(BuildContext context, {required bool isPremium, required void Function(String newType) onToggle}) {
+/// Shows what Premium includes, where the account stands, and — on Android —
+/// lets the user actually buy it through Google Play.
+///
+/// Play prices are read from the store rather than hardcoded, so they are always
+/// in the buyer's own currency and match what Play will charge. The purchase is
+/// only ever confirmed by the server, which verifies the token with Google; a
+/// successful `buy()` here means "Play accepted the request", not "paid".
+void showPremiumModal(
+  BuildContext context, {
+  required BillingService billing,
+  VoidCallback? onPurchased,
+}) {
+  const benefits = [
+    'Neograničeno sačuvanih pozicija i lekcija (besplatno: do 20)',
+    'Neograničeno živih sesija mesečno (besplatno: do 5)',
+    'Izvoz snimljenih časova u MP4 video format',
+    'Veća mesečna kvota za AI komentare',
+  ];
+
   showDialog(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Row(
-        children: const [
-          Icon(Icons.workspace_premium, color: Colors.amber, size: 28),
-          SizedBox(width: 8),
-          Text('Chess Master Premium', style: TextStyle(fontWeight: FontWeight.bold)),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Unapredite nalog za neograničeno stvaranje sesija i snimanje časova!',
-            style: TextStyle(fontSize: 13, color: Colors.grey),
-          ),
-          const SizedBox(height: 16),
-          const ListTile(
-            dense: true,
-            leading: Icon(Icons.check_circle, color: Colors.tealAccent),
-            title: Text('Neograničeno sačuvanih pozicija i lekcija (Free: do 20)'),
-          ),
-          const ListTile(
-            dense: true,
-            leading: Icon(Icons.check_circle, color: Colors.tealAccent),
-            title: Text('Neograničeno živih sesija mesečno (Free: do 5)'),
-          ),
-          const ListTile(
-            dense: true,
-            leading: Icon(Icons.check_circle, color: Colors.tealAccent),
-            title: Text('Izvoz snimljenih časova u MP4 Video format'),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
+    builder: (ctx) => ValueListenableBuilder<EntitlementState>(
+      valueListenable: billing.entitlements,
+      builder: (ctx, state, _) {
+        final isPaid = state.isPaid;
+        final aiQuota = state.quota(Entitlements.aiComments);
+
+        return ValueListenableBuilder<bool>(
+          valueListenable: billing.purchaseInProgress,
+          builder: (ctx, busy, __) => AlertDialog(
+            title: Row(
+              children: const [
+                Icon(Icons.workspace_premium, color: Colors.amber, size: 28),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Chess Master Premium', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
             ),
-            child: const Text(
-              'Napomena (Faza testiranja): Trenutno možete besplatno prebaciti nalog klikom ispod.',
-              style: TextStyle(fontSize: 11, color: Colors.amberAccent),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isPaid
+                        ? 'Vaš nalog je aktivan (${state.tier}). Uključeno je:'
+                        : 'Premium nalog uklanja ograničenja besplatnog naloga:',
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  for (final benefit in benefits)
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        isPaid ? Icons.check_circle : Icons.lock_outline,
+                        color: isPaid ? Colors.tealAccent : Colors.grey,
+                      ),
+                      title: Text(benefit),
+                    ),
+                  if (aiQuota != null && !aiQuota.isUnlimited) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'AI komentari ovog meseca: ${aiQuota.used} / ${aiQuota.limit}',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  if (!isPaid && !billing.canPurchase)
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        BillingService.isSupportedPlatform
+                            ? 'Kupovina trenutno nije dostupna. Pokušajte kasnije '
+                                'ili nas kontaktirajte.'
+                            : 'Kupovina je dostupna u Android verziji aplikacije. '
+                                'Nalog kupljen tamo važi i ovde.',
+                        style: const TextStyle(fontSize: 11.5, color: Colors.amberAccent),
+                      ),
+                    ),
+                ],
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: busy ? null : () => Navigator.pop(ctx),
+                child: const Text('Zatvori'),
+              ),
+              if (!isPaid && billing.canPurchase)
+                for (final product in billing.products)
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber,
+                      foregroundColor: Colors.black,
+                    ),
+                    onPressed: busy
+                        ? null
+                        : () async {
+                            final outcome = await billing.buy(product);
+                            if (outcome == PurchaseOutcome.unavailable ||
+                                outcome == PurchaseOutcome.failed) {
+                              if (!ctx.mounted) return;
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Kupovinu nije moguće pokrenuti.'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          },
+                    child: busy
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                          )
+                        : Text('${BillingService.displayTitle(product.title)} · ${product.price}'),
+                  ),
+            ],
           ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Zatvori'),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isPremium ? Colors.grey : Colors.amber,
-            foregroundColor: Colors.black,
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-            onToggle(isPremium ? 'free' : 'premium');
-          },
-          child: Text(isPremium ? 'Prebaci na Besplatan nalog' : 'Aktiviraj Premium'),
-        ),
-      ],
+        );
+      },
     ),
-  );
+  ).then((_) {
+    // The purchase stream keeps running after the dialog closes, so the tier may
+    // have changed by now.
+    if (billing.entitlements.value.isPaid) onPurchased?.call();
+  });
 }
 
 void showActiveSessionBlockedDialog(

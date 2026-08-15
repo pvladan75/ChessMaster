@@ -1988,6 +1988,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         _loadBasicMatePreset(presetDifficulty);
       },
       onSelectWinningPosition: () => _launchCategory('winning_position'),
+      onSelectTactics: () => context.push(AppRoutes.tactics),
     );
   }
 

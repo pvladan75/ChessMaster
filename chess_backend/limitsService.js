@@ -1,7 +1,15 @@
 // limitsService.js
 // Tier Limits & Resource Usage Service
 
+const { resolveTier } = require('./services/entitlementService');
+
 const ENABLE_LIMITS = process.env.ENABLE_LIMITS === 'true'; // Default: false for testing mode
+
+const PAID_LIMITS = {
+  maxSavedLessons: Infinity,
+  maxMonthlySessions: Infinity,
+  mp4ExportAllowed: true
+};
 
 const TIER_LIMITS = {
   free: {
@@ -9,19 +17,19 @@ const TIER_LIMITS = {
     maxMonthlySessions: 5,
     mp4ExportAllowed: false
   },
-  premium: {
-    maxSavedLessons: Infinity,
-    maxMonthlySessions: Infinity,
-    mp4ExportAllowed: true
-  }
+  premium: PAID_LIMITS,
+  pro: PAID_LIMITS,
+  club: PAID_LIMITS
 };
 
 /**
   * Calculate current resource usage for a user.
   */
 async function getUserStats(pool, userId) {
-  const userRes = await pool.query('SELECT account_type FROM users WHERE id = $1', [userId]);
-  const accountType = userRes.rows.length > 0 ? (userRes.rows[0].account_type || 'free') : 'free';
+  // The tier comes from entitlementService rather than users.account_type
+  // directly, so a paid subscription and a manual admin grant both count and
+  // there is only one place that decides what a user is entitled to.
+  const accountType = await resolveTier(pool, userId);
 
   const lessonsRes = await pool.query(
     'SELECT COUNT(*)::int as count FROM saved_lessons WHERE user_id = $1 OR trainer_id = $1',
@@ -74,7 +82,7 @@ async function checkUserLimits(pool, userId, actionType) {
   const stats = await getUserStats(pool, userId);
   const accountType = stats.account_type;
 
-  if (accountType === 'premium') {
+  if (accountType !== 'free') {
     return { allowed: true };
   }
 
