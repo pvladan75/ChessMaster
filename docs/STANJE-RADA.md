@@ -378,6 +378,48 @@ u jednom smeru, kad `backendUrl` bude promenjen.
 > važi za `zlib.zstd*` u CI-ju i za `DB_CA_PATH`, koji namerno obara proces ako
 > fajl ne postoji, umesto da se vrati na neproverenu vezu.
 
+## Zašto ostajemo na Agori (i pod kojim uslovom se to menja)
+
+Razmatran je LiveKit, povodom Linux podrške. Odluka 15.8.2026: **ostaje Agora.**
+
+Provereno u samim paketima, ne po sećanju:
+
+- `agora_rtc_engine-6.6.3` deklariše `android`, `ios`, `macos`, `windows` i
+  **`web`**. Nedostaje samo **Linux**.
+- `livekit_client` podržava svih šest platformi, uključujući Linux.
+
+Time se prednost LiveKit-a svodi na Linux jedini — a to je platforma sa najmanjom
+publikom ovde. Cena te zamene je nesrazmerna: **Agora kod nas radi dva posla.**
+Pored prenosa glasa, ona i **snima čas** — `startAudioRecording` piše *izmešan*
+kanal u fajl, zato se u snimku čuju i trener i učenik. LiveKit nema pandan na
+klijentu; njegovo snimanje je serverski **Egress** (zaseban servis, Redis, CPU za
+mešanje), što na droplet-u sa 1 vCPU nije sitnica, uz TURN i opseg UDP portova.
+
+Prelazak bi, dakle, značio **ponovno pisanje celog lanca snimanja** — sečenja
+pauza, sinhronizacije, reprodukcije i MP4 izvoza — dakle baš onog dela koji je
+tek proradio.
+
+**Uslov pod kojim se odluka menja:** ako trošak Agore počne da se oseća. Meri se
+kroz `agora_seconds` u `USAGE_UNIT_COSTS`, pa će se videti unapred.
+
+### Web je izvodljiviji nego što izgleda — osim snimanja
+
+Web bi ukinuo ceo problem instalacije: nema SmartScreen-a, sertifikata za
+potpisivanje, `.exe` fajla ni Store pravila (vidi korak 3a u
+[TODO-objavljivanje.md](TODO-objavljivanje.md)).
+
+- **Motor je već rešen.** `stockfish_service_stub.dart` je verzija koja računa
+  preko interneta (`lichess cloud-eval`, `stockfish.online`) — put za Web je
+  predviđen u kodu. Analiza je slabija nego lokalni Stockfish, ali radi.
+- **Glas radi**, jer Agora deklariše web.
+- **Snimanje najverovatnije ne radi.** `AgoraRtcEngineWeb.registerWith()` je
+  prazan, a u web sloju paketa nema nijednog pomena snimanja — ima kontrolera za
+  video prikaz. To treba potvrditi malim ogledom pre nego što se bilo šta planira
+  oko Web verzije.
+
+Web bi tako bio: čas uživo, analiza, zagonetke i domaći — **bez snimljenih
+časova**. To je i dalje mnogo, ali je odluka o tome šta proizvod jeste.
+
 ## Otvoren problem: ko je trener, a ko učenik — niko to ne odlučuje
 
 Primećeno 15.8.2026: **učenik može treneru da zada zadatak i lekciju.** To nije
