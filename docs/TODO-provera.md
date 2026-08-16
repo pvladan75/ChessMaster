@@ -8,6 +8,27 @@ Poređano od najbržeg za proveru ka najsporijem.
 
 ---
 
+## 0. Pristanak na odnos trener–učenik — novo 16.8.2026, nikad viđeno uživo
+
+**Kako:** Prijatelji → unesi email → „Dodaj prijatelja". Sad se šalje **poziv**, a
+ne veza. Prijavi se kao druga strana → isti tab → kartica „Čeka vaš odgovor" →
+kvačica.
+
+**Na šta obratiti pažnju:**
+
+- Dok je na čekanju, učenik stoji u listi **posivljen, sa „čeka potvrdu"**, a
+  dugme za napredak i zadatke je nedostupno. Ako je dostupno, provera na serveru
+  je jedino što stoji između — a to je već jednom bilo premalo.
+- Posle prihvatanja: zadavanje zagonetki i lekcije mora da proradi **odmah**, bez
+  ponovne prijave.
+- Odbijanje briše zahtev; ponovno slanje mora da radi.
+- Zahtev radi i u drugom smeru (`POST /students/trainers/request`), ali za to
+  **još nema dugmeta u aplikaciji** — proverljivo samo pozivom rute.
+
+> **Zatečeni podaci:** tri postojeće veze su prešle kao `accepted`, i među njima
+> je i **uzajaman par** koji je i bio bag (dvoje koji su dodali jedan drugog).
+> Ispravka sprečava nove takve, ali taj par treba ručno raskinuti iz aplikacije.
+
 ## 1. Izveštaj za roditelja
 
 **Kako:** Prijatelji → učenik → ikona 📄 u zaglavlju → izaberi period, napiši
