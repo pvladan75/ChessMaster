@@ -94,6 +94,12 @@ hostname is an interim `sslip.io` name.
 application half. Both are idempotent and both are meant to be re-run; that is
 how two of the bugs above were found.
 
+**Do not close port 80.** The backend is on `api.chesstrainers.app`, whose
+certificate renews itself over HTTP-01 — that check reaches the host on port 80
+and nowhere else. `.app` is HSTS-preloaded, so browsers never use plain HTTP and
+closing 80 looks like tidying up; it silently breaks renewal, and the site
+disappears three months later. Same shape as everything in the section above.
+
 ## Known open issue
 
 Nothing decides who is a trainer. `users.role` is hard-coded to `'korisnik'` at

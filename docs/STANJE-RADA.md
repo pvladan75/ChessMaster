@@ -348,10 +348,10 @@ mašina podigne istim redosledom.
 
 **Šta je dokazano, ne pretpostavljeno:**
 
-- `https://209-38-55-151.sslip.io` odgovara sa `200`, sertifikat prolazi proveru
-  spolja, `http` se preusmerava. Ime je privremeno (`sslip.io` pravi DNS zapis od
-  IP adrese) jer domen još nije izabran; Let's Encrypt za golu IP adresu ne
-  izdaje sertifikat.
+- `https://api.chesstrainers.app` odgovara sa `200`, sertifikat prolazi proveru
+  spolja, `http` se preusmerava. (Do 16.8.2026. je ime bilo privremeno,
+  `209-38-55-151.sslip.io` — Let's Encrypt za golu IP adresu ne izdaje
+  sertifikat. Stari sertifikat je obrisan da mu obnova ne bi padala.)
 - Backend se povezuje na bazu **privatnom VPC mrežom** i sa punom proverom
   sertifikata: `rejectUnauthorized: true`, `TLS socket authorized: true`,
   PostgreSQL 17.10. Pre toga je `openssl s_client` potvrdio da SAN sertifikata
@@ -362,6 +362,23 @@ mašina podigne istim redosledom.
 gađa lokalni backend, dva servera nad istom bazom znače razdvojeno stanje: čas
 snimljen preko jednog nije na disku drugog, a baza tvrdi da postoji. Prebacuje se
 u jednom smeru, kad `backendUrl` bude promenjen.
+
+### Sertifikat se obnavlja sam — i šta ga jedino može pokvariti
+
+`certbot.timer` je uključen i budi se dvaput dnevno; obnova kreće tek kad
+sertifikatu ostane manje od 30 dana. Provereno 16.8.2026. sa
+`certbot renew --dry-run`: „all simulated renewals succeeded". Ništa se ručno ne
+radi, a Let's Encrypt uz to šalje opomene na mejl 20, 7 i 1 dan pre isteka.
+
+> **Ne zatvarati port 80.** Provera pri obnovi ide **isključivo preko HTTP-a** na
+> `api.chesstrainers.app`. Pomisao da 80 više ne treba je razumna — `.app` je na
+> HSTS preload listi, pa pregledači ionako nikad ne idu na HTTP — i baš zato je
+> opasna. Zatvoren 80 u `ufw`-u, ili izbačen HTTP `server` blok iz nginx
+> konfiguracije, obara obnovu **ćutke**: ništa ne prijavi grešku, a sajt nestane
+> tri meseca kasnije.
+
+Stanje se proverava sa `certbot certificates`. Kad sajt na korenu domena dobije
+svoj sertifikat, pridružuje se istom tajmeru bez dodatnog podešavanja.
 
 **Dve greške u sopstvenim skriptama, obe uhvaćene ponovnim pokretanjem:**
 
