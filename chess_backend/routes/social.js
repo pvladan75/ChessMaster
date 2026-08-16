@@ -4,78 +4,188 @@ const router = express.Router();
 const { pool } = require('../db');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { getUserStats } = require('../limitsService');
+const relationships = require('../services/relationshipService');
 
-// POST /trainer/students/add
+/// Looks a user up by the address typed into the form.
+async function findUserByEmail(email) {
+  const result = await pool.query('SELECT id, name, email FROM users WHERE email = $1', [email]);
+  return result.rows[0] || null;
+}
+
+// POST /trainer/students/add — a trainer asks someone to become their student.
+//
+// This now creates a *request*, not a relationship. Nothing is granted until the
+// other side accepts: previously the row itself was the relationship, so anyone
+// could make anyone their student by typing an address, and two people who added
+// each other could both set the other homework.
 router.post('/trainer/students/add', authenticateToken, async (req, res) => {
   const { studentEmail } = req.body;
-  const trainerId = req.user.id;
-
   if (!studentEmail) {
-    return res.status(400).json({ error: 'Email učenika/prijatelja je obavezan.' });
+    return res.status(400).json({ error: 'Email učenika je obavezan.' });
   }
 
   try {
-    const studentRes = await pool.query('SELECT id, name, email FROM users WHERE email = $1', [studentEmail]);
-    if (studentRes.rows.length === 0) {
+    const student = await findUserByEmail(studentEmail);
+    if (!student) {
       return res.status(404).json({ error: 'Korisnik sa datim email-om nije pronađen.' });
     }
 
-    const student = studentRes.rows[0];
-    if (student.id === trainerId) {
-      return res.status(400).json({ error: 'Ne možete dodati sami sebe.' });
+    const result = await relationships.requestRelationship(pool, {
+      initiatorId: req.user.id,
+      otherId: student.id,
+      initiatorIsTrainer: true,
+    });
+    if (!result.ok) return res.status(400).json({ error: result.reason });
+
+    if (!result.alreadyPending) {
+      await relationships.notifyRequest(pool, {
+        recipientId: student.id,
+        senderId: req.user.id,
+        senderName: req.user.name || 'Trener',
+        requestId: result.id,
+        senderIsTrainer: true,
+      });
     }
 
-    await pool.query(
-      'INSERT INTO trainer_students (trainer_id, student_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-      [trainerId, student.id]
-    );
-
-    await pool.query(
-      'INSERT INTO friends (user_id, friend_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-      [trainerId, student.id]
-    );
-    await pool.query(
-      'INSERT INTO friends (user_id, friend_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-      [student.id, trainerId]
-    );
-
-    res.json({ message: 'Prijatelj/Učenik uspešno dodat.', student });
+    res.json({
+      message: 'Poziv je poslat. Odnos počinje kad ga učenik prihvati.',
+      status: 'pending',
+      student,
+    });
   } catch (err) {
-    logger.error('Error adding student/friend:', err);
-    res.status(500).json({ error: 'Greška pri dodavanju.' });
+    logger.error('Error requesting student:', err);
+    res.status(500).json({ error: 'Greška pri slanju poziva.' });
   }
 });
 
-// GET /trainer/students
-router.get('/trainer/students', authenticateToken, async (req, res) => {
-  const trainerId = req.user.id;
+// POST /students/trainers/request — the same thing from the other end.
+router.post('/students/trainers/request', authenticateToken, async (req, res) => {
+  const { trainerEmail } = req.body;
+  if (!trainerEmail) {
+    return res.status(400).json({ error: 'Email trenera je obavezan.' });
+  }
 
   try {
-    const result = await pool.query(
-      `SELECT u.id, u.name, u.email 
-       FROM users u
-       JOIN trainer_students ts ON u.id = ts.student_id
-       WHERE ts.trainer_id = $1`,
-      [trainerId]
-    );
-    res.json({ students: result.rows });
+    const trainer = await findUserByEmail(trainerEmail);
+    if (!trainer) {
+      return res.status(404).json({ error: 'Korisnik sa datim email-om nije pronađen.' });
+    }
+
+    const result = await relationships.requestRelationship(pool, {
+      initiatorId: req.user.id,
+      otherId: trainer.id,
+      initiatorIsTrainer: false,
+    });
+    if (!result.ok) return res.status(400).json({ error: result.reason });
+
+    if (!result.alreadyPending) {
+      await relationships.notifyRequest(pool, {
+        recipientId: trainer.id,
+        senderId: req.user.id,
+        senderName: req.user.name || 'Učenik',
+        requestId: result.id,
+        senderIsTrainer: false,
+      });
+    }
+
+    res.json({
+      message: 'Zahtev je poslat. Odnos počinje kad ga trener prihvati.',
+      status: 'pending',
+      trainer,
+    });
+  } catch (err) {
+    logger.error('Error requesting trainer:', err);
+    res.status(500).json({ error: 'Greška pri slanju zahteva.' });
+  }
+});
+
+// GET /relationships/pending — requests waiting for me to answer, either direction.
+router.get('/relationships/pending', authenticateToken, async (req, res) => {
+  try {
+    res.json({ requests: await relationships.pendingForUser(pool, req.user.id) });
+  } catch (err) {
+    logger.error('Error fetching pending relationships:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju zahteva.' });
+  }
+});
+
+// POST /relationships/:id/accept
+router.post('/relationships/:id/accept', authenticateToken, async (req, res) => {
+  const requestId = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(requestId)) {
+    return res.status(400).json({ error: 'Neispravan zahtev.' });
+  }
+
+  try {
+    const result = await relationships.respondToRequest(pool, {
+      requestId,
+      userId: req.user.id,
+      accept: true,
+    });
+    if (!result.ok) return res.status(403).json({ error: result.reason });
+    res.json({ message: 'Odnos je uspostavljen.' });
+  } catch (err) {
+    logger.error('Error accepting relationship:', err);
+    res.status(500).json({ error: 'Greška pri prihvatanju.' });
+  }
+});
+
+// POST /relationships/:id/decline
+router.post('/relationships/:id/decline', authenticateToken, async (req, res) => {
+  const requestId = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(requestId)) {
+    return res.status(400).json({ error: 'Neispravan zahtev.' });
+  }
+
+  try {
+    const result = await relationships.respondToRequest(pool, {
+      requestId,
+      userId: req.user.id,
+      accept: false,
+    });
+    if (!result.ok) return res.status(403).json({ error: result.reason });
+    res.json({ message: 'Zahtev je odbijen.' });
+  } catch (err) {
+    logger.error('Error declining relationship:', err);
+    res.status(500).json({ error: 'Greška pri odbijanju.' });
+  }
+});
+
+// GET /trainer/students — my students, accepted and still pending.
+//
+// Pending ones are included on purpose, with their status: a name that silently
+// does nothing is worse than one labelled "čeka potvrdu".
+router.get('/trainer/students', authenticateToken, async (req, res) => {
+  try {
+    res.json({ students: await relationships.listStudents(pool, req.user.id) });
   } catch (err) {
     logger.error('Error fetching students:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju liste.' });
   }
 });
 
-// DELETE /trainer/students/:studentId
+// GET /students/trainers — the same edge read from the other end.
+router.get('/students/trainers', authenticateToken, async (req, res) => {
+  try {
+    res.json({ trainers: await relationships.listTrainers(pool, req.user.id) });
+  } catch (err) {
+    logger.error('Error fetching trainers:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju liste.' });
+  }
+});
+
+// DELETE /trainer/students/:studentId — ends the relationship from either side.
 router.delete('/trainer/students/:studentId', authenticateToken, async (req, res) => {
-  const trainerId = req.user.id;
-  const { studentId } = req.params;
+  const otherId = Number.parseInt(req.params.studentId, 10);
+  if (!Number.isInteger(otherId)) {
+    return res.status(400).json({ error: 'Neispravan korisnik.' });
+  }
 
   try {
-    await pool.query('DELETE FROM trainer_students WHERE trainer_id = $1 AND student_id = $2', [trainerId, studentId]);
-    await pool.query('DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)', [trainerId, studentId]);
-    res.json({ message: 'Učenik/Prijatelj uspešno uklonjen.' });
+    await relationships.removeRelationship(pool, { userId: req.user.id, otherId });
+    res.json({ message: 'Odnos je raskinut.' });
   } catch (err) {
-    logger.error('Error removing student:', err);
+    logger.error('Error removing relationship:', err);
     res.status(500).json({ error: 'Greška pri uklanjanju.' });
   }
 });

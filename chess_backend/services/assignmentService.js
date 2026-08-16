@@ -16,14 +16,21 @@ const { ensureItem: ensureReviewItem } = require('./spacedRepetitionService');
 const MAX_ITEMS = 50;
 const DEFAULT_ITEMS = 10;
 
-/// Confirms the student is linked to this trainer.
+/// Confirms the student is linked to this trainer *and* agreed to it.
 ///
 /// Every read and write below goes through this. Without it, an assignment id or
 /// a student id guessed by hand would expose another trainer's students — and
 /// these are mostly children's records.
+///
+/// The `status` condition is the whole security fix. The row alone proves only
+/// that somebody typed an email address: until consent existed, whoever clicked
+/// "add student" first became the trainer, so two people who added each other
+/// could both set the other homework. An edge is a claim; an accepted edge is a
+/// relationship.
 async function trainerOwnsStudent(pool, trainerId, studentId) {
   const result = await pool.query(
-    'SELECT 1 FROM trainer_students WHERE trainer_id = $1 AND student_id = $2',
+    `SELECT 1 FROM trainer_students
+      WHERE trainer_id = $1 AND student_id = $2 AND status = 'accepted'`,
     [trainerId, studentId]
   );
   return result.rows.length > 0;

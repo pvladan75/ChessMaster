@@ -162,7 +162,34 @@ async function initDB() {
         UNIQUE(trainer_id, student_id)
       );
     `);
-    logger.info('Verified database table: trainer_students');
+    // A teaching relationship now needs both sides to agree.
+    //
+    // `status` defaults to 'accepted' deliberately: that grandfathers the rows
+    // written before consent existed, so no migration script is needed. Every
+    // new row is inserted with an explicit 'pending' instead.
+    //
+    // `initiated_by` is what makes one column serve both directions — a trainer
+    // may enrol a student and a student may ask a trainer, and whoever did not
+    // start it is the one who has to answer.
+    //
+    // The parent_* columns are added now although the consent flow is not built
+    // yet: an empty column costs nothing today, and the same column added later
+    // over live children's records costs a migration.
+    await client.query(`
+      ALTER TABLE trainer_students
+        ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'accepted',
+        ADD COLUMN IF NOT EXISTS initiated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        ADD COLUMN IF NOT EXISTS responded_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS parent_email VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS parent_consent_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS parent_consent_ip VARCHAR(64),
+        ADD COLUMN IF NOT EXISTS parent_consent_version VARCHAR(40);
+      ALTER TABLE trainer_students DROP CONSTRAINT IF EXISTS trainer_students_status_check;
+      ALTER TABLE trainer_students ADD CONSTRAINT trainer_students_status_check
+        CHECK (status IN ('pending', 'awaiting_parent', 'accepted'));
+    `);
+    logger.info('Verified database table: trainer_students (with consent columns)');
     
     // Add account_type column to users table if missing
     await client.query(`
@@ -222,7 +249,17 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    logger.info('Verified database table: user_notifications');
+    // Notifications started out as room invitations only, so room_code was
+    // mandatory. They now also carry a request to become someone's student,
+    // which has no room — hence the drop, and `kind` so the client knows which
+    // buttons to draw. `ref_id` points at the row the notification is about.
+    await client.query(`
+      ALTER TABLE user_notifications ALTER COLUMN room_code DROP NOT NULL;
+      ALTER TABLE user_notifications
+        ADD COLUMN IF NOT EXISTS kind VARCHAR(30) NOT NULL DEFAULT 'room',
+        ADD COLUMN IF NOT EXISTS ref_id INTEGER;
+    `);
+    logger.info('Verified database table: user_notifications (with kind & ref_id)');
 
     // Create scheduled_sessions table
     await client.query(`
