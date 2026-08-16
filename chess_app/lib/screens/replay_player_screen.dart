@@ -88,12 +88,18 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           isLoading = false;
           if (rec.audioUrl != null && rec.audioUrl!.isNotEmpty) {
             isAudioAvailable = true;
-            // Pre-buffering is best effort — an unhandled rejection here would
-            // surface as a crash on a screen that can play perfectly well
-            // without sound.
-            _audioPlayer.setSourceUrl(rec.audioUrl!).catchError((Object e) {
-              debugPrint('[Replay] Zvuk se ne može učitati: $e');
-            });
+            // Skipped for a recording still sitting on this device: that one is
+            // a file path, not something setSourceUrl can fetch. Playback below
+            // handles it; this is only pre-buffering.
+            if (!File(rec.audioUrl!).existsSync()) {
+              // Best effort — an unhandled rejection here would surface as a
+              // crash on a screen that plays perfectly well without sound.
+              _audioPlayer
+                  .setSourceUrl(resolveMediaUrl(rec.audioUrl!))
+                  .catchError((Object e) {
+                debugPrint('[Replay] Zvuk se ne može učitati: $e');
+              });
+            }
           }
           if (rec.timelineEvents.isNotEmpty) {
             maxDurationMs = rec.timelineEvents.last.timestampMs;
@@ -129,7 +135,8 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
     // rather than replaying the lesson silently.
     _playbackTimer?.cancel();
     const intervalMs = 50;
-    _playbackTimer = Timer.periodic(Duration(milliseconds: intervalMs), (timer) {
+    _playbackTimer =
+        Timer.periodic(Duration(milliseconds: intervalMs), (timer) {
       if (!mounted) return;
       final step = (intervalMs * playbackSpeed).toInt();
       final newMs = currentMs + step;
@@ -160,13 +167,15 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
     final url = recording!.audioUrl!;
     try {
       await _audioPlayer.setVolume(1.0);
+      // Three shapes reach this line: an absolute URL from a recording saved
+      // before the server stored paths, a file still on this device awaiting
+      // sync, and the current form — a path to be joined with the backend.
       if (url.startsWith('http://') || url.startsWith('https://')) {
         await _audioPlayer.play(UrlSource(url));
       } else if (File(url).existsSync()) {
         await _audioPlayer.play(DeviceFileSource(url));
       } else {
-        final filename = url.split('/').last.split('\\').last;
-        await _audioPlayer.play(UrlSource('$backendUrl/uploads/$filename'));
+        await _audioPlayer.play(UrlSource(resolveMediaUrl(url)));
       }
       if (positionMs > 0) {
         await _audioPlayer.seek(Duration(milliseconds: positionMs));
@@ -212,7 +221,9 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
 
       if (event.eventType == 'init') {
         activeInit = event;
-      } else if (event.eventType == 'move' || event.eventType == 'fen_change' || event.eventType == 'lesson_loaded') {
+      } else if (event.eventType == 'move' ||
+          event.eventType == 'fen_change' ||
+          event.eventType == 'lesson_loaded') {
         activeFen = event;
       } else if (event.eventType == 'orientation_changed') {
         activeOrientation = event;
@@ -254,11 +265,13 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
       if (moveMs > arrowMs) {
         currentArrows = [];
       } else {
-        currentArrows = rawList.map<ChessArrow>((a) => ChessArrow(
-          from: a['from'] ?? '',
-          to: a['to'] ?? '',
-          colorCode: a['colorCode'] ?? 'G',
-        )).toList();
+        currentArrows = rawList
+            .map<ChessArrow>((a) => ChessArrow(
+                  from: a['from'] ?? '',
+                  to: a['to'] ?? '',
+                  colorCode: a['colorCode'] ?? 'G',
+                ))
+            .toList();
       }
     } else {
       currentArrows = [];
@@ -281,9 +294,11 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
         builder: (context, setDialogState) => AlertDialog(
           title: Row(
             children: const [
-              Icon(Icons.video_settings_rounded, color: Colors.deepPurpleAccent),
+              Icon(Icons.video_settings_rounded,
+                  color: Colors.deepPurpleAccent),
               SizedBox(width: 8),
-              Text('Video Studio - Podešavanje Videa', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('Video Studio - Podešavanje Videa',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
           content: SingleChildScrollView(
@@ -293,61 +308,91 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
               children: [
                 const Text(
                   '1. Stil šahovskih figura:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurpleAccent),
                 ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
                   initialValue: selectedPieceStyle,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'classic', child: Text('Classic (Isto kao u aplikaciji) — Preporučeno')),
-                    DropdownMenuItem(value: 'alpha', child: Text('Alpha / Lichess (Oštre figure)')),
-                    DropdownMenuItem(value: 'staunton', child: Text('Staunton (Tradicionalne)')),
+                    DropdownMenuItem(
+                        value: 'classic',
+                        child: Text(
+                            'Classic (Isto kao u aplikaciji) — Preporučeno')),
+                    DropdownMenuItem(
+                        value: 'alpha',
+                        child: Text('Alpha / Lichess (Oštre figure)')),
+                    DropdownMenuItem(
+                        value: 'staunton',
+                        child: Text('Staunton (Tradicionalne)')),
                   ],
                   onChanged: (val) {
-                    if (val != null) setDialogState(() => selectedPieceStyle = val);
+                    if (val != null) {
+                      setDialogState(() => selectedPieceStyle = val);
+                    }
                   },
                 ),
                 const SizedBox(height: 12),
                 const Text(
                   '2. Tema šahovske table:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurpleAccent),
                 ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
                   initialValue: selectedBoardTheme,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'wood', child: Text('Klasično drvo (Smeđe / Krem)')),
-                    DropdownMenuItem(value: 'green', child: Text('Turnirska (Zelena / Bela)')),
-                    DropdownMenuItem(value: 'blue', child: Text('Moderna (Tamno plava / Siva)')),
+                    DropdownMenuItem(
+                        value: 'wood',
+                        child: Text('Klasično drvo (Smeđe / Krem)')),
+                    DropdownMenuItem(
+                        value: 'green',
+                        child: Text('Turnirska (Zelena / Bela)')),
+                    DropdownMenuItem(
+                        value: 'blue',
+                        child: Text('Moderna (Tamno plava / Siva)')),
                   ],
                   onChanged: (val) {
-                    if (val != null) setDialogState(() => selectedBoardTheme = val);
+                    if (val != null) {
+                      setDialogState(() => selectedBoardTheme = val);
+                    }
                   },
                 ),
                 const SizedBox(height: 12),
                 const Text(
                   '3. Orijentacija table:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurpleAccent),
                 ),
                 const SizedBox(height: 4),
                 RadioGroup<String>(
                   groupValue: selectedPerspective,
-                  onChanged: (val) => setDialogState(() => selectedPerspective = val!),
+                  onChanged: (val) =>
+                      setDialogState(() => selectedPerspective = val!),
                   child: Row(
                     children: [
                       Expanded(
                         child: RadioListTile<String>(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Bela (Trener)', style: TextStyle(fontSize: 11)),
+                          title: const Text('Bela (Trener)',
+                              style: TextStyle(fontSize: 11)),
                           value: 'trainer',
                         ),
                       ),
@@ -355,7 +400,8 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                         child: RadioListTile<String>(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Crna (Učenik)', style: TextStyle(fontSize: 11)),
+                          title: const Text('Crna (Učenik)',
+                              style: TextStyle(fontSize: 11)),
                           value: 'student',
                         ),
                       ),
@@ -365,55 +411,77 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 const Divider(),
                 const Text(
                   '4. Prikaz elemenata na ekranu:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurpleAccent),
                 ),
                 CheckboxListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Prikazi Naslov Časa na vrhu', style: TextStyle(fontSize: 11)),
+                  title: const Text('Prikazi Naslov Časa na vrhu',
+                      style: TextStyle(fontSize: 11)),
                   value: showTitle,
                   onChanged: (v) => setDialogState(() => showTitle = v ?? true),
                 ),
                 CheckboxListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Prikazi Tajmer i Trajanje', style: TextStyle(fontSize: 11)),
+                  title: const Text('Prikazi Tajmer i Trajanje',
+                      style: TextStyle(fontSize: 11)),
                   value: showTimer,
                   onChanged: (v) => setDialogState(() => showTimer = v ?? true),
                 ),
                 CheckboxListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Prikazi Oznake Polja (A-H, 1-8)', style: TextStyle(fontSize: 11)),
+                  title: const Text('Prikazi Oznake Polja (A-H, 1-8)',
+                      style: TextStyle(fontSize: 11)),
                   value: showCoords,
-                  onChanged: (v) => setDialogState(() => showCoords = v ?? true),
+                  onChanged: (v) =>
+                      setDialogState(() => showCoords = v ?? true),
                 ),
                 CheckboxListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Prikazi Tekst Zadnjeg Poteza na dnu', style: TextStyle(fontSize: 11)),
+                  title: const Text('Prikazi Tekst Zadnjeg Poteza na dnu',
+                      style: TextStyle(fontSize: 11)),
                   value: showMoveText,
-                  onChanged: (v) => setDialogState(() => showMoveText = v ?? true),
+                  onChanged: (v) =>
+                      setDialogState(() => showMoveText = v ?? true),
                 ),
                 const Divider(),
                 const Text(
                   '5. Rezolucija i Kvalitet:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurpleAccent),
                 ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
                   initialValue: selectedResolution,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   ),
                   items: const [
-                    DropdownMenuItem(value: '1080p', child: Text('1080p (Full HD 1920x1080) - Ultra oštar')),
-                    DropdownMenuItem(value: '720p', child: Text('720p (HD 1280x720) - Balans (Preporučeno)')),
-                    DropdownMenuItem(value: '480p', child: Text('480p (SD 854x480) - Kompaktan fajl')),
+                    DropdownMenuItem(
+                        value: '1080p',
+                        child: Text('1080p (Full HD 1920x1080) - Ultra oštar')),
+                    DropdownMenuItem(
+                        value: '720p',
+                        child:
+                            Text('720p (HD 1280x720) - Balans (Preporučeno)')),
+                    DropdownMenuItem(
+                        value: '480p',
+                        child: Text('480p (SD 854x480) - Kompaktan fajl')),
                   ],
                   onChanged: (val) {
-                    if (val != null) setDialogState(() => selectedResolution = val);
+                    if (val != null) {
+                      setDialogState(() => selectedResolution = val);
+                    }
                   },
                 ),
               ],
@@ -427,12 +495,15 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             ElevatedButton.icon(
               icon: const Icon(Icons.movie_creation_rounded, size: 16),
               label: const Text('Renderuj Video'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurpleAccent, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurpleAccent,
+                  foregroundColor: Colors.white),
               onPressed: () async {
                 Navigator.pop(ctx);
                 try {
                   final res = await http.post(
-                    Uri.parse('$backendUrl/recordings/${widget.recordingId}/export-mp4'),
+                    Uri.parse(
+                        '$backendUrl/recordings/${widget.recordingId}/export-mp4'),
                     headers: {
                       'Content-Type': 'application/json',
                       'Authorization': 'Bearer ${widget.userSession.token}'
@@ -451,7 +522,11 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                   final resData = jsonDecode(res.body);
                   if (res.statusCode == 200) {
                     final downloadUrl = resData['downloadUrl'];
-                    _showVideoReadyDialog(resData['message'] ?? 'Izvoz završen.', downloadUrl);
+                    _showVideoReadyDialog(
+                        resData['message'] ?? 'Izvoz završen.',
+                        downloadUrl == null
+                            ? null
+                            : resolveMediaUrl(downloadUrl));
                   } else {
                     _showError(resData['error'] ?? 'Izvoz u MP4 nije uspeo.');
                   }
@@ -484,11 +559,15 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             Text(message, style: const TextStyle(fontSize: 13)),
             const SizedBox(height: 12),
             if (downloadUrl != null) ...[
-              const Text('Direktan link za preuzimanje:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+              const Text('Direktan link za preuzimanje:',
+                  style: TextStyle(fontSize: 11, color: Colors.grey)),
               const SizedBox(height: 4),
               SelectableText(
                 downloadUrl,
-                style: const TextStyle(fontSize: 11, color: Colors.tealAccent, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.tealAccent,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ],
@@ -498,9 +577,11 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             ElevatedButton.icon(
               icon: const Icon(Icons.download),
               label: const Text('Preuzmi MP4 Video'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal, foregroundColor: Colors.white),
               onPressed: () {
-                launchUrl(Uri.parse(downloadUrl), mode: LaunchMode.externalApplication);
+                launchUrl(Uri.parse(downloadUrl),
+                    mode: LaunchMode.externalApplication);
               },
             ),
           TextButton(
@@ -542,8 +623,11 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(rec.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Text('Predavač: ${rec.hostName}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            Text(rec.title,
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('Predavač: ${rec.hostName}',
+                style: const TextStyle(fontSize: 11, color: Colors.grey)),
           ],
         ),
         actions: [
@@ -558,8 +642,11 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           if (rec.videoUrl != null)
             IconButton(
               tooltip: 'Preuzmi sačuvani MP4 Video',
-              icon: const Icon(Icons.download_for_offline, color: Colors.tealAccent),
-              onPressed: () => _showVideoReadyDialog('Sačuvani MP4 video za ovaj čas je spreman za preuzimanje:', rec.videoUrl),
+              icon: const Icon(Icons.download_for_offline,
+                  color: Colors.tealAccent),
+              onPressed: () => _showVideoReadyDialog(
+                  'Sačuvani MP4 video za ovaj čas je spreman za preuzimanje:',
+                  resolveMediaUrl(rec.videoUrl!)),
             ),
           IconButton(
             tooltip: 'Izvezi u MP4 Video',
@@ -569,7 +656,9 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           BoardFlipButton(
             onPressed: () {
               setState(() {
-                boardOrientation = boardOrientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
+                boardOrientation = boardOrientation == PlayerColor.white
+                    ? PlayerColor.black
+                    : PlayerColor.white;
               });
             },
           ),
@@ -619,7 +708,9 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-                boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
+                boxShadow: const [
+                  BoxShadow(blurRadius: 4, color: Colors.black26)
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -634,11 +725,14 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        isAudioAvailable ? 'Audio zapis usklađen' : 'Sinhronizovana reprodukcija poteza i strelica',
+                        isAudioAvailable
+                            ? 'Audio zapis usklađen'
+                            : 'Sinhronizovana reprodukcija poteza i strelica',
                         style: TextStyle(
                           fontSize: 11,
                           color: isPlaying ? Colors.tealAccent : Colors.grey,
-                          fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
+                          fontWeight:
+                              isPlaying ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -648,16 +742,26 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                   // Scrubber Timeline
                   Row(
                     children: [
-                      Text(_formatDuration(currentMs), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text(_formatDuration(currentMs),
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.bold)),
                       Expanded(
                         child: Slider(
-                          value: currentMs.toDouble().clamp(0.0, maxDurationMs > 0 ? maxDurationMs.toDouble() : 1.0),
+                          value: currentMs.toDouble().clamp(
+                              0.0,
+                              maxDurationMs > 0
+                                  ? maxDurationMs.toDouble()
+                                  : 1.0),
                           min: 0.0,
-                          max: maxDurationMs > 0 ? maxDurationMs.toDouble() : 1.0,
+                          max: maxDurationMs > 0
+                              ? maxDurationMs.toDouble()
+                              : 1.0,
                           onChanged: (val) => _seekTo(val.toInt()),
                         ),
                       ),
-                      Text(_formatDuration(maxDurationMs), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text(_formatDuration(maxDurationMs),
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey)),
                     ],
                   ),
 
@@ -676,7 +780,8 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                         mini: true,
                         backgroundColor: Colors.teal,
                         onPressed: _togglePlayPause,
-                        child: Icon(isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white),
+                        child: Icon(isPlaying ? Icons.pause : Icons.play_arrow,
+                            color: Colors.white),
                       ),
 
                       // Speed Chips
@@ -684,10 +789,22 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                         value: playbackSpeed,
                         underline: const SizedBox(),
                         items: const [
-                          DropdownMenuItem(value: 1.0, child: Text('1.0x', style: TextStyle(fontSize: 12))),
-                          DropdownMenuItem(value: 1.25, child: Text('1.25x', style: TextStyle(fontSize: 12))),
-                          DropdownMenuItem(value: 1.5, child: Text('1.5x', style: TextStyle(fontSize: 12))),
-                          DropdownMenuItem(value: 2.0, child: Text('2.0x', style: TextStyle(fontSize: 12))),
+                          DropdownMenuItem(
+                              value: 1.0,
+                              child:
+                                  Text('1.0x', style: TextStyle(fontSize: 12))),
+                          DropdownMenuItem(
+                              value: 1.25,
+                              child: Text('1.25x',
+                                  style: TextStyle(fontSize: 12))),
+                          DropdownMenuItem(
+                              value: 1.5,
+                              child:
+                                  Text('1.5x', style: TextStyle(fontSize: 12))),
+                          DropdownMenuItem(
+                              value: 2.0,
+                              child:
+                                  Text('2.0x', style: TextStyle(fontSize: 12))),
                         ],
                         onChanged: (val) {
                           if (val != null) {

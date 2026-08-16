@@ -27,6 +27,15 @@ const { cleanupOldExports } = require('./services/retentionService');
 const app = express();
 const server = http.createServer(app);
 
+// One proxy hop: nginx on the same machine, and nothing in front of it.
+//
+// Without this every request behind nginx looks like it came from 127.0.0.1,
+// which quietly defeats the rate limiters on login and the AI routes — they
+// would count all users as one client and lock everyone out together. The value
+// is 1 rather than `true` on purpose: trusting the whole chain would let a
+// client set its own X-Forwarded-For and pick which bucket it lands in.
+app.set('trust proxy', 1);
+
 // Browser origins permitted to call the API, as a comma-separated ALLOWED_ORIGINS list.
 // Native Android/Windows clients send no Origin header and are always allowed.
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')

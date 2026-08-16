@@ -567,16 +567,61 @@ Odlučeno i spremno za pisanje: tačke 1, 2 i 4 — pristanak, smer, i posmatran
 postupak dovoljan po ZZPL-u. **Kolone se ipak dodaju odmah**, jer prazna kolona
 danas ne košta ništa, a ista kolona nad živim podacima kasnije košta migraciju.
 
+## Snimci više ne nose adresu servera u sebi — ✅ 16.8.2026
+
+Nađeno pri pripremi prebacivanja, i zaustavilo bi ga na sam dan.
+
+`recordings.js` je upisivao **apsolutnu adresu** u bazu:
+`${req.protocol}://${req.get('host')}/uploads/...`. Posledice su bile dve, i
+druga je bila gora od prve:
+
+- svih **16 postojećih snimaka** nosi `http://192.168.0.19:3000/...`, dakle kućnu
+  mrežu — prekopiranje fajlova to ne bi rešilo;
+- `trust proxy` nije bio podešen, pa bi iza nginx-a `req.protocol` vratio `http`,
+  i svaki **nov** snimak dobio bi `http://api.chesstrainers.app/...` — nešifrovanu
+  adresu na domenu koji je na HSTS listi.
+
+Sad se čuva **putanja** (`/uploads/ime.aac`), a klijent je spaja sa svojim
+`backendUrl`-om (`resolveMediaUrl` u `constants.dart`). Promena servera, domena
+ili prelazak na HTTPS od sada ne košta ništa.
+
+Stari redovi se **namerno ne prepisuju**: `resolveMediaUrl` propušta apsolutne
+adrese nedirnute, pa oni rade dok je backend ta ista mašina, a nestaće zajedno sa
+snimcima koje korisnik ionako planira da obriše pri prebacivanju. Fajlovi se iz
+istog razloga ne prenose na server.
+
+Uz to je podešen **`app.set('trust proxy', 1)`** — bez toga bi iza nginx-a svi
+zahtevi izgledali kao da dolaze sa `127.0.0.1`, pa bi ograničenje broja pokušaja
+prijave brojalo **sve korisnike kao jednog** i zaključavalo svakoga odjednom.
+Vrednost je `1`, a ne `true`: poverenje celom lancu dozvolilo bi klijentu da sam
+postavi `X-Forwarded-For` i bira u koju korpu pada.
+
+`_startAudioFrom` u `replay_player_screen.dart` sad razlikuje **tri** oblika:
+apsolutnu adresu iz starog reda, fajl koji još stoji na uređaju pre
+sinhronizacije, i putanju. Srednji slučaj je lako previdеti — zbog njega se
+snimak koji nije stigao na server pušta sa diska.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
 politika brisanja fajlova, uvoz partija, MP4 izvoz) je urađeno i provereno
 uživo. Ostaju:
 
-- **Prebacivanje na server** — sve je spremno, čeka se samo odluka. Dve stvari
-  idu zajedno: `systemctl enable --now chess-backend` i `backendUrl` u
+- **Prvo: rad na aplikaciji.** Korisnik je 16.8.2026. rekao da ima još izmena u
+  samoj aplikaciji, pa je **prebacivanje namerno odloženo** — ono je jedina
+  stavka koja usporava razvoj, jer posle njega svaka izmena backenda traži
+  push, pull i restart umesto da je `nodemon` sam pokupi. Rad na Flutter strani
+  se ne usporava, ali koristi od prebacivanja nema dok aplikaciju koristi samo
+  vlasnik kod kuće.
+- **Prebacivanje na server** kad to bude gotovo — sve je spremno i provereno.
+  Dve stvari idu zajedno: `systemctl enable --now chess-backend` i `backendUrl` u
   [constants.dart](../chess_app/lib/constants.dart) sa LAN adrese na
   `https://api.chesstrainers.app`. Jedno bez drugog razdvaja snimke časova.
+  Kad dođe vreme, ne mora biti sve-ili-ništa: debug build sme da ostane na
+  lokalnom backendu, a probni da se pravi sa
+  `--dart-define=BACKEND_URL=https://api.chesstrainers.app`.
+- **Proba pristanka uživo** — stavka 0 u [TODO-provera.md](TODO-provera.md), i
+  raskid onog uzajamnog para koji je prešao kao `accepted`.
 - **Sajt** na korenu domena — sadržaja još nema, pa ni sertifikata za `@` i
   `www`. Vidi korak 3a u [TODO-objavljivanje.md](TODO-objavljivanje.md).
 - **Faza 2 unifikacije — `MoveCursor`** (faza 1 proverena uživo 15.8.2026).

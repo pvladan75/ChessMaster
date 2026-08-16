@@ -29,6 +29,16 @@ kvačica.
 > je i **uzajaman par** koji je i bio bag (dvoje koji su dodali jedan drugog).
 > Ispravka sprečava nove takve, ali taj par treba ručno raskinuti iz aplikacije.
 
+## 0b. Reprodukcija snimaka posle prelaska na relativne putanje — 16.8.2026
+
+**Kako:** otvori **stari** snimak (napravljen pre ove izmene) — zvuk mora da radi
+kao i pre, jer se apsolutna adresa propušta nedirnuta. Pa **snimi nov čas** i
+pusti ga: taj se u bazi čuva kao `/uploads/ime.aac` i klijent ga sastavlja.
+
+Proveri i **MP4 izvoz** — link za preuzimanje je isto postao relativan, a nosi
+potpisan token u upitu. Ako token nestane pri sastavljanju, preuzimanje vraća 401
+koji izgleda kao da fajl ne postoji.
+
 ## 1. Izveštaj za roditelja
 
 **Kako:** Prijatelji → učenik → ikona 📄 u zaglavlju → izaberi period, napiši

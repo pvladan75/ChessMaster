@@ -64,18 +64,26 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
     let finalAudioUrl = req.body.audioUrl || null;
     let savedAudioPath = null;
 
+    // Stored as a path, never as a full URL.
+    //
+    // This used to be `${req.protocol}://${req.get('host')}/uploads/...`, which
+    // writes whichever host answered into the database for good. Every one of
+    // the recordings saved that way points at a LAN address, and behind nginx
+    // the protocol would come out as http on an HTTPS-only domain. A path
+    // survives moving the server, changing the domain, and TLS; the client
+    // joins it with whatever backend it is talking to.
     if (req.file) {
       savedAudioPath = req.file.path;
-      finalAudioUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-      logger.info(`[RECORDING] Multipart audio saved: ${req.file.path}, URL: ${finalAudioUrl}`);
+      finalAudioUrl = `/uploads/${req.file.filename}`;
+      logger.info(`[RECORDING] Multipart audio saved: ${req.file.path}, path: ${finalAudioUrl}`);
     } else if (req.body.audioBase64 && req.body.audioBase64.length > 0) {
       const audioFileName = `audio_${Date.now()}_${Math.floor(Math.random()*10000)}.aac`;
       const audioPath = path.join(__dirname, '..', 'uploads', audioFileName);
       const buffer = Buffer.from(req.body.audioBase64, 'base64');
       fs.writeFileSync(audioPath, buffer);
       savedAudioPath = audioPath;
-      finalAudioUrl = `${req.protocol}://${req.get('host')}/uploads/${audioFileName}`;
-      logger.info(`[RECORDING] Base64 audio saved to ${audioPath}, URL: ${finalAudioUrl}`);
+      finalAudioUrl = `/uploads/${audioFileName}`;
+      logger.info(`[RECORDING] Base64 audio saved to ${audioPath}, path: ${finalAudioUrl}`);
     }
 
     // The microphone ran through every pause while the board timeline did not,
@@ -214,14 +222,13 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
       outputPath: exportPath
     });
 
-    const host = req.get('host');
-    const protocol = req.protocol;
-    // The client hands this URL to the system browser, which cannot send an
+    // The client hands this to the system browser, which cannot send an
     // Authorization header — so the grant travels as a short-lived token bound
-    // to this one file.
+    // to this one file. Stored as a path for the same reason as the audio: the
+    // host that rendered the video must not be baked into the row.
     const downloadToken = signDownloadToken(req.user.id, filename);
     const downloadUrl =
-      `${protocol}://${host}/recordings/export-download/${encodeURIComponent(filename)}` +
+      `/recordings/export-download/${encodeURIComponent(filename)}` +
       `?token=${encodeURIComponent(downloadToken)}`;
 
     await pool.query('UPDATE session_recordings SET video_url = $1 WHERE id = $2', [downloadUrl, recId]);
