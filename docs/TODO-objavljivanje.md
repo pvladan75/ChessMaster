@@ -246,18 +246,16 @@ Redosled (odrađeno):
       sadrži i privatno ime — nije bilo sigurno unapred, jer se sertifikati često
       izdaju samo za javno ime. Vidi `buildSslConfig` u `db.js` i
       `test/db_ssl_config.test.js`.
-- [ ] **DNS, čim domen bude registrovan.** Sve troje na rezervisani IP:
+- [x] **DNS — ✅ postavljen 16.8.2026.** Sva tri zapisa na rezervisani IP
+      (`@`, `www`, `api`). Zatečeni Namecheap parking zapisi obrisani, jer bi se
+      sudarali. `chesstrainers.net` je URL Redirect (301) na `.app`.
+- [x] **Privremeno `sslip.io` ime zamenjeno — ✅ 16.8.2026.** Backend je sada na
+      **`https://api.chesstrainers.app`**, sertifikat važi do 14.11.2026. i
+      obnavlja se sam. Provereno spolja: `HTTP 200`, sertifikat prolazi proveru,
+      `http` se preusmerava.
 
-      chesstrainers.app        A   209.38.55.151    (sajt)
-      www.chesstrainers.app    A   209.38.55.151
-      api.chesstrainers.app    A   209.38.55.151    (backend)
-
-      Backend ide na poddomen, sajt na koren — ista mašina, isti nginx.
-- [ ] **Zameniti privremeno ime.** Sad je `209-38-55-151.sslip.io`, jer Let's
-      Encrypt ne izdaje sertifikat za golu IP adresu. Prelazak je jedno
-      pokretanje, skripta sama traži nov sertifikat i prepodesi nginx:
-
-      HOST=api.chesstrainers.app LE_EMAIL=... bash /tmp/app-setup.sh
+      Stari sslip.io sertifikat je **obrisan** (`certbot delete`) — nginx ga više
+      ne opslužuje, pa bi mu obnova pucala i slala izveštaje o grešci na mejl.
 - [ ] **Prebacivanje:** `systemctl enable --now chess-backend`, pa `backendUrl` u
       aplikaciji sa LAN adrese na `https://api.chesstrainers.app`. Jedan smer u
       jednom trenutku.
