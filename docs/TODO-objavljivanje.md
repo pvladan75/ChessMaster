@@ -70,10 +70,23 @@ desktop verzija uopšte podeli — nju Play ne raznosi.
 
 **Odluke koje treba doneti pre pisanja ijedne stranice:**
 
-- [ ] **Domen.** Isti onaj koji čeka backend. Uobičajena podela: sajt na korenu
-      (`primer.rs`), API na poddomenu (`api.primer.rs`). Jedan sertifikat po
-      imenu, oba na istoj mašini. Ovo je još jedan razlog da se `sslip.io` ne
-      zadrži — na njemu sajt ne izgleda kao nešto čemu roditelj poverava dete.
+- [x] **Domen — odlučeno 16.8.2026: `chesstrainers.app`, uz `chesstrainers.net`
+      kao trajno preusmerenje (301).** Ime je krovno namerno: sve tri aplikacije
+      *jesu* trenažeri (Brain Trainer, Blindfold Trainer, i ova platforma), pa
+      četvrta ništa ne ruši. `.com` je registrovan i parkiran kod GoDaddy-ja, na
+      prodaju — **svesno se ne kupuje**; novac je prečiji za sertifikat za
+      potpisivanje Windows verzije. Posledica koju treba prihvatiti: ko ukuca
+      `.com` završi na parkiranoj stranici sa reklamama, pa se adresa uvek deli
+      kao link.
+
+      Dve stvari koje `.app` nosi sa sobom:
+
+      - Ceo `.app` je na **HSTS preload** listi, pa pregledač odbija običan HTTP —
+        ne upozorava nego neće da otvori. Dok certbot ne izda sertifikat, sajt ne
+        izgleda „nezaštićeno" nego potpuno pokvareno. Bitno za redosled pri
+        postavljanju.
+      - Registrovati uz **zaštitu podataka u WHOIS-u**. Vlasnik je fizičko lice;
+        bez toga kućna adresa i telefon idu u javnu bazu.
 - [ ] **Gde stoji.** Najjeftinije i najprostije: statičke stranice sa istog
       droplet-a, kroz nginx koji već radi i certbot koji već obnavlja
       sertifikate. Nema novog troška ni novog naloga. Alternativa je GitHub
@@ -233,11 +246,21 @@ Redosled (odrađeno):
       sadrži i privatno ime — nije bilo sigurno unapred, jer se sertifikati često
       izdaju samo za javno ime. Vidi `buildSslConfig` u `db.js` i
       `test/db_ssl_config.test.js`.
-- [ ] **Domen** — trenutno je ime privremeno: `209-38-55-151.sslip.io`, jer
-      Let's Encrypt ne izdaje sertifikat za golu IP adresu. Kad domen bude
-      izabran, ponovo pokrenuti `app-setup.sh` sa novim `HOST`.
+- [ ] **DNS, čim domen bude registrovan.** Sve troje na rezervisani IP:
+
+      chesstrainers.app        A   209.38.55.151    (sajt)
+      www.chesstrainers.app    A   209.38.55.151
+      api.chesstrainers.app    A   209.38.55.151    (backend)
+
+      Backend ide na poddomen, sajt na koren — ista mašina, isti nginx.
+- [ ] **Zameniti privremeno ime.** Sad je `209-38-55-151.sslip.io`, jer Let's
+      Encrypt ne izdaje sertifikat za golu IP adresu. Prelazak je jedno
+      pokretanje, skripta sama traži nov sertifikat i prepodesi nginx:
+
+      HOST=api.chesstrainers.app LE_EMAIL=... bash /tmp/app-setup.sh
 - [ ] **Prebacivanje:** `systemctl enable --now chess-backend`, pa `backendUrl` u
-      aplikaciji sa LAN adrese na pravi host. Jedan smer u jednom trenutku.
+      aplikaciji sa LAN adrese na `https://api.chesstrainers.app`. Jedan smer u
+      jednom trenutku.
 - [ ] **Veća baza pre punog Lichess seta.** 50k zagonetki je zanemarljivo, ali
       punih 6,1M sa GIN indeksom po temama neće udobno stati u 1 GB RAM-a.
 

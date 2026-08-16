@@ -463,12 +463,16 @@ Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
 politika brisanja fajlova, uvoz partija, MP4 izvoz) je urađeno i provereno
 uživo. Ostaju:
 
-- **Domen** — jedina odluka koja blokira ostatak raspoređivanja. Bez pravog imena
-  ostaje `sslip.io`, a `backendUrl` se menja opet kad domen dođe. Sve tri stvari
-  traže isto ime: sertifikat, `backendUrl` u aplikaciji, RTDN adresa za Play.
-- **Prebacivanje na server** kad domen bude rešen: `systemctl enable --now
-  chess-backend` i `backendUrl` u [constants.dart](../chess_app/lib/constants.dart)
-  sa LAN adrese na pravi host.
+- **Registrovati domen** — odlučeno 16.8.2026: **`chesstrainers.app`** uz
+  `chesstrainers.net` kao preusmerenje. Ime je krovno jer nosi **tri
+  aplikacije**: Brain Trainer (objavljen), Blindfold Trainer (pred objavom) i
+  ovu platformu. `.com` je parkiran i na prodaju — svesno se ne kupuje. Time
+  padaju odjednom četiri stvari koje su čekale isto ime: sertifikat,
+  `backendUrl`, RTDN adresa za Play, i javni URL politike privatnosti.
+  Podešavanje DNS-a i koraci su u [TODO-objavljivanje.md](TODO-objavljivanje.md).
+- **Prebacivanje na server** posle toga: `systemctl enable --now chess-backend` i
+  `backendUrl` u [constants.dart](../chess_app/lib/constants.dart) sa LAN adrese
+  na `https://api.chesstrainers.app`.
 - **Faza 2 unifikacije — `MoveCursor`** (faza 1 proverena uživo 15.8.2026).
 - Provere uživo iz `TODO-provera.md`: izveštaj za roditelja, zadaci tipa
   lekcija, ponavljanje u razmacima, merenje troška (stavka 10 — endpoint sad
