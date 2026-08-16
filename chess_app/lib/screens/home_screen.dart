@@ -60,11 +60,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _tabHistory.add(idx);
     });
   }
+
   final _codeController = TextEditingController();
   bool _isLoading = false;
 
   late io.Socket _socket;
   List<dynamic> _students = [];
+  List<dynamic> _pendingRequests = [];
   bool _isLoadingStudents = false;
   final TextEditingController _studentEmailController = TextEditingController();
 
@@ -111,7 +113,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (intent != null) {
       // Deferred to after the first frame: the actions below (pushing a
       // route, opening a dialog) need a settled BuildContext.
-      WidgetsBinding.instance.addPostFrameCallback((_) => _resumePendingIntent(intent));
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _resumePendingIntent(intent));
     }
   }
 
@@ -158,12 +161,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _initSocket() {
     // The server derives identity from this token; guests connect without one.
-    _socket = io.io(backendUrl, io.OptionBuilder()
-      .setTransports(['websocket'])
-      .enableForceNewConnection()
-      .disableAutoConnect()
-      .setAuth({'token': widget.session.token})
-      .build());
+    _socket = io.io(
+        backendUrl,
+        io.OptionBuilder()
+            .setTransports(['websocket'])
+            .enableForceNewConnection()
+            .disableAutoConnect()
+            .setAuth({'token': widget.session.token})
+            .build());
 
     _socket.connect();
 
@@ -186,7 +191,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _socket.on('session_invite_received', (data) {
       if (!mounted) return;
       _fetchNotifications();
-      final senderName = data['senderName'] ?? data['trainerName'] ?? 'Prijatelj';
+      final senderName =
+          data['senderName'] ?? data['trainerName'] ?? 'Prijatelj';
       final roomCode = data['roomCode'] ?? '';
       _showInviteDialog(roomCode, senderName);
     });
@@ -194,7 +200,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _socket.on('lesson_invite', (data) {
       if (!mounted) return;
       _fetchNotifications();
-      final senderName = data['trainerName'] ?? data['senderName'] ?? 'Prijatelj';
+      final senderName =
+          data['trainerName'] ?? data['senderName'] ?? 'Prijatelj';
       final roomCode = data['roomCode'] ?? '';
       _showInviteDialog(roomCode, senderName);
     });
@@ -210,7 +217,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _joinInviteRoom(String roomCode) async {
-    if (!_checkAuthRequired(PendingSessionIntent.joinInviteRoom(roomCode))) return;
+    if (!_checkAuthRequired(PendingSessionIntent.joinInviteRoom(roomCode))) {
+      return;
+    }
     if (!_checkNoActiveSession(targetRoomCode: roomCode)) return;
     _socket.disconnect();
     await context.push(AppRoutes.roomPath(roomCode, role: 'ucenik'));
@@ -237,6 +246,54 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) AppFeedback.error(context, 'Greška pri učitavanju učenika.');
     } finally {
       if (mounted) setState(() => _isLoadingStudents = false);
+    }
+    await _fetchPendingRequests();
+  }
+
+  /// Requests waiting for this user to answer, in either direction.
+  ///
+  /// Fetched alongside the student list rather than on its own timer: the two
+  /// are read on the same screen, and a request answered elsewhere should not
+  /// leave a stale card sitting here.
+  Future<void> _fetchPendingRequests() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$backendUrl/relationships/pending'),
+        headers: {'Authorization': 'Bearer ${widget.session.token}'},
+      );
+      if (response.statusCode == 200 && mounted) {
+        setState(() {
+          _pendingRequests = jsonDecode(response.body)['requests'] ?? [];
+        });
+      }
+    } catch (e) {
+      // Silent on purpose: an empty request list is the normal case, and a
+      // failure here must not bury the student list behind an error banner.
+      print("Error fetching pending requests: $e");
+    }
+  }
+
+  Future<void> _respondToRequest(int requestId, {required bool accept}) async {
+    try {
+      final response = await http.post(
+        Uri.parse(
+            '$backendUrl/relationships/$requestId/${accept ? 'accept' : 'decline'}'),
+        headers: {'Authorization': 'Bearer ${widget.session.token}'},
+      );
+      if (!mounted) return;
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? 'Sačuvano.')),
+        );
+        _fetchStudents();
+      } else {
+        AppFeedback.error(context, data['error'] ?? 'Greška pri odgovoru.');
+      }
+    } catch (e) {
+      print("Error responding to request: $e");
+      if (mounted) AppFeedback.error(context, 'Greška pri odgovoru.');
     }
   }
 
@@ -285,7 +342,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _fetchStudents();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['error'] ?? 'Greška pri dodavanju učenika.')),
+          SnackBar(
+              content: Text(data['error'] ?? 'Greška pri dodavanju učenika.')),
         );
       }
     } catch (e) {
@@ -308,7 +366,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print("Error fetching user stats: $e");
-      if (mounted) AppFeedback.error(context, 'Greška pri učitavanju statistike.');
+      if (mounted) {
+        AppFeedback.error(context, 'Greška pri učitavanju statistike.');
+      }
     } finally {
       setState(() => _isLoadingStats = false);
     }
@@ -346,7 +406,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print("Error fetching friends: $e");
-      if (mounted) AppFeedback.error(context, 'Greška pri učitavanju prijatelja.');
+      if (mounted) {
+        AppFeedback.error(context, 'Greška pri učitavanju prijatelja.');
+      }
     } finally {
       if (mounted) setState(() => _isLoadingFriends = false);
     }
@@ -402,7 +464,8 @@ class _HomeScreenState extends State<HomeScreen> {
         headers: {'Authorization': 'Bearer ${widget.session.token}'},
       );
       if (res.statusCode == 200) {
-        setState(() => _notifications = jsonDecode(res.body)['notifications'] ?? []);
+        setState(
+            () => _notifications = jsonDecode(res.body)['notifications'] ?? []);
       }
     } catch (e) {
       print("Error fetching notifications: $e");
@@ -420,7 +483,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _fetchNotifications();
     } catch (e) {
       print("Error marking notification read: $e");
-      if (mounted) AppFeedback.error(context, 'Greška pri ažuriranju obaveštenja.');
+      if (mounted) {
+        AppFeedback.error(context, 'Greška pri ažuriranju obaveštenja.');
+      }
     }
   }
 
@@ -436,7 +501,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showCreateRoomWithFriendsDialog() {
-    if (!_checkAuthRequired(const PendingSessionIntent.showCreateRoomDialog())) return;
+    if (!_checkAuthRequired(
+        const PendingSessionIntent.showCreateRoomDialog())) {
+      return;
+    }
     if (!_checkNoActiveSession()) return;
     final availableFriends = _students.isNotEmpty ? _students : _friends;
     dialogs.showCreateRoomWithFriendsDialog(
@@ -493,7 +561,8 @@ class _HomeScreenState extends State<HomeScreen> {
         headers: {'Authorization': 'Bearer ${widget.session.token}'},
       );
       if (res.statusCode == 200) {
-        setState(() => _scheduledSessions = jsonDecode(res.body)['sessions'] ?? []);
+        setState(
+            () => _scheduledSessions = jsonDecode(res.body)['sessions'] ?? []);
       }
     } catch (e) {
       print("Error fetching scheduled sessions: $e");
@@ -511,7 +580,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _scheduleSession(String title, String desc, DateTime scheduledAt, List<int> friendIds) async {
+  Future<void> _scheduleSession(String title, String desc, DateTime scheduledAt,
+      List<int> friendIds) async {
     try {
       final res = await http.post(
         Uri.parse('$backendUrl/sessions/schedule'),
@@ -530,7 +600,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final data = jsonDecode(res.body);
       if (res.statusCode == 201) {
         _fetchScheduledSessions();
-        _showScheduledSuccessDialog(data['message'] ?? 'Sesija zakazana!', data['calendarUrl'], data['session']['room_code']);
+        _showScheduledSuccessDialog(data['message'] ?? 'Sesija zakazana!',
+            data['calendarUrl'], data['session']['room_code']);
       } else {
         _showError(data['error'] ?? 'Greška pri zakazivanju.');
       }
@@ -539,8 +610,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showScheduledSuccessDialog(String message, String? calendarUrl, String roomCode) {
-    dialogs.showScheduledSuccessDialog(context, message: message, calendarUrl: calendarUrl, roomCode: roomCode);
+  void _showScheduledSuccessDialog(
+      String message, String? calendarUrl, String roomCode) {
+    dialogs.showScheduledSuccessDialog(context,
+        message: message, calendarUrl: calendarUrl, roomCode: roomCode);
   }
 
   void _openStudentProgress(Map<String, dynamic> student) {
@@ -579,7 +652,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchDueReviews() async {
     if (widget.session.isGuest) return;
-    final stats = await ReviewApiService(authToken: widget.session.token).fetchStats();
+    final stats =
+        await ReviewApiService(authToken: widget.session.token).fetchStats();
     if (mounted) setState(() => _dueReviews = stats.due);
   }
 
@@ -594,7 +668,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _inviteStudent(int studentId) async {
-    if (!_checkAuthRequired(PendingSessionIntent.inviteStudent(studentId))) return;
+    if (!_checkAuthRequired(PendingSessionIntent.inviteStudent(studentId))) {
+      return;
+    }
     if (!_checkNoActiveSession()) return;
     setState(() => _isLoading = true);
     try {
@@ -607,7 +683,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        final String createdRoomCode = data['room_code'] ?? data['room']?['room_code'] ?? '';
+        final String createdRoomCode =
+            data['room_code'] ?? data['room']?['room_code'] ?? '';
 
         _socket.emit('send_lesson_invite', {
           'studentId': studentId,
@@ -615,7 +692,9 @@ class _HomeScreenState extends State<HomeScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Pozivnica poslata za sobu $createdRoomCode! Povezivanje...')),
+          SnackBar(
+              content: Text(
+                  'Pozivnica poslata za sobu $createdRoomCode! Povezivanje...')),
         );
 
         _socket.disconnect();
@@ -626,7 +705,8 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         final errorData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorData['error'] ?? 'Greška pri kreiranju sobe')),
+          SnackBar(
+              content: Text(errorData['error'] ?? 'Greška pri kreiranju sobe')),
         );
       }
     } catch (e) {
@@ -705,7 +785,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _navigateToGame(String roomCode, [String? sessionRole]) {
     // The role travels in the URL; the room route rebuilds the session with it.
-    final effectiveRole = sessionRole ?? (roomCode == 'STUDIO' ? 'host' : 'korisnik');
+    final effectiveRole =
+        sessionRole ?? (roomCode == 'STUDIO' ? 'host' : 'korisnik');
     context.push(AppRoutes.roomPath(roomCode, role: effectiveRole));
   }
 
@@ -742,13 +823,15 @@ class _HomeScreenState extends State<HomeScreen> {
   /// — rejoining the same room (e.g. resuming) is always allowed.
   bool _checkNoActiveSession({String? targetRoomCode}) {
     final gs = GameSessionService.instance;
-    if (!gs.hasActiveSession || (targetRoomCode != null && gs.isSameSession(targetRoomCode))) {
+    if (!gs.hasActiveSession ||
+        (targetRoomCode != null && gs.isSameSession(targetRoomCode))) {
       return true;
     }
     dialogs.showActiveSessionBlockedDialog(
       context,
       roomCode: gs.roomCode!,
-      onGoToSession: () => context.push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
+      onGoToSession: () =>
+          context.push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
     );
     return false;
   }
@@ -798,6 +881,9 @@ class _HomeScreenState extends State<HomeScreen> {
             studentEmailController: _studentEmailController,
             isLoadingStudents: _isLoadingStudents,
             students: _students,
+            pendingRequests: _pendingRequests,
+            onAcceptRequest: (id) => _respondToRequest(id, accept: true),
+            onDeclineRequest: (id) => _respondToRequest(id, accept: false),
             onAddStudent: _addStudent,
             onDeleteStudent: _deleteStudent,
             onOpenProgress: _openStudentProgress,
@@ -807,7 +893,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
 
-    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final bool isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
     return PopScope(
       canPop: _tabHistory.length <= 1,
@@ -819,78 +906,111 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       },
       child: Scaffold(
-      appBar: isLandscape
-          ? null
-          : AppBar(
-              title: const Text('Chess Master'),
-              actions: [
-                if (widget.session.isGuest)
-                  TextButton.icon(
-                    onPressed: () {
-                      context.push(AppRoutes.login);
-                    },
-                    icon: const Icon(Icons.login, color: Colors.white),
-                    label: const Text('Prijavi Se', style: TextStyle(color: Colors.white)),
+        appBar: isLandscape
+            ? null
+            : AppBar(
+                title: const Text('Chess Master'),
+                actions: [
+                  if (widget.session.isGuest)
+                    TextButton.icon(
+                      onPressed: () {
+                        context.push(AppRoutes.login);
+                      },
+                      icon: const Icon(Icons.login, color: Colors.white),
+                      label: const Text('Prijavi Se',
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                  IconButton(
+                    tooltip: 'Notifikacije i Pozivnice',
+                    icon: Badge(
+                      isLabelVisible: _notifications.isNotEmpty,
+                      label: Text('${_notifications.length}'),
+                      child: const Icon(Icons.notifications,
+                          color: Colors.amberAccent),
+                    ),
+                    onPressed: _showNotificationsDialog,
                   ),
-                IconButton(
-                  tooltip: 'Notifikacije i Pozivnice',
-                  icon: Badge(
-                    isLabelVisible: _notifications.isNotEmpty,
-                    label: Text('${_notifications.length}'),
-                    child: const Icon(Icons.notifications, color: Colors.amberAccent),
+                ],
+              ),
+        body: Column(
+          children: [
+            _buildActiveSessionBanner(),
+            Expanded(
+              child: Row(
+                children: [
+                  // The rail stays visible for every tab in landscape. AI Studio's
+                  // landscape board is sized from available *height*, so the rail's
+                  // width costs it nothing — and hiding it used to leave that tab with
+                  // no AppBar, no bottom bar and no rail, i.e. no way out at all.
+                  if (isWide || isLandscape)
+                    NavigationRail(
+                      selectedIndex: _selectedIndex,
+                      onDestinationSelected: _selectTab,
+                      labelType: NavigationRailLabelType.none,
+                      destinations: const [
+                        NavigationRailDestination(
+                            icon: Icon(Icons.dashboard_outlined),
+                            selectedIcon: Icon(Icons.dashboard),
+                            label: Text('Početna')),
+                        NavigationRailDestination(
+                            icon: Icon(Icons.psychology_outlined),
+                            selectedIcon: Icon(Icons.psychology),
+                            label: Text('Trening')),
+                        NavigationRailDestination(
+                            icon: Icon(Icons.library_books_outlined),
+                            selectedIcon: Icon(Icons.library_books),
+                            label: Text('Biblioteka')),
+                        NavigationRailDestination(
+                            icon: Icon(Icons.people_outline),
+                            selectedIcon: Icon(Icons.people),
+                            label: Text('Prijatelji')),
+                        NavigationRailDestination(
+                            icon: Icon(Icons.settings_outlined),
+                            selectedIcon: Icon(Icons.settings),
+                            label: Text('Podešavanja')),
+                      ],
+                    ),
+                  if (isWide || isLandscape)
+                    const VerticalDivider(width: 1, thickness: 1),
+                  Expanded(
+                    child: IndexedStack(
+                      index: _selectedIndex,
+                      children: pages,
+                    ),
                   ),
-                  onPressed: _showNotificationsDialog,
-                ),
-              ],
+                ],
+              ),
             ),
-      body: Column(
-        children: [
-          _buildActiveSessionBanner(),
-          Expanded(
-            child: Row(
-              children: [
-                // The rail stays visible for every tab in landscape. AI Studio's
-                // landscape board is sized from available *height*, so the rail's
-                // width costs it nothing — and hiding it used to leave that tab with
-                // no AppBar, no bottom bar and no rail, i.e. no way out at all.
-                if (isWide || isLandscape)
-                  NavigationRail(
-                    selectedIndex: _selectedIndex,
-                    onDestinationSelected: _selectTab,
-                    labelType: NavigationRailLabelType.none,
-                    destinations: const [
-                      NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Početna')),
-                      NavigationRailDestination(icon: Icon(Icons.psychology_outlined), selectedIcon: Icon(Icons.psychology), label: Text('Trening')),
-                      NavigationRailDestination(icon: Icon(Icons.library_books_outlined), selectedIcon: Icon(Icons.library_books), label: Text('Biblioteka')),
-                      NavigationRailDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: Text('Prijatelji')),
-                      NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Podešavanja')),
-                    ],
-                  ),
-                if (isWide || isLandscape) const VerticalDivider(width: 1, thickness: 1),
-                Expanded(
-                  child: IndexedStack(
-                    index: _selectedIndex,
-                    children: pages,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: (isWide || isLandscape)
-          ? null
-          : NavigationBar(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: _selectTab,
-              destinations: const [
-                NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Početna'),
-                NavigationDestination(icon: Icon(Icons.psychology_outlined), selectedIcon: Icon(Icons.psychology), label: 'Trening'),
-                NavigationDestination(icon: Icon(Icons.library_books_outlined), selectedIcon: Icon(Icons.library_books), label: 'Biblioteka'),
-                NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: 'Prijatelji'),
-                NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Podešavanja'),
-              ],
-            ),
+          ],
+        ),
+        bottomNavigationBar: (isWide || isLandscape)
+            ? null
+            : NavigationBar(
+                selectedIndex: _selectedIndex,
+                onDestinationSelected: _selectTab,
+                destinations: const [
+                  NavigationDestination(
+                      icon: Icon(Icons.dashboard_outlined),
+                      selectedIcon: Icon(Icons.dashboard),
+                      label: 'Početna'),
+                  NavigationDestination(
+                      icon: Icon(Icons.psychology_outlined),
+                      selectedIcon: Icon(Icons.psychology),
+                      label: 'Trening'),
+                  NavigationDestination(
+                      icon: Icon(Icons.library_books_outlined),
+                      selectedIcon: Icon(Icons.library_books),
+                      label: 'Biblioteka'),
+                  NavigationDestination(
+                      icon: Icon(Icons.people_outline),
+                      selectedIcon: Icon(Icons.people),
+                      label: 'Prijatelji'),
+                  NavigationDestination(
+                      icon: Icon(Icons.settings_outlined),
+                      selectedIcon: Icon(Icons.settings),
+                      label: 'Podešavanja'),
+                ],
+              ),
       ),
     );
   }
@@ -909,7 +1029,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Material(
       color: Colors.teal.shade700,
       child: InkWell(
-        onTap: () => context.push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
+        onTap: () =>
+            context.push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
@@ -919,11 +1040,13 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: Text(
                   'Aktivna sesija (kod: ${gs.roomCode}) — dodirnite da nastavite',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w600),
                 ),
               ),
               TextButton(
-                onPressed: () => context.push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
+                onPressed: () => context
+                    .push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
                 style: TextButton.styleFrom(foregroundColor: Colors.white),
                 child: const Text('Nastavi sesiju'),
               ),
