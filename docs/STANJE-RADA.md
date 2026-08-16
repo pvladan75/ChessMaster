@@ -465,14 +465,107 @@ taj odnos ([assignments.js:202](../chess_backend/routes/assignments.js)) i onda
 pravi **izveštaj o aktivnosti tog korisnika**, sa deljivim linkom. Provera je
 ispravna, ali nasleđuje slabost veze koju proverava — a reč je o podacima dece.
 
-**Predlog, po redosledu:**
+## Dogovoren model uloga i nadzora — 16.8.2026, još nije napisan
 
-1. **Pristanak i smer.** „Dodaj učenika" postaje poziv koji druga strana
-   prihvata; prava daje tek prihvaćena veza. Ovo rešava viđeno ponašanje i
-   ujedno je jedini ispravan model kad se podaci tiču dece.
-2. **Uloga.** Pri registraciji se bira „trener", a zadavanje i dodavanje traže
-   tu ulogu. Ovo se **ne može uključiti pre** koraka 1 ili dodele uloga — danas
-   nijedan nalog nije `'trener'`, pa bi provera zaključala sve.
+Zamenjuje predlog iznad. Dogovoreno u razgovoru; ovde stoji jer se iz koda neće
+moći rekonstruisati zašto je baš tako.
+
+### 1. „Trener" nije osobina osobe nego položaj u odnosu
+
+Odatle sledi sve ostalo. **`users.role` se za podučavanje ne koristi uopšte** —
+ostaje samo za `'admin'`. Ista osoba je trener u jednoj vezi i učenik u drugoj:
+kao trener ima svoju listu učenika, kao učenik ima svoje trenere.
+
+Time otpada pitanje koje nije imalo dobar odgovor — **ko dodeljuje ulogu trenera.**
+Niko. Ne postoji gazda koji potvrđuje da je neko trener; postoji samo veza koju
+su obe strane prihvatile.
+
+### 2. Vezu pokreće bilo ko, ali je zasniva pristanak
+
+```
+zahtev  →  druga strana prihvati  →  [ako je učenik maloletan] roditelj potvrdi  →  veza važi
+```
+
+Smer je slobodan: trener sme da upiše učenika, učenik sme da pošalje zahtev
+treneru. Ono što veza **ne** daje dok nije prihvaćena je bilo kakvo pravo.
+
+Šema to podnosi sa jednom kolonom na `trainer_students`:
+
+```sql
+status VARCHAR(20) NOT NULL DEFAULT 'accepted'
+  CHECK (status IN ('pending', 'awaiting_parent', 'accepted'))
+```
+
+Podrazumevano `accepted` usput reši i zatečene redove — u trenutku pisanja ih ima
+**tri, na četiri korisnika, od kojih dva čine jedan uzajaman par** (to je i bio
+viđeni bag). Sve novo se upisuje izričito kao `pending`, pa migraciona skripta ne
+treba.
+
+Bezbednosna ispravka je onda jedan uslov u `trainerOwnsStudent`
+(`assignmentService.js`): `AND status = 'accepted'`. Kroz njega prolaze zadaci,
+lekcije i izveštaj o učeniku.
+
+Prijateljstvo (`friends`) se **više ne upisuje pri dodavanju nego tek pri
+prihvatanju** — inače te neko ubaci među prijatelje bez tvog znanja.
+
+### 3. Saglasnost roditelja se ne proverava — ona se zapisuje
+
+Provera roditeljstva ne postoji ni kod jedne aplikacije; zakon i traži **razuman
+napor srazmeran riziku**, ne dokaz. Zato: mejl roditelja, dvostruka potvrda, i
+zapis o tome ko je pristao, kad, sa koje adrese i **na koju verziju teksta** —
+poslednje zato što se dokument menja, a saglasnost mora ostati vezana za tekst na
+koji je data.
+
+Tri stvari koje su namerno tako:
+
+- **Mejl roditelja stoji na vezi, ne na profilu učenika.** Dete može imati dva
+  trenera, a saglasnost se tiče *tog* odnosa. Nov trener — nova saglasnost.
+- **Traži se samo za maloletne**, pa nalog mora nositi godinu rođenja
+  (samoprijavljenu). Odrastao učenik je ovde sasvim običan slučaj.
+- **Povlačenje mora biti lako koliko i davanje** — to zakon izričito traži, pa
+  link koji roditelj dobije ostaje važeći i nosi dugme koje raskida vezu.
+
+> Zašto se time uopšte bavimo, kad TikTok ne pita nikoga: zato što se bave, i to
+> skupo — TikTok €345M (irski DPC, 2023), Instagram €405M (2022), oba baš zbog
+> naloga maloletnika. Ali brojke nisu razlog. Razlog je što je **suština ovog
+> proizvoda** da se određena odrasla osoba spoji sa određenim detetom u privatnoj
+> sobi, sa glasom koji se snima. TikTok se brani time da je javna platforma; ovde
+> te odbrane nema. Uz to, Play Console pri objavljivanju **traži** da se prijavi
+> ciljni uzrast — to je formular, ne stav.
+
+### 4. Roditelj sme da posmatra svaki čas, i trener ne zna kad
+
+Najjača zaštita u celom modelu, i istovremeno prodajni argument: roditelju koji
+bira trenera preko interneta „možete ući na bilo koji čas i dobijate snimak
+svakog" znači više od bilo kakvog opisa.
+
+Radi zato što **mogućnost nadzora deluje trajno, a prisustvo samo povremeno.**
+
+Jedna ograda je pravno bitna: **anonimno ne sme da znači tajno.** Trener je i sam
+osoba čiji se glas snima, a prikriveno posmatranje je u većini propisa osetljivo.
+Zato trener **pri registraciji prihvata pravilo** da svaki čas može biti posmatran
+bez najave. Obavešten je o pravilu, ne o pojedinom času — odvraćajuće dejstvo
+ostaje, a nadzor prestaje da bude prikriven. Isto važi i za dete.
+
+Tehnički, oslanja se na ono što već postoji:
+
+- **Roditelju ne treba nalog.** `signReportToken` (`middleware/auth.js`) već pravi
+  potpisan token sa rokom kojim se izveštaj otvara bez prijave. Isti obrazac nosi
+  i ulazak na čas i link ka snimku.
+- **Posmatrač mora biti izostavljen iz spiska učesnika**, i to je pravi posao a ne
+  prekidač: soba preko Socket.IO razašilje ko je ušao, a snimak upisuje
+  `participantIds`. Ako se to ne uredi namerno, trener vidi ulazak i cela zamisao
+  pada. Agora ima ulogu *audience* koja sluša bez objavljivanja, pa glasovna
+  strana to podnosi.
+- **Snimci se šalju kao link mejlom**, istim mehanizmom i sa rokom, kao izveštaji.
+
+### Šta je odlučeno, a šta čeka
+
+Odlučeno i spremno za pisanje: tačke 1, 2 i 4 — pristanak, smer, i posmatranje.
+
+Čeka pravnika: tekst saglasnosti (`saglasnost-roditelja.md`) i da li je opisani
+postupak dovoljan po ZZPL-u. **Kolone se ipak dodaju odmah**, jer prazna kolona
+danas ne košta ništa, a ista kolona nad živim podacima kasnije košta migraciju.
 
 ## Sledeće na redu
 

@@ -106,5 +106,13 @@ Nothing decides who is a trainer. `users.role` is hard-coded to `'korisnik'` at
 registration and never becomes `'trener'`; the teaching relationship is a
 `trainer_students` row that **any user can create for any email, with no consent
 from the other side**. So a student can assign homework to their trainer, and
-the parent-report endpoint trusts the same one-sided edge. See
-`docs/STANJE-RADA.md` for the proposed fix order: consent first, roles second.
+the parent-report endpoint trusts the same one-sided edge.
+
+The replacement is agreed and written up in `docs/STANJE-RADA.md` ("Dogovoren
+model uloga i nadzora") but not yet built. Its premise: *trainer* is a position
+in a relationship, not a property of a person, so `users.role` stays out of it
+entirely — the same person is a trainer in one edge and a student in another.
+Rights come only from an edge both sides accepted, a parent's consent is
+recorded (never verified — that is impossible) against the version of the text
+they agreed to, and a parent may observe any lesson without the trainer knowing
+which one, having accepted that rule at registration.
