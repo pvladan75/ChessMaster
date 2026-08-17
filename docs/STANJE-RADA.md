@@ -567,6 +567,31 @@ Odlučeno i spremno za pisanje: tačke 1, 2 i 4 — pristanak, smer, i posmatran
 postupak dovoljan po ZZPL-u. **Kolone se ipak dodaju odmah**, jer prazna kolona
 danas ne košta ništa, a ista kolona nad živim podacima kasnije košta migraciju.
 
+## Odlučeno: zvonce je vlasnik odgovora na zahtev — 17.8.2026, nije napisano
+
+Zahtev za odnos danas postoji na **dva** mesta: kao kartica „Čeka vaš odgovor" u
+tabu Prijatelji i kao obaveštenje u zvoncetu. Odgovara se samo na prvom; zvonce
+te uputi da odeš tamo. To je dvostruko vođenje iste stvari i već se jednom
+osvetilo — obaveštenje je ostajalo nepročitano zauvek, jer ništa nije povezivalo
+odgovor sa njim.
+
+**Dogovoreno 17.8.2026:** vlasnik radnje postaje **zvonce**. Kvačica i krstić
+sele se u obaveštenje, a kartica iz taba Prijatelji nestaje. Razlog: dete koje
+dobije poziv gleda u zvonce, ne pretražuje tabove — a zvonce je jedino mesto koje
+već nosi brojač, pa je i jedino koje samo od sebe kaže da nešto čeka.
+
+Posao je **odložen namerno**, jer dira oba ekrana i njihove testove, a večerašnje
+popravke su već velike. Kad se bude radilo:
+
+- `pendingRequests` prestaje da bude ulaz u `HomeFriendsTab`; filtriranje po
+  `i_asked` u tom tabu onda gubi svrhu i treba ga ukloniti zajedno sa karticom,
+  da ne ostane mrtav kod koji izgleda kao pravilo.
+- Obaveštenje tipa `student_request` nosi `ref_id`, što je upravo `id` reda u
+  `trainer_students` — dakle sve što treba za `accept`/`decline` je već u redu
+  obaveštenja, ništa se ne dodaje u bazu.
+- Posle odgovora obaveštenje se već označava pročitanim
+  (`closeRequestNotification`), pa taj deo ne treba pisati ponovo.
+
 ## Obaveštenja: beo ekran, nedostupno zvonce, značka koja laže — ✅ 17.8.2026
 
 Tri odvojena kvara u istom uglu ekrana, sva tri prijavljena sa uređaja.
@@ -804,8 +829,12 @@ uživo. Ostaju:
   Kad dođe vreme, ne mora biti sve-ili-ništa: debug build sme da ostane na
   lokalnom backendu, a probni da se pravi sa
   `--dart-define=BACKEND_URL=https://api.chesstrainers.app`.
-- **Proba pristanka uživo** — stavka 0 u [TODO-provera.md](TODO-provera.md), i
-  raskid onog uzajamnog para koji je prešao kao `accepted`.
+- **Zvonce kao vlasnik odgovora na zahtev** — odlučeno 17.8.2026, nije napisano.
+  Vidi odeljak iznad; ukida dvostruko vođenje istog zahteva na dva ekrana.
+- Ostatak probe pristanka: ponovno slanje posle odbijanja, samo obaveštenje o
+  odbijanju, i obaveštenja posle popravke — stavke 0 i 0a u
+  [TODO-provera.md](TODO-provera.md). Proba pristanka je inače prošla uživo
+  17.8.2026, i uzajaman par je raskinut.
 - **Sajt** na korenu domena — sadržaja još nema, pa ni sertifikata za `@` i
   `www`. Vidi korak 3a u [TODO-objavljivanje.md](TODO-objavljivanje.md).
 - **Faza 2 unifikacije — `MoveCursor`** (faza 1 proverena uživo 15.8.2026).
