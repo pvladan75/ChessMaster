@@ -25,6 +25,7 @@ import 'package:chess_app/widgets/home/home_dialogs.dart' as dialogs;
 import 'package:chess_app/widgets/home/dashboard_tab.dart';
 import 'package:chess_app/widgets/home/biblioteka_tab.dart';
 import 'package:chess_app/widgets/home/friends_tab.dart';
+import 'package:chess_app/models/relationship_request_target.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserSession session;
@@ -51,6 +52,9 @@ class _HomeScreenState extends State<HomeScreen> {
   /// dropping straight out of the app.
   final List<int> _tabHistory = [0];
 
+  /// Index of the "Prijatelji" tab in the navigation bar.
+  static const _friendsTabIndex = 3;
+
   void _selectTab(int idx) {
     if (idx == _selectedIndex) return;
     setState(() {
@@ -59,6 +63,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _tabHistory.remove(idx);
       _tabHistory.add(idx);
     });
+
+    // The other side answers on their own device, and nothing tells this one.
+    // Until it was fetched again only at startup, a trainer whose student had
+    // just accepted still saw "čeka potvrdu" and had to restart the app.
+    if (idx == _friendsTabIndex) {
+      _fetchStudents();
+    }
   }
 
   final _codeController = TextEditingController();
@@ -67,6 +78,12 @@ class _HomeScreenState extends State<HomeScreen> {
   late io.Socket _socket;
   List<dynamic> _students = [];
   List<dynamic> _pendingRequests = [];
+  List<dynamic> _trainers = [];
+
+  /// Which side the user is claiming when they send the next request. Defaults
+  /// to trainer because that is what the button did before the choice existed,
+  /// so nobody's habit silently changes meaning.
+  bool _iAmTrainerInRequest = true;
   bool _isLoadingStudents = false;
   final TextEditingController _studentEmailController = TextEditingController();
 
@@ -247,7 +264,29 @@ class _HomeScreenState extends State<HomeScreen> {
     } finally {
       if (mounted) setState(() => _isLoadingStudents = false);
     }
+    await _fetchTrainers();
     await _fetchPendingRequests();
+  }
+
+  /// The same relationships read from the other end.
+  ///
+  /// Without this the tab showed only people the user teaches, so a student
+  /// with a trainer and no students of their own was told "Još nemate ni
+  /// učenika ni trenera" while the relationship existed and worked.
+  Future<void> _fetchTrainers() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$backendUrl/students/trainers'),
+        headers: {'Authorization': 'Bearer ${widget.session.token}'},
+      );
+      if (response.statusCode == 200 && mounted) {
+        setState(() {
+          _trainers = jsonDecode(response.body)['trainers'] ?? [];
+        });
+      }
+    } catch (e) {
+      print("Error fetching trainers: $e");
+    }
   }
 
   /// Requests waiting for this user to answer, in either direction.
@@ -320,16 +359,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final email = _studentEmailController.text.trim();
     if (email.isEmpty) return;
 
+    // The side the sender claims decides the route and the field name both.
+    // The field is named studentEmail / trainerEmail server-side; sending
+    // 'email' made every add fail with "Email učenika/prijatelja je obavezan".
+    final target =
+        RelationshipRequestTarget.forRole(iAmTrainer: _iAmTrainerInRequest);
+
     try {
       final response = await http.post(
-        Uri.parse('$backendUrl/trainer/students/add'),
+        Uri.parse('$backendUrl${target.path}'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${widget.session.token}'
         },
-        // The field is named studentEmail server-side; sending 'email' made
-        // every add fail with "Email učenika/prijatelja je obavezan".
-        body: jsonEncode({'studentEmail': email}),
+        body: jsonEncode({target.emailField: email}),
       );
 
       final data = jsonDecode(response.body);
@@ -881,7 +924,11 @@ class _HomeScreenState extends State<HomeScreen> {
             studentEmailController: _studentEmailController,
             isLoadingStudents: _isLoadingStudents,
             students: _students,
+            trainers: _trainers,
             pendingRequests: _pendingRequests,
+            iAmTrainerInRequest: _iAmTrainerInRequest,
+            onRoleChanged: (v) => setState(() => _iAmTrainerInRequest = v),
+            onRefresh: _fetchStudents,
             onAcceptRequest: (id) => _respondToRequest(id, accept: true),
             onDeclineRequest: (id) => _respondToRequest(id, accept: false),
             onAddStudent: _addStudent,
