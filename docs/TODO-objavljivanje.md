@@ -87,10 +87,24 @@ desktop verzija uopšte podeli — nju Play ne raznosi.
         postavljanju.
       - Registrovati uz **zaštitu podataka u WHOIS-u**. Vlasnik je fizičko lice;
         bez toga kućna adresa i telefon idu u javnu bazu.
-- [ ] **Gde stoji.** Najjeftinije i najprostije: statičke stranice sa istog
-      droplet-a, kroz nginx koji već radi i certbot koji već obnavlja
-      sertifikate. Nema novog troška ni novog naloga. Alternativa je GitHub
-      Pages, ali onda su sajt i API na dva mesta bez potrebe.
+- [x] **Gde stoji — odlučeno 17.8.2026: isti droplet.** Statičke stranice kroz
+      nginx koji već radi i certbot koji već obnavlja sertifikate. Nema novog
+      troška ni novog naloga. Alternativa je bila GitHub Pages, ali bi onda sajt
+      i API stajali na dva mesta bez potrebe.
+
+      **Odluka je namerno povratna.** Sajt nema bazu ni stanje, pa je selidba
+      kopiranje foldera i promena DNS zapisa. Ono što vezuje nisu mašina ni
+      provajder nego **adrese**: Play pamti URL politike privatnosti, pa domen i
+      putanje moraju ostati isti — ko ih servira je nevidljivo.
+
+      **Uslov pod kojim to ostaje jeftino: `@`/`www` dobijaju svoj sertifikat,
+      odvojen od `api`.** `deploy/app-setup.sh` sada traži sertifikat sa
+      `-d "$HOST"` i `--cert-name "$HOST"`, dakle samo za API — tako i treba da
+      ostane. Ako se `@` i `www` dodaju na taj isti sertifikat (`--expand`), a
+      sajt se kasnije preusmeri drugde, certbot će nastaviti da obnavlja imena
+      koja ta mašina više ne servira: HTTP-01 za njih pukne, obnova **celog**
+      sertifikata pukne, i sa njim padne `api` koji niko nije dirao. Tri meseca
+      kasnije i bez ijedne poruke — isti oblik kao zatvaranje porta 80.
 
 **Šta sajt mora da nosi:**
 
