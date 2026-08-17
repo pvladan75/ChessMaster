@@ -567,6 +567,25 @@ Odlučeno i spremno za pisanje: tačke 1, 2 i 4 — pristanak, smer, i posmatran
 postupak dovoljan po ZZPL-u. **Kolone se ipak dodaju odmah**, jer prazna kolona
 danas ne košta ništa, a ista kolona nad živim podacima kasnije košta migraciju.
 
+## Ako droplet postane tesan, kojim redom — 17.8.2026
+
+Zapisano jer je lako pretpostaviti da se MP4 izvoz „samo prebaci na drugu
+mašinu". Ne prebacuje se: `routes/recordings.js` uzima zvuk iz `uploads/` sa
+**lokalnog diska**, a `videoRenderer.js` piše gotov fajl u `exports/`, isto
+lokalno. Druga mašina bi morala da dođe do tog zvuka — a `uploads/` je jedina
+kopija dečjih glasova.
+
+Redosled kad zatreba:
+
+1. **Veći droplet.** Jedan restart, nijedna izmena u kodu. Za 1 vCPU / 2 GB je to
+   najjeftiniji potez i verovatno dovoljan zadugo.
+2. **Odvajanje izvoza tek uz konkretan simptom** — da renderovanje usporava API,
+   ili da veći droplet više ne pomaže. Povlači prelazak `uploads/` na objektno
+   skladište, što uzgred rešava i to da su snimci danas na jednom disku.
+
+Sajt ne učestvuje ni u jednom koraku: statičke stranice nginx servira bez CPU
+troška, pa ostaje gde jeste i u slučaju da se izvoz odseli.
+
 ## Odlučeno: zvonce je vlasnik odgovora na zahtev — 17.8.2026, nije napisano
 
 Zahtev za odnos danas postoji na **dva** mesta: kao kartica „Čeka vaš odgovor" u
