@@ -165,6 +165,42 @@ desktop verzija uopšte podeli — nju Play ne raznosi.
 - [ ] Proveriti da je kupovina **acknowledged** — nepotvrđene Play refundira
       posle 3 dana.
 
+## 7a. Veličina aplikacije — Stockfish nosi 114 MB
+
+Izmereno 17.8.2026. nad `app-arm64-v8a-release.apk`:
+
+| stavka | veličina |
+|---|---|
+| `lib/arm64-v8a/libstockfish.so` | **114,0 MB**, od čega 112,6 MB `.rodata` |
+| ceo Agora SDK (osam biblioteka) | ~59 MB |
+| `libflutter.so` + `libapp.so` | ~21 MB |
+| assets (zagonetke, ECO) | ~4 MB |
+| **APK ukupno** | **221 MB** |
+
+Onih 112,6 MB `.rodata` je NNUE mreža ušivena u binarni fajl. Biblioteka **jeste**
+strip-ovana (nema ni `.symtab` ni `.debug_*`), pa se tu nema šta dobiti.
+
+APK je veći nego što izgleda i iz drugog razloga: native biblioteke se pakuju
+**nekompresovano** (`STORED`, 281 unos), što je današnje podrazumevano ponašanje
+— veći APK, ali manja instalacija i brže pokretanje, jer se mapiraju u memoriju
+umesto da se raspakuju. Zato GitHub-ov artefakt-ZIP ispada 128 MB: to je isti
+APK, samo ZIP kompresuje ono što APK namerno ne kompresuje. **Nije druga
+verzija** — ta razlika je jednom već delovala kao da CI gradi nešto drugo.
+
+**Zašto je ovo stavka pred objavljivanje:** Play ne prima APK nego AAB, i ima
+granicu veličine preuzimanja. Ovo se ne rešava podešavanjem nego odlukom:
+
+- [ ] **Manja NNUE mreža.** Stockfish radi i sa manjom mrežom; gubi se nešto
+      snage, koja za rad sa decom ionako nije usko grlo.
+- [ ] **Ili preuzimanje mreže pri prvom pokretanju**, umesto pakovanja. Aplikacija
+      već ume da preuzme Stockfish na desktop-u, pa mehanizam nije nov — ali
+      uvodi prvo pokretanje koje traži mrežu i mesto na uređaju.
+- [ ] Proveriti da li se Agora deo može smanjiti: pola njegove veličine su
+      proširenja (praćenje lica, uklanjanje pozadine, prostorni zvuk) koja ova
+      aplikacija ne koristi.
+
+Ništa od toga nije hitno dok se deli APK za probu. Postaje blokada na koraku 8.
+
 ## 8. Tek na kraju
 
 - [ ] `ENABLE_LIMITS=true` u backend `.env`.
