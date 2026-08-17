@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 const { pool } = require('../db');
 const { JWT_SECRET } = require('../middleware/auth');
 const mailService = require('../services/mailService');
+const { GOOGLE_PLACEHOLDER_HASH, isPasswordlessHash } = require('../services/googleAccount');
 
 // Credential endpoints are the prime target for brute force and enumeration,
 // so they get a tighter budget than the rest of the API.
@@ -165,6 +166,23 @@ router.post('/login', async (req, res) => {
 
     const user = result.rows[0];
 
+    // An account made through Google has no password at all, and bcrypt.compare
+    // against its marker returns false for every input — so without this the
+    // user is told they typed the wrong password, forever, and there is no
+    // password that would work.
+    //
+    // This does confirm that an account exists for the address, which the reply
+    // above deliberately does not. Accepted knowingly: the same fact already
+    // leaks from /students/trainers/request, the endpoint is rate limited to 20
+    // attempts per 15 minutes, and the alternative is an unreachable account.
+    if (isPasswordlessHash(user.password_hash)) {
+      return res.status(400).json({
+        error: 'Ovaj nalog koristi Google prijavu i nema lozinku.',
+        usesGoogle: true,
+        email: user.email,
+      });
+    }
+
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
       return res.status(400).json({ error: 'Invalid email or password' });
@@ -267,7 +285,7 @@ router.post(['/google', '/auth/google'], async (req, res) => {
     let user;
 
     if (userResult.rows.length === 0) {
-      const defaultPasswordHash = 'google_oauth_placeholder_hash';
+      const defaultPasswordHash = GOOGLE_PLACEHOLDER_HASH;
       const insertResult = await pool.query(
         'INSERT INTO users (email, password_hash, name, role, is_verified) VALUES ($1, $2, $3, $4, TRUE) RETURNING id, email, name, role',
         [email, defaultPasswordHash, name || 'Korisnik', 'korisnik']
