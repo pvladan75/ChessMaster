@@ -80,6 +80,12 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> _pendingRequests = [];
   List<dynamic> _trainers = [];
 
+  /// The badge counts what has *not* been read. `/notifications` returns the
+  /// last 20 regardless of `is_read`, so counting the list showed a number that
+  /// never went down no matter how much the user read.
+  int get _unreadNotifications =>
+      _notifications.where((n) => n['is_read'] != true).length;
+
   /// Which side the user is claiming when they send the next request. Defaults
   /// to trainer because that is what the button did before the choice existed,
   /// so nobody's habit silently changes meaning.
@@ -970,8 +976,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   IconButton(
                     tooltip: 'Notifikacije i Pozivnice',
                     icon: Badge(
-                      isLabelVisible: _notifications.isNotEmpty,
-                      label: Text('${_notifications.length}'),
+                      isLabelVisible: _unreadNotifications > 0,
+                      label: Text('$_unreadNotifications'),
                       child: const Icon(Icons.notifications,
                           color: Colors.amberAccent),
                     ),
@@ -994,6 +1000,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       selectedIndex: _selectedIndex,
                       onDestinationSelected: _selectTab,
                       labelType: NavigationRailLabelType.none,
+                      // The AppBar is null in landscape, and the bell lived in
+                      // it — so on Windows, which is always landscape, there
+                      // was no way to reach notifications at all. The rail is
+                      // the only thing that survives this layout.
+                      leading: widget.session.isGuest
+                          ? null
+                          : Padding(
+                              padding: const EdgeInsets.only(top: 8, bottom: 8),
+                              child: IconButton(
+                                tooltip: 'Notifikacije i Pozivnice',
+                                icon: Badge(
+                                  isLabelVisible: _unreadNotifications > 0,
+                                  label: Text('$_unreadNotifications'),
+                                  child: const Icon(Icons.notifications,
+                                      color: Colors.amberAccent),
+                                ),
+                                onPressed: _showNotificationsDialog,
+                              ),
+                            ),
                       destinations: const [
                         NavigationRailDestination(
                             icon: Icon(Icons.dashboard_outlined),

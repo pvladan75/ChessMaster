@@ -567,6 +567,35 @@ Odlučeno i spremno za pisanje: tačke 1, 2 i 4 — pristanak, smer, i posmatran
 postupak dovoljan po ZZPL-u. **Kolone se ipak dodaju odmah**, jer prazna kolona
 danas ne košta ništa, a ista kolona nad živim podacima kasnije košta migraciju.
 
+## Obaveštenja: beo ekran, nedostupno zvonce, značka koja laže — ✅ 17.8.2026
+
+Tri odvojena kvara u istom uglu ekrana, sva tri prijavljena sa uređaja.
+
+**Beo ekran na Androidu.** `home_dialogs.dart` je čitao `n['room_code'] as
+String`, a ta kolona je od 16.8. **nullable** — migracija ju je namerno
+oslobodila `NOT NULL` da bi obaveštenje moglo da nosi zahtev za odnos, koji nema
+sobu. `as String` nad `null`-om baca `TypeError` usred gradnje, što je u release
+build-u beo ekran. Pade **ceo** dijalog, pa i pozivnice u sobe koje su ispravne,
+jer se lista gradi u jednom prolazu.
+
+Opet isti obrazac: server je izmenjen, klijent je ostao na staroj pretpostavci, i
+vidi se tek jedan sloj kasnije. Sad se `kind` poštuje — pozivnica u sobu nudi
+„Pridruži se", zahtev za odnos kaže gde se odgovara, a obaveštenje o odbijanju ne
+nudi ništa jer nema šta da se odgovori.
+
+**Zvonca nema na Windows-u.** `appBar: isLandscape ? null : AppBar(...)` — u
+landscape-u AppBar-a nema uopšte, a zvonce je živelo u njemu. Windows prozor je
+uvek landscape, pa obaveštenja nisu bila dostupna **nikako**. Prebačeno u
+`leading` od `NavigationRail`-a, jedino što u tom rasporedu preživi.
+
+**Značka je brojala sve.** `GET /notifications` vraća poslednjih 20 bez obzira na
+`is_read`, a značka je prikazivala `_notifications.length`. Broj se nije menjao ma
+koliko čitao — i ne bi se promenio ni posle sinoćne popravke koja zahteve
+označava pročitanim. Sad broji samo nepročitana.
+
+Uz to, naslov dijaloga se prelivao 184 px na 360 px, pa je i on dobio `Expanded`.
+Isti oblik kao zaglavlje u tabu Prijatelji: `Row` sa golim `Text`-om.
+
 ## Odbijanje više ne ćuti — 17.8.2026
 
 Odbijen zahtev se briše, i to namerno: bez toga ponovno slanje ne bi radilo. Ali

@@ -50,7 +50,12 @@ void showNotificationsDialog(
           children: const [
             Icon(Icons.notifications_active, color: Colors.amberAccent),
             SizedBox(width: 8),
-            Text('Notifikacije i Pozivnice', style: TextStyle(fontSize: 16)),
+            // Expanded: the title is wider than the dialog on a narrow phone,
+            // and a title that overflows takes the whole dialog down with it.
+            Expanded(
+              child: Text('Notifikacije i Pozivnice',
+                  style: TextStyle(fontSize: 16)),
+            ),
           ],
         ),
         content: Column(
@@ -69,29 +74,61 @@ void showNotificationsDialog(
                   child: Column(
                     children: notifications.map((n) {
                       final notifId = n['id'] as int;
-                      final roomCode = n['room_code'] as String;
+
+                      // Nullable since 16.8: a notification carrying a request
+                      // to teach or be taught has no room. This used to read
+                      // `as String`, which threw during build over a null and
+                      // showed the user a blank screen instead of the list.
+                      final roomCode = n['room_code'] as String?;
+                      final kind = (n['kind'] ?? 'room').toString();
+                      final isRead = n['is_read'] == true;
+
+                      // Only a room invitation has somewhere to go. The others
+                      // are answered in the Prijatelji tab, or say something
+                      // that needs no answer at all.
+                      final canJoin = kind == 'room' && roomCode != null;
+
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 4.0),
                         child: ListTile(
                           dense: true,
-                          leading: const Icon(Icons.star, color: Colors.amber),
-                          title: Text(n['message'] ?? '',
-                              style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold)),
-                          subtitle: Text('Soba: $roomCode',
-                              style: const TextStyle(
-                                  fontSize: 10, color: Colors.grey)),
-                          trailing: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal,
-                                foregroundColor: Colors.white),
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              onJoinFromNotification(notifId, roomCode);
+                          leading: Icon(
+                            switch (kind) {
+                              'student_request' => Icons.school,
+                              'request_declined' => Icons.do_not_disturb_on,
+                              _ => Icons.star,
                             },
-                            child: const Text('Pridruži se',
-                                style: TextStyle(fontSize: 11)),
+                            color: isRead ? Colors.grey : Colors.amber,
                           ),
+                          title: Text(n['message'] ?? '',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: isRead
+                                      ? FontWeight.normal
+                                      : FontWeight.bold,
+                                  color: isRead ? Colors.grey : null)),
+                          subtitle: Text(
+                            canJoin
+                                ? 'Soba: $roomCode'
+                                : (kind == 'student_request'
+                                    ? 'Odgovorite u tabu Prijatelji.'
+                                    : ''),
+                            style: const TextStyle(
+                                fontSize: 10, color: Colors.grey),
+                          ),
+                          trailing: canJoin
+                              ? ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.teal,
+                                      foregroundColor: Colors.white),
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    onJoinFromNotification(notifId, roomCode);
+                                  },
+                                  child: const Text('Pridruži se',
+                                      style: TextStyle(fontSize: 11)),
+                                )
+                              : null,
                         ),
                       );
                     }).toList(),

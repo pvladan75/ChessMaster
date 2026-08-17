@@ -19,7 +19,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 206 tests
+cd chess_app && flutter test          # 212 tests
 cd chess_app && flutter analyze       # must be clean
 cd chess_backend && npm test          # node --test, 133 tests
 cd chess_backend && npm run dev       # nodemon, port 3000

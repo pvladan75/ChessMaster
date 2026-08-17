@@ -86,6 +86,22 @@ kvačica.
 
 </details>
 
+## 0a. Obaveštenja posle popravke — 17.8.2026, nije viđeno uživo
+
+**Kako:** otvori zvonce na **oba** rasporeda — na Androidu je u zaglavlju, na
+Windows-u je sada u levoj traci (`NavigationRail`), gde ga ranije nije bilo.
+
+**Na šta obratiti pažnju:**
+
+- Lista se otvara i kad među obaveštenjima ima onih **bez sobe** (zahtev za
+  odnos, odbijanje). Do sada je to bio beo ekran.
+- Pozivnica u sobu i dalje ima „Pridruži se" i ulazi u sobu; zahtev za odnos
+  nema dugme nego uputstvo da se odgovara u tabu Prijatelji.
+- **Značka broji nepročitana.** Posle otvaranja i čitanja broj mora da padne.
+  Zatečeno stanje: jedno staro obaveštenje (#7) je odgovoreno pre popravke koja
+  ih zatvara, pa će ostati nepročitano dok ga ne otvoriš.
+- Na telefonu proveri i da se naslov dijaloga ne preliva.
+
 ## 0b. Reprodukcija snimaka posle prelaska na relativne putanje — 16.8.2026
 
 **Kako:** otvori **stari** snimak (napravljen pre ove izmene) — zvuk mora da radi
