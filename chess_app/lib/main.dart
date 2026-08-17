@@ -27,7 +27,7 @@ class ChessApp extends StatelessWidget {
       animation: AppSettingsService.instance,
       builder: (context, _) {
         return MaterialApp.router(
-          title: 'Chess Master',
+          title: 'Šahovski trener',
           routerConfig: appRouter,
           // Pairs with the router's own scope id so Android can rebuild the
           // navigation stack after the process is killed in the background.

@@ -7,14 +7,18 @@ import 'package:chess_app/services/billing_service.dart';
 /// need from their parameters and report the result back through a callback
 /// rather than touching the screen's state directly.
 
-void showInviteDialog(BuildContext context, {required String roomCode, required String trainerName, required VoidCallback onJoin}) {
+void showInviteDialog(BuildContext context,
+    {required String roomCode,
+    required String trainerName,
+    required VoidCallback onJoin}) {
   showDialog(
     context: context,
     barrierDismissible: false,
     builder: (context) {
       return AlertDialog(
         title: const Text('Poziv na lekciju'),
-        content: Text('Trener $trainerName vas poziva na lekciju. Da li želite da se pridružite?'),
+        content: Text(
+            'Trener $trainerName vas poziva na lekciju. Da li želite da se pridružite?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -55,7 +59,8 @@ void showNotificationsDialog(
             if (notifications.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(16.0),
-                child: Text('Nemate novih notifikacija.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                child: Text('Nemate novih notifikacija.',
+                    style: TextStyle(color: Colors.grey, fontSize: 13)),
               )
             else
               Container(
@@ -70,15 +75,22 @@ void showNotificationsDialog(
                         child: ListTile(
                           dense: true,
                           leading: const Icon(Icons.star, color: Colors.amber),
-                          title: Text(n['message'] ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          subtitle: Text('Soba: $roomCode', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                          title: Text(n['message'] ?? '',
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold)),
+                          subtitle: Text('Soba: $roomCode',
+                              style: const TextStyle(
+                                  fontSize: 10, color: Colors.grey)),
                           trailing: ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.teal,
+                                foregroundColor: Colors.white),
                             onPressed: () {
                               Navigator.pop(ctx);
                               onJoinFromNotification(notifId, roomCode);
                             },
-                            child: const Text('Pridruži se', style: TextStyle(fontSize: 11)),
+                            child: const Text('Pridruži se',
+                                style: TextStyle(fontSize: 11)),
                           ),
                         ),
                       );
@@ -114,19 +126,24 @@ void showCreateRoomWithFriendsDialog(
           children: const [
             Icon(Icons.add_circle_outline, color: Colors.tealAccent),
             SizedBox(width: 8),
-            Text('Kreiranje sesije i Pozivanje', style: TextStyle(fontSize: 16)),
+            Text('Kreiranje sesije i Pozivanje',
+                style: TextStyle(fontSize: 16)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Izaberite prijatelje koje želite da pozovete u novu sesiju:', style: TextStyle(fontSize: 12)),
+            const Text(
+                'Izaberite prijatelje koje želite da pozovete u novu sesiju:',
+                style: TextStyle(fontSize: 12)),
             const SizedBox(height: 12),
             if (availableFriends.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12.0),
-                child: Text('Nemate dodatih prijatelja. Možete ih dodati u kartici "Lista prijatelja" ispod.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                child: Text(
+                    'Nemate dodatih prijatelja. Možete ih dodati u kartici "Lista prijatelja" ispod.',
+                    style: TextStyle(fontSize: 11, color: Colors.grey)),
               )
             else
               Container(
@@ -138,8 +155,12 @@ void showCreateRoomWithFriendsDialog(
                       final isSel = selectedFriendIds.contains(fId);
                       return CheckboxListTile(
                         dense: true,
-                        title: Text(f['name'] ?? 'Prijatelj', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        subtitle: Text(f['email'] ?? '', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                        title: Text(f['name'] ?? 'Prijatelj',
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.bold)),
+                        subtitle: Text(f['email'] ?? '',
+                            style: const TextStyle(
+                                fontSize: 10, color: Colors.grey)),
                         value: isSel,
                         onChanged: (val) {
                           setModalState(() {
@@ -164,8 +185,11 @@ void showCreateRoomWithFriendsDialog(
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.rocket_launch, size: 16),
-            label: Text(selectedFriendIds.isNotEmpty ? 'Kreiraj i Pozovi (${selectedFriendIds.length})' : 'Kreiraj sesiju'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            label: Text(selectedFriendIds.isNotEmpty
+                ? 'Kreiraj i Pozovi (${selectedFriendIds.length})'
+                : 'Kreiraj sesiju'),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal, foregroundColor: Colors.white),
             onPressed: () {
               Navigator.pop(ctx);
               onCreate(selectedFriendIds);
@@ -180,7 +204,9 @@ void showCreateRoomWithFriendsDialog(
 void showScheduleSessionDialog(
   BuildContext context, {
   required List<dynamic> availableFriends,
-  required void Function(String title, String desc, DateTime scheduledAt, List<int> friendIds) onSchedule,
+  required void Function(
+          String title, String desc, DateTime scheduledAt, List<int> friendIds)
+      onSchedule,
 }) {
   final titleCtrl = TextEditingController();
   final descCtrl = TextEditingController();
@@ -226,13 +252,15 @@ void showScheduleSessionDialog(
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.calendar_today, size: 14),
-                      label: Text('${selectedDate.day}.${selectedDate.month}.${selectedDate.year}.'),
+                      label: Text(
+                          '${selectedDate.day}.${selectedDate.month}.${selectedDate.year}.'),
                       onPressed: () async {
                         final picked = await showDatePicker(
                           context: context,
                           initialDate: selectedDate,
                           firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          lastDate:
+                              DateTime.now().add(const Duration(days: 365)),
                         );
                         if (picked != null) {
                           setModalState(() => selectedDate = picked);
@@ -244,7 +272,8 @@ void showScheduleSessionDialog(
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.access_time, size: 14),
-                      label: Text('${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}'),
+                      label: Text(
+                          '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}'),
                       onPressed: () async {
                         final picked = await showTimePicker(
                           context: context,
@@ -259,10 +288,12 @@ void showScheduleSessionDialog(
                 ],
               ),
               const SizedBox(height: 16),
-              const Text('Pozovi prijatelje na zakazani čas:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const Text('Pozovi prijatelje na zakazani čas:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               if (availableFriends.isEmpty)
-                const Text('Nemate dodatih prijatelja.', style: TextStyle(fontSize: 11, color: Colors.grey))
+                const Text('Nemate dodatih prijatelja.',
+                    style: TextStyle(fontSize: 11, color: Colors.grey))
               else
                 Container(
                   constraints: const BoxConstraints(maxHeight: 140),
@@ -273,8 +304,11 @@ void showScheduleSessionDialog(
                         final isSel = selectedFriendIds.contains(fId);
                         return CheckboxListTile(
                           dense: true,
-                          title: Text(f['name'] ?? 'Prijatelj', style: const TextStyle(fontSize: 12)),
-                          subtitle: Text(f['email'] ?? '', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                          title: Text(f['name'] ?? 'Prijatelj',
+                              style: const TextStyle(fontSize: 12)),
+                          subtitle: Text(f['email'] ?? '',
+                              style: const TextStyle(
+                                  fontSize: 10, color: Colors.grey)),
                           value: isSel,
                           onChanged: (val) {
                             setModalState(() {
@@ -301,7 +335,8 @@ void showScheduleSessionDialog(
           ElevatedButton.icon(
             icon: const Icon(Icons.event_available),
             label: const Text('Zakaži i Sačuvaj'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber, foregroundColor: Colors.black),
             onPressed: () {
               final title = titleCtrl.text.trim();
               if (title.isEmpty) return;
@@ -315,7 +350,8 @@ void showScheduleSessionDialog(
               );
 
               Navigator.pop(ctx);
-              onSchedule(title, descCtrl.text.trim(), scheduledDateTime, selectedFriendIds);
+              onSchedule(title, descCtrl.text.trim(), scheduledDateTime,
+                  selectedFriendIds);
             },
           ),
         ],
@@ -324,7 +360,10 @@ void showScheduleSessionDialog(
   );
 }
 
-void showScheduledSuccessDialog(BuildContext context, {required String message, required String? calendarUrl, required String roomCode}) {
+void showScheduledSuccessDialog(BuildContext context,
+    {required String message,
+    required String? calendarUrl,
+    required String roomCode}) {
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
@@ -341,17 +380,25 @@ void showScheduledSuccessDialog(BuildContext context, {required String message, 
         children: [
           Text(message, style: const TextStyle(fontSize: 13)),
           const SizedBox(height: 8),
-          Text('Kod sobe: $roomCode', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
+          Text('Kod sobe: $roomCode',
+              style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.tealAccent)),
           const SizedBox(height: 12),
           if (calendarUrl != null) ...[
-            const Text('Sinhronizujte sa kalendarom:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const Text('Sinhronizujte sa kalendarom:',
+                style: TextStyle(fontSize: 11, color: Colors.grey)),
             const SizedBox(height: 6),
             ElevatedButton.icon(
               icon: const Icon(Icons.edit_calendar),
               label: const Text('Dodaj u Google Kalendar'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  foregroundColor: Colors.white),
               onPressed: () {
-                launchUrl(Uri.parse(calendarUrl), mode: LaunchMode.externalApplication);
+                launchUrl(Uri.parse(calendarUrl),
+                    mode: LaunchMode.externalApplication);
               },
             ),
           ],
@@ -402,7 +449,8 @@ void showPremiumModal(
                 Icon(Icons.workspace_premium, color: Colors.amber, size: 28),
                 SizedBox(width: 8),
                 Expanded(
-                  child: Text('Chess Master Premium', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text('Šahovski trener Premium',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -449,7 +497,8 @@ void showPremiumModal(
                                 'ili nas kontaktirajte.'
                             : 'Kupovina je dostupna u Android verziji aplikacije. '
                                 'Nalog kupljen tamo važi i ovde.',
-                        style: const TextStyle(fontSize: 11.5, color: Colors.amberAccent),
+                        style: const TextStyle(
+                            fontSize: 11.5, color: Colors.amberAccent),
                       ),
                     ),
                 ],
@@ -476,7 +525,8 @@ void showPremiumModal(
                               if (!ctx.mounted) return;
                               ScaffoldMessenger.of(ctx).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Kupovinu nije moguće pokrenuti.'),
+                                  content:
+                                      Text('Kupovinu nije moguće pokrenuti.'),
                                   backgroundColor: Colors.redAccent,
                                 ),
                               );
@@ -486,9 +536,11 @@ void showPremiumModal(
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.black),
                           )
-                        : Text('${BillingService.displayTitle(product.title)} · ${product.price}'),
+                        : Text(
+                            '${BillingService.displayTitle(product.title)} · ${product.price}'),
                   ),
             ],
           ),

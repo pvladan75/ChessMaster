@@ -909,7 +909,7 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: isLandscape
             ? null
             : AppBar(
-                title: const Text('Chess Master'),
+                title: const Text('Šahovski trener'),
                 actions: [
                   if (widget.session.isGuest)
                     TextButton.icon(

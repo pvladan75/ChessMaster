@@ -35,7 +35,7 @@ class UserSession {
     return UserSession(
       token: '',
       id: 0,
-      email: 'gost@chessmaster.app',
+      email: 'gost@chesstrainers.app',
       name: 'Gost Korisnik',
       role: 'korisnik',
       accountType: 'free',

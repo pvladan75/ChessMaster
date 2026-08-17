@@ -12,17 +12,21 @@ class PgnExporterService {
 
     // Default Headers
     final now = DateTime.now();
-    final dateStr = '${now.year}.${now.month.toString().padLeft(2, '0')}.${now.day.toString().padLeft(2, '0')}';
+    final dateStr =
+        '${now.year}.${now.month.toString().padLeft(2, '0')}.${now.day.toString().padLeft(2, '0')}';
 
     final headers = {
       'Event': 'Analysis Studio Session',
-      'Site': 'ChessMaster Mobile App',
+      // Bez dijakritike namerno: PGN izvozni format je po standardu ASCII/Latin-1,
+      // a „Š" nije u Latin-1 — stroži čitači bi ga prikazali kao smeće.
+      'Site': 'Sahovski trener',
       'Date': dateStr,
       'Round': '1',
       'White': 'Player',
       'Black': 'Analysis Engine',
       'Result': '*',
-      if (!rootNode.fen.startsWith('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')) ...{
+      if (!rootNode.fen
+          .startsWith('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')) ...{
         'SetUp': '1',
         'FEN': rootNode.fen,
       },
@@ -61,14 +65,16 @@ class PgnExporterService {
 
     // Main line child (index 0)
     final mainChild = parent.children.first;
-    _writeMoveToken(buffer, mainChild, moveNum, isWhiteTurn, includeEvalComments: includeEvalComments);
+    _writeMoveToken(buffer, mainChild, moveNum, isWhiteTurn,
+        includeEvalComments: includeEvalComments);
 
     // Variations (index 1 to N)
     if (parent.children.length > 1) {
       for (int i = 1; i < parent.children.length; i++) {
         final varChild = parent.children[i];
         buffer.write(' (');
-        _writeMoveToken(buffer, varChild, moveNum, isWhiteTurn, isVariationStart: true, includeEvalComments: includeEvalComments);
+        _writeMoveToken(buffer, varChild, moveNum, isWhiteTurn,
+            isVariationStart: true, includeEvalComments: includeEvalComments);
         _formatNodeChildren(
           buffer,
           varChild,
@@ -117,7 +123,9 @@ class PgnExporterService {
 
     final commentParts = <String>[];
     if (includeEvalComments && node.eval != null) {
-      final evalFormatted = node.eval! > 0 ? '+${node.eval!.toStringAsFixed(2)}' : node.eval!.toStringAsFixed(2);
+      final evalFormatted = node.eval! > 0
+          ? '+${node.eval!.toStringAsFixed(2)}'
+          : node.eval!.toStringAsFixed(2);
       commentParts.add('[%eval $evalFormatted]');
     }
     if (node.comment.isNotEmpty) {

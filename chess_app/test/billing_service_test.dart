@@ -32,7 +32,8 @@ void main() {
       expect(state.quota(Entitlements.aiComments)!.remaining, 0);
     });
 
-    test('a malformed or empty payload degrades to free rather than throwing', () {
+    test('a malformed or empty payload degrades to free rather than throwing',
+        () {
       // A truncated response must never be read as "everything is unlocked".
       final state = EntitlementState.fromJson({});
       expect(state.tier, 'free');
@@ -55,7 +56,8 @@ void main() {
       expect(quota.remaining, -1);
     });
 
-    test('used above limit clamps at zero remaining instead of going negative', () {
+    test('used above limit clamps at zero remaining instead of going negative',
+        () {
       const quota = QuotaInfo(limit: 10, used: 13);
       expect(quota.remaining, 0);
     });
@@ -63,14 +65,15 @@ void main() {
 
   group('displayTitle', () {
     test('strips the app name Play appends to product titles', () {
-      expect(BillingService.displayTitle('Trener Pro (Chess Master)'), 'Trener Pro');
+      expect(BillingService.displayTitle('Trener Pro (Šahovski trener)'),
+          'Trener Pro');
       expect(BillingService.displayTitle('Trener Pro'), 'Trener Pro');
     });
 
     test('keeps parentheses that are part of the name itself', () {
       // Only a trailing parenthetical is removed, and only one.
       expect(
-        BillingService.displayTitle('Klub (do 5 trenera) (Chess Master)'),
+        BillingService.displayTitle('Klub (do 5 trenera) (Šahovski trener)'),
         'Klub (do 5 trenera)',
       );
     });

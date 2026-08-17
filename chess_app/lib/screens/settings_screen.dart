@@ -21,7 +21,8 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _settings = AppSettingsService.instance;
   final _stockfishService = StockfishService();
-  late final _lichessTokenController = TextEditingController(text: _settings.lichessApiToken);
+  late final _lichessTokenController =
+      TextEditingController(text: _settings.lichessApiToken);
 
   static const List<(String, String)> _analysisPanelToggles = [
     ('Stablo poteza', 'move_tree'),
@@ -33,7 +34,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ];
 
   Future<void> _openEngineSettings() async {
-    await showEngineSettingsDialog(context, stockfishService: _stockfishService);
+    await showEngineSettingsDialog(context,
+        stockfishService: _stockfishService);
     await _settings.refreshCustomEnginePath();
   }
 
@@ -42,7 +44,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_settings.lichessApiToken.isEmpty ? 'Token uklonjen.' : 'Lichess token sačuvan.'),
+        content: Text(_settings.lichessApiToken.isEmpty
+            ? 'Token uklonjen.'
+            : 'Lichess token sačuvan.'),
         backgroundColor: Colors.teal,
       ),
     );
@@ -77,7 +81,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               // User Profile Header Card
               Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
                 elevation: 2,
                 color: Theme.of(context).cardColor,
                 child: Padding(
@@ -88,8 +93,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         radius: 28,
                         backgroundColor: Colors.deepPurple,
                         child: Text(
-                          widget.session.name.isNotEmpty ? widget.session.name[0].toUpperCase() : 'K',
-                          style: AppText.display.copyWith(color: context.colors.textPrimary),
+                          widget.session.name.isNotEmpty
+                              ? widget.session.name[0].toUpperCase()
+                              : 'K',
+                          style: AppText.display
+                              .copyWith(color: context.colors.textPrimary),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -103,18 +111,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             Text(
                               widget.session.email,
-                              style: AppText.bodyLarge.copyWith(color: context.colors.textMuted),
+                              style: AppText.bodyLarge
+                                  .copyWith(color: context.colors.textMuted),
                             ),
                             const SizedBox(height: 4),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: Colors.teal.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 'Korisnik',
-                                style: AppText.captionBold.copyWith(color: context.colors.accent),
+                                style: AppText.captionBold
+                                    .copyWith(color: context.colors.accent),
                               ),
                             ),
                           ],
@@ -123,19 +134,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       IconButton(
                         icon: Icon(
                           widget.session.isGuest ? Icons.login : Icons.logout,
-                          color: widget.session.isGuest ? Colors.greenAccent : Colors.redAccent,
+                          color: widget.session.isGuest
+                              ? Colors.greenAccent
+                              : Colors.redAccent,
                         ),
-                        tooltip: widget.session.isGuest ? 'Prijavi se' : 'Odjavi se',
+                        tooltip:
+                            widget.session.isGuest ? 'Prijavi se' : 'Odjavi se',
                         onPressed: () {
                           showDialog(
                             context: context,
                             builder: (ctx) => AlertDialog(
                               title: const Text('Odjava'),
-                              content: const Text('Da li ste sigurni da želite da se odjavite?'),
+                              content: const Text(
+                                  'Da li ste sigurni da želite da se odjavite?'),
                               actions: [
-                                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Otkaži')),
+                                TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text('Otkaži')),
                                 ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.redAccent,
+                                      foregroundColor: Colors.white),
                                   onPressed: () {
                                     Navigator.pop(ctx);
                                     _logout();
@@ -162,11 +181,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // silently did nothing. Re-add it together with real i18n.
 
               const SizedBox(height: 24),
-              Text('STOCKFISH ENGINE', style: AppText.bodyBold.copyWith(color: context.colors.textMuted)),
+              Text('STOCKFISH ENGINE',
+                  style: AppText.bodyBold
+                      .copyWith(color: context.colors.textMuted)),
               const SizedBox(height: 8),
 
               Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -175,15 +197,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Dubina analize Stockfish engine-a (max 50):', style: TextStyle(fontWeight: FontWeight.w500)),
+                          const Text(
+                              'Dubina analize Stockfish engine-a (max 50):',
+                              style: TextStyle(fontWeight: FontWeight.w500)),
                           Text(
                             'Dubina ${_settings.defaultEngineDepth}',
-                            style: TextStyle(fontWeight: FontWeight.bold, color: context.colors.accent),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: context.colors.accent),
                           ),
                         ],
                       ),
                       Slider(
-                        value: _settings.defaultEngineDepth.toDouble().clamp(5.0, 50.0),
+                        value: _settings.defaultEngineDepth
+                            .toDouble()
+                            .clamp(5.0, 50.0),
                         min: 5,
                         max: 50,
                         divisions: 45,
@@ -195,21 +223,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       Text(
                         'Veća dubina daje precizniju analizu (do max 50).',
-                        style: AppText.caption.copyWith(color: context.colors.textMuted),
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Maksimalno vreme razmišljanja engine-a:', style: TextStyle(fontWeight: FontWeight.w500)),
+                          const Text('Maksimalno vreme razmišljanja engine-a:',
+                              style: TextStyle(fontWeight: FontWeight.w500)),
                           Text(
                             '${_settings.defaultEngineMoveTimeSeconds} s',
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.cyanAccent),
                           ),
                         ],
                       ),
                       Slider(
-                        value: _settings.defaultEngineMoveTimeSeconds.toDouble().clamp(1.0, 60.0),
+                        value: _settings.defaultEngineMoveTimeSeconds
+                            .toDouble()
+                            .clamp(1.0, 60.0),
                         min: 1,
                         max: 60,
                         divisions: 59,
@@ -221,21 +255,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       Text(
                         'Engine igra potez čim dostigne ciljanu dubinu ILI čim istekne podešeno vreme (šta se pre dostigne).',
-                        style: AppText.caption.copyWith(color: context.colors.textMuted),
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Broj linija i strelica na tabli (Multi-PV):', style: TextStyle(fontWeight: FontWeight.w500)),
+                          const Text(
+                              'Broj linija i strelica na tabli (Multi-PV):',
+                              style: TextStyle(fontWeight: FontWeight.w500)),
                           Text(
                             '${_settings.defaultMultiPV} ${_settings.defaultMultiPV == 1 ? "linija" : "linije"}',
-                            style: TextStyle(fontWeight: FontWeight.bold, color: context.colors.warning),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: context.colors.warning),
                           ),
                         ],
                       ),
                       Slider(
-                        value: _settings.defaultMultiPV.toDouble().clamp(1.0, 5.0),
+                        value:
+                            _settings.defaultMultiPV.toDouble().clamp(1.0, 5.0),
                         min: 1,
                         max: 5,
                         divisions: 4,
@@ -247,18 +287,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       Text(
                         'Prikazuje od 1 do 5 najboljih alternativnih linija i strelica u poziciji.',
-                        style: AppText.caption.copyWith(color: context.colors.textMuted),
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted),
                       ),
                       if (isCustomEngineSupported) ...[
                         const Divider(height: 24),
-                        const Text('Lokalni engine (.exe):', style: TextStyle(fontWeight: FontWeight.w500)),
+                        const Text('Lokalni engine (.exe):',
+                            style: TextStyle(fontWeight: FontWeight.w500)),
                         const SizedBox(height: 4),
                         Text(
                           _settings.customEnginePath.isNotEmpty
                               ? _settings.customEnginePath
                               : 'Podrazumevani (Online / FFI paket)',
                           style: AppText.caption.copyWith(
-                            color: _settings.customEnginePath.isNotEmpty ? context.colors.accent : context.colors.textMuted,
+                            color: _settings.customEnginePath.isNotEmpty
+                                ? context.colors.accent
+                                : context.colors.textMuted,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -277,11 +321,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 24),
-              Text('IZGLED TABLE I PANELA', style: AppText.bodyBold.copyWith(color: context.colors.textMuted)),
+              Text('IZGLED TABLE I PANELA',
+                  style: AppText.bodyBold
+                      .copyWith(color: context.colors.textMuted)),
               const SizedBox(height: 8),
 
               Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -290,10 +337,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Veličina table:', style: TextStyle(fontWeight: FontWeight.w500)),
+                          const Text('Veličina table:',
+                              style: TextStyle(fontWeight: FontWeight.w500)),
                           Text(
                             '${(_settings.boardSizeScale * 100).round()}%',
-                            style: TextStyle(fontWeight: FontWeight.bold, color: context.colors.accent),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: context.colors.accent),
                           ),
                         ],
                       ),
@@ -310,16 +360,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       Text(
                         'Smanjite tablu da biste oslobodili više prostora za panele pored nje.',
-                        style: AppText.caption.copyWith(color: context.colors.textMuted),
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Animacija poteza:', style: TextStyle(fontWeight: FontWeight.w500)),
+                          const Text('Animacija poteza:',
+                              style: TextStyle(fontWeight: FontWeight.w500)),
                           Text(
-                            _settings.moveAnimationDurationMs == 0 ? 'Isključeno' : '${_settings.moveAnimationDurationMs} ms',
-                            style: TextStyle(fontWeight: FontWeight.bold, color: context.colors.accent),
+                            _settings.moveAnimationDurationMs == 0
+                                ? 'Isključeno'
+                                : '${_settings.moveAnimationDurationMs} ms',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: context.colors.accent),
                           ),
                         ],
                       ),
@@ -328,7 +384,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         min: 0,
                         max: 500,
                         divisions: 10,
-                        label: _settings.moveAnimationDurationMs == 0 ? 'Isključeno' : '${_settings.moveAnimationDurationMs} ms',
+                        label: _settings.moveAnimationDurationMs == 0
+                            ? 'Isključeno'
+                            : '${_settings.moveAnimationDurationMs} ms',
                         activeColor: context.colors.accent,
                         onChanged: (val) {
                           _settings.setMoveAnimationDurationMs(val.round());
@@ -336,10 +394,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       Text(
                         'Koliko dugo figura klizi ka odredišnom polju. Krajnje levo isključuje animaciju.',
-                        style: AppText.caption.copyWith(color: context.colors.textMuted),
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
-                      const Text('Paneli u Analizi (Tabla za Analizu):', style: TextStyle(fontWeight: FontWeight.w500)),
+                      const Text('Paneli u Analizi (Tabla za Analizu):',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: 4),
                       ..._analysisPanelToggles.map((panel) => CheckboxListTile(
                             contentPadding: EdgeInsets.zero,
@@ -360,10 +420,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         dense: true,
                         visualDensity: VisualDensity.compact,
                         value: _settings.manualCommentMode,
-                        title: const Text('Ručno biranje komentara u stablu poteza', style: AppText.bodyLarge),
+                        title: const Text(
+                            'Ručno biranje komentara u stablu poteza',
+                            style: AppText.bodyLarge),
                         subtitle: Text(
                           'Isključi automatski komentar — sam biraš koje nalaze da zadržiš iz ponuđene liste.',
-                          style: AppText.caption.copyWith(color: context.colors.textMuted),
+                          style: AppText.caption
+                              .copyWith(color: context.colors.textMuted),
                         ),
                         activeColor: context.colors.accent,
                         onChanged: (val) {
@@ -376,17 +439,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 24),
-              Text('BAZA OTVARANJA (OPENING EXPLORER)', style: AppText.bodyBold.copyWith(color: context.colors.textMuted)),
+              Text('BAZA OTVARANJA (OPENING EXPLORER)',
+                  style: AppText.bodyBold
+                      .copyWith(color: context.colors.textMuted)),
               const SizedBox(height: 8),
 
               Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Izvor podataka:', style: TextStyle(fontWeight: FontWeight.w500)),
+                      const Text('Izvor podataka:',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -394,7 +461,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: ChoiceChip(
                               label: const Text('Lichess'),
                               selected: _settings.openingDbSource == 'lichess',
-                              onSelected: (_) => _settings.setOpeningDbSource('lichess'),
+                              onSelected: (_) =>
+                                  _settings.setOpeningDbSource('lichess'),
                               avatar: const Icon(Icons.bar_chart, size: 16),
                             ),
                           ),
@@ -403,7 +471,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: ChoiceChip(
                               label: const Text('ChessDB'),
                               selected: _settings.openingDbSource == 'chessdb',
-                              onSelected: (_) => _settings.setOpeningDbSource('chessdb'),
+                              onSelected: (_) =>
+                                  _settings.setOpeningDbSource('chessdb'),
                               avatar: const Icon(Icons.memory, size: 16),
                             ),
                           ),
@@ -414,12 +483,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _settings.openingDbSource == 'lichess'
                             ? 'Lichess: popularnost poteza iz stvarno odigranih partija igrača. Zahteva besplatni API token ispod — bez njega se automatski koristi ChessDB.'
                             : 'ChessDB: procena kvaliteta poteza iz deljene baze motorske analize (chessdb.cn) — ne zahteva token, ali ne pokazuje statistiku partija.',
-                        style: AppText.caption.copyWith(color: context.colors.textMuted),
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
                       Text(
                         'Lichess sada zahteva lični API token za pristup bazi otvaranja (statistika poteza iz odigranih partija). Napravite besplatan token na lichess.org/account/oauth/token (nije potrebna nijedna dozvola/scope) i nalepite ga ovde.',
-                        style: AppText.caption.copyWith(color: context.colors.textMuted),
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted),
                       ),
                       const SizedBox(height: 12),
                       TextField(
@@ -432,7 +503,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           isDense: true,
                           border: const OutlineInputBorder(),
                           suffixIcon: _settings.lichessApiToken.isNotEmpty
-                              ? Icon(Icons.check_circle, color: context.colors.accent, size: 18)
+                              ? Icon(Icons.check_circle,
+                                  color: context.colors.accent, size: 18)
                               : null,
                         ),
                       ),
@@ -453,7 +525,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 32),
               Center(
                 child: Text(
-                  'ChessMaster v2.0 • Pro Edition',
+                  'Šahovski trener v2.0 • Pro Edition',
                   style: AppText.body.copyWith(color: context.colors.textMuted),
                 ),
               ),

@@ -32,7 +32,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
 
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   late final Future<void> _googleSignInInit = _googleSignIn.initialize(
-    clientId: (kIsWeb && googleWebClientId.isNotEmpty) ? googleWebClientId : null,
+    clientId:
+        (kIsWeb && googleWebClientId.isNotEmpty) ? googleWebClientId : null,
     serverClientId: googleWebClientId.isNotEmpty ? googleWebClientId : null,
   );
 
@@ -43,7 +44,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
 
   Future<void> _handleGoogleSignIn() async {
     if (kIsWeb && googleWebClientId.isEmpty) {
-      _showError('Google Sign-In na Webu zahteva Web ClientID u constants.dart ili web/index.html.');
+      _showError(
+          'Google Sign-In na Webu zahteva Web ClientID u constants.dart ili web/index.html.');
       return;
     }
 
@@ -80,7 +82,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
           final data = jsonDecode(response.body);
           _showError(data['error'] ?? 'Google prijava nije uspela.');
         } catch (_) {
-          _showError('Greška na serveru prilikom Google prijave (Status ${response.statusCode}).');
+          _showError(
+              'Greška na serveru prilikom Google prijave (Status ${response.statusCode}).');
         }
       }
     } on GoogleSignInException catch (e) {
@@ -122,7 +125,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
           final data = jsonDecode(response.body);
           _showError(data['error'] ?? 'Verifikacija nije uspela.');
         } catch (_) {
-          _showError('Greška pri verifikaciji (Status ${response.statusCode}).');
+          _showError(
+              'Greška pri verifikaciji (Status ${response.statusCode}).');
         }
       }
     } catch (e) {
@@ -163,7 +167,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
           setState(() {
             _isAwaitingVerification = true;
           });
-          _showSuccess(data['error'] ?? 'Unesite verifikacioni kod poslat na email.');
+          _showSuccess(
+              data['error'] ?? 'Unesite verifikacioni kod poslat na email.');
         } else {
           _showError(data['error'] ?? 'Prijava nije uspela.');
         }
@@ -180,11 +185,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         );
 
         final data = jsonDecode(response.body);
-        if (response.statusCode == 201 || data['requiresVerification'] == true) {
+        if (response.statusCode == 201 ||
+            data['requiresVerification'] == true) {
           setState(() {
             _isAwaitingVerification = true;
           });
-          _showSuccess(data['message'] ?? 'Kod za verifikaciju je generisan! Unesite 6-cifreni kod.');
+          _showSuccess(data['message'] ??
+              'Kod za verifikaciju je generisan! Unesite 6-cifreni kod.');
         } else {
           _showError(data['error'] ?? 'Registracija nije uspela.');
         }
@@ -204,7 +211,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     // go() rather than push(): after signing in there is nothing meaningful to
     // go "back" to, and the login screen should not stay on the stack.
     // A guest declining to log in must not silently run a login-gated action.
-    context.go(AppRoutes.home, extra: session.isGuest ? null : widget.pendingIntent);
+    context.go(AppRoutes.home,
+        extra: session.isGuest ? null : widget.pendingIntent);
   }
 
   void _showError(String message) {
@@ -256,14 +264,17 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             key: _formKey,
             child: Card(
               elevation: 8,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _isAwaitingVerification ? Icons.mark_email_unread : Icons.emoji_events,
+                      _isAwaitingVerification
+                          ? Icons.mark_email_unread
+                          : Icons.emoji_events,
                       size: 64,
                       color: Theme.of(context).colorScheme.primary,
                     ),
@@ -271,15 +282,19 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     Text(
                       _isAwaitingVerification
                           ? 'Unesite Verifikacioni Kod'
-                          : (_isLogin ? 'Chess Master Login' : 'Registracija Naloga'),
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          : (_isLogin
+                              ? 'Šahovski trener'
+                              : 'Registracija Naloga'),
+                      style: const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 24),
                     if (_isAwaitingVerification) ...[
                       Text(
                         'Poslat je verifikacioni kod na ${_emailController.text}.\n(U dev okruženju kod se ispisuje u backend logovima).',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                        style:
+                            const TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -291,7 +306,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                         ),
                         keyboardType: TextInputType.number,
                         maxLength: 6,
-                        validator: (val) => val == null || val.length != 6 ? 'Unesite 6 cifara' : null,
+                        validator: (val) => val == null || val.length != 6
+                            ? 'Unesite 6 cifara'
+                            : null,
                       ),
                       const SizedBox(height: 16),
                     ] else ...[
@@ -303,8 +320,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                             prefixIcon: Icon(Icons.person),
                             border: OutlineInputBorder(),
                           ),
-                          validator: (value) =>
-                              value == null || value.isEmpty ? 'Unesite ime' : null,
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'Unesite ime'
+                              : null,
                         ),
                         const SizedBox(height: 16),
                       ],
@@ -317,7 +335,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                         ),
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) =>
-                            value == null || !value.contains('@') ? 'Unesite validnu email adresu' : null,
+                            value == null || !value.contains('@')
+                                ? 'Unesite validnu email adresu'
+                                : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -328,12 +348,14 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           border: OutlineInputBorder(),
                         ),
                         obscureText: true,
-                        validator: (value) =>
-                            value == null || value.length < 6 ? 'Lozinka mora imati bar 6 karaktera' : null,
+                        validator: (value) => value == null || value.length < 6
+                            ? 'Lozinka mora imati bar 6 karaktera'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       CheckboxListTile(
-                        title: const Text('Zapamti me', style: TextStyle(fontSize: 14)),
+                        title: const Text('Zapamti me',
+                            style: TextStyle(fontSize: 14)),
                         value: _rememberMe,
                         activeColor: Theme.of(context).primaryColor,
                         controlAffinity: ListTileControlAffinity.leading,
@@ -363,7 +385,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                                   ),
                                   child: Text(_isAwaitingVerification
                                       ? 'Potvrdi Verifikaciju'
-                                      : (_isLogin ? 'Prijavi Se' : 'Registruj Se')),
+                                      : (_isLogin
+                                          ? 'Prijavi Se'
+                                          : 'Registruj Se')),
                                 ),
                               ),
                               if (!_isAwaitingVerification && _isLogin) ...[
@@ -376,11 +400,17 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                                     icon: Image.network(
                                       'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
                                       height: 18,
-                                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, size: 24),
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const Icon(Icons.g_mobiledata,
+                                                  size: 24),
                                     ),
-                                    label: const Text('Prijavi se preko Google-a'),
+                                    label:
+                                        const Text('Prijavi se preko Google-a'),
                                     style: OutlinedButton.styleFrom(
-                                      side: BorderSide(color: Theme.of(context).primaryColor),
+                                      side: BorderSide(
+                                          color:
+                                              Theme.of(context).primaryColor),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
