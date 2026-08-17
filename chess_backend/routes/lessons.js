@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { acceptedTrainersOf } = require('../services/relationshipService');
 
 // POST /lessons/save
 router.post('/save', authenticateToken, async (req, res) => {
@@ -79,7 +80,7 @@ router.get('/labels', authenticateToken, async (req, res) => {
        FROM saved_lessons 
        WHERE user_id = $1 
           OR trainer_id = $1 
-          OR trainer_id IN (SELECT trainer_id FROM trainer_students WHERE student_id = $1) 
+          OR trainer_id IN (${acceptedTrainersOf('$1')})
        ORDER BY label ASC`,
       [req.user.id]
     );
@@ -99,7 +100,7 @@ router.get('/', authenticateToken, async (req, res) => {
       SELECT id, title, description, tags, fen, pgn, position_list, created_at,
              (trainer_id != $1 AND user_id != $1) AS is_trainer_lesson
       FROM saved_lessons 
-      WHERE (user_id = $1 OR trainer_id = $1 OR trainer_id IN (SELECT trainer_id FROM trainer_students WHERE student_id = $1))
+      WHERE (user_id = $1 OR trainer_id = $1 OR trainer_id IN (${acceptedTrainersOf('$1')}))
     `;
     const params = [req.user.id];
 

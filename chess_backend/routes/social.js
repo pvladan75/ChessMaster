@@ -144,6 +144,13 @@ router.post('/relationships/:id/decline', authenticateToken, async (req, res) =>
       accept: false,
     });
     if (!result.ok) return res.status(403).json({ error: result.reason });
+
+    await relationships.notifyDecline(pool, {
+      recipientId: result.senderId,
+      declinerId: req.user.id,
+      declinerName: req.user.name || 'Korisnik',
+    });
+
     res.json({ message: 'Zahtev je odbijen.' });
   } catch (err) {
     logger.error('Error declining relationship:', err);

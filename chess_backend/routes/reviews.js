@@ -10,6 +10,7 @@ const logger = require('../services/logger');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const srs = require('../services/spacedRepetitionService');
+const { acceptedTrainersOf } = require('../services/relationshipService');
 
 // GET /reviews/due — positions ready to be reviewed now.
 router.get('/due', authenticateToken, async (req, res) => {
@@ -56,7 +57,7 @@ router.post('/grade', authenticateToken, async (req, res) => {
        WHERE l.id = $1
          AND (l.user_id = $2
               OR l.trainer_id = $2
-              OR l.trainer_id IN (SELECT trainer_id FROM trainer_students WHERE student_id = $2)
+              OR l.trainer_id IN (${acceptedTrainersOf('$2')})
               OR EXISTS (SELECT 1 FROM assignments a WHERE a.lesson_id = l.id AND a.student_id = $2))`,
       [lessonId, req.user.id]
     );
