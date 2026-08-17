@@ -8,7 +8,55 @@ Poređano od najbržeg za proveru ka najsporijem.
 
 ---
 
-## 0. Pristanak na odnos trener–učenik — novo 16.8.2026, nikad viđeno uživo
+## 0. Pristanak na odnos trener–učenik — ✅ provereno uživo 17.8.2026
+
+Korisnik je prošao ceo tok na telefonu: poziv sa naloga trenera → red „čeka
+potvrdu" posivljen kod pozivaoca → kartica „Čeka vaš odgovor (1)" sa tekstom
+„želi da vas upiše kao učenika" kod pozvanog → prihvatanje → zadata lekcija.
+Potvrđeno i u bazi: veza je prešla u `accepted` sa upisanim `responded_at`,
+prijateljstvo je nastalo tek tada, a zadatak je napravljen dva minuta posle
+prihvatanja.
+
+**Nađeno pri toj probi, popravljeno istog dana:** kod trenera se prihvatanje
+nije videlo dok se aplikacija ne ugasi i ponovo pokrene — lista se dohvatala
+samo pri pokretanju. Sad se osvežava pri ulasku u tab i na povlačenje nadole.
+Uz to je notifikacija koja nosi zahtev ostajala **nepročitana zauvek**, pa je
+zvonce trajno pokazivalo broj za nešto već rešeno.
+
+**Uzajaman par raskinut 17.8.2026.** Korisnik ga je obrisao iz aplikacije, sa
+jedne strane; nestala su **oba** reda odjednom (`removeRelationship` briše u oba
+smera) i oba reda u `friends`. U bazi više nema nijednog uzajamnog para, a jedina
+preostala veza je nastala kroz pristanak i nosi `initiated_by`. Time je zatečenih
+podataka iz vremena pre pristanka nestalo.
+
+**Drugi smer i odbijanje — ✅ provereno uživo 17.8.2026.** Korisnik je poslao
+zahtev sa naloga trenera birajući **„Ja sam učenik"**; druga strana je dobila
+tačan tekst za taj smer („želi da mu budete trener", ne obrnuto), pa ga je
+odbila. Red je nestao iz `trainer_students`, a notifikacija koja ga je nosila
+prešla je u `is_read = true` — dakle i sinoćna popravka radi na živim podacima.
+
+**Odbijanje zabrane uzajamnog para — ✅ provereno uživo 17.8.2026.** Pokušaj da
+se zasnuje odnos u suprotnom smeru od postojećeg vraća poruku i ne pravi red.
+
+Ostaje da se proveri uživo:
+
+- Ponovno slanje posle odbijanja. Tabela je posle probe prazna, pa ništa ne
+  stoji na putu, ali sam potez nije ponovljen.
+
+**Obaveštenje o odbijanju — napisano 17.8.2026, nije viđeno uživo.** Nađeno pri
+gornjoj probi: pošiljalac odbijenog zahteva nije dobijao **nikakav** trag, pa sa
+njegove strane „odbijen sam" i „nikad nisam ni poslao" izgleda isto. Sad mu stiže
+obaveštenje „*X nije prihvatio vaš zahtev.*", bez razloga — vrsta
+`request_declined`, bez dugmadi.
+
+**Kako proveriti:** pošalji zahtev, odbij ga sa druge strane, pa se vrati na
+nalog pošiljaoca i otvori zvonce. Servis je pokriven testovima; **poziv iz rute
+`/relationships/:id/decline` nije nijednom izvršen na živim podacima.** Gledaj i
+da se obaveštenje prikaže kao običan tekst — klijent ne grana po `kind`-u, pa bi
+nova vrsta trebalo da prođe kao svaka druga, ali to niko nije video.
+
+<details>
+<summary>Prvobitni opis provere (16.8.2026)</summary>
 
 **Kako:** Prijatelji → unesi email → „Dodaj prijatelja". Sad se šalje **poziv**, a
 ne veza. Prijavi se kao druga strana → isti tab → kartica „Čeka vaš odgovor" →
@@ -22,12 +70,21 @@ kvačica.
 - Posle prihvatanja: zadavanje zagonetki i lekcije mora da proradi **odmah**, bez
   ponovne prijave.
 - Odbijanje briše zahtev; ponovno slanje mora da radi.
-- Zahtev radi i u drugom smeru (`POST /students/trainers/request`), ali za to
-  **još nema dugmeta u aplikaciji** — proverljivo samo pozivom rute.
+- Oba smera sada imaju dugme: iznad polja za email biraš **„Ja sam trener"** ili
+  **„Ja sam učenik"**, i natpis polja se menja u skladu s tim. Proveriti da
+  izbor „Ja sam učenik" stvarno stigne kao *zahtev treneru* — druga strana mora
+  da vidi „želi da mu budete trener", ne obrnuto.
 
 > **Zatečeni podaci:** tri postojeće veze su prešle kao `accepted`, i među njima
 > je i **uzajaman par** koji je i bio bag (dvoje koji su dodali jedan drugog).
-> Ispravka sprečava nove takve, ali taj par treba ručno raskinuti iz aplikacije.
+> Taj par je raskinut 17.8.2026.
+>
+> **Ispravka ih ne sprečava** — suprotno onome što je ovde ranije pisalo.
+> `requestRelationship` proverava postojeći red samo u **istom** smeru
+> (`trainer_id = $1 AND student_id = $2`), pa je obrnuti red drugi red i prolazi.
+> Pristanak čini da par više ne može da nastane nečujno, ali može da nastane.
+
+</details>
 
 ## 0b. Reprodukcija snimaka posle prelaska na relativne putanje — 16.8.2026
 

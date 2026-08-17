@@ -19,9 +19,9 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 186 tests
+cd chess_app && flutter test          # 206 tests
 cd chess_app && flutter analyze       # must be clean
-cd chess_backend && npm test          # node --test, 101 tests
+cd chess_backend && npm test          # node --test, 133 tests
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -100,19 +100,29 @@ and nowhere else. `.app` is HSTS-preloaded, so browsers never use plain HTTP and
 closing 80 looks like tidying up; it silently breaks renewal, and the site
 disappears three months later. Same shape as everything in the section above.
 
-## Known open issue
+## Consent: built, and where it still has holes
 
-Nothing decides who is a trainer. `users.role` is hard-coded to `'korisnik'` at
-registration and never becomes `'trener'`; the teaching relationship is a
-`trainer_students` row that **any user can create for any email, with no consent
-from the other side**. So a student can assign homework to their trainer, and
-the parent-report endpoint trusts the same one-sided edge.
+*Trainer* is a position in a relationship, not a property of a person, so
+`users.role` plays no part in teaching — the same account is a trainer in one
+edge and a student in another. `users.role` survives only for `'admin'`.
 
-The replacement is agreed and written up in `docs/STANJE-RADA.md` ("Dogovoren
-model uloga i nadzora") but not yet built. Its premise: *trainer* is a position
-in a relationship, not a property of a person, so `users.role` stays out of it
-entirely — the same person is a trainer in one edge and a student in another.
-Rights come only from an edge both sides accepted, a parent's consent is
-recorded (never verified — that is impossible) against the version of the text
-they agreed to, and a parent may observe any lesson without the trainer knowing
-which one, having accepted that rule at registration.
+A `trainer_students` row grants nothing until `status = 'accepted'`, and either
+side may start the request; the sender chooses which capacity they are claiming.
+**Verified live by the user on 17.8.2026**: invitation, greyed-out pending row,
+acceptance, and assigning a lesson immediately afterwards.
+
+Rights are read through exactly two places, and new code must use them rather
+than write the condition again:
+
+- `trainerOwnsStudent` (`services/assignmentService.js`) — homework, reports.
+- `acceptedTrainersOf` (`services/relationshipService.js`) — anything a student
+  reads *because* someone teaches them.
+
+Three hand-written copies of that second subquery all forgot the status, so an
+unanswered request already unlocked the sender's lessons. A test reads the source
+and fails if a fourth copy appears.
+
+Still open: **the parent half**. The `parent_consent_*` columns exist and are
+empty — no flow writes them, and the consent text is waiting on a lawyer. Parent
+observation of a lesson is designed (`docs/STANJE-RADA.md`, "Dogovoren model
+uloga i nadzora") and not built.

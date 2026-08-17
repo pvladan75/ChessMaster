@@ -567,6 +567,161 @@ Odlučeno i spremno za pisanje: tačke 1, 2 i 4 — pristanak, smer, i posmatran
 postupak dovoljan po ZZPL-u. **Kolone se ipak dodaju odmah**, jer prazna kolona
 danas ne košta ništa, a ista kolona nad živim podacima kasnije košta migraciju.
 
+## Odbijanje više ne ćuti — 17.8.2026
+
+Odbijen zahtev se briše, i to namerno: bez toga ponovno slanje ne bi radilo. Ali
+pošiljalac je ostajao bez ijednog traga — nema obaveštenja, stavka nestane iz
+liste — pa sa njegove strane „odbijen sam" i „nikad nisam ni poslao" izgleda
+isto. Prirodan odgovor na to je da pošalje ponovo, i opet.
+
+Sad `POST /relationships/:id/decline` javlja pošiljaocu: „*X nije prihvatio vaš
+zahtev.*" Nova vrsta obaveštenja `request_declined`, `ref_id` prazan, jer nema
+šta da se odgovori.
+
+Namerno **bez razloga za odbijanje** — ne traži se i ne prosleđuje. Odbijanje
+koje mora da se obrazloži teže se daje, a ovde odbijaju i deca.
+
+Pošiljalac je uzet kao „onaj drugi učesnik", ne kao trener: zahtev pokreće bilo
+koja strana, pa pošiljalac sedi čas u jednoj čas u drugoj koloni.
+
+## Uzajaman par se više ne može ni napraviti — ✅ 17.8.2026
+
+Korisnik je pitao pre nego što je instalirao: šta ako je A trener osobi B, pa B
+pošalje zahtev da bude trener osobi A? Odgovor je bio da to prolazi.
+
+`requestRelationship` je postojeći odnos tražio **samo u istom smeru**
+(`trainer_id = $1 AND student_id = $2`). Obrnuti red je drugi red, pa ga taj
+upit ne vidi — i par u kome se dvoje uzajamno uče mogao je da nastane i posle
+uvođenja pristanka. Pristanak je samo učinio da ne nastane nečujno: druga strana
+klikne na karticu koja piše „želi da vas upiše kao učenika", bez ijedne reči o
+tome da odnos u suprotnom smeru već traje.
+
+Dokumentacija je pritom tvrdila suprotno („ispravka sprečava nove takve"), što je
+ispravljeno u `TODO-provera.md`.
+
+Sad upit gleda oba smera i odbija, uz poruku koja kaže **šta je zatekao**:
+
+- odnos već postoji u suprotnom smeru → „Sa tom osobom već postoji odnos — ona je
+  vaš trener. Raskinite ga pre nego što zatražite obrnuto."
+- zahtev u suprotnom smeru još čeka → „Rešite njega pre nego što pošaljete ovaj."
+
+Odbija se i kad je obrnuti zahtev tek `pending`, iz istog razloga: dva reda ne
+smeju da odlučuju ko kome zadaje domaći.
+
+Zašto odbijanje, a ne upozorenje: premisa modela je da je *trener* pozicija u
+odnosu — ali u **jednom** odnosu. Par u kome su oboje i trener i učenik čini sva
+prava simetričnim nad dečjim podacima i ne opisuje ništa što se dešava na času.
+Ako dvoje zaista menjaju uloge, ispravan potez je raskid pa nov odnos u drugom
+smeru; test `the reverse row does not block once it is gone` čuva da taj put
+zaista bude otvoren, da odbijanje ne postane ćorsokak.
+
+Klijent ne treba menjati — `_addStudent` već ispisuje `data['error']`.
+
+## Tab Prijatelji je poricao pola odnosa — ✅ popravljeno 17.8.2026
+
+Nađeno uživo, i najlepše se vidi na dva ekrana istovremeno: nalog trenera vidi
+učenika u listi, a učenik na svom telefonu čita **„Nemate još uvek dodatih
+prijatelja"** — za isti, prihvaćen odnos.
+
+Tab je crtao samo `/trainer/students`, dakle ljude kojima si **ti** trener.
+Ruta `/students/trainers` postoji od početka i vraća drugu polovinu, ali je
+klijent nikad nije pozvao. Odnos je jedan red čitan sa dva kraja; prikazivan je
+samo jedan kraj.
+
+Sad su dve sekcije, **„Moji učenici"** i **„Moji treneri"**, iz obe rute. Red
+trenera nema dugme za napredak i zadatke — to pripada onome ko predaje — ali
+**ima** raskid: pristanak koji se ne može povući sa jedne strane nije pristanak.
+
+Uz to se `pending` red filtrira po `i_asked`: zahtev koji čeka **mene** stoji
+samo u kartici „Čeka vaš odgovor", a ne i dole u listi. Bez toga bi ista osoba
+bila na ekranu dvaput — jednom sa kvačicom i krstićem, jednom posivljena.
+
+## Prihvatanje se nije videlo bez restarta — ✅ popravljeno 17.8.2026
+
+Nađeno uživo, u samoj probi pristanka: učenik je prihvatio na telefonu, a kod
+trenera je i dalje stajalo „čeka potvrdu" dok aplikaciju nije ugasio i ponovo
+pokrenuo. Lista se dohvatala **samo u `initState`** — druga strana odgovara na
+svom uređaju, a ovom niko ništa ne javlja.
+
+Sad se osvežava pri ulasku u tab Prijatelji i na povlačenje nadole
+(`RefreshIndicator`, uz `AlwaysScrollableScrollPhysics` — bez toga geste nema
+kad je lista kratka, a to je baš slučaj kad ekran izgleda zastarelo).
+
+Nije rađeno preko socket-a namerno: sokete ovde drže sobe časa, a ne korisnici,
+pa bi to tražilo registar korisnik→socket. Ovo rešava isti problem i kad je
+aplikacija bila u pozadini.
+
+Uz istu probu nađeno i drugo: notifikacija koja nosi zahtev ostajala je
+**nepročitana zauvek**. Kartica nestane sama (crta se iz `trainer_students`),
+ali notifikacija je zaseban red, pa je zvonce trajno pokazivalo broj za nešto
+već rešeno — a posle odbijanja `ref_id` pokazuje na red koji više ne postoji.
+Sad je `respondToRequest` zatvara, u oba ishoda, i to „best effort": odgovoren
+zahtev se ne poništava zato što notifikacija nije pospremljena.
+
+## Smer odnosa se sada bira, ne pogađa — ✅ 17.8.2026
+
+Model je od početka imao oba smera (`initiatorIsTrainer` u
+`relationshipService.js`, dve rute), ali je aplikacija umela da pošalje **samo
+jedan**: ko prvi unese tuđu adresu, taj postaje trener. Ništa nije pucalo —
+odnos je prosto bio naopak, a jedini izlaz je bio da pogrešan trener obriše vezu
+i zamoli drugoga da je napravi.
+
+Sada se iznad polja za email bira **„Ja sam trener" / „Ja sam učenik"**, natpis
+polja prati izbor (`Email učenika` / `Email trenera`), a ispod stoji rečenica ko
+koga uči. Dugme više ne piše „Dodaj prijatelja" nego „Pošalji zahtev", jer to i
+radi — veza nastaje tek kad druga strana potvrdi.
+
+Ruta i naziv polja žive na jednom mestu
+([relationship_request_target.dart](../chess_app/lib/models/relationship_request_target.dart));
+dve rute se razlikuju i po ključu (`studentEmail` vs `trainerEmail`), a
+zamena ključa pada uz poruku „email je obavezan", koja o ulogama ne kaže ništa.
+
+Usput nađeno testom: zaglavlje kartice u tabu Prijatelji **prelivalo se preko
+desne ivice na 360 px**. Tab dotad nikad nije bio renderovan na širini telefona.
+
+## Pristanak je propuštao lekcije — ✅ popravljeno 17.8.2026
+
+Nađeno tokom same probe pristanka uživo (stavka 0 u `TODO-provera.md`), nad
+pravim podacima: dok je veza stajala kao `pending`, pozvani korisnik je već
+video **sve lekcije** onoga ko ga je pozvao.
+
+Uzrok: `trainerOwnsStudent` traži `status='accepted'` i čuva zadatke i izveštaje,
+ali tri upita nisu išla kroz njega nego su podupit pisala rukom — i sva tri su
+izostavila status. Dva u `routes/lessons.js` (lista lekcija i lista oznaka) i
+jedan u `routes/reviews.js` (pristup lekciji pri ocenjivanju).
+
+Gori je bio drugi smer: `POST /students/trainers/request` prima bilo koju adresu
+i jednostrano pravi red `trainer_id=druga strana, student_id=ja`. Znači svako je
+mogao da napravi zahtev koji niko ne odobri i time čita tuđe deljene lekcije.
+
+Popravka nije bila „dodaj uslov na tri mesta" nego **`acceptedTrainersOf` u
+`relationshipService.js`**, jedan izvor tog podupita, koji uz to pukne ako mu se
+prosledi vrednost umesto oznake parametra. Uz to test koji čita izvorni kod i
+pada ako se bilo gde pojavi četvrta ručno pisana kopija — jer je ovo greška koja
+se u ponašanju **ne vidi**: svi ekrani rade, samo pristanak ne znači ništa.
+
+Provereno i nad bazom, ne samo testom: isti upit koji je pre popravke vraćao tri
+lekcije, posle nje vraća nula, sa vezom koja je i dalje `pending`.
+
+## Prijava je ćutala o nalogu bez lozinke — ✅ popravljeno 17.8.2026
+
+Nalozi napravljeni kroz Google prijavu nemaju lozinku — kolona je `NOT NULL`, pa
+`/auth/google` upiše oznaku umesto hesa. `bcrypt.compare` protiv te oznake vraća
+`false` bez greške, pa je takav nalog na **svaku** lozinku odgovarao „Invalid
+email or password". Tačan odgovor koji šalje čoveka da traži grešku u kucanju
+koje nema, i nalog je nedostupan sa Windows-a (gde `google_sign_in` ne postoji) i
+sa Androida (dok se ne registruje nov OAuth klijent, korak 2 u
+`TODO-objavljivanje.md`).
+
+Sad `/login` prepozna oznaku i kaže da nalog koristi Google prijavu, uz
+`usesGoogle: true` u odgovoru. Klijent to prikazuje bez izmene, jer već ispisuje
+`data['error']`.
+
+Svesno prihvaćeno: ta poruka **potvrđuje da nalog postoji**, što generički
+odgovor iznad namerno ne radi. Ista se stvar ionako saznaje sa
+`/students/trainers/request`, ruta ima ograničenje od 20 pokušaja na 15 minuta, a
+alternativa je nalog do kog se ne može doći.
+
 ## Snimci više ne nose adresu servera u sebi — ✅ 16.8.2026
 
 Nađeno pri pripremi prebacivanja, i zaustavilo bi ga na sam dan.
