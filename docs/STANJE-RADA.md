@@ -1040,6 +1040,30 @@ Dakle oko **2% domaćeg** reklo bi detetu „netačno" za ispravan mat. Dete koj
 nađe drugi mat je rešilo zadatak, a poruka da nije uči ga da ne veruje
 aplikaciji — i bilo bi u pravu.
 
+### „Dobrodošli, Vladan" ne znači da postoji server — 19.8.2026
+
+Primećeno na telefonu: aplikacija pozdravlja imenom iako backend uopšte nije bio
+pokrenut. Pozdrav dokazuje samo da **uređaj pamti prijavu** — `SessionService`
+je vraća iz `SharedPreferences` i nikad je ne proverava, ni da li token važi ni
+da li server postoji. Oba slučaja izgledaju identično kao ispravna prijava, pa
+se otkriju tek kad nešto ne uspe da se sačuva.
+
+Dodat je `GET /session/check`: bez ijednog upita u bazu, odgovara samo na to da
+li server postoji i da li token još nešto znači. Dovoljno jeftino da se zove pri
+svakom pokretanju.
+
+`ServerStatusService` razlikuje četiri stanja, i **`unknown` nije uveravanje** —
+dok se ne dobije odgovor, ekran ćuti umesto da tvrdi da je sve u redu. Kad
+odgovor stigne, ispod pozdrava piše šta je stvarno:
+
+- *nema veze sa serverom* — prijava je zapamćena, ali ništa se ne čuva
+- *prijava je istekla* — server odgovara i odbija token (traje 7 dana, pa je ovo
+  pitanje vremena, ne izuzetak)
+
+Namerno se **ne odjavljuje**: sesija na uređaju može biti sasvim ispravna, samo
+trenutno ne može ništa da uradi. To su dve različite stvari i spajanje im je i
+bila greška.
+
 ### Tabla bez zadatka nije vežba — 19.8.2026
 
 Korisnikovo zapažanje, i starije od skenera: trener sačuva poziciju, uključi je u

@@ -11,6 +11,7 @@ import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/services/session_service.dart';
+import 'package:chess_app/services/server_status_service.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/services/billing_service.dart';
 import 'package:chess_app/features/assignments/screens/my_assignments_screen.dart';
@@ -117,6 +118,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _billing = BillingService(authToken: widget.session.token);
     if (!widget.session.isGuest) {
+      // Before anything else: does being signed in currently mean anything?
+      // Everything below assumes a server that answers, and when none does the
+      // screen should say so rather than fail one request at a time.
+      ServerStatusService.instance.check(widget.session.token);
       // Also picks up a subscription bought on another device and finishes any
       // purchase whose verification was interrupted.
       _billing.init();

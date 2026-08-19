@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { pool } = require('../db');
-const { JWT_SECRET } = require('../middleware/auth');
+const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
 const mailService = require('../services/mailService');
 const { GOOGLE_PLACEHOLDER_HASH, isPasswordlessHash } = require('../services/googleAccount');
 
@@ -317,6 +317,25 @@ router.post(['/google', '/auth/google'], async (req, res) => {
     logger.error('[GOOGLE_AUTH_ERROR]', err);
     res.status(500).json({ error: 'Greška na serveru prilikom Google prijave: ' + (err.message || err.toString()) });
   }
+});
+
+// GET /session/check — is the server there, and does this token still mean
+// anything?
+//
+// A remembered login is restored from the phone's own storage, so the app can
+// greet someone by name while the backend is switched off or their token
+// expired days ago. Both look exactly like being signed in, which is how a
+// trainer ends up wondering why nothing saves.
+//
+// Deliberately does no database work: it answers reachability and token
+// validity and nothing else, so it stays cheap enough to call on every start.
+router.get('/session/check', authenticateToken, (req, res) => {
+  res.json({
+    ok: true,
+    id: req.user.id,
+    name: req.user.name,
+    role: req.user.role,
+  });
 });
 
 module.exports = router;
