@@ -99,10 +99,27 @@ function mergePlan(existing, incoming) {
       plays = false;
     }
     if (!plays) {
+      // Saying only "it does not fit" leaves the trainer nothing to act on. The
+      // commonest cause by far is the side to move, so check that before
+      // reporting: measured on a real re-scan, all nine conflicts were
+      // positions stored as black where the book's move plays for white.
+      let playsFlipped = false;
+      try {
+        const other = existing.fen.split(' ')[1] === 'w' ? 'b' : 'w';
+        playsFlipped = Boolean(
+          new Chess(withSideToMove(existing.fen, other)).move(incoming.solutionSan)
+        );
+      } catch {
+        playsFlipped = false;
+      }
+
       return {
         action: 'conflict',
         fields: {},
-        reason: `rešenje "${incoming.solutionSan}" ne igra u već sačuvanoj poziciji`,
+        reason: playsFlipped
+          ? `rešenje "${incoming.solutionSan}" igra tek ako je druga strana na potezu — strana je verovatno pogrešna`
+          : `rešenje "${incoming.solutionSan}" ne igra u već sačuvanoj poziciji`,
+        sideLikelyWrong: playsFlipped,
       };
     }
     fields.solution_san = incoming.solutionSan;

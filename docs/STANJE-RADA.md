@@ -1005,6 +1005,34 @@ poziciju nemogućom, vraća se 422 sa objašnjenjem umesto tihog upisa.
 Uz to, žuti okvir u „Mojim pozicijama" sad piše šta znači — „strana na potezu
 nije potvrđena" — jer boja bez teksta ne govori ništa.
 
+### Knjiga je jača od motora, i to se izmerilo — 19.8.2026
+
+Prvo skeniranje strana 45–64 išlo je **bez rešenja**, pa je 78 pozicija ostalo
+bez poteza i sa nepoznatom stranom. Motor je predložio stranu za 62, trener je
+ručno postavio 10, ostalo 6 kod kojih **obe strane matiraju** — tu motor nema
+odgovor i pravilno je odustao.
+
+Onda je isti opseg ponovo skeniran, ovaj put sa rešenjima (strane 975–977):
+**dopunjeno 69, već postojalo 42, neslaganja 9.**
+
+Tih devet je nalaz. Svih devet su pozicije upisane kao „crni na potezu", a
+knjiga za svih devet kaže **beli** — i njen potez igra čim se strana vrati.
+Provera „rešenje mora da igra u već sačuvanoj poziciji" uhvatila je tačno ono
+zbog čega je i napisana.
+
+Iz toga dve izmene:
+
+- **Neslaganje sad obeležava poziciju** (`needs_review = TRUE`). Ranije je broj
+  stajao samo u odgovoru koji nestane sa porukom, a pozicija je izgledala
+  „nedovršeno" umesto „sporno" — pa se do nje više nije moglo vratiti.
+- **Neslaganje kaže verovatan uzrok.** Ako potez proigra sa suprotnom stranom,
+  poruka to i kaže umesto golog „ne igra". Na ovih devet to je bio uzrok u sto
+  posto slučajeva.
+
+Redosled koji iz svega ovoga sledi, i vredi ga pamtiti: **ako knjiga ima
+rešenja, skenirati sa njima odmah.** Motor je zamena kad ih nema, a ne prečica —
+rešenje iz knjige razrešava i stranu na potezu, besplatno i tačno.
+
 ### Motor predlaže, trener odlučuje — 19.8.2026
 
 Za pozicije kojima knjiga nije rekla ko je na potezu, motor može da odgovori: u

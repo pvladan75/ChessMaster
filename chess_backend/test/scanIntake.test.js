@@ -104,7 +104,7 @@ test('a solution that will not play in the stored position is a conflict, not a 
   const stored = { ...existing, fen: MATE_IN_ONE.replace(' w ', ' b ') };
   const plan = mergePlan(stored, incoming);
   assert.equal(plan.action, 'conflict');
-  assert.match(plan.reason, /ne igra/);
+  assert.equal(plan.fields.solution_san, undefined, 'nothing may be written on a conflict');
 });
 
 test('nothing to add means nothing changes', () => {
@@ -146,4 +146,28 @@ test('settling the side can break a stored solution, and that must stay visible'
   assert.equal(solutionPlaysIn(white, 'Qf1#'), true);
   assert.equal(solutionPlaysIn(black, 'Qf1#'), false,
     'flipping the side made the stored move unplayable — the flag must not be cleared');
+});
+
+test('a conflict names the likely cause instead of just refusing', () => {
+  // Measured on a real re-scan: all nine conflicts were positions stored with
+  // the wrong side, where the book's move plays perfectly once flipped.
+  const stored = { fen: MATE_IN_ONE.replace(' w ', ' b '), solution_san: null, themes: [] };
+  const incoming = prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#' });
+  const plan = mergePlan(stored, incoming);
+
+  assert.equal(plan.action, 'conflict');
+  assert.equal(plan.sideLikelyWrong, true);
+  assert.match(plan.reason, /druga strana/);
+});
+
+test('a conflict with no such explanation says only what it knows', () => {
+  // Built by hand rather than through prepareRow, which drops a move that will
+  // not play in its own position — so this shape can only reach mergePlan from
+  // a row written before that check existed.
+  const stored = { fen: MATE_IN_ONE, solution_san: null, themes: [] };
+  const plan = mergePlan(stored, { solutionSan: 'Rh8#', themes: [] });
+
+  assert.equal(plan.action, 'conflict');
+  assert.ok(!plan.sideLikelyWrong, 'flipping the side does not rescue this one');
+  assert.match(plan.reason, /ne igra/);
 });

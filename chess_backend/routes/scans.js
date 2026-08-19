@@ -200,7 +200,21 @@ router.post('/confirm', authenticateToken, async (req, res) => {
       if (existing.rowCount > 0) {
         const plan = mergePlan(existing.rows[0], row);
         if (plan.action === 'conflict') {
-          conflicts.push({ label: row.label, page: row.page, reason: plan.reason });
+          // A disagreement that leaves no mark on the row is a disagreement
+          // nobody will ever see again: the count goes into a response that is
+          // gone as soon as the message is dismissed, and the position sits
+          // there looking merely unfinished. Flagging it is the only way back
+          // to it.
+          await client.query(
+            'UPDATE custom_puzzles SET needs_review = TRUE WHERE puzzle_id = $1',
+            [existing.rows[0].puzzle_id]
+          );
+          conflicts.push({
+            label: row.label,
+            page: row.page,
+            reason: plan.reason,
+            sideLikelyWrong: Boolean(plan.sideLikelyWrong),
+          });
         } else if (plan.action === 'fill') {
           const sets = Object.keys(plan.fields).map((key, i) => `${key} = $${i + 2}`);
           await client.query(
