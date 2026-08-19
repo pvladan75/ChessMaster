@@ -105,7 +105,7 @@ class ScannedPosition {
 /// Grouped by [sourceTitle] in the UI, because a trainer thinks in books, not
 /// in rows: "the twenty pages of mates I pulled out of that book last week".
 class SavedPosition {
-  const SavedPosition({
+  SavedPosition({
     required this.puzzleId,
     required this.fen,
     required this.sideToMove,
@@ -114,18 +114,30 @@ class SavedPosition {
     this.sourceTitle,
     this.sourcePage,
     this.sourceLabel,
-    this.needsReview = false,
-  });
+    bool needsReview = false,
+  }) : needsReviewFlag = needsReview;
 
   final String puzzleId;
-  final String fen;
-  final String sideToMove;
+
+  /// Mutable because settling the side to move rewrites it in place — the
+  /// server returns the corrected FEN and the card must show it at once.
+  String fen;
+  String sideToMove;
+  bool needsReviewFlag;
   final String? solutionSan;
   final List<String> themes;
   final String? sourceTitle;
   final int? sourcePage;
   final String? sourceLabel;
-  final bool needsReview;
+
+  bool get needsReview => needsReviewFlag;
+
+  /// Records the trainer's answer locally after the server has stored it.
+  void settleSide(String side, String newFen) {
+    sideToMove = side;
+    fen = newFen;
+    needsReviewFlag = false;
+  }
 
   factory SavedPosition.fromJson(Map<String, dynamic> json) => SavedPosition(
         puzzleId: json['puzzle_id']?.toString() ?? '',

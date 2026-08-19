@@ -69,6 +69,59 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
         .toList();
   }
 
+  /// Opens a position on the analysis board — but not before whose move it is
+  /// has actually been decided.
+  ///
+  /// A diagram does not print the side to move, so an unconfirmed position is
+  /// stored with white and flagged. FEN has no way to carry "nobody knows", so
+  /// once it leaves this screen the guess is indistinguishable from a fact: the
+  /// board loads it, the engine analyses that side, and the arrow answers a
+  /// question nobody ever asked. Found live, on a position where the book never
+  /// said. So the question gets asked here, once, and the answer is kept.
+  Future<void> _open(SavedPosition position) async {
+    if (!position.needsReview) {
+      context.push(AppRoutes.analysisPath(fen: position.fen));
+      return;
+    }
+
+    final side = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Ko je na potezu?'),
+        content: Text(
+          position.sourceLabel == null
+              ? 'Knjiga to ne kaže za ovu poziciju (strana ${position.sourcePage}). '
+                  'Dok se ne odluči, motor bi analizirao pogrešnu stranu.'
+              : 'Knjiga to ne kaže za dijagram #${position.sourceLabel} '
+                  '(strana ${position.sourcePage}). Dok se ne odluči, motor bi '
+                  'analizirao pogrešnu stranu.',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Odustani')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, 'b'),
+              child: const Text('Crni')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, 'w'),
+              child: const Text('Beli')),
+        ],
+      ),
+    );
+    if (side == null || !mounted) return;
+
+    final fen = await _api.setSideToMove(position.puzzleId, side);
+    if (!mounted) return;
+    if (fen == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Ta strana ne može biti na potezu u ovoj poziciji.')));
+      return;
+    }
+    setState(() => position.settleSide(side, fen));
+    context.push(AppRoutes.analysisPath(fen: fen));
+  }
+
   Future<void> _delete(SavedPosition position) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -190,8 +243,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
             itemCount: items.length,
             itemBuilder: (context, index) => _SavedCard(
               position: items[index],
-              onOpen: () =>
-                  context.push(AppRoutes.analysisPath(fen: items[index].fen)),
+              onOpen: () => _open(items[index]),
               onDelete: () => _delete(items[index]),
             ),
           ),
@@ -263,6 +315,11 @@ class _SavedCard extends StatelessWidget {
                 ),
               ],
             ),
+            // Without this the yellow border says only "something", and the
+            // trainer has no way to know the side to move was never confirmed.
+            if (position.needsReview)
+              Text('strana na potezu nije potvrđena',
+                  style: TextStyle(color: colors.warning, fontSize: 11)),
           ],
         ),
       ),

@@ -21,14 +21,44 @@ class ScanOutcome {
   bool get ok => result != null;
 }
 
+/// What a confirmation actually did.
+///
+/// Re-scanning an overlapping page range is normal, so "saved" alone would be a
+/// lie: some positions are new, some only fill a gap in a row that already
+/// exists, and some were already complete. Saying which is the difference
+/// between a trainer trusting the count and wondering where things went.
 class SaveOutcome {
-  const SaveOutcome({this.saved = 0, this.rejected = 0, this.error});
+  const SaveOutcome({
+    this.saved = 0,
+    this.filled = 0,
+    this.unchanged = 0,
+    this.conflicts = 0,
+    this.rejected = 0,
+    this.error,
+  });
 
   final int saved;
+  final int filled;
+  final int unchanged;
+
+  /// Positions where the book's solution will not play in the position already
+  /// stored — the two disagree about something real, usually whose move it is.
+  final int conflicts;
   final int rejected;
   final String? error;
 
   bool get ok => error == null;
+
+  /// One line a person can read, naming only what actually happened.
+  String get summary {
+    final parts = <String>[];
+    if (saved > 0) parts.add('novih $saved');
+    if (filled > 0) parts.add('dopunjeno $filled');
+    if (unchanged > 0) parts.add('već postojalo $unchanged');
+    if (conflicts > 0) parts.add('neslaganja $conflicts');
+    if (rejected > 0) parts.add('odbijeno $rejected');
+    return parts.isEmpty ? 'ništa nije promenjeno' : parts.join(', ');
+  }
 }
 
 class ScannerApiService {
@@ -128,6 +158,9 @@ class ScannerApiService {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
         return SaveOutcome(
           saved: (body['saved'] as num?)?.toInt() ?? 0,
+          filled: (body['filled'] as num?)?.toInt() ?? 0,
+          unchanged: (body['unchanged'] as num?)?.toInt() ?? 0,
+          conflicts: (body['conflicts'] as List?)?.length ?? 0,
           rejected: (body['rejected'] as List?)?.length ?? 0,
         );
       }
@@ -154,6 +187,30 @@ class ScannerApiService {
           .toList();
     } catch (e) {
       AppLogger.log('List saved failed: $e', name: 'PositionScanner');
+      return null;
+    }
+  }
+
+  /// Settles whose move it is, and returns the rewritten FEN.
+  ///
+  /// The server does the rewriting: the en passant square belongs to the other
+  /// side's last move and has to go with the change, and the result is checked
+  /// before it is stored. Returns null if the server refused — which it will if
+  /// that side cannot be the one to move in this position.
+  Future<String?> setSideToMove(String puzzleId, String side) async {
+    try {
+      final response = await http
+          .patch(
+            Uri.parse('$backendUrl/scans/puzzles/$puzzleId'),
+            headers: _jsonHeaders,
+            body: jsonEncode({'sideToMove': side}),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode != 200) return null;
+      return (jsonDecode(response.body) as Map<String, dynamic>)['fen']
+          ?.toString();
+    } catch (e) {
+      AppLogger.log('Set side failed: $e', name: 'PositionScanner');
       return null;
     }
   }

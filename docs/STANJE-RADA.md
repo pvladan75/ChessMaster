@@ -979,6 +979,50 @@ privremenom direktorijumu. Sad se pri pokretanju servera brišu svi zaostali
 `scan_*` fajlovi, uz upozorenje u dnevniku. Isti oblik greške kao i ostali u
 ovom projektu — korak koji tiho ne odradi svoje, i vidi se tek kad neko pogleda.
 
+### Nepoznato ne sme da postane tvrdnja jedan sloj kasnije — 19.8.2026
+
+Najvažniji nalaz iz prve prave upotrebe, i nije ga našao test nego korisnik.
+
+Kad knjiga ne kaže ko je na potezu, pozicija se čuva sa belim i obeleži se
+`needs_review`. **Ali FEN nema način da kaže „ne zna se".** Čim pozicija napusti
+ekran skenera, pogađanje se više ne razlikuje od činjenice: tabla za analizu je
+učita, motor odradi svoje za belog, i strelica samouvereno prikaže mat u jedan —
+odgovor na pitanje koje niko nije postavio.
+
+To je peti primer istog oblika greške u ovom projektu, samo obrnut: umesto da
+korak tiho ne uradi ništa, sumnja se tiho pretvorila u tvrdnju.
+
+Rešenje nije u FEN-u — tamo mora da stoji nečiji potez. Rešenje je da se **ne
+otvori ćutke**: dodir na nepotvrđenu poziciju pita „ko je na potezu", odgovor se
+upiše (`PATCH /scans/puzzles/:id`), zastavica se skida, i tek onda se otvara
+tabla. Jedna odluka, doneta jednom, u trenutku kad je bitna.
+
+Prepisivanje strane radi server, ne klijent: polje za en passant pripada
+**protivnikovom** poslednjem potezu i mora da otpadne kad se promeni ko igra,
+a rezultat se proverava kroz `chess.js` pre upisa. Ako izabrana strana čini
+poziciju nemogućom, vraća se 422 sa objašnjenjem umesto tihog upisa.
+
+Uz to, žuti okvir u „Mojim pozicijama" sad piše šta znači — „strana na potezu
+nije potvrđena" — jer boja bez teksta ne govori ništa.
+
+### Ponovno skeniranje dopunjava, ne dodaje i ne gazi — 19.8.2026
+
+Preklapanje raspona strana je normalno: trener radi knjigu poglavlje po
+poglavlje. Mereno na pravom preklapanju: **42 dijagrama stigla su dva puta sa
+bajt-identičnim tablama**, ali je samo jedan primerak para nosio rešenje. Dakle
+kopije nisu zamenljive, i pravilo „zadrži prvu" bilo bi pogrešno da su rasponi
+skenirani obrnutim redom.
+
+Pravilo je zato: **popuni prazno, ne diraj popunjeno.** Ono što već stoji ostaje
+— trener koji je ručno ispravio stranu na potezu nadjačava skener koji je istu
+stranu pročitao još jednom. Rešenje se upisuje samo ako **stvarno igra u već
+sačuvanoj poziciji**; ako ne igra, to je neslaganje o nečem stvarnom i prijavljuje
+se umesto da se zaglača.
+
+Poruka posle čuvanja više ne kaže samo „sačuvano", nego „novih N, dopunjeno M,
+već postojalo K, neslaganja L" — jer je samo „sačuvano 120" bilo tačno i
+beskorisno istovremeno.
+
 ### Nijedan skener ne sme da preskoči potvrdu čoveka
 
 Tok je: skeniraj → mreža kandidata → trener ispravi ili odbaci → sačuvaj. Čim to

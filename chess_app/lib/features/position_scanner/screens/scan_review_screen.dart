@@ -131,9 +131,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     // they" was nowhere on screen. The message carries the way there.
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(outcome.rejected == 0
-            ? 'Sačuvano ${outcome.saved} pozicija u „Moje pozicije".'
-            : 'Sačuvano ${outcome.saved}, odbijeno ${outcome.rejected}.'),
+        content: Text('U „Moje pozicije": ${outcome.summary}.'),
         action: SnackBarAction(
           label: 'Pogledaj',
           onPressed: () => context.push(AppRoutes.savedPositions),

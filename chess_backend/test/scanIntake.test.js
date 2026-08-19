@@ -1,7 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { prepareRow, prepareRows } = require('../services/scanIntake');
+const {
+  prepareRow,
+  prepareRows,
+  mergePlan,
+  withSideToMove,
+} = require('../services/scanIntake');
 
 const MATE_IN_ONE = '5Q2/8/8/8/6p1/8/2NNk3/2K5 w - - 0 1';
 
@@ -69,4 +74,60 @@ test('castling rights the scanner restored survive intake', () => {
   assert.equal(row.solutionSan, 'O-O#');
   assert.equal(row.fen.split(' ')[2], 'K');
   assert.equal(row.needsReview, false);
+});
+
+test('a re-scan fills a gap without touching what is already there', () => {
+  // Measured on a real overlap: the same diagram arrived twice with identical
+  // boards, but only one copy carried the solution.
+  const existing = { fen: MATE_IN_ONE, solution_san: null, themes: [] };
+  const incoming = prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#', themes: ['mateIn1'] });
+  const plan = mergePlan(existing, incoming);
+  assert.equal(plan.action, 'fill');
+  assert.equal(plan.fields.solution_san, 'Qf1#');
+  assert.deepEqual(plan.fields.themes, ['mateIn1']);
+  assert.equal(plan.fields.needs_review, false, 'a verified solution settles the doubt');
+});
+
+test('a re-scan never overwrites a value that is already set', () => {
+  // The trainer may have corrected this by hand; a scanner reading the same
+  // page again does not outrank them.
+  const existing = { fen: MATE_IN_ONE, solution_san: 'Qf1#', themes: ['moja-tema'] };
+  const incoming = prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#', themes: ['druga'] });
+  assert.equal(mergePlan(existing, incoming).action, 'unchanged');
+});
+
+test('a solution that will not play in the stored position is a conflict, not a fill', () => {
+  // Most likely the two disagree about whose move it is. Reported, not smoothed.
+  const existing = { fen: MATE_IN_ONE, solution_san: null, themes: [] };
+  const incoming = prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#' });
+  const stored = { ...existing, fen: MATE_IN_ONE.replace(' w ', ' b ') };
+  const plan = mergePlan(stored, incoming);
+  assert.equal(plan.action, 'conflict');
+  assert.match(plan.reason, /ne igra/);
+});
+
+test('nothing to add means nothing changes', () => {
+  const existing = { fen: MATE_IN_ONE, solution_san: null, themes: [] };
+  const incoming = prepareRow({ fen: MATE_IN_ONE });
+  assert.equal(mergePlan(existing, incoming).action, 'unchanged');
+});
+
+test('settling the side rewrites the FEN and drops the en passant square', () => {
+  // The en passant square records the other side's last move; keeping it after
+  // the mover changes makes the position illegal.
+  const fen = 'rb6/k1p4R/P1P5/PpK5/8/8/8/5B2 w - b6 0 1';
+  const flipped = withSideToMove(fen, 'b');
+  assert.equal(flipped.split(' ')[1], 'b');
+  assert.equal(flipped.split(' ')[3], '-');
+  assert.equal(flipped.split(' ')[0], fen.split(' ')[0], 'the pieces must not move');
+});
+
+test('settling the side keeps castling rights', () => {
+  const fen = '8/8/8/8/8/5N2/1pr3PP/r1k1K2R w K - 0 1';
+  assert.equal(withSideToMove(fen, 'b').split(' ')[2], 'K');
+});
+
+test('an answer that is not a side is refused', () => {
+  assert.throws(() => withSideToMove(MATE_IN_ONE, 'beli'), /mora biti/);
+  assert.throws(() => withSideToMove(MATE_IN_ONE, ''), /mora biti/);
 });

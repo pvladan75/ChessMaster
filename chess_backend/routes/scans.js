@@ -23,7 +23,12 @@ const logger = require('../services/logger');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { METRIC, recordUsage } = require('../services/entitlementService');
-const { prepareRows, MAX_POSITIONS_PER_CONFIRM } = require('../services/scanIntake');
+const {
+  prepareRows,
+  mergePlan,
+  withSideToMove,
+  MAX_POSITIONS_PER_CONFIRM,
+} = require('../services/scanIntake');
 
 const router = express.Router();
 
@@ -162,11 +167,52 @@ router.post('/confirm', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Nijedna pozicija nije ispravna.', rejected });
   }
 
+  const title = typeof sourceTitle === 'string' ? sourceTitle.slice(0, 255) : null;
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const saved = [];
+    let filled = 0;
+    let unchanged = 0;
+    const conflicts = [];
+
     for (const row of rows) {
+      // A diagram is identified by its printed number within one book. Books
+      // that number nothing fall back to the page plus the board itself, which
+      // is the only other thing that stays the same across two scans.
+      const existing = row.label
+        ? await client.query(
+            `SELECT puzzle_id, fen, solution_san, themes FROM custom_puzzles
+              WHERE owner_id = $1 AND source_title IS NOT DISTINCT FROM $2 AND source_label = $3
+              LIMIT 1`,
+            [req.user.id, title, row.label]
+          )
+        : await client.query(
+            `SELECT puzzle_id, fen, solution_san, themes FROM custom_puzzles
+              WHERE owner_id = $1 AND source_title IS NOT DISTINCT FROM $2
+                AND source_page IS NOT DISTINCT FROM $3 AND fen = $4
+              LIMIT 1`,
+            [req.user.id, title, row.page, row.fen]
+          );
+
+      if (existing.rowCount > 0) {
+        const plan = mergePlan(existing.rows[0], row);
+        if (plan.action === 'conflict') {
+          conflicts.push({ label: row.label, page: row.page, reason: plan.reason });
+        } else if (plan.action === 'fill') {
+          const sets = Object.keys(plan.fields).map((key, i) => `${key} = $${i + 2}`);
+          await client.query(
+            `UPDATE custom_puzzles SET ${sets.join(', ')} WHERE puzzle_id = $1`,
+            [existing.rows[0].puzzle_id, ...Object.values(plan.fields)]
+          );
+          filled += 1;
+        } else {
+          unchanged += 1;
+        }
+        continue;
+      }
+
       const result = await client.query(
         `INSERT INTO custom_puzzles
            (puzzle_id, owner_id, fen, side_to_move, solution_san, themes, source_title, source_page, source_label, needs_review)
@@ -179,7 +225,7 @@ router.post('/confirm', authenticateToken, async (req, res) => {
           row.side,
           row.solutionSan,
           row.themes,
-          typeof sourceTitle === 'string' ? sourceTitle.slice(0, 255) : null,
+          title,
           row.page,
           row.label,
           row.needsReview,
@@ -189,14 +235,66 @@ router.post('/confirm', authenticateToken, async (req, res) => {
     }
     await client.query('COMMIT');
 
-    logger.info(`[SCAN] user=${req.user.id} sačuvano ${saved.length} pozicija, odbijeno ${rejected.length}`);
-    res.status(201).json({ saved: saved.length, rejected, puzzles: saved });
+    logger.info(
+      `[SCAN] user=${req.user.id} novo ${saved.length}, dopunjeno ${filled}, nepromenjeno ${unchanged}, ` +
+        `neslaganja ${conflicts.length}, odbijeno ${rejected.length}`
+    );
+    res.status(201).json({
+      saved: saved.length,
+      filled,
+      unchanged,
+      conflicts,
+      rejected,
+      puzzles: saved,
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     logger.error(`[SCAN] Čuvanje nije uspelo: ${err.message}`);
     res.status(500).json({ error: 'Greška pri čuvanju pozicija.' });
   } finally {
     client.release();
+  }
+});
+
+// PATCH /scans/puzzles/:puzzleId — settle whose move it is.
+//
+// The only edit this route allows, and the one that matters most. A diagram
+// does not print the side to move and many books never say it in words, so the
+// position is stored with white and flagged. Until someone answers, every
+// screen downstream — the analysis board, the engine, the arrow it draws — is
+// answering a different question than the one being asked.
+router.patch('/puzzles/:puzzleId', authenticateToken, async (req, res) => {
+  const { sideToMove } = req.body || {};
+
+  try {
+    const existing = await pool.query(
+      'SELECT fen FROM custom_puzzles WHERE puzzle_id = $1 AND owner_id = $2',
+      [req.params.puzzleId, req.user.id]
+    );
+    if (existing.rowCount === 0) {
+      return res.status(404).json({ error: 'Pozicija nije nađena.' });
+    }
+
+    let fen;
+    try {
+      fen = withSideToMove(existing.rows[0].fen, sideToMove);
+    } catch (err) {
+      // Worth its own status: this is not a broken request but a real answer —
+      // that side cannot be the one to move in this position.
+      return res.status(422).json({ error: `Ta strana ne može biti na potezu: ${err.message}` });
+    }
+
+    const updated = await pool.query(
+      `UPDATE custom_puzzles
+          SET fen = $1, side_to_move = $2, needs_review = FALSE
+        WHERE puzzle_id = $3 AND owner_id = $4
+        RETURNING puzzle_id, fen, side_to_move, needs_review`,
+      [fen, sideToMove, req.params.puzzleId, req.user.id]
+    );
+    res.json(updated.rows[0]);
+  } catch (err) {
+    logger.error(`[SCAN] Izmena strane na potezu nije uspela: ${err.message}`);
+    res.status(500).json({ error: 'Greška pri izmeni pozicije.' });
   }
 });
 
