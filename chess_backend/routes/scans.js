@@ -14,7 +14,6 @@
 // ones the scanner is unsure about, which are saved flagged rather than dropped.
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
@@ -23,6 +22,11 @@ const logger = require('../services/logger');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { METRIC, recordUsage } = require('../services/entitlementService');
+const {
+  SCAN_TMP_DIR,
+  sweepLeftovers,
+  removeQuietly,
+} = require('../services/scanTempFiles');
 const {
   prepareRows,
   mergePlan,
@@ -34,7 +38,6 @@ const {
 
 const router = express.Router();
 
-const SCAN_TMP_DIR = path.join(os.tmpdir(), 'chess-scans');
 const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
 
 const upload = multer({
@@ -61,40 +64,6 @@ let scannerPromise = null;
 function loadScanner() {
   if (!scannerPromise) scannerPromise = import('../services/positionScanner/index.mjs');
   return scannerPromise;
-}
-
-function removeQuietly(filePath) {
-  if (!filePath) return;
-  fs.promises.unlink(filePath).catch((err) => {
-    // Worth a line in the log: a temp file that survives is a copy of a book we
-    // promised not to keep.
-    logger.warn(`[SCAN] Nije obrisan privremeni fajl ${filePath}: ${err.message}`);
-  });
-}
-
-/// Deletes uploads orphaned by a process that died mid-scan.
-///
-/// The `finally` above cannot run if the process is killed while a scan is in
-/// flight — nodemon restarting on a file save is enough to do it, and that is
-/// exactly how this was found: a 5 MB copy of a book left sitting in the temp
-/// directory. At startup nothing is in flight by definition, so everything
-/// still here is orphaned and goes.
-function sweepLeftovers(dir = SCAN_TMP_DIR) {
-  if (!fs.existsSync(dir)) return 0;
-  let removed = 0;
-  for (const name of fs.readdirSync(dir)) {
-    if (!name.startsWith('scan_')) continue;
-    try {
-      fs.unlinkSync(path.join(dir, name));
-      removed += 1;
-    } catch (err) {
-      logger.warn(`[SCAN] Zaostali fajl ${name} nije obrisan: ${err.message}`);
-    }
-  }
-  if (removed > 0) {
-    logger.warn(`[SCAN] Obrisano ${removed} zaostalih dokumenata iz prekinutih skeniranja.`);
-  }
-  return removed;
 }
 
 sweepLeftovers();
@@ -391,4 +360,3 @@ router.get('/puzzles', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
-module.exports.sweepLeftovers = sweepLeftovers;

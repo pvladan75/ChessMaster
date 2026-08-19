@@ -4,7 +4,10 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { sweepLeftovers } = require('../routes/scans');
+// Deliberately the service, not the route. Requiring the route pulled in the
+// auth middleware, which exits the process when JWT_SECRET is unset — so this
+// file killed CI at import, before a single assertion ran.
+const { sweepLeftovers } = require('../services/scanTempFiles');
 
 test('a document orphaned by a killed scan is swept at startup', () => {
   // The route deletes its upload in a `finally`, which does not run when the
@@ -25,4 +28,18 @@ test('a document orphaned by a killed scan is swept at startup', () => {
 test('sweeping a directory that does not exist is not an error', () => {
   const missing = path.join(os.tmpdir(), 'sweep-test-nema-me-' + Date.now());
   assert.equal(sweepLeftovers(missing), 0);
+});
+
+test('the sweeper needs no secrets, no database and no routes', () => {
+  // The point of the split: CI has no .env, and a test about files must not
+  // depend on one. Loading the module in a bare process is the whole assertion.
+  const before = process.env.JWT_SECRET;
+  delete process.env.JWT_SECRET;
+  try {
+    delete require.cache[require.resolve('../services/scanTempFiles')];
+    const fresh = require('../services/scanTempFiles');
+    assert.equal(typeof fresh.sweepLeftovers, 'function');
+  } finally {
+    if (before !== undefined) process.env.JWT_SECRET = before;
+  }
 });
