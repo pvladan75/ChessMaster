@@ -336,18 +336,20 @@ desnu; uz to svih 120 redova deli isti `created_at`, pa sortiranje po vremenu
 nije sortiranje. Sad se sortira po broju dijagrama, i to **kao broj a ne kao
 tekst**, inače 100 dolazi pre 97. Provereno na živim podacima: 97, 98, 99, 100…
 
+**Provereno uživo 19.8.2026, drugi krug.** Skeniranje bez odeljka sa rešenjima
+(strane 45–64, sve „nepoznato"), preklapanje raspona, ekran „Moje pozicije",
+pitanje „ko je na potezu" i otvaranje table za analizu sa tim FEN-om — sve
+prošlo. Duplikati su se pojavili tačno kako je predviđeno, pa je pravilo
+dopunjavanja ugrađeno i stari duplikati počišćeni (240 → 198).
+
 Ostalo neprovereno:
 
-- [ ] **Ekran „Moje pozicije"** u celini — nikad otvoren u aplikaciji. Brisanje
-      je provereno samo preko HTTP-a (tuđa pozicija i nepostojeći id vraćaju 404,
-      vlasnikovih 120 netaknuto), ali dijalog za potvrdu niko nije video.
-- [ ] Da li dodir na poziciju stvarno otvara **tablu za analizu sa tim FEN-om**.
-- [ ] Da li dugme za okretanje strane na potezu menja baš onu poziciju koja je
-      pod prstom **kad je uključen filter „traži pogled"** — mreža tada prikazuje
-      podskup, klasično mesto za grešku sa indeksima. U ovoj probi filter nije
-      korišćen jer nijedna pozicija nije bila sporna.
-- [ ] Kako se ponaša knjiga **bez odeljka sa rešenjima** — tada je strana na
-      potezu „nepoznato" za svaku poziciju i ceo teret pada na okretanje ručno.
+- [ ] Knjiga sa **drugim fontom** — mapa za `TacticsCourse.pdf` nije završena,
+      pa je sve mereno na jednoj knjizi.
+- [ ] Šta se dešava kad se pošalje PDF **bez ijednog dijagrama** ili zaštićen
+      lozinkom.
+- [ ] Filter „traži pogled" nad **mešanim** skupom — dosad je bio ili 0/120 ili
+      120/120, nikad delimičan.
 
 Napomena: `custom_puzzles` je nastala pri restartu 19.8.2026
 (`Verified database table & indexes: custom_puzzles`), pa taj korak više ne

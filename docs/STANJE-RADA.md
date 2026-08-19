@@ -1005,6 +1005,36 @@ poziciju nemogućom, vraća se 422 sa objašnjenjem umesto tihog upisa.
 Uz to, žuti okvir u „Mojim pozicijama" sad piše šta znači — „strana na potezu
 nije potvrđena" — jer boja bez teksta ne govori ništa.
 
+### Na Windows-u skener traži sopstveni motor — 19.8.2026
+
+Zamka koju je lako ne videti, jer izgleda kao greška u skeneru a nije.
+
+```dart
+bool get _useOnline {
+  if (Platform.isWindows && _isCustomActive) return false;
+  return Platform.isWindows || Platform.isLinux;
+}
+```
+
+Na Windows-u aplikacija **ne pokreće ugrađeni Stockfish** nego mrežni. A mrežne
+baze znaju samo pozicije iz odigranih partija — dok su pozicije iz knjige tačno
+one kojih tamo nema. Svako skenirano pitanje promaši, `catch (_) {}` to proguta,
+i odgovori brojanje materijala.
+
+Simptom je bio ubedljiv: „Eval +1.00 (depth: 18)", prazna linija, bez najboljeg
+poteza. Ni jedno od toga nije bilo tačno — ni ocena, ni dubina. Uz to je taj
+račun okretao znak za crnog, iako je `whiteVal - blackVal` već iz ugla belog, pa
+je pozicija u kojoj crni ima pešak više pisala kao prednost belog.
+
+Popravljeno: znak se više ne okreće (pokriveno testom), dubina je 0 umesto
+tražene, i razlog ide u dnevnik. **Ali to ne čini pozicije analiziranim** —
+za to treba pravi motor: Podešavanja → putanja do motora, na `stockfish.exe`.
+Potvrđeno uživo: sa sopstvenim motorom rade pune linije i tačan znak
+(−5.67 za poziciju u kojoj crni dobija).
+
+Ranije viđeno „M1 (d50)" nije bio motor nego pogodak u mrežnoj bazi — zato je
+delovalo da povremeno radi.
+
 ### Ponovno skeniranje dopunjava, ne dodaje i ne gazi — 19.8.2026
 
 Preklapanje raspona strana je normalno: trener radi knjigu poglavlje po
