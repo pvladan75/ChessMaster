@@ -110,16 +110,6 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     if (targets.isEmpty) return;
 
     final runner = SideProposalRunner();
-    if (runner.needsLocalEngine) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text(
-          'Za ovo treba lokalni motor — mrežni ne poznaje pozicije iz knjiga. '
-          'Podešavanja → putanja do motora.',
-        ),
-        duration: Duration(seconds: 8),
-      ));
-      return;
-    }
 
     setState(() {
       _runner = runner;
@@ -127,6 +117,26 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
       _checkDone = 0;
       _checkTotal = targets.length;
     });
+
+    // Starting the engine is what decides whether it is a local one, so this
+    // has to happen before the question can be answered — not before the
+    // progress bar appears, since starting a binary takes a moment.
+    final usable = await runner.ensureUsableEngine();
+    if (!mounted) return;
+    if (!usable) {
+      setState(() {
+        _checking = false;
+        _runner = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+          'Motor nije pokrenut kao lokalni, pa ne može da odgovori — mrežni ne '
+          'poznaje pozicije iz knjiga. Proveri Podešavanja → Lokalni engine (.exe).',
+        ),
+        duration: Duration(seconds: 8),
+      ));
+      return;
+    }
 
     await runner.run(
       targets,

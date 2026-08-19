@@ -23,13 +23,21 @@ class SideProposalRunner {
 
   void cancel() => _cancelled = true;
 
-  /// True when the engine in use cannot answer for book positions.
+  /// Starts the engine, then reports whether it is one that can answer.
   ///
-  /// On Windows the app falls back to a cloud engine, and a diagram lifted out
-  /// of a book is precisely the position no online database has ever seen — so
-  /// a batch would grind through every entry and return nothing. Better to say
-  /// so than to run for two minutes and produce a screen of shrugs.
-  bool get needsLocalEngine => _engine.isOnline;
+  /// Must be awaited before the check: `isOnline` is decided by whether a local
+  /// binary is actually running, and the flag that says so is only set by
+  /// `initEngine`. Reading it first reported "no local engine" to a trainer who
+  /// had one configured and had simply not opened the analysis board yet.
+  ///
+  /// The question is worth asking at all because on Windows the app otherwise
+  /// goes to a cloud engine, and a diagram lifted out of a book is precisely the
+  /// position no online database has ever seen — a batch would grind through
+  /// every entry and return nothing.
+  Future<bool> ensureUsableEngine() async {
+    await _engine.initEngine();
+    return !_engine.isOnline;
+  }
 
   Duration _timeoutFor(int depth) {
     if (depth <= 14) return const Duration(seconds: 8);
