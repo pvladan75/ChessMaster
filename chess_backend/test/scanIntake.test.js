@@ -6,6 +6,7 @@ const {
   prepareRows,
   mergePlan,
   withSideToMove,
+  solutionPlaysIn,
 } = require('../services/scanIntake');
 
 const MATE_IN_ONE = '5Q2/8/8/8/6p1/8/2NNk3/2K5 w - - 0 1';
@@ -130,4 +131,19 @@ test('settling the side keeps castling rights', () => {
 test('an answer that is not a side is refused', () => {
   assert.throws(() => withSideToMove(MATE_IN_ONE, 'beli'), /mora biti/);
   assert.throws(() => withSideToMove(MATE_IN_ONE, ''), /mora biti/);
+});
+
+test('a position with no solution is not in doubt, only unfinished', () => {
+  // The two states must not share a warning: nothing here disagrees with
+  // anything, there is simply nothing recorded yet.
+  assert.equal(solutionPlaysIn(MATE_IN_ONE, null), true);
+  assert.equal(solutionPlaysIn(MATE_IN_ONE, ''), true);
+});
+
+test('settling the side can break a stored solution, and that must stay visible', () => {
+  const white = MATE_IN_ONE;
+  const black = white.replace(' w ', ' b ');
+  assert.equal(solutionPlaysIn(white, 'Qf1#'), true);
+  assert.equal(solutionPlaysIn(black, 'Qf1#'), false,
+    'flipping the side made the stored move unplayable — the flag must not be cleared');
 });

@@ -1005,6 +1005,25 @@ poziciju nemogućom, vraća se 422 sa objašnjenjem umesto tihog upisa.
 Uz to, žuti okvir u „Mojim pozicijama" sad piše šta znači — „strana na potezu
 nije potvrđena" — jer boja bez teksta ne govori ništa.
 
+### Nedovršeno i sporno nisu isto — 19.8.2026
+
+Primećeno pri korišćenju: kad se odgovori ko je na potezu, žuti okvir nestane —
+a pozicija je i dalje bez rešenja. Izgleda gotovo, a nije.
+
+Uzrok je što je `needs_review` nosio dva različita značenja. Sumnja („rešenje iz
+knjige ne igra", „strana na potezu se ne zna") jeste razlog za upozorenje.
+Odsustvo rešenja **nije sumnja** — pozicija je ispravna, samo nepotpuna, i ništa
+se ni sa čim ne sukobljava.
+
+Sada su tri stanja: žuti okvir za sumnju, blaži za nedovršeno, običan za gotovo.
+Zaglavlje broji oba („N traži pogled", „M bez rešenja").
+
+Uz to je zatvorena rupa koju je isto zapažanje otkrilo: `PATCH` je skidao
+zastavicu **ne proverivši** da li sačuvano rešenje i dalje igra posle promene
+strane. Ako ne igra, zastavica ostaje — jer promena strane može da učini
+sačuvani potez nemogućim, a tiho čišćenje bi sakrilo poziciju čiji se potez i
+tabla više ne slažu.
+
 ### Na Windows-u skener traži sopstveni motor — 19.8.2026
 
 Zamka koju je lako ne videti, jer izgleda kao greška u skeneru a nije.

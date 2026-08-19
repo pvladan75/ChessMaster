@@ -216,6 +216,13 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
               Text('${all.length} pozicija',
                   style: TextStyle(
                       color: colors.textPrimary, fontWeight: FontWeight.w600)),
+              if (all.any((p) => p.needsReview))
+                Text('${all.where((p) => p.needsReview).length} traži pogled',
+                    style: TextStyle(color: colors.warning, fontSize: 12)),
+              if (all.any((p) => !p.needsReview && p.solutionSan == null))
+                Text(
+                    '${all.where((p) => !p.needsReview && p.solutionSan == null).length} bez rešenja',
+                    style: TextStyle(color: colors.info, fontSize: 12)),
               const SizedBox(width: 8),
               ChoiceChip(
                 label: const Text('sve'),
@@ -267,14 +274,26 @@ class _SavedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+
+    // Three states, not two. Settling the side to move used to clear the yellow
+    // border and leave a position with no solution looking finished — but being
+    // *unfinished* and being *doubtful* are different things and deserve
+    // different marks. Yellow means something disagrees; the softer mark means
+    // nothing is wrong, there is just nothing recorded yet.
+    final incomplete = !position.needsReview && position.solutionSan == null;
+    final borderColor = position.needsReview
+        ? colors.warning
+        : incomplete
+            ? colors.info
+            : colors.border;
+
     return InkWell(
       onTap: onOpen,
       child: Container(
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-              color: position.needsReview ? colors.warning : colors.border),
+          border: Border.all(color: borderColor),
         ),
         padding: const EdgeInsets.all(10),
         child: Column(
@@ -311,7 +330,10 @@ class _SavedCard extends StatelessWidget {
                 const SizedBox(width: 5),
                 Text(
                   position.solutionSan ?? 'bez rešenja',
-                  style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                  style: TextStyle(
+                    color: incomplete ? colors.info : colors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),

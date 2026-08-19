@@ -147,10 +147,28 @@ function withSideToMove(fen, side) {
   return rewritten;
 }
 
+/**
+ * Does this move still play in this position?
+ *
+ * A position with no solution is not in doubt — it is merely incomplete, and
+ * answers true, because there is nothing here that disagrees with anything.
+ * Being unfinished and being wrong are different states and must not share a
+ * warning.
+ */
+function solutionPlaysIn(fen, san) {
+  if (!san) return true;
+  try {
+    return Boolean(new Chess(fen).move(san));
+  } catch {
+    return false;
+  }
+}
+
 module.exports = {
   prepareRow,
   prepareRows,
   mergePlan,
   withSideToMove,
+  solutionPlaysIn,
   MAX_POSITIONS_PER_CONFIRM,
 };

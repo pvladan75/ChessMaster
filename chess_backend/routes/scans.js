@@ -27,6 +27,7 @@ const {
   prepareRows,
   mergePlan,
   withSideToMove,
+  solutionPlaysIn,
   MAX_POSITIONS_PER_CONFIRM,
 } = require('../services/scanIntake');
 
@@ -268,7 +269,7 @@ router.patch('/puzzles/:puzzleId', authenticateToken, async (req, res) => {
 
   try {
     const existing = await pool.query(
-      'SELECT fen FROM custom_puzzles WHERE puzzle_id = $1 AND owner_id = $2',
+      'SELECT fen, solution_san FROM custom_puzzles WHERE puzzle_id = $1 AND owner_id = $2',
       [req.params.puzzleId, req.user.id]
     );
     if (existing.rowCount === 0) {
@@ -284,12 +285,18 @@ router.patch('/puzzles/:puzzleId', authenticateToken, async (req, res) => {
       return res.status(422).json({ error: `Ta strana ne može biti na potezu: ${err.message}` });
     }
 
+    // Answering the side question settles that doubt — but only that one. If a
+    // solution is stored, changing whose move it is can make it unplayable, and
+    // clearing the flag then would hide a position whose move and board no
+    // longer agree. Re-check rather than assume the edit was harmless.
+    const solutionStillPlays = solutionPlaysIn(fen, existing.rows[0].solution_san);
+
     const updated = await pool.query(
       `UPDATE custom_puzzles
-          SET fen = $1, side_to_move = $2, needs_review = FALSE
-        WHERE puzzle_id = $3 AND owner_id = $4
-        RETURNING puzzle_id, fen, side_to_move, needs_review`,
-      [fen, sideToMove, req.params.puzzleId, req.user.id]
+          SET fen = $1, side_to_move = $2, needs_review = $3
+        WHERE puzzle_id = $4 AND owner_id = $5
+        RETURNING puzzle_id, fen, side_to_move, solution_san, needs_review`,
+      [fen, sideToMove, !solutionStillPlays, req.params.puzzleId, req.user.id]
     );
     res.json(updated.rows[0]);
   } catch (err) {
