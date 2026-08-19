@@ -1005,6 +1005,47 @@ poziciju nemogućom, vraća se 422 sa objašnjenjem umesto tihog upisa.
 Uz to, žuti okvir u „Mojim pozicijama" sad piše šta znači — „strana na potezu
 nije potvrđena" — jer boja bez teksta ne govori ništa.
 
+### Motor predlaže, trener odlučuje — 19.8.2026
+
+Za pozicije kojima knjiga nije rekla ko je na potezu, motor može da odgovori: u
+zbirci zadataka **strana na potezu je ona koja ima šta da odigra**, jer to
+zadatak i jeste. Provera je zato dvostruka — ista tabla se analizira jednom sa
+belim, jednom sa crnim — pa se poredi koliko potez vredi svakoj strani.
+
+Pouzdanost se ne pretvara u sigurnost:
+
+| | |
+|---|---|
+| jedna strana matira, druga ne | **visoka** — oblik svakog zadatka u poglavlju „mat u N" |
+| razlika ≥ 3.0 bez mata | **srednja** — ali knjiga ume da traži i odbranu |
+| obe strane imaju slično, ili nijedna | **nema predloga** |
+
+Ako je pozicija legalna samo za jednu stranu, to je odgovor bez ijedne pretrage.
+
+Šta je namerno ovako:
+
+- **Predlog se ne upisuje sam.** Stoji pored pozicije dok ga trener ne prihvati.
+  Iste je vrste greška kao ona od jutros — mašina koja odgovara na pitanje koje
+  niko nije postavio, samo sa više samopouzdanja.
+- **Dubina se bira** (12/16/20/24) i provera se ponavlja koliko god puta treba,
+  jer je to trampa koju trener oseti: plitko je brzo i ponekad pogrešno.
+- **Mogu i već odlučene pozicije.** Tada motor može da se **ne složi** sa
+  upisanom stranom — i to neslaganje je jedini način da se uhvati strana koja je
+  ranije pogrešno postavljena. Prikazuje se crvenim i **nikad ne ulazi u
+  „prihvati sve pouzdane"**; grupno prevrtanje tuđe odluke je tačno ono što ovaj
+  tok sprečava.
+- **Traži lokalni motor.** Mrežni ne poznaje pozicije iz knjiga (vidi odeljak
+  niže), pa bi grupna provera mlela dva minuta i vratila ništa. Provera se
+  odbija unapred sa objašnjenjem umesto da se to desi.
+
+Analiza ide **redom, jedna po jedna** — motor je deljeni singlton koji koristi i
+tabla za analizu, a `analyzePositionSync` je i napisan da odgovor jednog upita ne
+završi kod drugog. Paralelno pokretanje bi to vratilo.
+
+Tabla se otvara iz ugla strane na potezu — to je već radilo
+(`_initAnalysisTree` uzima orijentaciju iz FEN-a), i `initialFen` namerno gazi
+sačuvan nacrt.
+
 ### Nedovršeno i sporno nisu isto — 19.8.2026
 
 Primećeno pri korišćenju: kad se odgovori ko je na potezu, žuti okvir nestane —

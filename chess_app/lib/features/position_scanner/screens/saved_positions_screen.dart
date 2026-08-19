@@ -8,6 +8,8 @@ import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/scanned_position.dart';
 import '../services/scanner_api_service.dart';
+import '../services/side_proposal.dart';
+import '../services/side_proposal_runner.dart';
 
 /// Everything the trainer has kept from their own books.
 ///
@@ -32,6 +34,20 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
   bool _loading = true;
   bool _failed = false;
   String? _source; // null = all books
+
+  /// The engine's opinion per position, held only in memory. A proposal is not
+  /// an answer, so it is never written to the database until it is accepted.
+  final Map<String, SideProposal> _proposals = {};
+  SideProposalRunner? _runner;
+  bool _checking = false;
+  int _checkDone = 0;
+  int _checkTotal = 0;
+  int _depth = 16;
+
+  /// Which positions a run covers. Re-checking settled ones is worth offering:
+  /// the engine can disagree with an answer already recorded, and that
+  /// disagreement is the only way to catch a side that was set wrongly.
+  bool _includeSettled = false;
 
   @override
   void initState() {
@@ -67,6 +83,106 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     return all
         .where((p) => (p.sourceTitle ?? 'bez izvora') == _source)
         .toList();
+  }
+
+  /// Positions a run would cover, in the order they are shown.
+  List<SavedPosition> get _checkTargets {
+    final all = _visible;
+    return _includeSettled ? all : all.where((p) => p.needsReview).toList();
+  }
+
+  /// Proposals worth accepting without looking at each one.
+  ///
+  /// High confidence only, and never one that contradicts a side already
+  /// settled — overturning a person's answer in bulk is exactly the thing this
+  /// whole flow exists to prevent. Those are left for the trainer to look at.
+  List<SavedPosition> get _confidentAcceptable {
+    return (_positions ?? const <SavedPosition>[]).where((p) {
+      final proposal = _proposals[p.puzzleId];
+      if (proposal == null || !proposal.hasAnswer) return false;
+      if (proposal.confidence != ProposalConfidence.high) return false;
+      return p.needsReview;
+    }).toList();
+  }
+
+  Future<void> _runCheck() async {
+    final targets = _checkTargets;
+    if (targets.isEmpty) return;
+
+    final runner = SideProposalRunner();
+    if (runner.needsLocalEngine) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+          'Za ovo treba lokalni motor — mrežni ne poznaje pozicije iz knjiga. '
+          'Podešavanja → putanja do motora.',
+        ),
+        duration: Duration(seconds: 8),
+      ));
+      return;
+    }
+
+    setState(() {
+      _runner = runner;
+      _checking = true;
+      _checkDone = 0;
+      _checkTotal = targets.length;
+    });
+
+    await runner.run(
+      targets,
+      depth: _depth,
+      onResult: (puzzleId, proposal) {
+        if (!mounted) return;
+        setState(() => _proposals[puzzleId] = proposal);
+      },
+      onProgress: (done, total) {
+        if (!mounted) return;
+        setState(() {
+          _checkDone = done;
+          _checkTotal = total;
+        });
+      },
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _checking = false;
+      _runner = null;
+    });
+  }
+
+  void _cancelCheck() {
+    _runner?.cancel();
+    setState(() => _checking = false);
+  }
+
+  /// Writes one proposal down, after a person has agreed to it.
+  Future<bool> _accept(SavedPosition position, SideProposal proposal) async {
+    final side = proposal.side;
+    if (side == null) return false;
+    final fen = await _api.setSideToMove(position.puzzleId, side);
+    if (fen == null) return false;
+    if (!mounted) return false;
+    setState(() {
+      position.settleSide(side, fen);
+      _proposals.remove(position.puzzleId);
+    });
+    return true;
+  }
+
+  Future<void> _acceptAllConfident() async {
+    final batch = _confidentAcceptable;
+    if (batch.isEmpty) return;
+    var accepted = 0;
+    for (final position in batch) {
+      final proposal = _proposals[position.puzzleId];
+      if (proposal == null) continue;
+      if (await _accept(position, proposal)) accepted += 1;
+      if (!mounted) return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Prihvaćeno $accepted od ${batch.length}.')),
+    );
   }
 
   /// Opens a position on the analysis board — but not before whose move it is
@@ -238,6 +354,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
             ],
           ),
         ),
+        _engineBar(),
         Expanded(
           child: GridView.builder(
             padding: const EdgeInsets.all(12),
@@ -250,12 +367,97 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
             itemCount: items.length,
             itemBuilder: (context, index) => _SavedCard(
               position: items[index],
+              proposal: _proposals[items[index].puzzleId],
               onOpen: () => _open(items[index]),
               onDelete: () => _delete(items[index]),
+              onAccept: () {
+                final proposal = _proposals[items[index].puzzleId];
+                if (proposal != null) _accept(items[index], proposal);
+              },
             ),
           ),
         ),
       ],
+    );
+  }
+
+  /// The engine controls: how deep, over what, and a way to stop.
+  ///
+  /// Depth is the trainer's to choose because it is a trade they can feel —
+  /// shallow is quick and sometimes wrong, deep is slow and rarely is. And a run
+  /// is repeatable at a different depth precisely because the first answer may
+  /// not convince.
+  Widget _engineBar() {
+    final colors = context.colors;
+    final targets = _checkTargets.length;
+    final confident = _confidentAcceptable.length;
+
+    return Container(
+      width: double.infinity,
+      color: colors.surface,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          if (_checking) ...[
+            SizedBox(
+              width: 140,
+              child: LinearProgressIndicator(
+                value: _checkTotal == 0 ? null : _checkDone / _checkTotal,
+              ),
+            ),
+            Text('provereno $_checkDone / $_checkTotal',
+                style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+            TextButton.icon(
+              onPressed: _cancelCheck,
+              icon: const Icon(Icons.stop_circle_outlined),
+              label: const Text('Prekini'),
+            ),
+          ] else ...[
+            FilledButton.icon(
+              onPressed: targets == 0 ? null : _runCheck,
+              icon: const Icon(Icons.psychology_outlined),
+              label: Text('Proveri motorom ($targets)'),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('dubina ',
+                    style:
+                        TextStyle(color: colors.textSecondary, fontSize: 12)),
+                DropdownButton<int>(
+                  value: _depth,
+                  isDense: true,
+                  onChanged: (value) =>
+                      value == null ? null : setState(() => _depth = value),
+                  items: const [12, 16, 20, 24]
+                      .map((d) => DropdownMenuItem(value: d, child: Text('$d')))
+                      .toList(),
+                ),
+              ],
+            ),
+            FilterChip(
+              label: const Text('i već odlučene'),
+              selected: _includeSettled,
+              onSelected: (value) => setState(() => _includeSettled = value),
+              backgroundColor: colors.surfaceRaised,
+            ),
+            if (confident > 0)
+              OutlinedButton.icon(
+                onPressed: _acceptAllConfident,
+                icon: const Icon(Icons.done_all),
+                label: Text('Prihvati pouzdane ($confident)'),
+              ),
+            if (_proposals.isNotEmpty)
+              TextButton(
+                onPressed: () => setState(_proposals.clear),
+                child: const Text('Obriši predloge'),
+              ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -263,13 +465,20 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
 class _SavedCard extends StatelessWidget {
   const _SavedCard({
     required this.position,
+    required this.proposal,
     required this.onOpen,
     required this.onDelete,
+    required this.onAccept,
   });
 
   final SavedPosition position;
+
+  /// The engine's opinion, when one has been asked for. Shown beside the
+  /// position, never folded into it — accepting is a separate act.
+  final SideProposal? proposal;
   final VoidCallback onOpen;
   final VoidCallback onDelete;
+  final VoidCallback onAccept;
 
   @override
   Widget build(BuildContext context) {
@@ -342,8 +551,50 @@ class _SavedCard extends StatelessWidget {
             if (position.needsReview)
               Text('strana na potezu nije potvrđena',
                   style: TextStyle(color: colors.warning, fontSize: 11)),
+            if (proposal != null && proposal!.hasAnswer) _proposalRow(context),
           ],
         ),
+      ),
+    );
+  }
+
+  /// The engine's proposal, and a way to take it.
+  ///
+  /// Where it contradicts a side already settled the row says so loudly rather
+  /// than offering a quiet one-tap overwrite: somebody already answered this,
+  /// and a machine changing their mind for them is the failure this whole flow
+  /// exists to avoid. Still offered — just not silently.
+  Widget _proposalRow(BuildContext context) {
+    final colors = context.colors;
+    final p = proposal!;
+    final disagrees =
+        p.disagreesWith(position.sideToMove) && !position.needsReview;
+    final tone = disagrees
+        ? colors.danger
+        : p.confidence == ProposalConfidence.high
+            ? colors.success
+            : colors.info;
+    final named = p.side == 'w' ? 'beli' : 'crni';
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              disagrees
+                  ? 'motor se ne slaže: $named — ${p.reason}'
+                  : 'motor: $named — ${p.reason}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: tone, fontSize: 11),
+            ),
+          ),
+          InkWell(
+            onTap: onAccept,
+            child: Icon(Icons.check_circle_outline, size: 18, color: tone),
+          ),
+        ],
       ),
     );
   }
