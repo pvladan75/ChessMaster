@@ -8,6 +8,7 @@
 // than what they claim.
 
 const logger = require('./logger');
+const { assignableProblem } = require('./customPuzzleJudge');
 const { trainableThemes } = require('./puzzleSelectionService');
 const { ensureItem: ensureReviewItem } = require('./spacedRepetitionService');
 
@@ -316,6 +317,92 @@ async function recordPuzzleResult(pool, { studentId, puzzleId, solved, msTaken }
   }
 }
 
+/// Sets homework from positions the trainer scanned or typed themselves.
+///
+/// Unlike the Lichess flow this takes an explicit list rather than a query: the
+/// trainer has already chosen these, one by one, off their own screen. The set
+/// is resolved at creation like every other assignment, so the trainer knows
+/// exactly what they gave.
+///
+/// Two kinds of position are refused rather than quietly skipped — one with no
+/// solution cannot be judged, and one still marked for review is a doubt we
+/// already hold. Homework in front of a child is the wrong place for either.
+async function createCustomAssignment(pool, {
+  trainerId, studentId, title, instructions, dueAt, puzzleIds,
+}) {
+  if (!(await trainerOwnsStudent(pool, trainerId, studentId))) {
+    return { ok: false, reason: 'Taj učenik nije na vašoj listi.' };
+  }
+  const ids = Array.isArray(puzzleIds) ? puzzleIds.filter((id) => typeof id === 'string') : [];
+  if (ids.length === 0) {
+    return { ok: false, reason: 'Nije izabrana nijedna pozicija.' };
+  }
+
+  // Owner-scoped in the query: a trainer can only set their own positions, and
+  // an id belonging to someone else simply does not come back.
+  const found = await pool.query(
+    `SELECT puzzle_id, solution_san, needs_review FROM custom_puzzles
+      WHERE owner_id = $1 AND puzzle_id = ANY($2::varchar[])`,
+    [trainerId, ids]
+  );
+  const byId = new Map(found.rows.map((row) => [row.puzzle_id, row]));
+
+  const usable = [];
+  const refused = [];
+  for (const id of ids) {
+    const row = byId.get(id);
+    if (!row) {
+      refused.push({ puzzleId: id, reason: 'nije vaša pozicija' });
+      continue;
+    }
+    const problem = assignableProblem(row);
+    if (problem) {
+      refused.push({ puzzleId: id, reason: problem });
+      continue;
+    }
+    usable.push(id);
+  }
+
+  if (usable.length === 0) {
+    return { ok: false, reason: 'Nijedna izabrana pozicija ne može da se zada.', refused };
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const assignmentRes = await client.query(
+      `INSERT INTO assignments (trainer_id, student_id, title, instructions, kind, due_at)
+       VALUES ($1, $2, $3, $4, 'puzzles', $5)
+       RETURNING *`,
+      [trainerId, studentId, title, instructions || null, dueAt || null]
+    );
+    const assignment = assignmentRes.rows[0];
+
+    const values = [];
+    const tuples = usable.map((id, index) => {
+      const base = index * 3;
+      values.push(assignment.id, id, index);
+      return `($${base + 1}, $${base + 2}, $${base + 3})`;
+    });
+    await client.query(
+      `INSERT INTO assignment_items (assignment_id, puzzle_id, position) VALUES ${tuples.join(', ')}`,
+      values
+    );
+
+    await client.query('COMMIT');
+    logger.info(
+      { trainerId, studentId, assignmentId: assignment.id, items: usable.length, refused: refused.length },
+      'Custom assignment created'
+    );
+    return { ok: true, assignment, refused };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 const PROGRESS_COLUMNS = `
   a.*,
   COUNT(ai.id)::int AS total_items,
@@ -397,7 +484,26 @@ async function getAssignmentDetail(pool, assignmentId, userId) {
     }
   }
 
-  return { ...assignment, items: items.rows, steps };
+  // Positions the trainer scanned travel with the assignment, exactly as lesson
+  // steps do, so the student's solver needs one request rather than a lookup
+  // against a table they are not allowed to read.
+  //
+  // The solution is deliberately absent. It is the answer to the question being
+  // asked, and it stays on the server until the student has actually answered.
+  let customPositions = null;
+  const customIds = items.rows
+    .map((item) => item.puzzle_id)
+    .filter((id) => typeof id === 'string' && id.startsWith('cust_'));
+  if (customIds.length > 0) {
+    const positions = await pool.query(
+      `SELECT puzzle_id, fen, side_to_move, instruction, themes, source_title, source_page, source_label
+         FROM custom_puzzles WHERE puzzle_id = ANY($1::varchar[])`,
+      [customIds]
+    );
+    customPositions = positions.rows;
+  }
+
+  return { ...assignment, items: items.rows, steps, customPositions };
 }
 
 /// Turns raw attempt rows into the summary a trainer reads.
@@ -498,6 +604,7 @@ module.exports = {
   trainerOwnsStudent,
   resolvePuzzles,
   createPuzzleAssignment,
+  createCustomAssignment,
   loadAssignableLesson,
   createLessonAssignment,
   markLessonStepDone,

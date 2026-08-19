@@ -16,6 +16,7 @@ const { requireQuota, refundQuota } = require('../middleware/entitlements');
 const { ENT } = require('../services/entitlementService');
 const assignments = require('../services/assignmentService');
 const reports = require('../services/reportService');
+const { judgeAttempt } = require('../services/customPuzzleJudge');
 
 /// How long a parent's link stays alive. Long enough to be useful, short enough
 /// that a forwarded link does not expose a child's record indefinitely.
@@ -59,6 +60,101 @@ router.post('/', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (req, r
     await refundQuota(req);
     logger.error('Error creating assignment:', err);
     res.status(500).json({ error: 'Greška pri kreiranju zadatka.' });
+  }
+});
+
+// POST /assignments/custom — homework from the trainer's own scanned positions.
+//
+// Separate from POST / because the two choose their work in opposite ways: that
+// one asks for twenty puzzles about pins, this one is handed an exact list the
+// trainer picked off their screen. Folding them together would mean branching
+// on which fields happened to arrive.
+router.post('/custom', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (req, res) => {
+  const { studentId, title, instructions, dueAt, puzzleIds } = req.body;
+
+  const targetId = Number.parseInt(studentId, 10);
+  if (!Number.isInteger(targetId) || !title || title.trim() === '') {
+    await refundQuota(req);
+    return res.status(400).json({ error: 'studentId i naslov su obavezni.' });
+  }
+
+  try {
+    const result = await assignments.createCustomAssignment(pool, {
+      trainerId: req.user.id,
+      studentId: targetId,
+      title: title.trim(),
+      instructions,
+      dueAt: dueAt || null,
+      puzzleIds,
+    });
+
+    if (!result.ok) {
+      await refundQuota(req);
+      // The refusals travel with the error: "nothing could be set" without
+      // saying which position and why leaves the trainer guessing.
+      return res.status(400).json({ error: result.reason, refused: result.refused || [] });
+    }
+
+    res.status(201).json({
+      success: true,
+      assignment: result.assignment,
+      refused: result.refused,
+    });
+  } catch (err) {
+    await refundQuota(req);
+    logger.error('Error creating custom assignment:', err);
+    res.status(500).json({ error: 'Greška pri kreiranju zadatka.' });
+  }
+});
+
+// POST /assignments/:id/custom-attempt — the student answers one position.
+//
+// The move is judged on the server because the answer lives there: sending the
+// solution to the client so it could mark its own work would hand the student
+// the very thing being asked of them.
+router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
+  const assignmentId = Number.parseInt(req.params.id, 10);
+  const { puzzleId, moveSan, msTaken } = req.body || {};
+
+  if (!Number.isInteger(assignmentId) || typeof puzzleId !== 'string' || typeof moveSan !== 'string') {
+    return res.status(400).json({ error: 'puzzleId i moveSan su obavezni.' });
+  }
+
+  try {
+    // One query establishes both that this assignment is the caller's own
+    // homework and that the position is part of it.
+    const item = await pool.query(
+      `SELECT cp.fen, cp.solution_san, cp.instruction
+         FROM assignment_items ai
+         JOIN assignments a ON a.id = ai.assignment_id
+         JOIN custom_puzzles cp ON cp.puzzle_id = ai.puzzle_id
+        WHERE ai.assignment_id = $1 AND ai.puzzle_id = $2 AND a.student_id = $3`,
+      [assignmentId, puzzleId, req.user.id]
+    );
+    if (item.rowCount === 0) {
+      return res.status(404).json({ error: 'Ta pozicija nije deo tvog zadatka.' });
+    }
+
+    const { fen, solution_san: solutionSan } = item.rows[0];
+    const verdict = judgeAttempt({ fen, solutionSan, moveSan });
+
+    await assignments.recordPuzzleResult(pool, {
+      studentId: req.user.id,
+      puzzleId,
+      solved: verdict.correct,
+      msTaken: Number.parseInt(msTaken, 10) || null,
+    });
+
+    // The solution is released only now, once the question has been answered.
+    res.json({
+      correct: verdict.correct,
+      reason: verdict.reason,
+      playedSan: verdict.playedSan,
+      solutionSan,
+    });
+  } catch (err) {
+    logger.error('Error judging custom attempt:', err);
+    res.status(500).json({ error: 'Greška pri proveri odgovora.' });
   }
 });
 

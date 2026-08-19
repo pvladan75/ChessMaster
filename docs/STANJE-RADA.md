@@ -1005,6 +1005,41 @@ poziciju nemogućom, vraća se 422 sa objašnjenjem umesto tihog upisa.
 Uz to, žuti okvir u „Mojim pozicijama" sad piše šta znači — „strana na potezu
 nije potvrđena" — jer boja bez teksta ne govori ništa.
 
+### Skenirane pozicije se zadaju učeniku — backend 19.8.2026
+
+`POST /assignments/custom` uzima **izričitu listu** pozicija koje je trener
+izabrao sa svog ekrana, za razliku od `POST /assignments` koje traži „dvadeset
+zagonetki o vezivanju". Zato su dve rute a ne jedna sa granama.
+
+Dve vrste pozicije se **odbijaju, ne preskaču ćutke**: ona bez rešenja (odgovor
+ne može da se oceni, pa bi dete dobilo „netačno" šta god odigra) i ona označena
+za proveru (sumnja koju već držimo — domaći pred detetom je poslednje mesto da
+se to otkrije). Razlozi putuju uz grešku, po poziciji.
+
+**Rešenje se ne šalje učeniku unapred.** Detalj zadatka nosi tablu, zadatak i
+temu, ali ne i potez; server sudi (`POST /assignments/:id/custom-attempt`) i
+rešenje otkriva tek pošto je odgovoreno. Poslati rešenje klijentu da sam sebe
+oceni znači dati učeniku baš ono što se od njega traži.
+
+### Drugi mat je i dalje mat — 19.8.2026
+
+Ocena ne poredi tekst nego prati zadatak: **kad sačuvano rešenje matira, prihvata
+se svaki potez koji matira.** Inače važi samo autorov, jer ništa ovde ne zna šta
+je pozicija još trebalo da nauči.
+
+Nije teorijski slučaj. U trenerovih 198 pozicija **četiri** imaju više od jednog
+mata u jedan:
+
+| dijagram | knjiga | takođe matira |
+|---|---|---|
+| #122 | `Qe6#` | `Qh7#` |
+| #154 | `Qg7#` | `Qa7#` |
+| #220 | `exd8=Q#` | `exd8=R#` |
+
+Dakle oko **2% domaćeg** reklo bi detetu „netačno" za ispravan mat. Dete koje
+nađe drugi mat je rešilo zadatak, a poruka da nije uči ga da ne veruje
+aplikaciji — i bilo bi u pravu.
+
 ### Tabla bez zadatka nije vežba — 19.8.2026
 
 Korisnikovo zapažanje, i starije od skenera: trener sačuva poziciju, uključi je u
