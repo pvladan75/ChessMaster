@@ -36,8 +36,47 @@ void main() {
     expect(ServerStatusService.instance.checkedAt, isNotNull);
   });
 
+  _selfHealingTests();
+
   test('every problem state carries words a person can read', () {
     // A warning icon with no sentence is decoration.
     expect(ServerStatusService.instance.message, isEmpty);
+  });
+}
+
+void _selfHealingTests() {
+  group('a failed check must not become permanent', () {
+    setUp(ServerStatusService.instance.reset);
+
+    test('successful traffic overrides an earlier failure', () async {
+      // The check can land while the server is still running its migrations —
+      // the backend takes the better part of a minute to start — and the socket
+      // then connects seconds later. The banner must not outlive the truth.
+      await ServerStatusService.instance.check('nevalidan-token');
+      expect(ServerStatusService.instance.hasProblem, isTrue);
+
+      ServerStatusService.instance.markOnline();
+
+      expect(ServerStatusService.instance.status, ServerStatus.online);
+      expect(ServerStatusService.instance.hasProblem, isFalse);
+      expect(ServerStatusService.instance.message, isEmpty);
+    });
+
+    test('marking online tells anyone listening', () {
+      var notified = 0;
+      void listener() => notified += 1;
+      ServerStatusService.instance.addListener(listener);
+      ServerStatusService.instance.markOnline();
+      ServerStatusService.instance.removeListener(listener);
+      expect(notified, greaterThan(0),
+          reason: 'the banner only disappears if it hears about it');
+    });
+
+    test('already online, marking again changes nothing', () {
+      ServerStatusService.instance.markOnline();
+      final at = ServerStatusService.instance.checkedAt;
+      ServerStatusService.instance.markOnline();
+      expect(ServerStatusService.instance.checkedAt, at);
+    });
   });
 }

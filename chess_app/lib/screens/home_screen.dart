@@ -202,6 +202,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     _socket.onConnect((_) {
       print("Home socket connected!");
+      // Proof the backend exists, and it often arrives after the startup check
+      // has already failed — the server can take the better part of a minute to
+      // finish its migrations. A warning that contradicts traffic already
+      // flowing is worse than no warning at all.
+      ServerStatusService.instance.markOnline();
       _socket.emit('register_user', {
         'userId': widget.session.id,
         'name': widget.session.name,

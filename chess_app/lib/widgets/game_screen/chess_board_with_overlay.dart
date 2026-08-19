@@ -1,8 +1,10 @@
+import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/widgets/board_overlay_painter.dart';
-import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart' show SelectedSquarePainter;
+import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart'
+    show SelectedSquarePainter;
 import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/services/app_settings_service.dart';
 
@@ -52,6 +54,20 @@ class ChessBoardWithOverlay extends StatefulWidget {
 
   @override
   State<ChessBoardWithOverlay> createState() => _ChessBoardWithOverlayState();
+
+  /// The move that was just played, or null if none has been.
+  ///
+  /// This used to ask whether any legal moves *remained* and treat "none" as
+  /// "nothing was played" — so a move that ended the game reported nothing at
+  /// all. Checkmate is exactly that case, and checkmate is the answer to every
+  /// mate-in-one exercise: the child's correct move was the one move the board
+  /// never told anybody about. In a live lesson the mating move went
+  /// unbroadcast for the same reason.
+  static ({String from, String to})? lastMoveSquares(chess.Chess game) {
+    if (game.history.isEmpty) return null;
+    final move = game.history.last.move;
+    return (from: move.fromAlgebraic, to: move.toAlgebraic);
+  }
 }
 
 class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
@@ -104,7 +120,8 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
     final isOwnPiece = piece != null && piece.color == game.turn;
 
     if (isOwnPiece) {
-      setState(() => _selectedSquare = (square == _selectedSquare) ? null : square);
+      setState(
+          () => _selectedSquare = (square == _selectedSquare) ? null : square);
       return;
     }
 
@@ -117,7 +134,8 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
     // Promotion is always queried as 'q'; the chess package ignores it for
     // non-promoting moves, so this is safe to pass unconditionally (see
     // ai_studio_screen's puzzle autoplay, which does the same).
-    widget.controller.makeMoveWithPromotion(from: from, to: square, pieceToPromoteTo: 'q');
+    widget.controller
+        .makeMoveWithPromotion(from: from, to: square, pieceToPromoteTo: 'q');
     if (game.turn != moveColor) {
       // Read the piece back from its destination (post-move) rather than
       // using pieceBeforeMove directly: on a promotion, the piece sitting on
@@ -125,7 +143,9 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
       // pieceBeforeMove is still the pawn — animating the pawn sprite would
       // visibly mismatch the queen that's already rendered underneath.
       final animatedPiece = game.get(square) ?? pieceBeforeMove;
-      if (animatedPiece != null) _triggerMoveAnimation(from, square, animatedPiece);
+      if (animatedPiece != null) {
+        _triggerMoveAnimation(from, square, animatedPiece);
+      }
       widget.onMove(from, square);
     }
   }
@@ -134,7 +154,8 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
     final durationMs = AppSettingsService.instance.moveAnimationDurationMs;
     if (durationMs <= 0) return;
     setState(() {
-      _pendingAnimations.add(PendingMoveAnimation(from: from, to: to, piece: movingPiece));
+      _pendingAnimations
+          .add(PendingMoveAnimation(from: from, to: to, piece: movingPiece));
     });
   }
 
@@ -152,14 +173,13 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
             boardOrientation: widget.boardOrientation,
             size: widget.boardSize,
             onMove: () {
-              final lastMove = widget.controller.getPossibleMoves().isEmpty
-                  ? null
-                  : widget.controller.game.history.last;
-              if (lastMove != null) {
-                // Deliberately not animated: the user just dragged the piece
-                // to this square themselves, so sliding it along the same path
-                // again reads as the move happening twice.
-                widget.onMove(lastMove.move.fromAlgebraic, lastMove.move.toAlgebraic);
+              // Deliberately not animated: the user just dragged the piece to
+              // this square themselves, so sliding it along the same path again
+              // reads as the move happening twice.
+              final played =
+                  ChessBoardWithOverlay.lastMoveSquares(widget.controller.game);
+              if (played != null) {
+                widget.onMove(played.from, played.to);
               }
             },
           ),
@@ -173,7 +193,8 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTapUp: (details) {
-              final square = getSquareFromOffset(details.localPosition, widget.boardSize, widget.boardOrientation);
+              final square = getSquareFromOffset(details.localPosition,
+                  widget.boardSize, widget.boardOrientation);
               _handleSquareTapForMove(square);
             },
             child: CustomPaint(
@@ -195,7 +216,8 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
             onTapDown: (details) {
               if (!widget.isDrawingMode) return;
               final localPos = details.localPosition;
-              final square = getSquareFromOffset(localPos, widget.boardSize, widget.boardOrientation);
+              final square = getSquareFromOffset(
+                  localPos, widget.boardSize, widget.boardOrientation);
               widget.onSquareTapForDrawing(square);
             },
             child: CustomPaint(
@@ -229,9 +251,13 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
             pending: pendingAnim,
             boardSize: widget.boardSize,
             orientation: widget.boardOrientation,
-            duration: Duration(milliseconds: AppSettingsService.instance.moveAnimationDurationMs),
+            duration: Duration(
+                milliseconds:
+                    AppSettingsService.instance.moveAnimationDurationMs),
             onCompleted: () {
-              if (mounted) setState(() => _pendingAnimations.remove(pendingAnim));
+              if (mounted) {
+                setState(() => _pendingAnimations.remove(pendingAnim));
+              }
             },
           ),
       ],

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -37,6 +39,8 @@ class ServerStatusService extends ChangeNotifier {
 
   ServerStatus _status = ServerStatus.unknown;
   DateTime? _checkedAt;
+  Timer? _retry;
+  String? _lastToken;
 
   ServerStatus get status => _status;
   DateTime? get checkedAt => _checkedAt;
@@ -62,9 +66,43 @@ class ServerStatusService extends ChangeNotifier {
   }
 
   void reset() {
+    _retry?.cancel();
+    _retry = null;
+    _lastToken = null;
     _status = ServerStatus.unknown;
     _checkedAt = null;
     notifyListeners();
+  }
+
+  /// Records that the server just answered something else successfully.
+  ///
+  /// The socket connecting is proof the backend exists, and a warning that
+  /// contradicts traffic already flowing is worse than no warning at all. This
+  /// is how a check that happened to land during startup stops being the last
+  /// word on the subject.
+  void markOnline() {
+    _retry?.cancel();
+    _retry = null;
+    if (_status == ServerStatus.online) return;
+    _status = ServerStatus.online;
+    _checkedAt = DateTime.now();
+    notifyListeners();
+  }
+
+  /// Keeps asking while the answer is "no".
+  ///
+  /// The backend can take the better part of a minute to come up — the database
+  /// migrations run against a managed cluster — so a check fired at app start
+  /// often lands before the server is listening. Asked once and never again,
+  /// that turns a few seconds of starting up into a banner that stays wrong for
+  /// the rest of the session.
+  void _scheduleRetry() {
+    _retry?.cancel();
+    final token = _lastToken;
+    if (token == null || token.isEmpty) return;
+    _retry = Timer(const Duration(seconds: 10), () {
+      if (hasProblem) check(token);
+    });
   }
 
   /// Asks the server whether it is there and whether [token] still counts.
@@ -79,6 +117,7 @@ class ServerStatusService extends ChangeNotifier {
       return _status;
     }
 
+    _lastToken = token;
     try {
       final res = await http.get(
         Uri.parse('$backendUrl/session/check'),
@@ -100,6 +139,13 @@ class ServerStatusService extends ChangeNotifier {
     }
 
     _checkedAt = DateTime.now();
+    if (_status == ServerStatus.online) {
+      _retry?.cancel();
+      _retry = null;
+    } else if (_status == ServerStatus.offline) {
+      // An expired token will not fix itself; an unreachable server usually does.
+      _scheduleRetry();
+    }
     notifyListeners();
     return _status;
   }
