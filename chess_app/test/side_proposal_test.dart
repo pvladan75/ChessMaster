@@ -83,6 +83,8 @@ void main() {
     });
   });
 
+  _bothMateTests();
+
   group('isPlayableWith', () {
     test('a side with no legal move and no check is not playable', () {
       // Black king a8, white king c8... a stalemate-shaped board still counts
@@ -97,6 +99,31 @@ void main() {
     test('nonsense is not playable for either side', () {
       expect(isPlayableWith('ovo nije fen', 'w'), isFalse);
       expect(isPlayableWith('', 'b'), isFalse);
+    });
+  });
+}
+
+void _bothMateTests() {
+  group('both sides mating', () {
+    test('a symmetric mate race gives no answer, but says why', () {
+      // Six of the trainer's positions came back exactly like this.
+      final p = decideSide(whiteEval: 'M1', blackEval: '-M1');
+      expect(p.hasAnswer, isFalse);
+      expect(p.reason, contains('obe strane matiraju'));
+      expect(p.reason, contains('M1'),
+          reason: 'the numbers are what lets a person settle it themselves');
+    });
+
+    test('a clearly faster mate is offered, but only as likely', () {
+      final p = decideSide(whiteEval: 'M1', blackEval: '-M6');
+      expect(p.side, 'w');
+      expect(p.confidence, ProposalConfidence.medium);
+      expect(p.reason, contains('brže'));
+    });
+
+    test('one move apart is too close to call', () {
+      final p = decideSide(whiteEval: 'M1', blackEval: '-M2');
+      expect(p.hasAnswer, isFalse);
     });
   });
 }

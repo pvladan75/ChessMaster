@@ -121,6 +121,12 @@ SideProposal decideSide({
   final whiteMates = whiteEval.contains('M') && !whiteEval.startsWith('-');
   final blackMates = blackEval.contains('M') && blackEval.startsWith('-');
 
+  // Both sides mating is the commonest reason to have no answer — whoever moves
+  // first mates, and the engine cannot know which that is. It is still worth
+  // saying out loud: a trainer reading "white M1, black M6" in a mate-in-one
+  // chapter can settle it instantly, and silence tells them nothing at all.
+  final bothMate = whiteMates && blackMates;
+
   if (whiteMates != blackMates) {
     final side = whiteMates ? 'w' : 'b';
     return SideProposal(
@@ -137,12 +143,15 @@ SideProposal decideSide({
   final gap = (whiteMoverGain - blackMoverGain).abs();
   if (gap >= decisiveGap) {
     final side = whiteMoverGain > blackMoverGain ? 'w' : 'b';
+    final faster = bothMate
+        ? 'obe strane matiraju, ali ${side == 'w' ? 'beli' : 'crni'} brže ($whiteEval / $blackEval)'
+        : side == 'w'
+            ? 'potez mnogo više vredi belom ($whiteEval naspram $blackEval)'
+            : 'potez mnogo više vredi crnom ($blackEval naspram $whiteEval)';
     return SideProposal(
       side: side,
       confidence: ProposalConfidence.medium,
-      reason: side == 'w'
-          ? 'potez mnogo više vredi belom ($whiteEval naspram $blackEval)'
-          : 'potez mnogo više vredi crnom ($blackEval naspram $whiteEval)',
+      reason: faster,
       whiteEval: whiteEval,
       blackEval: blackEval,
     );
@@ -151,7 +160,9 @@ SideProposal decideSide({
   return SideProposal(
     side: null,
     confidence: ProposalConfidence.none,
-    reason: 'obe strane imaju slično — motor ne razlikuje',
+    reason: bothMate
+        ? 'obe strane matiraju ($whiteEval / $blackEval) — matira ko je prvi'
+        : 'obe strane imaju slično ($whiteEval / $blackEval) — motor ne razlikuje',
     whiteEval: whiteEval,
     blackEval: blackEval,
   );

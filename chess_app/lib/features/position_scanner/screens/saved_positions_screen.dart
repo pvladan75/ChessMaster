@@ -370,7 +370,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
             padding: const EdgeInsets.all(12),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 230,
-              mainAxisExtent: 250,
+              mainAxisExtent: 276,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
@@ -538,30 +538,49 @@ class _SavedCard extends StatelessWidget {
             const SizedBox(height: 6),
             Center(child: BoardThumbnail(fen: position.fen, size: 140)),
             const Spacer(),
-            Row(
-              children: [
-                Icon(
-                    position.sideToMove == 'w'
-                        ? Icons.circle
-                        : Icons.circle_outlined,
-                    size: 11,
-                    color: colors.textPrimary),
-                const SizedBox(width: 5),
-                Text(
-                  position.solutionSan ?? 'bez rešenja',
-                  style: TextStyle(
-                    color: incomplete ? colors.info : colors.textSecondary,
-                    fontSize: 12,
-                  ),
+            // The notes under the board grew from one line to three — solution,
+            // the unconfirmed-side warning, and the engine's opinion — and a
+            // fixed-height card cannot hold whatever arrives. Flexible with
+            // clipping means adding a fourth note can never overflow the tile
+            // again; the grid gives the block room for the usual three.
+            Flexible(
+              child: ClipRect(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                            position.sideToMove == 'w'
+                                ? Icons.circle
+                                : Icons.circle_outlined,
+                            size: 11,
+                            color: colors.textPrimary),
+                        const SizedBox(width: 5),
+                        Text(
+                          position.solutionSan ?? 'bez rešenja',
+                          style: TextStyle(
+                            color:
+                                incomplete ? colors.info : colors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Without this the yellow border says only "something", and
+                    // the trainer cannot know the side was never confirmed.
+                    if (position.needsReview)
+                      Text('strana na potezu nije potvrđena',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              TextStyle(color: colors.warning, fontSize: 11)),
+                    if (proposal != null) _proposalRow(context),
+                  ],
                 ),
-              ],
+              ),
             ),
-            // Without this the yellow border says only "something", and the
-            // trainer has no way to know the side to move was never confirmed.
-            if (position.needsReview)
-              Text('strana na potezu nije potvrđena',
-                  style: TextStyle(color: colors.warning, fontSize: 11)),
-            if (proposal != null && proposal!.hasAnswer) _proposalRow(context),
           ],
         ),
       ),
@@ -577,6 +596,22 @@ class _SavedCard extends StatelessWidget {
   Widget _proposalRow(BuildContext context) {
     final colors = context.colors;
     final p = proposal!;
+
+    // A run that found nothing still has something to say. Six positions came
+    // back undecidable because *both* sides mate — and "white M1, black M6" is
+    // enough for a trainer to settle in a second, while silence is not.
+    if (!p.hasAnswer) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          'motor: ${p.reason}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: colors.textMuted, fontSize: 11),
+        ),
+      );
+    }
+
     final disagrees =
         p.disagreesWith(position.sideToMove) && !position.needsReview;
     final tone = disagrees
