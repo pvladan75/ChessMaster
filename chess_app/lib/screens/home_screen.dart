@@ -924,6 +924,8 @@ class _HomeScreenState extends State<HomeScreen> {
           return HomeBibliotekaTab(
             onOpenStudio: _openStudioRoom,
             onOpenAnalysis: () => context.push(AppRoutes.analysis),
+            onOpenScanner: () => context.push(AppRoutes.scan),
+            onOpenSavedPositions: () => context.push(AppRoutes.savedPositions),
           );
         case 3:
           return HomeFriendsTab(

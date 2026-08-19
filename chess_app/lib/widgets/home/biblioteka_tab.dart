@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 
-/// The "Biblioteka" tab: shortcuts into the Studio (empty board) and the
-/// Analysis board. Stateless — both actions just navigate.
+/// The "Biblioteka" tab: shortcuts into the Studio (empty board), the Analysis
+/// board, and reading positions out of the trainer's own book. Stateless — all
+/// three actions just navigate.
 class HomeBibliotekaTab extends StatelessWidget {
   final VoidCallback onOpenStudio;
   final VoidCallback onOpenAnalysis;
+  final VoidCallback onOpenScanner;
+  final VoidCallback onOpenSavedPositions;
 
   const HomeBibliotekaTab({
     super.key,
     required this.onOpenStudio,
     required this.onOpenAnalysis,
+    required this.onOpenScanner,
+    required this.onOpenSavedPositions,
   });
 
   @override
@@ -31,9 +36,12 @@ class HomeBibliotekaTab extends StatelessWidget {
                     children: [
                       Row(
                         children: const [
-                          Icon(Icons.library_books, color: Colors.tealAccent, size: 28),
+                          Icon(Icons.library_books,
+                              color: Colors.tealAccent, size: 28),
                           SizedBox(width: 12),
-                          Text('Biblioteka Pozicija i Lekcija', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text('Biblioteka Pozicija i Lekcija',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -44,7 +52,8 @@ class HomeBibliotekaTab extends StatelessWidget {
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.dashboard_customize),
-                        label: const Text('Otvori Šahovski Studio sa praznom tablom'),
+                        label: const Text(
+                            'Otvori Šahovski Studio sa praznom tablom'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
                           foregroundColor: Colors.white,
@@ -60,7 +69,8 @@ class HomeBibliotekaTab extends StatelessWidget {
               Card(
                 elevation: 4,
                 color: Colors.deepPurple.shade900.withValues(alpha: 0.3),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
@@ -68,9 +78,14 @@ class HomeBibliotekaTab extends StatelessWidget {
                     children: [
                       Row(
                         children: const [
-                          Icon(Icons.biotech, color: Colors.tealAccent, size: 28),
+                          Icon(Icons.biotech,
+                              color: Colors.tealAccent, size: 28),
                           SizedBox(width: 12),
-                          Text('Tabla za Analizu 🔬', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text('Tabla za Analizu 🔬',
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white)),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -83,13 +98,67 @@ class HomeBibliotekaTab extends StatelessWidget {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.biotech),
-                          label: const Text('Otvori Tablu za Analizu', style: TextStyle(fontWeight: FontWeight.bold)),
+                          label: const Text('Otvori Tablu za Analizu',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.teal.shade700,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           onPressed: onOpenAnalysis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.document_scanner_outlined,
+                              color: Colors.tealAccent, size: 28),
+                          SizedBox(width: 12),
+                          Text('Pozicije iz vaše knjige',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Učitajte PDF knjige i izvucite dijagrame kao pozicije za zadatke. '
+                        'Svaku poziciju potvrđujete sami, a dokument se ne čuva na serveru.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.document_scanner_outlined),
+                          label: const Text('Skeniraj pozicije'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal.shade700,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: onOpenScanner,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.grid_view_outlined),
+                          label: const Text('Moje sačuvane pozicije'),
+                          onPressed: onOpenSavedPositions,
                         ),
                       ),
                     ],

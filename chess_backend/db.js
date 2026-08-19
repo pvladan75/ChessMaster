@@ -347,6 +347,46 @@ async function initDB() {
     `);
     logger.info('Verified database table & indexes: lichess_puzzles');
 
+    // Create custom_puzzles table — positions a trainer brought in themselves,
+    // by scanning their own book or typing a position from a lesson.
+    //
+    // `owner_id` is not bookkeeping, it is the rule. A position lifted out of a
+    // book belongs to the trainer who owns that book: the selection and
+    // arrangement of a published collection is the author's work even though a
+    // single position is a fact, so these rows never join the shared puzzle
+    // pool and are never served to anyone but their owner and the owner's
+    // students. There is deliberately no endpoint that shares them further.
+    //
+    // `puzzle_id` is a public token rather than the serial id, so it can sit in
+    // assignment_items.puzzle_id alongside Lichess ids without the two ranges
+    // ever colliding.
+    //
+    // `needs_review` carries the scanner's own doubt forward. A position whose
+    // printed solution would not play, or whose side to move nothing decided,
+    // is still worth keeping — it is just not worth assigning to a child before
+    // someone has looked at it.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS custom_puzzles (
+        id SERIAL PRIMARY KEY,
+        puzzle_id VARCHAR(64) UNIQUE NOT NULL,
+        owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        fen TEXT NOT NULL,
+        side_to_move CHAR(1) NOT NULL CHECK (side_to_move IN ('w', 'b')),
+        solution_san VARCHAR(20),
+        themes VARCHAR(40)[] NOT NULL DEFAULT '{}',
+        source_title VARCHAR(255),
+        source_page INTEGER,
+        source_label VARCHAR(16),
+        needs_review BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_custom_puzzles_owner
+        ON custom_puzzles(owner_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_custom_puzzles_themes
+        ON custom_puzzles USING GIN(themes);
+    `);
+    logger.info('Verified database table & indexes: custom_puzzles');
+
     // Create user_puzzle_attempts table.
     //
     // Two jobs: it keeps the selector from serving the same puzzle twice in a

@@ -11,6 +11,8 @@ import 'package:chess_app/screens/chess_game_screen.dart';
 import 'package:chess_app/screens/replay_player_screen.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
+import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
+import 'package:chess_app/features/position_scanner/screens/saved_positions_screen.dart';
 
 /// The app's navigation graph.
 ///
@@ -23,7 +25,8 @@ final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(
       path: AppRoutes.login,
-      builder: (context, state) => LoginRegisterScreen(pendingIntent: state.extra as PendingSessionIntent?),
+      builder: (context, state) => LoginRegisterScreen(
+          pendingIntent: state.extra as PendingSessionIntent?),
     ),
     GoRoute(
       path: AppRoutes.home,
@@ -56,7 +59,9 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.replay,
       builder: (context, state) {
         final id = int.tryParse(state.pathParameters['recordingId'] ?? '');
-        if (id == null) return const _InvalidRouteScreen(detail: 'Neispravan ID snimka.');
+        if (id == null) {
+          return const _InvalidRouteScreen(detail: 'Neispravan ID snimka.');
+        }
         return ReplayPlayerScreen(
           recordingId: id,
           userSession: SessionService.instance.current,
@@ -70,11 +75,25 @@ final GoRouter appRouter = GoRouter(
       ),
     ),
     GoRoute(
+      path: AppRoutes.scan,
+      builder: (context, state) => ScanReviewScreen(
+        session: SessionService.instance.current,
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.savedPositions,
+      builder: (context, state) => SavedPositionsScreen(
+        session: SessionService.instance.current,
+      ),
+    ),
+    GoRoute(
       path: AppRoutes.preferences,
-      builder: (context, state) => SettingsScreen(session: SessionService.instance.current),
+      builder: (context, state) =>
+          SettingsScreen(session: SessionService.instance.current),
     ),
   ],
-  errorBuilder: (context, state) => _InvalidRouteScreen(detail: state.uri.toString()),
+  errorBuilder: (context, state) =>
+      _InvalidRouteScreen(detail: state.uri.toString()),
 );
 
 /// Shown instead of a crash when a link points somewhere that does not exist.

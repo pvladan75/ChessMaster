@@ -20,6 +20,12 @@ abstract final class AppRoutes {
   /// Adaptive tactics training on the Lichess puzzle set.
   static const String tactics = '/tactics';
 
+  /// Reading positions out of a trainer's own book and confirming them.
+  static const String scan = '/scan';
+
+  /// Positions the trainer has already confirmed and kept.
+  static const String savedPositions = '/scan/saved';
+
   /// App settings pushed *over* the current screen. Distinct from the Settings
   /// tab inside the home shell: this variant keeps the analysis board or a live
   /// room mounted underneath, so closing it returns the user exactly where they

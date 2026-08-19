@@ -33,6 +33,10 @@ const METRIC = {
   AGORA_SECONDS: 'agora_seconds',
   MP4_RENDERS: 'mp4_renders',
   MP4_RENDER_SECONDS: 'mp4_render_seconds',
+  // Pages put through the position scanner. Costs nothing to a provider — it is
+  // our own CPU — but on a one-vCPU host that is the number that decides when a
+  // bigger droplet is due, and it is invisible unless counted.
+  SCANNED_PAGES: 'scanned_pages',
 };
 
 /// Metered features. -1 means unmetered.

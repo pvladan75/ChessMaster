@@ -294,3 +294,61 @@ Stavka 10 (merenje troška) je sad otključana admin nalogom — `GET
 /billing/usage` sam izveštaj i dalje nije otvoren okom. Stavka 9 (naplata)
 ostaje blokirana na nešto drugo: pravu kupovinu, koja čeka Play Console, ne
 admin nalog.
+
+## 12. Skener pozicija iz knjige — backend proveren uživo 19.8.2026, ekran nije
+
+**Backend je stvarno pozvan**, ne samo testiran jedinično. Token mintovan istim
+`JWT_SECRET`-om koji server koristi, pa ceo lanac preko HTTP-a:
+
+- `POST /scans` sa pravim PDF-om od 5,4 MB, strane 32–51 uz rešenja 972–980 →
+  **200 za 1,3 s**, 120 pozicija, nijedna sporna, font prepoznat kao
+  `SkakNew-Diagram`. Prva: `#97` sa `Qf1#`, strana na potezu pročitana iz
+  rešenja.
+- `POST /scans/confirm` sa 3 ispravne pozicije i **jednom namerno pokvarenom** →
+  201, sačuvano 3, odbijeno 1 uz razlog (`Invalid FEN: castling availability is
+  invalid`). Dakle provera na serveru radi i ne propušta smeće.
+- `GET /scans/puzzles` vratio tačno ta tri reda, sa temama i `needs_review`.
+- Redovi napravljeni probom su posle obrisani; `custom_puzzles` je opet prazna.
+
+**Nađeno pri toj probi i popravljeno istog dana.** Privremeni PDF se briše u
+`finally` — ali `finally` se ne izvrši ako proces bude ubijen usred zahteva.
+Nodemon koji se restartuje na snimanje fajla je dovoljan, i tako je i otkriveno:
+kopija knjige od 5,4 MB ostala je da leži u `%TEMP%\chess-scans`. Sad se pri
+pokretanju servera brišu svi zaostali `scan_*` fajlovi, uz upozorenje u dnevniku.
+Provereno posle popravke: direktorijum je prazan odmah po skeniranju.
+
+**Ekran je prošao uživo 19.8.2026.** Korisnik je skenirao `23.pdf`, strane
+32–51, i potvrdio čuvanje: u bazi stoji **120 pozicija, svih 120 sa proverenim
+rešenjem, nijedna obeležena kao sporna**. Time je usput potvrđeno i troje što je
+ranije bilo nepoznato: `file_picker` na Windows-u **vraća putanju** za PDF, mreža
+sa 120 dijagrama je upotrebljiva, i ulaz iz Biblioteke vodi gde treba.
+
+**Nađeno pri toj probi:** pozicije su sačuvane, a korisnik nije imao gde da ih
+vidi — ekran je čuvao u prazno. Dodato istog dana: `GET`/`DELETE
+/scans/puzzles`, ekran „Moje pozicije" (mreža, filter po knjizi, brisanje,
+dodir otvara poziciju na tabli za analizu), dugme u Biblioteci, i poruka posle
+čuvanja koja sad nosi „Pogledaj".
+
+**Drugo nađeno na slici, popravljeno istog dana:** pozicije su se prikazivale
+redosledom upisa — `#97 #100 #98 #101 #99 #102`. Skener obilazi stranu po
+položaju (prvo naniže, pa nadesno), a knjiga numeriše niz levu kolonu pa niz
+desnu; uz to svih 120 redova deli isti `created_at`, pa sortiranje po vremenu
+nije sortiranje. Sad se sortira po broju dijagrama, i to **kao broj a ne kao
+tekst**, inače 100 dolazi pre 97. Provereno na živim podacima: 97, 98, 99, 100…
+
+Ostalo neprovereno:
+
+- [ ] **Ekran „Moje pozicije"** u celini — nikad otvoren u aplikaciji. Brisanje
+      je provereno samo preko HTTP-a (tuđa pozicija i nepostojeći id vraćaju 404,
+      vlasnikovih 120 netaknuto), ali dijalog za potvrdu niko nije video.
+- [ ] Da li dodir na poziciju stvarno otvara **tablu za analizu sa tim FEN-om**.
+- [ ] Da li dugme za okretanje strane na potezu menja baš onu poziciju koja je
+      pod prstom **kad je uključen filter „traži pogled"** — mreža tada prikazuje
+      podskup, klasično mesto za grešku sa indeksima. U ovoj probi filter nije
+      korišćen jer nijedna pozicija nije bila sporna.
+- [ ] Kako se ponaša knjiga **bez odeljka sa rešenjima** — tada je strana na
+      potezu „nepoznato" za svaku poziciju i ceo teret pada na okretanje ručno.
+
+Napomena: `custom_puzzles` je nastala pri restartu 19.8.2026
+(`Verified database table & indexes: custom_puzzles`), pa taj korak više ne
+stoji na putu.

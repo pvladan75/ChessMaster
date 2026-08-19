@@ -829,6 +829,255 @@ apsolutnu adresu iz starog reda, fajl koji još stoji na uređaju pre
 sinhronizacije, i putanju. Srednji slučaj je lako previdеti — zbog njega se
 snimak koji nije stigao na server pušta sa diska.
 
+## Skener pozicija iz knjiga — izmereno 19.8.2026, proba na Node-u radi
+
+Ideja: trener unosi **svoj** materijal — knjigu, papir sa časa — a ne bira iz
+tuđe baze. Količina nije problem, 50.000 Lichess zagonetki već stoji u bazi.
+
+Postoji radni prototip u Pythonu van repozitorijuma (`pdf_u_fen_skener.py` i
+prateće skripte). Ovaj odeljak je merenje na dve stvarno različite knjige, jer od
+te razlike zavisi šta uopšte treba graditi.
+
+### Dva puta u prototipu, i samo jedan valja
+
+**Put A — vektorski font.** Šahovski dijagrami u knjigama složenim u LaTeX-u ili
+Word-u nisu slike nego **tekst** u posebnom fontu: osam redova po osam znakova.
+Čita se iz tekstualnog sloja, bez prepoznavanja slike. Zato je i tačan.
+
+**Put B — OpenCV + `board_to_fen` (TensorFlow).** Ne prenosi se. Na droplet-u sa
+1 vCPU / 2 GB TensorFlow ne dolazi u obzir, a i sam kod ima tačno onu grešku koju
+ovde lovimo: ako uvoz modela pukne, `get_fen_from_image` se zameni funkcijom koja
+vraća praznu tablu. Bez instaliranog TensorFlow-a skener **tiho vraća praznu
+tablu kao validan rezultat**, upiše je i javi „skeniranje završeno". Peti primer
+u nizu iz `CLAUDE.md`.
+
+### Ko je na potezu — četiri izvora, poređana
+
+Merano na knjizi sa 5.234 izvučene pozicije:
+
+1. **Rešenje.** `1255  1...Rd1+ 2.NXd1` — tri tačke znače da je crni na potezu.
+   Pravilo nije „red sadrži tri tačke" nego „**prvi potez** u redu je `1...`";
+   red `307  1.Kc3 [threatening Qa7m] 1...Ka2` takođe sadrži `1...`, a beli je na
+   potezu. Od te razlike zavisi da li je pravilo tačno ili grubo pogrešno.
+2. **Oznaka uz dijagram** — natpis ili glif pored table.
+3. **Zaglavlje sekcije**, preneseno unapred na strane koje ga nemaju.
+4. **Motor** kao arbitar kad prva tri ćute.
+
+Poklapanje izvora 1 i 2 na toj knjizi: **5.009 slaganja, nula neslaganja među
+pravim zagonetkama.** Svih 173 neslaganja leže iznad dijagrama 4463, gde
+„rešenje" nije rešenje nego partija od prvog poteza. Pravilo je samo pronašlo
+granicu odeljka — to je traženo ponašanje: kad se dva izvora raziđu, to se vidi,
+a ne pogađa se.
+
+### Rešenje je test svake izvučene pozicije
+
+Ovo je važnije od strane na potezu. Ako knjiga kaže `1.Qg7m`, a taj potez nije ni
+legalan u izvučenom FEN-u, tabla je pogrešno pročitana. Na 4.337 zagonetki:
+
+| | |
+|---|---|
+| potez iz knjige legalan u izvučenom FEN-u | **99,61%** |
+| i identičan onome što nađe motor | **98,20%** |
+| nelegalan | 17 |
+
+Od tih 17: **14 rokada, 2 en passant, i samo jedna stvarno pogrešno pročitana
+tabla.** Uzrok nije čitanje figura nego to što skener zakucava metapodatke FEN-a
+na `- -`: prava na rokadu i polje za en passant se bacaju. Mat u jedan potez
+rokadom se uvozi kao **nerešiva zagonetka** — figure tačne, potez zabranjen, dete
+odigra tačno rešenje i dobije „pogrešno". Stvarna tačnost čitanja table je dakle
+**1 promašaj na 4.337**, a ne 17.
+
+Odluka koja iz toga sledi: **prava na rokadu se iz dijagrama ne mogu pročitati**,
+knjiga ih ne štampa. Ako je rešenje rokada, postaviti prava koja je čine
+legalnom; inače pretpostaviti da ih nema **i označiti poziciju**. Ne pogađati
+ćutke — isti oblik greške kao `sed s/^KEY=.*/` koji ne uradi ništa.
+
+### Druga knjiga: šta se prenosi, a šta ne
+
+Provereno na `TacticsCourse.pdf` (Exeter Chess Club, Dave Regis, besplatno
+objavljeno — 84 strane, 211 dijagrama). Word → PostScript → Ghostscript, ne
+LaTeX.
+
+**Prenosi se tehnika, ne tabela.** Dijagram je i dalje tekst u posebnom fontu,
+ali je azbuka sasvim druga: `w`/`D` prazna polja, `p`/`0`/`P`/`)` pešaci, ivice
+`cuuuuuuuuC` i `v,./9EFJMV`. Font je podskup sa zamagljenim imenom
+(`TTE2BEAF20t00`), bez `/CharSet` i bez `ToUnicode` — dakle **mapa znak→figura
+mora da se napiše po knjizi**. Nije veliki posao (48 znakova, od čega je pola
+ivica), ali se ne izvodi automatski.
+
+**Postojeći parser na njoj nalazi 0 od 211 dijagrama**, jer traži trocifren broj
+dijagrama kojeg u ovoj knjizi nema. U punom toku to znači propadanje na Put B i
+211 izmišljenih praznih tabli prijavljenih kao uspeh.
+
+**„White to move" gotovo i ne postoji:** tri natpisa na celu knjigu. Sufiks-glif
+uz ivicu (`}a` / `}e`) stoji na 31 od 211 dijagrama. Oba izvora otpadaju, ostaju
+rešenja i motor. I još jedno upozorenje: natpisi se u tekstualnom toku pojavljuju
+**na kraju strane**, ne uz svoj dijagram — spajaju se po koordinatama, nikako po
+redosledu čitanja.
+
+**Dijagrami nose oznake polja koje nisu figure** (`X` za napadnuto polje). Mapa
+ih mora slati u „prazno", inače postaju figure kojih nema.
+
+### Iz ovoga sledi da skener ima dva izlaza, ne jedan
+
+Najvažniji nalaz. Dve knjige su dve različite vrste dokumenta:
+
+- **Katalog** (prva knjiga): numerisani dijagrami, ujednačeni, rešenja
+  indeksirana po broju. Izlaz su **zagonetke** — `kind = 'puzzles'`.
+- **Kurs** (`TacticsCourse.pdf`): proza sa ilustracijama, 211 dijagrama ali samo
+  **12 rešenja** na kraju, za završni test. Ostalih 199 nisu zagonetke nego
+  primeri uz tekst. Izlaz je **lekcija** — `saved_lessons` sa koracima,
+  `kind = 'lesson'`, i `review_items` preko toga.
+
+Vući 211 „zagonetki" iz kursa bilo bi tačno po formi i besmisleno po sadržaju.
+Vrstu dokumenta treba prepoznati (ima li numerisanih dijagrama, ima li rešenja
+indeksiranih po broju, koliki je odnos proze i dijagrama) i **pitati trenera**,
+jer je pogrešan izbor ovde tih.
+
+Uzgred, rešenja ove knjige nose i temu rečima — `1...a5! undermining`,
+`1.Re7+! interference/skewer` — što se preslikava na `assignments.themes`. Prva
+knjiga isto to daje kroz zaglavlje (`2.1 White to Move #2` → `mateIn2`). Bez toga
+trener ne može da zada „dvadeset matova u dva", jer skenirane pozicije nemaju
+nijedan tag.
+
+### Ekran za potvrdu i put do baze — napisano 19.8.2026, nije viđeno uživo
+
+Skener je iz `puzzles/` prešao u aplikaciju:
+`chess_backend/services/positionScanner/` (biblioteka + tri CLI alata),
+`routes/scans.js`, tabela `custom_puzzles`, i ekran
+`features/position_scanner` sa ulazom iz Biblioteke.
+
+Tri odluke koje su ugrađene, a ne dopisane:
+
+- **Dokument se ne čuva.** Upiše se u `os.tmpdir()` samo zato što čitač traži
+  putanju, skenira se u toku zahteva i briše u `finally`. Server koji ne čuva
+  ništa ne može ništa ni da propusti — a `uploads/` ostaje jedino mesto sa
+  dečjim glasovima i tamo ovo nikad ne ulazi.
+- **Skenira se opseg strana, ne knjiga.** Najviše 40 po prolazu. Nije zbog
+  brzine — 40 strana je 0,3 s — nego zato što jedan zahtev ne sme da drži
+  jedini vCPU nad knjigom od 1.184 strane, i zato što 200 dijagrama odjednom
+  već jeste gornja granica onoga što čovek može da pregleda.
+- **Klijent nije autoritet za poziciju.** `services/scanIntake.js` iznova
+  proverava svaki FEN kroz `chess.js`; strana na potezu se čita iz FEN-a, a ne
+  iz onoga što je aplikacija poslala. Potez koji se ne odigra ne upisuje se kao
+  rešenje, ali se pozicija čuva i obeleži — tabla ume da valja i kad je potez
+  pored nje pogrešno pročitan.
+
+Merenje: 40 strana + 9 sa rešenjima za **0,3 s** u biblioteci, **1,3 s** kroz
+HTTP sa pravim PDF-om od 5,4 MB. Backend 152 testa, aplikacija 220,
+`flutter analyze` čist.
+
+**Backend je pozvan uživo 19.8.2026** — ceo lanac preko HTTP-a, 120 pozicija sa
+strana 32–51, čuvanje sa jednom namerno pokvarenom pozicijom koju je server
+odbio uz razlog, čitanje nazad, pa brisanje probnih redova. Ekran u aplikaciji
+još niko nije otvorio: `TODO-provera.md`, stavka 12.
+
+Ta proba je odmah otkrila i rupu u obećanju „dokument se ne čuva": `finally` se
+**ne izvrši ako proces bude ubijen usred zahteva**, a nodemon koji se restartuje
+na snimanje fajla je dovoljan da se to desi. Kopija knjige od 5,4 MB ostala je u
+privremenom direktorijumu. Sad se pri pokretanju servera brišu svi zaostali
+`scan_*` fajlovi, uz upozorenje u dnevniku. Isti oblik greške kao i ostali u
+ovom projektu — korak koji tiho ne odradi svoje, i vidi se tek kad neko pogleda.
+
+### Nijedan skener ne sme da preskoči potvrdu čoveka
+
+Tok je: skeniraj → mreža kandidata → trener ispravi ili odbaci → sačuvaj. Čim to
+prihvatimo, tačnost od 90% je upotrebljiva i faza 2 postaje moguća bez sopstvenog
+modela. Automatske provere (legalnost pozicije, potez iz rešenja legalan, opseg
+brojeva iz zaglavlja) služe da se treneru pošalje dvadeset sumnjivih umesto pet
+hiljada.
+
+### Prenos na Node je urađen i izmeren — 19.8.2026
+
+Proba stoji u [puzzles/scanner](../puzzles/scanner/README.md) (nije deo
+aplikacije). Python se **ne prenosi**: `pdfjs-dist` je čist JS i daje isto što i
+PyMuPDF, `chess.js` proverava svaki potez.
+
+| | |
+|---|---|
+| dijagrama nađeno u prvoj knjizi | 5.320 (Python ih je našao 5.234) |
+| poklapanje sa Python izlazom | 5.220 istih, **0 različitih** |
+| potez iz knjige legalan, id < 4463 | **4.436 / 4.437 = 99,98%** |
+| popravki rokade i en passant-a | 16 |
+
+Popravka metapodataka radi: `#305` je sad `O-O#` sa pravom `K` u FEN-u, `#306`
+`axb6#` sa poljem `b6`. Ranije su obe bile „nelegalne", a bile su tačno
+pročitane. Preostaje **jedan** stvarni promašaj u celoj knjizi (`#3518`).
+
+Tri stvari koje su koštale vremena i koje ne treba ponovo otkrivati:
+
+- **Dijagram se ne traži po broju** nego po obliku — osam redova glifova u istoj
+  koloni. Parser vezan za broj nalazi 0 od 211 dijagrama u drugoj knjizi.
+- **Koordinate redova (8..1) su takođe cifre** u levoj margini. Uzimanje najbliže
+  cifre daje svakom dijagramu u knjizi broj „8". Broj je iznad table i nikad levo
+  od njene ivice.
+- **Notacija je dvosmislena kad nestanu razmaci.** `1.Nc6 b5` stiže kao `Nc6b5`,
+  identično razjašnjenom potezu `Nc6b5`. Tekst to ne razrešava — nude se oba,
+  kraći prvi, a `chess.js` odbaci pogrešan. Dok ovo nije bilo popravljeno,
+  tačnost je izgledala kao 88,6% umesto 99,98%.
+
+Font ne pomaže oko mape: `TTE2BEAF20t00` iz druge knjige ima `post` tabelu
+verzije 3.0, dakle bez imena glifova. Mapa se izvodi iz same knjige, i to je
+posao po knjizi — **za drugu knjigu je započet, nije završen.**
+
+### Kako se izvodi mapa za novu knjigu — 19.8.2026
+
+Pola mape daje statistika (`derive.mjs`), bez ijednog pogađanja: prazna polja su
+najčešći glifovi, **kraljevi** su jedini par koji stoji tačno jednom na svakom
+od 206 dijagrama, **pešaci** nikad ne stoje na 1. i 8. redu.
+
+Ostatak daje **geometrija poteza** (`identify.mjs`): `1.Ng5` znači da beli skakač
+stoji skakačev skok od g5, a koja su polja zauzeta zna se i bez mape, jer prazno
+polje ima svoj glif. Vrati se unazad od odredišta i glif se sam predstavi.
+
+Pre toga je pisana pretraga koja nabraja sve moguće mape: **2.654.208 kandidata,
+sedam minuta, rezultat „nijedna ne prolazi"** — što ne kaže koja pretpostavka je
+pukla. Direktna metoda daje isto za sekundu i uz to imenuje glif. Vredi zapamtiti
+kao oblik greške: nabrajanje tamo gde podatak već sadrži odgovor.
+
+Izvedeno do sada: kraljevi `I`,`K` / `i`,`k`; pešaci `P` / `p`,`0`; iz jednog
+dijagrama i `R`,`$` beli topovi, `4` crni top, `G` beli lovac.
+
+Usput je nađena protivrečnost u samoj knjizi: rešenje #2 je odštampano kao
+`1...Bxh6` (crni na potezu), ali bi crni lovac sa g7 uzimao **sopstvenog** pešaka
+na h6 — potez pripada belom lovcu sa c1. Alat to prijavljuje kao `PROTIVREČNO` i
+ne bira stranu. To je tačno onaj raskorak koji ide treneru na potvrdu, i prvi
+stvarni dokaz da ekran za potvrdu nije formalnost.
+
+### Šta ovo košta
+
+| | |
+|---|---|
+| Faza 1 — PDF sa vektorskim fontom | ~1,5 nedelja. Trošak izvršavanja **nula** |
+| Faza 2 — skenirane slike | ~3–5 dana, **ponavljajući trošak** po strani |
+| Veličina aplikacije | **+0 MB** ako ne uvodimo TensorFlow |
+
+U fazi 1 nema ničeg novog na serveru: `pdfjs-dist` je čist JS i daje isto što i
+PyMuPDF (ime fonta, koordinate glifova), `chess.js` i `multer` su već zavisnosti,
+obrazac za otpremanje stoji u
+[recordings.js](../chess_backend/routes/recordings.js). Provera motorom ide **na
+uređaj** — backend nema Stockfish, aplikacija ga ima.
+
+Za fazu 2 postoji `@google/genai`, već zavisnost. Tačnost na skeniranim stranama
+je nepoznata; pre nego što se uloži pet dana, izmeriti na pet strana.
+
+Skenirani fajlovi **ne idu u `uploads/`** — to je jedina kopija dečjih glasova.
+Idu u zaseban direktorijum sa rokom trajanja, kao MP4 izvozi.
+
+### Pravno — jedina cena koja nije mala
+
+Pojedinačna pozicija je činjenica, ali **izbor i raspored** zbirke je autorski
+rad, a u EU postoji i pravo proizvođača baze. Razlika je oštra: trener skenira
+knjigu koju poseduje za svoje učenike = jedan rizik; mi te pozicije slivamo u
+zajedničku bazu = sasvim drugi.
+
+Ugrađuje se kao ograničenje dizajna, ne kao napomena: **skenirane pozicije su
+privatne za trenera koji ih je uneo, ne ulaze u globalnu bazu zagonetki, i ne
+dele se van njegovih učenika.** Ovo ide uz ostale pravne stavke koje ionako čekaju
+pravnika ([TODO-objavljivanje.md](TODO-objavljivanje.md), korak 3).
+
+I: **testne knjige i izvučeni JSON ne smeju u repozitorijum** — javan je.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
@@ -860,6 +1109,10 @@ uživo. Ostaju:
 - Provere uživo iz `TODO-provera.md`: izveštaj za roditelja, zadaci tipa
   lekcija, ponavljanje u razmacima, merenje troška (stavka 10 — endpoint sad
   radi, izveštaj nikad otvoren).
+- **Skener pozicija iz knjiga** — odeljak iznad. Parser na Node-u radi i izmeren
+  je (99,98% na prvoj knjizi, `puzzles/scanner`). Sledeće je mapa fonta za drugu
+  knjigu, pa ekran za potvrdu u aplikaciji; faza 2 (skenirane slike) čeka merenje
+  tačnosti na pet strana pre nego što se u nju uloži.
 - Veći, netaknuti poduhvati iz procene: dnevna zagonetka i niz dana, grupe i
   prisustvo, chat i video, višejezičnost.
 
