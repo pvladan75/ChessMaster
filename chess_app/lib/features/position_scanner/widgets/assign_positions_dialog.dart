@@ -61,32 +61,53 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
       };
 
   Future<void> _loadStudents() async {
+    // Reaching the server and understanding its answer are separate failures,
+    // and one catch around both reported "nije moguće doći do servera" while the
+    // server was answering perfectly — sending the trainer to look at their
+    // connection over a parsing mistake of ours.
+    http.Response res;
     try {
-      final res = await http
+      res = await http
           .get(Uri.parse('$backendUrl/trainer/students'), headers: _headers)
           .timeout(const Duration(seconds: 20));
-      if (!mounted) return;
-      if (res.statusCode == 200) {
-        final list =
-            (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
-        setState(() {
-          _students = list;
-          _loading = false;
-        });
-      } else {
-        setState(() {
-          _loading = false;
-          _error = 'Lista učenika nije učitana.';
-        });
-      }
     } catch (e) {
-      AppLogger.log('Load students failed: $e', name: 'PositionScanner');
+      AppLogger.log('Load students — server unreachable: $e',
+          name: 'PositionScanner');
       if (mounted) {
         setState(() {
           _loading = false;
           _error = 'Nije moguće doći do servera.';
         });
       }
+      return;
+    }
+    if (!mounted) return;
+
+    if (res.statusCode != 200) {
+      setState(() {
+        _loading = false;
+        _error = 'Lista učenika nije učitana (${res.statusCode}).';
+      });
+      return;
+    }
+
+    try {
+      // The endpoint answers `{ students: [...] }`, not a bare array.
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      final list = (body['students'] as List? ?? const [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      setState(() {
+        _students = list;
+        _loading = false;
+      });
+    } catch (e) {
+      AppLogger.log('Load students — unreadable answer: $e',
+          name: 'PositionScanner');
+      setState(() {
+        _loading = false;
+        _error = 'Server je odgovorio nečim što ne umem da pročitam.';
+      });
     }
   }
 
