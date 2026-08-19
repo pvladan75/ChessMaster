@@ -17,23 +17,24 @@ class StockfishService {
 
   Stockfish? _stockfish;
   StreamSubscription? _subscription;
-  
+
   Process? _customProcess;
   StreamSubscription? _customSubscription;
   bool _isCustomActive = false;
-  
-  Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluationChanged;
+
+  Function(String evaluation, String bestMove, String continuation, int multipv,
+      int depth, bool isFinal, String analyzedFen)? onEvaluationChanged;
   Function(Map<int, AnalysisLine> lines)? onMultiPVUpdated;
   final Map<int, AnalysisLine> _engineLines = {};
 
   bool _isActive = false;
   int _requestId = 0;
   String _currentFen = '';
-  
+
   // Track engine readiness
   bool _nativeReady = false;
   bool _initInProgress = false;
-  
+
   // Pending position to analyze if engine is still initializing
   String? _pendingFen;
   int? _pendingDepth;
@@ -54,7 +55,8 @@ class StockfishService {
     return Platform.isWindows || Platform.isLinux;
   }
 
-  bool get isActive => _useOnline ? _isActive : (_stockfish != null || _customProcess != null);
+  bool get isActive =>
+      _useOnline ? _isActive : (_stockfish != null || _customProcess != null);
   bool get isSupported => true;
   bool get isOnline => _useOnline;
 
@@ -64,30 +66,34 @@ class StockfishService {
     _isActive = true;
 
     // If engine is already initialized and ready, nothing to do
-    if (_nativeReady && (_stockfish != null || _customProcess != null || _useOnline)) {
-      AppLogger.log('[StockfishService] ♻️ Engine already initialized and ready (singleton). Draining any pending queue...');
+    if (_nativeReady &&
+        (_stockfish != null || _customProcess != null || _useOnline)) {
+      AppLogger.log(
+          '[StockfishService] ♻️ Engine already initialized and ready (singleton). Draining any pending queue...');
       _drainPendingQueue();
       return;
     }
 
     if (_initInProgress) {
-      AppLogger.log('[StockfishService] ⏳ initEngine already in progress, skipping duplicate call.');
+      AppLogger.log(
+          '[StockfishService] ⏳ initEngine already in progress, skipping duplicate call.');
       return;
     }
     _initInProgress = true;
-    AppLogger.log('[StockfishService] 🛠️ initEngine called | CustomActive: $_isCustomActive | UseOnline: $_useOnline');
+    AppLogger.log(
+        '[StockfishService] 🛠️ initEngine called | CustomActive: $_isCustomActive | UseOnline: $_useOnline');
 
     // Cached evaluations belong to whichever engine produced them, and the
     // engine's identity is not part of the cache key. Starting a different
     // binary — or switching between the local and online engine — must not
     // inherit the previous one's answers.
     EvalCache.instance.clear();
-    
+
     // Check if custom engine path is set (Windows only)
     try {
       final prefs = await SharedPreferences.getInstance();
       final customPath = prefs.getString('custom_engine_path');
-      
+
       if (customPath != null && customPath.isNotEmpty && Platform.isWindows) {
         if (_customProcess != null) {
           _nativeReady = true;
@@ -95,11 +101,12 @@ class StockfishService {
           _drainPendingQueue();
           return;
         }
-        AppLogger.log('[StockfishService] 🚀 Starting custom engine at: $customPath');
+        AppLogger.log(
+            '[StockfishService] 🚀 Starting custom engine at: $customPath');
         _customProcess = await Process.start(customPath, []);
         _isCustomActive = true;
         _nativeReady = true;
-        
+
         _customSubscription = _customProcess!.stdout
             .transform(utf8.decoder)
             .transform(const LineSplitter())
@@ -122,7 +129,8 @@ class StockfishService {
 
     _isCustomActive = false;
     if (_useOnline) {
-      AppLogger.log('[StockfishService] 🌐 Using Online Stockfish Cloud API Fallback');
+      AppLogger.log(
+          '[StockfishService] 🌐 Using Online Stockfish Cloud API Fallback');
       _nativeReady = true;
       _initInProgress = false;
       _drainPendingQueue();
@@ -132,7 +140,8 @@ class StockfishService {
     // ── Native Stockfish (Android/iOS) ──
     // Reuse existing instance if it's still alive and ready
     if (_stockfish != null && _nativeReady) {
-      AppLogger.log('[StockfishService] ♻️ Reusing existing native Stockfish instance.');
+      AppLogger.log(
+          '[StockfishService] ♻️ Reusing existing native Stockfish instance.');
       _initInProgress = false;
       _drainPendingQueue();
       return;
@@ -140,45 +149,54 @@ class StockfishService {
 
     // Kill old broken instance if it exists but never became ready
     if (_stockfish != null && !_nativeReady) {
-      AppLogger.log('[StockfishService] 🔄 Disposing stale Stockfish instance...');
+      AppLogger.log(
+          '[StockfishService] 🔄 Disposing stale Stockfish instance...');
       _subscription?.cancel();
       _subscription = null;
-      try { _stockfish?.dispose(); } catch (_) {}
+      try {
+        _stockfish?.dispose();
+      } catch (_) {}
       _stockfish = null;
       // Small delay to let the FFI process fully terminate
       await Future.delayed(const Duration(milliseconds: 300));
     }
 
-    AppLogger.log('[StockfishService] ⚙️ Creating new Native Stockfish instance...');
+    AppLogger.log(
+        '[StockfishService] ⚙️ Creating new Native Stockfish instance...');
     _stockfish = Stockfish();
-    
+
     _subscription = _stockfish!.stdout.listen((line) {
       _parseStockfishLine(line);
     });
 
     // Wait for the Stockfish FFI process to become ready
     final ready = await _waitForReady(timeout: const Duration(seconds: 5));
-    
+
     if (ready) {
-      AppLogger.log('[StockfishService] ✅ Native Stockfish is READY! Sending UCI init commands...');
+      AppLogger.log(
+          '[StockfishService] ✅ Native Stockfish is READY! Sending UCI init commands...');
       _nativeReady = true;
       _sendCommandForce('uci');
       _sendCommandForce('setoption name MultiPV value 3');
       _sendCommandForce('isready');
       _drainPendingQueue();
     } else {
-      AppLogger.log('[StockfishService ERROR] ❌ Stockfish not ready within 5s. Retrying...');
+      AppLogger.log(
+          '[StockfishService ERROR] ❌ Stockfish not ready within 5s. Retrying...');
       _subscription?.cancel();
-      try { _stockfish?.dispose(); } catch (_) {}
+      try {
+        _stockfish?.dispose();
+      } catch (_) {}
       _stockfish = null;
       await Future.delayed(const Duration(milliseconds: 300));
-      
+
       _stockfish = Stockfish();
       _subscription = _stockfish!.stdout.listen((line) {
         _parseStockfishLine(line);
       });
-      
-      final retryReady = await _waitForReady(timeout: const Duration(seconds: 8));
+
+      final retryReady =
+          await _waitForReady(timeout: const Duration(seconds: 8));
       if (retryReady) {
         AppLogger.log('[StockfishService] ✅ Stockfish READY on retry!');
         _nativeReady = true;
@@ -187,7 +205,8 @@ class StockfishService {
         _sendCommandForce('isready');
         _drainPendingQueue();
       } else {
-        AppLogger.log('[StockfishService ERROR] ❌ Stockfish failed after retry. Using material fallback.');
+        AppLogger.log(
+            '[StockfishService ERROR] ❌ Stockfish failed after retry. Using material fallback.');
         if (_pendingFen != null) {
           _fallbackBasicEvaluation(_pendingFen!, _pendingDepth ?? 18);
           _pendingFen = null;
@@ -205,7 +224,7 @@ class StockfishService {
 
     final completer = Completer<bool>();
     Timer? timer;
-    
+
     void listener() {
       if (_stockfish?.state.value == StockfishState.ready) {
         if (!completer.isCompleted) {
@@ -213,7 +232,7 @@ class StockfishService {
           completer.complete(true);
         }
       } else if (_stockfish?.state.value == StockfishState.error ||
-                 _stockfish?.state.value == StockfishState.disposed) {
+          _stockfish?.state.value == StockfishState.disposed) {
         if (!completer.isCompleted) {
           timer?.cancel();
           completer.complete(false);
@@ -222,7 +241,7 @@ class StockfishService {
     }
 
     _stockfish!.state.addListener(listener);
-    
+
     timer = Timer(timeout, () {
       if (!completer.isCompleted) {
         AppLogger.log('[StockfishService] ⏰ Timeout waiting for ready state.');
@@ -242,7 +261,8 @@ class StockfishService {
       final depth = _pendingDepth ?? 18;
       _pendingFen = null;
       _pendingDepth = null;
-      AppLogger.log('[StockfishService] 🎯 Draining queue → analyzing FEN: $fen');
+      AppLogger.log(
+          '[StockfishService] 🎯 Draining queue → analyzing FEN: $fen');
       analyzePosition(fen, depth: depth);
     }
   }
@@ -265,7 +285,9 @@ class StockfishService {
   /// Re-attaching the same owner replaces its previous registration.
   void attach(
     Object owner, {
-    Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation,
+    Function(String evaluation, String bestMove, String continuation,
+            int multipv, int depth, bool isFinal, String analyzedFen)?
+        onEvaluation,
     Function(Map<int, AnalysisLine> lines)? onMultiPV,
     String Function()? getFen,
     bool Function()? isEnabled,
@@ -278,7 +300,8 @@ class StockfishService {
       getFen: getFen,
       isEnabled: isEnabled,
     ));
-    AppLogger.log('[StockfishService] 🔗 attach(${owner.runtimeType}) — ${_subscribers.length} subscriber(s)');
+    AppLogger.log(
+        '[StockfishService] 🔗 attach(${owner.runtimeType}) — ${_subscribers.length} subscriber(s)');
     _activateTopSubscriber();
   }
 
@@ -287,7 +310,8 @@ class StockfishService {
     final removed = _subscribers.any((s) => identical(s.owner, owner));
     _subscribers.removeWhere((s) => identical(s.owner, owner));
     if (removed) {
-      AppLogger.log('[StockfishService] 🔓 detach(${owner.runtimeType}) — ${_subscribers.length} subscriber(s) left');
+      AppLogger.log(
+          '[StockfishService] 🔓 detach(${owner.runtimeType}) — ${_subscribers.length} subscriber(s) left');
     }
     stopAnalysis();
     _activateTopSubscriber();
@@ -313,8 +337,12 @@ class StockfishService {
     final active = top.isEnabled?.call() ?? true;
     final currentFen = top.getFen?.call();
 
-    if (active && currentFen != null && currentFen.isNotEmpty && _currentFen != currentFen) {
-      AppLogger.log('[StockfishService] 🔄 Auto-triggering evaluation for top subscriber (${top.owner.runtimeType}) | FEN: $currentFen');
+    if (active &&
+        currentFen != null &&
+        currentFen.isNotEmpty &&
+        _currentFen != currentFen) {
+      AppLogger.log(
+          '[StockfishService] 🔄 Auto-triggering evaluation for top subscriber (${top.owner.runtimeType}) | FEN: $currentFen');
       analyzePosition(currentFen);
     }
   }
@@ -323,7 +351,8 @@ class StockfishService {
   /// clicking through several tree nodes quickly) only actually reaches the
   /// engine for the last one, instead of piling up "stop"+"go" commands
   /// faster than the engine can honor them.
-  Future<void> analyzePosition(String fen, {int depth = 18, bool isInfinite = false}) async {
+  Future<void> analyzePosition(String fen,
+      {int depth = 18, bool isInfinite = false}) async {
     _analyzeDebounceTimer?.cancel();
     final completer = Completer<void>();
     _analyzeDebounceTimer = Timer(const Duration(milliseconds: 180), () async {
@@ -333,12 +362,14 @@ class StockfishService {
     return completer.future;
   }
 
-  Future<void> _runAnalyzePosition(String fen, {int depth = 18, bool isInfinite = false}) async {
+  Future<void> _runAnalyzePosition(String fen,
+      {int depth = 18, bool isInfinite = false}) async {
     _currentFen = fen;
     _engineLines.clear();
     _isActive = true;
 
-    AppLogger.log('[STOCKFISH_ENGINE_LOG] 🎯 Analiza | Dubina: $depth | Mode: ${_useOnline ? "Online API" : "Nativni Engine"} | FEN: $fen');
+    AppLogger.log(
+        '[STOCKFISH_ENGINE_LOG] 🎯 Analiza | Dubina: $depth | Mode: ${_useOnline ? "Online API" : "Nativni Engine"} | FEN: $fen');
 
     if (_useOnline) {
       final reqId = ++_requestId;
@@ -346,14 +377,18 @@ class StockfishService {
 
       // Try Lichess Cloud Eval API first
       try {
-        final cloudUrl = 'https://lichess.org/api/cloud-eval?fen=${Uri.encodeComponent(fen)}';
-        final cloudRes = await http.get(Uri.parse(cloudUrl)).timeout(const Duration(seconds: 4));
+        final cloudUrl =
+            'https://lichess.org/api/cloud-eval?fen=${Uri.encodeComponent(fen)}';
+        final cloudRes = await http
+            .get(Uri.parse(cloudUrl))
+            .timeout(const Duration(seconds: 4));
 
         if (reqId == _requestId && cloudRes.statusCode == 200) {
           final cloudData = jsonDecode(cloudRes.body);
           final pvsRaw = cloudData['pvs'] as List?;
           if (pvsRaw != null && pvsRaw.isNotEmpty) {
-            final depthVal = ((cloudData['depth'] as int?) ?? effectiveDepth).clamp(5, 50);
+            final depthVal =
+                ((cloudData['depth'] as int?) ?? effectiveDepth).clamp(5, 50);
             final bool isBlackToMove = fen.contains(' b ');
             // Lichess returns up to 5 PVs when the position is in its DB;
             // surface as many as the user asked for instead of only the top one.
@@ -363,7 +398,9 @@ class StockfishService {
               if (pv['cp'] != null) {
                 double score = (pv['cp'] as num) / 100.0;
                 if (isBlackToMove) score = -score;
-                return score > 0 ? '+${score.toStringAsFixed(2)}' : score.toStringAsFixed(2);
+                return score > 0
+                    ? '+${score.toStringAsFixed(2)}'
+                    : score.toStringAsFixed(2);
               } else if (pv['mate'] != null) {
                 int mate = pv['mate'] as int;
                 if (isBlackToMove) mate = -mate;
@@ -382,7 +419,8 @@ class StockfishService {
               for (int d = 1; d <= depthVal; d += 2) {
                 if (reqId != _requestId) return;
                 if (onEvaluationChanged != null) {
-                  onEvaluationChanged!(bestEval, bestMove, topMoves.first, 1, d, d >= depthVal, fen);
+                  onEvaluationChanged!(bestEval, bestMove, topMoves.first, 1, d,
+                      d >= depthVal, fen);
                 }
                 final linesMap = <int, AnalysisLine>{};
                 for (int i = 0; i < pvsToUse.length; i++) {
@@ -400,7 +438,8 @@ class StockfishService {
                 await Future.delayed(const Duration(milliseconds: 25));
               }
               if (onEvaluationChanged != null) {
-                onEvaluationChanged!(bestEval, bestMove, topMoves.first, 1, depthVal, true, fen);
+                onEvaluationChanged!(
+                    bestEval, bestMove, topMoves.first, 1, depthVal, true, fen);
               }
               return;
             }
@@ -411,8 +450,10 @@ class StockfishService {
       // Fallback to stockfish.online API v2
       try {
         final onlineDepth = effectiveDepth > 20 ? 20 : effectiveDepth;
-        final url = 'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$onlineDepth';
-        final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+        final url =
+            'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$onlineDepth';
+        final response =
+            await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
 
         if (reqId != _requestId) return;
 
@@ -428,7 +469,9 @@ class StockfishService {
             } else if (data['evaluation'] != null) {
               double score = (data['evaluation'] as num).toDouble();
               if (isBlackToMove) score = -score;
-              eval = score > 0 ? '+${score.toStringAsFixed(2)}' : score.toStringAsFixed(2);
+              eval = score > 0
+                  ? '+${score.toStringAsFixed(2)}'
+                  : score.toStringAsFixed(2);
             }
 
             String bestMove = '-';
@@ -443,14 +486,21 @@ class StockfishService {
             for (int d = 1; d <= onlineDepth; d += 2) {
               if (reqId != _requestId) return;
               if (onEvaluationChanged != null) {
-                onEvaluationChanged!(eval, bestMove, continuation, 1, d, d >= onlineDepth, fen);
+                onEvaluationChanged!(
+                    eval, bestMove, continuation, 1, d, d >= onlineDepth, fen);
               }
-              final line = AnalysisLine.fromPv(multipv: 1, depth: d, eval: eval, pvString: continuation.isNotEmpty ? continuation : bestMove, startingFen: fen);
+              final line = AnalysisLine.fromPv(
+                  multipv: 1,
+                  depth: d,
+                  eval: eval,
+                  pvString: continuation.isNotEmpty ? continuation : bestMove,
+                  startingFen: fen);
               if (onMultiPVUpdated != null) onMultiPVUpdated!({1: line});
               await Future.delayed(const Duration(milliseconds: 25));
             }
             if (onEvaluationChanged != null) {
-              onEvaluationChanged!(eval, bestMove, continuation, 1, onlineDepth, true, fen);
+              onEvaluationChanged!(
+                  eval, bestMove, continuation, 1, onlineDepth, true, fen);
             }
             return;
           }
@@ -458,11 +508,11 @@ class StockfishService {
       } catch (_) {}
 
       _fallbackBasicEvaluation(fen, effectiveDepth);
-
     } else {
       // ── Native engine path ──
       if (!_nativeReady) {
-        AppLogger.log('[StockfishService] ⏳ Engine not ready. Queuing FEN and triggering initEngine...');
+        AppLogger.log(
+            '[StockfishService] ⏳ Engine not ready. Queuing FEN and triggering initEngine...');
         _pendingFen = fen;
         _pendingDepth = depth;
         if (!_initInProgress) {
@@ -514,7 +564,8 @@ class StockfishService {
   /// that just finished. That leaked stale moves in as phantom candidates
   /// (occasionally outright illegal ones), which then failed to parse or
   /// got pruned, leaving that branch of the tree with zero children.
-  Future<void> _stopAndDrain({Duration timeout = const Duration(seconds: 3)}) async {
+  Future<void> _stopAndDrain(
+      {Duration timeout = const Duration(seconds: 3)}) async {
     _awaitingStopDrain = true;
 
     if (_searchInFlight) {
@@ -522,7 +573,8 @@ class StockfishService {
       _bestMoveCompleter = bestMoveCompleter;
       _sendCommandForce('stop');
       await bestMoveCompleter.future.timeout(timeout, onTimeout: () {
-        AppLogger.log('[StockfishService] ⚠️ bestmove timeout while draining previous search — proceeding anyway.');
+        AppLogger.log(
+            '[StockfishService] ⚠️ bestmove timeout while draining previous search — proceeding anyway.');
       });
       _bestMoveCompleter = null;
     } else {
@@ -533,44 +585,70 @@ class StockfishService {
     _readyOkCompleter = readyCompleter;
     _sendCommandForce('isready');
     await readyCompleter.future.timeout(timeout, onTimeout: () {
-      AppLogger.log('[StockfishService] ⚠️ isready timeout while draining previous search — proceeding anyway.');
+      AppLogger.log(
+          '[StockfishService] ⚠️ isready timeout while draining previous search — proceeding anyway.');
     });
     _readyOkCompleter = null;
 
     _awaitingStopDrain = false;
   }
 
+  /// Crude material count, from White's perspective — the same convention every
+  /// other evaluation in this file uses.
+  ///
+  /// It used to negate the result when black was to move, which is what the
+  /// engine paths do to Stockfish's score: Stockfish reports from the side to
+  /// move, so it has to be flipped. `whiteVal - blackVal` is *already* from
+  /// White's side, and flipping it a second time inverted the answer. A
+  /// position where black was a pawn up therefore displayed as `+1.00`, and a
+  /// trainer had no way to tell it apart from an engine result saying white was
+  /// better.
+  static double materialEvaluation(String fen) {
+    final fenBoard = fen.split(' ')[0];
+    int whiteVal = 0, blackVal = 0;
+    for (int i = 0; i < fenBoard.length; i++) {
+      final c = fenBoard[i];
+      if (c == 'P') whiteVal += 1;
+      if (c == 'N' || c == 'B') whiteVal += 3;
+      if (c == 'R') whiteVal += 5;
+      if (c == 'Q') whiteVal += 9;
+      if (c == 'p') blackVal += 1;
+      if (c == 'n' || c == 'b') blackVal += 3;
+      if (c == 'r') blackVal += 5;
+      if (c == 'q') blackVal += 9;
+    }
+    return (whiteVal - blackVal).toDouble();
+  }
+
+  /// Last resort when the engine will not answer.
+  ///
+  /// Counting material is not analysis and must not look like it. Reporting it
+  /// at the depth that was *asked for* produced "Eval: +1.00 (depth: 18)" for a
+  /// number no search ever computed — a fallback that reports success, which is
+  /// the failure this codebase keeps meeting. Depth is therefore 0, and the
+  /// reason goes to the log where it can be found.
   void _fallbackBasicEvaluation(String fen, int depth) {
     double evalScore = 0.0;
     try {
-      final fenBoard = fen.split(' ')[0];
-      final isBlackToMove = fen.contains(' b ');
-      int whiteVal = 0, blackVal = 0;
-      for (int i = 0; i < fenBoard.length; i++) {
-        final c = fenBoard[i];
-        if (c == 'P') whiteVal += 1;
-        if (c == 'N' || c == 'B') whiteVal += 3;
-        if (c == 'R') whiteVal += 5;
-        if (c == 'Q') whiteVal += 9;
-        if (c == 'p') blackVal += 1;
-        if (c == 'n' || c == 'b') blackVal += 3;
-        if (c == 'r') blackVal += 5;
-        if (c == 'q') blackVal += 9;
-      }
-      int diff = whiteVal - blackVal;
-      if (isBlackToMove) diff = -diff;
-      evalScore = diff.toDouble();
+      evalScore = materialEvaluation(fen);
     } catch (_) {}
 
-    final evalStr = evalScore > 0 ? '+${evalScore.toStringAsFixed(2)}' : evalScore.toStringAsFixed(2);
+    AppLogger.log(
+      '[StockfishService] ⚠️ Motor nije odgovorio za $fen (tražena dubina $depth). '
+      'Prikazuje se gruba procena po materijalu, bez pretrage i bez poteza.',
+    );
+
+    final evalStr = evalScore > 0
+        ? '+${evalScore.toStringAsFixed(2)}'
+        : evalScore.toStringAsFixed(2);
     if (onEvaluationChanged != null) {
-      onEvaluationChanged!(evalStr, '-', '', 1, depth, true, fen);
+      onEvaluationChanged!(evalStr, '-', '', 1, 0, true, fen);
     }
-    final line = AnalysisLine.fromPv(multipv: 1, depth: depth, eval: evalStr, pvString: '', startingFen: fen);
+    final line = AnalysisLine.fromPv(
+        multipv: 1, depth: 0, eval: evalStr, pvString: '', startingFen: fen);
     if (onMultiPVUpdated != null) onMultiPVUpdated!({1: line});
   }
 
-  
   /// Synchronously awaits MultiPV analysis for a position up to target depth
   /// or timeout — used by callers that need one accurate, isolated answer
   /// for exactly [fen] (whole-game review, puzzle extraction, auto-tree
@@ -618,12 +696,14 @@ class StockfishService {
     }
 
     timer = Timer(timeout, () {
-      AppLogger.log('[StockfishSync] ⏰ Timeout reached for depth $depth. Returning captured lines (${capturedLines.length}).');
+      AppLogger.log(
+          '[StockfishSync] ⏰ Timeout reached for depth $depth. Returning captured lines (${capturedLines.length}).');
       finish(capturedLines.values.toList());
     });
 
     onMultiPVUpdated = (linesMap) {
-      final forThisFen = linesMap.values.every((line) => line.startingFen.isEmpty || line.startingFen == fen);
+      final forThisFen = linesMap.values
+          .every((line) => line.startingFen.isEmpty || line.startingFen == fen);
       if (!forThisFen) return;
       capturedLines.addAll(linesMap);
       bool allReachedDepth = linesMap.length >= multiPV &&
@@ -633,7 +713,8 @@ class StockfishService {
       }
     };
 
-    onEvaluationChanged = (eval, bestMove, continuation, multipv, currentDepth, isFinal, analyzedFen) {
+    onEvaluationChanged = (eval, bestMove, continuation, multipv, currentDepth,
+        isFinal, analyzedFen) {
       if (analyzedFen != fen) return;
       if (isFinal) {
         finish(capturedLines.values.toList());
@@ -660,7 +741,9 @@ class StockfishService {
 
     _subscription?.cancel();
     _subscription = null;
-    try { _stockfish?.dispose(); } catch (_) {}
+    try {
+      _stockfish?.dispose();
+    } catch (_) {}
     _stockfish = null;
 
     _customSubscription?.cancel();
@@ -678,7 +761,8 @@ class StockfishService {
   /// [detach] when they pop and [stopAnalysis] when they merely switch the engine
   /// off; this remains only so a stray call degrades to a harmless stop.
   void dispose() {
-    AppLogger.log('[StockfishService] 🧹 dispose() — stopping analysis, keeping engine and subscribers alive.');
+    AppLogger.log(
+        '[StockfishService] 🧹 dispose() — stopping analysis, keeping engine and subscribers alive.');
     stopAnalysis();
   }
 
@@ -710,7 +794,8 @@ class StockfishService {
       try {
         _customProcess!.stdin.writeln(command);
       } catch (e) {
-        AppLogger.log('[Stockfish STDIN ERROR] ❌ Custom process write failed: $e');
+        AppLogger.log(
+            '[Stockfish STDIN ERROR] ❌ Custom process write failed: $e');
       }
     } else if (_stockfish != null) {
       try {
@@ -728,7 +813,8 @@ class StockfishService {
     // "currmove" progress lines carry no score/pv — dozens fire per depth
     // iteration and would otherwise dominate the (size-capped) log buffer,
     // pushing out the diagnostic lines actually needed to debug anything.
-    final bool isCurrmoveNoise = line.contains('currmove') && !line.contains(' pv ');
+    final bool isCurrmoveNoise =
+        line.contains('currmove') && !line.contains(' pv ');
     if (!isCurrmoveNoise) {
       AppLogger.log('[Stockfish STDOUT] ⬅️ $line');
     }
@@ -767,7 +853,7 @@ class StockfishService {
 
     if (line.startsWith('info') && line.contains('score')) {
       String eval = '0.00';
-      
+
       bool isBlackToMove = false;
       if (_currentFen.isNotEmpty) {
         final parts = _currentFen.split(' ');
@@ -789,7 +875,9 @@ class StockfishService {
           int cp = int.parse(match.group(1)!);
           if (isBlackToMove) cp = -cp;
           final scoreValue = cp / 100.0;
-          eval = scoreValue > 0 ? '+${scoreValue.toStringAsFixed(2)}' : scoreValue.toStringAsFixed(2);
+          eval = scoreValue > 0
+              ? '+${scoreValue.toStringAsFixed(2)}'
+              : scoreValue.toStringAsFixed(2);
         }
       }
 
@@ -816,7 +904,8 @@ class StockfishService {
       }
 
       if (onEvaluationChanged != null) {
-        onEvaluationChanged!(eval, bestMove, continuation, multipv, currentDepth, false, _currentFen);
+        onEvaluationChanged!(eval, bestMove, continuation, multipv,
+            currentDepth, false, _currentFen);
       }
 
       _engineLines[multipv] = AnalysisLine.fromPv(
@@ -836,7 +925,8 @@ class StockfishService {
 /// One screen's registration with the shared engine.
 class _EngineSubscriber {
   final Object owner;
-  final Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation;
+  final Function(String evaluation, String bestMove, String continuation,
+      int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation;
   final Function(Map<int, AnalysisLine> lines)? onMultiPV;
   final String Function()? getFen;
   final bool Function()? isEnabled;
