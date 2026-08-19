@@ -150,6 +150,76 @@ class LessonStep {
       );
 }
 
+/// One of the trainer's own positions, as the student receives it.
+///
+/// The solution is deliberately absent. It is the answer to the question being
+/// asked, and it stays on the server until the student has answered — sending
+/// it here so the app could mark its own work would hand them the very thing
+/// being asked of them.
+class CustomPosition {
+  const CustomPosition({
+    required this.puzzleId,
+    required this.fen,
+    required this.sideToMove,
+    this.instruction,
+    this.themes = const [],
+    this.sourceTitle,
+    this.sourceLabel,
+  });
+
+  final String puzzleId;
+  final String fen;
+  final String sideToMove;
+
+  /// What the student is asked to do here.
+  final String? instruction;
+
+  final List<String> themes;
+  final String? sourceTitle;
+  final String? sourceLabel;
+
+  factory CustomPosition.fromJson(Map<String, dynamic> json) => CustomPosition(
+        puzzleId: json['puzzle_id']?.toString() ?? '',
+        fen: json['fen']?.toString() ?? '',
+        sideToMove: json['side_to_move']?.toString() ?? 'w',
+        instruction: (json['instruction']?.toString().trim().isEmpty ?? true)
+            ? null
+            : json['instruction'].toString().trim(),
+        themes: (json['themes'] as List?)?.map((e) => e.toString()).toList() ??
+            const [],
+        sourceTitle: json['source_title']?.toString(),
+        sourceLabel: json['source_label']?.toString(),
+      );
+}
+
+/// The server's verdict on one answer, and the solution it then released.
+class CustomAttemptResult {
+  const CustomAttemptResult({
+    required this.correct,
+    required this.reason,
+    this.playedSan,
+    this.solutionSan,
+  });
+
+  final bool correct;
+
+  /// Why, in the app's own words — "autorov potez", "drugi mat, ali mat".
+  /// The second one matters: a student who found a different mate deserves to
+  /// be told they were right *and* why it counted.
+  final String reason;
+
+  final String? playedSan;
+  final String? solutionSan;
+
+  factory CustomAttemptResult.fromJson(Map<String, dynamic> json) =>
+      CustomAttemptResult(
+        correct: json['correct'] == true,
+        reason: json['reason']?.toString() ?? '',
+        playedSan: json['playedSan']?.toString(),
+        solutionSan: json['solutionSan']?.toString(),
+      );
+}
+
 class AssignmentDetail {
   final Assignment assignment;
   final List<AssignmentItem> items;
@@ -157,11 +227,27 @@ class AssignmentDetail {
   /// Board positions, present only for a lesson assignment.
   final List<LessonStep> steps;
 
+  /// Positions the trainer scanned or built themselves, present when the
+  /// homework was set from their own shelf rather than from the Lichess set.
+  final List<CustomPosition> customPositions;
+
   const AssignmentDetail({
     required this.assignment,
     required this.items,
     this.steps = const [],
+    this.customPositions = const [],
   });
+
+  /// True when this homework is made of the trainer's own positions.
+  bool get isCustom => customPositions.isNotEmpty;
+
+  /// The position for one item, or null if it did not travel with the detail.
+  CustomPosition? positionFor(String puzzleId) {
+    for (final p in customPositions) {
+      if (p.puzzleId == puzzleId) return p;
+    }
+    return null;
+  }
 
   /// The items still to be done, in the order the trainer set them.
   List<AssignmentItem> get pending =>
@@ -183,6 +269,9 @@ class AssignmentDetail {
             .toList(),
         steps: ((json['steps'] as List?) ?? const [])
             .map((e) => LessonStep.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+        customPositions: ((json['customPositions'] as List?) ?? const [])
+            .map((e) => CustomPosition.fromJson(Map<String, dynamic>.from(e)))
             .toList(),
       );
 }

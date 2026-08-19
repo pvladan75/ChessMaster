@@ -6,6 +6,7 @@ import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_scree
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
 import 'lesson_viewer_screen.dart';
+import 'custom_puzzle_solver_screen.dart';
 
 /// What a student sees: the homework they have been set, and what is left.
 class MyAssignmentsScreen extends StatefulWidget {
@@ -66,7 +67,22 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
 
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => LessonViewerScreen(session: widget.session, detail: detail),
+          builder: (_) =>
+              LessonViewerScreen(session: widget.session, detail: detail),
+        ),
+      );
+      if (mounted) _refresh();
+      return;
+    }
+
+    // Homework built from the trainer's own positions is solved on its own
+    // screen: those carry a written task and one move, while the Lichess set is
+    // a forced line, and one screen serving both would branch at every step.
+    if (detail.isCustom) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              CustomPuzzleSolverScreen(session: widget.session, detail: detail),
         ),
       );
       if (mounted) _refresh();
@@ -148,7 +164,9 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
             Row(
               children: [
                 const Expanded(
-                  child: Text('Vaš napredak', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text('Vaš napredak',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
                 Chip(
                   visualDensity: VisualDensity.compact,
@@ -161,13 +179,15 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
             if (!progress.hasData)
               Text(
                 'Još nema podataka — rešite nekoliko zagonetki.',
-                style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
+                style: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 13),
               )
             else ...[
               Text(
                 'Poslednjih ${progress.periodDays} dana: ${progress.totalAttempts} zagonetki, '
                 'tačnost ${progress.accuracy}%, aktivnih dana ${progress.activeDays}.',
-                style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
+                style: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 13),
               ),
               if (progress.weakestThemes.isNotEmpty) ...[
                 const SizedBox(height: 8),
@@ -212,20 +232,25 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                             : (isLesson ? Icons.menu_book : Icons.assignment)),
                     color: done
                         ? context.colors.success
-                        : (overdue ? context.colors.danger : context.colors.accent),
+                        : (overdue
+                            ? context.colors.danger
+                            : context.colors.accent),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       assignment.title,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                   ),
                 ],
               ),
-              if (assignment.instructions != null && assignment.instructions!.isNotEmpty) ...[
+              if (assignment.instructions != null &&
+                  assignment.instructions!.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Text(assignment.instructions!, style: const TextStyle(fontSize: 13)),
+                Text(assignment.instructions!,
+                    style: const TextStyle(fontSize: 13)),
               ],
               const SizedBox(height: 10),
               LinearProgressIndicator(
@@ -238,7 +263,8 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                     ? '${assignment.attemptedItems} / ${assignment.totalItems} koraka pregledano'
                     : '${assignment.attemptedItems} / ${assignment.totalItems} urađeno'
                         '${assignment.accuracy == null ? '' : ' · tačnost ${assignment.accuracy}%'}',
-                style: TextStyle(fontSize: 12, color: context.colors.textSecondary),
+                style: TextStyle(
+                    fontSize: 12, color: context.colors.textSecondary),
               ),
               if (assignment.dueAt != null)
                 Text(
@@ -247,13 +273,16 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                       : 'Rok: ${assignment.dueAt!.day}.${assignment.dueAt!.month}.${assignment.dueAt!.year}.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: overdue ? context.colors.danger : context.colors.textMuted,
+                    color: overdue
+                        ? context.colors.danger
+                        : context.colors.textMuted,
                   ),
                 ),
               if (assignment.trainerName != null)
                 Text(
                   'Zadao: ${assignment.trainerName}',
-                  style: TextStyle(fontSize: 11.5, color: context.colors.textMuted),
+                  style: TextStyle(
+                      fontSize: 11.5, color: context.colors.textMuted),
                 ),
             ],
           ),

@@ -347,6 +347,33 @@ devet pozicija kojima je strana bila pogrešna: **198 pozicija, svih 198 sa
 rešenjem koje stvarno igra i daje mat, nijedna obeležena, nijedna bez rešenja.**
 Provereno upitom nad bazom, a ne na oko.
 
+## 13. Zadavanje skeniranih pozicija učeniku — napisano 19.8.2026, ne može da se proveri
+
+Ceo lanac postoji: trener bira pozicije dugim pritiskom u „Mojim pozicijama",
+zadaje ih učeniku, učenik ih rešava na svom ekranu, server ocenjuje.
+
+**Ne može da se proba jer u bazi nema nijedne veze trener–učenik.** Za to treba
+drugi nalog i prihvaćen odnos. To otključava i stavke 9, 10 i deo 12 — vredi ga
+napraviti jednom.
+
+Provereno bez odnosa, direktno na server: zadavanje učeniku koji nije tvoj (400),
+pozicija koja nije tvoja (400), odgovor na tuđi zadatak (404), bez prijave (401).
+
+Kad odnos bude postojao, proveriti:
+
+- [ ] Da li se dugim pritiskom uopšte ulazi u izbor i da li traka „Zadaj
+      učeniku" radi.
+- [ ] Da li učenik u „Mojim zadacima" dobija **novi ekran** (sa zadatkom u
+      okviru), a ne stari za Lichess zagonetke.
+- [ ] Da li se **drugi mat** priznaje. Najlakše na #122 (knjiga `Qe6#`, ali i
+      `Qh7#` matira) — očekuje se „Tačno" i objašnjenje „Drugi mat od onog u
+      knjizi".
+- [ ] Da li se posle netačnog odgovora prikaže rešenje, a tek tada.
+- [ ] Da li napredak zadatka raste i da li se zadatak zatvara kad se uradi
+      poslednja pozicija.
+
+---
+
 Ostalo neprovereno:
 
 - [ ] Knjiga sa **drugim fontom** — mapa za `TacticsCourse.pdf` nije završena,

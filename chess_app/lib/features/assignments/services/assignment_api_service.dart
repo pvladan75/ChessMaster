@@ -34,7 +34,8 @@ class AssignmentApiService {
 
   String _errorFrom(String body, String fallback) {
     try {
-      return (jsonDecode(body) as Map<String, dynamic>)['error']?.toString() ?? fallback;
+      return (jsonDecode(body) as Map<String, dynamic>)['error']?.toString() ??
+          fallback;
     } catch (_) {
       return fallback;
     }
@@ -58,7 +59,8 @@ class AssignmentApiService {
             body: jsonEncode({
               'studentId': studentId,
               'title': title,
-              if (instructions != null && instructions.isNotEmpty) 'instructions': instructions,
+              if (instructions != null && instructions.isNotEmpty)
+                'instructions': instructions,
               if (dueAt != null) 'dueAt': dueAt.toUtc().toIso8601String(),
               if (themes.isNotEmpty) 'themes': themes,
               if (minRating != null) 'minRating': minRating,
@@ -68,7 +70,9 @@ class AssignmentApiService {
           )
           .timeout(const Duration(seconds: 15));
 
-      if (res.statusCode == 201) return const CreateAssignmentResult(success: true);
+      if (res.statusCode == 201) {
+        return const CreateAssignmentResult(success: true);
+      }
 
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       return CreateAssignmentResult(
@@ -102,13 +106,16 @@ class AssignmentApiService {
               'studentId': studentId,
               'lessonId': lessonId,
               if (title != null && title.isNotEmpty) 'title': title,
-              if (instructions != null && instructions.isNotEmpty) 'instructions': instructions,
+              if (instructions != null && instructions.isNotEmpty)
+                'instructions': instructions,
               if (dueAt != null) 'dueAt': dueAt.toUtc().toIso8601String(),
             }),
           )
           .timeout(const Duration(seconds: 15));
 
-      if (res.statusCode == 201) return const CreateAssignmentResult(success: true);
+      if (res.statusCode == 201) {
+        return const CreateAssignmentResult(success: true);
+      }
 
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       return CreateAssignmentResult(
@@ -118,7 +125,8 @@ class AssignmentApiService {
       );
     } catch (e) {
       AppLogger.log('[Assignments] Zadavanje lekcije nije uspelo: $e');
-      return const CreateAssignmentResult(success: false, error: 'Nema veze sa serverom.');
+      return const CreateAssignmentResult(
+          success: false, error: 'Nema veze sa serverom.');
     }
   }
 
@@ -126,7 +134,8 @@ class AssignmentApiService {
   ///
   /// Fire-and-forget by design: a failure here must not interrupt the student's
   /// reading, and the step will be marked again on the next pass.
-  Future<void> markLessonStep({required int assignmentId, required int position}) async {
+  Future<void> markLessonStep(
+      {required int assignmentId, required int position}) async {
     try {
       await http
           .post(
@@ -139,7 +148,40 @@ class AssignmentApiService {
     }
   }
 
-  Future<List<Assignment>> fetchMine() => _fetchList('$backendUrl/assignments/mine');
+  /// Sends the student's answer for one of the trainer's own positions.
+  ///
+  /// The verdict comes from the server because the solution never left it. The
+  /// reply carries the solution back, which is why it is only ever sent after
+  /// an answer has been given.
+  Future<CustomAttemptResult?> submitCustomAttempt({
+    required int assignmentId,
+    required String puzzleId,
+    required String moveSan,
+    int? msTaken,
+  }) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$backendUrl/assignments/$assignmentId/custom-attempt'),
+            headers: _headers,
+            body: jsonEncode({
+              'puzzleId': puzzleId,
+              'moveSan': moveSan,
+              if (msTaken != null) 'msTaken': msTaken,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode != 200) return null;
+      return CustomAttemptResult.fromJson(
+          jsonDecode(res.body) as Map<String, dynamic>);
+    } catch (e) {
+      AppLogger.log('[Assignments] Odgovor nije poslat: $e');
+      return null;
+    }
+  }
+
+  Future<List<Assignment>> fetchMine() =>
+      _fetchList('$backendUrl/assignments/mine');
 
   Future<List<Assignment>> fetchGiven({int? studentId}) => _fetchList(
         '$backendUrl/assignments/given${studentId == null ? '' : '?studentId=$studentId'}',
@@ -147,7 +189,9 @@ class AssignmentApiService {
 
   Future<List<Assignment>> _fetchList(String url) async {
     try {
-      final res = await http.get(Uri.parse(url), headers: _headers).timeout(const Duration(seconds: 12));
+      final res = await http
+          .get(Uri.parse(url), headers: _headers)
+          .timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) return const [];
 
       final data = jsonDecode(res.body) as Map<String, dynamic>;
@@ -166,7 +210,8 @@ class AssignmentApiService {
           .get(Uri.parse('$backendUrl/assignments/$id'), headers: _headers)
           .timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) return null;
-      return AssignmentDetail.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+      return AssignmentDetail.fromJson(
+          jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
       AppLogger.log('[Assignments] Ne mogu da učitam zadatak: $e');
       return null;
@@ -226,14 +271,17 @@ class AssignmentApiService {
   }
 
   /// [studentId] null asks for the caller's own report.
-  Future<StudentProgress?> fetchProgress({int? studentId, int days = 30}) async {
+  Future<StudentProgress?> fetchProgress(
+      {int? studentId, int days = 30}) async {
     final path = studentId == null ? 'me' : '$studentId';
     try {
       final res = await http
-          .get(Uri.parse('$backendUrl/assignments/progress/$path?days=$days'), headers: _headers)
+          .get(Uri.parse('$backendUrl/assignments/progress/$path?days=$days'),
+              headers: _headers)
           .timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) return null;
-      return StudentProgress.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+      return StudentProgress.fromJson(
+          jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
       AppLogger.log('[Assignments] Ne mogu da učitam izveštaj: $e');
       return null;
