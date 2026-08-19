@@ -43,7 +43,8 @@ class Assignment {
     this.studentId,
   });
 
-  bool get isComplete => completedAt != null || (totalItems > 0 && attemptedItems >= totalItems);
+  bool get isComplete =>
+      completedAt != null || (totalItems > 0 && attemptedItems >= totalItems);
 
   /// Overdue only while there is still work left — a late-but-finished
   /// assignment is finished, and nagging about it helps nobody.
@@ -74,7 +75,9 @@ class Assignment {
         lessonId: (json['lesson_id'] as num?)?.toInt(),
         dueAt: _date(json['due_at']),
         completedAt: _date(json['completed_at']),
-        themes: ((json['themes'] as List?) ?? const []).map((e) => e.toString()).toList(),
+        themes: ((json['themes'] as List?) ?? const [])
+            .map((e) => e.toString())
+            .toList(),
         totalItems: (json['total_items'] as num?)?.toInt() ?? 0,
         attemptedItems: (json['attempted_items'] as num?)?.toInt() ?? 0,
         solvedItems: (json['solved_items'] as num?)?.toInt() ?? 0,
@@ -121,12 +124,29 @@ class LessonStep {
   final String fen;
   final String? pgn;
 
-  const LessonStep({required this.title, required this.fen, this.pgn});
+  /// What the student is asked to do at this step.
+  ///
+  /// [title] is a name — "Završnica sa skakačem" — and a name is not a task. A
+  /// student opening an assigned lesson used to get a board and no question,
+  /// which is the oldest complaint about this feature. Null for steps written
+  /// before the field existed, and the viewer simply says nothing then rather
+  /// than inventing a task.
+  final String? instruction;
+
+  const LessonStep({
+    required this.title,
+    required this.fen,
+    this.pgn,
+    this.instruction,
+  });
 
   factory LessonStep.fromJson(Map<String, dynamic> json) => LessonStep(
         title: json['title']?.toString() ?? '',
         fen: json['fen']?.toString() ?? '',
         pgn: json['pgn']?.toString(),
+        instruction: (json['instruction']?.toString().trim().isEmpty ?? true)
+            ? null
+            : json['instruction'].toString().trim(),
       );
 }
 
@@ -144,7 +164,8 @@ class AssignmentDetail {
   });
 
   /// The items still to be done, in the order the trainer set them.
-  List<AssignmentItem> get pending => items.where((item) => !item.isDone).toList();
+  List<AssignmentItem> get pending =>
+      items.where((item) => !item.isDone).toList();
 
   /// Where a student resuming a lesson should land: the first step they have not
   /// yet been through, or the last one if they finished.
@@ -154,7 +175,8 @@ class AssignmentDetail {
     return steps.isEmpty ? 0 : steps.length - 1;
   }
 
-  factory AssignmentDetail.fromJson(Map<String, dynamic> json) => AssignmentDetail(
+  factory AssignmentDetail.fromJson(Map<String, dynamic> json) =>
+      AssignmentDetail(
         assignment: Assignment.fromJson(json),
         items: ((json['items'] as List?) ?? const [])
             .map((e) => AssignmentItem.fromJson(Map<String, dynamic>.from(e)))
@@ -228,7 +250,8 @@ class StudentProgress {
         .map((e) => ThemeAccuracy.fromJson(Map<String, dynamic>.from(e)))
         .toList();
 
-    final assignments = Map<String, dynamic>.from(json['assignments'] ?? const {});
+    final assignments =
+        Map<String, dynamic>.from(json['assignments'] ?? const {});
 
     return StudentProgress(
       periodDays: (json['periodDays'] as num?)?.toInt() ?? 30,

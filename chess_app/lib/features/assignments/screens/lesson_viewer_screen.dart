@@ -52,7 +52,10 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
   void initState() {
     super.initState();
     _api = AssignmentApiService(authToken: widget.session.token);
-    _seen = widget.detail.items.where((i) => i.isDone).map((i) => i.position).toSet();
+    _seen = widget.detail.items
+        .where((i) => i.isDone)
+        .map((i) => i.position)
+        .toSet();
     // Resume where the student stopped rather than restarting the lesson.
     _stepIndex = widget.detail.resumeStepIndex.clamp(0, _steps.length - 1);
     _loadStep();
@@ -82,7 +85,9 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
     if (pgn != null && pgn.trim().isNotEmpty) {
       try {
         final parsed = PgnParser.parse(pgn);
-        if (parsed != null && parsed.fens.isNotEmpty && _sameFen(parsed.fens.first, step.fen)) {
+        if (parsed != null &&
+            parsed.fens.isNotEmpty &&
+            _sameFen(parsed.fens.first, step.fen)) {
           fens = parsed.fens;
           moves = parsed.movesSan;
         }
@@ -174,9 +179,11 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final heightBased = (constraints.maxHeight - 250).clamp(200.0, 520.0);
+            final heightBased =
+                (constraints.maxHeight - 250).clamp(200.0, 520.0);
             final widthBased = (constraints.maxWidth - 24).clamp(180.0, 520.0);
-            final boardSize = heightBased < widthBased ? heightBased : widthBased;
+            final boardSize =
+                heightBased < widthBased ? heightBased : widthBased;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(12),
@@ -230,13 +237,17 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    _step.title.isEmpty ? 'Korak ${_stepIndex + 1}' : _step.title,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    _step.title.isEmpty
+                        ? 'Korak ${_stepIndex + 1}'
+                        : _step.title,
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                 ),
                 Text(
                   '${_stepIndex + 1}/${_steps.length}',
-                  style: TextStyle(fontSize: 13, color: context.colors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 13, color: context.colors.textSecondary),
                 ),
               ],
             ),
@@ -245,6 +256,38 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
               'Pregledano $done od ${_steps.length} koraka',
               style: TextStyle(fontSize: 11.5, color: context.colors.textMuted),
             ),
+            // The task for *this* position, above the assignment's own note.
+            // The title is a name, so without this the student was given a
+            // board and left to guess what was being asked of them.
+            if (_step.instruction != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: context.colors.surfaceRaised,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: context.colors.accent),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.flag_outlined,
+                        size: 16, color: context.colors.accent),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _step.instruction!,
+                        style: TextStyle(
+                            fontSize: 13.5,
+                            color: context.colors.textPrimary,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (instructions != null && instructions.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(instructions, style: const TextStyle(fontSize: 13)),
@@ -273,24 +316,29 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
             IconButton(
               icon: const Icon(Icons.chevron_left),
               tooltip: 'Nazad',
-              onPressed: _moveIndex == 0 ? null : () => _applyMovesUpTo(_moveIndex - 1),
+              onPressed: _moveIndex == 0
+                  ? null
+                  : () => _applyMovesUpTo(_moveIndex - 1),
             ),
             IconButton(
               icon: const Icon(Icons.chevron_right),
               tooltip: 'Napred',
-              onPressed:
-                  _moveIndex >= _moves.length ? null : () => _applyMovesUpTo(_moveIndex + 1),
+              onPressed: _moveIndex >= _moves.length
+                  ? null
+                  : () => _applyMovesUpTo(_moveIndex + 1),
             ),
             IconButton(
               icon: const Icon(Icons.last_page),
               tooltip: 'Na kraj',
-              onPressed:
-                  _moveIndex >= _moves.length ? null : () => _applyMovesUpTo(_moves.length),
+              onPressed: _moveIndex >= _moves.length
+                  ? null
+                  : () => _applyMovesUpTo(_moves.length),
             ),
             BoardFlipButton(
               onPressed: () => setState(() {
-                _orientation =
-                    _orientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
+                _orientation = _orientation == PlayerColor.white
+                    ? PlayerColor.black
+                    : PlayerColor.white;
               }),
             ),
           ],
@@ -313,7 +361,9 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
           label: const Text('Prethodni korak'),
         ),
         ElevatedButton.icon(
-          onPressed: isLast ? () => Navigator.of(context).maybePop() : () => _goToStep(_stepIndex + 1),
+          onPressed: isLast
+              ? () => Navigator.of(context).maybePop()
+              : () => _goToStep(_stepIndex + 1),
           icon: Icon(isLast ? Icons.check : Icons.arrow_forward),
           label: Text(isLast ? 'Završi' : 'Sledeći korak'),
         ),

@@ -1036,8 +1036,17 @@ rešavanju strane na potezu. Izvedeno popunjava samo prazno polje.
 Postojećih 198 pozicija je popunjeno odmah: svih 198 nosi „Beli matira u jednom
 potezu", što je tačno jer je za svih 198 provereno da rešenje matira.
 
-**Lekcije još nisu dirane.** `LessonStep` i dalje nosi samo naslov — isti pojam
-tamo tek treba dodati, i to je sledeće ako se ide ovim putem.
+**Lekcije su dobile isto** — 19.8.2026. `LessonStep` sad nosi `instruction`, uz
+`title`. Ide u `position_list` JSON, pa nema migracije: korak zapisan ranije
+jednostavno nema polje, a ekran tada **ne piše ništa** umesto da izmisli zadatak.
+
+Naslov se namerno **ne koristi kao zamena**. „Završnica sa skakačem" je ime, ne
+pitanje — stavljeno na mesto zadatka izgledalo bi kao uputstvo, a učeniku ne bi
+reklo ništa. To čuva test.
+
+Trener zadatak upisuje u editoru lekcije (`create_course_dialog`), po koraku;
+korak bez zadatka stoji narandžasto sa „učenik neće znati šta se traži". Učenik
+ga vidi u `lesson_viewer_screen`, uokvireno, iznad napomene za ceo domaći.
 
 ### Knjiga je jača od motora, i to se izmerilo — 19.8.2026
 
