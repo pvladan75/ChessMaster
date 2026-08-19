@@ -347,30 +347,37 @@ devet pozicija kojima je strana bila pogrešna: **198 pozicija, svih 198 sa
 rešenjem koje stvarno igra i daje mat, nijedna obeležena, nijedna bez rešenja.**
 Provereno upitom nad bazom, a ne na oko.
 
-## 13. Zadavanje skeniranih pozicija učeniku — napisano 19.8.2026, ne može da se proveri
+## 13. Zadavanje skeniranih pozicija učeniku — ✅ ceo lanac prošao uživo 19.8.2026
 
-Ceo lanac postoji: trener bira pozicije dugim pritiskom u „Mojim pozicijama",
-zadaje ih učeniku, učenik ih rešava na svom ekranu, server ocenjuje.
+Knjiga → skener → potvrda → zadatak → dete → ocena → napredak, sa dva naloga i
+prihvaćenim odnosom trener–učenik.
 
-**Ne može da se proba jer u bazi nema nijedne veze trener–učenik.** Za to treba
-drugi nalog i prihvaćen odnos. To otključava i stavke 9, 10 i deo 12 — vredi ga
-napraviti jednom.
+Potvrđeno okom: izbor pozicija dugim pritiskom, zadavanje učeniku, učenikov ekran
+sa zadatkom u okviru („Beli matira u jednom potezu."), tabla okrenuta ka strani na
+potezu, ocena posle poteza, **„Mat u 333: 2/2 urađeno, tačnost 100%"**, napredak
+prešao sa 0/4 na 1/4, i izveštaj za roditelja sa ispravno razdvojenim temama.
 
-Provereno bez odnosa, direktno na server: zadavanje učeniku koji nije tvoj (400),
-pozicija koja nije tvoja (400), odgovor na tuđi zadatak (404), bez prijave (401).
+**Tri greške nađene baš tom probom, sve popravljene istog dana:**
 
-Kad odnos bude postojao, proveriti:
+1. **Potez deteta nije radio ništa, bez ijedne poruke.** `move_to_san` mora da se
+   pita pre nego što je potez odigran; pozvan posle, puca. Izuzetak u `async`
+   rukovaocu otišao je u prazno.
+2. **Tabla nikad nije prijavljivala matirajući potez.** Pitala je koliko poteza
+   *preostaje* i nulu čitala kao „ništa nije odigrano" — a mat je tačan odgovor u
+   svih 198 pozicija. Pogađa i živu sesiju: mat se nije emitovao drugoj strani.
+3. **Izveštaj je istu temu zvao i jakom i slabom**, jer su obe liste bile krajevi
+   istog niza.
 
-- [ ] Da li se dugim pritiskom uopšte ulazi u izbor i da li traka „Zadaj
-      učeniku" radi.
-- [ ] Da li učenik u „Mojim zadacima" dobija **novi ekran** (sa zadatkom u
-      okviru), a ne stari za Lichess zagonetke.
-- [ ] Da li se **drugi mat** priznaje. Najlakše na #122 (knjiga `Qe6#`, ali i
+Ostalo neprovereno iz ovog lanca:
+
+- [ ] **Da li se drugi mat priznaje.** Najlakše na #122 (knjiga `Qe6#`, ali i
       `Qh7#` matira) — očekuje se „Tačno" i objašnjenje „Drugi mat od onog u
-      knjizi".
-- [ ] Da li se posle netačnog odgovora prikaže rešenje, a tek tada.
-- [ ] Da li napredak zadatka raste i da li se zadatak zatvara kad se uradi
-      poslednja pozicija.
+      knjizi". Logika je pokrivena testovima, ali okom nije viđena.
+- [ ] Šta se prikaže posle **netačnog** odgovora (rešenje se otkriva tek tada).
+- [ ] **Zadatak u lekciji kod učenika** — uokvireni tekst iznad table u
+      `lesson_viewer_screen`. Traži zadatu lekciju sa upisanim zadatkom po koraku.
+- [ ] Da li se traka „nema veze sa serverom" sama povuče kad server krene
+      (ponavlja proveru na 10 s, a povezivanje socketa je računa kao dokaz).
 
 ---
 
