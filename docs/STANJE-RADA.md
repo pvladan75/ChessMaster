@@ -8,6 +8,13 @@ Poslednje ažuriranje: 15.8.2026.
 
 ---
 
+## Otvorena pitanja dizajna
+
+Ona koja tek treba odlučiti stoje u [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md),
+sa procenom šta svaka mogućnost povlači. Ovde su odluke koje su **već** donete;
+tamo one koje čekaju. Prvo na toj listi nije ekran nego jedna kolona:
+`assignment_items.played_san` se baca svakog dana, a ne može se rekonstruisati.
+
 ## Prvo pročitati: procena i plan
 
 **https://claude.ai/code/artifact/a3456b17-94b0-4b56-a59f-44bebb02a77b**
