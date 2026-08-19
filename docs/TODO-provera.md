@@ -342,6 +342,11 @@ pitanje „ko je na potezu" i otvaranje table za analizu sa tim FEN-om — sve
 prošlo. Duplikati su se pojavili tačno kako je predviđeno, pa je pravilo
 dopunjavanja ugrađeno i stari duplikati počišćeni (240 → 198).
 
+**Skup je zatvoren 19.8.2026.** Posle drugog skeniranja sa rešenjima i ispravke
+devet pozicija kojima je strana bila pogrešna: **198 pozicija, svih 198 sa
+rešenjem koje stvarno igra i daje mat, nijedna obeležena, nijedna bez rešenja.**
+Provereno upitom nad bazom, a ne na oko.
+
 Ostalo neprovereno:
 
 - [ ] Knjiga sa **drugim fontom** — mapa za `TacticsCourse.pdf` nije završena,
