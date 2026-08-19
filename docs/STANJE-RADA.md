@@ -1005,6 +1005,38 @@ poziciju nemogućom, vraća se 422 sa objašnjenjem umesto tihog upisa.
 Uz to, žuti okvir u „Mojim pozicijama" sad piše šta znači — „strana na potezu
 nije potvrđena" — jer boja bez teksta ne govori ništa.
 
+### Izveštaj je istu temu zvao i jakom i slabom — 19.8.2026
+
+Viđeno na prvom pravom izveštaju za roditelja: **„dvojni napad 70%" i „izložen
+kralj 25%" stoje i pod „šta ide dobro" i pod „na čemu radimo dalje"**, samo
+obrnutim redom.
+
+Uzrok:
+
+```js
+measured.sort((a, b) => a.accuracy - b.accuracy);
+weakestThemes:   measured.slice(0, 5),
+strongestThemes: [...measured].reverse().slice(0, 5),
+```
+
+Prvih pet i poslednjih pet iz iste liste — kad je izmerenih tema **manje od
+šest**, obe liste sadrže sve. A trener na početku i ima dve-tri teme, pa je to
+bio uobičajen slučaj, ne rub.
+
+Sada tema mora da **zasluži** mesto i može biti samo u jednoj: `>= 70%` je jaka
+strana, `< 50%` je ono na čemu se radi, a između nije nijedno. Srednji pojas je
+namerno izostavljen iz oba — „tačno otprilike dve trećine" nije vest ni u jednom
+smeru, a tema se i dalje vidi u punom spisku po temama.
+
+Prag je izdvojen u `STRONG_THEME_ACCURACY` / `WEAK_THEME_ACCURACY`, sa razmakom
+između njih, jer je baš spajanje ta dva praga i napravilo besmislicu.
+
+### Ceo lanac je prošao uživo — 19.8.2026
+
+Knjiga → skener → potvrda → zadatak → dete → ocena → napredak. Potvrđeno na
+zadatku „Mat u 333": **2/2 urađeno, tačnost 100%**, napredak prešao sa 0/4 na
+1/4 završenih zadataka.
+
 ### Skenirane pozicije se zadaju učeniku — backend 19.8.2026
 
 `POST /assignments/custom` uzima **izričitu listu** pozicija koje je trener

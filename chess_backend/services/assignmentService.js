@@ -8,6 +8,12 @@
 // than what they claim.
 
 const logger = require('./logger');
+
+/// Where a theme stops being something to work on and starts being a strength.
+/// The gap between them is intentional: a child in the middle is neither, and
+/// calling them both at once is what made the parent's report meaningless.
+const STRONG_THEME_ACCURACY = 70;
+const WEAK_THEME_ACCURACY = 50;
 const { assignableProblem } = require('./customPuzzleJudge');
 const { trainableThemes } = require('./puzzleSelectionService');
 const { ensureItem: ensureReviewItem } = require('./spacedRepetitionService');
@@ -535,13 +541,33 @@ function summariseAttempts(rows, { minAttemptsPerTheme = 4 } = {}) {
   const measured = themes.filter((entry) => entry.attempts >= minAttemptsPerTheme);
   measured.sort((a, b) => a.accuracy - b.accuracy);
 
+  // Split by how the child is actually doing, not by position in a sorted list.
+  //
+  // Taking the first five and the last five put every theme in *both* lists
+  // whenever fewer than six were measured — so a parent's report announced 25%
+  // under "what is going well" and 70% under "what we work on next", the same
+  // two lines twice, which is worse than saying nothing.
+  //
+  // A theme now has to earn its place, and can only be in one: clearly solid,
+  // clearly not, or neither. The middle band is deliberately left out of both —
+  // "you get about two thirds of these right" is not a headline in either
+  // direction, and it still appears in the full per-theme list.
+  const strongestThemes = measured
+    .filter((entry) => entry.accuracy >= STRONG_THEME_ACCURACY)
+    .sort((a, b) => b.accuracy - a.accuracy)
+    .slice(0, 5);
+  const weakestThemes = measured
+    .filter((entry) => entry.accuracy < WEAK_THEME_ACCURACY)
+    .sort((a, b) => a.accuracy - b.accuracy)
+    .slice(0, 5);
+
   return {
     totalAttempts: total,
     solvedAttempts: solved,
     accuracy: total === 0 ? null : Math.round((solved / total) * 100),
     themes: themes.sort((a, b) => b.attempts - a.attempts),
-    weakestThemes: measured.slice(0, 5),
-    strongestThemes: [...measured].reverse().slice(0, 5),
+    weakestThemes,
+    strongestThemes,
   };
 }
 
