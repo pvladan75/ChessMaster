@@ -596,23 +596,35 @@ class _SavedCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // The task comes first: it is what the student is sent, and
-                    // a position without one is a board with no question on it.
+                    // The task the student is sent. Plain text gave no sign it
+                    // could be edited, so nobody would ever have found it — the
+                    // pencil is the whole affordance.
                     InkWell(
                       onTap: onEditInstruction,
-                      child: Text(
-                        position.instruction ?? 'bez uputstva — dodaj zadatak',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: position.instruction == null
-                              ? colors.warning
-                              : colors.textPrimary,
-                          fontSize: 11,
-                          fontStyle: position.instruction == null
-                              ? FontStyle.italic
-                              : FontStyle.normal,
-                        ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              position.instruction ??
+                                  'dodaj zadatak za učenika',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: position.instruction == null
+                                    ? colors.warning
+                                    : colors.textPrimary,
+                                fontSize: 11,
+                                fontStyle: position.instruction == null
+                                    ? FontStyle.italic
+                                    : FontStyle.normal,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(Icons.edit_outlined,
+                              size: 13, color: colors.textMuted),
+                        ],
                       ),
                     ),
                     Row(
