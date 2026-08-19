@@ -373,6 +373,11 @@ async function initDB() {
         fen TEXT NOT NULL,
         side_to_move CHAR(1) NOT NULL CHECK (side_to_move IN ('w', 'b')),
         solution_san VARCHAR(20),
+        -- What the student is asked to do. A board with no task is not an
+        -- exercise: until this existed a trainer could assign a position and the
+        -- child saw pieces and nothing else. Derived where the position can say
+        -- so itself (a verified mate in one), written by the trainer otherwise.
+        instruction TEXT,
         themes VARCHAR(40)[] NOT NULL DEFAULT '{}',
         source_title VARCHAR(255),
         source_page INTEGER,
@@ -384,6 +389,9 @@ async function initDB() {
         ON custom_puzzles(owner_id, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_custom_puzzles_themes
         ON custom_puzzles USING GIN(themes);
+    `);
+    await client.query(`
+      ALTER TABLE custom_puzzles ADD COLUMN IF NOT EXISTS instruction TEXT;
     `);
     logger.info('Verified database table & indexes: custom_puzzles');
 

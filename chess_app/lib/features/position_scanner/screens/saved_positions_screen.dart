@@ -195,6 +195,50 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     );
   }
 
+  /// Lets the trainer write what the student is meant to do here.
+  ///
+  /// A derived task ("mate in one") is reporting; anything beyond that is
+  /// teaching, and teaching is the trainer's voice. So the field is theirs to
+  /// write and nothing ever generates over what they wrote.
+  Future<void> _editInstruction(SavedPosition position) async {
+    final controller = TextEditingController(text: position.instruction ?? '');
+    final text = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Šta učenik treba da uradi?'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 3,
+          maxLength: 500,
+          decoration: const InputDecoration(
+            hintText: 'npr. Nađi mat u jednom potezu, pazi na odbranu skakačem',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Odustani')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('Sačuvaj')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (text == null || !mounted) return;
+
+    final ok = await _api.setInstruction(position.puzzleId, text);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Uputstvo nije sačuvano.')));
+      return;
+    }
+    setState(() => position.instruction = text.isEmpty ? null : text);
+  }
+
   /// Opens a position on the analysis board — but not before whose move it is
   /// has actually been decided.
   ///
@@ -370,7 +414,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
             padding: const EdgeInsets.all(12),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 230,
-              mainAxisExtent: 276,
+              mainAxisExtent: 296,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
@@ -380,6 +424,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
               proposal: _proposals[items[index].puzzleId],
               onOpen: () => _open(items[index]),
               onDelete: () => _delete(items[index]),
+              onEditInstruction: () => _editInstruction(items[index]),
               onAccept: () {
                 final proposal = _proposals[items[index].puzzleId];
                 if (proposal != null) _accept(items[index], proposal);
@@ -479,6 +524,7 @@ class _SavedCard extends StatelessWidget {
     required this.onOpen,
     required this.onDelete,
     required this.onAccept,
+    required this.onEditInstruction,
   });
 
   final SavedPosition position;
@@ -489,6 +535,7 @@ class _SavedCard extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onDelete;
   final VoidCallback onAccept;
+  final VoidCallback onEditInstruction;
 
   @override
   Widget build(BuildContext context) {
@@ -549,6 +596,25 @@ class _SavedCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // The task comes first: it is what the student is sent, and
+                    // a position without one is a board with no question on it.
+                    InkWell(
+                      onTap: onEditInstruction,
+                      child: Text(
+                        position.instruction ?? 'bez uputstva — dodaj zadatak',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: position.instruction == null
+                              ? colors.warning
+                              : colors.textPrimary,
+                          fontSize: 11,
+                          fontStyle: position.instruction == null
+                              ? FontStyle.italic
+                              : FontStyle.normal,
+                        ),
+                      ),
+                    ),
                     Row(
                       children: [
                         Icon(

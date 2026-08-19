@@ -7,6 +7,7 @@ const {
   mergePlan,
   withSideToMove,
   solutionPlaysIn,
+  deriveInstruction,
 } = require('../services/scanIntake');
 
 const MATE_IN_ONE = '5Q2/8/8/8/6p1/8/2NNk3/2K5 w - - 0 1';
@@ -92,7 +93,12 @@ test('a re-scan fills a gap without touching what is already there', () => {
 test('a re-scan never overwrites a value that is already set', () => {
   // The trainer may have corrected this by hand; a scanner reading the same
   // page again does not outrank them.
-  const existing = { fen: MATE_IN_ONE, solution_san: 'Qf1#', themes: ['moja-tema'] };
+  const existing = {
+    fen: MATE_IN_ONE,
+    solution_san: 'Qf1#',
+    themes: ['moja-tema'],
+    instruction: 'Moje uputstvo',
+  };
   const incoming = prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#', themes: ['druga'] });
   assert.equal(mergePlan(existing, incoming).action, 'unchanged');
 });
@@ -170,4 +176,52 @@ test('a conflict with no such explanation says only what it knows', () => {
   assert.equal(plan.action, 'conflict');
   assert.ok(!plan.sideLikelyWrong, 'flipping the side does not rescue this one');
   assert.match(plan.reason, /ne igra/);
+});
+
+test('a verified mate in one states its own task', () => {
+  // Reporting, not guessing: the move has been played out and it mates.
+  assert.equal(deriveInstruction(MATE_IN_ONE, 'Qf1#'), 'Beli matira u jednom potezu.');
+});
+
+test('a black mate in one says so in black\'s name', () => {
+  const fen = '5K1k/7b/8/8/8/8/6q1/8 b - - 0 1';
+  const derived = deriveInstruction(fen, 'Qg7#');
+  if (derived != null) assert.match(derived, /^Crni matira/);
+});
+
+test('anything short of a mate invents no task at all', () => {
+  // One stored move cannot say whether the exercise was to win material, hold a
+  // draw, or find the only defence, so it says nothing.
+  assert.equal(deriveInstruction(MATE_IN_ONE, null), null);
+  assert.equal(deriveInstruction(MATE_IN_ONE, 'Kd1'), null);
+  assert.equal(deriveInstruction('ovo nije fen', 'Qf1#'), null);
+});
+
+test('the trainer\'s own words are kept, never replaced by a derived task', () => {
+  const row = prepareRow({
+    fen: MATE_IN_ONE,
+    solutionSan: 'Qf1#',
+    instruction: '  Nađi mat, ali pazi na skakača  ',
+  });
+  assert.equal(row.instruction, 'Nađi mat, ali pazi na skakača');
+});
+
+test('a position with no instruction gets the derived one', () => {
+  const row = prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#' });
+  assert.equal(row.instruction, 'Beli matira u jednom potezu.');
+});
+
+test('a re-scan fills a missing task but never overwrites one', () => {
+  const written = mergePlan(
+    { fen: MATE_IN_ONE, solution_san: 'Qf1#', themes: [], instruction: 'Moje uputstvo' },
+    prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#' })
+  );
+  assert.equal(written.action, 'unchanged', 'an instruction already written must survive');
+
+  const empty = mergePlan(
+    { fen: MATE_IN_ONE, solution_san: 'Qf1#', themes: [], instruction: null },
+    prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#' })
+  );
+  assert.equal(empty.action, 'fill');
+  assert.equal(empty.fields.instruction, 'Beli matira u jednom potezu.');
 });

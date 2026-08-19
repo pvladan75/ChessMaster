@@ -215,6 +215,26 @@ class ScannerApiService {
     }
   }
 
+  /// Saves the task text a trainer wrote for one position.
+  ///
+  /// Sent on its own, never alongside a side change: they are different edits
+  /// and the server tells them apart by which field arrives.
+  Future<bool> setInstruction(String puzzleId, String instruction) async {
+    try {
+      final response = await http
+          .patch(
+            Uri.parse('$backendUrl/scans/puzzles/$puzzleId'),
+            headers: _jsonHeaders,
+            body: jsonEncode({'instruction': instruction}),
+          )
+          .timeout(const Duration(seconds: 30));
+      return response.statusCode == 200;
+    } catch (e) {
+      AppLogger.log('Set instruction failed: $e', name: 'PositionScanner');
+      return false;
+    }
+  }
+
   Future<bool> deleteSaved(String puzzleId) async {
     try {
       final response = await http

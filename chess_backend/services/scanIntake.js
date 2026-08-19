@@ -49,6 +49,11 @@ function prepareRow(position) {
     fen,
     side: board.turn(),
     solutionSan: verifiedSan,
+    // The trainer's own words win; a derived one only fills an empty field.
+    instruction:
+      typeof position.instruction === 'string' && position.instruction.trim()
+        ? position.instruction.trim().slice(0, 500)
+        : deriveInstruction(fen, verifiedSan),
     themes: cleanThemes(position.themes),
     page: Number.isFinite(Number(position.page)) ? Number(position.page) : null,
     label: position.label ? String(position.label).slice(0, 16) : null,
@@ -132,6 +137,15 @@ function mergePlan(existing, incoming) {
     fields.themes = incoming.themes;
   }
 
+  // A task the position can state about itself, once a solution is known. Never
+  // over an instruction somebody wrote: those are teaching words, not data.
+  if (!existing.instruction) {
+    const derived =
+      incoming.instruction ??
+      deriveInstruction(existing.fen, fields.solution_san ?? existing.solution_san);
+    if (derived) fields.instruction = derived;
+  }
+
   return Object.keys(fields).length > 0
     ? { action: 'fill', fields }
     : { action: 'unchanged', fields: {} };
@@ -181,11 +195,39 @@ function solutionPlaysIn(fen, san) {
   }
 }
 
+/**
+ * What the student is being asked to do, when the position itself can say.
+ *
+ * A board with no task is not an exercise — until now a trainer could assign a
+ * position and the child would see pieces and nothing else. Most of the time the
+ * words have to come from the trainer, but one case the data settles on its own:
+ * a solution that has been verified to mate immediately *is* "mate in one", and
+ * saying so is reporting, not guessing.
+ *
+ * Everything else returns null on purpose. A single stored move does not reveal
+ * whether the task was to win material, to hold a draw, or to find the only
+ * defence, and inventing a task is worse than leaving the field for a person.
+ */
+function deriveInstruction(fen, solutionSan) {
+  if (!solutionSan) return null;
+  try {
+    const board = new Chess(fen);
+    const side = board.turn() === 'w' ? 'Beli' : 'Crni';
+    const move = board.move(solutionSan);
+    if (!move) return null;
+    if (board.isCheckmate()) return `${side} matira u jednom potezu.`;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
   prepareRow,
   prepareRows,
   mergePlan,
   withSideToMove,
   solutionPlaysIn,
+  deriveInstruction,
   MAX_POSITIONS_PER_CONFIRM,
 };

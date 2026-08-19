@@ -28,6 +28,7 @@ const {
   mergePlan,
   withSideToMove,
   solutionPlaysIn,
+  deriveInstruction,
   MAX_POSITIONS_PER_CONFIRM,
 } = require('../services/scanIntake');
 
@@ -184,13 +185,13 @@ router.post('/confirm', authenticateToken, async (req, res) => {
       // is the only other thing that stays the same across two scans.
       const existing = row.label
         ? await client.query(
-            `SELECT puzzle_id, fen, solution_san, themes FROM custom_puzzles
+            `SELECT puzzle_id, fen, solution_san, themes, instruction FROM custom_puzzles
               WHERE owner_id = $1 AND source_title IS NOT DISTINCT FROM $2 AND source_label = $3
               LIMIT 1`,
             [req.user.id, title, row.label]
           )
         : await client.query(
-            `SELECT puzzle_id, fen, solution_san, themes FROM custom_puzzles
+            `SELECT puzzle_id, fen, solution_san, themes, instruction FROM custom_puzzles
               WHERE owner_id = $1 AND source_title IS NOT DISTINCT FROM $2
                 AND source_page IS NOT DISTINCT FROM $3 AND fen = $4
               LIMIT 1`,
@@ -230,8 +231,8 @@ router.post('/confirm', authenticateToken, async (req, res) => {
 
       const result = await client.query(
         `INSERT INTO custom_puzzles
-           (puzzle_id, owner_id, fen, side_to_move, solution_san, themes, source_title, source_page, source_label, needs_review)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           (puzzle_id, owner_id, fen, side_to_move, solution_san, instruction, themes, source_title, source_page, source_label, needs_review)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          RETURNING puzzle_id, fen, needs_review`,
         [
           row.puzzleId,
@@ -239,6 +240,7 @@ router.post('/confirm', authenticateToken, async (req, res) => {
           row.fen,
           row.side,
           row.solutionSan,
+          row.instruction,
           row.themes,
           title,
           row.page,
@@ -279,15 +281,28 @@ router.post('/confirm', authenticateToken, async (req, res) => {
 // screen downstream — the analysis board, the engine, the arrow it draws — is
 // answering a different question than the one being asked.
 router.patch('/puzzles/:puzzleId', authenticateToken, async (req, res) => {
-  const { sideToMove } = req.body || {};
+  const { sideToMove, instruction } = req.body || {};
 
   try {
     const existing = await pool.query(
-      'SELECT fen, solution_san FROM custom_puzzles WHERE puzzle_id = $1 AND owner_id = $2',
+      'SELECT fen, solution_san, instruction FROM custom_puzzles WHERE puzzle_id = $1 AND owner_id = $2',
       [req.params.puzzleId, req.user.id]
     );
     if (existing.rowCount === 0) {
       return res.status(404).json({ error: 'Pozicija nije nađena.' });
+    }
+
+    // Editing only the task text. Teaching words are the trainer's, so they are
+    // taken as written — trimmed and capped, never rewritten or generated over.
+    if (typeof instruction === 'string' && sideToMove === undefined) {
+      const text = instruction.trim().slice(0, 500);
+      const updated = await pool.query(
+        `UPDATE custom_puzzles SET instruction = $1
+          WHERE puzzle_id = $2 AND owner_id = $3
+          RETURNING puzzle_id, fen, side_to_move, solution_san, instruction, needs_review`,
+        [text || null, req.params.puzzleId, req.user.id]
+      );
+      return res.json(updated.rows[0]);
     }
 
     let fen;
@@ -305,12 +320,17 @@ router.patch('/puzzles/:puzzleId', authenticateToken, async (req, res) => {
     // longer agree. Re-check rather than assume the edit was harmless.
     const solutionStillPlays = solutionPlaysIn(fen, existing.rows[0].solution_san);
 
+    // Settling the side can make the position able to state its own task, so a
+    // still-empty instruction is filled from what has now been verified.
+    const instructionNow =
+      existing.rows[0].instruction ?? deriveInstruction(fen, existing.rows[0].solution_san);
+
     const updated = await pool.query(
       `UPDATE custom_puzzles
-          SET fen = $1, side_to_move = $2, needs_review = $3
-        WHERE puzzle_id = $4 AND owner_id = $5
-        RETURNING puzzle_id, fen, side_to_move, solution_san, needs_review`,
-      [fen, sideToMove, !solutionStillPlays, req.params.puzzleId, req.user.id]
+          SET fen = $1, side_to_move = $2, needs_review = $3, instruction = $4
+        WHERE puzzle_id = $5 AND owner_id = $6
+        RETURNING puzzle_id, fen, side_to_move, solution_san, instruction, needs_review`,
+      [fen, sideToMove, !solutionStillPlays, instructionNow, req.params.puzzleId, req.user.id]
     );
     res.json(updated.rows[0]);
   } catch (err) {
@@ -352,7 +372,7 @@ router.get('/puzzles', authenticateToken, async (req, res) => {
     // all. The printed number is what a trainer is looking for, and it is text,
     // so it has to be compared as a number or 100 lands before 97.
     const result = await pool.query(
-      `SELECT puzzle_id, fen, side_to_move, solution_san, themes,
+      `SELECT puzzle_id, fen, side_to_move, solution_san, instruction, themes,
               source_title, source_page, source_label, needs_review, created_at
          FROM custom_puzzles
         WHERE owner_id = $1

@@ -1005,6 +1005,40 @@ poziciju nemogućom, vraća se 422 sa objašnjenjem umesto tihog upisa.
 Uz to, žuti okvir u „Mojim pozicijama" sad piše šta znači — „strana na potezu
 nije potvrđena" — jer boja bez teksta ne govori ništa.
 
+### Tabla bez zadatka nije vežba — 19.8.2026
+
+Korisnikovo zapažanje, i starije od skenera: trener sačuva poziciju, uključi je u
+lekciju, zada je za domaći — a **nigde ne piše šta učenik treba da uradi.**
+Dete dobije figure i ništa.
+
+Rupa je bila na tri mesta odjednom:
+
+| gde | šta je nosilo | šta je falilo |
+|---|---|---|
+| `LessonStep` | `title`, `fen`, `pgn` | naslov je ime, ne zadatak |
+| `assignments.instructions` | tekst za ceo domaći | ne po poziciji |
+| `custom_puzzles` | teme, rešenje | nijedna reč učeniku |
+
+Podela koja je uvedena: `assignments.instructions` ostaje trenerov okvir za ceo
+domaći („uradi do petka, bez motora"), a nova kolona `custom_puzzles.instruction`
+nosi **šta se traži u ovoj poziciji**. To je svojstvo pozicije, ne zadavanja —
+ista pozicija ima isti zadatak kome god da je data.
+
+Uputstvo se **izvodi samo kad pozicija sama može da ga kaže**: rešenje koje je
+provereno da matira odmah *jeste* „mat u jedan", i reći to je izveštavanje a ne
+nagađanje. Sve ostalo vraća prazno. Jedan sačuvan potez ne otkriva da li se
+tražio dobitak materijala, remi ili jedina odbrana, a izmisliti zadatak je gore
+nego ostaviti polje čoveku.
+
+Trenerove reči se **nikad ne prepisuju** — ni pri ponovnom skeniranju, ni pri
+rešavanju strane na potezu. Izvedeno popunjava samo prazno polje.
+
+Postojećih 198 pozicija je popunjeno odmah: svih 198 nosi „Beli matira u jednom
+potezu", što je tačno jer je za svih 198 provereno da rešenje matira.
+
+**Lekcije još nisu dirane.** `LessonStep` i dalje nosi samo naslov — isti pojam
+tamo tek treba dodati, i to je sledeće ako se ide ovim putem.
+
 ### Knjiga je jača od motora, i to se izmerilo — 19.8.2026
 
 Prvo skeniranje strana 45–64 išlo je **bez rešenja**, pa je 78 pozicija ostalo

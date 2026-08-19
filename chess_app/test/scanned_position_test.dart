@@ -90,6 +90,8 @@ void main() {
     });
   });
 
+  _instructionTests();
+
   group('ScanResult', () {
     test('counts how many positions need a look', () {
       final result = ScanResult.fromJson({
@@ -111,6 +113,28 @@ void main() {
       });
       expect(result.positions, hasLength(3));
       expect(result.needingReview, 2);
+    });
+  });
+}
+
+void _instructionTests() {
+  group('SavedPosition instruction', () {
+    test('carries the task the student is sent', () {
+      final p = SavedPosition.fromJson({
+        'puzzle_id': 'cust_1',
+        'fen': _mateInOne,
+        'side_to_move': 'w',
+        'instruction': 'Beli matira u jednom potezu.',
+      });
+      expect(p.instruction, 'Beli matira u jednom potezu.');
+    });
+
+    test('a position without one says so rather than pretending', () {
+      final p = SavedPosition.fromJson(
+          {'puzzle_id': 'cust_2', 'fen': _mateInOne, 'side_to_move': 'w'});
+      expect(p.instruction, isNull,
+          reason:
+              'a board with no task is not an exercise, and must look unfinished');
     });
   });
 }

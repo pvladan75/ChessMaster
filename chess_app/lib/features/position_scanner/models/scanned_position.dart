@@ -110,6 +110,7 @@ class SavedPosition {
     required this.fen,
     required this.sideToMove,
     this.solutionSan,
+    this.instruction,
     this.themes = const [],
     this.sourceTitle,
     this.sourcePage,
@@ -125,6 +126,11 @@ class SavedPosition {
   String sideToMove;
   bool needsReviewFlag;
   final String? solutionSan;
+
+  /// What the student is asked to do. A board with no task is not an exercise —
+  /// a child sent this position used to see pieces and nothing else.
+  String? instruction;
+
   final List<String> themes;
   final String? sourceTitle;
   final int? sourcePage;
@@ -144,6 +150,7 @@ class SavedPosition {
         fen: json['fen']?.toString() ?? '',
         sideToMove: json['side_to_move']?.toString() ?? 'w',
         solutionSan: json['solution_san']?.toString(),
+        instruction: json['instruction']?.toString(),
         themes: (json['themes'] as List?)?.map((e) => e.toString()).toList() ??
             const [],
         sourceTitle: json['source_title']?.toString(),
