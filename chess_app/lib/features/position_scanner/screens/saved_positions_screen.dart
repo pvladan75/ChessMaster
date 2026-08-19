@@ -10,6 +10,7 @@ import '../models/scanned_position.dart';
 import '../services/scanner_api_service.dart';
 import '../services/side_proposal.dart';
 import '../services/side_proposal_runner.dart';
+import '../widgets/assign_positions_dialog.dart';
 
 /// Everything the trainer has kept from their own books.
 ///
@@ -43,6 +44,10 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
   int _checkDone = 0;
   int _checkTotal = 0;
   int _depth = 16;
+
+  /// Positions ticked for homework. Empty means selection mode is off, so the
+  /// screen stays a browser until the trainer actually starts choosing.
+  final Set<String> _picked = {};
 
   /// Which positions a run covers. Re-checking settled ones is worth offering:
   /// the engine can disagree with an answer already recorded, and that
@@ -105,6 +110,22 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     }).toList();
   }
 
+  /// Hands the ticked positions to a student.
+  Future<void> _assign() async {
+    if (_picked.isEmpty) return;
+    final message = await showDialog<String>(
+      context: context,
+      builder: (context) => AssignPositionsDialog(
+        session: widget.session,
+        puzzleIds: _picked.toList(),
+      ),
+    );
+    if (message == null || !mounted) return;
+    setState(_picked.clear);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _runCheck() async {
     final targets = _checkTargets;
     if (targets.isEmpty) return;
@@ -159,6 +180,10 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
       _checking = false;
       _runner = null;
     });
+  }
+
+  void _togglePick(SavedPosition position) {
+    if (!_picked.remove(position.puzzleId)) _picked.add(position.puzzleId);
   }
 
   void _cancelCheck() {
@@ -409,6 +434,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
           ),
         ),
         _engineBar(),
+        if (_picked.isNotEmpty) _selectionBar(),
         Expanded(
           child: GridView.builder(
             padding: const EdgeInsets.all(12),
@@ -422,7 +448,12 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
             itemBuilder: (context, index) => _SavedCard(
               position: items[index],
               proposal: _proposals[items[index].puzzleId],
-              onOpen: () => _open(items[index]),
+              picked: _picked.contains(items[index].puzzleId),
+              selecting: _picked.isNotEmpty,
+              onOpen: () => _picked.isEmpty
+                  ? _open(items[index])
+                  : setState(() => _togglePick(items[index])),
+              onLongPress: () => setState(() => _togglePick(items[index])),
               onDelete: () => _delete(items[index]),
               onEditInstruction: () => _editInstruction(items[index]),
               onAccept: () {
@@ -433,6 +464,33 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Shown only while choosing, so it never takes room from the grid otherwise.
+  Widget _selectionBar() {
+    final colors = context.colors;
+    return Container(
+      width: double.infinity,
+      color: colors.accent.withValues(alpha: 0.15),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text('Izabrano ${_picked.length}',
+                style: TextStyle(color: colors.textPrimary, fontSize: 13)),
+          ),
+          TextButton(
+              onPressed: () => setState(_picked.clear),
+              child: const Text('Poništi')),
+          const SizedBox(width: 8),
+          FilledButton.icon(
+            onPressed: _assign,
+            icon: const Icon(Icons.assignment_outlined),
+            label: const Text('Zadaj učeniku'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -521,6 +579,9 @@ class _SavedCard extends StatelessWidget {
   const _SavedCard({
     required this.position,
     required this.proposal,
+    required this.picked,
+    required this.selecting,
+    required this.onLongPress,
     required this.onOpen,
     required this.onDelete,
     required this.onAccept,
@@ -532,6 +593,12 @@ class _SavedCard extends StatelessWidget {
   /// The engine's opinion, when one has been asked for. Shown beside the
   /// position, never folded into it — accepting is a separate act.
   final SideProposal? proposal;
+
+  /// Ticked for homework. Selection starts on a long press, so an ordinary tap
+  /// keeps opening the board until the trainer has actually begun choosing.
+  final bool picked;
+  final bool selecting;
+  final VoidCallback onLongPress;
   final VoidCallback onOpen;
   final VoidCallback onDelete;
   final VoidCallback onAccept;
@@ -555,11 +622,15 @@ class _SavedCard extends StatelessWidget {
 
     return InkWell(
       onTap: onOpen,
+      onLongPress: onLongPress,
       child: Container(
         decoration: BoxDecoration(
-          color: colors.surface,
+          color: picked ? colors.surfaceRaised : colors.surface,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: borderColor),
+          border: Border.all(
+            color: picked ? colors.accent : borderColor,
+            width: picked ? 2 : 1,
+          ),
         ),
         padding: const EdgeInsets.all(10),
         child: Column(
@@ -575,11 +646,18 @@ class _SavedCard extends StatelessWidget {
                     style: TextStyle(color: colors.textSecondary, fontSize: 12),
                   ),
                 ),
-                InkWell(
-                  onTap: onDelete,
-                  child: Icon(Icons.delete_outline,
-                      size: 18, color: colors.textMuted),
-                ),
+                if (selecting)
+                  Icon(
+                    picked ? Icons.check_circle : Icons.circle_outlined,
+                    size: 18,
+                    color: picked ? colors.accent : colors.textMuted,
+                  )
+                else
+                  InkWell(
+                    onTap: onDelete,
+                    child: Icon(Icons.delete_outline,
+                        size: 18, color: colors.textMuted),
+                  ),
               ],
             ),
             const SizedBox(height: 6),
