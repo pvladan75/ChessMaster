@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
@@ -81,17 +82,37 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
       _current.sideToMove == 'b' ? PlayerColor.black : PlayerColor.white;
 
   /// Turns the move just played on the board into SAN, then asks the server.
+  ///
+  /// `move_to_san` has to be asked *before* the move exists on the board — it
+  /// reads the position it is given, and called afterwards it throws. That
+  /// exception, swallowed inside an async handler, left the screen sitting on
+  /// "odigraj potez" with the piece already moved and nothing else happening:
+  /// the worst possible failure, because it is indistinguishable from the app
+  /// simply ignoring the child.
+  static String? _sanFor(String fen, String from, String to) {
+    try {
+      final game = chess.Chess.fromFEN(fen);
+      if (!game.move({'from': from, 'to': to, 'promotion': 'q'})) return null;
+      final made = game.history.last.move;
+      game.undo_move();
+      return game.move_to_san(made);
+    } catch (e) {
+      AppLogger.log('[Solver] SAN nije izračunat: $e');
+      return null;
+    }
+  }
+
   Future<void> _onMove(String from, String to) async {
     if (_sending || _verdict != null) return;
 
-    final game = chess.Chess.fromFEN(_current.fen);
-    final move = game.move({'from': from, 'to': to, 'promotion': 'q'});
-    if (move == false) {
+    final san = _sanFor(_current.fen, from, to);
+    if (san == null) {
+      // Not a legal move here, or we could not read it. Either way the board
+      // goes back so the student is never left looking at a position that no
+      // longer matches the question.
       _board.loadFen(_current.fen);
       return;
     }
-    final san =
-        game.history.isEmpty ? '' : game.move_to_san(game.history.last.move);
 
     setState(() => _sending = true);
     final result = await _api.submitCustomAttempt(
