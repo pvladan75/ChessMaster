@@ -156,7 +156,10 @@ async function respondToRequest(pool, { requestId, userId, accept }) {
     );
 
     await closeRequestNotification(pool, requestId);
-    return { ok: true, trainerId, studentId };
+    // Reported the same way as on a decline, so the caller has one person to
+    // tell either way and does not work out "the other participant" itself.
+    const senderId = userId === trainerId ? studentId : trainerId;
+    return { ok: true, trainerId, studentId, senderId };
   }
 
   const deleted = await pool.query(
@@ -274,6 +277,31 @@ async function notifyRequest(pool, { recipientId, senderId, senderName, requestI
   }
 }
 
+/// Tells the sender that their request was answered with yes.
+///
+/// Until this existed, acceptance was the one answer nobody was told about:
+/// a decline raised a notification, while an accept raised nothing at all. The
+/// sender was left watching a row that said "čeka potvrdu" with no way to learn
+/// that it no longer did — the relationship worked, and only looked broken.
+async function notifyAccept(pool, { recipientId, accepterId, accepterName }) {
+  try {
+    await pool.query(
+      `INSERT INTO user_notifications (user_id, sender_id, room_code, title, message, kind, ref_id)
+       VALUES ($1, $2, NULL, $3, $4, 'request_accepted', NULL)`,
+      [
+        recipientId,
+        accepterId,
+        'Zahtev je prihvaćen',
+        `${accepterName} je prihvatio vaš zahtev.`,
+      ]
+    );
+  } catch (err) {
+    // Best effort, like every other notification here: an accepted request
+    // must not be undone because the note about it failed.
+    logger.error('Could not create accept notification:', err);
+  }
+}
+
 /// Tells the sender that their request was answered with no.
 ///
 /// Without it a declined request simply vanishes: the row is deleted so that
@@ -304,6 +332,7 @@ async function notifyDecline(pool, { recipientId, declinerId, declinerName }) {
 
 module.exports = {
   acceptedTrainersOf,
+  notifyAccept,
   notifyDecline,
   requestRelationship,
   pendingForUser,

@@ -234,6 +234,16 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
 
+    // Somebody asked, accepted or declined at the other end. Both lists are
+    // refetched: the bell counts requests from `/relationships/pending`, and the
+    // Prijatelji list would otherwise keep saying "čeka potvrdu" until the tab
+    // was left and entered again — which is how this was noticed.
+    _socket.on('relationship_changed', (_) {
+      if (!mounted) return;
+      _fetchStudents();
+      _fetchNotifications();
+    });
+
     _socket.on('session_invite_received', (data) {
       if (!mounted) return;
       _fetchNotifications();

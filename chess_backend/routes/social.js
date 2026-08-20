@@ -5,6 +5,17 @@ const { pool } = require('../db');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { getUserStats } = require('../limitsService');
 const relationships = require('../services/relationshipService');
+const realtime = require('../services/realtime');
+
+/// Tells a user, if they are looking right now, that something about their
+/// relationships changed — so the bell and the list refresh themselves instead
+/// of waiting for the app to be restarted.
+///
+/// The notification row written just before this is the durable half; a
+/// recipient who is offline reads it at next launch.
+function nudge(userId) {
+  realtime.emitToUser(userId, 'relationship_changed', {});
+}
 
 /// Looks a user up by the address typed into the form.
 async function findUserByEmail(email) {
@@ -45,6 +56,7 @@ router.post('/trainer/students/add', authenticateToken, async (req, res) => {
         requestId: result.id,
         senderIsTrainer: true,
       });
+      nudge(student.id);
     }
 
     res.json({
@@ -86,6 +98,7 @@ router.post('/students/trainers/request', authenticateToken, async (req, res) =>
         requestId: result.id,
         senderIsTrainer: false,
       });
+      nudge(trainer.id);
     }
 
     res.json({
@@ -123,6 +136,14 @@ router.post('/relationships/:id/accept', authenticateToken, async (req, res) => 
       accept: true,
     });
     if (!result.ok) return res.status(403).json({ error: result.reason });
+
+    await relationships.notifyAccept(pool, {
+      recipientId: result.senderId,
+      accepterId: req.user.id,
+      accepterName: req.user.name || 'Korisnik',
+    });
+    nudge(result.senderId);
+
     res.json({ message: 'Odnos je uspostavljen.' });
   } catch (err) {
     logger.error('Error accepting relationship:', err);
@@ -150,6 +171,7 @@ router.post('/relationships/:id/decline', authenticateToken, async (req, res) =>
       declinerId: req.user.id,
       declinerName: req.user.name || 'Korisnik',
     });
+    nudge(result.senderId);
 
     res.json({ message: 'Zahtev je odbijen.' });
   } catch (err) {

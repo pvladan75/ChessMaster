@@ -241,6 +241,7 @@ Widget _messageCard(
       leading: Icon(
         switch (kind) {
           'student_request' => Icons.school,
+          'request_accepted' => Icons.handshake,
           'request_declined' => Icons.do_not_disturb_on,
           _ => Icons.star,
         },

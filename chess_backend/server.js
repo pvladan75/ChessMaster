@@ -24,6 +24,7 @@ const scanRoutes = require('./routes/scans');
 const libraryRoutes = require('./routes/library');
 const { authenticateToken, requireRole, verifySocketToken } = require('./middleware/auth');
 const entitlementService = require('./services/entitlementService');
+const realtime = require('./services/realtime');
 const { cleanupOldExports } = require('./services/retentionService');
 
 const app = express();
@@ -62,6 +63,10 @@ const io = new Server(server, {
     credentials: true
   }
 });
+
+// Before any route is mounted: a route that raised a notification without this
+// would have nobody to send it to, and would not say so.
+realtime.init(io);
 
 const PORT = process.env.PORT || 3000;
 
@@ -122,7 +127,10 @@ app.use('/', socialRoutes);
 
 const roomAudioUsers = {}; // roomId -> { userId -> { socketId, userId, userName, role, isMuted, handRaised } }
 
-const onlineUsers = {}; // userId -> { socketId, name, email, role }
+// Presence lives in services/realtime.js so the HTTP routes can reach a
+// connected user too — a notification raised by a route used to sit in the
+// database until the recipient restarted the app.
+const onlineUsers = realtime.onlineUsers;
 const activeRoomMembers = {}; // roomId -> { userId -> { name, role } }
 
 /// Books the voice time a socket has been connected for.
@@ -209,13 +217,7 @@ io.on('connection', (socket) => {
     socket.userEmail = authUser.email;
     socket.userRole = authUser.role;
 
-    onlineUsers[authUser.id] = {
-      socketId: socket.id,
-      userId: authUser.id,
-      name: authUser.name,
-      email: authUser.email,
-      role: authUser.role
-    };
+    realtime.setOnline(authUser, socket.id);
 
     logger.info(`[ONLINE PRESENCE] User registered: ${authUser.name} (ID: ${authUser.id})`);
   });
@@ -471,8 +473,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     logger.info(`User disconnected: ${socket.id}`);
 
-    if (socket.userId && onlineUsers[socket.userId]) {
-      delete onlineUsers[socket.userId];
+    if (socket.userId && realtime.goOffline(socket.userId)) {
       logger.info(`[ONLINE PRESENCE] User disconnected: ID ${socket.userId}`);
     }
 

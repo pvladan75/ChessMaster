@@ -18,6 +18,7 @@ const {
   requestRelationship,
   respondToRequest,
   pendingForUser,
+  notifyAccept,
   notifyDecline,
 } = require('../services/relationshipService');
 
@@ -240,6 +241,36 @@ test('the sender is found from whichever column they sit in', async () => {
   const result = await respondToRequest(pool, { requestId: 7, userId: 1, accept: false });
 
   assert.equal(result.senderId, 2);
+});
+
+test('accepting names the sender too, so they can be told', async () => {
+  // Acceptance used to be the one answer that told nobody: the row changed
+  // status and the person waiting was never informed.
+  const pool = stubPool([[{ trainer_id: 2, student_id: 1 }], [], []]);
+  const result = await respondToRequest(pool, { requestId: 7, userId: 1, accept: true });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.senderId, 2, 'the trainer asked, the student answered');
+});
+
+test('the accept notice says who accepted', async () => {
+  const pool = stubPool([[]]);
+  await notifyAccept(pool, { recipientId: 3, accepterId: 4, accepterName: 'pvladan' });
+
+  const sent = pool.calls[0];
+  assert.match(sent.text, /INSERT INTO user_notifications/);
+  assert.match(sent.text, /'request_accepted'/);
+  assert.deepEqual(sent.params.slice(0, 2), [3, 4], 'to the sender, from the accepter');
+  assert.equal(sent.params[3], 'pvladan je prihvatio vaš zahtev.');
+});
+
+test('a failed accept notice does not undo the acceptance', async () => {
+  const pool = {
+    async query() {
+      throw new Error('database went away');
+    },
+  };
+  await notifyAccept(pool, { recipientId: 3, accepterId: 4, accepterName: 'pvladan' });
 });
 
 test('the decline notice says no without saying why', async () => {
