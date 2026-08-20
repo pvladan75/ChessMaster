@@ -15,7 +15,10 @@ export function diagramRows(spans, map) {
   const alphabet = new Set(Object.keys(map.glyphs));
   return spans.filter((s) => {
     const t = s.text;
-    if (t.length !== map.rowLength) return false;
+    const isLenValid = Array.isArray(map.rowLength)
+      ? map.rowLength.includes(t.length)
+      : t.length === map.rowLength;
+    if (!isLenValid) return false;
     if (map.isBorderRow(t)) return false;
     return [...map.squares(t)].every((c) => alphabet.has(c));
   });

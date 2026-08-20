@@ -43,6 +43,44 @@ function clampRange(from, to, pageCount, label) {
 }
 
 /**
+ * Marks every diagram whose printed number is not unique in the book.
+ *
+ * A solution is found by the number over the diagram, which assumes the number
+ * identifies exactly one. In the first book it does. The second prints a
+ * numbered final test at the back *and* numbered examples in the text, so its
+ * number 6 stands over two different boards — and both were handed the same
+ * solution. One then read as "the book's move is not legal", which blamed the
+ * glyph map for a problem it did not have.
+ *
+ * Neither copy is guessed at. Both are marked for a human, like everything else
+ * here that cannot be settled from the page.
+ *
+ * Exported because `scan.mjs` walks the same diagrams to measure a book, and a
+ * guard only one of the two paths applies is worse than none: the tool that
+ * reports the numbers would disagree with the library that feeds the app.
+ */
+export function flagDuplicateNumbers(positions, numberOf = (p) => p.label) {
+  const byNumber = new Map();
+  for (const position of positions) {
+    const raw = numberOf(position);
+    if (raw === null || raw === undefined) continue;
+    const key = Number(raw);
+    if (!byNumber.has(key)) byNumber.set(key, []);
+    byNumber.get(key).push(position);
+  }
+
+  for (const [number, sharing] of byNumber) {
+    if (sharing.length < 2) continue;
+    const pages = sharing.map((p) => p.page).join(', ');
+    for (const position of sharing) {
+      position.solutionLegal = null;
+      position.problem = `broj ${number} stoji na više dijagrama (strane ${pages}) — rešenje se ne može vezati`;
+    }
+  }
+  return positions;
+}
+
+/**
  * Scan one page range of a PDF.
  *
  * Returns candidates, never saved rows: nothing here decides what is worth
@@ -119,6 +157,8 @@ export async function scanDocument({
       });
     }
   }
+
+  flagDuplicateNumbers(positions);
 
   let fonts = [];
   try {

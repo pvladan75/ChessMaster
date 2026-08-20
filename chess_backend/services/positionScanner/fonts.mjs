@@ -34,7 +34,41 @@ const SKAK_NEW = {
   },
 };
 
-export const FONT_MAPS = [SKAK_NEW];
+/**
+ * Tactics Course (Exeter Chess Club, Dave Regis).
+ *
+ * A row is 10 or 11 characters: a left margin coordinate glyph, 8 piece
+ * glyphs, a right margin border glyph, and on some pages one more suffix glyph
+ * marking whose move it is.
+ */
+const TACTICS_COURSE = {
+  id: 'tacticscourse',
+  label: 'Tactics Course (Exeter Chess Club)',
+  rowLength: [10, 11],
+  squares: (text) => text.slice(1, 9),
+  isBorderRow: (text) => text.startsWith('c') || text.startsWith('C') || text.startsWith('v'),
+  glyphs: {
+    // Empty squares, and the markers this book draws on an empty square: `X`
+    // for an attacked square, `Z` and `*` for a target. All three keep to one
+    // square colour, like every glyph in this font, and none has the paired
+    // partner that a real piece always has — which is what tells a marker from
+    // a piece.
+    w: '.', D: '.', d: '.', X: '.', Z: '.', '*': '.',
+    // White pieces
+    P: 'P', ')': 'P', N: 'N', H: 'N', B: 'B', G: 'B',
+    R: 'R', $: 'R', Q: 'Q', '!': 'Q', K: 'K', I: 'K',
+    // Black pieces. `1` is the black queen on a dark square and `!` the white
+    // one; reading them the other way round put a white queen on d8 in 22 of
+    // the book's 210 diagrams — opening traps where the piece deep in Black's
+    // camp is Black's own queen. Every FEN stayed legal, so nothing complained.
+    // The counts settle it: paired as they are here both queens come to 182,
+    // and swapped they came to 290 against 74 while every other piece was even.
+    p: 'p', '0': 'p', n: 'n', h: 'n', b: 'b', g: 'b',
+    r: 'r', '4': 'r', q: 'q', '1': 'q', k: 'k', i: 'k',
+  },
+};
+
+export const FONT_MAPS = [SKAK_NEW, TACTICS_COURSE];
 
 /** Glyphs a map understands, as a Set, for alphabet matching. */
 function alphabetOf(map) {
@@ -54,7 +88,10 @@ export function selectFontMap(rows) {
     const alphabet = alphabetOf(map);
     let covered = 0;
     for (const row of rows) {
-      if (row.length !== map.rowLength) continue;
+      const isLenValid = Array.isArray(map.rowLength)
+        ? map.rowLength.includes(row.length)
+        : row.length === map.rowLength;
+      if (!isLenValid) continue;
       const squares = map.squares(row);
       if ([...squares].every((c) => alphabet.has(c))) covered += 1;
     }

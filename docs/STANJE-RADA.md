@@ -1052,6 +1052,58 @@ knjiga isto to daje kroz zaglavlje (`2.1 White to Move #2` → `mateIn2`). Bez t
 trener ne može da zada „dvadeset matova u dva", jer skenirane pozicije nemaju
 nijedan tag.
 
+### Druga knjiga je pročitana — 20.8.2026, mapa gotova
+
+`TacticsCourse.pdf` prolazi kroz skener: **210 dijagrama** umesto dosadašnjih 0.
+Mapa je u `fonts.mjs` kao `TACTICS_COURSE`.
+
+Posao je bio predat spoljnom agentu, sa merilom unapred (vidi dva `TASK-` fajla u
+istoriji, obrisana po spajanju). Vratio ga je dvaput; oba puta je jezgro mape
+bilo tačno, i oba puta je unutra bila tiha greška. Vredi zapisati **kako su
+nađene**, jer je to jedini prenosiv deo:
+
+**Prvi krug:** `Z` i `*` mapirani u kraljeve. Nađeno tako što `chess.js` odbija
+tablu sa dva kralja — četiri dijagrama su pukla naglas. Uz to su bila i tri
+zahvata van dogovorenog: `COLUMN_GAP` u `solutions.mjs` (izmereno: donosi jedno
+rešenje više na 13, a upravlja i prvom knjigom sa 4.437 rešenja i 99,98%),
+netranzitivan `sort`, i test kome je tvrdnja zamenjena besmislicom.
+
+**Drugi krug:** popravio je sve traženo, i `Z`/`*` kao prazna polja su ispravna —
+svaki glif ovog fonta drži se jedne boje polja, a `Z`, `*` i već poznati `X` uz
+to nemaju para, što je potpis oznake a ne figure.
+
+Ali `1` i `!` su bili **zamenjeni**: `1` je crna dama na tamnom polju, `!` bela.
+Pročitano obrnuto, u **22 od 210 dijagrama** bela dama stoji na d8 — a to su
+zamke u otvaranju, gde je figura duboko u crnom taboru crna dama. **Svaki takav
+FEN je ostao legalan i svaka postojeća provera je prošla.** Brojevi su presudili:
+ovako uparene, obe dame daju po 182; obrnuto su davale 290 prema 74, dok je svaka
+druga figura bila uravnotežena.
+
+**Nađeno je prebrojavanjem materijala, a to nije bilo ni u jednom merilu** — ni u
+zadatku koji smo mu dali. Zato je sada stalna provera:
+
+- `materialProblem` u `verify.mjs` odbija ono što nikad nije moglo stajati na
+  tabli. `chess.js` proverava da li je pozicija *učitljiva* i tu staje — prima
+  devet pešaka i prima dve bele dame dok crni nema nijednu. Oba su tačno ono kako
+  izgleda pogrešno pročitan glif.
+- `flagDuplicateNumbers` u `index.mjs`: knjiga numeriše i završni test i primere u
+  tekstu, pa broj 6 stoji nad dva dijagrama i oba su dobijala isto rešenje. Onaj
+  kom nije pripadalo prijavljivao je knjigin sopstveni potez kao nelegalan — što
+  je ličilo na pokvarenu mapu. Sad se ne pogađa nijedan, oba idu čoveku.
+  Izvezeno je zato što `scan.mjs` ima **svoju kopiju** te petlje; zaštita koju
+  primenjuje samo jedna od dve staze gora je od nikakve.
+
+**Stanje na kraju:** 210 dijagrama, 0 nemogućih pozicija, od 11 rešenja koja se
+mogu vezati **10 legalnih** — a jedini neuspeh je `#2`, protivrečnost koju knjiga
+sama štampa. Knjiga je kurs, ne katalog, pa njen izlaz treba da bude lekcija;
+vidi odeljak „Iz ovoga sledi da skener ima dva izlaza".
+
+**Ostaje neizmereno:** obe nove provere diraju stazu kojom prolazi i prva knjiga,
+a nje nema u repozitorijumu, pa se 99,98% odavde ne može ponovo izmeriti. Kad se
+prva knjiga sledeći put pusti, taj broj treba pogledati — naročito
+`flagDuplicateNumbers`, jer ako i ona negde ponavlja broj, deo dosadašnjih
+„legalnih" rešenja bio je vezan pogrešno.
+
 ### Ekran za potvrdu i put do baze — napisano 19.8.2026, nije viđeno uživo
 
 Skener je iz `puzzles/` prešao u aplikaciju:
@@ -2030,9 +2082,10 @@ uživo. Ostaju:
   lekcija, ponavljanje u razmacima, merenje troška (stavka 10 — endpoint sad
   radi, izveštaj nikad otvoren).
 - **Skener pozicija iz knjiga** — odeljak iznad. Parser na Node-u radi i izmeren
-  je (99,98% na prvoj knjizi, `puzzles/scanner`). Sledeće je mapa fonta za drugu
-  knjigu, pa ekran za potvrdu u aplikaciji; faza 2 (skenirane slike) čeka merenje
-  tačnosti na pet strana pre nego što se u nju uloži.
+  je (99,98% na prvoj knjizi). Mapa fonta za drugu knjigu je gotova 20.8.2026 —
+  210 dijagrama, 0 nemogućih pozicija. Sledeće je ekran za potvrdu u aplikaciji;
+  faza 2 (skenirane slike) čeka merenje tačnosti na pet strana pre nego što se u
+  nju uloži.
 - Veći, netaknuti poduhvati iz procene: dnevna zagonetka i niz dana, grupe i
   prisustvo, chat i video, višejezičnost.
 

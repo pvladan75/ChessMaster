@@ -32,6 +32,51 @@ function tryMove(fen, san) {
   }
 }
 
+/**
+ * Whether this material could ever stand on a board.
+ *
+ * `chess.js` checks that a position is *loadable* — one king a side, no pawn on
+ * the back rank — and stops there. It accepts nine white pawns, and it accepts
+ * two white queens while Black has none. Both of those are what a misread glyph
+ * looks like: the board stays legal, the FEN stays valid, and the mistake
+ * travels all the way to a child being asked to solve a position that never
+ * existed.
+ *
+ * That is exactly how a swapped pair of queen glyphs survived a whole review of
+ * this scanner: 22 of one book's 210 diagrams put a white queen where Black's
+ * stood, and every other check passed. So the count is checked too.
+ *
+ * The rule is the standard one: at most eight pawns a side, and every officer
+ * beyond the starting set has to be a promoted pawn, so the extras cannot
+ * outnumber the pawns that are missing.
+ */
+export function materialProblem(placement) {
+  const count = {};
+  for (const ch of placement) {
+    if (/[a-zA-Z]/.test(ch)) count[ch] = (count[ch] ?? 0) + 1;
+  }
+
+  for (const [side, pawn, queen, rook, bishop, knight, name] of [
+    ['w', 'P', 'Q', 'R', 'B', 'N', 'beli'],
+    ['b', 'p', 'q', 'r', 'b', 'n', 'crni'],
+  ]) {
+    const pawns = count[pawn] ?? 0;
+    if (pawns > 8) return `${name} ima ${pawns} pešaka`;
+
+    const promoted =
+      Math.max(0, (count[queen] ?? 0) - 1) +
+      Math.max(0, (count[rook] ?? 0) - 2) +
+      Math.max(0, (count[bishop] ?? 0) - 2) +
+      Math.max(0, (count[knight] ?? 0) - 2);
+
+    if (promoted > 8 - pawns) {
+      return `${name} ima ${promoted} figura viška uz ${pawns} pešaka`;
+    }
+    void side;
+  }
+  return null;
+}
+
 function isLegalPosition(fen) {
   try {
     new Chess(fen);
@@ -81,6 +126,13 @@ export function buildPosition(diagram, solution) {
   const legality = isLegalPosition(fen);
   if (legality !== true) {
     return { fen, side, sideSource, solutionLegal: null, repairs, problem: `nelegalna pozicija: ${legality.error}` };
+  }
+
+  // Reported rather than dropped, like everything else uncertain here: the
+  // position is probably read wrong, and a human has to see which.
+  const material = materialProblem(placement);
+  if (material) {
+    return { fen, side, sideSource, solutionLegal: null, repairs, problem: `nemoguć materijal: ${material}` };
   }
 
   if (!solution) {
