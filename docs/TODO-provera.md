@@ -596,11 +596,12 @@ oblačići sa nazivima.
 - [ ] Na telefonu se nijedna traka ne preliva — naročito „Potez 12 od 24" u
       pregledu lekcije, gde je natpis najduži.
 
-## 21. Prihvatanje stiže pošiljaocu — 20.8.2026, nije viđeno uživo
+## 21. Obaveštenja stižu dok je aplikacija otvorena — 20.8.2026, nije viđeno uživo
 
-Rupa nađena pri proveri stavke 19. `accept` sada šalje obaveštenje, a slanje,
-prihvatanje i odbijanje guraju drugu stranu preko soketa, pa se liste osvežavaju
-same. **Backend je menjan** — mora se restartovati (`npm run dev`).
+Rupa nađena pri proveri stavke 19, pa proširena: `accept` sada šalje
+obaveštenje, zadaci i pregledi ga uopšte nisu slali, a sve zajedno gura drugu
+stranu preko soketa umesto da čeka sledeće pokretanje. **Backend je menjan** —
+mora se restartovati (`npm run dev`).
 
 **Kako:** opet treba drugi nalog, i oba treba da budu **otvorena u isto vreme**,
 jer se baš to proverava.
@@ -617,3 +618,20 @@ jer se baš to proverava.
       tu. Soket je samo gurac, red u bazi je ono što se pamti.
 - [ ] Restartuj backend dok su oba naloga otvorena, pa odgovori na zahtev:
       ništa ne puca, a posle ponovnog povezivanja gurac opet radi.
+
+**Drugi deo — zadaci i pregledi.** Za ovo trener i učenik treba da budu otvoreni
+u isto vreme, na dva naloga. Koristi neki **nov** odnos, ne `pavle → Vladan`.
+
+- [ ] Trener zada domaći sa zagonetkama → **učeniku poraste značka odmah**, i u
+      zvoncetu piše „<ime> vam je zadao: <naslov>" sa ikonom zadatka.
+- [ ] Isto i za zadatak od trenerovih **skeniranih pozicija**, i za **lekciju**.
+- [ ] Učenik uradi **poslednju** stavku zadatka → **treneru** stigne „<ime> je
+      uradio zadatak: <naslov>".
+- [ ] Učenik ponovo otvori taj isti, već gotov zadatak i prošeta kroz njega →
+      **ne stiže drugo obaveštenje**. Sme da bude tačno jedno.
+- [ ] U „Pregled i komentari" trener napiše poruku → učeniku stigne „poruka o
+      zadatku". Pa učenik napiše poruku → **treneru** stigne ista vrsta.
+- [ ] Poziv na čas i zakazan čas i dalje rade, i sada takođe stižu odmah.
+- [ ] Ono što se **ne** očekuje: učenik koji stoji u „Moji zadaci" neće videti
+      nov zadatak u spisku dok se ne vrati na njega. Zvonce hoće. To je poznato
+      i zapisano.

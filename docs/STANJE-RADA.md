@@ -267,7 +267,7 @@ navigacija je imala petu, pogrešnu. Izvučeno u čistu funkciju
 `test/board_control_rules_test.dart` pada na staroj logici (provereno
 privremenim vraćanjem). Commit `21ae682`.
 
-## Prihvatanje se vidi kod pošiljaoca — zapaženo i rešeno 20.8.2026
+## Obaveštenja stižu dok je aplikacija otvorena — 20.8.2026
 
 Korisnik je pri proveri stavke 19 primetio: A pošalje zahtev, B ga prihvati, a
 A — ako u tom trenutku **stoji u tabu Prijatelji** — i dalje vidi „čeka
@@ -298,9 +298,32 @@ ga poziv na čas. Nije trebala nikakva nova soba.
 Poruka je namerno kratka i bez razloga, kao i kod odbijanja: „<ime> je
 prihvatio vaš zahtev."
 
-Ostaje otvoreno: obaveštenja o **zadacima i pregledima** i dalje stižu tek pri
-pokretanju. Sad kad `emitToUser` postoji, to je po jedan red na mestu gde se
-obaveštenje upisuje.
+**Zadaci i pregledi, isti dan.** Provera je pokazala nešto grublje od
+zakasnelog obaveštenja: zadaci i pregledi **nisu slali nikakvo**. Učenik je za
+novi domaći saznavao tako što otvori spisak, a trener da je urađen na isti
+način. Sada:
+
+| Kada | Ko sazna | `kind` |
+|---|---|---|
+| Trener zada domaći (zagonetke, svoje pozicije, lekcija) | učenik | `assignment_new` |
+| Poslednja stavka zadatka padne | trener | `assignment_done` |
+| Neko napiše poruku o zadatku | druga strana, ko god da je pisao | `assignment_note` |
+
+Usput su **svih pet ručno pisanih `INSERT INTO user_notifications`** svedena na
+jedan, u `services/notifications.js`. Već su se bili razišli: dva su ostavljala
+`kind` i `ref_id` na podrazumevanoj vrednosti, pa su poziv na čas i zakazan čas
+stizali klijentu kao neprepoznata vrsta i dobijali generičku zvezdicu. Test
+čita izvor i pada ako se pojavi šesti — obaveštenje upisano mimo `notify()`
+preskočilo bi i gurac, pa se ne bi videlo do restarta.
+
+Završetak zadatka se sada peče na jednom mestu umesto na dva, a `completed_at
+IS NULL` u tom `UPDATE`-u je ono što drži obaveštenje na tačno jednom: ponovni
+prolazak kroz gotovu lekciju ili ponovo rešena zagonetka ne menjaju nijedan red.
+
+Ostaje otvoreno: **ekran koji je već otvoren se ne osvežava sam.** Zvonce i
+Prijatelji da, jer sede na početnom ekranu koji sluša soket; ali učenik koji
+stoji u „Moji zadaci" videće novi zadatak tek kad se vrati na spisak. Za to
+treba isti potez kao za Prijatelje — soket koji sluša i taj ekran.
 
 ## Unifikacija table i okolnih elemenata — faza 2 gotova, čeka proveru
 
