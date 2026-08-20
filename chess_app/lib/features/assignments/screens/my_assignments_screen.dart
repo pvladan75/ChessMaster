@@ -5,6 +5,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
+import 'assignment_review_screen.dart';
 import 'lesson_viewer_screen.dart';
 import 'custom_puzzle_solver_screen.dart';
 
@@ -44,6 +45,22 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
       _progress = results[1] as StudentProgress?;
       _loading = false;
     });
+  }
+
+  /// What was done and what was said about it. Reachable while an assignment is
+  /// still open, not only once it is finished: a student stuck on the third
+  /// position has something to ask about right then.
+  Future<void> _openReview(Assignment assignment) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AssignmentReviewScreen(
+          session: widget.session,
+          assignmentId: assignment.id,
+          title: assignment.title,
+        ),
+      ),
+    );
+    if (mounted) _refresh();
   }
 
   Future<void> _open(Assignment assignment) async {
@@ -213,9 +230,12 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
       color: context.colors.surface,
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        // A finished lesson stays open: re-reading it is the point, unlike a
-        // puzzle set where the answers are already known.
-        onTap: done && !isLesson ? null : () => _open(assignment),
+        // A finished lesson stays open: re-reading it is the point. A finished
+        // puzzle set has nothing left to solve, so tapping it now opens the
+        // review — which is where the answers finally are.
+        onTap: done && !isLesson
+            ? () => _openReview(assignment)
+            : () => _open(assignment),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -283,6 +303,16 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                   'Zadao: ${assignment.trainerName}',
                   style: TextStyle(
                       fontSize: 11.5, color: context.colors.textMuted),
+                ),
+              if (assignment.attemptedItems > 0)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () => _openReview(assignment),
+                    icon: const Icon(Icons.rate_review_outlined, size: 16),
+                    label: const Text('Pregled i komentari',
+                        style: TextStyle(fontSize: 12)),
+                  ),
                 ),
             ],
           ),

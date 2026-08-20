@@ -6,7 +6,8 @@ su već donete i zašto. Ovde su ona koja tek treba doneti, sa procenom šta sva
 mogućnost povlači — da se sledeći put ne počinje od nule.
 
 Zapisano 20.8.2026, iz zapažanja pri prvom pravom korišćenju lanca knjiga →
-učenik.
+učenik. Od pet, **preostalo je samo pitanje 1**; ostala četiri su urađena istog
+dana i njihovi odeljci su zadržani kao zapis razloga.
 
 ---
 
@@ -104,7 +105,13 @@ ne rešava. Verovatno se čuva, pa da isti korak može kasnije da postane zadata
 
 ---
 
-## 4. Pregled urađenog domaćeg i povratna informacija
+## 4. Pregled urađenog domaćeg i povratna informacija — ✅ urađeno 20.8.2026
+
+Urađeno zajedno sa pitanjem 5: `GET /assignments/:id/review` i isti ekran za obe
+strane. Pravilo o rešenju je ispalo oštrije nego što je ovde naslućeno — učenik
+ga vidi tek pošto odgovori, trener uvek, a „sakriveno" i „ne postoji" su dva
+različita stanja. Vidi „Pregled urađenog domaćeg i komentari" u
+[STANJE-RADA.md](STANJE-RADA.md).
 
 **Danas:** `assignment_items` pamti `solved`, `ms_taken`, `attempted_at`. Trener
 vidi brojeve („2/2 urađeno, tačnost 100%"), ali **nijedna strana ne može da
@@ -121,7 +128,10 @@ poziciji. Vidi pitanje 5 — bolje ih rešiti zajedno, jer je oblik isti.
 
 ---
 
-## 5. Da li učenik može da komentariše zadatak i pojedinačnu poziciju
+## 5. Da li učenik može da komentariše zadatak i poziciju — ✅ urađeno 20.8.2026
+
+Može, i tabela je tačno ona predložena niže. Dodato je samo brisanje sopstvene
+poruke — dete koje se predomisli treba da može da je povuče, a tuđu ne.
 
 Prirodan par sa 4. Dete koje napiše „ovu nisam razumeo" daje treneru tačno ono
 što mu treba, a što se iz brojeva ne vidi.

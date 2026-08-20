@@ -1508,6 +1508,115 @@ Probna lekcija je zatim obrisana. **Ekran u aplikaciji još niko nije otvorio** 
 Uzgred provereno istom prilikom: kolona `assignment_items.played_san` stvarno
 postoji u bazi posle pokretanja servera (`character varying(20)`).
 
+## Pregled urađenog domaćeg i komentari — 20.8.2026
+
+Pitanja 4 i 5 iz [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md), rešena zajedno
+jer im je oblik isti.
+
+Do danas se domaći završavao kao dve brojke — „2/2 urađeno, tačnost 100%".
+Nijedna strana nije mogla da otvori **jednu poziciju** i vidi koju je tablu dete
+imalo pred sobom i šta je odigralo. To je deo koji kaže *zašto*, i jedini iz kog
+se može predavati.
+
+### Ekran
+
+`GET /assignments/:id/review` vraća zadatak, stavke i razgovor — jedan zahtev,
+jer je jedan ekran. Ekran je isti za obe strane, a `viewer.isTrainer` menja reči:
+„tvoj potez" i „učenikov potez" su isto polje i nisu ista rečenica.
+
+Tri vrste stavke se **ne spljoštavaju** u jednu:
+
+| vrsta | šta nosi |
+|---|---|
+| skenirana pozicija | tabla, zadatak, autorov potez, odigran potez |
+| Lichess zagonetka | tabla i cela linija u zapisu u kom je čuvana |
+| korak lekcije | tabla i zadatak — **bez ocene**, jer se korak čita, ne rešava |
+
+Četvrti slučaj je stavka čija je zagonetka nestala (obrisana pozicija, id koji
+nikad nije uvezen). Pokušaj se i dalje prikazuje: izbaciti taj red značilo bi
+tiho promeniti broj urađenog.
+
+### Kada se rešenje sme videti
+
+Jedino pravilo na ovom ekranu koje je moralo da bude precizno:
+
+- **Učenik ga vidi tek pošto je odgovorio.** Ranije bi to bilo davanje odgovora
+  na pitanje koje mu se postavlja. Posle odgovora skrivanje bi ga samo sprečilo
+  da nauči šta je promašio.
+- **Trener ga vidi uvek.** To je njegov materijal i on ga je birao.
+- **Sakriveno rešenje i nepostojeće rešenje nisu isto.** Zato uz stavku ide i
+  `solutionHidden` — pozicija bez rešenja i pozicija čije rešenje još nije
+  zarađeno izgledale bi identično, a to su različite stvari.
+
+Uz to: **odigran potez koji nije zabeležen nije „ništa nije odigrano".** Za sve
+odgovoreno pre 20.8. i za ceo Lichess put kolona je prazna, i ekran to piše kao
+„nije zabeležen", odvojeno od „nije urađeno".
+
+### Komentari su jedna tabela, ne četiri kolone
+
+`assignment_notes(id, assignment_id, item_id NULL, author_id, body, created_at)`.
+`item_id` prazan znači komentar na ceo zadatak. Autor se čita iz naloga, pa ko
+je šta rekao nije upisano dvaput i ne može samo sa sobom da se ne složi.
+
+Alternativa je bila trenerov komentar na zadatak, učenikov na zadatak, trenerov
+na poziciju i učenikov na poziciju — četiri mesta za istu vrstu stvari i svaki
+čitalac spaja sva četiri.
+
+Odluke koje su ugrađene:
+
+- **Komentar na poziciju mora biti na poziciji iz tog zadatka.** Bez te provere
+  bi `item_id` iz tuđeg domaćeg upao ovde i poruka bi stajala uz tablu o kojoj
+  ne govori.
+- **Autor može da povuče svoje reči, i ničije druge.** Dete koje napiše nešto
+  pa se predomisli treba da može; trener koji briše detetove reči je sasvim
+  druga stvar i ne nudi se.
+- **Obe kaskade su namerne.** Povučen zadatak nosi razgovor sa sobom, a obrisan
+  nalog nosi detetov tekst — to je tekst koji je dete napisalo i ne treba da ga
+  nadživi ovde.
+- **Prava se čitaju na jednom mestu.** `assignmentParticipant` je jedini uslov
+  iza svega oko jednog zadatka: dve strane i niko treći, isti odgovor za „ne
+  postoji" i „nije tvoj". Namerno **ne** proverava ponovo odnos — trener koji je
+  zadao domaći pa je veza kasnije raskinuta i dalje treba da vidi šta je urađeno,
+  a učenik ne sme da izgubi svoj rad zato što se veza promenila.
+
+### Gde se ulazi
+
+- **Trener:** Prijatelji → učenik → dodir na zadatak u listi.
+- **Učenik:** „Moji zadaci" → „Pregled i komentari" (vidi se čim je bar jedna
+  pozicija urađena, ne tek na kraju — dete koje je zapelo na trećoj ima šta da
+  pita odmah). Završen skup zagonetki se sada otvara u pregled, jer u njemu više
+  nema šta da se rešava.
+
+### Izmereno uživo 20.8.2026
+
+Preko HTTP-a, sa tokenima obe strane:
+
+| | |
+|---|---|
+| pregled zadatka od 2/2, obe strane | tabla, vreme, ocena, rešenje |
+| neodgovorena stavka, trener | linija se vidi |
+| ista stavka, učenik | `null` i `solutionHidden: true` |
+| lekcija | koraci sa naslovima, `solved = null` — bez lažne ocene |
+| pregled trećeg naloga | 404, isti odgovor kao za nepostojeći |
+| komentar na zadatak i na poziciju | 201, obe strane ih vide, `mine` tačno |
+| prazna poruka / tuđa pozicija / tuđi zadatak | 400 / 400 / 404 |
+| trener briše učenikovu poruku | 404 — samo autor može |
+
+Probne poruke su zatim obrisane. **Ekran u aplikaciji još niko nije otvorio** —
+`TODO-provera.md`, stavka 15.
+
+Uzgred, proba je pokazala i nešto što se u kodu ne vidi: **sve postojeće stavke
+imaju prazan `played_san`**, jer su odgovorene pre 20.8. Ekran ih prikazuje kao
+„nije zabeležen" — što je tačno, i ujedno mera koliko je vredelo dodati kolonu
+pre ekrana.
+
+### Pravno
+
+Komentari su sadržaj koji se čuva i koji piše dete, pa su dopisani u nacrt
+politike privatnosti (`politika-privatnosti.md`, tabele u 3.2 i 6) zajedno sa
+odigranim potezom. Ne otvaraju novu površinu — sve ostaje unutar odnosa koji je
+već zasnovan pristankom.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
@@ -1536,10 +1645,7 @@ uživo. Ostaju:
 - **Sajt** na korenu domena — sadržaja još nema, pa ni sertifikata za `@` i
   `www`. Vidi korak 3a u [TODO-objavljivanje.md](TODO-objavljivanje.md).
 - **Faza 2 unifikacije — `MoveCursor`** (faza 1 proverena uživo 15.8.2026).
-- **Pregled urađenog domaćeg i komentari** — pitanja 4 i 5 u
-  [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md). Odigran potez se od 20.8.2026.
-  čuva, pa ekran ima šta da prikaže; komentari su jedna tabela
-  (`assignment_notes`) koja rešava oba pitanja istim potezom.
+- **Slobodan redosled domaćeg** — pitanje 1, jedino preostalo od pet.
 - Provere uživo iz `TODO-provera.md`: izveštaj za roditelja, zadaci tipa
   lekcija, ponavljanje u razmacima, merenje troška (stavka 10 — endpoint sad
   radi, izveštaj nikad otvoren).

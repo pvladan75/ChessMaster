@@ -434,3 +434,26 @@ Ekran nije otvaran.
       koliko je dodato i koliko nije.
 - [ ] Na telefonu traka sa tri dugmeta („Poništi", „Dodaj u lekciju", „Zadaj
       učeniku") mora da se prelomi, ne da iscuri sa ekrana.
+
+## 15. Pregled domaćeg i komentari — backend proveren uživo 20.8.2026, ekran nije
+
+Backend je pozvan preko HTTP-a sa tokenima obe strane; pravilo o rešenju,
+komentari i sva odbijanja su provereni, probne poruke obrisane. Ekran niko nije
+otvorio.
+
+**Kako:** kao trener — Prijatelji → učenik → dodir na zadatak u listi. Kao
+učenik — „Moji zadaci" → „Pregled i komentari" na kartici zadatka.
+
+**Na šta obratiti pažnju:**
+
+- [ ] Na svakoj poziciji se vidi **tabla**, zadatak, ocena i vreme.
+- [ ] **Odigran potez** piše „nije zabeležen" za sve stare zadatke — to je tačno,
+      jer se potez čuva tek od 20.8.2026. Za **nov** odgovor mora da stoji potez.
+- [ ] Kod učenika se **rešenje ne vidi** na poziciji koju nije uradio, i stoji
+      „otkriva se kad odgovoriš". Kod trenera se vidi.
+- [ ] Zadatak tipa **lekcija** nema ocenu „netačno" ni na jednom koraku — samo
+      „pregledano" ili „nije otvoreno".
+- [ ] Komentar na ceo zadatak i komentar na jednu poziciju stoje na različitim
+      mestima, i druga strana ih vidi (proveriti na oba naloga).
+- [ ] Svoju poruku mogu da obrišem, tuđu ne — kod tuđe nema iksa.
+- [ ] Na telefonu se kartica pozicije ne preliva (tabla 120 px + tekst desno).

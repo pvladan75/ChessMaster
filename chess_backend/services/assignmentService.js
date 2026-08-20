@@ -43,6 +43,37 @@ async function trainerOwnsStudent(pool, trainerId, studentId) {
   return result.rows.length > 0;
 }
 
+/// The two people one assignment belongs to, and which of them is asking.
+///
+/// Homework is read by exactly two accounts — the trainer who set it and the
+/// student who got it — so this is the single condition behind everything that
+/// reads or writes around one assignment. Returns null for both "no such
+/// assignment" and "not yours", so an id guessed by hand cannot be used to find
+/// out which assignments exist.
+///
+/// It deliberately does **not** re-check the relationship. The assignment row is
+/// the older fact: a trainer who set homework and was later unlinked must still
+/// be able to read what was done, and the student must not lose their own work
+/// because an edge changed.
+async function assignmentParticipant(pool, assignmentId, userId) {
+  const result = await pool.query(
+    `SELECT a.*, t.name AS trainer_name, s.name AS student_name
+       FROM assignments a
+       LEFT JOIN users t ON t.id = a.trainer_id
+       LEFT JOIN users s ON s.id = a.student_id
+      WHERE a.id = $1 AND (a.trainer_id = $2 OR a.student_id = $2)`,
+    [assignmentId, userId]
+  );
+  if (result.rows.length === 0) return null;
+
+  const assignment = result.rows[0];
+  return {
+    assignment,
+    isTrainer: assignment.trainer_id === userId,
+    isStudent: assignment.student_id === userId,
+  };
+}
+
 /// Picks the puzzles for an assignment.
 ///
 /// Prefers puzzles the student has not already seen: re-issuing something they
@@ -638,6 +669,7 @@ module.exports = {
   MAX_ITEMS,
   DEFAULT_ITEMS,
   trainerOwnsStudent,
+  assignmentParticipant,
   resolvePuzzles,
   createPuzzleAssignment,
   createCustomAssignment,

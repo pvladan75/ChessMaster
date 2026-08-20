@@ -17,6 +17,8 @@ const { ENT } = require('../services/entitlementService');
 const assignments = require('../services/assignmentService');
 const reports = require('../services/reportService');
 const { judgeAttempt } = require('../services/customPuzzleJudge');
+const { buildReview } = require('../services/assignmentReview');
+const notes = require('../services/assignmentNotes');
 
 /// How long a parent's link stays alive. Long enough to be useful, short enough
 /// that a forwarded link does not expose a child's record indefinitely.
@@ -276,6 +278,90 @@ router.get('/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Error fetching assignment detail:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju zadatka.' });
+  }
+});
+
+// GET /assignments/:id/review — what happened, position by position.
+//
+// Readable by both sides of the assignment. The trainer sees why an answer went
+// wrong; the student sees what they played and what the answer was, which they
+// could not see anywhere until now.
+router.get('/:id/review', authenticateToken, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Neispravan ID zadatka.' });
+  }
+
+  try {
+    const review = await buildReview(pool, id, req.user.id);
+    if (!review) {
+      return res.status(404).json({ error: 'Zadatak nije pronađen.' });
+    }
+    res.json(review);
+  } catch (err) {
+    logger.error('Error building assignment review:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju pregleda.' });
+  }
+});
+
+// POST /assignments/:id/notes — a word about the assignment, or about one
+// position in it.
+//
+// `itemId` decides which: absent means the whole assignment. Both sides write
+// through the same route, and which of them wrote it is read from the account
+// rather than sent.
+router.post('/:id/notes', authenticateToken, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Neispravan ID zadatka.' });
+  }
+
+  const rawItem = req.body?.itemId;
+  const itemId = rawItem === null || rawItem === undefined
+    ? null
+    : Number.parseInt(rawItem, 10);
+  if (itemId !== null && !Number.isInteger(itemId)) {
+    return res.status(400).json({ error: 'Neispravan ID pozicije.' });
+  }
+
+  try {
+    const result = await notes.addNote(pool, {
+      assignmentId: id,
+      itemId,
+      authorId: req.user.id,
+      body: req.body?.body,
+    });
+    if (!result.ok) {
+      return res.status(result.status).json({ error: result.error });
+    }
+    res.status(201).json({ success: true, note: result.note });
+  } catch (err) {
+    logger.error('Error adding assignment note:', err);
+    res.status(500).json({ error: 'Greška pri upisu poruke.' });
+  }
+});
+
+// DELETE /assignments/:id/notes/:noteId — the author takes back their own words.
+router.delete('/:id/notes/:noteId', authenticateToken, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  const noteId = Number.parseInt(req.params.noteId, 10);
+  if (!Number.isInteger(id) || !Number.isInteger(noteId)) {
+    return res.status(400).json({ error: 'Neispravan ID.' });
+  }
+
+  try {
+    const result = await notes.deleteNote(pool, {
+      assignmentId: id,
+      noteId,
+      authorId: req.user.id,
+    });
+    if (!result.ok) {
+      return res.status(result.status).json({ error: result.error });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('Error deleting assignment note:', err);
+    res.status(500).json({ error: 'Greška pri brisanju poruke.' });
   }
 });
 

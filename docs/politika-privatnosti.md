@@ -46,6 +46,8 @@ uslugama.
 | Odigrani potezi, pozicije, strelice i oznake na tabli | Rad na času i kasniji pregled |
 | Rejting po taktičkim temama, broj rešenih i promašenih zagonetki, vreme rešavanja | Prilagođavanje težine i izveštaj o napretku |
 | Zadaci koje vam je trener zadao i rezultati po zadatku | Praćenje domaćih zadataka |
+| Potez koji ste odigrali na svakoj poziciji iz zadatka | Da trener vidi *šta* ste probali, a ne samo da li je tačno |
+| Poruke koje vi i vaš trener pišete uz zadatak ili uz pojedinačnu poziciju | Povratna informacija o domaćem zadatku |
 | Lista prijatelja i veza trener–učenik | Pozivanje na časove i deljenje lekcija |
 | Zakazani termini i obaveštenja | Podsetnici na čas |
 
@@ -119,6 +121,7 @@ Podaci se čuvaju na serverima `[NAZIV HOSTING PROVAJDERA, npr. DigitalOcean]` u
 | Podaci o nalogu | Dok nalog postoji |
 | Snimci časova i video zapisi | `[npr. 12 meseci]` od nastanka, ili do brisanja od strane trenera |
 | Rezultati zagonetki i zadataka | Dok nalog postoji — čine istoriju napretka |
+| Poruke uz zadatke | Dok zadatak postoji; brisanjem zadatka nestaju i one |
 | Podaci o pretplati | Koliko nalažu poreski propisi |
 | Zbirni podaci o potrošnji resursa | `[npr. 24 meseca]` |
 

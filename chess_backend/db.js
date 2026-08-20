@@ -499,6 +499,35 @@ async function initDB() {
     `);
     logger.info('Verified database table & indexes: assignment_items (puzzle and lesson items)');
 
+    // Create assignment_notes table — what the two of them say to each other
+    // about one piece of homework.
+    //
+    // One table rather than four columns. The alternative was a trainer's note
+    // on the assignment, a student's note on the assignment, a trainer's note
+    // per position and a student's note per position — four places holding the
+    // same kind of thing, and every reader joining all four.
+    //
+    // `item_id` NULL means the note is about the whole assignment; otherwise it
+    // is about that one position. The author is read from the account, so who
+    // said it is never written down twice and can never disagree with itself.
+    //
+    // Both cascades are deliberate. A withdrawn assignment takes its
+    // conversation with it, and a deleted account takes the child's words with
+    // it — this is text a child wrote, and it should not outlive them here.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS assignment_notes (
+        id SERIAL PRIMARY KEY,
+        assignment_id INTEGER NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
+        item_id INTEGER REFERENCES assignment_items(id) ON DELETE CASCADE,
+        author_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_assignment_notes_assignment
+        ON assignment_notes(assignment_id, created_at);
+    `);
+    logger.info('Verified database table & indexes: assignment_notes (per assignment and per position)');
+
     // Create review_items table — the spaced-repetition schedule.
     //
     // Keyed on (user_id, lesson_id, position) rather than on the assignment: a

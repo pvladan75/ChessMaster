@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/services/app_logger.dart';
 import '../models/assignment.dart';
+import '../models/assignment_review.dart';
 
 /// Result of asking the server to create homework.
 class CreateAssignmentResult {
@@ -215,6 +216,77 @@ class AssignmentApiService {
     } catch (e) {
       AppLogger.log('[Assignments] Ne mogu da učitam zadatak: $e');
       return null;
+    }
+  }
+
+  /// What happened on one assignment, position by position, with the notes.
+  ///
+  /// One request rather than three: it is one screen, and the server decides
+  /// what this reader may see — including whether the solution has been earned
+  /// yet.
+  Future<AssignmentReview?> fetchReview(int id) async {
+    try {
+      final res = await http
+          .get(Uri.parse('$backendUrl/assignments/$id/review'),
+              headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (res.statusCode != 200) return null;
+      return AssignmentReview.fromJson(
+          jsonDecode(res.body) as Map<String, dynamic>);
+    } catch (e) {
+      AppLogger.log('[Assignments] Ne mogu da učitam pregled: $e');
+      return null;
+    }
+  }
+
+  /// Leaves a note on the assignment, or on one position in it.
+  ///
+  /// Returns the stored note, or an error message. Who wrote it is read from
+  /// the account on the server and never sent from here.
+  Future<({AssignmentNote? note, String? error})> addNote({
+    required int assignmentId,
+    required String body,
+    int? itemId,
+  }) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$backendUrl/assignments/$assignmentId/notes'),
+            headers: _headers,
+            body: jsonEncode(
+                {'body': body, if (itemId != null) 'itemId': itemId}),
+          )
+          .timeout(const Duration(seconds: 12));
+
+      if (res.statusCode == 201) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        return (
+          note: AssignmentNote.fromJson(
+              Map<String, dynamic>.from(data['note'] as Map)),
+          error: null,
+        );
+      }
+      return (note: null, error: _errorFrom(res.body, 'Poruka nije poslata.'));
+    } catch (e) {
+      AppLogger.log('[Assignments] Poruka nije poslata: $e');
+      return (note: null, error: 'Nema veze sa serverom.');
+    }
+  }
+
+  /// Takes back a note the caller wrote. Only the author may.
+  Future<String?> deleteNote(
+      {required int assignmentId, required int noteId}) async {
+    try {
+      final res = await http
+          .delete(
+            Uri.parse('$backendUrl/assignments/$assignmentId/notes/$noteId'),
+            headers: _headers,
+          )
+          .timeout(const Duration(seconds: 12));
+      if (res.statusCode == 200) return null;
+      return _errorFrom(res.body, 'Brisanje nije uspelo.');
+    } catch (e) {
+      return 'Nema veze sa serverom.';
     }
   }
 

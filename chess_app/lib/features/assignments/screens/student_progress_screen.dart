@@ -7,6 +7,7 @@ import '../services/assignment_api_service.dart';
 import '../widgets/assign_lesson_dialog.dart';
 import '../widgets/create_assignment_dialog.dart';
 import '../widgets/parent_report_dialog.dart';
+import 'assignment_review_screen.dart';
 
 /// A trainer's view of one student: how they are doing, what has been set, and
 /// the shortest path to setting more.
@@ -66,7 +67,8 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
         api: _api,
         studentId: widget.studentId,
         studentName: widget.studentName,
-        suggestedThemes: _progress?.weakestThemes.map((t) => t.theme).toList() ?? const [],
+        suggestedThemes:
+            _progress?.weakestThemes.map((t) => t.theme).toList() ?? const [],
       ),
     );
 
@@ -97,6 +99,19 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     }
   }
 
+  Future<void> _openReview(Assignment assignment) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AssignmentReviewScreen(
+          session: widget.session,
+          assignmentId: assignment.id,
+          title: assignment.title,
+        ),
+      ),
+    );
+    if (mounted) _refresh();
+  }
+
   Future<void> _deleteAssignment(Assignment assignment) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -105,9 +120,12 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
         content: Text('"${assignment.title}" će nestati sa učenikove liste, '
             'zajedno sa onim što je već urađeno.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Otkaži')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Otkaži')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: context.colors.danger),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: context.colors.danger),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Povuci'),
           ),
@@ -121,7 +139,8 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     if (!mounted) return;
 
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
       return;
     }
     _refresh();
@@ -220,7 +239,9 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             Row(
               children: [
                 const Expanded(
-                  child: Text('Pregled', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text('Pregled',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
                 Chip(
                   visualDensity: VisualDensity.compact,
@@ -240,9 +261,14 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                 spacing: 20,
                 runSpacing: 12,
                 children: [
-                  _stat('Rešeno', '${progress.solvedAttempts}/${progress.totalAttempts}'),
+                  _stat('Rešeno',
+                      '${progress.solvedAttempts}/${progress.totalAttempts}'),
                   // Null accuracy is rendered as a dash, never as 0%.
-                  _stat('Tačnost', progress.accuracy == null ? '—' : '${progress.accuracy}%'),
+                  _stat(
+                      'Tačnost',
+                      progress.accuracy == null
+                          ? '—'
+                          : '${progress.accuracy}%'),
                   _stat('Aktivnih dana', '${progress.activeDays}'),
                   _stat('Ukupno rešeno', '${progress.lifetimeSolved}'),
                 ],
@@ -271,8 +297,10 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        Text(label, style: TextStyle(fontSize: 11.5, color: context.colors.textMuted)),
+        Text(value,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(label,
+            style: TextStyle(fontSize: 11.5, color: context.colors.textMuted)),
       ],
     );
   }
@@ -300,17 +328,21 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Po temama', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text('Po temama',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 4),
             Text(
               'Prikazane su samo teme sa dovoljno pokušaja da broj nešto znači.',
               style: TextStyle(fontSize: 11.5, color: context.colors.textMuted),
             ),
             const SizedBox(height: 12),
-            ...progress.weakestThemes.map((theme) => _themeRow(theme, weak: true)),
+            ...progress.weakestThemes
+                .map((theme) => _themeRow(theme, weak: true)),
             if (progress.strongestThemes.isNotEmpty) ...[
               const SizedBox(height: 8),
-              ...progress.strongestThemes.take(3).map((theme) => _themeRow(theme, weak: false)),
+              ...progress.strongestThemes
+                  .take(3)
+                  .map((theme) => _themeRow(theme, weak: false)),
             ],
           ],
         ),
@@ -352,7 +384,8 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             width: 74,
             child: Text(
               '$accuracy% (${theme.attempts})',
-              style: TextStyle(fontSize: 12, color: context.colors.textSecondary),
+              style:
+                  TextStyle(fontSize: 12, color: context.colors.textSecondary),
               textAlign: TextAlign.right,
             ),
           ),
@@ -369,25 +402,36 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Zadaci', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text('Zadaci',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             if (_assignments.isEmpty)
               Text(
                 'Još niste zadali nijednu vežbu ovom učeniku.',
-                style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
+                style: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 13),
               )
             else
               ..._assignments.map((assignment) => ListTile(
                     contentPadding: EdgeInsets.zero,
+                    // Opens what actually happened, position by position. The
+                    // numbers on this row say that something went wrong; only
+                    // the review says where.
+                    onTap: () => _openReview(assignment),
                     leading: Icon(
                       assignment.isComplete
                           ? Icons.check_circle
-                          : (assignment.isOverdue ? Icons.warning_amber : Icons.assignment),
+                          : (assignment.isOverdue
+                              ? Icons.warning_amber
+                              : Icons.assignment),
                       color: assignment.isComplete
                           ? context.colors.success
-                          : (assignment.isOverdue ? context.colors.danger : context.colors.accent),
+                          : (assignment.isOverdue
+                              ? context.colors.danger
+                              : context.colors.accent),
                     ),
-                    title: Text(assignment.title, style: const TextStyle(fontSize: 14)),
+                    title: Text(assignment.title,
+                        style: const TextStyle(fontSize: 14)),
                     subtitle: Text(
                       '${assignment.attemptedItems}/${assignment.totalItems} urađeno'
                       '${assignment.accuracy == null ? '' : ' · tačnost ${assignment.accuracy}%'}',
