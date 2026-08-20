@@ -91,17 +91,40 @@ void showNotificationsDialog(
           });
         }
 
+        final unreadCount = messages.where((n) => n['is_read'] != true).length;
+
         return AlertDialog(
-          title: Row(
-            children: const [
-              Icon(Icons.notifications_active, color: Colors.amberAccent),
-              SizedBox(width: 8),
-              // Expanded: the title is wider than the dialog on a narrow phone,
-              // and a title that overflows takes the whole dialog down with it.
-              Expanded(
-                child: Text('Notifikacije i Pozivnice',
-                    style: TextStyle(fontSize: 16)),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.notifications_active, color: Colors.amberAccent),
+                  SizedBox(width: 8),
+                  // Expanded: the title is wider than the dialog on a narrow
+                  // phone, and a title that overflows takes the whole dialog
+                  // down with it.
+                  Expanded(
+                    child: Text('Notifikacije i Pozivnice',
+                        style: TextStyle(fontSize: 16)),
+                  ),
+                ],
               ),
+              // What the number on the bell is made of. It counts two unlike
+              // things — messages nobody has read and requests nobody has
+              // answered — and said so nowhere, which misled the first person
+              // to use it. Reported 20.8.2026.
+              if (waiting.isNotEmpty || unreadCount > 0) ...[
+                const SizedBox(height: 4),
+                Text(
+                  badgeExplanation(
+                    waiting: waiting.length,
+                    unread: unreadCount,
+                  ),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+              ],
             ],
           ),
           // Narrower margins than the default, so a 360 dp phone keeps most of
@@ -792,4 +815,38 @@ void showActiveSessionBlockedDialog(
       ],
     ),
   );
+}
+
+/// Spells out what the bell's number is made of.
+///
+/// Two unlike things are counted together: messages nobody has read, and
+/// requests nobody has answered. A request keeps counting until it is answered
+/// — reading about it changes nothing — and that difference is invisible in a
+/// single number.
+String badgeExplanation({required int waiting, required int unread}) {
+  final parts = <String>[
+    if (waiting > 0)
+      '$waiting ${_plural(waiting, 'zahtev', 'zahteva', 'zahteva')} čeka vaš odgovor',
+    if (unread > 0)
+      '$unread ${_plural(unread, 'novo obaveštenje', 'nova obaveštenja', 'novih obaveštenja')}',
+  ];
+  return parts.join(' · ');
+}
+
+/// Serbian counts three ways: one, a few (2–4), and many — except in the teens,
+/// where everything is "many". `21 zahtev`, `22 zahteva`, `25 zahteva`, but
+/// `11 zahteva` and `12 zahteva`.
+String _plural(int n, String one, String few, String many) {
+  final lastTwo = n % 100;
+  if (lastTwo >= 11 && lastTwo <= 14) return many;
+  switch (n % 10) {
+    case 1:
+      return one;
+    case 2:
+    case 3:
+    case 4:
+      return few;
+    default:
+      return many;
+  }
 }

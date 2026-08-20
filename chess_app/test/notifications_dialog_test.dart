@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/home/home_dialogs.dart' as dialogs;
+import 'package:chess_app/widgets/home/home_dialogs.dart' show badgeExplanation;
 
 const _phone = Size(360, 640);
 
@@ -238,5 +239,35 @@ void main() {
       (tester) async {
     await _open(tester, const []);
     expect(find.text('Nemate novih notifikacija.'), findsOneWidget);
+  });
+
+// The bell's number counts two unlike things. Saying so is the whole point, and
+// in Serbian saying it means counting three ways.
+
+  test('the bell says what its number is made of', () {
+    expect(badgeExplanation(waiting: 1, unread: 2),
+        '1 zahtev čeka vaš odgovor · 2 nova obaveštenja');
+    expect(badgeExplanation(waiting: 0, unread: 1), '1 novo obaveštenje');
+    expect(
+        badgeExplanation(waiting: 2, unread: 0), '2 zahteva čeka vaš odgovor');
+    expect(badgeExplanation(waiting: 0, unread: 0), '');
+  });
+
+  test('Serbian counts one, a few, and many — and the teens are many', () {
+    // 21 takes the singular and 11 does not, which is the trap in every
+    // hand-written plural.
+    expect(badgeExplanation(waiting: 0, unread: 5), '5 novih obaveštenja');
+    expect(badgeExplanation(waiting: 0, unread: 11), '11 novih obaveštenja');
+    expect(badgeExplanation(waiting: 0, unread: 12), '12 novih obaveštenja');
+    expect(badgeExplanation(waiting: 0, unread: 21), '21 novo obaveštenje');
+    expect(badgeExplanation(waiting: 0, unread: 22), '22 nova obaveštenja');
+    expect(badgeExplanation(waiting: 0, unread: 25), '25 novih obaveštenja');
+  });
+
+  testWidgets('the explanation is shown above the list', (tester) async {
+    await _open(tester, [_studentRequest, _roomInvite],
+        pending: const [_pending]);
+
+    expect(find.textContaining('1 zahtev čeka vaš odgovor'), findsOneWidget);
   });
 }
