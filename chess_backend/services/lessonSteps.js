@@ -62,4 +62,45 @@ function text(value, limit) {
   return trimmed === '' ? null : trimmed.slice(0, limit);
 }
 
-module.exports = { buildLessonStep, MAX_TITLE, MAX_INSTRUCTION, MAX_SAN };
+/// The steps of a saved lesson, however it was saved.
+///
+/// A lesson made in the builder has a `position_list`. One saved as a single
+/// position — from the analysis board, the scanner, or the library — has none,
+/// and *is* one step, built from the lesson's own `fen`/`pgn` columns.
+///
+/// This was written out four times: when a lesson is assigned, in the student's
+/// viewer, in the spaced-repetition queue, and in the review screen. The review
+/// screen's copy read `position_list` and stopped there, so a single-position
+/// lesson came back with no steps at all — the trainer opened "Pregled i
+/// komentari" and saw "Pozicija 1" over an empty square reading "tabla nije
+/// dostupna", while the same lesson worked everywhere else. Nothing failed;
+/// one of four readings simply knew less than the other three.
+///
+/// Callers pass their own column names, because two of them arrive aliased.
+function stepsOfLesson({ positionList, title, fen, pgn }) {
+  const list = Array.isArray(positionList)
+    ? positionList
+    : (typeof positionList === 'string' ? safeParse(positionList) : null);
+
+  if (Array.isArray(list) && list.length > 0) return list;
+  return [{ title, fen, pgn }];
+}
+
+function safeParse(text) {
+  try {
+    const parsed = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    // Unreadable is the same as absent: the lesson still has its own position,
+    // and that is better than a screen with nothing on it.
+    return null;
+  }
+}
+
+module.exports = {
+  buildLessonStep,
+  stepsOfLesson,
+  MAX_TITLE,
+  MAX_INSTRUCTION,
+  MAX_SAN,
+};

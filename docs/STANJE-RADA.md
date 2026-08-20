@@ -267,6 +267,29 @@ navigacija je imala petu, pogrešnu. Izvučeno u čistu funkciju
 `test/board_control_rules_test.dart` pada na staroj logici (provereno
 privremenim vraćanjem). Commit `21ae682`.
 
+## Koraci lekcije su se čitali na četiri načina — popravljeno 20.8.2026
+
+Korisnik je pri proveri stavke 21 video: trener otvori „Pregled i komentari" za
+zadatak od lekcije sačuvane kao **jedna pozicija**, i dobije naslov „Pozicija 1"
+iznad praznog kvadrata na kom piše „tabla nije dostupna". Ista lekcija se svuda
+drugde otvara ispravno.
+
+Lekcija napravljena u alatu ima `position_list`. Lekcija sačuvana kao jedna
+pozicija — sa analize, iz skenera, iz biblioteke — nema ga, i **jeste** jedan
+korak, sastavljen od svojih `fen`/`pgn` kolona. To se čitalo na četiri mesta:
+pri zadavanju lekcije, u učenikovom pregledaču, u redu za ponavljanje, i na
+ekranu pregleda. **Tri su imala rezervu, četvrto nije** — čitalo je samo
+`position_list`, nalazilo ništa, i crtalo prazan kvadrat.
+
+Ništa nije puklo i ništa nije prijavilo grešku; jedno od četiri čitanja je samo
+znalo manje od ostala tri. Isti oblik kao i sve ostalo u odeljku o ponavljajućoj
+grešci.
+
+Sada postoji `stepsOfLesson` u `services/lessonSteps.js` i sva četiri mesta idu
+kroz njega. Test čita izvor i pada ako neko ponovo napiše rezervu sam za sebe —
+kopija bez nje vraća prazan spisak, a prazan spisak izgleda kao ekran koji je
+prosto prazan, ne kao pokvaren. Tako je i preživelo.
+
 ## Obaveštenja stižu dok je aplikacija otvorena — 20.8.2026
 
 Korisnik je pri proveri stavke 19 primetio: A pošalje zahtev, B ga prihvati, a

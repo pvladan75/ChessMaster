@@ -635,3 +635,13 @@ u isto vreme, na dva naloga. Koristi neki **nov** odnos, ne `pavle → Vladan`.
 - [ ] Ono što se **ne** očekuje: učenik koji stoji u „Moji zadaci" neće videti
       nov zadatak u spisku dok se ne vrati na njega. Zvonce hoće. To je poznato
       i zapisano.
+
+**Nađeno pri proveri 20.8.2026, popravljeno istog dana:** kod zadatka od
+lekcije sačuvane kao jedna pozicija, „Pregled i komentari" je pokazivao prazan
+kvadrat umesto table. Vidi „Koraci lekcije su se čitali na četiri načina" u
+[STANJE-RADA.md](STANJE-RADA.md).
+
+- [ ] Otvori taj isti pregled ponovo — tabla se sada vidi, a naslov je naziv
+      pozicije umesto „Pozicija 1". (Backend je restartovan sam, ne treba ništa.)
+- [ ] Lekcija sa **više** koraka i dalje pokazuje svoj korak, ne svoju prvu
+      poziciju.

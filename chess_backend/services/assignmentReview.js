@@ -12,6 +12,7 @@
 
 const { Chess } = require('chess.js');
 const { assignmentParticipant } = require('./assignmentService');
+const { stepsOfLesson } = require('./lessonSteps');
 
 /// Whether the answer may be shown to whoever is asking.
 ///
@@ -178,10 +179,21 @@ async function buildReview(pool, assignmentId, viewerId) {
   let steps = new Map();
   if (assignment.kind === 'lesson' && assignment.lesson_id) {
     const lesson = await pool.query(
-      'SELECT position_list FROM saved_lessons WHERE id = $1',
+      // `title`, `fen` and `pgn` too: a lesson saved as a single position keeps
+      // its board in those columns and has no `position_list` at all. Reading
+      // only the list is what left this screen with an empty square.
+      'SELECT title, fen, pgn, position_list FROM saved_lessons WHERE id = $1',
       [assignment.lesson_id]
     );
-    steps = stepsByPosition(lesson.rows[0]?.position_list);
+    const row = lesson.rows[0];
+    if (row) {
+      steps = stepsByPosition(stepsOfLesson({
+        positionList: row.position_list,
+        title: row.title,
+        fen: row.fen,
+        pgn: row.pgn,
+      }));
+    }
   }
 
   const items = itemRows.rows.map((row) =>

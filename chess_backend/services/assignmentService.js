@@ -18,6 +18,7 @@ const WEAK_THEME_ACCURACY = 50;
 const { assignableProblem } = require('./customPuzzleJudge');
 const { trainableThemes } = require('./puzzleSelectionService');
 const { ensureItem: ensureReviewItem } = require('./spacedRepetitionService');
+const { stepsOfLesson } = require('./lessonSteps');
 
 /// Ceiling on one assignment, so a mis-typed count cannot materialise thousands
 /// of rows or hand a child an impossible pile of work.
@@ -206,12 +207,12 @@ async function loadAssignableLesson(pool, trainerId, lessonId) {
   if (result.rows.length === 0) return null;
 
   const lesson = result.rows[0];
-  const raw = lesson.position_list;
-  const list = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : null);
-
-  const steps = list && list.length > 0
-    ? list
-    : [{ title: lesson.title, fen: lesson.fen, pgn: lesson.pgn }];
+  const steps = stepsOfLesson({
+    positionList: lesson.position_list,
+    title: lesson.title,
+    fen: lesson.fen,
+    pgn: lesson.pgn,
+  });
 
   return { ...lesson, steps };
 }
@@ -562,11 +563,12 @@ async function getAssignmentDetail(pool, assignmentId, userId) {
     );
     const lesson = lessonRes.rows[0];
     if (lesson) {
-      const raw = lesson.position_list;
-      const list = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : null);
-      steps = list && list.length > 0
-        ? list
-        : [{ title: lesson.title, fen: lesson.fen, pgn: lesson.pgn }];
+      steps = stepsOfLesson({
+        positionList: lesson.position_list,
+        title: lesson.title,
+        fen: lesson.fen,
+        pgn: lesson.pgn,
+      });
     }
   }
 

@@ -175,11 +175,12 @@ async function getDue(pool, userId, { limit = 30, now = new Date() } = {}) {
   );
 
   return result.rows.map((row) => {
-    const raw = row.position_list;
-    const list = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : null);
-    const steps = list && list.length > 0
-      ? list
-      : [{ title: row.lesson_title, fen: row.lesson_fen, pgn: row.lesson_pgn }];
+    const steps = stepsOfLesson({
+      positionList: row.position_list,
+      title: row.lesson_title,
+      fen: row.lesson_fen,
+      pgn: row.lesson_pgn,
+    });
 
     // A lesson edited down to fewer steps can leave a schedule row pointing past
     // the end; such rows are surfaced as null and skipped by the caller rather

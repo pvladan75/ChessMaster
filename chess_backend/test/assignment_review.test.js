@@ -315,3 +315,50 @@ test('a note names the other side, so they can be told about it', async () => {
 
   assert.equal(fromStudent.recipientId, 5, 'the trainer');
 });
+
+
+test('a lesson saved as a single position still shows its board', async () => {
+  // Seen live on 20.8.2026: the trainer opened "Pregled i komentari" on a
+  // one-position lesson and got "Pozicija 1" over an empty square reading
+  // "tabla nije dostupna". Nothing had failed — this screen was the one of four
+  // readers that looked only at `position_list`, which such a lesson does not
+  // have.
+  const FEN = '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1';
+  const pool = stubPool([
+    [{ id: 7, trainer_id: 5, student_id: 9, kind: 'lesson', lesson_id: 3, title: 'poyicija 1' }],
+    [{ id: 11, position: 0, puzzle_id: null, attempted_at: null, solved: null }],
+    [{ title: 'pozicija 1', fen: FEN, pgn: null, position_list: null }],
+    [],
+  ]);
+
+  const review = await buildReview(pool, 7, 5);
+
+  assert.equal(review.items.length, 1);
+  assert.equal(review.items[0].kind, 'step');
+  assert.equal(review.items[0].fen, FEN, 'the board the child was shown');
+  assert.equal(review.items[0].title, 'pozicija 1');
+
+  // And the lesson is read with the columns that carry it.
+  assert.match(pool.calls[2].text, /SELECT title, fen, pgn, position_list/);
+});
+
+test('a lesson with real steps still reads them, not its own board', async () => {
+  const FEN = '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1';
+  const STEP_FEN = '8/8/8/8/8/5k2/6q1/7K b - - 0 1';
+  const pool = stubPool([
+    [{ id: 7, trainer_id: 5, student_id: 9, kind: 'lesson', lesson_id: 3, title: 'lekcija' }],
+    [{ id: 11, position: 1, puzzle_id: null, attempted_at: null, solved: null }],
+    [{
+      title: 'lekcija',
+      fen: FEN,
+      pgn: null,
+      position_list: [{ title: 'prvi', fen: FEN }, { title: 'drugi', fen: STEP_FEN }],
+    }],
+    [],
+  ]);
+
+  const review = await buildReview(pool, 7, 5);
+
+  assert.equal(review.items[0].fen, STEP_FEN, 'the step at that position');
+  assert.equal(review.items[0].title, 'drugi');
+});
