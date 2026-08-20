@@ -457,3 +457,23 @@ učenik — „Moji zadaci" → „Pregled i komentari" na kartici zadatka.
       mestima, i druga strana ih vidi (proveriti na oba naloga).
 - [ ] Svoju poruku mogu da obrišem, tuđu ne — kod tuđe nema iksa.
 - [ ] Na telefonu se kartica pozicije ne preliva (tabla 120 px + tekst desno).
+
+## 16. Slobodan redosled domaćeg — 20.8.2026, nije viđeno uživo
+
+Čisto klijentska izmena; server nije menjan.
+
+**Kako:** kao učenik, „Moji zadaci" → otvori zadatak sastavljen od trenerovih
+pozicija.
+
+**Na šta obratiti pažnju:**
+
+- [ ] Zadatak se otvara kao **mreža svih pozicija**, ne odmah kao tabla.
+- [ ] Tri stanja se razlikuju na prvi pogled: `tačno`, `netačno`, `nije urađeno`.
+- [ ] Dodir na **bilo koju** neurađenu poziciju je otvara — i onu na kraju.
+- [ ] „Nastavi" vodi na **prvu** neurađenu, a ne na onu posle poslednje otvorene.
+- [ ] Preskoči drugu poziciju, uradi ostale, pa na poslednjoj pritisni „Sledeća
+      nerešena" — mora da te vrati **na preskočenu**, ne da izađe.
+- [ ] Već urađena pozicija se otvara sa zaključanom tablom i porukom „računa se
+      prvi pokušaj"; figure se ne pomeraju.
+- [ ] Traka napretka raste kako se rešava, a ne kako se šeta kroz spisak.
+- [ ] Na telefonu mreža ima dve kolone i kartica se ne preliva.

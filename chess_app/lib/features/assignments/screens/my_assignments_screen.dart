@@ -6,8 +6,8 @@ import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_scree
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
 import 'assignment_review_screen.dart';
+import 'custom_assignment_overview_screen.dart';
 import 'lesson_viewer_screen.dart';
-import 'custom_puzzle_solver_screen.dart';
 
 /// What a student sees: the homework they have been set, and what is left.
 class MyAssignmentsScreen extends StatefulWidget {
@@ -95,11 +95,15 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
     // Homework built from the trainer's own positions is solved on its own
     // screen: those carry a written task and one move, while the Lichess set is
     // a forced line, and one screen serving both would branch at every step.
+    //
+    // It opens on the whole set rather than on the next unanswered position.
+    // A child stuck on the third one could not reach the fourth before, and
+    // seeing what is coming is part of how homework gets planned.
     if (detail.isCustom) {
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) =>
-              CustomPuzzleSolverScreen(session: widget.session, detail: detail),
+          builder: (_) => CustomAssignmentOverviewScreen(
+              session: widget.session, detail: detail),
         ),
       );
       if (mounted) _refresh();

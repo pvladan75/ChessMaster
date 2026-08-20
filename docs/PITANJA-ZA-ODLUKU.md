@@ -6,8 +6,8 @@ su već donete i zašto. Ovde su ona koja tek treba doneti, sa procenom šta sva
 mogućnost povlači — da se sledeći put ne počinje od nule.
 
 Zapisano 20.8.2026, iz zapažanja pri prvom pravom korišćenju lanca knjiga →
-učenik. Od pet, **preostalo je samo pitanje 1**; ostala četiri su urađena istog
-dana i njihovi odeljci su zadržani kao zapis razloga.
+učenik. **Sva su rešena istog dana**; odeljci su zadržani kao zapis razloga, jer
+je obrazloženje ono što se ne može rekonstruisati iz koda.
 
 ---
 
@@ -26,7 +26,12 @@ To se ne može rekonstruisati kasnije, pa je kolona dodata pre ijednog ekrana:
 
 ---
 
-## 1. Da li učenik rešava domaći redom koji sam bira?
+## 1. Da li učenik rešava domaći redom koji sam bira? — ✅ urađeno 20.8.2026
+
+Da, uz mrežu svih pozicija sa tri stanja i trenerov redosled kao podrazumevani —
+kako je ovde i predloženo. Prisilan redosled nije napravljen: ako se ikad pokaže
+potreba, to je zastavica na zadatku, ne pravilo za sve. Vidi „Domaći se više ne
+rešava u koloni" u [STANJE-RADA.md](STANJE-RADA.md).
 
 **Danas:** ne. Ekran napravi red od nerešenih pozicija u redosledu koji je trener
 zadao i vodi kroz njih jednu po jednu. Nema pregleda svih, nema preskakanja,

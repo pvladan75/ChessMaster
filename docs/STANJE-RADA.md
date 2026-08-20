@@ -1617,6 +1617,58 @@ politike privatnosti (`politika-privatnosti.md`, tabele u 3.2 i 6) zajedno sa
 odigranim potezom. Ne otvaraju novu površinu — sve ostaje unutar odnosa koji je
 već zasnovan pristankom.
 
+## Domaći se više ne rešava u koloni — 20.8.2026
+
+Pitanje 1, poslednje od pet.
+
+**Šta je bilo:** ekran je napravio red od nerešenih pozicija u trenerovom
+redosledu i vodio kroz njih jednu po jednu. Nije bilo pregleda svih, ni
+preskakanja, ni vraćanja. Dete koje zapne na trećoj poziciji nije moglo do
+četvrte — a domaći koji se ne može završiti je domaći koji se ne radi.
+
+**Šta je sada:** zadatak se otvara kao **mreža svih pozicija** sa stanjem, i
+radi se kojim redom se hoće.
+
+Tri stanja, ne dva: `tačno`, `netačno`, `nije urađeno`. Druga dva su par koji je
+učeniku najvažnije da razlikuje, a stara traka napretka ih je spajala u jedan
+broj.
+
+Zašto ovo ništa ne odaje: **rešenje se ne šalje aplikaciji unapred** — server
+sudi potez i otkriva odgovor tek posle njega — pa mreža tabli otkriva tačno
+onoliko koliko je otkrivala jedna tabla. To je bio jedini prigovor slobodnom
+redosledu i ovde ne stoji.
+
+### Trenerov redosled nije bačen, prestao je da bude kavez
+
+- Mreža je u trenerovom redosledu, i „Nastavi" vodi na **prvu poziciju koja još
+  čeka** — ne na onu posle poslednje dodirnute.
+- „Sledeća nerešena" **obilazi u krug**. Pozicija preskočena na početku se tako
+  stigne sa kraja; bez toga bi dugme koje piše „sledeća" tiho ostavilo posao iza
+  sebe, a dete bi moralo samo da se seti da se vrati.
+- Strelice levo/desno prolaze kroz sve pozicije redom, urađene i neurađene, jer
+  je gledanje unaokolo pola razloga zašto mreža postoji.
+
+### Već urađena pozicija se otvara, ali se ne rešava ponovo
+
+Tabla je zaključana i piše zašto: **računa se prvi pokušaj**. Tabla koja bi i
+dalje primala poteze obećavala bi drugu priliku koje nema. Uz to stoji prečica
+na „Rešenje i komentari", jer se tamo rešenje već sme videti.
+
+Traka napretka sada meri **koliko je urađeno**, a ne dokle se stiglo u redu —
+sa slobodnim redosledom to više nije isto pitanje.
+
+Ništa na serveru nije menjano: pravilo „samo prvi pokušaj se upisuje" je
+postojalo (`recordPuzzleResult` gađa samo redove sa `attempted_at IS NULL`), a
+ovaj ekran ga sada i pokazuje umesto da se oslanja na to da se pozicija ne može
+otvoriti dvaput.
+
+Redosled je pokriven testovima (`test/solve_order_test.dart`) jer je logika
+„sledeće" jedino mesto gde se posao može izgubiti, a mreža sa tri stanja
+`test/assignment_overview_test.dart`. Aplikacija 296 testova, `flutter analyze`
+čist.
+
+**Nije viđeno uživo** — `TODO-provera.md`, stavka 16.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
@@ -1645,7 +1697,8 @@ uživo. Ostaju:
 - **Sajt** na korenu domena — sadržaja još nema, pa ni sertifikata za `@` i
   `www`. Vidi korak 3a u [TODO-objavljivanje.md](TODO-objavljivanje.md).
 - **Faza 2 unifikacije — `MoveCursor`** (faza 1 proverena uživo 15.8.2026).
-- **Slobodan redosled domaćeg** — pitanje 1, jedino preostalo od pet.
+- **Prisilan redosled kao zastavica na zadatku**, ako se ikad pokaže potreba —
+  vidi pitanje 1. Namerno nije napravljeno unapred.
 - Provere uživo iz `TODO-provera.md`: izveštaj za roditelja, zadaci tipa
   lekcija, ponavljanje u razmacima, merenje troška (stavka 10 — endpoint sad
   radi, izveštaj nikad otvoren).

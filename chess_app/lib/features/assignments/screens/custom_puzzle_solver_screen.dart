@@ -8,7 +8,9 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import '../models/assignment.dart';
+import '../models/solve_order.dart';
 import '../services/assignment_api_service.dart';
+import 'assignment_review_screen.dart';
 
 /// A student works through homework built from the trainer's own positions.
 ///
@@ -23,10 +25,30 @@ class CustomPuzzleSolverScreen extends StatefulWidget {
     super.key,
     required this.session,
     required this.detail,
+    required this.positions,
+    required this.startIndex,
+    this.answered = const {},
+    this.onAnswered,
   });
 
   final UserSession session;
   final AssignmentDetail detail;
+
+  /// Every position in the assignment, in the trainer's order — not only the
+  /// ones still to do. The student chooses where to start, and an answered
+  /// position can be opened again to look at it; it just cannot be answered
+  /// twice, because only the first attempt is recorded.
+  final List<CustomPosition> positions;
+
+  final int startIndex;
+
+  /// puzzleId → whether it was answered correctly, as known when this screen
+  /// opened.
+  final Map<String, bool> answered;
+
+  /// Reports each answer up, so the grid behind is right the moment the student
+  /// comes back instead of after a refetch.
+  final void Function(String puzzleId, bool correct)? onAnswered;
 
   @override
   State<CustomPuzzleSolverScreen> createState() =>
@@ -37,29 +59,31 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
   late final AssignmentApiService _api;
   final ChessBoardController _board = ChessBoardController();
 
-  /// Only the positions still unanswered, in the order the trainer set them.
-  late final List<CustomPosition> _queue;
+  /// Every position, in the trainer's order.
+  List<CustomPosition> get _queue => widget.positions;
+
+  /// What has been answered so far, this session and before it.
+  late final Map<String, bool> _answered;
 
   int _index = 0;
   CustomAttemptResult? _verdict;
   bool _sending = false;
   DateTime _shownAt = DateTime.now();
-  int _solved = 0;
 
   CustomPosition get _current => _queue[_index];
+
+  /// Whether the position on screen has already been answered, and how. Null
+  /// means it is still open.
+  bool? get _alreadyAnswered => _answered[_current.puzzleId];
+
+  int get _solved => _answered.values.where((ok) => ok).length;
 
   @override
   void initState() {
     super.initState();
     _api = AssignmentApiService(authToken: widget.session.token);
-
-    final pendingIds =
-        widget.detail.pending.map((item) => item.puzzleId).toSet();
-    _queue = widget.detail.items
-        .where((item) => pendingIds.contains(item.puzzleId))
-        .map((item) => widget.detail.positionFor(item.puzzleId ?? ''))
-        .whereType<CustomPosition>()
-        .toList();
+    _answered = Map<String, bool>.from(widget.answered);
+    _index = widget.startIndex.clamp(0, (_queue.length - 1).clamp(0, 1 << 30));
 
     if (_queue.isNotEmpty) _load();
   }
@@ -135,17 +159,48 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
     setState(() {
       _sending = false;
       _verdict = result;
-      if (result.correct) _solved += 1;
+      _answered[_current.puzzleId] = result.correct;
     });
+    widget.onAnswered?.call(_current.puzzleId, result.correct);
   }
 
+  /// Moves to the next position still waiting, in the trainer's order.
+  ///
+  /// It wraps, so a position skipped early is still reached from the end rather
+  /// than being left behind by a button that says "next".
   void _next() {
-    if (_index + 1 >= _queue.length) {
+    final target = nextUnanswered(
+      puzzleIds: _queue.map((p) => p.puzzleId).toList(),
+      answered: _answered.keys.toSet(),
+      from: _index,
+    );
+    if (target == null) {
       Navigator.of(context).pop();
       return;
     }
-    setState(() => _index += 1);
+    setState(() => _index = target);
     _load();
+  }
+
+  /// Steps through the positions as they are listed, answered or not, so the
+  /// student can look around rather than only forward.
+  void _step(int delta) {
+    final target = _index + delta;
+    if (target < 0 || target >= _queue.length) return;
+    setState(() => _index = target);
+    _load();
+  }
+
+  Future<void> _openReview() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AssignmentReviewScreen(
+          session: widget.session,
+          assignmentId: widget.detail.assignment.id,
+          title: widget.detail.assignment.title,
+        ),
+      ),
+    );
   }
 
   @override
@@ -155,8 +210,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
     if (_queue.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.detail.assignment.title)),
-        body: const Center(
-            child: Text('Sve pozicije iz ovog zadatka su urađene.')),
+        body: const Center(child: Text('Ovaj zadatak nema nijednu poziciju.')),
       );
     }
 
@@ -164,10 +218,19 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
       backgroundColor: colors.canvas,
       appBar: AppBar(
         title: Text(widget.detail.assignment.title),
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.grid_view),
+            tooltip: 'Sve pozicije',
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
           child: LinearProgressIndicator(
-            value: (_index + 1) / _queue.length,
+            // How much is done, not how far along the queue we are: with a free
+            // order the second number was never the same question.
+            value: _answered.length / _queue.length,
             minHeight: 4,
             backgroundColor: colors.surfaceRaised,
           ),
@@ -196,9 +259,13 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
                         controller: _board,
                         boardOrientation: _orientation,
                         boardSize: boardSize,
-                        // Locked once answered: the question has been settled
-                        // and shuffling pieces afterwards only muddles it.
-                        isAllowedToMove: _verdict == null && !_sending,
+                        // Locked once answered — in this sitting or an
+                        // earlier one. Only the first attempt is recorded, so a
+                        // board that still accepted moves would promise a
+                        // second chance that does not exist.
+                        isAllowedToMove: _verdict == null &&
+                            !_sending &&
+                            _alreadyAnswered == null,
                         isDrawingMode: false,
                         drawingStartSquare: null,
                         arrows: const [],
@@ -228,11 +295,24 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
       children: [
         Row(
           children: [
+            IconButton(
+              onPressed: _index == 0 ? null : () => _step(-1),
+              icon: const Icon(Icons.chevron_left),
+              tooltip: 'Prethodna',
+              visualDensity: VisualDensity.compact,
+            ),
             Expanded(
               child: Text(
                 'Pozicija ${_index + 1} od ${_queue.length}',
+                textAlign: TextAlign.center,
                 style: TextStyle(color: colors.textSecondary, fontSize: 12),
               ),
+            ),
+            IconButton(
+              onPressed: _index + 1 >= _queue.length ? null : () => _step(1),
+              icon: const Icon(Icons.chevron_right),
+              tooltip: 'Sledeća',
+              visualDensity: VisualDensity.compact,
             ),
             Text('Tačno: $_solved',
                 style: TextStyle(color: colors.success, fontSize: 12)),
@@ -287,6 +367,48 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
     }
     final verdict = _verdict;
     if (verdict == null) {
+      // Answered in an earlier sitting. The board is locked and says why, in
+      // place of a hint to play a move that would not count.
+      final settled = _alreadyAnswered;
+      if (settled != null) {
+        return Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(settled ? Icons.check_circle : Icons.cancel,
+                    color: settled ? colors.success : colors.danger, size: 18),
+                const SizedBox(width: 6),
+                Text(settled ? 'Već urađeno — tačno' : 'Već urađeno — netačno',
+                    style: TextStyle(
+                        color: settled ? colors.success : colors.danger,
+                        fontSize: 14)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text('Rezultat se ne menja — računa se prvi pokušaj.',
+                style: TextStyle(color: colors.textMuted, fontSize: 12)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _openReview,
+                  icon: const Icon(Icons.rate_review_outlined, size: 16),
+                  label: const Text('Rešenje i komentari'),
+                ),
+                FilledButton.icon(
+                  onPressed: _next,
+                  icon: const Icon(Icons.arrow_forward),
+                  label: const Text('Sledeća nerešena'),
+                ),
+              ],
+            ),
+          ],
+        );
+      }
+
       return Text(
         'Odigraj potez na tabli.',
         style: TextStyle(color: colors.textMuted, fontSize: 12),
@@ -322,7 +444,11 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
         FilledButton.icon(
           onPressed: _next,
           icon: const Icon(Icons.arrow_forward),
-          label: Text(_index + 1 >= _queue.length ? 'Završi' : 'Sledeća'),
+          // "Finish" only when nothing is left anywhere in the assignment —
+          // being at the end of the list is no longer the same thing.
+          label: Text(_answered.length >= _queue.length
+              ? 'Završi'
+              : 'Sledeća nerešena'),
         ),
       ],
     );

@@ -97,12 +97,19 @@ class AssignmentItem {
   final bool? solved;
   final DateTime? attemptedAt;
 
+  /// The move the student played, where it was recorded. Null means it is not
+  /// known — true for everything answered before it was stored, and for the
+  /// Lichess path, which reports only whether the puzzle was solved. It never
+  /// means they played nothing.
+  final String? playedSan;
+
   const AssignmentItem({
     required this.puzzleId,
     required this.position,
     this.puzzleRating,
     this.solved,
     this.attemptedAt,
+    this.playedSan,
   });
 
   bool get isDone => attemptedAt != null;
@@ -115,6 +122,9 @@ class AssignmentItem {
         attemptedAt: json['attempted_at'] == null
             ? null
             : DateTime.tryParse(json['attempted_at'].toString())?.toLocal(),
+        playedSan: json['played_san']?.toString().trim().isEmpty ?? true
+            ? null
+            : json['played_san'].toString().trim(),
       );
 }
 
