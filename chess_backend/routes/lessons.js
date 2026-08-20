@@ -4,6 +4,7 @@ const router = express.Router();
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { acceptedTrainersOf } = require('../services/relationshipService');
+const { buildLessonStep } = require('../services/lessonSteps');
 
 // POST /lessons/save
 router.post('/save', authenticateToken, async (req, res) => {
@@ -52,6 +53,59 @@ router.put('/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Update lesson error:', err);
     res.status(500).json({ error: 'Server error while updating lesson' });
+  }
+});
+
+// POST /lessons/:id/steps — append one position to an existing course.
+//
+// The other half of "add to lesson": a trainer looking at a position wants it
+// in a lesson without opening the editor and rebuilding the list.
+//
+// It appends server-side, in one statement, rather than having the client read
+// the lesson, push a step and PUT the whole thing back. Two people editing the
+// same lesson that way lose one of the edits, and the loser is silent.
+router.post('/:id/steps', authenticateToken, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Nepoznata lekcija.' });
+  }
+
+  const built = buildLessonStep(req.body?.step);
+  if (!built.ok) {
+    return res.status(built.status).json({ error: built.error });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE saved_lessons
+          SET position_list = position_list || $1::jsonb
+        WHERE id = $2
+          AND (user_id = $3 OR trainer_id = $3)
+          AND position_list IS NOT NULL
+        RETURNING id, title, jsonb_array_length(position_list) AS step_count`,
+      [JSON.stringify([built.entry]), id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      // Three different reasons look identical from a failed UPDATE, and the
+      // trainer can act on only two of them. Worth one more query to say which.
+      const existing = await pool.query(
+        `SELECT (user_id = $2 OR trainer_id = $2) AS mine, position_list IS NULL AS bare
+           FROM saved_lessons WHERE id = $1`,
+        [id, req.user.id]
+      );
+      if (existing.rows.length === 0 || existing.rows[0].mine !== true) {
+        return res.status(404).json({ error: 'Lekcija nije pronađena ili nemate dozvolu za izmenu.' });
+      }
+      return res.status(409).json({
+        error: 'To je pojedinačna pozicija, ne lekcija sa koracima. Napravite lekciju u editoru.',
+      });
+    }
+
+    res.status(201).json({ success: true, lesson: result.rows[0] });
+  } catch (err) {
+    logger.error('Append lesson step error:', err);
+    res.status(500).json({ error: 'Server error while appending lesson step' });
   }
 });
 

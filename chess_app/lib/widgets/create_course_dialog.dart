@@ -5,10 +5,12 @@ import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
+import 'package:chess_app/features/library/models/library_entry.dart';
+import 'package:chess_app/features/library/services/position_library_service.dart';
+import 'package:chess_app/features/library/widgets/position_picker_dialog.dart';
 
 class CreateCourseDialog extends StatefulWidget {
   final UserSession userSession;
-  final List<dynamic> lessons;
   final VoidCallback onCourseCreated;
 
   /// When set, the dialog opens pre-filled for editing this existing saved
@@ -19,7 +21,6 @@ class CreateCourseDialog extends StatefulWidget {
   const CreateCourseDialog({
     super.key,
     required this.userSession,
-    required this.lessons,
     required this.onCourseCreated,
     this.existingLesson,
   });
@@ -33,7 +34,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
   final TextEditingController descController = TextEditingController();
   final List<Map<String, dynamic>> selectedPositions = [];
   bool isSaving = false;
-  bool isAddingAnalysis = false;
+  bool isAddingFromLibrary = false;
 
   bool get isEditing => widget.existingLesson != null;
 
@@ -63,74 +64,78 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
     );
   }
 
-  Future<void> _pickAnalysisToAdd() async {
-    setState(() => isAddingAnalysis = true);
-    final analyses =
-        await AnalysisPersistenceService.instance.listSavedAnalyses(
-      userToken: widget.userSession.token,
-    );
-    if (!mounted) return;
-    setState(() => isAddingAnalysis = false);
-
-    if (analyses.isEmpty) {
-      _showError(
-          'Nema sačuvanih analiza. Sačuvajte jednu u Studiju za analizu.');
-      return;
-    }
-
-    final picked = await showDialog<SavedAnalysisSummary>(
+  /// Adds positions from the one library, whatever shelf they sit on.
+  ///
+  /// There used to be two ways in here — a checkbox list of saved boards and a
+  /// button for saved analyses — and no way at all to reach a position scanned
+  /// out of a book. That was a hole in the chain: a trainer could scan a
+  /// diagram, confirm it, set it as homework, and still not put it in a lesson.
+  Future<void> _addFromLibrary() async {
+    setState(() => isAddingFromLibrary = true);
+    final picked = await showDialog<List<LibraryEntry>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        title: const Text('Izaberi sačuvanu analizu',
-            style: TextStyle(color: Colors.white, fontSize: 15)),
-        content: SizedBox(
-          width: 340,
-          height: 300,
-          child: ListView.separated(
-            itemCount: analyses.length,
-            separatorBuilder: (_, __) =>
-                const Divider(height: 1, color: Colors.white12),
-            itemBuilder: (context, index) {
-              final a = analyses[index];
-              return ListTile(
-                dense: true,
-                leading: const Icon(Icons.biotech,
-                    color: Colors.tealAccent, size: 18),
-                title: Text(a.title,
-                    style: const TextStyle(color: Colors.white, fontSize: 13)),
-                onTap: () => Navigator.pop(ctx, a),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-              child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx)),
-        ],
+      builder: (ctx) => PositionPickerDialog(
+        service: PositionLibraryService(authToken: widget.userSession.token),
       ),
     );
-
-    if (picked == null || !mounted) return;
-
-    final tree = await AnalysisPersistenceService.instance.loadAnalysis(
-      id: picked.id,
-      userToken: widget.userSession.token,
-    );
     if (!mounted) return;
 
-    if (tree == null) {
-      _showError('Učitavanje analize nije uspelo.');
+    if (picked == null || picked.isEmpty) {
+      setState(() => isAddingFromLibrary = false);
       return;
     }
 
+    final steps = <Map<String, dynamic>>[];
+    for (final entry in picked) {
+      steps.add(await _stepFrom(entry));
+    }
+    if (!mounted) return;
+
     setState(() {
-      selectedPositions.add({
-        'title': picked.title,
-        'fen': tree.fen,
-        'pgn': PgnExporterService.exportToPgn(tree),
-      });
+      isAddingFromLibrary = false;
+      selectedPositions.addAll(steps);
     });
+  }
+
+  /// Turns one library entry into a lesson step.
+  ///
+  /// Two things must survive the crossing. The **task** moves from the position
+  /// onto the step, or the student gets a board with no question on it — the
+  /// oldest complaint about this feature, fixed once already. The **solution**
+  /// travels too, unused: a lesson is read rather than solved, but the same
+  /// step may later be set as homework, and a move dropped here is gone.
+  Future<Map<String, dynamic>> _stepFrom(LibraryEntry entry) async {
+    final step = <String, dynamic>{
+      'title': entry.title,
+      'fen': entry.fen,
+      if (entry.instruction != null) 'instruction': entry.instruction,
+      if (entry.solutionSan != null) 'solutionSan': entry.solutionSan,
+    };
+
+    if (entry.kind != LibraryKind.analysis) {
+      if (entry.pgn != null) step['pgn'] = entry.pgn;
+      return step;
+    }
+
+    // The tree is the heavy half and is not in the listing, so it is fetched
+    // only for the entries actually taken.
+    final id = int.tryParse(entry.id);
+    final tree = id == null
+        ? null
+        : await AnalysisPersistenceService.instance.loadAnalysis(
+            id: id,
+            userToken: widget.userSession.token,
+          );
+    if (tree == null) {
+      // The board is still worth keeping: the starting position is right, only
+      // the variations are missing, and saying so beats dropping the step.
+      _showError(
+          'Varijante za „${entry.title}" nisu učitane — dodata je samo pozicija.');
+      return step;
+    }
+    step['fen'] = tree.fen;
+    step['pgn'] = PgnExporterService.exportToPgn(tree);
+    return step;
   }
 
   /// Lets the trainer say what the student should do at this step.
@@ -237,10 +242,6 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // A saved course (position_list already set) can't itself be nested as a step.
-    final availablePositions =
-        widget.lessons.where((l) => l['position_list'] == null).toList();
-
     return AlertDialog(
       title: Row(
         children: [
@@ -281,67 +282,21 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                   maxLines: 2,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Dodaj gole pozicije iz baze:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 160),
-                  decoration: BoxDecoration(
-                    border:
-                        Border.all(color: Colors.grey.withValues(alpha: 0.3)),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: availablePositions.isEmpty
-                      ? const Center(
-                          child: Text('Nema sačuvanih pozicija.',
-                              style:
-                                  TextStyle(fontSize: 11, color: Colors.grey)))
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: availablePositions.length,
-                          itemBuilder: (context, index) {
-                            final lesson = availablePositions[index];
-                            final isSelected = selectedPositions
-                                .any((p) => p['id'] == lesson['id']);
-                            return CheckboxListTile(
-                              dense: true,
-                              title: Text(lesson['title'] ?? '',
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold)),
-                              subtitle: Text(lesson['fen'] ?? '',
-                                  style: const TextStyle(
-                                      fontSize: 10, color: Colors.grey),
-                                  maxLines: 1),
-                              value: isSelected,
-                              onChanged: (val) {
-                                setState(() {
-                                  if (val == true) {
-                                    selectedPositions.add(lesson);
-                                  } else {
-                                    selectedPositions.removeWhere(
-                                        (p) => p['id'] == lesson['id']);
-                                  }
-                                });
-                              },
-                            );
-                          },
-                        ),
-                ),
-                const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    icon: isAddingAnalysis
+                    icon: isAddingFromLibrary
                         ? const SizedBox(
                             width: 14,
                             height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.biotech, size: 16),
-                    label: const Text('Dodaj sačuvanu analizu'),
-                    onPressed: isAddingAnalysis ? null : _pickAnalysisToAdd,
+                        : const Icon(Icons.collections_bookmark_outlined,
+                            size: 16),
+                    // One way in, over all three shelves. The two lists that
+                    // used to be here could not see the scanner's positions,
+                    // so a diagram out of a book could never enter a lesson.
+                    label: const Text('Dodaj iz biblioteke'),
+                    onPressed: isAddingFromLibrary ? null : _addFromLibrary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -367,20 +322,24 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                       },
                       itemBuilder: (context, index) {
                         final item = selectedPositions[index];
-                        final isAnalysis = item['pgn'] != null &&
-                            item['pgn'].toString().isNotEmpty &&
-                            item['id'] == null;
+                        // Steps written before the library existed carry the
+                        // whole saved-lesson row, so the id is not a reliable
+                        // mark of origin. Variations are: a step with a PGN
+                        // came from a tree, one without is a single board.
+                        final hasVariations =
+                            item['pgn']?.toString().isNotEmpty == true;
                         return Card(
                           key: ValueKey(identityHashCode(item)),
                           margin: const EdgeInsets.symmetric(vertical: 2),
                           child: ListTile(
                             dense: true,
                             leading: Icon(
-                              isAnalysis
+                              hasVariations
                                   ? Icons.biotech
                                   : Icons.push_pin_outlined,
-                              color:
-                                  isAnalysis ? Colors.tealAccent : Colors.grey,
+                              color: hasVariations
+                                  ? Colors.tealAccent
+                                  : Colors.grey,
                               size: 18,
                             ),
                             title: Text(

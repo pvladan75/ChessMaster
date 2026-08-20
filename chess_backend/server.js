@@ -21,6 +21,7 @@ const assignmentRoutes = require('./routes/assignments');
 const reportRoutes = require('./routes/reports');
 const reviewRoutes = require('./routes/reviews');
 const scanRoutes = require('./routes/scans');
+const libraryRoutes = require('./routes/library');
 const { authenticateToken, requireRole, verifySocketToken } = require('./middleware/auth');
 const entitlementService = require('./services/entitlementService');
 const { cleanupOldExports } = require('./services/retentionService');
@@ -114,6 +115,7 @@ app.use('/assignments', assignmentRoutes);
 app.use('/reports', reportRoutes);
 app.use('/reviews', reviewRoutes);
 app.use('/scans', scanRoutes);
+app.use('/library', libraryRoutes);
 app.use('/', socialRoutes);
 
 // SOCKET.IO REALTIME EVENTS

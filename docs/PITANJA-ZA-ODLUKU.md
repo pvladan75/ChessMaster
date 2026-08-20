@@ -51,7 +51,13 @@ za sve.
 
 ---
 
-## 2. Objediniti skenirane pozicije i pozicije iz Studija za analizu
+## 2. Objediniti skenirane pozicije i pozicije iz Studija — ✅ urađeno 20.8.2026
+
+Urađeno onako kako je ovde predloženo: **jedan pogled nad tri izvora, ne jedna
+tabela** (`GET /library/positions` sa poljem `kind`), i jedan birač koji koristi
+i editor lekcije i ekran „Moje pozicije". Vidi „Jedna biblioteka pozicija, tri
+police" u [STANJE-RADA.md](STANJE-RADA.md). Ostatak odeljka stoji kao zapis
+razloga.
 
 **Danas su dve police koje se ne vide jedna drugoj.** Skenirano živi u
 `custom_puzzles` i vidi se samo u „Mojim pozicijama". Studio čuva u
@@ -76,7 +82,13 @@ koja već postoji.
 
 ---
 
-## 3. „Dodaj u lekciju" sa same pozicije
+## 3. „Dodaj u lekciju" sa same pozicije — ✅ urađeno 20.8.2026
+
+Palo je zajedno sa pitanjem 2, kako je i predviđeno. Radnja stoji u traci za
+izbor na ekranu „Moje pozicije" a ne na samoj kartici — kartica je već puna, a
+izbor više pozicija odjednom je već postojao. Zadatak i rešenje prelaze sa
+pozicije na korak; `solution_san` se čuva iako se ne koristi, tačno iz razloga
+koji je ovde naslućen.
 
 Ovo je pitanje 2 sa druge strane i pada zajedno s njim. Kad postoji jedna
 biblioteka, radnja pripada kartici pozicije, a editor lekcije treba da ume da

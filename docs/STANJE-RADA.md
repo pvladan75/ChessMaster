@@ -1420,6 +1420,94 @@ praznog teksta, i pozivalac koji potez ne zna). Backend 190 testova, sve prolazi
 se desi tek kad dete odgovori na skeniranu poziciju. Vidi `TODO-provera.md`,
 stavka 13.
 
+## Jedna biblioteka pozicija, tri police — 20.8.2026
+
+Pitanja 2 i 3 iz [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md), rešena zajedno
+jer su ista stvar sa dve strane.
+
+Rupa koja se zatvara nije udobnost: **skenirana pozicija se do danas nije mogla
+staviti u lekciju.** Editor lekcije je čitao `saved_lessons` i `saved_analyses`,
+skener je pisao u `custom_puzzles`, i te dve police se nisu videle. Trener je
+mogao da skenira dijagram, potvrdi ga i zada ga za domaći — ali ne i da po njemu
+drži čas.
+
+**Tabele se ne spajaju.** Oblici su stvarno različiti (jedna tabla i potez
+naspram stabla varijanti sa PGN-om), pa bi spajanje nateralo svakog potrošača da
+grana po vrsti — isti razlog zbog kog su `puzzles` i `lichess_puzzles` namerno
+odvojene. Napravljen je **pogled**: `GET /library/positions` vraća sve tri police
+sa poljem `kind`, svaka zadržava svoj upit, svoj redosled i svoju proveru prava.
+
+Šta je ugrađeno, i zašto baš tako:
+
+- **Pravo se ne prepisuje po treći put.** Sačuvane pozicije se čitaju kroz
+  `acceptedTrainersOf`, kao i svuda drugde; test koji broji ručne kopije te
+  podupite i dalje prolazi.
+- **„Može li da se zada" odlučuje server**, kroz postojeći `assignableProblem`.
+  Birač ne izvodi pravilo drugi put — dobija i odgovor i razlog.
+- **Ono što se ne može zadati se ne krije.** Stoji sivo, sa razlogom pored
+  („nema rešenje, pa odgovor ne može da se oceni"). Pozicija koju je trener
+  sačuvao a ne može da nađe izgleda kao bag; ona koja kaže zašto — ne.
+- **Traži se na serveru, ne u već učitanoj listi.** Stiže najviše 500 redova po
+  polici, pa bi filtriranje na klijentu sakrilo baš ono što trener sa velikom
+  bibliotekom traži.
+- **Prazna polica i nedostupan server nisu isto.** Servis vraća `null` za drugo,
+  i ekran to razlikuje.
+
+### Zadatak i rešenje moraju da pređu sa pozicije na korak
+
+Sitnica koja se najlakše izgubi, i zapisana je u pitanju 3: korak lekcije nosi
+`title`, `fen`, `pgn` i `instruction`, a skenirana pozicija nosi `fen`,
+`solution_san` i `instruction`. Ako `instruction` ne pređe, dete opet dobija
+tablu bez pitanja — greška koju smo tek popravili.
+
+`solution_san` takođe putuje, iako ga niko ne koristi: lekcija se čita, ne
+rešava, ali isti korak kasnije može da postane domaći, a potez izgubljen na
+ulazu se ne vraća. Prikazivač ga nikad ne odigra.
+
+Gradnja koraka je izdvojena u `services/lessonSteps.js` — prolaze **samo polja
+od kojih se korak sastoji**, ostalo otpada umesto da se čuva zato što je
+stiglo, a FEN se proverava kroz `chess.js` (klijent nije autoritet za poziciju).
+
+### Dodavanje ide na server, ne kroz čitaj-izmeni-upiši
+
+`POST /lessons/:id/steps` dopisuje jedan korak jednim `UPDATE`-om. Da klijent
+čita lekciju, dopiše korak i vrati je celu, dvoje koji je istovremeno menjaju
+izgubili bi jednu izmenu — i to bez ijedne poruke.
+
+Tri odbijanja imaju različite razloge i **kažu koji je koji**: nepostojeća ili
+tuđa lekcija (404), pozicija koju nijedna tabla ne može da učita (422), i
+pojedinačna sačuvana pozicija koja nije lekcija sa koracima (409). Poslednje je
+namerno odbijanje a ne pretvaranje: dopisivanje koraka bi joj tiho promenilo
+vrstu.
+
+### Gde se birač koristi
+
+- **Editor lekcije** — dve odvojene liste („gole pozicije iz baze" i dugme
+  „Dodaj sačuvanu analizu") zamenjene su jednim dugmetom „Dodaj iz biblioteke".
+- **„Moje pozicije"** — u traci za izbor stoji „Dodaj u lekciju" pored „Zadaj
+  učeniku". Radnja je namerno u traci, a ne na kartici: već postoji izbor više
+  pozicija odjednom, a kartica je puna (tabla, zadatak, rešenje, predlog motora).
+
+### Izmereno uživo 20.8.2026
+
+Backend pozvan preko HTTP-a sa mintovanim tokenom, kao i pri probi skenera:
+
+| | |
+|---|---|
+| `GET /library/positions` | 203 stavke — 198 skeniranih, 2 sačuvane pozicije, 3 analize |
+| može da se zada | 198; ostalih 5 sa razlogom |
+| `?kind=analysis` | 3, samo analize |
+| `?kind=scans` (greška u kucanju) | 400 sa spiskom dozvoljenih |
+| dopisivanje koraka | 201, `step_count` 1 → 2, zadatak prešao uz poziciju |
+| polja `id` i `junk` uz korak | odbačena, u bazi ostaju samo četiri prava |
+| loš FEN / pojedinačna pozicija / tuđa lekcija | 422 / 409 / 404, svaki sa svojim razlogom |
+
+Probna lekcija je zatim obrisana. **Ekran u aplikaciji još niko nije otvorio** —
+`TODO-provera.md`, stavka 14.
+
+Uzgred provereno istom prilikom: kolona `assignment_items.played_san` stvarno
+postoji u bazi posle pokretanja servera (`character varying(20)`).
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
@@ -1448,6 +1536,10 @@ uživo. Ostaju:
 - **Sajt** na korenu domena — sadržaja još nema, pa ni sertifikata za `@` i
   `www`. Vidi korak 3a u [TODO-objavljivanje.md](TODO-objavljivanje.md).
 - **Faza 2 unifikacije — `MoveCursor`** (faza 1 proverena uživo 15.8.2026).
+- **Pregled urađenog domaćeg i komentari** — pitanja 4 i 5 u
+  [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md). Odigran potez se od 20.8.2026.
+  čuva, pa ekran ima šta da prikaže; komentari su jedna tabela
+  (`assignment_notes`) koja rešava oba pitanja istim potezom.
 - Provere uživo iz `TODO-provera.md`: izveštaj za roditelja, zadaci tipa
   lekcija, ponavljanje u razmacima, merenje troška (stavka 10 — endpoint sad
   radi, izveštaj nikad otvoren).

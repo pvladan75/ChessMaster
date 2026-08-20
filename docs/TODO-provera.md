@@ -408,3 +408,29 @@ Ostalo neprovereno:
 Napomena: `custom_puzzles` je nastala pri restartu 19.8.2026
 (`Verified database table & indexes: custom_puzzles`), pa taj korak više ne
 stoji na putu.
+
+## 14. Biblioteka pozicija i „Dodaj u lekciju" — backend proveren uživo 20.8.2026, ekran nije
+
+Backend je stvarno pozvan preko HTTP-a (203 stavke iz tri izvora, dopisivanje
+koraka 201, tri odbijanja svako sa svojim razlogom, probna lekcija obrisana).
+Ekran nije otvaran.
+
+**Kako:** Sesija → „Kreiraj lekciju" → **Dodaj iz biblioteke**. Pa Biblioteka →
+„Moje pozicije" → dugi pritisak na jednu ili više → **Dodaj u lekciju**.
+
+**Na šta obratiti pažnju:**
+
+- [ ] U biraču se vide **sve tri vrste** — iz knjige, sačuvane pozicije, analize
+      — i čipovi ih filtriraju.
+- [ ] **Skenirana pozicija zaista uđe u lekciju** i u koraku piše njen zadatak
+      („Beli matira u jednom potezu."), ne samo naslov.
+- [ ] Kad se doda **analiza**, korak nosi varijante (PGN), a ne samo početnu
+      tablu. Ako učitavanje stabla ne uspe, mora da stigne poruka i pozicija —
+      ne tiho preskakanje.
+- [ ] Traženje po tekstu radi (kuca se, pa se posle kratke pauze osvežava lista).
+- [ ] Kad je server ugašen, birač kaže **„Nije moguće doći do servera"**, a ne
+      „Nema sačuvanih pozicija".
+- [ ] „Dodaj u lekciju" nad **više izabranih** pozicija: poruka mora da kaže i
+      koliko je dodato i koliko nije.
+- [ ] Na telefonu traka sa tri dugmeta („Poništi", „Dodaj u lekciju", „Zadaj
+      učeniku") mora da se prelomi, ne da iscuri sa ekrana.

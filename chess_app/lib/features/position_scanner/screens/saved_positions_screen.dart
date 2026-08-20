@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:chess_app/features/library/models/library_entry.dart';
+import 'package:chess_app/features/library/services/position_library_service.dart';
+import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -30,6 +33,8 @@ class SavedPositionsScreen extends StatefulWidget {
 class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
   late final ScannerApiService _api =
       ScannerApiService(authToken: widget.session.token);
+  late final PositionLibraryService _library =
+      PositionLibraryService(authToken: widget.session.token);
 
   List<SavedPosition>? _positions;
   bool _loading = true;
@@ -122,6 +127,58 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     );
     if (message == null || !mounted) return;
     setState(_picked.clear);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Puts the ticked positions into an existing lesson.
+  ///
+  /// The other half of one library: a position could be scanned, confirmed and
+  /// set as homework, but never taught from — the lesson editor could not see
+  /// the scanner's table at all.
+  ///
+  /// The task travels with the position. A step without one is a board with no
+  /// question on it, which is the oldest complaint about this feature.
+  Future<void> _addToLesson() async {
+    if (_picked.isEmpty) return;
+    final chosen = (_positions ?? const <SavedPosition>[])
+        .where((p) => _picked.contains(p.puzzleId))
+        .toList();
+    if (chosen.isEmpty) return;
+
+    final course = await showDialog<CourseSummary>(
+      context: context,
+      builder: (context) =>
+          CoursePickerDialog(service: _library, count: chosen.length),
+    );
+    if (course == null || !mounted) return;
+
+    var added = 0;
+    String? firstError;
+    for (final position in chosen) {
+      final error = await _library.appendStep(
+        lessonId: course.id,
+        title: position.sourceLabel == null
+            ? 'Pozicija sa strane ${position.sourcePage ?? '?'}'
+            : '#${position.sourceLabel} · ${position.sourceTitle ?? 'knjiga'}',
+        fen: position.fen,
+        instruction: position.instruction,
+        solutionSan: position.solutionSan,
+      );
+      if (error == null) {
+        added++;
+      } else {
+        firstError ??= error;
+      }
+    }
+    if (!mounted) return;
+
+    setState(_picked.clear);
+    // Both numbers, always. "Dodato" alone would hide the ones that did not go
+    // in, and those are the ones worth knowing about.
+    final message = firstError == null
+        ? 'Dodato $added u „${course.title}".'
+        : 'Dodato $added, nije prošlo ${chosen.length - added}: $firstError';
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
@@ -474,16 +531,23 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
       width: double.infinity,
       color: colors.accent.withValues(alpha: 0.15),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Row(
+      // Wrap, not Row: three actions and a count do not fit across a phone, and
+      // a Row would overflow rather than fold.
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Expanded(
-            child: Text('Izabrano ${_picked.length}',
-                style: TextStyle(color: colors.textPrimary, fontSize: 13)),
-          ),
+          Text('Izabrano ${_picked.length}',
+              style: TextStyle(color: colors.textPrimary, fontSize: 13)),
           TextButton(
               onPressed: () => setState(_picked.clear),
               child: const Text('Poništi')),
-          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: _addToLesson,
+            icon: const Icon(Icons.playlist_add),
+            label: const Text('Dodaj u lekciju'),
+          ),
           FilledButton.icon(
             onPressed: _assign,
             icon: const Icon(Icons.assignment_outlined),

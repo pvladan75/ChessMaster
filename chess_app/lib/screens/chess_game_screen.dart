@@ -64,6 +64,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   late String activeRole;
   bool isRecording = false;
   int? recordingStartTimeMs;
+
   /// Owns the recording clock and timeline. See [LessonRecorder] for why the
   /// pause arithmetic lives outside this screen.
   final LessonRecorder _recorder = LessonRecorder();
@@ -73,7 +74,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   bool isConnected = false;
   bool _isDisposing = false;
   String gameStatus = "Spajanje na game server...";
-  
+
   PlayerColor boardOrientation = PlayerColor.white;
   String boardControl = 'trainer_only';
   bool allowStudentEngine = false;
@@ -107,8 +108,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
   final TextEditingController pgnPasteController = TextEditingController();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController commentController = TextEditingController();
-  List<String> moveHistory = []; 
-  
+  List<String> moveHistory = [];
+
   late MoveTree moveTree;
   MoveNode get currentNode => moveTree.current;
 
@@ -127,7 +128,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
   int _activeCourseIndex = 0;
   String? _activeCourseTitle;
 
-  bool get isHost => activeRole == 'host' || activeRole == 'trener' || widget.roomCode == 'STUDIO';
+  bool get isHost =>
+      activeRole == 'host' ||
+      activeRole == 'trener' ||
+      widget.roomCode == 'STUDIO';
   bool get isTrener => isHost;
 
   /// Whether this client may drive the shared board — either by moving a piece
@@ -155,9 +159,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
       boardControl = 'unrestricted';
     } else {
       activeRole = widget.initialRole ?? 'korisnik';
-      boardOrientation = activeRole == 'host'
-          ? PlayerColor.white
-          : PlayerColor.black;
+      boardOrientation =
+          activeRole == 'host' ? PlayerColor.white : PlayerColor.black;
 
       if (widget.userSession.isGuest) {
         // A guest reached a real room directly (shared link, restored deep
@@ -167,7 +170,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
           if (!mounted) return;
           context.go(
             AppRoutes.login,
-            extra: PendingSessionIntent.joinInviteRoom(widget.roomCode, role: widget.initialRole),
+            extra: PendingSessionIntent.joinInviteRoom(widget.roomCode,
+                role: widget.initialRole),
           );
         });
       } else {
@@ -179,19 +183,23 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
     }
     controller = ChessBoardController();
-    moveTree = MoveTree(startingFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    moveTree = MoveTree(
+        startingFen:
+            'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
     // The Preferences route overlays this screen without unmounting it, so a
     // toggle like move-input-mode needs an explicit listener to take effect
     // immediately rather than waiting for some unrelated setState.
     AppSettingsService.instance.addListener(_onAppSettingsChanged);
     initSocket();
-    
+
     // Fetch saved positions & user labels for all users
     fetchLessons();
     fetchUserLabels();
 
     // Set up Stockfish service evaluation listener
-    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv, depth, isFinal, [analyzedFen = '']) {
+    _stockfishService.onEvaluationChanged =
+        (evaluation, bestMove, continuation, multipv, depth, isFinal,
+            [analyzedFen = '']) {
       if (!mounted) return;
       if (!isEngineEnabled) return;
 
@@ -200,8 +208,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
       if (numVal != null) {
         parsedEval = numVal;
       } else if (evaluation.contains('M')) {
-        final mateNum = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-        parsedEval = evaluation.contains('-') ? (-10000.0 + mateNum) : (10000.0 - mateNum);
+        final mateNum =
+            int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+        parsedEval = evaluation.contains('-')
+            ? (-10000.0 + mateNum)
+            : (10000.0 - mateNum);
       }
 
       setState(() {
@@ -216,7 +227,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
           final updatedLine = AnalysisLine.fromPv(
             multipv: multipv,
             depth: depth,
-            eval: evaluation.isNotEmpty ? evaluation : (engineLines[multipv]?.evaluation ?? '0.00'),
+            eval: evaluation.isNotEmpty
+                ? evaluation
+                : (engineLines[multipv]?.evaluation ?? '0.00'),
             pvString: continuation,
             startingFen: currentFen,
           );
@@ -371,7 +384,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   Widget _buildStockfishAnalysisWidget() {
     final sortedKeys = engineLines.keys.toList()..sort();
-    final List<AnalysisLine> linesList = sortedKeys.map((k) => engineLines[k]!).toList();
+    final List<AnalysisLine> linesList =
+        sortedKeys.map((k) => engineLines[k]!).toList();
     final isStudio = widget.roomCode == 'STUDIO';
     final isTrener = activeRole == 'trener' || isStudio;
     final isAllowedToUseEngine = isTrener || isStudio || allowStudentEngine;
@@ -406,7 +420,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
           });
         }
       },
-      onOpenSettings: (!kIsWeb && Platform.isWindows) ? _showEngineSettingsDialog : null,
+      onOpenSettings:
+          (!kIsWeb && Platform.isWindows) ? _showEngineSettingsDialog : null,
       onForceRestart: () {
         _stockfishService.stopAnalysis();
         _triggerEngineAnalysis();
@@ -419,21 +434,25 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   Widget _buildChessBoardWithOverlay(double boardSize) {
-    final isHost = activeRole == 'host' || activeRole == 'trener' || widget.userSession.role == 'trener' || widget.roomCode == 'STUDIO';
+    final isHost = activeRole == 'host' ||
+        activeRole == 'trener' ||
+        widget.userSession.role == 'trener' ||
+        widget.roomCode == 'STUDIO';
     final isAllowedToMove = canDriveSharedBoard;
     final isAllowedToUseEngine = isHost || allowStudentEngine;
 
-    final List<EngineArrow> engineArrows = (isEngineEnabled && isAllowedToUseEngine)
-        ? engineLines.values
-            .map((line) => EngineArrow(
-                  from: line.fromSquare,
-                  to: line.toSquare,
-                  evalText: line.evaluation,
-                  rank: line.multipv,
-                ))
-            .where((a) => a.from.isNotEmpty && a.to.isNotEmpty)
-            .toList()
-        : [];
+    final List<EngineArrow> engineArrows =
+        (isEngineEnabled && isAllowedToUseEngine)
+            ? engineLines.values
+                .map((line) => EngineArrow(
+                      from: line.fromSquare,
+                      to: line.toSquare,
+                      evalText: line.evaluation,
+                      rank: line.multipv,
+                    ))
+                .where((a) => a.from.isNotEmpty && a.to.isNotEmpty)
+                .toList()
+            : [];
 
     return ChessBoardWithOverlay(
       controller: controller,
@@ -459,11 +478,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 colorCode: selectedArrowColorCode,
               ));
               _recordEvent('arrow_drawn', {
-                'arrows': moveTree.current.arrows.map((a) => {
-                  'from': a.from,
-                  'to': a.to,
-                  'colorCode': a.colorCode
-                }).toList()
+                'arrows': moveTree.current.arrows
+                    .map((a) =>
+                        {'from': a.from, 'to': a.to, 'colorCode': a.colorCode})
+                    .toList()
               });
               socket.emit('pgn_loaded', {
                 'roomId': widget.roomCode,
@@ -529,12 +547,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
     // Configure socket.io client connection to server.
     // The auth token is what the server trusts for identity and host privileges —
     // the role sent in joinGame below is only an optimistic local default.
-    socket = io.io(backendUrl, io.OptionBuilder()
-      .setTransports(['websocket'])
-      .enableForceNewConnection()
-      .disableAutoConnect()
-      .setAuth({'token': widget.userSession.token})
-      .build());
+    socket = io.io(
+        backendUrl,
+        io.OptionBuilder()
+            .setTransports(['websocket'])
+            .enableForceNewConnection()
+            .disableAutoConnect()
+            .setAuth({'token': widget.userSession.token})
+            .build());
 
     socket.connect();
 
@@ -599,7 +619,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Dozvole table promenjene: ${_getPermissionLabel(boardControl)}'),
+            content: Text(
+                'Dozvole table promenjene: ${_getPermissionLabel(boardControl)}'),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -632,7 +653,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Trener je okrenuo vašu tablu na: ${data['orientation'] == 'white' ? 'Beli' : 'Crni'}'),
+            content: Text(
+                'Trener je okrenuo vašu tablu na: ${data['orientation'] == 'white' ? 'Beli' : 'Crni'}'),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -708,7 +730,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.on('pgn_loaded', (data) {
       if (data != null && data['pgn'] != null) {
         final path = getPathToNode(moveTree.current);
-        final parsed = MoveTree.parsePgn(data['pgn'], startingFen: moveTree.root.fen);
+        final parsed =
+            MoveTree.parsePgn(data['pgn'], startingFen: moveTree.root.fen);
         if (parsed != null) {
           final matchingNode = findNodeByPath(parsed.root, path);
           parsed.current = matchingNode ?? parsed.root;
@@ -769,7 +792,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
           if (status == 'started') {
             isRecording = true;
             isRecordingPaused = false;
-            recordingStartTimeMs = startTimeMs ?? DateTime.now().millisecondsSinceEpoch;
+            recordingStartTimeMs =
+                startTimeMs ?? DateTime.now().millisecondsSinceEpoch;
           } else if (status == 'paused') {
             isRecordingPaused = true;
           } else if (status == 'resumed') {
@@ -790,7 +814,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         ? '$updatedBy je nastavio snimanje.'
                         : '$updatedBy je zaustavio snimanje.'))),
             duration: const Duration(seconds: 2),
-            backgroundColor: status == 'started' ? Colors.redAccent : Colors.amber,
+            backgroundColor:
+                status == 'started' ? Colors.redAccent : Colors.amber,
           ),
         );
       }
@@ -814,7 +839,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   Text('Predložena pozicija'),
                 ],
               ),
-              content: Text('Učenik $studentName predlaže poziciju: "$title". Da li želite da je učitate na tablu?'),
+              content: Text(
+                  'Učenik $studentName predlaže poziciju: "$title". Da li želite da je učitate na tablu?'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
@@ -833,7 +859,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Učenik $studentName je podelio poziciju: "$title"'),
+              content:
+                  Text('Učenik $studentName je podelio poziciju: "$title"'),
               backgroundColor: Colors.blueAccent,
             ),
           );
@@ -869,7 +896,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Trener vas je utišao. Možete podići ruku ako želite reč.'),
+              content: Text(
+                  'Trener vas je utišao. Možete podići ruku ako želite reč.'),
               backgroundColor: Colors.orange,
               duration: Duration(seconds: 4),
             ),
@@ -929,7 +957,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   Future<void> _startRecording() async {
     try {
-      _currentAudioPath = '${Directory.systemTemp.path}/session_audio_${DateTime.now().millisecondsSinceEpoch}.aac';
+      _currentAudioPath =
+          '${Directory.systemTemp.path}/session_audio_${DateTime.now().millisecondsSinceEpoch}.aac';
       await _agoraService.startAudioRecording(_currentAudioPath!);
     } catch (e) {
       print('Error starting Agora audio recording: $e');
@@ -941,7 +970,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
       initialEventType: 'init',
       initialData: {
         'fen': moveTree.current.fen,
-        'orientation': boardOrientation == PlayerColor.white ? 'white' : 'black',
+        'orientation':
+            boardOrientation == PlayerColor.white ? 'white' : 'black',
         'boardControl': boardControl,
       },
     );
@@ -961,7 +991,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Snimanje časa i zvuka (glasa) je započeto! Svi potezi i govor se beleže.'),
+        content: Text(
+            'Snimanje časa i zvuka (glasa) je započeto! Svi potezi i govor se beleže.'),
         backgroundColor: Colors.redAccent,
         duration: Duration(seconds: 3),
       ),
@@ -1001,7 +1032,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Snimanje je nastavljeno! Svi sledstveni potezi se beleže u kombinovani snimak.'),
+        content: Text(
+            'Snimanje je nastavljeno! Svi sledstveni potezi se beleže u kombinovani snimak.'),
         backgroundColor: Colors.green,
         duration: Duration(seconds: 2),
       ),
@@ -1015,7 +1047,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
     });
     print('[RECORDING_LOG] 1. Stopping Agora audio recording...');
     try {
-      await _agoraService.stopAudioRecording().timeout(const Duration(seconds: 3));
+      await _agoraService
+          .stopAudioRecording()
+          .timeout(const Duration(seconds: 3));
       print('[RECORDING_LOG] 2. Agora audio recording stopped successfully.');
     } catch (e) {
       print('[RECORDING_LOG] 2. Agora audio recording stop error/timeout: $e');
@@ -1023,7 +1057,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     if (!mounted) return;
 
-    final titleController = TextEditingController(text: 'Čas ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}');
+    final titleController = TextEditingController(
+        text:
+            'Čas ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}');
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -1055,7 +1091,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
             child: const Text('Prekini bez čuvanja'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal, foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Sačuvaj snimak'),
           ),
@@ -1102,19 +1139,23 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Snimak časa je sačuvan na vašem uređaju! Sinhronizacija sa serverom se vrši u pozadini.'),
+          content: Text(
+              'Snimak časa je sačuvan na vašem uređaju! Sinhronizacija sa serverom se vrši u pozadini.'),
           backgroundColor: Colors.teal,
           duration: Duration(seconds: 4),
         ),
       );
 
       // Trigger background sync to server
-      unawaited(LocalRecordingService.syncPendingRecordings(widget.userSession.token));
+      unawaited(LocalRecordingService.syncPendingRecordings(
+          widget.userSession.token));
     } catch (e) {
       print('[RECORDING_LOG_ERROR] Exception in instant local save: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Greška pri čuvanju lokalnog snimka: $e'), backgroundColor: Colors.redAccent),
+        SnackBar(
+            content: Text('Greška pri čuvanju lokalnog snimka: $e'),
+            backgroundColor: Colors.redAccent),
       );
     } finally {
       setState(() {
@@ -1210,7 +1251,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
       queryParams['matchMode'] = matchMode ?? _filterMatchMode;
 
-      final uri = Uri.parse('$backendUrl/lessons').replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+      final uri = Uri.parse('$backendUrl/lessons')
+          .replace(queryParameters: queryParams.isEmpty ? null : queryParams);
       final response = await http.get(
         uri,
         headers: {
@@ -1243,9 +1285,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
         title: const Text('Obriši lekciju?'),
         content: Text('"${lesson['title']}" će biti trajno obrisana.'),
         actions: [
-          TextButton(child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx, false)),
           TextButton(
-            child: const Text('Obriši', style: TextStyle(color: Colors.redAccent)),
+              child: const Text('Otkaži'),
+              onPressed: () => Navigator.pop(ctx, false)),
+          TextButton(
+            child:
+                const Text('Obriši', style: TextStyle(color: Colors.redAccent)),
             onPressed: () => Navigator.pop(ctx, true),
           ),
         ],
@@ -1274,7 +1319,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
   // untouched — reposition it via Board Setup and save a new one for that.
   Future<void> _editSinglePosition(Map<String, dynamic> lesson) async {
     final titleController = TextEditingController(text: lesson['title'] ?? '');
-    final descController = TextEditingController(text: lesson['description'] ?? '');
+    final descController =
+        TextEditingController(text: lesson['description'] ?? '');
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1296,8 +1342,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
           ],
         ),
         actions: [
-          TextButton(child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx, false)),
-          ElevatedButton(child: const Text('Sačuvaj'), onPressed: () => Navigator.pop(ctx, true)),
+          TextButton(
+              child: const Text('Otkaži'),
+              onPressed: () => Navigator.pop(ctx, false)),
+          ElevatedButton(
+              child: const Text('Sačuvaj'),
+              onPressed: () => Navigator.pop(ctx, true)),
         ],
       ),
     );
@@ -1337,7 +1387,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   // REST API: Save current board FEN with description and tags
-  Future<void> saveCurrentPosition(String title, String description, List<String> tags) async {
+  Future<void> saveCurrentPosition(
+      String title, String description, List<String> tags) async {
     try {
       final response = await http.post(
         Uri.parse('$backendUrl/lessons/save'),
@@ -1430,7 +1481,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
     setState(() => _activeCourseIndex = newIndex);
     final step = items[newIndex];
     loadLessonPosition(step['fen'], step['pgn']);
-    _showSuccess('Korak ${newIndex + 1}/${items.length}: "${step['title'] ?? _activeCourseTitle ?? ''}"');
+    _showSuccess(
+        'Korak ${newIndex + 1}/${items.length}: "${step['title'] ?? _activeCourseTitle ?? ''}"');
   }
 
   Widget _buildCourseStepBar() {
@@ -1468,13 +1520,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   // Branching/variation promotion helper
-  void _promptBranchingDialog(String from, String to, String san, String newFen) {
+  void _promptBranchingDialog(
+      String from, String to, String san, String newFen) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Odigran je novi potez'),
-          content: const Text('Ovaj potez stvara novu granu (varijaciju). Kako želite da ga dodate?'),
+          content: const Text(
+              'Ovaj potez stvara novu granu (varijaciju). Kako želite da ga dodate?'),
           actions: [
             TextButton(
               onPressed: () {
@@ -1658,7 +1712,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       });
 
       controller.loadFen(moveTree.root.fen);
-      
+
       socket.emit('move', {
         'roomId': widget.roomCode,
         'move': null,
@@ -1732,7 +1786,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
       context: context,
       builder: (ctx) => CreateCourseDialog(
         userSession: widget.userSession,
-        lessons: lessons,
         onCourseCreated: () => fetchLessons(),
         existingLesson: existingLesson,
       ),
@@ -1786,21 +1839,28 @@ class _ChessGamePageState extends State<ChessGamePage> {
             children: const [
               Icon(Icons.person_add, color: Colors.tealAccent),
               SizedBox(width: 8),
-              Text('Pozovi prijatelje u sesiju', style: TextStyle(fontSize: 16)),
+              Text('Pozovi prijatelje u sesiju',
+                  style: TextStyle(fontSize: 16)),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Soba: ${widget.roomCode}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.tealAccent)),
+              Text('Soba: ${widget.roomCode}',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.tealAccent)),
               const SizedBox(height: 8),
-              const Text('Izaberite prijatelje koje želite da pozovete:', style: TextStyle(fontSize: 12)),
+              const Text('Izaberite prijatelje koje želite da pozovete:',
+                  style: TextStyle(fontSize: 12)),
               const SizedBox(height: 12),
               if (friendsList.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12.0),
-                  child: Text('Nemate sačuvanih prijatelja.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  child: Text('Nemate sačuvanih prijatelja.',
+                      style: TextStyle(fontSize: 11, color: Colors.grey)),
                 )
               else
                 Container(
@@ -1812,8 +1872,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         final isSel = selectedFriendIds.contains(fId);
                         return CheckboxListTile(
                           dense: true,
-                          title: Text(f['name'] ?? 'Prijatelj', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          subtitle: Text(f['email'] ?? '', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                          title: Text(f['name'] ?? 'Prijatelj',
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold)),
+                          subtitle: Text(f['email'] ?? '',
+                              style: const TextStyle(
+                                  fontSize: 10, color: Colors.grey)),
                           value: isSel,
                           onChanged: (val) {
                             setModalState(() {
@@ -1839,7 +1903,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
             ElevatedButton.icon(
               icon: const Icon(Icons.send, size: 14),
               label: Text('Pošalji pozivnice (${selectedFriendIds.length})'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal, foregroundColor: Colors.white),
               onPressed: () async {
                 Navigator.pop(ctx);
                 if (selectedFriendIds.isEmpty) return;
@@ -1850,7 +1915,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       'Content-Type': 'application/json',
                       'Authorization': 'Bearer ${widget.userSession.token}'
                     },
-                    body: jsonEncode({'friendIds': selectedFriendIds, 'roomCode': widget.roomCode}),
+                    body: jsonEncode({
+                      'friendIds': selectedFriendIds,
+                      'roomCode': widget.roomCode
+                    }),
                   );
                   _showSuccess('Pozivnice uspešno poslate prijateljima!');
                 } catch (e) {
@@ -1896,7 +1964,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
   Widget build(BuildContext context) {
     final isStudio = widget.roomCode == 'STUDIO';
     final isHost = activeRole == 'host' || activeRole == 'trener' || isStudio;
-    final isAllowedToMove = isHost || isStudio || (boardControl != 'host_only' && boardControl != 'trainer_only');
+    final isAllowedToMove = isHost ||
+        isStudio ||
+        (boardControl != 'host_only' && boardControl != 'trainer_only');
     final media = MediaQuery.of(context);
     final isWide = Breakpoints.isWide(context);
     // A phone in landscape is rarely "wide" by dp width, but stacking
@@ -1987,14 +2057,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       decoration: const InputDecoration(
                         hintText: 'Nalepi FEN string...',
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       ),
                       style: const TextStyle(fontSize: 12),
                     ),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.input, color: Colors.deepPurpleAccent),
+                    icon:
+                        const Icon(Icons.input, color: Colors.deepPurpleAccent),
                     onPressed: () {
                       final fen = fenPasteController.text.trim();
                       if (fen.isNotEmpty) {
@@ -2017,14 +2089,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       decoration: const InputDecoration(
                         hintText: 'Nalepi PGN partiju...',
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       ),
                       style: const TextStyle(fontSize: 12),
                     ),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.playlist_add, color: Colors.deepPurpleAccent),
+                    icon: const Icon(Icons.playlist_add,
+                        color: Colors.deepPurpleAccent),
                     onPressed: () {
                       final pgnStr = pgnPasteController.text.trim();
                       if (pgnStr.isNotEmpty) {
@@ -2035,7 +2109,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             commentController.text = moveTree.current.comment;
                             pgnPasteController.clear();
                           });
-                          
+
                           controller.loadFen(parsed.root.fen);
                           socket.emit('move', {
                             'roomId': widget.roomCode,
@@ -2044,7 +2118,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             'role': widget.userSession.role,
                             'movePath': <String>[],
                           });
-                          
+
                           socket.emit('pgn_loaded', {
                             'roomId': widget.roomCode,
                             'pgn': pgnStr,
@@ -2066,7 +2140,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
               const Divider(height: 24),
               const Text(
                 'Pretraga lekcija',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
               ),
               const SizedBox(height: 6),
               TextField(
@@ -2082,7 +2157,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     },
                   ),
                   border: const OutlineInputBorder(),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 ),
                 style: const TextStyle(fontSize: 12),
                 onSubmitted: (val) {
@@ -2091,7 +2167,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
               ),
               const SizedBox(height: 8),
               _buildMatrixFilterPanel(),
-              if (widget.userSession.role == 'ucenik' && widget.roomCode != 'STUDIO') ...[
+              if (widget.userSession.role == 'ucenik' &&
+                  widget.roomCode != 'STUDIO') ...[
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -2114,7 +2191,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 children: [
                   const Text(
                     'Kategorija: ',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        color: Colors.grey),
                   ),
                   ChoiceChip(
                     label: const Text('Sve', style: TextStyle(fontSize: 10)),
@@ -2131,17 +2211,23 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     },
                   ),
                   ChoiceChip(
-                    label: const Text('Od trenera', style: TextStyle(fontSize: 10)),
+                    label: const Text('Od trenera',
+                        style: TextStyle(fontSize: 10)),
                     selected: _lessonCategoryFilter == 'trainer',
                     onSelected: (val) {
-                      if (val) setState(() => _lessonCategoryFilter = 'trainer');
+                      if (val) {
+                        setState(() => _lessonCategoryFilter = 'trainer');
+                      }
                     },
                   ),
                 ],
               ),
               const SizedBox(height: 8),
               isLoadingLessons
-                  ? const Center(child: Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator()))
+                  ? const Center(
+                      child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator()))
                   : () {
                       final displayedLessons = lessons.where((l) {
                         if (_lessonCategoryFilter == 'mine') {
@@ -2170,22 +2256,28 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         itemCount: displayedLessons.length,
                         itemBuilder: (context, index) {
                           final lesson = displayedLessons[index];
-                          final isTrainerLesson = lesson['is_trainer_lesson'] == true;
+                          final isTrainerLesson =
+                              lesson['is_trainer_lesson'] == true;
                           final positionList = lesson['position_list'];
-                          final isCourse = positionList != null && (positionList is List) && positionList.isNotEmpty;
+                          final isCourse = positionList != null &&
+                              (positionList is List) &&
+                              positionList.isNotEmpty;
 
                           return Card(
                             margin: const EdgeInsets.symmetric(vertical: 4),
                             child: ListTile(
                               leading: BoardThumbnail(
                                 fen: isCourse
-                                    ? ((positionList.first['fen'] as String?) ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
-                                    : ((lesson['fen'] as String?) ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'),
+                                    ? ((positionList.first['fen'] as String?) ??
+                                        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
+                                    : ((lesson['fen'] as String?) ??
+                                        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'),
                                 size: 40,
                               ),
                               title: Text(
                                 lesson['title'],
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 13),
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2193,18 +2285,28 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   if (isTrainerLesson)
                                     const Text(
                                       'Sačuvana lekcija od trenera',
-                                      style: TextStyle(fontSize: 10, color: Colors.amberAccent, fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.amberAccent,
+                                          fontWeight: FontWeight.bold),
                                     ),
                                   if (isCourse)
                                     Text(
                                       'Kurs od ${positionList.length} pozicija',
-                                      style: const TextStyle(fontSize: 10, color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.deepPurpleAccent,
+                                          fontWeight: FontWeight.bold),
                                     ),
-                                  if (lesson['description'] != null && lesson['description'].toString().isNotEmpty) ...[
+                                  if (lesson['description'] != null &&
+                                      lesson['description']
+                                          .toString()
+                                          .isNotEmpty) ...[
                                     const SizedBox(height: 2),
                                     Text(
                                       lesson['description'],
-                                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                      style: const TextStyle(
+                                          fontSize: 11, color: Colors.grey),
                                     ),
                                   ],
                                 ],
@@ -2215,16 +2317,26 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         IconButton(
-                                          icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.grey),
+                                          icon: const Icon(Icons.edit_outlined,
+                                              size: 18, color: Colors.grey),
                                           tooltip: 'Izmeni',
                                           onPressed: () => isCourse
-                                              ? _showCreateCourseDialog(existingLesson: Map<String, dynamic>.from(lesson))
-                                              : _editSinglePosition(Map<String, dynamic>.from(lesson)),
+                                              ? _showCreateCourseDialog(
+                                                  existingLesson:
+                                                      Map<String, dynamic>.from(
+                                                          lesson))
+                                              : _editSinglePosition(
+                                                  Map<String, dynamic>.from(
+                                                      lesson)),
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                                          icon: const Icon(Icons.delete_outline,
+                                              size: 18,
+                                              color: Colors.redAccent),
                                           tooltip: 'Obriši',
-                                          onPressed: () => _confirmDeleteLesson(Map<String, dynamic>.from(lesson)),
+                                          onPressed: () => _confirmDeleteLesson(
+                                              Map<String, dynamic>.from(
+                                                  lesson)),
                                         ),
                                       ],
                                     ),
@@ -2236,11 +2348,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     _activeCourseTitle = lesson['title'];
                                   });
                                   final firstPos = positionList[0];
-                                  loadLessonPosition(firstPos['fen'], firstPos['pgn']);
-                                  _showSuccess('Učitan korak 1/${positionList.length} iz kursa: "${firstPos['title'] ?? lesson['title']}"');
+                                  loadLessonPosition(
+                                      firstPos['fen'], firstPos['pgn']);
+                                  _showSuccess(
+                                      'Učitan korak 1/${positionList.length} iz kursa: "${firstPos['title'] ?? lesson['title']}"');
                                 } else {
                                   setState(() => _activeCourseItems = null);
-                                  loadLessonPosition(lesson['fen'], lesson['pgn']);
+                                  loadLessonPosition(
+                                      lesson['fen'], lesson['pgn']);
                                 }
                               },
                             ),
@@ -2255,7 +2370,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
 
     Widget buildRightSidebar() {
-      final isHost = activeRole == 'host' || activeRole == 'trener' || widget.userSession.role == 'trener' || widget.roomCode == 'STUDIO';
+      final isHost = activeRole == 'host' ||
+          activeRole == 'trener' ||
+          widget.userSession.role == 'trener' ||
+          widget.roomCode == 'STUDIO';
       final isStudio = widget.roomCode == 'STUDIO';
 
       // Material, not a coloured Container: the sidebar hosts a SwitchListTile,
@@ -2272,314 +2390,361 @@ class _ChessGamePageState extends State<ChessGamePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                isStudio ? 'Studio Kontrole' : (isHost ? 'Host Kontrole & Istorija' : 'Kontrola i Istorija'),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-
-              if (isStudio) ...[
-                const Divider(height: 12),
-                const Text(
-                  'Crtanje strelica',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              children: [
+                Text(
+                  isStudio
+                      ? 'Studio Kontrole'
+                      : (isHost
+                          ? 'Host Kontrole & Istorija'
+                          : 'Kontrola i Istorija'),
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            isDrawingMode = !isDrawingMode;
-                            drawingStartSquare = null;
-                          });
-                        },
-                        icon: Icon(isDrawingMode ? Icons.check : Icons.brush),
-                        label: Text(isDrawingMode ? 'Završi crtanje' : 'Nacrtaj strelicu'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isDrawingMode ? Colors.amber : Colors.teal,
-                          foregroundColor: Colors.white,
+                const SizedBox(height: 16),
+                if (isStudio) ...[
+                  const Divider(height: 12),
+                  const Text(
+                    'Crtanje strelica',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              isDrawingMode = !isDrawingMode;
+                              drawingStartSquare = null;
+                            });
+                          },
+                          icon: Icon(isDrawingMode ? Icons.check : Icons.brush),
+                          label: Text(isDrawingMode
+                              ? 'Završi crtanje'
+                              : 'Nacrtaj strelicu'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                isDrawingMode ? Colors.amber : Colors.teal,
+                            foregroundColor: Colors.white,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                if (isDrawingMode) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildColorButton('G', Colors.green, 'Zelena'),
-                      _buildColorButton('R', Colors.red, 'Crvena'),
-                      _buildColorButton('B', Colors.blue, 'Plava'),
-                      _buildColorButton('O', Colors.orange, 'Narandžasta'),
                     ],
                   ),
-                ],
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            moveTree.current.arrows.clear();
-                            drawingStartSquare = null;
-                          });
-                          _recordEvent('arrow_drawn', {'arrows': <Map<String, dynamic>>[]});
-                        },
-                        icon: const Icon(Icons.layers_clear, size: 16),
-                        label: const Text('Izbriši strelice', style: TextStyle(fontSize: 12)),
-                      ),
+                  if (isDrawingMode) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildColorButton('G', Colors.green, 'Zelena'),
+                        _buildColorButton('R', Colors.red, 'Crvena'),
+                        _buildColorButton('B', Colors.blue, 'Plava'),
+                        _buildColorButton('O', Colors.orange, 'Narandžasta'),
+                      ],
                     ),
                   ],
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  color: Colors.indigo.withValues(alpha: 0.15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  child: const Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: Row(
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              moveTree.current.arrows.clear();
+                              drawingStartSquare = null;
+                            });
+                            _recordEvent('arrow_drawn',
+                                {'arrows': <Map<String, dynamic>>[]});
+                          },
+                          icon: const Icon(Icons.layers_clear, size: 16),
+                          label: const Text('Izbriši strelice',
+                              style: TextStyle(fontSize: 12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    color: Colors.indigo.withValues(alpha: 0.15),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    child: const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: Row(
+                        children: [
+                          Icon(Icons.architecture,
+                              color: Colors.indigoAccent, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Studio Režim (Samostalan rad - Učionica isključena)',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.indigoAccent,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ] else if (isTrener) ...[
+                  DropdownButtonFormField<String>(
+                    initialValue: boardControl,
+                    decoration: const InputDecoration(
+                      labelText: 'Dozvole za Učenika',
+                      border: OutlineInputBorder(),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'trainer_only',
+                          child: Text('Samo ja (Trener)')),
+                      DropdownMenuItem(
+                          value: 'student_white',
+                          child: Text('Učenik igra kao Beli')),
+                      DropdownMenuItem(
+                          value: 'student_black',
+                          child: Text('Učenik igra kao Crni')),
+                      DropdownMenuItem(
+                          value: 'student_both',
+                          child: Text('Slobodna analiza')),
+                    ],
+                    onChanged: _changeStudentPermissions,
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    title: const Text('Dozvoli učeniku Stockfish',
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w500)),
+                    value: allowStudentEngine,
+                    activeThumbColor: Colors.tealAccent,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (val) {
+                      setState(() {
+                        allowStudentEngine = val;
+                      });
+                      socket.emit('change_engine_permission', {
+                        'roomId': widget.roomCode,
+                        'allowStudentEngine': val,
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Prisili tablu učeniku na:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _forceStudentOrientation('white'),
+                          child: const Text('Beli'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _forceStudentOrientation('black'),
+                          child: const Text('Crni'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 12),
+                  const Text(
+                    'Crtanje strelica (Trener)',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              isDrawingMode = !isDrawingMode;
+                              drawingStartSquare = null;
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isDrawingMode
+                                ? Colors.teal
+                                : Colors.deepPurple.withValues(alpha: 0.3),
+                          ),
+                          icon:
+                              Icon(isDrawingMode ? Icons.check : Icons.gesture),
+                          label: Text(isDrawingMode
+                              ? 'Završi crtanje'
+                              : 'Crtaj strelice'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (isDrawingMode) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        Icon(Icons.architecture, color: Colors.indigoAccent, size: 20),
-                        SizedBox(width: 8),
+                        _buildColorButton('G', Colors.green, 'Zelena'),
+                        _buildColorButton('R', Colors.red, 'Crvena'),
+                        _buildColorButton('B', Colors.blue, 'Plava'),
+                        _buildColorButton('O', Colors.orange, 'Narandžasta'),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              moveTree.current.arrows.clear();
+                              drawingStartSquare = null;
+                            });
+                            _recordEvent('arrow_drawn',
+                                {'arrows': <Map<String, dynamic>>[]});
+                            socket.emit('pgn_loaded', {
+                              'roomId': widget.roomCode,
+                              'pgn': moveTree.exportToPgn(),
+                            });
+                          },
+                          icon: const Icon(Icons.layers_clear, size: 16),
+                          label: const Text('Izbriši strelice',
+                              style: TextStyle(fontSize: 12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Text(
+                    'Status dozvole: ${_getPermissionLabel(boardControl)}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  const SizedBox(height: 12),
+                  if (!isAllowedToMove)
+                    const Row(
+                      children: [
+                        Icon(Icons.lock, color: Colors.orange, size: 16),
+                        SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            'Studio Režim (Samostalan rad - Učionica isključena)',
-                            style: TextStyle(fontSize: 11, color: Colors.indigoAccent, fontWeight: FontWeight.bold),
+                            'Tabla je zaključana od strane trenera.',
+                            style:
+                                TextStyle(color: Colors.orange, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Row(
+                      children: [
+                        const Icon(Icons.lock_open,
+                            color: Colors.green, size: 16),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            boardControl == 'student_white'
+                                ? 'Možete vući samo bele figure.'
+                                : boardControl == 'student_black'
+                                    ? 'Možete vući samo crne figure.'
+                                    : 'Slobodna analiza omogućena.',
+                            style: const TextStyle(
+                                color: Colors.green, fontSize: 13),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-              ] else if (isTrener) ...[
-                DropdownButtonFormField<String>(
-                  initialValue: boardControl,
-                  decoration: const InputDecoration(
-                    labelText: 'Dozvole za Učenika',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'trainer_only', child: Text('Samo ja (Trener)')),
-                    DropdownMenuItem(value: 'student_white', child: Text('Učenik igra kao Beli')),
-                    DropdownMenuItem(value: 'student_black', child: Text('Učenik igra kao Crni')),
-                    DropdownMenuItem(value: 'student_both', child: Text('Slobodna analiza')),
-                  ],
-                  onChanged: _changeStudentPermissions,
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  title: const Text('Dozvoli učeniku Stockfish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                  value: allowStudentEngine,
-                  activeThumbColor: Colors.tealAccent,
-                  contentPadding: EdgeInsets.zero,
-                  onChanged: (val) {
-                    setState(() {
-                      allowStudentEngine = val;
-                    });
-                    socket.emit('change_engine_permission', {
-                      'roomId': widget.roomCode,
-                      'allowStudentEngine': val,
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Prisili tablu učeniku na:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _forceStudentOrientation('white'),
-                        child: const Text('Beli'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _forceStudentOrientation('black'),
-                        child: const Text('Crni'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Divider(height: 12),
-                const Text(
-                  'Crtanje strelica (Trener)',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            isDrawingMode = !isDrawingMode;
-                            drawingStartSquare = null;
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isDrawingMode ? Colors.teal : Colors.deepPurple.withValues(alpha: 0.3),
-                        ),
-                        icon: Icon(isDrawingMode ? Icons.check : Icons.gesture),
-                        label: Text(isDrawingMode ? 'Završi crtanje' : 'Crtaj strelice'),
-                      ),
-                    ),
-                  ],
-                ),
-                if (isDrawingMode) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildColorButton('G', Colors.green, 'Zelena'),
-                      _buildColorButton('R', Colors.red, 'Crvena'),
-                      _buildColorButton('B', Colors.blue, 'Plava'),
-                      _buildColorButton('O', Colors.orange, 'Narandžasta'),
-                    ],
-                  ),
                 ],
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            moveTree.current.arrows.clear();
-                            drawingStartSquare = null;
-                          });
-                          _recordEvent('arrow_drawn', {'arrows': <Map<String, dynamic>>[]});
-                          socket.emit('pgn_loaded', {
-                            'roomId': widget.roomCode,
-                            'pgn': moveTree.exportToPgn(),
-                          });
-                        },
-                        icon: const Icon(Icons.layers_clear, size: 16),
-                        label: const Text('Izbriši strelice', style: TextStyle(fontSize: 12)),
-                      ),
-                    ),
-                  ],
-                ),
-              ] else ...[
-                Text(
-                  'Status dozvole: ${_getPermissionLabel(boardControl)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-                const SizedBox(height: 12),
-                if (!isAllowedToMove)
-                  const Row(
-                    children: [
-                      Icon(Icons.lock, color: Colors.orange, size: 16),
-                      SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'Tabla je zaključana od strane trenera.',
-                          style: TextStyle(color: Colors.orange, fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  Row(
-                    children: [
-                      const Icon(Icons.lock_open, color: Colors.green, size: 16),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          boardControl == 'student_white'
-                              ? 'Možete vući samo bele figure.'
-                              : boardControl == 'student_black'
-                                  ? 'Možete vući samo crne figure.'
-                                  : 'Slobodna analiza omogućena.',
-                          style: const TextStyle(color: Colors.green, fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-
-              if (!isStudio) ...[
-                const SizedBox(height: 12),
-                Card(
-                  color: Colors.amber.withValues(alpha: 0.08),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: const [
-                            Icon(Icons.people, color: Colors.amber, size: 18),
-                            SizedBox(width: 8),
-                            Text(
-                              'Prisutni u učionici',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        if (roomMembers.isEmpty)
-                          const Text(
-                            'Učitavanje prisutnih...',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          )
-                        else
-                          ...roomMembers.map<Widget>((member) {
-                            final isMe = member['userId'] == widget.userSession.id;
-                            final isMemberTrainer = member['role'] == 'trener';
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4.0),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.fiber_manual_record, color: Colors.greenAccent, size: 8),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      '${member['name']} ${isMe ? "(Ja)" : ""} ${isMemberTrainer ? "[Trener]" : "[Učenik]"}',
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  ),
-                                  if (isHost && !isMe) ...[
-                                    PopupMenuButton<String>(
-                                      icon: const Icon(Icons.more_vert, size: 16),
-                                      tooltip: 'Promeni ulogu',
-                                      onSelected: (newRole) {
-                                        socket.emit('change_user_role', {
-                                          'roomId': widget.roomCode,
-                                          'targetUserId': member['userId'],
-                                          'newRole': newRole,
-                                        });
-                                      },
-                                      itemBuilder: (ctx) => [
-                                        if (!isMemberTrainer)
-                                          const PopupMenuItem(
-                                            value: 'host',
-                                            child: Text('Promoviši u Hosta (Co-host)', style: TextStyle(fontSize: 12)),
-                                          )
-                                        else
-                                          const PopupMenuItem(
-                                            value: 'korisnik',
-                                            child: Text('Vrati u Korisnika', style: TextStyle(fontSize: 12)),
-                                          ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
+                if (!isStudio) ...[
+                  const SizedBox(height: 12),
+                  Card(
+                    color: Colors.amber.withValues(alpha: 0.08),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.people, color: Colors.amber, size: 18),
+                              SizedBox(width: 8),
+                              Text(
+                                'Prisutni u učionici',
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
-                            );
-                          }),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          if (roomMembers.isEmpty)
+                            const Text(
+                              'Učitavanje prisutnih...',
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.grey),
+                            )
+                          else
+                            ...roomMembers.map<Widget>((member) {
+                              final isMe =
+                                  member['userId'] == widget.userSession.id;
+                              final isMemberTrainer =
+                                  member['role'] == 'trener';
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4.0),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.fiber_manual_record,
+                                        color: Colors.greenAccent, size: 8),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '${member['name']} ${isMe ? "(Ja)" : ""} ${isMemberTrainer ? "[Trener]" : "[Učenik]"}',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                    if (isHost && !isMe) ...[
+                                      PopupMenuButton<String>(
+                                        icon: const Icon(Icons.more_vert,
+                                            size: 16),
+                                        tooltip: 'Promeni ulogu',
+                                        onSelected: (newRole) {
+                                          socket.emit('change_user_role', {
+                                            'roomId': widget.roomCode,
+                                            'targetUserId': member['userId'],
+                                            'newRole': newRole,
+                                          });
+                                        },
+                                        itemBuilder: (ctx) => [
+                                          if (!isMemberTrainer)
+                                            const PopupMenuItem(
+                                              value: 'host',
+                                              child: Text(
+                                                  'Promoviši u Hosta (Co-host)',
+                                                  style:
+                                                      TextStyle(fontSize: 12)),
+                                            )
+                                          else
+                                            const PopupMenuItem(
+                                              value: 'korisnik',
+                                              child: Text('Vrati u Korisnika',
+                                                  style:
+                                                      TextStyle(fontSize: 12)),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            }),
                           if (isTrener && !isStudio) ...[
                             const SizedBox(height: 8),
                             SizedBox(
@@ -2587,181 +2752,230 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               child: OutlinedButton.icon(
                                 onPressed: _showInSessionInviteFriendsDialog,
                                 icon: const Icon(Icons.person_add, size: 14),
-                                label: const Text('Pozovi prijatelje u sesiju', style: TextStyle(fontSize: 11)),
+                                label: const Text('Pozovi prijatelje u sesiju',
+                                    style: TextStyle(fontSize: 11)),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.tealAccent,
-                                  side: const BorderSide(color: Colors.tealAccent),
+                                  side: const BorderSide(
+                                      color: Colors.tealAccent),
                                 ),
                               ),
                             ),
                           ],
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  color: Colors.blueGrey.withValues(alpha: 0.15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
+                  const SizedBox(height: 12),
+                  Card(
+                    color: Colors.blueGrey.withValues(alpha: 0.15),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(Icons.mic, color: Colors.blueAccent),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Audio Učionica',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                              if (isAudioConnecting)
+                                const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.blueAccent),
+                                )
+                              else if (audioError != null)
+                                const Icon(Icons.warning,
+                                    color: Colors.redAccent, size: 16)
+                              else
+                                const Icon(Icons.check_circle,
+                                    color: Colors.green, size: 16),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          if (audioError != null) ...[
+                            Text(
+                              audioError!,
+                              style: const TextStyle(
+                                  color: Colors.redAccent, fontSize: 11),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                          if (!isAudioConnecting && audioError == null) ...[
                             Row(
-                              children: const [
-                                Icon(Icons.mic, color: Colors.blueAccent),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Audio Učionica',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _toggleLocalMute,
+                                    icon: Icon(isAudioMuted
+                                        ? Icons.mic_off
+                                        : Icons.mic),
+                                    label: Text(isAudioMuted
+                                        ? 'Uključi mikrofon'
+                                        : 'Utišaj me'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isAudioMuted
+                                          ? Colors.redAccent
+                                              .withValues(alpha: 0.2)
+                                          : Colors.green.withValues(alpha: 0.2),
+                                      foregroundColor: isAudioMuted
+                                          ? Colors.redAccent
+                                          : Colors.greenAccent,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 8),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                            if (isAudioConnecting)
-                              const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blueAccent),
-                              )
-                            else if (audioError != null)
-                              const Icon(Icons.warning, color: Colors.redAccent, size: 16)
-                            else
-                              const Icon(Icons.check_circle, color: Colors.green, size: 16),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        if (audioError != null) ...[
-                          Text(
-                            audioError!,
-                            style: const TextStyle(color: Colors.redAccent, fontSize: 11),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                        if (!isAudioConnecting && audioError == null) ...[
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: _toggleLocalMute,
-                                  icon: Icon(isAudioMuted ? Icons.mic_off : Icons.mic),
-                                  label: Text(isAudioMuted ? 'Uključi mikrofon' : 'Utišaj me'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: isAudioMuted ? Colors.redAccent.withValues(alpha: 0.2) : Colors.green.withValues(alpha: 0.2),
-                                    foregroundColor: isAudioMuted ? Colors.redAccent : Colors.greenAccent,
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
-                                  ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Učesnici u audio razgovoru:',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 6),
+                            ...audioUsers.map<Widget>((user) {
+                              final isUserMuted = user['isMuted'] ?? false;
+                              final isUserTalking =
+                                  activeSpeakers.contains(user['userId']);
+                              final isUserTrainer = user['role'] == 'trener';
+                              final isMe =
+                                  user['userId'] == widget.userSession.id;
+
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4.0),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      isUserMuted ? Icons.mic_off : Icons.mic,
+                                      size: 16,
+                                      color: isUserTalking
+                                          ? Colors.greenAccent
+                                          : (isUserMuted
+                                              ? Colors.redAccent
+                                              : Colors.grey),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '${user['userName']} ${isMe ? "(Ja)" : ""} ${isUserTrainer ? "[Trener]" : ""}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: isUserTalking
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                          color: isUserTalking
+                                              ? Colors.greenAccent
+                                              : Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isTrener && !isMe)
+                                      IconButton(
+                                        icon: Icon(
+                                            isUserMuted
+                                                ? Icons.volume_off
+                                                : Icons.volume_up,
+                                            size: 16),
+                                        onPressed: () {
+                                          if (isUserMuted) {
+                                            socket.emit('audio_allow_speech', {
+                                              'roomId': widget.roomCode,
+                                              'targetUserId': user['userId'],
+                                            });
+                                          } else {
+                                            socket.emit('audio_mute_student', {
+                                              'roomId': widget.roomCode,
+                                              'targetUserId': user['userId'],
+                                            });
+                                          }
+                                        },
+                                        tooltip: isUserMuted
+                                            ? 'Oduzmi utišanje'
+                                            : 'Utišaj učenika',
+                                      ),
+                                  ],
+                                ),
+                              );
+                            }),
+                            if (audioUsers.isEmpty)
+                              const Text(
+                                'Nema povezanih korisnika.',
+                                style:
+                                    TextStyle(fontSize: 11, color: Colors.grey),
+                              ),
+                            if (widget.userSession.role == 'trener' &&
+                                audioUsers.length > 1) ...[
+                              const SizedBox(height: 12),
+                              ElevatedButton(
+                                onPressed: () {
+                                  socket.emit('audio_mute_all_students',
+                                      {'roomId': widget.roomCode});
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      Colors.red.withValues(alpha: 0.15),
+                                  foregroundColor: Colors.redAccent,
+                                ),
+                                child: const Text('Utišaj sve učenike'),
+                              ),
+                            ],
+                            if (widget.userSession.role == 'ucenik' &&
+                                isAudioMuted &&
+                                isHandRaised) ...[
+                              const SizedBox(height: 8),
+                              const Center(
+                                child: Text(
+                                  'Utišani ste. Ruka je podignuta...',
+                                  style: TextStyle(
+                                      color: Colors.orangeAccent, fontSize: 11),
+                                ),
+                              ),
+                            ] else if (widget.userSession.role == 'ucenik' &&
+                                isAudioMuted) ...[
+                              const SizedBox(height: 8),
+                              ElevatedButton.icon(
+                                onPressed: _raiseHand,
+                                icon: const Icon(Icons.pan_tool, size: 14),
+                                label: const Text('Podigni ruku za reč'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      Colors.orange.withValues(alpha: 0.2),
+                                  foregroundColor: Colors.orangeAccent,
                                 ),
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Učesnici u audio razgovoru:',
-                            style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 6),
-                          ...audioUsers.map<Widget>((user) {
-                            final isUserMuted = user['isMuted'] ?? false;
-                            final isUserTalking = activeSpeakers.contains(user['userId']);
-                            final isUserTrainer = user['role'] == 'trener';
-                            final isMe = user['userId'] == widget.userSession.id;
-
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4.0),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    isUserMuted ? Icons.mic_off : Icons.mic,
-                                    size: 16,
-                                    color: isUserTalking ? Colors.greenAccent : (isUserMuted ? Colors.redAccent : Colors.grey),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      '${user['userName']} ${isMe ? "(Ja)" : ""} ${isUserTrainer ? "[Trener]" : ""}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: isUserTalking ? FontWeight.bold : FontWeight.normal,
-                                        color: isUserTalking ? Colors.greenAccent : Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  if (isTrener && !isMe)
-                                    IconButton(
-                                      icon: Icon(isUserMuted ? Icons.volume_off : Icons.volume_up, size: 16),
-                                      onPressed: () {
-                                        if (isUserMuted) {
-                                          socket.emit('audio_allow_speech', {
-                                            'roomId': widget.roomCode,
-                                            'targetUserId': user['userId'],
-                                          });
-                                        } else {
-                                          socket.emit('audio_mute_student', {
-                                            'roomId': widget.roomCode,
-                                            'targetUserId': user['userId'],
-                                          });
-                                        }
-                                      },
-                                      tooltip: isUserMuted ? 'Oduzmi utišanje' : 'Utišaj učenika',
-                                    ),
-                                ],
-                              ),
-                            );
-                          }),
-                          if (audioUsers.isEmpty)
-                            const Text(
-                              'Nema povezanih korisnika.',
-                              style: TextStyle(fontSize: 11, color: Colors.grey),
-                            ),
-                          if (widget.userSession.role == 'trener' && audioUsers.length > 1) ...[
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: () {
-                                socket.emit('audio_mute_all_students', {'roomId': widget.roomCode});
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red.withValues(alpha: 0.15),
-                                foregroundColor: Colors.redAccent,
-                              ),
-                              child: const Text('Utišaj sve učenike'),
-                            ),
-                          ],
-                          if (widget.userSession.role == 'ucenik' && isAudioMuted && isHandRaised) ...[
-                            const SizedBox(height: 8),
-                            const Center(
-                              child: Text(
-                                'Utišani ste. Ruka je podignuta...',
-                                style: TextStyle(color: Colors.orangeAccent, fontSize: 11),
-                              ),
-                            ),
-                          ] else if (widget.userSession.role == 'ucenik' && isAudioMuted) ...[
-                            const SizedBox(height: 8),
-                            ElevatedButton.icon(
-                              onPressed: _raiseHand,
-                              icon: const Icon(Icons.pan_tool, size: 14),
-                              label: const Text('Podigni ruku za reč'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange.withValues(alpha: 0.2),
-                                foregroundColor: Colors.orangeAccent,
-                              ),
-                            ),
                           ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-
+                ],
                 if (isTrener && !isStudio) ...[
                   const SizedBox(height: 12),
                   Card(
-                    color: isRecording ? Colors.red.withValues(alpha: 0.15) : Colors.deepPurple.withValues(alpha: 0.15),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    color: isRecording
+                        ? Colors.red.withValues(alpha: 0.15)
+                        : Colors.deepPurple.withValues(alpha: 0.15),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: Column(
@@ -2771,22 +2985,30 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             children: [
                               Icon(
                                 isRecording
-                                    ? (isRecordingPaused ? Icons.pause_circle_filled : Icons.fiber_manual_record)
+                                    ? (isRecordingPaused
+                                        ? Icons.pause_circle_filled
+                                        : Icons.fiber_manual_record)
                                     : Icons.videocam,
                                 color: isRecording
-                                    ? (isRecordingPaused ? Colors.orangeAccent : Colors.redAccent)
+                                    ? (isRecordingPaused
+                                        ? Colors.orangeAccent
+                                        : Colors.redAccent)
                                     : Colors.deepPurpleAccent,
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 isRecording
-                                    ? (isRecordingPaused ? 'Snimanje PAUZIRANO' : 'Snimanje U TOKU...')
+                                    ? (isRecordingPaused
+                                        ? 'Snimanje PAUZIRANO'
+                                        : 'Snimanje U TOKU...')
                                     : 'Snimanje časa (Timeline)',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: isRecording
-                                      ? (isRecordingPaused ? Colors.orangeAccent : Colors.redAccent)
+                                      ? (isRecordingPaused
+                                          ? Colors.orangeAccent
+                                          : Colors.redAccent)
                                       : Colors.white,
                                 ),
                               ),
@@ -2798,13 +3020,28 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               children: [
                                 Expanded(
                                   child: OutlinedButton.icon(
-                                    onPressed: isRecordingPaused ? _resumeRecording : _pauseRecording,
+                                    onPressed: isRecordingPaused
+                                        ? _resumeRecording
+                                        : _pauseRecording,
                                     style: OutlinedButton.styleFrom(
-                                      foregroundColor: isRecordingPaused ? Colors.greenAccent : Colors.orangeAccent,
-                                      side: BorderSide(color: isRecordingPaused ? Colors.greenAccent : Colors.orangeAccent),
+                                      foregroundColor: isRecordingPaused
+                                          ? Colors.greenAccent
+                                          : Colors.orangeAccent,
+                                      side: BorderSide(
+                                          color: isRecordingPaused
+                                              ? Colors.greenAccent
+                                              : Colors.orangeAccent),
                                     ),
-                                    icon: Icon(isRecordingPaused ? Icons.play_arrow : Icons.pause, size: 14),
-                                    label: Text(isRecordingPaused ? 'Nastavi' : 'Pauziraj', style: const TextStyle(fontSize: 12)),
+                                    icon: Icon(
+                                        isRecordingPaused
+                                            ? Icons.play_arrow
+                                            : Icons.pause,
+                                        size: 14),
+                                    label: Text(
+                                        isRecordingPaused
+                                            ? 'Nastavi'
+                                            : 'Pauziraj',
+                                        style: const TextStyle(fontSize: 12)),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -2815,8 +3052,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                       backgroundColor: Colors.redAccent,
                                       foregroundColor: Colors.white,
                                     ),
-                                    icon: const Icon(Icons.stop, color: Colors.white, size: 14),
-                                    label: const Text('Sačuvaj', style: TextStyle(fontSize: 12)),
+                                    icon: const Icon(Icons.stop,
+                                        color: Colors.white, size: 14),
+                                    label: const Text('Sačuvaj',
+                                        style: TextStyle(fontSize: 12)),
                                   ),
                                 ),
                               ],
@@ -2828,7 +3067,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 backgroundColor: Colors.deepPurpleAccent,
                                 foregroundColor: Colors.white,
                               ),
-                              icon: const Icon(Icons.fiber_manual_record, color: Colors.white, size: 16),
+                              icon: const Icon(Icons.fiber_manual_record,
+                                  color: Colors.white, size: 16),
                               label: const Text('Započni snimanje časa'),
                             ),
                           ],
@@ -2837,7 +3077,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     ),
                   ),
                 ],
-            ],
+              ],
             ),
           ),
         ),
@@ -2858,61 +3098,172 @@ class _ChessGamePageState extends State<ChessGamePage> {
         context.pop();
       },
       child: Scaffold(
-      appBar: AppBar(
-        title: Text(isConnected ? gameStatus : 'Uspostavljanje veze...'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.biotech, color: Colors.tealAccent),
-            tooltip: 'Izvezi u Tablu za Analizu 🔬',
-            onPressed: () {
-              context.push(AppRoutes.analysisPath(fen: controller.getFen()));
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.grey),
-            tooltip: 'Podešavanja',
-            onPressed: () async {
-              // Settings sits on top of the room; the socket and the audio
-              // channel keep running underneath instead of being torn down.
-              await context.push(AppRoutes.preferences);
-              if (mounted) setState(() {});
-            },
-          ),
-          if (widget.roomCode != 'STUDIO')
+        appBar: AppBar(
+          title: Text(isConnected ? gameStatus : 'Uspostavljanje veze...'),
+          centerTitle: true,
+          actions: [
             IconButton(
-              icon: const Icon(Icons.logout, color: Colors.redAccent),
-              tooltip: 'Napusti sesiju',
-              onPressed: _leaveSessionExplicitly,
+              icon: const Icon(Icons.biotech, color: Colors.tealAccent),
+              tooltip: 'Izvezi u Tablu za Analizu 🔬',
+              onPressed: () {
+                context.push(AppRoutes.analysisPath(fen: controller.getFen()));
+              },
             ),
-          Icon(
-            isConnected ? Icons.cloud_done : Icons.cloud_off,
-            color: isConnected ? Colors.green : Colors.red,
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
-      // Mobile layout has a Drawer for lessons listing (if Trainer)
-      drawer: (!isWide && isTrener) ? Drawer(child: buildLeftSidebar()) : null,
-      body: Column(children: [
-        _buildCourseStepBar(),
-        Expanded(child: isWide
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                buildLeftSidebar(),
-                const VerticalDivider(width: 1, thickness: 1),
-                Expanded(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            isHost ? "Igrate kao Beli (Host)" : "Igrate kao Crni (Korisnik)",
-                            style: TextStyle(color: Colors.grey[400], fontSize: 15),
+            IconButton(
+              icon: const Icon(Icons.settings, color: Colors.grey),
+              tooltip: 'Podešavanja',
+              onPressed: () async {
+                // Settings sits on top of the room; the socket and the audio
+                // channel keep running underneath instead of being torn down.
+                await context.push(AppRoutes.preferences);
+                if (mounted) setState(() {});
+              },
+            ),
+            if (widget.roomCode != 'STUDIO')
+              IconButton(
+                icon: const Icon(Icons.logout, color: Colors.redAccent),
+                tooltip: 'Napusti sesiju',
+                onPressed: _leaveSessionExplicitly,
+              ),
+            Icon(
+              isConnected ? Icons.cloud_done : Icons.cloud_off,
+              color: isConnected ? Colors.green : Colors.red,
+            ),
+            const SizedBox(width: 16),
+          ],
+        ),
+        // Mobile layout has a Drawer for lessons listing (if Trainer)
+        drawer:
+            (!isWide && isTrener) ? Drawer(child: buildLeftSidebar()) : null,
+        body: Column(children: [
+          _buildCourseStepBar(),
+          Expanded(
+            child: isWide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      buildLeftSidebar(),
+                      const VerticalDivider(width: 1, thickness: 1),
+                      Expanded(
+                        child: Center(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  isHost
+                                      ? "Igrate kao Beli (Host)"
+                                      : "Igrate kao Crni (Korisnik)",
+                                  style: TextStyle(
+                                      color: Colors.grey[400], fontSize: 15),
+                                ),
+                                const SizedBox(height: 12),
+                                if (_showEvalBar) ...[
+                                  SizedBox(
+                                    width: boardSize,
+                                    child: HorizontalEvalBarWidget(
+                                      eval: _currentRawEval,
+                                      evalString: currentEngineEval,
+                                      depth: _currentEvalDepth,
+                                      orientation: boardOrientation,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+                                _buildChessBoardWithOverlay(boardSize),
+                                const SizedBox(height: 12),
+                                // PGN navigators
+                                SizedBox(
+                                  width: boardSize,
+                                  child: buildNavigationControls(),
+                                ),
+                                const SizedBox(height: 8),
+                                // Stockfish analysis widget directly UNDER board
+                                SizedBox(
+                                  width: boardSize,
+                                  child: _buildStockfishAnalysisWidget(),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 12),
+                        ),
+                      ),
+                      const VerticalDivider(width: 1, thickness: 1),
+                      buildRightSidebar(),
+                    ],
+                  )
+                : isLandscape
+                    // Phone landscape: no room to stack board + everything else
+                    // vertically, so it goes side by side instead — board (+nav)
+                    // on the left, everything else in one scrollable pane on the
+                    // right. The left (lessons) sidebar stays in the Drawer.
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    isHost
+                                        ? "Igrate kao Beli (Host)"
+                                        : "Igrate kao Crni (Korisnik)",
+                                    style: TextStyle(
+                                        color: Colors.grey[400], fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  if (_showEvalBar) ...[
+                                    SizedBox(
+                                      width: boardSize,
+                                      child: HorizontalEvalBarWidget(
+                                        eval: _currentRawEval,
+                                        evalString: currentEngineEval,
+                                        depth: _currentEvalDepth,
+                                        orientation: boardOrientation,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                  ],
+                                  _buildChessBoardWithOverlay(boardSize),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: boardSize,
+                                    child: buildNavigationControls(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const VerticalDivider(width: 1, thickness: 1),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0, vertical: 8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _buildStockfishAnalysisWidget(),
+                                  const SizedBox(height: 8),
+                                  buildRightSidebar(),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          const SizedBox(height: 8),
+                          Text(
+                            isHost
+                                ? "Igrate kao Beli (Host)"
+                                : "Igrate kao Crni (Korisnik)",
+                            style: TextStyle(
+                                color: Colors.grey[400], fontSize: 13),
+                          ),
+                          const SizedBox(height: 6),
                           if (_showEvalBar) ...[
                             SizedBox(
                               width: boardSize,
@@ -2923,137 +3274,39 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 orientation: boardOrientation,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                           ],
                           _buildChessBoardWithOverlay(boardSize),
-                          const SizedBox(height: 12),
-                          // PGN navigators
+                          const SizedBox(height: 8),
+                          // PGN navigators on mobile (fixed)
                           SizedBox(
                             width: boardSize,
                             child: buildNavigationControls(),
                           ),
                           const SizedBox(height: 8),
-                          // Stockfish analysis widget directly UNDER board
-                          SizedBox(
-                            width: boardSize,
-                            child: _buildStockfishAnalysisWidget(),
+                          // Scrollable sidebar below the fixed board — the Stockfish
+                          // eval toggles ("Prikaži evaluaciju" / "Prikaži
+                          // evaluacionu liniju") live in here too now instead of
+                          // being pinned above it, so they scroll with everything
+                          // else rather than staying fixed on screen.
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0, vertical: 8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _buildStockfishAnalysisWidget(),
+                                  const SizedBox(height: 8),
+                                  buildRightSidebar(),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                ),
-                const VerticalDivider(width: 1, thickness: 1),
-                buildRightSidebar(),
-              ],
-            )
-          : isLandscape
-              // Phone landscape: no room to stack board + everything else
-              // vertically, so it goes side by side instead — board (+nav)
-              // on the left, everything else in one scrollable pane on the
-              // right. The left (lessons) sidebar stays in the Drawer.
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 8),
-                            Text(
-                              isHost ? "Igrate kao Beli (Host)" : "Igrate kao Crni (Korisnik)",
-                              style: TextStyle(color: Colors.grey[400], fontSize: 13),
-                            ),
-                            const SizedBox(height: 6),
-                            if (_showEvalBar) ...[
-                              SizedBox(
-                                width: boardSize,
-                                child: HorizontalEvalBarWidget(
-                                  eval: _currentRawEval,
-                                  evalString: currentEngineEval,
-                                  depth: _currentEvalDepth,
-                                  orientation: boardOrientation,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                            ],
-                            _buildChessBoardWithOverlay(boardSize),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: boardSize,
-                              child: buildNavigationControls(),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const VerticalDivider(width: 1, thickness: 1),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildStockfishAnalysisWidget(),
-                            const SizedBox(height: 8),
-                            buildRightSidebar(),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Column(
-                  children: [
-                    const SizedBox(height: 8),
-                    Text(
-                      isHost ? "Igrate kao Beli (Host)" : "Igrate kao Crni (Korisnik)",
-                      style: TextStyle(color: Colors.grey[400], fontSize: 13),
-                    ),
-                    const SizedBox(height: 6),
-                    if (_showEvalBar) ...[
-                      SizedBox(
-                        width: boardSize,
-                        child: HorizontalEvalBarWidget(
-                          eval: _currentRawEval,
-                          evalString: currentEngineEval,
-                          depth: _currentEvalDepth,
-                          orientation: boardOrientation,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                    ],
-                    _buildChessBoardWithOverlay(boardSize),
-                    const SizedBox(height: 8),
-                    // PGN navigators on mobile (fixed)
-                    SizedBox(
-                      width: boardSize,
-                      child: buildNavigationControls(),
-                    ),
-                    const SizedBox(height: 8),
-                    // Scrollable sidebar below the fixed board — the Stockfish
-                    // eval toggles ("Prikaži evaluaciju" / "Prikaži
-                    // evaluacionu liniju") live in here too now instead of
-                    // being pinned above it, so they scroll with everything
-                    // else rather than staying fixed on screen.
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildStockfishAnalysisWidget(),
-                            const SizedBox(height: 8),
-                            buildRightSidebar(),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-      ]),
+          ),
+        ]),
       ),
     );
   }
@@ -3079,10 +3332,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, 'discard'),
-            child: const Text('Izađi bez čuvanja', style: TextStyle(color: Colors.redAccent)),
+            child: const Text('Izađi bez čuvanja',
+                style: TextStyle(color: Colors.redAccent)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal, foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, 'save'),
             child: const Text('Zaustavi i sačuvaj'),
           ),
@@ -3124,5 +3379,3 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
   }
 }
-
-
