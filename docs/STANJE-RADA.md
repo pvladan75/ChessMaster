@@ -267,41 +267,40 @@ navigacija je imala petu, pogrešnu. Izvučeno u čistu funkciju
 `test/board_control_rules_test.dart` pada na staroj logici (provereno
 privremenim vraćanjem). Commit `21ae682`.
 
-## Prihvatanje se ne vidi kod pošiljaoca — zapaženo 20.8.2026, nije rešeno
+## Prihvatanje se vidi kod pošiljaoca — zapaženo i rešeno 20.8.2026
 
 Korisnik je pri proveri stavke 19 primetio: A pošalje zahtev, B ga prihvati, a
 A — ako u tom trenutku **stoji u tabu Prijatelji** — i dalje vidi „čeka
 potvrdu". Tek izlazak iz taba i povratak u njega pokaže odnos.
 
-**Zašto je tako.** `_fetchStudents()` se zove pri ulasku u tab
-(`lib/screens/home_screen.dart`, `_onTabSelected`) i pri povlačenju nadole.
-Dok se u tabu stoji, ništa ne stiže — a druga strana odgovara na svom uređaju.
-Isti oblik greške koji je već popravljen jednom: ranije se lista čitala samo pri
-pokretanju aplikacije, pa je trebalo ugasiti i upaliti aplikaciju.
+Kad se pogledalo zašto, ispalo je da je osvežavanje ekrana manji deo. `accept`
+**nije slao nikakvo obaveštenje**, a `decline` jeste. Onaj ko čeka odgovor
+saznao bi da je odbijen, a da je prihvaćen ne bi saznao nikako.
 
-**Pored toga, `accept` ne obaveštava pošiljaoca.** `decline` zove
-`notifyDecline` (`chess_backend/routes/social.js`), `accept` ne zove ništa. Tako
-onaj ko čeka odgovor sazna kad je odbijen, a kad je prihvaćen ne sazna nikako —
-ni zvonce ni značka se ne mrdnu. Ovo je verovatno prava rupa, a osvežavanje
-ekrana samo njena posledica.
+**Šta je urađeno.** `notifyAccept` upisuje red koji je nedostajao. Sam po sebi
+bi bio nevidljiv do sledećeg pokretanja aplikacije: klijent čita
+`/notifications` pri pokretanju i na dva soket događaja, nikad na tajmeru. Zato
+je i druga polovina napravljena odmah — ispalo je jeftinije nego što je
+izgledalo, jer registar `onlineUsers` (userId → socketId) već postoji i koristi
+ga poziv na čas. Nije trebala nikakva nova soba.
 
-**Tri načina, po ceni:**
+- `services/realtime.js` — registar je izašao iz `server.js` da bi i HTTP rute
+  mogle da dohvate povezanog korisnika. `emitToUser` vraća `false` kad je
+  korisnik odsutan; to nije greška, red u bazi je trajna polovina i pročita se
+  pri sledećem pokretanju.
+- Slanje, prihvatanje i odbijanje sada guraju `relationship_changed` drugoj
+  strani. Klijent na to ponovo čita obe liste, pa i značka i sivi red u
+  Prijateljima žive bez izlaska iz taba.
+- `emitToUser` **puca** ako `realtime.init(io)` nije pozvan. Tiho vraćanje bi
+  značilo da svaki gurac u aplikaciji ne radi ništa dok logovi izgledaju zdravo
+  — tačno oblik greške zbog kog modul i postoji.
 
-1. **`notifyAccept` na serveru** — jedan poziv uz postojeći `notifyDecline`, i
-   pošiljalac dobija red u zvoncetu i značku. Ne osvežava listu sam po sebi, ali
-   kaže čoveku da se nešto desilo. Najmanji posao, i ispravlja nesimetriju koja
-   je greška bez obzira na ekran.
-2. **Socket događaj** — soket već postoji i veza stoji dok je aplikacija
-   otvorena; server emituje pošiljaocu, klijent na to pozove `_fetchStudents()`.
-   Ekran se osveži sam, bez ijednog dodatnog zahteva u praznom hodu. Skuplje:
-   traži sobu po korisniku, a to sad ne postoji.
-3. **Tajmer dok je tab otvoren** — najprostije za napisati i najgore od troje:
-   ispitivanje servera u prazno kod svakog korisnika, i dalje kasni koliko traje
-   interval.
+Poruka je namerno kratka i bez razloga, kao i kod odbijanja: „<ime> je
+prihvatio vaš zahtev."
 
-Predlog je 1 pa 2: obaveštenje odmah jer je nesimetrija stvarna greška, soket
-kad se bude radila soba po korisniku (ista stvar treba i za druga obaveštenja
-uživo). Nije započeto.
+Ostaje otvoreno: obaveštenja o **zadacima i pregledima** i dalje stižu tek pri
+pokretanju. Sad kad `emitToUser` postoji, to je po jedan red na mestu gde se
+obaveštenje upisuje.
 
 ## Unifikacija table i okolnih elemenata — faza 2 gotova, čeka proveru
 
@@ -1968,8 +1967,9 @@ uživo. Ostaju:
   lokalnom backendu, a probni da se pravi sa
   `--dart-define=BACKEND_URL=https://api.chesstrainers.app`.
 - ~~Zvonce kao vlasnik odgovora na zahtev~~ — urađeno 20.8.2026.
-- **Prihvatanje se ne vidi kod pošiljaoca** — zapaženo pri proveri 20.8.2026,
-  odeljak niže.
+- ~~Prihvatanje se ne vidi kod pošiljaoca~~ — rešeno 20.8.2026, čeka proveru
+  uživo (stavka 21 u [TODO-provera.md](TODO-provera.md)). Ostala obaveštenja
+  (zadaci, pregledi) i dalje stižu tek pri pokretanju — vidi odeljak.
 - Ostatak probe pristanka: ponovno slanje posle odbijanja, samo obaveštenje o
   odbijanju, i obaveštenja posle popravke — stavke 0 i 0a u
   [TODO-provera.md](TODO-provera.md). Proba pristanka je inače prošla uživo

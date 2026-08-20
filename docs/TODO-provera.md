@@ -595,3 +595,25 @@ oblačići sa nazivima.
       između njih, okretanje table na kraju reda.
 - [ ] Na telefonu se nijedna traka ne preliva — naročito „Potez 12 od 24" u
       pregledu lekcije, gde je natpis najduži.
+
+## 21. Prihvatanje stiže pošiljaocu — 20.8.2026, nije viđeno uživo
+
+Rupa nađena pri proveri stavke 19. `accept` sada šalje obaveštenje, a slanje,
+prihvatanje i odbijanje guraju drugu stranu preko soketa, pa se liste osvežavaju
+same. **Backend je menjan** — mora se restartovati (`npm run dev`).
+
+**Kako:** opet treba drugi nalog, i oba treba da budu **otvorena u isto vreme**,
+jer se baš to proverava.
+
+**Na šta obratiti pažnju:**
+
+- [ ] A pošalje zahtev dok B stoji u aplikaciji: **B-ova značka poraste sama**,
+      bez restarta i bez izlaska iz taba.
+- [ ] B prihvati dok A **stoji u tabu Prijatelji**: A-ov red se sam pretvori iz
+      „čeka potvrdu" u običan odnos. Ovo je ono što je prijavljeno.
+- [ ] A dobije obaveštenje „<ime> je prihvatio vaš zahtev." sa ikonom rukovanja.
+- [ ] Odbijanje i dalje radi isto, i sad se takođe vidi odmah.
+- [ ] Ugasi aplikaciju kod A, pa neka B odgovori, pa je upali: obaveštenje je
+      tu. Soket je samo gurac, red u bazi je ono što se pamti.
+- [ ] Restartuj backend dok su oba naloga otvorena, pa odgovori na zahtev:
+      ništa ne puca, a posle ponovnog povezivanja gurac opet radi.
