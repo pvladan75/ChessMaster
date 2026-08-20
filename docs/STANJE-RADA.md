@@ -267,6 +267,42 @@ navigacija je imala petu, pogrešnu. Izvučeno u čistu funkciju
 `test/board_control_rules_test.dart` pada na staroj logici (provereno
 privremenim vraćanjem). Commit `21ae682`.
 
+## Prihvatanje se ne vidi kod pošiljaoca — zapaženo 20.8.2026, nije rešeno
+
+Korisnik je pri proveri stavke 19 primetio: A pošalje zahtev, B ga prihvati, a
+A — ako u tom trenutku **stoji u tabu Prijatelji** — i dalje vidi „čeka
+potvrdu". Tek izlazak iz taba i povratak u njega pokaže odnos.
+
+**Zašto je tako.** `_fetchStudents()` se zove pri ulasku u tab
+(`lib/screens/home_screen.dart`, `_onTabSelected`) i pri povlačenju nadole.
+Dok se u tabu stoji, ništa ne stiže — a druga strana odgovara na svom uređaju.
+Isti oblik greške koji je već popravljen jednom: ranije se lista čitala samo pri
+pokretanju aplikacije, pa je trebalo ugasiti i upaliti aplikaciju.
+
+**Pored toga, `accept` ne obaveštava pošiljaoca.** `decline` zove
+`notifyDecline` (`chess_backend/routes/social.js`), `accept` ne zove ništa. Tako
+onaj ko čeka odgovor sazna kad je odbijen, a kad je prihvaćen ne sazna nikako —
+ni zvonce ni značka se ne mrdnu. Ovo je verovatno prava rupa, a osvežavanje
+ekrana samo njena posledica.
+
+**Tri načina, po ceni:**
+
+1. **`notifyAccept` na serveru** — jedan poziv uz postojeći `notifyDecline`, i
+   pošiljalac dobija red u zvoncetu i značku. Ne osvežava listu sam po sebi, ali
+   kaže čoveku da se nešto desilo. Najmanji posao, i ispravlja nesimetriju koja
+   je greška bez obzira na ekran.
+2. **Socket događaj** — soket već postoji i veza stoji dok je aplikacija
+   otvorena; server emituje pošiljaocu, klijent na to pozove `_fetchStudents()`.
+   Ekran se osveži sam, bez ijednog dodatnog zahteva u praznom hodu. Skuplje:
+   traži sobu po korisniku, a to sad ne postoji.
+3. **Tajmer dok je tab otvoren** — najprostije za napisati i najgore od troje:
+   ispitivanje servera u prazno kod svakog korisnika, i dalje kasni koliko traje
+   interval.
+
+Predlog je 1 pa 2: obaveštenje odmah jer je nesimetrija stvarna greška, soket
+kad se bude radila soba po korisniku (ista stvar treba i za druga obaveštenja
+uživo). Nije započeto.
+
 ## Unifikacija table i okolnih elemenata — faza 1 gotova, čeka proveru
 
 Korisnik je primetio da isti elementi izgledaju različito po ekranima (dugme za
@@ -1911,6 +1947,8 @@ uživo. Ostaju:
   lokalnom backendu, a probni da se pravi sa
   `--dart-define=BACKEND_URL=https://api.chesstrainers.app`.
 - ~~Zvonce kao vlasnik odgovora na zahtev~~ — urađeno 20.8.2026.
+- **Prihvatanje se ne vidi kod pošiljaoca** — zapaženo pri proveri 20.8.2026,
+  odeljak niže.
 - Ostatak probe pristanka: ponovno slanje posle odbijanja, samo obaveštenje o
   odbijanju, i obaveštenja posle popravke — stavke 0 i 0a u
   [TODO-provera.md](TODO-provera.md). Proba pristanka je inače prošla uživo

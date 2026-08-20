@@ -530,7 +530,7 @@ pa **namerno odigraj pogrešan potez**, zatim tačan. Onda uradi jednu zagonetku
 - [x] Kod trenera piše isto, samo „Prvo probao" umesto „Prvo si probao".
 - [x] Linija ispod i dalje stoji u čitljivom zapisu.
 
-## 19. Zvonce odgovara na zahtev — 20.8.2026, nije viđeno uživo
+## 19. Zvonce odgovara na zahtev — ✅ provereno uživo 20.8.2026
 
 Odgovor na zahtev za odnos preselio se iz taba Prijatelji u zvonce. Server nije
 menjan.
@@ -540,14 +540,24 @@ drugi i otvori zvonce.
 
 **Na šta obratiti pažnju:**
 
-- [ ] U zvoncetu zahtev ima **kvačicu i krstić**, i kaže ko šta traži.
-- [ ] Posle odgovora red **ostaje** i piše „Zahtev je prihvaćen/odbijen"; dijalog
+- [x] U zvoncetu zahtev ima **kvačicu i krstić**, i kaže ko šta traži.
+- [x] Posle odgovora red **ostaje** i piše „Zahtev je prihvaćen/odbijen"; dijalog
       se ne zatvara sam.
-- [ ] **Značka pada** posle odgovora (broji i zahteve, ne samo poruke).
-- [ ] U tabu Prijatelji **nema više kartice** „Čeka vaš odgovor".
-- [ ] Sivi red u listi kaže na koga se čeka: „čeka potvrdu" kad sam ja poslao,
+- [x] **Značka pada** posle odgovora (broji i zahteve, ne samo poruke).
+- [x] U tabu Prijatelji **nema više kartice** „Čeka vaš odgovor".
+- [x] Sivi red u listi kaže na koga se čeka: „čeka potvrdu" kad sam ja poslao,
       „odgovorite u zvoncetu" kad se čeka moj odgovor.
-- [ ] Posle prihvatanja odnos se pojavi u listi kao običan, bez restarta.
-- [ ] Odbijanje i dalje šalje obaveštenje pošiljaocu („nije prihvatio vaš
+- [x] Posle prihvatanja odnos se pojavi u listi kao običan, bez restarta.
+- [x] Odbijanje i dalje šalje obaveštenje pošiljaocu („nije prihvatio vaš
       zahtev"), i ponovno slanje posle odbijanja radi.
 - [ ] Na telefonu se dijalog ne preliva sa dugmadima u redu.
+
+**Telefon još nema ovaj build** — poslednja stavka ostaje neproverena dok se
+uređaj ne priključi i ne odradi `chess_app/build_and_deploy.ps1`.
+
+**Zapaženo pri proveri 20.8.2026 (nije greška u ovome, nego rupa pored):**
+onaj ko je **poslao** zahtev ne vidi da je druga strana prihvatila sve dok ne
+izađe iz taba Prijatelji i ne vrati se u njega. Lista se osvežava pri ulasku u
+tab, a ne dok se u njemu stoji. Uz to, `accept` ne šalje pošiljaocu nikakvo
+obaveštenje — `decline` šalje. Vidi „Prihvatanje se ne vidi kod pošiljaoca" u
+[STANJE-RADA.md](STANJE-RADA.md).
