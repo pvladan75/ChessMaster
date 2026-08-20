@@ -712,6 +712,12 @@ označiti sve pročitanim. Test čita rutu i pada ako ikad dodirne
       *(Gledano na telefonu: 3 → nema značke, uz 0 zahteva na čekanju.)*
 - [x] Redovi koji su bili podebljani sada stoje sivi, sa „Odgovoreno." gde
       treba.
+- [x] Iznad liste piše od čega je broj sastavljen. *(Windows, 20.8.2026:
+      „5 novih obaveštenja".)* Ovo je nastalo iz zapažanja korisnika da ga je
+      broj prevario — sabira nepročitane poruke i neodgovorene zahteve, a
+      zahtev se broji dok se ne **odgovori**, ne dok se ne pročita.
 - [ ] Sa **jednim neodgovorenim zahtevom**: posle čitanja značka treba da
-      pokazuje 1, ne 0. Aritmetika je potvrđena sa druge strane (3 = 1 zahtev +
-      2 nepročitana), ali tačno ta kombinacija nije viđena.
+      pokazuje 1, a rečenica da glasi „1 zahtev čeka vaš odgovor". Aritmetika je
+      potvrđena sa obe strane (3 = 1 zahtev + 2 nepročitana, pa 5 = 0 + 5), ali
+      tačno ta kombinacija nije viđena. Ne vredi je praviti namerno — videće se
+      prvi put kad neko pošalje zahtev.
