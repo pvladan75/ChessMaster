@@ -34,7 +34,30 @@ const SKAK_NEW = {
   },
 };
 
-export const FONT_MAPS = [SKAK_NEW];
+/**
+ * Tactics Course (Exeter Chess Club, Dave Regis).
+ *
+ * A row is 10 characters: a left margin border/coordinate character, 8 piece
+ * glyphs, and a right margin border character. `X` is an attacked-square marker
+ * (not a piece) and explicitly maps to empty string ('.').
+ */
+const TACTICS_COURSE = {
+  id: 'tacticscourse',
+  label: 'Tactics Course (Exeter Chess Club)',
+  rowLength: [10, 11],
+  squares: (text) => text.slice(1, 9),
+  isBorderRow: (text) => text.startsWith('c') || text.startsWith('C') || text.startsWith('v'),
+  glyphs: {
+    w: '.', D: '.', d: '.', X: '.',
+    P: 'P', ')': 'P', N: 'N', H: 'N', B: 'B', G: 'B',
+    R: 'R', $: 'R', Q: 'Q', '1': 'Q', K: 'K', I: 'K',
+    p: 'p', '0': 'p', n: 'n', h: 'n', b: 'b', g: 'b',
+    r: 'r', '4': 'r', q: 'q', '!': 'q', k: 'k', i: 'k',
+    Z: 'k', '*': 'K',
+  },
+};
+
+export const FONT_MAPS = [SKAK_NEW, TACTICS_COURSE];
 
 /** Glyphs a map understands, as a Set, for alphabet matching. */
 function alphabetOf(map) {
@@ -54,7 +77,12 @@ export function selectFontMap(rows) {
     const alphabet = alphabetOf(map);
     let covered = 0;
     for (const row of rows) {
-      if (row.length !== map.rowLength) continue;
+      const isLenValid = typeof map.rowLength === 'function'
+        ? map.rowLength(row.length)
+        : Array.isArray(map.rowLength)
+          ? map.rowLength.includes(row.length)
+          : row.length === map.rowLength;
+      if (!isLenValid) continue;
       const squares = map.squares(row);
       if ([...squares].every((c) => alphabet.has(c))) covered += 1;
     }

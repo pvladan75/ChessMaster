@@ -51,7 +51,7 @@ test('glyph rows become FEN ranks, and an unknown glyph is fatal', () => {
 
 test('a map is chosen by alphabet, and refused when nothing fits', () => {
   assert.equal(selectFontMap(['0Z0Z0L0Z', 'Z0Z0Z0Z0']).map.id, 'skaknew');
-  assert.equal(selectFontMap(['cuuuuuuuuC', '(wdwdwdwd}']), null);
+  assert.equal(selectFontMap(['??????????', '##########']), null);
 });
 
 test('castling rights are restored from the solution, not assumed', () => {
