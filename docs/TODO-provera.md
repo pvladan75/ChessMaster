@@ -690,5 +690,6 @@ o prelivu:
    dodate. Android ga je regenerisao, pa je ista verzija bila ispravna na
    telefonu i pogrešna na Windows-u. Vidi CLAUDE.md.
 
-**Ostaje da se pogleda:** novi izgled reda sa zahtevom (tačka 3) nije viđen
-uživo — kad bude sledeći neodgovoren zahtev, vredi baciti pogled.
+**Novi izgled reda sa zahtevom je viđen uživo istog dana:** naslov u jednom
+redu, a ispod njega „✗ Odbij" i „✓ Prihvati" sa natpisima. Redosled je namerno
+takav — odbijanje levo, potvrda desno, da se potvrda ne pritisne u prolazu.
