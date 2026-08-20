@@ -200,7 +200,55 @@ void main() {
       expect(seeks, 0);
     });
 
-    testWidgets('a sentence-long label does not overflow a narrow phone',
+    testWidgets('every button is still on screen on a narrow phone',
+        (tester) async {
+      // Nine buttons at a 48 dp touch target need more width than a phone has,
+      // and the Analysis Studio has nine. A Row clips the rest — silently, in a
+      // release build, where Flutter paints no overflow stripes and logs
+      // nothing. Two of its buttons were simply unreachable on a phone.
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await pump(
+        tester,
+        MoveNavigationControls(
+          cursor: LinearMoveCursor(
+            fens: const ['a', 'b', 'c'],
+            index: 1,
+            onSeek: (_) {},
+          ),
+          centerLabel: null,
+          onFlipBoard: () {},
+          trailing: const [
+            Icon(Icons.comment),
+            Icon(Icons.auto_awesome),
+            Icon(Icons.style),
+            Icon(Icons.delete_outline),
+          ],
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      for (final icon in [
+        Icons.first_page,
+        Icons.chevron_left,
+        Icons.chevron_right,
+        Icons.last_page,
+        Icons.comment,
+        Icons.auto_awesome,
+        Icons.style,
+        Icons.delete_outline,
+      ]) {
+        final box = tester.getRect(find.byIcon(icon));
+        expect(box.right, lessThanOrEqualTo(360.0),
+            reason: '$icon runs off the right edge');
+        expect(box.left, greaterThanOrEqualTo(0.0),
+            reason: '$icon runs off the left edge');
+      }
+    });
+
+    testWidgets('a sentence-long label is shown whole, not clipped',
         (tester) async {
       tester.view.physicalSize = const Size(360, 640);
       tester.view.devicePixelRatio = 1.0;
@@ -220,6 +268,11 @@ void main() {
       );
 
       expect(tester.takeException(), isNull);
+      // Shown in full: the strip wraps rather than squeezing the label, so
+      // "Navigacija" no longer reads as "Naviga…" on a phone.
+      expect(find.text('Potez 12 od 24'), findsOneWidget);
+      final label = tester.widget<Text>(find.text('Potez 12 od 24'));
+      expect(label.overflow, isNot(TextOverflow.ellipsis));
     });
   });
 }

@@ -2,12 +2,13 @@ import 'package:chess_app/services/app_logger.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter_chess_board/flutter_chess_board.dart';
+import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
@@ -207,6 +208,61 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     );
   }
 
+  /// The toolbar's actions, as icons on a wide screen and behind a menu on a
+  /// narrow one.
+  ///
+  /// There are nine of them. An `AppBar` does not wrap or scroll its actions —
+  /// it clips them, silently — so on a phone the last two were simply not
+  /// reachable: "Podešavanja" and "Unos Pozicije / PGN" sat past the right
+  /// edge with nothing to say they were there. Reported from a phone on
+  /// 20.8.2026, and invisible in a release build, which paints no overflow
+  /// warning.
+  List<Widget> _toolbarActions(BuildContext context) {
+    final actions = <_ToolAction>[
+      _ToolAction(Icons.tune, context.colors.accent, 'Unos Pozicije / PGN', _showSetupDialog),
+      _ToolAction(Icons.fact_check, context.colors.accent, 'Analiziraj celu partiju', _showGameReviewDialog),
+      _ToolAction(Icons.auto_awesome, context.colors.warning, 'Automatska Analiza ⚡', _showAutoAnalysisDialog),
+      _ToolAction(Icons.trending_flat, context.colors.accent, 'Produži granu (najbolja linija motora)', _showQuickExtendDialog),
+      _ToolAction(Icons.extension, context.colors.accent, 'Sačuvane vežbe', _showSavedPuzzleSetsDialog),
+      _ToolAction(Icons.share, context.colors.info, 'Izvezi PGN', _exportPgn),
+      _ToolAction(Icons.cloud_outlined, context.colors.info, 'Sačuvane analize', _showSavedAnalysesDialog),
+      _ToolAction(Icons.settings, context.colors.textMuted, 'Podešavanja', _openAppSettings),
+      _ToolAction(Icons.terminal, context.colors.warning, 'Logovi Engine-a 📜', () => dialogs.showLogsDialog(context)),
+    ];
+
+    Widget asIcon(_ToolAction a) =>
+        IconButton(icon: Icon(a.icon, color: a.color), tooltip: a.tooltip, onPressed: a.onPressed);
+
+    if (Breakpoints.isWide(context)) {
+      return actions.map(asIcon).toList();
+    }
+
+    // The two that start a piece of work stay on the bar; the rest are one tap
+    // further away but reachable, which is the whole point.
+    const visible = 2;
+    return [
+      ...actions.take(visible).map(asIcon),
+      PopupMenuButton<int>(
+        icon: const Icon(Icons.more_vert),
+        tooltip: 'Još alata',
+        onSelected: (index) => actions[index].onPressed(),
+        itemBuilder: (context) => [
+          for (var i = visible; i < actions.length; i += 1)
+            PopupMenuItem<int>(
+              value: i,
+              child: Row(
+                children: [
+                  Icon(actions[i].icon, color: actions[i].color, size: 20),
+                  const SizedBox(width: 12),
+                  Flexible(child: Text(actions[i].tooltip)),
+                ],
+              ),
+            ),
+        ],
+      ),
+    ];
+  }
+
   Future<void> _restoreDraft() async {
     final draft = await AnalysisDraftService.instance.load();
     if (!mounted || draft == null) return;
@@ -228,6 +284,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         content: const Text('Vraćena je vaša poslednja analiza.'),
         backgroundColor: Colors.teal,
         duration: const Duration(seconds: 6),
+        // Reported from a phone on 20.8.2026: it sat there for minutes with no
+        // way to get rid of it, since the only action rebuilds the analysis.
+        // Whatever keeps the timer from firing on that device, a message with
+        // no way out is wrong on its own.
+        showCloseIcon: true,
+        closeIconColor: Colors.white,
         action: SnackBarAction(
           label: 'Počni iznova',
           textColor: Colors.white,
@@ -1226,53 +1288,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.terminal, color: context.colors.warning),
-            tooltip: 'Logovi Engine-a 📜',
-            onPressed: () => dialogs.showLogsDialog(context),
-          ),
-          IconButton(
-            icon: Icon(Icons.auto_awesome, color: context.colors.warning),
-            tooltip: 'Automatska Analiza ⚡',
-            onPressed: _showAutoAnalysisDialog,
-          ),
-          IconButton(
-            icon: Icon(Icons.trending_flat, color: context.colors.accent),
-            tooltip: 'Produži granu (najbolja linija motora)',
-            onPressed: _showQuickExtendDialog,
-          ),
-          IconButton(
-            icon: Icon(Icons.fact_check, color: context.colors.accent),
-            tooltip: 'Analiziraj celu partiju',
-            onPressed: _showGameReviewDialog,
-          ),
-          IconButton(
-            icon: Icon(Icons.extension, color: context.colors.accent),
-            tooltip: 'Sačuvane vežbe',
-            onPressed: _showSavedPuzzleSetsDialog,
-          ),
-          IconButton(
-            icon: Icon(Icons.share, color: context.colors.info),
-            tooltip: 'Izvezi PGN',
-            onPressed: _exportPgn,
-          ),
-          IconButton(
-            icon: Icon(Icons.cloud_outlined, color: context.colors.info),
-            tooltip: 'Sačuvane analize',
-            onPressed: _showSavedAnalysesDialog,
-          ),
-          IconButton(
-            icon: Icon(Icons.settings, color: context.colors.textMuted),
-            tooltip: 'Podešavanja',
-            onPressed: _openAppSettings,
-          ),
-          IconButton(
-            icon: Icon(Icons.tune, color: context.colors.accent),
-            tooltip: 'Unos Pozicije / PGN',
-            onPressed: _showSetupDialog,
-          ),
-        ],
+        actions: _toolbarActions(context),
       ),
       body: isLandscape ? _buildLandscapeLayout(boardSize) : _buildPortraitLayout(boardSize),
     );
@@ -1824,4 +1840,16 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     parent.removeChild(node);
     _jumpToNode(parent);
   }
+}
+
+/// One toolbar action. A plain class rather than a record because the theme
+/// hands back nullable colours and a record's field type would have to spell
+/// that out at every call site.
+class _ToolAction {
+  final IconData icon;
+  final Color? color;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  const _ToolAction(this.icon, this.color, this.tooltip, this.onPressed);
 }

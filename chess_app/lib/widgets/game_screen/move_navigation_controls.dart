@@ -60,8 +60,16 @@ class MoveNavigationControls extends StatelessWidget {
     final canGoForward = canNavigate && cursor.canGoForward;
     final stops = showMoveChips ? cursor.line : const <MoveStop>[];
 
-    final buttons = Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    // A Wrap, not a Row. Nine buttons at a 48 dp touch target need 432 dp and a
+    // phone has 360–410, so the Analysis Studio's NAG and delete buttons ran off
+    // the right edge. In a release build that is silent — Flutter paints no
+    // overflow stripes and logs nothing — so they were simply not there.
+    // Wrapping puts them on a second line instead of past the edge, and lets the
+    // label keep its full width, which stops "Navigacija" reading as "Naviga…".
+    final buttons = Wrap(
+      alignment: WrapAlignment.spaceEvenly,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      runSpacing: 4,
       children: [
         IconButton(
           icon: Icon(Icons.first_page, size: iconSize),
@@ -74,14 +82,9 @@ class MoveNavigationControls extends StatelessWidget {
           tooltip: 'Prethodni potez',
         ),
         if (stops.isEmpty && centerLabel != null)
-          // Flexible, because the label can be a whole sentence ("Potez 3 od
-          // 12") next to five icon buttons on a 360 dp phone.
-          Flexible(
-            child: Text(
-              centerLabel!,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+          Text(
+            centerLabel!,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         IconButton(
           icon: Icon(Icons.chevron_right, size: iconSize),
