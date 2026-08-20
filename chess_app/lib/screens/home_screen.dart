@@ -84,8 +84,21 @@ class _HomeScreenState extends State<HomeScreen> {
   /// The badge counts what has *not* been read. `/notifications` returns the
   /// last 20 regardless of `is_read`, so counting the list showed a number that
   /// never went down no matter how much the user read.
-  int get _unreadNotifications =>
-      _notifications.where((n) => n['is_read'] != true).length;
+  ///
+  /// A request waiting for an answer counts once, from the pending list rather
+  /// than from its notification: the notification can scroll out of the last
+  /// twenty, and the thing somebody is waiting on must not stop being counted
+  /// because of that. Its notification is therefore skipped here.
+  int get _unreadNotifications {
+    final pendingIds = _pendingRequests.map((r) => r['id'] as int).toSet();
+    final unread = _notifications.where((n) {
+      if (n['is_read'] == true) return false;
+      if ((n['kind'] ?? 'room').toString() != 'student_request') return true;
+      final ref = n['ref_id'];
+      return !(ref is int && pendingIds.contains(ref));
+    }).length;
+    return unread + _pendingRequests.length;
+  }
 
   /// Which side the user is claiming when they send the next request. Defaults
   /// to trainer because that is what the button did before the choice existed,
@@ -328,27 +341,31 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _respondToRequest(int requestId, {required bool accept}) async {
+  /// Answers one request. Returns whether it went through, because the bell
+  /// shows the outcome in place of the row rather than closing itself.
+  Future<bool> _respondToRequest(int requestId, {required bool accept}) async {
     try {
       final response = await http.post(
         Uri.parse(
             '$backendUrl/relationships/$requestId/${accept ? 'accept' : 'decline'}'),
         headers: {'Authorization': 'Bearer ${widget.session.token}'},
       );
-      if (!mounted) return;
+      if (!mounted) return false;
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data['message'] ?? 'Sačuvano.')),
         );
-        _fetchStudents();
-      } else {
-        AppFeedback.error(context, data['error'] ?? 'Greška pri odgovoru.');
+        await _fetchStudents();
+        return true;
       }
+      AppFeedback.error(context, data['error'] ?? 'Greška pri odgovoru.');
+      return false;
     } catch (e) {
       print("Error responding to request: $e");
       if (mounted) AppFeedback.error(context, 'Greška pri odgovoru.');
+      return false;
     }
   }
 
@@ -552,9 +569,19 @@ class _HomeScreenState extends State<HomeScreen> {
     dialogs.showNotificationsDialog(
       context,
       notifications: _notifications,
+      pendingRequests: _pendingRequests,
       onJoinFromNotification: (notifId, roomCode) {
         _markNotificationRead(notifId);
         _joinInviteRoom(roomCode);
+      },
+      // The bell is where a request is answered now, so the answer is handed
+      // to it rather than to the Prijatelji tab. The server closes the matching
+      // notification itself; both lists are refetched so the badge and the
+      // student list stop disagreeing with what just happened.
+      onRespondToRequest: (requestId, accept) async {
+        final ok = await _respondToRequest(requestId, accept: accept);
+        if (ok) await _fetchNotifications();
+        return ok;
       },
     );
   }
@@ -943,12 +970,9 @@ class _HomeScreenState extends State<HomeScreen> {
             isLoadingStudents: _isLoadingStudents,
             students: _students,
             trainers: _trainers,
-            pendingRequests: _pendingRequests,
             iAmTrainerInRequest: _iAmTrainerInRequest,
             onRoleChanged: (v) => setState(() => _iAmTrainerInRequest = v),
             onRefresh: _fetchStudents,
-            onAcceptRequest: (id) => _respondToRequest(id, accept: true),
-            onDeclineRequest: (id) => _respondToRequest(id, accept: false),
             onAddStudent: _addStudent,
             onDeleteStudent: _deleteStudent,
             onOpenProgress: _openStudentProgress,

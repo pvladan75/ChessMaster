@@ -529,3 +529,25 @@ pa **namerno odigraj pogrešan potez**, zatim tačan. Onda uradi jednu zagonetku
 - [x] Kod starih zagonetki (pre 20.8.2026) i dalje piše „nije zabeležen".
 - [x] Kod trenera piše isto, samo „Prvo probao" umesto „Prvo si probao".
 - [x] Linija ispod i dalje stoji u čitljivom zapisu.
+
+## 19. Zvonce odgovara na zahtev — 20.8.2026, nije viđeno uživo
+
+Odgovor na zahtev za odnos preselio se iz taba Prijatelji u zvonce. Server nije
+menjan.
+
+**Kako:** treba drugi nalog. Pošalji zahtev sa jednog naloga, pa se prijavi na
+drugi i otvori zvonce.
+
+**Na šta obratiti pažnju:**
+
+- [ ] U zvoncetu zahtev ima **kvačicu i krstić**, i kaže ko šta traži.
+- [ ] Posle odgovora red **ostaje** i piše „Zahtev je prihvaćen/odbijen"; dijalog
+      se ne zatvara sam.
+- [ ] **Značka pada** posle odgovora (broji i zahteve, ne samo poruke).
+- [ ] U tabu Prijatelji **nema više kartice** „Čeka vaš odgovor".
+- [ ] Sivi red u listi kaže na koga se čeka: „čeka potvrdu" kad sam ja poslao,
+      „odgovorite u zvoncetu" kad se čeka moj odgovor.
+- [ ] Posle prihvatanja odnos se pojavi u listi kao običan, bez restarta.
+- [ ] Odbijanje i dalje šalje obaveštenje pošiljaocu („nije prihvatio vaš
+      zahtev"), i ponovno slanje posle odbijanja radi.
+- [ ] Na telefonu se dijalog ne preliva sa dugmadima u redu.

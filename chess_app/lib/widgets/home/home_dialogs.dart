@@ -37,113 +37,239 @@ void showInviteDialog(BuildContext context,
   );
 }
 
+/// The bell, and the only place a relationship request is answered.
+///
+/// The request used to live in two places: a card in the Prijatelji tab, where
+/// it could be answered, and a notification here, which told you to go there.
+/// Two owners of one thing, and it had already cost something — the
+/// notification stayed unread for good, because nothing tied the answer back to
+/// it. A child who is invited looks at the bell; they do not go hunting through
+/// tabs. The bell is also the only thing on screen carrying a count, so it is
+/// the only thing that says by itself that something is waiting.
+///
+/// [pendingRequests] is the authority for what is unanswered, not the
+/// notification list: `/notifications` returns the last twenty, so a request
+/// could scroll out of it and become unanswerable. Anything still pending is
+/// shown here whether its notification survived or not.
 void showNotificationsDialog(
   BuildContext context, {
   required List<dynamic> notifications,
+  required List<dynamic> pendingRequests,
   required void Function(int notifId, String roomCode) onJoinFromNotification,
+  required Future<bool> Function(int requestId, bool accept) onRespondToRequest,
 }) {
+  // Answered in this sitting: the row stays, saying what was decided, instead
+  // of vanishing from under the finger that answered it.
+  final Map<int, bool> answered = {};
+  final Set<int> answering = {};
+
   showDialog(
     context: context,
     builder: (ctx) => StatefulBuilder(
-      builder: (context, setModalState) => AlertDialog(
-        title: Row(
-          children: const [
-            Icon(Icons.notifications_active, color: Colors.amberAccent),
-            SizedBox(width: 8),
-            // Expanded: the title is wider than the dialog on a narrow phone,
-            // and a title that overflows takes the whole dialog down with it.
-            Expanded(
-              child: Text('Notifikacije i Pozivnice',
-                  style: TextStyle(fontSize: 16)),
+      builder: (context, setModalState) {
+        // A request still waiting is shown once, as the row with the buttons.
+        // Its own notification would otherwise repeat it directly underneath.
+        final waiting = pendingRequests
+            .where((r) => !answered.containsKey(r['id'] as int))
+            .toList();
+        final pendingIds = pendingRequests.map((r) => r['id'] as int).toSet();
+        final messages = notifications.where((n) {
+          if ((n['kind'] ?? 'room').toString() != 'student_request') {
+            return true;
+          }
+          final ref = n['ref_id'];
+          return !(ref is int && pendingIds.contains(ref));
+        }).toList();
+
+        Future<void> answer(int requestId, bool accept) async {
+          setModalState(() => answering.add(requestId));
+          final ok = await onRespondToRequest(requestId, accept);
+          setModalState(() {
+            answering.remove(requestId);
+            if (ok) answered[requestId] = accept;
+          });
+        }
+
+        return AlertDialog(
+          title: Row(
+            children: const [
+              Icon(Icons.notifications_active, color: Colors.amberAccent),
+              SizedBox(width: 8),
+              // Expanded: the title is wider than the dialog on a narrow phone,
+              // and a title that overflows takes the whole dialog down with it.
+              Expanded(
+                child: Text('Notifikacije i Pozivnice',
+                    style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          ),
+          // Fixed width, as everywhere here: AlertDialog wraps its content in
+          // an IntrinsicWidth, which cannot descend into a lazy list.
+          content: SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (messages.isEmpty && waiting.isEmpty && answered.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text('Nemate novih notifikacija.',
+                        style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  )
+                else
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 320),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Requests first: an unanswered one is the only thing
+                          // here that somebody else is waiting on.
+                          for (final r in waiting)
+                            _requestCard(
+                              r,
+                              busy: answering.contains(r['id'] as int),
+                              onAnswer: (accept) =>
+                                  answer(r['id'] as int, accept),
+                            ),
+                          for (final entry in answered.entries)
+                            _answeredCard(entry.value),
+                          for (final n in messages)
+                            _messageCard(ctx, n, onJoinFromNotification),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Zatvori'),
             ),
           ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (notifications.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text('Nemate novih notifikacija.',
-                    style: TextStyle(color: Colors.grey, fontSize: 13)),
-              )
-            else
-              Container(
-                constraints: const BoxConstraints(maxHeight: 250),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: notifications.map((n) {
-                      final notifId = n['id'] as int;
+        );
+      },
+    ),
+  );
+}
 
-                      // Nullable since 16.8: a notification carrying a request
-                      // to teach or be taught has no room. This used to read
-                      // `as String`, which threw during build over a null and
-                      // showed the user a blank screen instead of the list.
-                      final roomCode = n['room_code'] as String?;
-                      final kind = (n['kind'] ?? 'room').toString();
-                      final isRead = n['is_read'] == true;
+/// One request, with the two answers to it.
+Widget _requestCard(
+  dynamic r, {
+  required bool busy,
+  required void Function(bool accept) onAnswer,
+}) {
+  final iAmStudent = r['i_am_student'] == true;
+  final name = r['other_name'] ?? r['other_email'] ?? '';
 
-                      // Only a room invitation has somewhere to go. The others
-                      // are answered in the Prijatelji tab, or say something
-                      // that needs no answer at all.
-                      final canJoin = kind == 'room' && roomCode != null;
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 4.0),
-                        child: ListTile(
-                          dense: true,
-                          leading: Icon(
-                            switch (kind) {
-                              'student_request' => Icons.school,
-                              'request_declined' => Icons.do_not_disturb_on,
-                              _ => Icons.star,
-                            },
-                            color: isRead ? Colors.grey : Colors.amber,
-                          ),
-                          title: Text(n['message'] ?? '',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: isRead
-                                      ? FontWeight.normal
-                                      : FontWeight.bold,
-                                  color: isRead ? Colors.grey : null)),
-                          subtitle: Text(
-                            canJoin
-                                ? 'Soba: $roomCode'
-                                : (kind == 'student_request'
-                                    ? 'Odgovorite u tabu Prijatelji.'
-                                    : ''),
-                            style: const TextStyle(
-                                fontSize: 10, color: Colors.grey),
-                          ),
-                          trailing: canJoin
-                              ? ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.teal,
-                                      foregroundColor: Colors.white),
-                                  onPressed: () {
-                                    Navigator.pop(ctx);
-                                    onJoinFromNotification(notifId, roomCode);
-                                  },
-                                  child: const Text('Pridruži se',
-                                      style: TextStyle(fontSize: 11)),
-                                )
-                              : null,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Zatvori'),
-          ),
-        ],
+  return Card(
+    margin: const EdgeInsets.symmetric(vertical: 4.0),
+    child: ListTile(
+      dense: true,
+      leading: Icon(iAmStudent ? Icons.school : Icons.person_add,
+          color: Colors.amber),
+      title: Text(name,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+      subtitle: Text(
+        iAmStudent
+            ? 'želi da vas upiše kao učenika'
+            : 'želi da mu budete trener',
+        style: const TextStyle(fontSize: 11),
       ),
+      trailing: busy
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2))
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.check, color: Colors.green),
+                  tooltip: 'Prihvati',
+                  onPressed: () => onAnswer(true),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.redAccent),
+                  tooltip: 'Odbij',
+                  onPressed: () => onAnswer(false),
+                ),
+              ],
+            ),
+    ),
+  );
+}
+
+/// What was just decided, in place of the row that was answered.
+Widget _answeredCard(bool accepted) {
+  return Card(
+    margin: const EdgeInsets.symmetric(vertical: 4.0),
+    child: ListTile(
+      dense: true,
+      leading: Icon(accepted ? Icons.check_circle : Icons.do_not_disturb_on,
+          color: accepted ? Colors.green : Colors.grey),
+      title: Text(accepted ? 'Zahtev je prihvaćen.' : 'Zahtev je odbijen.',
+          style: const TextStyle(fontSize: 12)),
+    ),
+  );
+}
+
+/// A notification that is only a message: a room invitation, or a refusal.
+Widget _messageCard(
+  BuildContext ctx,
+  dynamic n,
+  void Function(int notifId, String roomCode) onJoinFromNotification,
+) {
+  final notifId = n['id'] as int;
+
+  // Nullable since 16.8: a notification carrying a request to teach or be
+  // taught has no room. This used to read `as String`, which threw during build
+  // over a null and showed the user a blank screen instead of the list.
+  final roomCode = n['room_code'] as String?;
+  final kind = (n['kind'] ?? 'room').toString();
+  final isRead = n['is_read'] == true;
+
+  // Only a room invitation has somewhere to go.
+  final canJoin = kind == 'room' && roomCode != null;
+
+  return Card(
+    margin: const EdgeInsets.symmetric(vertical: 4.0),
+    child: ListTile(
+      dense: true,
+      leading: Icon(
+        switch (kind) {
+          'student_request' => Icons.school,
+          'request_declined' => Icons.do_not_disturb_on,
+          _ => Icons.star,
+        },
+        color: isRead ? Colors.grey : Colors.amber,
+      ),
+      title: Text(n['message'] ?? '',
+          style: TextStyle(
+              fontSize: 12,
+              fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+              color: isRead ? Colors.grey : null)),
+      subtitle: Text(
+        canJoin
+            ? 'Soba: $roomCode'
+            // A request that reaches this list has already been answered — it
+            // is history now, and offering the buttons again would be a lie.
+            : (kind == 'student_request' ? 'Odgovoreno.' : ''),
+        style: const TextStyle(fontSize: 10, color: Colors.grey),
+      ),
+      trailing: canJoin
+          ? ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal, foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.pop(ctx);
+                onJoinFromNotification(notifId, roomCode);
+              },
+              child: const Text('Pridruži se', style: TextStyle(fontSize: 11)),
+            )
+          : null,
     ),
   );
 }

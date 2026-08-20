@@ -14,9 +14,6 @@ class HomeFriendsTab extends StatelessWidget {
 
   /// Requests waiting for *this* user to answer, in either direction — a
   /// trainer who enrolled them, or a student asking them to coach.
-  final List<dynamic> pendingRequests;
-  final ValueChanged<int> onAcceptRequest;
-  final ValueChanged<int> onDeclineRequest;
 
   final VoidCallback onAddStudent;
   final ValueChanged<int> onDeleteStudent;
@@ -41,9 +38,6 @@ class HomeFriendsTab extends StatelessWidget {
     required this.isLoadingStudents,
     required this.students,
     required this.trainers,
-    required this.pendingRequests,
-    required this.onAcceptRequest,
-    required this.onDeclineRequest,
     required this.onAddStudent,
     required this.onDeleteStudent,
     required this.iAmTrainerInRequest,
@@ -52,16 +46,15 @@ class HomeFriendsTab extends StatelessWidget {
     required this.onOpenProgress,
   });
 
-  /// Rows worth listing: everything settled, plus requests *I* sent and am
-  /// waiting on. A request waiting on **me** belongs in "Čeka vaš odgovor"
-  /// above — listing it here too would show the same person twice, once with
-  /// buttons and once greyed out.
-  List<dynamic> _awaitingOther(List<dynamic> rows) => rows
-      .where((r) => r['status'] != 'pending' || r['i_asked'] == true)
-      .toList();
-
-  List<dynamic> get myStudents => _awaitingOther(students);
-  List<dynamic> get myTrainers => _awaitingOther(trainers);
+  /// Everyone, in whatever state the relationship is.
+  ///
+  /// This used to hide requests waiting on *me*, because they were also shown
+  /// as an answerable card above and the same person would have appeared twice.
+  /// The answer moved to the bell, so the card is gone and there is nothing to
+  /// hide from: a pending row here says somebody is waiting, and says which of
+  /// us is being waited on.
+  List<dynamic> get myStudents => students;
+  List<dynamic> get myTrainers => trainers;
 
   /// One person, from whichever end. `iTeachThem` decides only what the row
   /// offers: homework and progress belong to the teaching side, and breaking
@@ -82,7 +75,13 @@ class HomeFriendsTab extends StatelessWidget {
         title: Text(r['name'] ?? 'Korisnik',
             style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(
-          isPending ? '${r['email'] ?? ''} — čeka potvrdu' : (r['email'] ?? ''),
+          // Which of the two is being waited on decides what this row is for:
+          // one is a reminder, the other is something to go and do.
+          isPending
+              ? (r['i_asked'] == true
+                  ? '${r['email'] ?? ''} — čeka potvrdu'
+                  : '${r['email'] ?? ''} — odgovorite u zvoncetu')
+              : (r['email'] ?? ''),
         ),
         onTap: (isPending || !iTeachThem)
             ? null
@@ -214,60 +213,6 @@ class HomeFriendsTab extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 16),
-
-                      // Requests come first: an unanswered one is the only
-                      // thing on this screen that someone else is waiting on.
-                      if (pendingRequests.isNotEmpty) ...[
-                        const Divider(),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Čeka vaš odgovor (${pendingRequests.length})',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        const SizedBox(height: 4),
-                        ...pendingRequests.map((r) {
-                          final iAmStudent = r['i_am_student'] == true;
-                          final name =
-                              r['other_name'] ?? r['other_email'] ?? '';
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            child: ListTile(
-                              leading: Icon(
-                                iAmStudent ? Icons.school : Icons.person_add,
-                                color: Colors.amber,
-                              ),
-                              title: Text(name,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
-                              subtitle: Text(
-                                iAmStudent
-                                    ? 'želi da vas upiše kao učenika'
-                                    : 'želi da mu budete trener',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.check,
-                                        color: Colors.green),
-                                    tooltip: 'Prihvati',
-                                    onPressed: () => onAcceptRequest(r['id']),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.close,
-                                        color: Colors.redAccent),
-                                    tooltip: 'Odbij',
-                                    onPressed: () => onDeclineRequest(r['id']),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }),
-                        const SizedBox(height: 8),
-                      ],
 
                       const Divider(),
                       const SizedBox(height: 8),

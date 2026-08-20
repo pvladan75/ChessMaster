@@ -593,7 +593,10 @@ Redosled kad zatreba:
 Sajt ne učestvuje ni u jednom koraku: statičke stranice nginx servira bez CPU
 troška, pa ostaje gde jeste i u slučaju da se izvoz odseli.
 
-## Odlučeno: zvonce je vlasnik odgovora na zahtev — 17.8.2026, nije napisano
+## Odlučeno: zvonce je vlasnik odgovora na zahtev — ✅ napisano 20.8.2026
+
+Odluka je sprovedena; odeljak ispod je zadržan kao zapis razloga, a šta je
+tačno urađeno stoji u „Zvonce je dobilo kvačicu i krstić" niže.
 
 Zahtev za odnos danas postoji na **dva** mesta: kao kartica „Čeka vaš odgovor" u
 tabu Prijatelji i kao obaveštenje u zvoncetu. Odgovara se samo na prvom; zvonce
@@ -1826,6 +1829,68 @@ Stara instalacija je zatim **obrisana sa korisnikovog telefona** (na njegov
 zahtev), pa je ostala samo jedna ikona. Upozorenje u skripti ostaje — isti
 uređaj nije jedini na kom se stara verzija može zateći.
 
+## Zvonce je dobilo kvačicu i krstić — 20.8.2026
+
+Sprovedena odluka od 17.8.2026. Zahtev za odnos se do danas vodio na **dva**
+mesta: kartica „Čeka vaš odgovor" u tabu Prijatelji, gde se odgovaralo, i
+obaveštenje u zvoncetu, koje te je slalo tamo. Dva vlasnika jedne stvari, i to
+se već jednom osvetilo — obaveštenje je ostajalo nepročitano zauvek, jer ništa
+nije vezivalo odgovor za njega.
+
+Sada se odgovara **u zvoncetu**, i nigde drugde.
+
+### Šta je zvonce dobilo
+
+- Kvačica i krstić stoje uz zahtev, sa istim rečima kao ranije („želi da vas
+  upiše kao učenika" / „želi da mu budete trener").
+- Posle odgovora **red ostaje**, i piše šta je odlučeno. Da nestane ispod prsta
+  koji ga je upravo dodirnuo, ostalo bi pitanje da li se išta desilo.
+- Ako server odbije, red ostaje **neodgovoren**. Prikazati suprotno značilo bi
+  izgubiti zahtev.
+- Dok traje slanje, dugmad zamenjuje vrteška — dvostruki dodir ne šalje dva
+  odgovora.
+
+### Nepredviđena rupa koju je ovo otvorilo, i kako je zatvorena
+
+`GET /notifications` vraća **poslednjih dvadeset**. Da se odgovor oslonio samo
+na obaveštenje, zahtev bi ispao iz liste čim stigne dvadeset novijih poruka — i
+postao **neodgovoriv**, tiho. Zato je izvor istine za „šta još čeka"
+`/relationships/pending`, a ne lista obaveštenja: sve što je neodgovoreno vidi
+se u zvoncetu bez obzira na to da li je njegovo obaveštenje preživelo.
+
+Iz istog razloga i **značka broji zahteve iz te liste**, pa obaveštenje istog
+zahteva preskače — inače bi jedan zahtev brojao dvaput ili nijednom.
+
+Zahtev koji još čeka prikazuje se **jednom**: kao red sa dugmadima. Njegovo
+obaveštenje bi ga inače ponovilo odmah ispod. Obaveštenje o zahtevu koji je
+**već odgovoren** ostaje u listi kao poruka, sa „Odgovoreno." umesto dugmadi —
+ponuditi dugmad drugi put bilo bi laž.
+
+### Šta je otišlo iz taba Prijatelji
+
+Kartica „Čeka vaš odgovor", i sa njom filtriranje po `i_asked` koje je postojalo
+**samo** zbog nje (da se isti čovek ne pojavi dvaput — jednom sa dugmadima,
+jednom sivo). Sada se u listi vide svi, a sivi red kaže **na koga se čeka**:
+
+| | |
+|---|---|
+| ja sam poslao | „čeka potvrdu" |
+| čeka se moj odgovor | „odgovorite u zvoncetu" |
+
+To je bolje od ranijeg skrivanja: čovek koji nestane iz liste dok ne odgovori
+izgleda kao da ga nema.
+
+Ništa na serveru nije menjano — `accept`/`decline` primaju `id` reda u
+`trainer_students`, a to je upravo `ref_id` koji obaveštenje već nosi, i server
+sam zatvara obaveštenje posle odgovora.
+
+Pokriveno testovima: zvonce (odgovor, odbijen odgovor, zahtev bez obaveštenja,
+zahtev prikazan jednom, odgovoren zahtev bez dugmadi) i tab Prijatelji (sivi red
+sa uputstvom, i onaj koji čeka drugu stranu). Aplikacija 310 testova,
+`flutter analyze` čist.
+
+**Nije viđeno uživo** — `TODO-provera.md`, stavka 19.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
@@ -1845,8 +1910,7 @@ uživo. Ostaju:
   Kad dođe vreme, ne mora biti sve-ili-ništa: debug build sme da ostane na
   lokalnom backendu, a probni da se pravi sa
   `--dart-define=BACKEND_URL=https://api.chesstrainers.app`.
-- **Zvonce kao vlasnik odgovora na zahtev** — odlučeno 17.8.2026, nije napisano.
-  Vidi odeljak iznad; ukida dvostruko vođenje istog zahteva na dva ekrana.
+- ~~Zvonce kao vlasnik odgovora na zahtev~~ — urađeno 20.8.2026.
 - Ostatak probe pristanka: ponovno slanje posle odbijanja, samo obaveštenje o
   odbijanju, i obaveštenja posle popravke — stavke 0 i 0a u
   [TODO-provera.md](TODO-provera.md). Proba pristanka je inače prošla uživo

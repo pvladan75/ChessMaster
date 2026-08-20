@@ -45,8 +45,23 @@ const _declined = {
   'is_read': true,
 };
 
-Future<void> _open(WidgetTester tester, List<dynamic> notifications,
-    {void Function(int, String)? onJoin, Size size = _phone}) async {
+/// The same request as `_studentRequest`, as `/relationships/pending` returns
+/// it — the list that decides what is still unanswered.
+const _pending = {
+  'id': 8,
+  'i_am_student': true,
+  'other_name': 'pavle',
+  'other_email': 'x@y.z',
+};
+
+Future<void> _open(
+  WidgetTester tester,
+  List<dynamic> notifications, {
+  List<dynamic> pending = const [],
+  void Function(int, String)? onJoin,
+  Future<bool> Function(int, bool)? onRespond,
+  Size size = _phone,
+}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
@@ -58,7 +73,9 @@ Future<void> _open(WidgetTester tester, List<dynamic> notifications,
         onPressed: () => dialogs.showNotificationsDialog(
           context,
           notifications: notifications,
+          pendingRequests: pending,
           onJoinFromNotification: onJoin ?? (_, __) {},
+          onRespondToRequest: onRespond ?? (_, __) async => true,
         ),
         child: const Text('otvori'),
       ),
@@ -98,9 +115,83 @@ void main() {
     expect(find.textContaining('Soba: 123456'), findsOneWidget);
   });
 
-  testWidgets('a request says where it is answered', (tester) async {
+  testWidgets('a waiting request is answered here, not somewhere else',
+      (tester) async {
+    await _open(tester, [_studentRequest],
+        pending: const [_pending], size: const Size(800, 600));
+
+    // The bell is the owner now. It used to point at the Prijatelji tab, and
+    // the notification stayed unread for good because nothing tied the answer
+    // back to it.
+    expect(find.byTooltip('Prihvati'), findsOneWidget);
+    expect(find.byTooltip('Odbij'), findsOneWidget);
+    expect(find.text('Odgovorite u tabu Prijatelji.'), findsNothing);
+  });
+
+  testWidgets('a request is offered once, not twice', (tester) async {
+    await _open(tester, [_studentRequest],
+        pending: const [_pending], size: const Size(800, 600));
+
+    // The notification for a request that is still waiting would repeat the
+    // same thing directly under the row that can answer it.
+    expect(find.textContaining('želi da vas upiše'), findsOneWidget);
+  });
+
+  testWidgets('a request outlives its notification', (tester) async {
+    // /notifications returns the last twenty. A request whose notification has
+    // scrolled out of that must not become unanswerable.
+    await _open(tester, const [],
+        pending: const [_pending], size: const Size(800, 600));
+
+    expect(find.byTooltip('Prihvati'), findsOneWidget);
+    expect(find.text('Nemate novih notifikacija.'), findsNothing);
+  });
+
+  testWidgets('answering says what was decided, in place of the row',
+      (tester) async {
+    int? answeredId;
+    bool? accepted;
+    await _open(tester, const [],
+        pending: const [_pending],
+        size: const Size(800, 600), onRespond: (id, accept) async {
+      answeredId = id;
+      accepted = accept;
+      return true;
+    });
+
+    await tester.tap(find.byTooltip('Prihvati'));
+    await tester.pumpAndSettle();
+
+    expect(answeredId, 8);
+    expect(accepted, isTrue);
+    // The dialog stays open and reports the outcome rather than vanishing from
+    // under the finger that answered it.
+    expect(find.text('Zahtev je prihvaćen.'), findsOneWidget);
+    expect(find.byTooltip('Prihvati'), findsNothing);
+  });
+
+  testWidgets('a refused answer leaves the request where it was',
+      (tester) async {
+    await _open(tester, const [],
+        pending: const [_pending],
+        size: const Size(800, 600),
+        onRespond: (_, __) async => false);
+
+    await tester.tap(find.byTooltip('Prihvati'));
+    await tester.pumpAndSettle();
+
+    // The server said no. Pretending otherwise would lose the request.
+    expect(find.byTooltip('Prihvati'), findsOneWidget);
+    expect(find.text('Zahtev je prihvaćen.'), findsNothing);
+  });
+
+  testWidgets('an answered request is history, without buttons',
+      (tester) async {
+    // Nothing pending: the notification is all that is left of it.
     await _open(tester, [_studentRequest]);
-    expect(find.text('Odgovorite u tabu Prijatelji.'), findsOneWidget);
+
+    expect(find.text('Odgovoreno.'), findsOneWidget);
+    expect(find.byTooltip('Prihvati'), findsNothing);
   });
 
   testWidgets('joining passes the room code along', (tester) async {

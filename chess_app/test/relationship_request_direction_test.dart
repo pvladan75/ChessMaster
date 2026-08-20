@@ -35,9 +35,6 @@ Widget _tab({
       isLoadingStudents: false,
       students: students,
       trainers: trainers,
-      pendingRequests: const [],
-      onAcceptRequest: (_) {},
-      onDeclineRequest: (_) {},
       onAddStudent: () {},
       onDeleteStudent: onDeleteStudent ?? (_) {},
       onOpenProgress: onOpenProgress ?? (_) {},
@@ -232,11 +229,13 @@ void main() {
       expect(deleted, 1);
     });
 
-    testWidgets('a request waiting on me is not also listed below',
+    testWidgets('a request waiting on me is listed, and says where to answer',
         (tester) async {
-      // pendingForUser and listTrainers overlap: the same unanswered row is in
-      // both. Listing it twice would offer the same person as a card to answer
-      // and as a greyed-out entry.
+      // It used to be hidden here, because the same request was also an
+      // answerable card above and the person would have appeared twice. The
+      // answer moved to the bell, so there is nothing to hide from — and a
+      // person who vanishes from the list until they answer is worse than a
+      // greyed row that points at the bell.
       await tester.pumpWidget(_host(_tab(
         iAmTrainer: true,
         onRoleChanged: (_) {},
@@ -251,8 +250,31 @@ void main() {
         ],
       )));
 
-      expect(find.text('Moji treneri'), findsNothing);
-      expect(find.text('pavle'), findsNothing);
+      expect(find.text('Moji treneri'), findsOneWidget);
+      expect(find.text('pavle'), findsOneWidget);
+      expect(find.textContaining('odgovorite u zvoncetu'), findsOneWidget);
+      // And no buttons: two places to answer one thing is what this removed.
+      expect(find.byTooltip('Prihvati'), findsNothing);
+    });
+
+    testWidgets('a request I sent says it is the other side being waited on',
+        (tester) async {
+      await tester.pumpWidget(_host(_tab(
+        iAmTrainer: true,
+        onRoleChanged: (_) {},
+        students: const [
+          {
+            'id': 5,
+            'name': 'pavle',
+            'email': 'p@example.com',
+            'status': 'pending',
+            'i_asked': true
+          },
+        ],
+      )));
+
+      expect(find.textContaining('čeka potvrdu'), findsOneWidget);
+      expect(find.textContaining('zvoncetu'), findsNothing);
     });
 
     testWidgets('a request I sent stays visible while it waits',
