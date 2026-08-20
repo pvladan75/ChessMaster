@@ -130,7 +130,8 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
     if (puzzle == null || !puzzle.isPlayable) {
       // One bad row must not strand the student on the rest of the homework.
-      AppLogger.log('[Tactics] Preskačem zadatu zagonetku ${ids[_assignmentIndex]}.');
+      AppLogger.log(
+          '[Tactics] Preskačem zadatu zagonetku ${ids[_assignmentIndex]}.');
       _assignmentIndex++;
       await _loadAssignmentPuzzle(token);
       return;
@@ -158,7 +159,9 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       _session = TacticsSolveSession(puzzle);
       _game = game;
       // Whoever is to move after the setup move is the side the user plays.
-      _orientation = game.turn == chess.Color.WHITE ? PlayerColor.white : PlayerColor.black;
+      _orientation = game.turn == chess.Color.WHITE
+          ? PlayerColor.white
+          : PlayerColor.black;
       _loading = false;
       _boardLocked = false;
       _startedAt = DateTime.now();
@@ -166,7 +169,8 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     });
 
     _boardController.loadFen(game.fen);
-    AppLogger.log('[Tactics] Zagonetka ${puzzle.id} (rejting ${puzzle.rating}) učitana.');
+    AppLogger.log(
+        '[Tactics] Zagonetka ${puzzle.id} (rejting ${puzzle.rating}) učitana.');
   }
 
   /// True when this move lands a pawn on the last rank.
@@ -206,7 +210,9 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   Future<void> _onMove(String from, String to) async {
     final session = _session;
     final game = _game;
-    if (session == null || game == null || _boardLocked || session.isComplete) return;
+    if (session == null || game == null || _boardLocked || session.isComplete) {
+      return;
+    }
 
     final isPromotion = _isPromotion(game, from, to);
 
@@ -231,7 +237,13 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
     // The suffix belongs on the move only when a promotion actually happened.
     final uci = isPromotion ? '$from$to$promotion' : '$from$to';
-    final verdict = session.submit(uci, givesCheckmate: probe.in_checkmate);
+    final verdict = session.submit(
+      uci,
+      givesCheckmate: probe.in_checkmate,
+      // Passed for the sake of the first wrong try, which is the only thing a
+      // trainer can read afterwards: `e2e4` says nothing to anyone.
+      san: _sanFor(game.fen, from, to, promotion),
+    );
 
     if (!verdict.correct) {
       setState(() {
@@ -259,6 +271,26 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
     if (verdict.puzzleSolved) {
       await _finish(solved: session.countsAsSolved);
+    }
+  }
+
+  /// The move in notation a person reads, asked of a copy of the position.
+  ///
+  /// `move_to_san` has to be asked *before* the move exists on the board — it
+  /// reads the position it is given, and called afterwards it throws. The same
+  /// trap cost a whole afternoon on the homework screen.
+  static String? _sanFor(String fen, String from, String to, String promotion) {
+    try {
+      final game = chess.Chess.fromFEN(fen);
+      if (game.move({'from': from, 'to': to, 'promotion': promotion}) ==
+          false) {
+        return null;
+      }
+      final made = game.history.last.move;
+      game.undo_move();
+      return game.move_to_san(made);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -294,11 +326,15 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       _feedbackIsGood = solved;
     });
 
-    final elapsed = _startedAt == null ? null : DateTime.now().difference(_startedAt!).inMilliseconds;
+    final elapsed = _startedAt == null
+        ? null
+        : DateTime.now().difference(_startedAt!).inMilliseconds;
     final result = await _api.submitAttempt(
       puzzleId: puzzle.id,
       solved: solved,
       msTaken: elapsed,
+      // What they tried before they found it — or instead of finding it.
+      playedSan: _session?.firstWrongSan,
     );
 
     if (!mounted) return;
@@ -316,7 +352,8 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     final token = _puzzleToken;
 
     // Everything from where the user got stuck to the end of the line.
-    for (final move in session.puzzle.solution.sublist(session.solvedMoveCount * 2)) {
+    for (final move
+        in session.puzzle.solution.sublist(session.solvedMoveCount * 2)) {
       await Future.delayed(const Duration(milliseconds: 450));
       if (!mounted || token != _puzzleToken) return;
 
@@ -358,7 +395,9 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
         actions: [
           BoardFlipButton(
             onPressed: () => setState(() {
-              _orientation = _orientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
+              _orientation = _orientation == PlayerColor.white
+                  ? PlayerColor.black
+                  : PlayerColor.white;
             }),
           ),
         ],
@@ -493,7 +532,8 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
                 Expanded(
                   child: Text(
                     '$toMove na potezu — nađite najbolji potez',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                 ),
                 Chip(
@@ -511,7 +551,8 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
                   ? 'Motiv: ${puzzle.trainableThemes.join(', ')}'
                   : 'Potrebno poteza: ${puzzle.userMoveCount} · '
                       'pronađeno ${session.solvedMoveCount}',
-              style: TextStyle(fontSize: 12, color: context.colors.textSecondary),
+              style:
+                  TextStyle(fontSize: 12, color: context.colors.textSecondary),
             ),
             if (widget.isAssignment) ...[
               const SizedBox(height: 4),
@@ -519,7 +560,8 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
                 'Zadatak: $_assignmentIndex od ${widget.puzzleIds!.length}',
                 style: TextStyle(fontSize: 11, color: context.colors.textMuted),
               ),
-            ] else if (_selection?.targetTheme != null && !session.isComplete) ...[
+            ] else if (_selection?.targetTheme != null &&
+                !session.isComplete) ...[
               const SizedBox(height: 4),
               Text(
                 'Vežbate svoju najslabiju temu.',
@@ -539,7 +581,8 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     if (result != null) {
       final positive = result.ratingChange >= 0;
       return Card(
-        color: (positive ? context.colors.success : context.colors.danger).withValues(alpha: 0.12),
+        color: (positive ? context.colors.success : context.colors.danger)
+            .withValues(alpha: 0.12),
         child: ListTile(
           leading: Icon(
             positive ? Icons.trending_up : Icons.trending_down,
@@ -559,8 +602,9 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: (_feedbackIsGood ? context.colors.success : context.colors.warning)
-            .withValues(alpha: 0.12),
+        color:
+            (_feedbackIsGood ? context.colors.success : context.colors.warning)
+                .withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -568,7 +612,9 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
           Icon(
             _feedbackIsGood ? Icons.check_circle_outline : Icons.error_outline,
             size: 18,
-            color: _feedbackIsGood ? context.colors.success : context.colors.warning,
+            color: _feedbackIsGood
+                ? context.colors.success
+                : context.colors.warning,
           ),
           const SizedBox(width: 8),
           Expanded(child: Text(message)),

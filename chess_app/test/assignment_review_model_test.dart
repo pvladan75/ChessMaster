@@ -139,4 +139,44 @@ void main() {
 
     expect(item.label(2), 'Pozicija 3');
   });
+
+  test('a puzzle keeps the first wrong idea, not "the move played"', () {
+    final review = AssignmentReview.fromJson(payload(items: [
+      {
+        'itemId': 4,
+        'position': 0,
+        'kind': 'lichess',
+        'attempted': true,
+        'solved': true,
+        'playedSan': 'Qe2+',
+        'solutionMoves': 'Rb7 Rxb7 g8=Q',
+      },
+    ]));
+
+    // Solved, and still carrying a wrong move: a puzzle refuses the wrong move
+    // and lets the student try again, so the two are not in conflict.
+    final item = review.items.single;
+    expect(item.kind, ReviewItemKind.lichess);
+    expect(item.solved, isTrue);
+    expect(item.playedSan, 'Qe2+');
+    expect(item.solutionMoves, 'Rb7 Rxb7 g8=Q');
+  });
+
+  test('a puzzle solved cleanly carries no move at all', () {
+    final review = AssignmentReview.fromJson(payload(items: [
+      {
+        'itemId': 5,
+        'position': 0,
+        'kind': 'lichess',
+        'attempted': true,
+        'solved': true,
+        'playedSan': null,
+      },
+    ]));
+
+    // Nothing went wrong, so there is nothing to show — which the screen must
+    // not render as "nije zabeležen".
+    expect(review.items.single.playedSan, isNull);
+    expect(review.items.single.solved, isTrue);
+  });
 }

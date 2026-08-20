@@ -507,3 +507,19 @@ svežem build-u za Windows i na telefonu.
       pojavljuje se nikakva ocena.
 - [x] U pregledu Lichess zadatka linija piše kao `Rb7 Rxb7 g8=Q`, a ne kao
       `e7b7 b8b7 g7g8q`.
+
+## 18. Prva pogrešna ideja u zagonetki — 20.8.2026, nije viđeno uživo
+
+**Kako:** kao učenik otvori zadatak sa Lichess zagonetkama („Domaći zadatak"),
+pa **namerno odigraj pogrešan potez**, zatim tačan. Onda uradi jednu zagonetku
+**iz prve**, bez greške. Pa otvori „Pregled i komentari".
+
+**Na šta obratiti pažnju:**
+
+- [ ] Kod zagonetke gde si pogrešio piše **„Prvo probao: <potez>"** — u
+      notaciji, ne kao `e2e4`.
+- [ ] Kod zagonetke rešene iz prve **nema nijednog reda o potezu**. Ne sme da
+      piše „nije zabeležen".
+- [ ] Kod starih zagonetki (pre 20.8.2026) i dalje piše „nije zabeležen".
+- [ ] Kod trenera piše isto, samo „Prvo probao" umesto „Prvo si probao".
+- [ ] Linija ispod i dalje stoji u čitljivom zapisu.

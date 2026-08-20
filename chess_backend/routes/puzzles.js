@@ -226,7 +226,7 @@ router.get('/puzzles/themes', authenticateToken, async (req, res) => {
 // will. Every trainable theme on the puzzle moves, so a fork-and-pin puzzle
 // informs both.
 router.post('/puzzles/attempt', authenticateToken, async (req, res) => {
-  const { puzzleId, solved, msTaken } = req.body;
+  const { puzzleId, solved, msTaken, playedSan } = req.body;
   const userId = req.user.id;
 
   if (!puzzleId || typeof solved !== 'boolean') {
@@ -299,6 +299,10 @@ router.post('/puzzles/attempt', authenticateToken, async (req, res) => {
       puzzleId,
       solved,
       msTaken,
+      // The first move they tried that was not the one the puzzle wanted. A
+      // puzzle is not one shot, so there is no single move played here — this
+      // is the idea they had before they found it, or instead of finding it.
+      playedSan,
     });
 
     res.json({

@@ -38,7 +38,8 @@ class PuzzleSelection {
 
   const PuzzleSelection({this.targetTheme, required this.targetRating});
 
-  factory PuzzleSelection.fromJson(Map<String, dynamic> json) => PuzzleSelection(
+  factory PuzzleSelection.fromJson(Map<String, dynamic> json) =>
+      PuzzleSelection(
         targetTheme: json['targetTheme']?.toString(),
         targetRating: (json['targetRating'] as num?)?.toInt() ?? 1500,
       );
@@ -101,7 +102,9 @@ class TacticsApiService {
     );
 
     try {
-      final res = await http.get(uri, headers: _headers).timeout(const Duration(seconds: 12));
+      final res = await http
+          .get(uri, headers: _headers)
+          .timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) {
         AppLogger.log('[Tactics] Server je odbio zahtev (${res.statusCode}).');
         return null;
@@ -109,7 +112,8 @@ class TacticsApiService {
 
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       return AdaptivePuzzleResponse(
-        puzzle: TacticsPuzzle.fromJson(Map<String, dynamic>.from(data['puzzle'])),
+        puzzle:
+            TacticsPuzzle.fromJson(Map<String, dynamic>.from(data['puzzle'])),
         selection: PuzzleSelection.fromJson(
           Map<String, dynamic>.from(data['selection'] ?? const {}),
         ),
@@ -125,7 +129,8 @@ class TacticsApiService {
   Future<TacticsPuzzle?> fetchPuzzleById(String puzzleId) async {
     try {
       final res = await http
-          .get(Uri.parse('$backendUrl/api/puzzles/by-id/$puzzleId'), headers: _headers)
+          .get(Uri.parse('$backendUrl/api/puzzles/by-id/$puzzleId'),
+              headers: _headers)
           .timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) return null;
 
@@ -137,10 +142,16 @@ class TacticsApiService {
     }
   }
 
+  /// Reports how one puzzle went.
+  ///
+  /// [playedSan] is the first move the user tried that was not the one the
+  /// puzzle wanted — the only part of a retried attempt a trainer can read
+  /// afterwards. Absent when they found it straight away.
   Future<AttemptResult?> submitAttempt({
     required String puzzleId,
     required bool solved,
     int? msTaken,
+    String? playedSan,
   }) async {
     try {
       final res = await http
@@ -151,12 +162,15 @@ class TacticsApiService {
               'puzzleId': puzzleId,
               'solved': solved,
               if (msTaken != null) 'msTaken': msTaken,
+              if (playedSan != null && playedSan.trim().isNotEmpty)
+                'playedSan': playedSan.trim(),
             }),
           )
           .timeout(const Duration(seconds: 12));
 
       if (res.statusCode != 200) return null;
-      return AttemptResult.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+      return AttemptResult.fromJson(
+          jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
       AppLogger.log('[Tactics] Ne mogu da pošaljem rezultat: $e');
       return null;

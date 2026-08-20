@@ -97,11 +97,24 @@ class TacticsSolveSession {
   SolveStatus _status = SolveStatus.solving;
   bool _usedHint = false;
   int _mistakes = 0;
+  String? _firstWrongSan;
 
   SolveStatus get status => _status;
   bool get isComplete => _status != SolveStatus.solving;
   bool get usedHint => _usedHint;
   int get mistakes => _mistakes;
+
+  /// The first move the user tried that was not the one the puzzle wanted.
+  ///
+  /// A puzzle is not one shot — a wrong move is refused and the user tries
+  /// again — so there is no single "the move they played" here as there is for
+  /// a position the trainer set. What a trainer can actually use is the **first
+  /// wrong idea**: it says what the child thought before they found it, or
+  /// instead of finding it.
+  ///
+  /// Null when they got it right straight away, which is not the same as "not
+  /// recorded" and must not be shown as such.
+  String? get firstWrongSan => _firstWrongSan;
 
   /// Moves the user has already found.
   int get solvedMoveCount => (_cursor / 2).floor();
@@ -137,7 +150,9 @@ class TacticsSolveSession {
   /// [givesCheckmate] lets a mate that differs from the recorded line count as a
   /// solution — a forced mate the database happened not to pick is still a
   /// solved puzzle, and rejecting it would be indefensible to the user.
-  MoveVerdict submit(String uci, {bool givesCheckmate = false}) {
+  /// [san] is the same move in notation a person reads, when the caller has it.
+  /// It is only kept for the first mistake; nothing else here needs it.
+  MoveVerdict submit(String uci, {bool givesCheckmate = false, String? san}) {
     if (isComplete) {
       return const MoveVerdict(correct: false);
     }
@@ -156,6 +171,11 @@ class TacticsSolveSession {
       }
 
       _mistakes++;
+      // Only the first: later tries are attempts at correcting the first idea,
+      // and a list of them says less than the one that started it.
+      if (_firstWrongSan == null && san != null && san.trim().isNotEmpty) {
+        _firstWrongSan = san.trim();
+      }
       _status = SolveStatus.failed;
       return MoveVerdict(correct: false, expected: expected);
     }
@@ -175,7 +195,8 @@ class TacticsSolveSession {
     final solvedNow = _cursor >= puzzle.solution.length;
     if (solvedNow) _status = SolveStatus.solved;
 
-    return MoveVerdict(correct: true, opponentReply: reply, puzzleSolved: solvedNow);
+    return MoveVerdict(
+        correct: true, opponentReply: reply, puzzleSolved: solvedNow);
   }
 
   /// Lets the user try again after a wrong move, keeping the mistake on record

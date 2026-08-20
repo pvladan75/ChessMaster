@@ -1743,6 +1743,40 @@ sveže sagrađen. Jednom je time na telefon vraćena verzija stara nedelju dana.
 Prvo `flutter build apk --release --target-platform android-arm64`, pa
 instalacija.
 
+## Zagonetka sada kaže šta je dete prvo probalo — 20.8.2026
+
+Poslednje mesto na kom je u pregledu pisalo „nije zabeležen". Klijent je znao
+potez i nije ga slao.
+
+**Ali „odigran potez" ovde ne znači isto što i kod trenerove pozicije**, i to je
+cela suština ove izmene. Pozicija koju trener zada odgovara se **jednom** —
+potez je odgovor. Zagonetka odbija pogrešan potez i pušta da se proba ponovo, pa
+niza pokušaja ima koliko hoćeš. Ono što treneru zaista nešto govori je **prva
+pogrešna ideja**: šta je dete mislilo pre nego što je našlo, ili umesto da nađe.
+
+Zato se čuva prvi pogrešan potez, i samo on. Kasniji pokušaji su ispravke te
+iste ideje, a spisak ispravki kaže manje od onoga što ih je pokrenulo.
+
+Iz toga sledi da `NULL` u toj koloni sada pokriva **tri** slučaja, i ekran ih ne
+sme spljoštiti u jedan:
+
+| | |
+|---|---|
+| red odgovoren pre 20.8.2026. | podatak ne postoji |
+| korak lekcije | čita se, ne rešava |
+| **zagonetka rešena bez ijedne greške** | nije bilo šta da se zabeleži |
+
+Treći je nov. Zato u pregledu kod takve zagonetke **ne piše ništa** o potezu —
+„nije zabeležen" bi zvučalo kao da se nešto izgubilo. Kad prva greška postoji,
+red se zove **„Prvo probao"**, a ne „Odigrao": to su dve različite tvrdnje i
+jedna oznaka za obe bila bi netačna kod jedne od njih.
+
+Napomena o poverenju: ovaj potez dolazi **od klijenta**, za razliku od
+trenerovih pozicija gde ga server izvodi sam dok sudi. To nije novo popuštanje —
+na ovom putu klijent već odlučuje i `solved`, pa potez nije poverljiviji od
+ocene uz koju stiže. Prolazi kroz `cleanSan`, koji zadržava samo ono od čega
+potez može da bude sastavljen.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,

@@ -383,25 +383,34 @@ class _ItemCard extends StatelessWidget {
     final colors = context.colors;
     final lines = <Widget>[];
 
-    String? played;
-    if (!item.attempted) {
-      played = null;
-    } else if (item.playedSan != null) {
-      played = item.playedSan;
-    }
+    final played = item.attempted ? item.playedSan : null;
+
+    // A puzzle and a set position mean different things by "the move played",
+    // so they are not labelled the same. A position the trainer set is answered
+    // once — that is *the* move. A puzzle refuses a wrong move and lets the
+    // student try again, so what is kept is the first wrong idea.
+    final isPuzzle = item.kind == ReviewItemKind.lichess;
 
     if (item.kind != ReviewItemKind.step) {
-      lines.add(_line(
-        context,
-        isTrainer ? 'Odigrao' : 'Tvoj potez',
-        played ??
-            (item.attempted
-                // Not the same as playing nothing, and it must not read that
-                // way: the move simply was not recorded for this attempt.
-                ? 'nije zabeležen'
-                : 'nije urađeno'),
-        muted: played == null,
-      ));
+      // A puzzle solved without a single wrong move has nothing to report here,
+      // and "nije zabeležen" would suggest something went missing.
+      final silent = isPuzzle && played == null && item.solved == true;
+
+      if (!silent) {
+        lines.add(_line(
+          context,
+          isPuzzle
+              ? (isTrainer ? 'Prvo probao' : 'Prvo si probao')
+              : (isTrainer ? 'Odigrao' : 'Tvoj potez'),
+          played ??
+              (item.attempted
+                  // Not the same as playing nothing, and it must not read that
+                  // way: the move simply was not recorded for this attempt.
+                  ? 'nije zabeležen'
+                  : 'nije urađeno'),
+          muted: played == null,
+        ));
+      }
 
       if (item.solutionSan != null) {
         lines.add(_line(context, 'Rešenje', item.solutionSan!));
@@ -414,7 +423,8 @@ class _ItemCard extends StatelessWidget {
 
       // Accepted, and not the move the book prints — the only rule that does
       // that is "a different mate is still a mate", so saying so is reporting.
-      if (item.solved == true &&
+      if (!isPuzzle &&
+          item.solved == true &&
           item.playedSan != null &&
           item.solutionSan != null &&
           item.playedSan != item.solutionSan) {

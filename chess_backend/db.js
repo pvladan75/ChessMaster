@@ -482,17 +482,22 @@ async function initDB() {
         ON assignment_items(assignment_id, position) WHERE puzzle_id IS NULL;
     `);
 
-    // What the student actually played, not only whether it was accepted.
+    // What the student tried, not only whether it was accepted.
     //
     // `solved` alone cannot be un-lost: a wrong answer that is one square off
     // and a wrong answer that ignores the position entirely look identical
     // afterwards, and the move is exactly what tells the trainer *why* it
-    // failed. The server already computes it while judging, so this stores what
-    // was being discarded rather than asking for anything new.
+    // failed.
     //
-    // NULL means the move is not known for that item, which is honest for
-    // everything answered before this column existed and for lesson steps,
-    // which are read rather than solved.
+    // The two paths mean slightly different things by it, and both are honest.
+    // A position the trainer set is answered once, so this is *the* move, and
+    // the server computes it while judging. A Lichess puzzle refuses a wrong
+    // move and lets the student try again, so it is the **first wrong** one —
+    // what they thought before they found it.
+    //
+    // NULL therefore covers three cases, and the screen must not flatten them:
+    // rows answered before this column existed, lesson steps (read rather than
+    // solved), and a puzzle solved without a single wrong move.
     await client.query(`
       ALTER TABLE assignment_items
         ADD COLUMN IF NOT EXISTS played_san VARCHAR(20);

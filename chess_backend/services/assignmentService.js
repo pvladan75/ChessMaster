@@ -43,6 +43,19 @@ async function trainerOwnsStudent(pool, trainerId, studentId) {
   return result.rows.length > 0;
 }
 
+/// Keeps only what a move can be made of.
+///
+/// The custom path builds this itself from `chess.js`, so it arrives clean. The
+/// puzzle path takes it from the client — which already decides `solved` there,
+/// so the move is trusted no further than the verdict it comes with. Stripping
+/// anything that cannot appear in notation costs nothing and keeps whatever
+/// arrives from ending up on a trainer's screen as-is.
+function cleanSan(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim().replace(/[^KQRBNOa-h1-8x=+#-]/g, '');
+  return trimmed === '' ? null : trimmed.slice(0, 20);
+}
+
 /// The two people one assignment belongs to, and which of them is asking.
 ///
 /// Homework is read by exactly two accounts — the trainer who set it and the
@@ -320,9 +333,14 @@ async function markLessonStepDone(pool, { studentId, assignmentId, position }) {
 /// Only the *first* attempt counts. Letting a retry overwrite a failure would
 /// turn the report into a record of persistence rather than of ability.
 ///
-/// `playedSan` is the move the student actually made, where the caller knows
-/// it. It is optional because not every path does: a Lichess attempt reports
-/// only whether it was solved, and that stays NULL rather than being guessed.
+/// `playedSan` is what the student tried, where the caller knows it. Optional,
+/// because not every path has something to say: a puzzle solved at the first
+/// attempt has no wrong move to report, and that is not the same as "unknown".
+///
+/// The two paths mean slightly different things by it, and both are honest:
+/// homework from the trainer's own positions is answered once, so it is *the*
+/// move; a Lichess puzzle refuses a wrong move and lets the user try again, so
+/// it is the **first wrong** one — what they thought before they found it.
 async function recordPuzzleResult(pool, { studentId, puzzleId, solved, msTaken, playedSan }) {
   try {
     const result = await pool.query(
@@ -339,7 +357,7 @@ async function recordPuzzleResult(pool, { studentId, puzzleId, solved, msTaken, 
         Number.isInteger(msTaken) ? msTaken : null,
         studentId,
         puzzleId,
-        typeof playedSan === 'string' && playedSan.trim() !== '' ? playedSan.trim().slice(0, 20) : null,
+        cleanSan(playedSan),
       ]
     );
 
@@ -670,6 +688,7 @@ module.exports = {
   DEFAULT_ITEMS,
   trainerOwnsStudent,
   assignmentParticipant,
+  cleanSan,
   resolvePuzzles,
   createPuzzleAssignment,
   createCustomAssignment,

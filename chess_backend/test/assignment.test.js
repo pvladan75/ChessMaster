@@ -216,3 +216,30 @@ test('a caller that knows no move leaves the column null rather than failing', a
 
   assert.equal(pool.calls[0].params[4], null);
 });
+
+test('what the client sends as a move is kept only where it could be one', async () => {
+  const pool = stubPool([[{ assignment_id: 3 }]]);
+  await recordPuzzleResult(pool, {
+    studentId: 7,
+    puzzleId: '00abc',
+    solved: false,
+    msTaken: 900,
+    playedSan: ' <b>Qe2+</b> ',
+  });
+
+  // The puzzle path takes this from the client, which already decides `solved`
+  // there — so the move is trusted no further than the verdict it arrives with,
+  // and nothing that cannot appear in notation reaches a trainer's screen.
+  assert.equal(pool.calls[0].params[4], 'bQe2+b');
+});
+
+test('a legitimate move survives being cleaned', () => {
+  const { cleanSan } = require('../services/assignmentService');
+
+  for (const san of ['Ra8#', 'exd8=Q+', 'O-O', 'Nbd7', 'e4', 'axb6', 'Qh1#']) {
+    assert.equal(cleanSan(san), san);
+  }
+  assert.equal(cleanSan('   '), null);
+  assert.equal(cleanSan(null), null);
+  assert.equal(cleanSan('x'.repeat(40)).length, 20);
+});

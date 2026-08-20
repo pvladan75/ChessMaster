@@ -26,7 +26,8 @@ void main() {
     });
 
     test('a payload without a setup move is not playable', () {
-      final puzzle = TacticsPuzzle.fromJson({'puzzle_id': 'x', 'fen': 'x', 'solution': []});
+      final puzzle = TacticsPuzzle.fromJson(
+          {'puzzle_id': 'x', 'fen': 'x', 'solution': []});
       expect(puzzle.isPlayable, isFalse);
     });
   });
@@ -191,5 +192,38 @@ void main() {
       expect(verdict.opponentReply, isNull);
       expect(puzzle.userMoveCount, 1);
     });
+  });
+
+  test('the first wrong idea is kept, the later tries are not', () {
+    final session = TacticsSolveSession(realPuzzle());
+
+    session.submit('a1a2', san: 'Ra2');
+    session.retryAfterMistake();
+    session.submit('b3c1', san: 'Nc1');
+
+    // Later tries are attempts at correcting the first idea; the one that
+    // started it says more than a list of them.
+    expect(session.firstWrongSan, 'Ra2');
+    expect(session.mistakes, 2);
+  });
+
+  test('a clean solve reports no wrong move, which is not "unknown"', () {
+    final session = TacticsSolveSession(realPuzzle());
+
+    session.submit('e6e7', san: 'Re7');
+
+    expect(session.firstWrongSan, isNull);
+    expect(session.mistakes, 0);
+  });
+
+  test('a wrong move with no notation still counts as a mistake', () {
+    final session = TacticsSolveSession(realPuzzle());
+
+    // The caller could not read the move. That must not be stored as an empty
+    // one, and must not stop the attempt being marked.
+    session.submit('a1a2');
+
+    expect(session.firstWrongSan, isNull);
+    expect(session.mistakes, 1);
   });
 }
