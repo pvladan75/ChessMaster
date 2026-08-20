@@ -303,7 +303,7 @@ Predlog je 1 pa 2: obaveštenje odmah jer je nesimetrija stvarna greška, soket
 kad se bude radila soba po korisniku (ista stvar treba i za druga obaveštenja
 uživo). Nije započeto.
 
-## Unifikacija table i okolnih elemenata — faza 1 gotova, čeka proveru
+## Unifikacija table i okolnih elemenata — faza 2 gotova, čeka proveru
 
 Korisnik je primetio da isti elementi izgledaju različito po ekranima (dugme za
 okretanje table nekad ispod table, nekad gore desno). Izmereno stanje pre rada:
@@ -328,10 +328,31 @@ na kraj reda. Dve `MoveTree` navigacije spojene — `MoveHistoryNavigationWidget
 obrisan, `MoveNavigationControls` dobio opcione `showMoveChips` i `onFlipBoard`.
 Time i `navigate_before` vs `chevron_left` postaje jedno.
 
-**Faza 2 (dogovoreno, nije započeto):** `MoveCursor` adapter
-(`canGoBack/canGoForward/first/prev/next/last/currentFen`) sa tri
-implementacije, pa lekcije, ponavljanje i Analysis Studio pređu na istu traku.
-Dogovor je: faza po faza, korisnik proverava svaku, vraćamo se ako ne valja.
+**Faza 2 (urađeno 20.8.2026, čeka proveru):** `MoveCursor`
+(`lib/core/models/move_cursor.dart`) stoji između trake i modela poteza, pa
+traka ne zna ni za jedan od njih — samo za `canGoBack/canGoForward/first/
+previous/next/last/currentFen` i, opciono, spisak čipova. Kursor se pravi u
+`build()` od zatečenog stanja i zove nazad u ekran, koji radi svoj `setState`;
+zato ne nosi sopstveno stanje i nema šta da se raziđe.
+
+Tri implementacije: `MoveTreeCursor` i `LinearMoveCursor` uz sam interfejs,
+`AnalysisNodeCursor` pored svog modela u `features/analysis_studio/models/`,
+da `core/` ne zavisi od jedne funkcionalnosti. Na traku su prešli lekcije
+(pregled zadate lekcije), ponavljanje, Analysis Studio **i** dijalog sa
+linijom motora — šest kopija istih dugmadi je sada jedna.
+
+Dve stvari koje su namerno ovakve:
+
+- **`<<` u Analysis Studio-u i dalje vodi na mesto gde se linija odvojila**, ne
+  na prvi potez partije. To je oduvek radio, samo je stajalo u ekranu; sad je
+  u kursoru i ima test. Bez njega bi „jedna traka za sve" tiho pojela razliku,
+  a stajanje u varijanti bi se izgubilo.
+- **Ponavljanje je dobilo dugme za okretanje table** kao i svi ostali. Tamo je
+  `_orientation` do sada značio dve stvari — kako tabla stoji *i* ko je na
+  potezu — pa bi okretanje počelo da laže u tekstu iznad table. Zato se „Beli/
+  Crni je na potezu" sad čita iz pozicije.
+
+Dogovor ostaje: faza po faza, korisnik proverava svaku, vraćamo se ako ne valja.
 
 **Na šta gledati pri proveri faze 1:**
 
@@ -1955,7 +1976,8 @@ uživo. Ostaju:
   17.8.2026, i uzajaman par je raskinut.
 - **Sajt** na korenu domena — sadržaja još nema, pa ni sertifikata za `@` i
   `www`. Vidi korak 3a u [TODO-objavljivanje.md](TODO-objavljivanje.md).
-- **Faza 2 unifikacije — `MoveCursor`** (faza 1 proverena uživo 15.8.2026).
+- ~~Faza 2 unifikacije — `MoveCursor`~~ — urađeno 20.8.2026, čeka proveru
+  uživo (stavka 20 u [TODO-provera.md](TODO-provera.md)).
 - **Prisilan redosled kao zastavica na zadatku**, ako se ikad pokaže potreba —
   vidi pitanje 1. Namerno nije napravljeno unapred.
 - Provere uživo iz `TODO-provera.md`: izveštaj za roditelja, zadaci tipa

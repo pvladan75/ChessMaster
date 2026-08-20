@@ -561,3 +561,37 @@ izađe iz taba Prijatelji i ne vrati se u njega. Lista se osvežava pri ulasku u
 tab, a ne dok se u njemu stoji. Uz to, `accept` ne šalje pošiljaocu nikakvo
 obaveštenje — `decline` šalje. Vidi „Prihvatanje se ne vidi kod pošiljaoca" u
 [STANJE-RADA.md](STANJE-RADA.md).
+
+## 20. Jedna traka za kretanje kroz poteze — 20.8.2026, nije viđeno uživo
+
+Faza 2 unifikacije. Šest zasebnih redova dugmadi `<< < > >>` zamenjeno je
+jednim, preko `MoveCursor` adaptera. Server nije menjan; ovo je čisto klijentska
+izmena. Objašnjenje je u [STANJE-RADA.md](STANJE-RADA.md), odeljak o
+unifikaciji.
+
+**Kako:** proći kroz svih šest mesta. Svugde ista dugmad, isti raspored, isti
+oblačići sa nazivima.
+
+**Na šta obratiti pažnju:**
+
+- [ ] **Lekcija u sobi** (kao trener) — traka radi kao pre, a kad učenik nema
+      pravo da vodi tablu, dugmad su siva i ne rade.
+- [ ] **AI Studio** — čipovi sa potezima i dalje stoje iznad dugmadi. Novo:
+      kad si na početku, čip „Početak" je **označen** (ranije nikad nije bio).
+- [ ] **Pregled zadate lekcije** (kao učenik, korak sa linijom poteza) — brojač
+      „Potez 3 od 12" se **preselio iznad dugmadi u sam red**, između `<` i `>`.
+      Traka je sada u kartici, kao na ostalim ekranima.
+- [ ] **Ponavljanje u razmacima** — posle „Prikaži nastavak" traka izgleda isto
+      kao svugde i **ima dugme za okretanje table**, kog ranije nije bilo.
+- [ ] Okreni tablu u ponavljanju: tekst iznad table i dalje kaže tačno ko je na
+      potezu. Ne sme da se promeni sa okretanjem.
+- [ ] **Analysis Studio** — traka je sada svetla (`cardColor`), ne tamnosiva.
+      Dugmad za komentar, AI komentar, NAG i brisanje stoje na istom mestu, u
+      istom redu, i rade.
+- [ ] U Analysis Studio-u uđi u varijantu pa pritisni `<<`: mora da te vrati na
+      **mesto gde se varijanta odvojila**, a ne na prvi potez partije.
+- [ ] **Dijalog sa linijom motora** (Analysis Studio → klik na liniju) — dugmad
+      su sada `<` i `>` kao svugde (ranije druge ikone), brojač `3 / 8` stoji
+      između njih, okretanje table na kraju reda.
+- [ ] Na telefonu se nijedna traka ne preliva — naročito „Potez 12 od 24" u
+      pregledu lekcije, gde je natpis najduži.
