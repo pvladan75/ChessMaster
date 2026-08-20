@@ -12,6 +12,7 @@ import { selectFontMap, unknownGlyphs } from './fonts.mjs';
 import { extractDiagrams } from './diagrams.mjs';
 import { readSolutions } from './solutions.mjs';
 import { buildPosition } from './verify.mjs';
+import { flagDuplicateNumbers } from './index.mjs';
 
 function parseArgs(argv) {
   const args = { file: argv[0] };
@@ -99,6 +100,10 @@ async function main() {
   }
 
   // --- report ---------------------------------------------------------------
+  // Same guard the library applies, from the same place: a book that numbers
+  // one diagram twice must not be measured as if it did not.
+  flagDuplicateNumbers(positions, (p) => p.id);
+
   const withSolution = positions.filter((p) => p.solution);
   const legal = withSolution.filter((p) => p.solutionLegal);
   const repaired = positions.filter((p) => p.repairs.length);

@@ -37,9 +37,9 @@ const SKAK_NEW = {
 /**
  * Tactics Course (Exeter Chess Club, Dave Regis).
  *
- * A row is 10 characters: a left margin border/coordinate character, 8 piece
- * glyphs, and a right margin border character. `X` is an attacked-square marker
- * (not a piece) and explicitly maps to empty string ('.').
+ * A row is 10 or 11 characters: a left margin coordinate glyph, 8 piece
+ * glyphs, a right margin border glyph, and on some pages one more suffix glyph
+ * marking whose move it is.
  */
 const TACTICS_COURSE = {
   id: 'tacticscourse',
@@ -48,14 +48,23 @@ const TACTICS_COURSE = {
   squares: (text) => text.slice(1, 9),
   isBorderRow: (text) => text.startsWith('c') || text.startsWith('C') || text.startsWith('v'),
   glyphs: {
-    // Empty squares and diagram target/attack/tutorial square markers
+    // Empty squares, and the markers this book draws on an empty square: `X`
+    // for an attacked square, `Z` and `*` for a target. All three keep to one
+    // square colour, like every glyph in this font, and none has the paired
+    // partner that a real piece always has — which is what tells a marker from
+    // a piece.
     w: '.', D: '.', d: '.', X: '.', Z: '.', '*': '.',
     // White pieces
     P: 'P', ')': 'P', N: 'N', H: 'N', B: 'B', G: 'B',
-    R: 'R', $: 'R', Q: 'Q', '1': 'Q', K: 'K', I: 'K',
-    // Black pieces
+    R: 'R', $: 'R', Q: 'Q', '!': 'Q', K: 'K', I: 'K',
+    // Black pieces. `1` is the black queen on a dark square and `!` the white
+    // one; reading them the other way round put a white queen on d8 in 22 of
+    // the book's 210 diagrams — opening traps where the piece deep in Black's
+    // camp is Black's own queen. Every FEN stayed legal, so nothing complained.
+    // The counts settle it: paired as they are here both queens come to 182,
+    // and swapped they came to 290 against 74 while every other piece was even.
     p: 'p', '0': 'p', n: 'n', h: 'n', b: 'b', g: 'b',
-    r: 'r', '4': 'r', q: 'q', '!': 'q', k: 'k', i: 'k',
+    r: 'r', '4': 'r', q: 'q', '1': 'q', k: 'k', i: 'k',
   },
 };
 

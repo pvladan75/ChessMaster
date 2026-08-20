@@ -6,7 +6,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeSan, splitFirstMove, parseSolutionLines } from './solutions.mjs';
 import { rowToFenRank, FONT_MAPS, selectFontMap } from './fonts.mjs';
-import { buildPosition } from './verify.mjs';
+import { buildPosition, materialProblem } from './verify.mjs';
+import { flagDuplicateNumbers } from './index.mjs';
 
 const skak = FONT_MAPS[0];
 
@@ -78,4 +79,57 @@ test('a position with no solution is kept but marked, never guessed', () => {
   assert.equal(result.solutionLegal, null);
   assert.equal(result.problem, null);
   assert.ok(['nepoznato', 'jedina legalna strana'].includes(result.sideSource));
+});
+
+// Both of these guard the same thing from different sides: a diagram read wrong
+// in a way that still produces a legal FEN. That is what a swapped pair of
+// queen glyphs did to 22 of one book's 210 diagrams while every other check in
+// this file passed.
+
+test('material that could never stand on a board is refused', () => {
+  assert.equal(materialProblem('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'), null);
+
+  // A white queen deep in Black's camp while White still has its own, and the
+  // pawns all present — the exact shape of the misread this check exists for.
+  assert.match(
+    materialProblem('r1bQk2r/pppp1ppp/5n2/1B2p3/1b1nP3/2NP1N2/PPPB1PPP/R2QK2R'),
+    /beli.*viška uz 8 pešaka/
+  );
+
+  assert.match(materialProblem('4k3/8/8/8/8/8/PPPPPPPPP/4K3'), /beli ima 9 pešaka/);
+  assert.match(materialProblem('4k3/pppppppppp/8/8/8/8/8/4K3'), /crni ima 10 pešaka/);
+});
+
+test('a promotion is possible material, and is not refused', () => {
+  // Two white queens with a white pawn missing is an ordinary promotion. The
+  // check must not turn "unusual" into "impossible", or a real position from a
+  // book gets held back for no reason.
+  assert.equal(materialProblem('4k3/8/8/8/8/8/PPPPPPP1/3QQ2K'), null);
+
+  // Three queens needs two pawns gone, and only two are.
+  assert.equal(materialProblem('4k3/8/8/8/8/8/PPPPPP2/2QQQ2K'), null);
+  assert.match(materialProblem('4k3/8/8/8/8/8/PPPPPPP1/2QQQ2K'), /viška/);
+});
+
+test('a number printed over two diagrams binds to neither', () => {
+  // The second test book numbers its final test *and* its worked examples, so
+  // its number 6 stands over two boards. Both used to be handed the same
+  // solution, and the one it did not belong to reported the book's own move as
+  // illegal — which reads as a broken glyph map.
+  const positions = [
+    { label: 6, page: 40, solutionLegal: false, problem: 'potez iz knjige "Re7+" nije legalan' },
+    { label: 6, page: 78, solutionLegal: true, problem: null },
+    { label: 7, page: 79, solutionLegal: true, problem: null },
+    { label: null, page: 12, solutionLegal: null, problem: null },
+  ];
+
+  flagDuplicateNumbers(positions);
+
+  assert.match(positions[0].problem, /broj 6 stoji na više dijagrama \(strane 40, 78\)/);
+  assert.match(positions[1].problem, /broj 6 stoji na više dijagrama/);
+  assert.equal(positions[0].solutionLegal, null, 'not called illegal — called unbound');
+  assert.equal(positions[1].solutionLegal, null, 'the right one is not guessed at either');
+
+  assert.equal(positions[2].problem, null, 'a unique number is left alone');
+  assert.equal(positions[3].problem, null, 'an unnumbered diagram has nothing to collide with');
 });
