@@ -385,3 +385,22 @@ test('pending list excludes what I asked for myself', async () => {
   assert.match(sql, /initiated_by <> \$1/);
   assert.match(sql, /\$1 IN \(ts\.trainer_id, ts\.student_id\)/);
 });
+
+
+test('the badge counts a waiting request even after it has been read about', () => {
+  // Reading the bell marks notifications read, and that must not quietly answer
+  // a request. What is still waiting comes from `/relationships/pending`, never
+  // from whether its notification was read — which is what makes marking
+  // everything read safe.
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'routes', 'social.js'),
+    'utf8'
+  );
+
+  const route = source.slice(source.indexOf("router.post('/notifications/read'"));
+  const body = route.slice(0, route.indexOf('});'));
+
+  assert.match(body, /UPDATE user_notifications/);
+  assert.match(body, /user_id = \$1/, 'only the caller own rows');
+  assert.doesNotMatch(body, /trainer_students/, 'it must not touch requests');
+});

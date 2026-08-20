@@ -582,7 +582,30 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Marks everything the bell is about to show as read.
+  ///
+  /// Only a room invitation was ever marked read before, and only by being
+  /// joined — so the badge never went down. The user could open the bell, read
+  /// all of it, close it, and still be told there were three.
+  ///
+  /// The list handed to the dialog is the one already in hand, so what was new
+  /// still reads as new while it is open; the refetch settles it on close.
+  Future<void> _markShownNotificationsRead() async {
+    if (_notifications.every((n) => n['is_read'] == true)) return;
+    try {
+      await http.post(
+        Uri.parse('$backendUrl/notifications/read'),
+        headers: {'Authorization': 'Bearer ${widget.session.token}'},
+      );
+      if (mounted) await _fetchNotifications();
+    } catch (e) {
+      // The badge staying up is not worth an error in the user's face.
+      print("Error marking notifications read: $e");
+    }
+  }
+
   void _showNotificationsDialog() {
+    _markShownNotificationsRead();
     dialogs.showNotificationsDialog(
       context,
       notifications: _notifications,

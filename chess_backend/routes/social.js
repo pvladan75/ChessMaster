@@ -355,6 +355,29 @@ router.get('/notifications', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /notifications/read — everything the user has just been shown.
+//
+// Until this existed only a room invitation was ever marked read, and only by
+// being joined. Every other kind stayed unread for good: a user could open the
+// bell, read all of it, close it, and the badge still said three. The count was
+// arithmetically right and useless.
+//
+// A request still waiting is not affected. It is counted from
+// `/relationships/pending`, not from its notification, precisely so that
+// reading about it cannot make it stop being waited on.
+router.post('/notifications/read', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'UPDATE user_notifications SET is_read = TRUE WHERE user_id = $1 AND is_read = FALSE',
+      [req.user.id]
+    );
+    res.json({ success: true, marked: result.rowCount });
+  } catch (err) {
+    logger.error('Error marking notifications read:', err);
+    res.status(500).json({ error: 'Greška pri ažuriranju obaveštenja.' });
+  }
+});
+
 // POST /notifications/:id/read
 router.post('/notifications/:id/read', authenticateToken, async (req, res) => {
   try {
