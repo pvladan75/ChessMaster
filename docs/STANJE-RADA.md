@@ -1721,6 +1721,28 @@ Ostaje nezabeleženo: **odigran potez na Lichess putu**. Klijent zna koji je
 potez dete odigralo u zagonetki, ali ga ne šalje, pa tamo i dalje piše „nije
 zabeležen". Odloženo svesno, nije zaboravljeno.
 
+### Sve provereno uživo — 20.8.2026
+
+Korisnik je istog dana prošao **ceo spisak po stavkama**, na svežem build-u za
+Windows i na novoinstaliranom APK-u: biblioteka i „Dodaj u lekciju", slobodan
+redosled sa preskakanjem i povratkom na preskočenu poziciju, već urađena
+pozicija sa zaključanom tablom, pregled sa obe strane i komentari u oba smera,
+igriva tabla u lekciji sa vraćanjem pozicije, i linija zagonetke u čitljivom
+zapisu. Sve se ponašalo kako je opisano.
+
+Dnevnik servera je za celu tu sesiju čist: nijedno upozorenje, nijedan
+`Custom attempt could not be resolved to a move`, nijedan odbijeni upis.
+
+Neprovereno ostaje samo ono što traži da se **server ugasi** (poruka „Nije
+moguće doći do servera" u biraču i traka koja se sama povlači kad server krene),
+i priznavanje **drugog mata** na dijagramu #122, gde ta zbirka ima dva mata u
+jedan. Oboje stoji u `TODO-provera.md`.
+
+Napomena za sledeći put: `flutter install` instalira **zatečeni** APK, a ne
+sveže sagrađen. Jednom je time na telefon vraćena verzija stara nedelju dana.
+Prvo `flutter build apk --release --target-platform android-arm64`, pa
+instalacija.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,

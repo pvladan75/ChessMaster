@@ -368,17 +368,17 @@ prešao sa 0/4 na 1/4, i izveštaj za roditelja sa ispravno razdvojenim temama.
 3. **Izveštaj je istu temu zvao i jakom i slabom**, jer su obe liste bile krajevi
    istog niza.
 
-Ostalo neprovereno iz ovog lanca:
+Ostalo iz ovog lanca — čekirano 20.8.2026. kroz probu u stavkama 14–17:
 
 - [ ] **Da li se drugi mat priznaje.** Najlakše na #122 (knjiga `Qe6#`, ali i
       `Qh7#` matira) — očekuje se „Tačno" i objašnjenje „Drugi mat od onog u
       knjizi". Logika je pokrivena testovima, ali okom nije viđena.
-- [ ] Šta se prikaže posle **netačnog** odgovora (rešenje se otkriva tek tada).
-- [ ] **Zadatak u lekciji kod učenika** — uokvireni tekst iznad table u
+- [x] Šta se prikaže posle **netačnog** odgovora (rešenje se otkriva tek tada).
+- [x] **Zadatak u lekciji kod učenika** — uokvireni tekst iznad table u
       `lesson_viewer_screen`. Traži zadatu lekciju sa upisanim zadatkom po koraku.
 - [ ] Da li se traka „nema veze sa serverom" sama povuče kad server krene
       (ponavlja proveru na 10 s, a povezivanje socketa je računa kao dokaz).
-- [ ] **Odigran potez se upisuje** (`assignment_items.played_san`, 20.8.2026).
+- [x] **Odigran potez se upisuje** (`assignment_items.played_san`, 20.8.2026).
       Kolona se dodaje pri pokretanju servera — u dnevniku mora da stoji
       `Verified database table & indexes: assignment_items`. Pusti dete da
       odgovori na jednu poziciju, tačno i netačno, pa proveri:
@@ -417,26 +417,27 @@ Backend je pozvan preko HTTP-a (203 stavke iz tri izvora, dopisivanje koraka
 pozicija ušla u lekciju sa svojim zadatkom, korak bez zadatka narandžast,
 „Dodaj u lekciju" nad više izabranih pozicija.
 
-Preostale kućice niže su rubovi koje ta proba nije dodirnula.
+Ostalo je neprovereno samo ponašanje kad je **server ugašen** — jedino
+stanje koje ova proba nije dodirnula.
 
 **Kako:** Sesija → „Kreiraj lekciju" → **Dodaj iz biblioteke**. Pa Biblioteka →
 „Moje pozicije" → dugi pritisak na jednu ili više → **Dodaj u lekciju**.
 
 **Na šta obratiti pažnju:**
 
-- [ ] U biraču se vide **sve tri vrste** — iz knjige, sačuvane pozicije, analize
+- [x] U biraču se vide **sve tri vrste** — iz knjige, sačuvane pozicije, analize
       — i čipovi ih filtriraju.
-- [ ] **Skenirana pozicija zaista uđe u lekciju** i u koraku piše njen zadatak
+- [x] **Skenirana pozicija zaista uđe u lekciju** i u koraku piše njen zadatak
       („Beli matira u jednom potezu."), ne samo naslov.
-- [ ] Kad se doda **analiza**, korak nosi varijante (PGN), a ne samo početnu
+- [x] Kad se doda **analiza**, korak nosi varijante (PGN), a ne samo početnu
       tablu. Ako učitavanje stabla ne uspe, mora da stigne poruka i pozicija —
       ne tiho preskakanje.
-- [ ] Traženje po tekstu radi (kuca se, pa se posle kratke pauze osvežava lista).
+- [x] Traženje po tekstu radi (kuca se, pa se posle kratke pauze osvežava lista).
 - [ ] Kad je server ugašen, birač kaže **„Nije moguće doći do servera"**, a ne
       „Nema sačuvanih pozicija".
-- [ ] „Dodaj u lekciju" nad **više izabranih** pozicija: poruka mora da kaže i
+- [x] „Dodaj u lekciju" nad **više izabranih** pozicija: poruka mora da kaže i
       koliko je dodato i koliko nije.
-- [ ] Na telefonu traka sa tri dugmeta („Poništi", „Dodaj u lekciju", „Zadaj
+- [x] Na telefonu traka sa tri dugmeta („Poništi", „Dodaj u lekciju", „Zadaj
       učeniku") mora da se prelomi, ne da iscuri sa ekrana.
 
 ## 15. Pregled domaćeg i komentari — ✅ provereno uživo 20.8.2026
@@ -454,17 +455,17 @@ učenik — „Moji zadaci" → „Pregled i komentari" na kartici zadatka.
 
 **Na šta obratiti pažnju:**
 
-- [ ] Na svakoj poziciji se vidi **tabla**, zadatak, ocena i vreme.
-- [ ] **Odigran potez** piše „nije zabeležen" za sve stare zadatke — to je tačno,
+- [x] Na svakoj poziciji se vidi **tabla**, zadatak, ocena i vreme.
+- [x] **Odigran potez** piše „nije zabeležen" za sve stare zadatke — to je tačno,
       jer se potez čuva tek od 20.8.2026. Za **nov** odgovor mora da stoji potez.
-- [ ] Kod učenika se **rešenje ne vidi** na poziciji koju nije uradio, i stoji
+- [x] Kod učenika se **rešenje ne vidi** na poziciji koju nije uradio, i stoji
       „otkriva se kad odgovoriš". Kod trenera se vidi.
-- [ ] Zadatak tipa **lekcija** nema ocenu „netačno" ni na jednom koraku — samo
+- [x] Zadatak tipa **lekcija** nema ocenu „netačno" ni na jednom koraku — samo
       „pregledano" ili „nije otvoreno".
-- [ ] Komentar na ceo zadatak i komentar na jednu poziciju stoje na različitim
+- [x] Komentar na ceo zadatak i komentar na jednu poziciju stoje na različitim
       mestima, i druga strana ih vidi (proveriti na oba naloga).
-- [ ] Svoju poruku mogu da obrišem, tuđu ne — kod tuđe nema iksa.
-- [ ] Na telefonu se kartica pozicije ne preliva (tabla 120 px + tekst desno).
+- [x] Svoju poruku mogu da obrišem, tuđu ne — kod tuđe nema iksa.
+- [x] Na telefonu se kartica pozicije ne preliva (tabla 120 px + tekst desno).
 
 ## 16. Slobodan redosled domaćeg — ✅ provereno uživo 20.8.2026
 
@@ -479,29 +480,30 @@ pozicija.
 
 **Na šta obratiti pažnju:**
 
-- [ ] Zadatak se otvara kao **mreža svih pozicija**, ne odmah kao tabla.
-- [ ] Tri stanja se razlikuju na prvi pogled: `tačno`, `netačno`, `nije urađeno`.
-- [ ] Dodir na **bilo koju** neurađenu poziciju je otvara — i onu na kraju.
-- [ ] „Nastavi" vodi na **prvu** neurađenu, a ne na onu posle poslednje otvorene.
-- [ ] Preskoči drugu poziciju, uradi ostale, pa na poslednjoj pritisni „Sledeća
+- [x] Zadatak se otvara kao **mreža svih pozicija**, ne odmah kao tabla.
+- [x] Tri stanja se razlikuju na prvi pogled: `tačno`, `netačno`, `nije urađeno`.
+- [x] Dodir na **bilo koju** neurađenu poziciju je otvara — i onu na kraju.
+- [x] „Nastavi" vodi na **prvu** neurađenu, a ne na onu posle poslednje otvorene.
+- [x] Preskoči drugu poziciju, uradi ostale, pa na poslednjoj pritisni „Sledeća
       nerešena" — mora da te vrati **na preskočenu**, ne da izađe.
-- [ ] Već urađena pozicija se otvara sa zaključanom tablom i porukom „računa se
+- [x] Već urađena pozicija se otvara sa zaključanom tablom i porukom „računa se
       prvi pokušaj"; figure se ne pomeraju.
-- [ ] Traka napretka raste kako se rešava, a ne kako se šeta kroz spisak.
-- [ ] Na telefonu mreža ima dve kolone i kartica se ne preliva.
+- [x] Traka napretka raste kako se rešava, a ne kako se šeta kroz spisak.
+- [x] Na telefonu mreža ima dve kolone i kartica se ne preliva.
 
-## 17. Tabla u lekciji i čitljiva linija — 20.8.2026, nije viđeno uživo
+## 17. Tabla u lekciji i čitljiva linija — ✅ provereno uživo 20.8.2026
 
-Obe izmene su nastale iz probe u stavkama 14–16.
+Obe izmene su nastale iz probe u stavkama 14–16 i proverene istog dana, na
+svežem build-u za Windows i na telefonu.
 
 **Kako:** kao učenik otvori zadatu lekciju u kojoj neki korak ima zadatak.
 
-- [ ] **Figure se pomeraju.** Posle prvog poteza se pojavljuje „Vrati poziciju"
+- [x] **Figure se pomeraju.** Posle prvog poteza se pojavljuje „Vrati poziciju"
       i napomena da se ništa ne ocenjuje.
-- [ ] „Vrati poziciju" vraća tačno onu poziciju koju korak pokazuje — i kad se
+- [x] „Vrati poziciju" vraća tačno onu poziciju koju korak pokazuje — i kad se
       stoji usred varijante, ne na njen početak.
-- [ ] Prelazak na sledeći korak sam vraća tablu; ništa se ne prenosi.
-- [ ] Napredak i dalje broji **pregledane korake**, ne odigrane poteze, i ne
+- [x] Prelazak na sledeći korak sam vraća tablu; ništa se ne prenosi.
+- [x] Napredak i dalje broji **pregledane korake**, ne odigrane poteze, i ne
       pojavljuje se nikakva ocena.
-- [ ] U pregledu Lichess zadatka linija piše kao `Rb7 Rxb7 g8=Q`, a ne kao
+- [x] U pregledu Lichess zadatka linija piše kao `Rb7 Rxb7 g8=Q`, a ne kao
       `e7b7 b8b7 g7g8q`.
