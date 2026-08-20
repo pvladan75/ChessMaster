@@ -1777,6 +1777,47 @@ na ovom putu klijent već odlučuje i `solved`, pa potez nije poverljiviji od
 ocene uz koju stiže. Prolazi kroz `cleanSan`, koji zadržava samo ono od čega
 potez može da bude sastavljen.
 
+## Dve ikone na telefonu, i skripta koja je pokretala pogrešnu — 20.8.2026
+
+Simptom: prijava kao učenik prolazi, a aplikacija nema ni „Moje zadatke" ni
+trenera u „Prijateljima". Izgleda kao da je nalog prazan.
+
+Nije bio. Podaci su provereni sa obe strane: odnos `trener → učenik` je
+`accepted`, sedam zadataka postoji, a `GET /assignments/mine` i `GET /friends`
+vraćaju i jedno i drugo — isto preko `localhost` i preko LAN adrese koju telefon
+gađa.
+
+Uzrok je nađen preko `adb`: u prvom planu je bio paket
+**`com.example.chess_app`** — instalacija od pre preimenovanja paketa. Nikad se
+ne ažurira, nosi kod od pre celog rada na zadacima, a **prijava u njoj radi**
+jer se backend nije menjao. Otud „prazan nalog".
+
+Zapisano je i ranije da tu staru instalaciju treba obrisati
+([TODO-provera.md](TODO-provera.md), stavka 8); danas je prvi put ujelo.
+
+**Prava krivica je bila u `chess_app/build_and_deploy.ps1`:** skripta je
+instalirala **novu** aplikaciju, a onda pokretala **staru**, jer je ime paketa
+bilo prekucano u njoj i ostalo staro posle preimenovanja. Sedmi primer istog
+oblika greške u ovom projektu: korak koji uspešno prijavi da je gotov, a odradi
+nešto drugo.
+
+Šta je popravljeno u skripti:
+
+- **Ime paketa se čita iz `android/app/build.gradle.kts`**, ne kuca se. Prepis
+  se jednom raziđe sa aplikacijom, i to se već desilo.
+- **Nema više pada na `app-release.apk`** kad sveže sagrađen APK ne postoji. Baš
+  tako je istog dana na telefon otišla verzija stara nedelju dana (kroz
+  `flutter install`, koji instalira zatečeni APK). Sad staje uz objašnjenje.
+- **Proverava se da je APK mlađi od početka gradnje** — zaostao fajl se ne
+  instalira ni slučajno.
+- Provere pre gradnje: `adb`, `dart_defines.json`, i koji je uređaj povezan
+  (kad ih ima više, traži `-Serial` umesto da pogađa).
+- Na kraju **upozorava ako stara instalacija još stoji na telefonu**, sa
+  komandom za brisanje.
+
+Provereno tako što je skripta puštena od početka do kraja: sagradila, instalirala
+i pokrenula `rs.pejovic.chesscoach`, pa ispisala upozorenje o staroj instalaciji.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
