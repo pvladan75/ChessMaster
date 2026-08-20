@@ -10,20 +10,18 @@ učenik.
 
 ---
 
-## Prvo: nešto se gubi svakog dana dok se ovo ne reši
+## Prvo: ono što se gubilo svakog dana — ✅ zatvoreno 20.8.2026
 
-Pitanja 4 i 5 traže podatak koji **danas bacamo**. Kad učenik odigra potez,
-`judgeAttempt` vrati i `playedSan` — šta je dete stvarno odigralo — a mi upišemo
-samo `solved: true/false` i taj potez zaboravimo.
+Pitanja 4 i 5 traže podatak koji se **do 20.8.2026. bacao**. Kad učenik odigra
+potez, `judgeAttempt` vrati i `playedSan` — šta je dete stvarno odigralo — a
+upisivalo se samo `solved: true/false`.
 
-To se ne može rekonstruisati kasnije. Svaki dan korišćenja bez te kolone je dan
-domaćih zadataka o kojima se posle može reći samo „tačno" ili „netačno", nikad
-*šta je dete probalo*. A upravo je to ono što treneru govori **zašto** nije
-uspelo.
+To se ne može rekonstruisati kasnije, pa je kolona dodata pre ijednog ekrana:
+`assignment_items.played_san`. Vidi „Odigran potez se više ne baca" u
+[STANJE-RADA.md](STANJE-RADA.md).
 
-**Preporuka: dodati `assignment_items.played_san` odmah**, i pre nego što bilo
-koji ekran za pregled postoji. Jedna kolona, upisuje se ono što se ionako već
-izračuna, ništa se ne lomi. Ekrani mogu da sačekaju; podatak ne može.
+**Ekrani i dalje ne postoje** — pitanja 4 i 5 su otvorena kao i pre. Razlika je
+što od danas imaju šta da prikažu, umesto da počinju od praznih kolona.
 
 ---
 
@@ -101,9 +99,10 @@ vidi brojeve („2/2 urađeno, tačnost 100%"), ali **nijedna strana ne može da
 pogleda šta se desilo po poziciji** — koju je tablu dete videlo i šta je
 odigralo.
 
-Bez odigranog poteza (vidi odeljak na vrhu) pregled i ne može da postoji u punom
-smislu. Sa njim, ekran je jednostavan: pozicija, tvoj potez, rešenje, i da li je
-priznato — uključujući onaj slučaj „drugi mat, ali mat".
+Odigran potez se od 20.8.2026. čuva (odeljak na vrhu), pa ekran ima šta da
+prikaže i jednostavan je: pozicija, tvoj potez, rešenje, i da li je priznato —
+uključujući onaj slučaj „drugi mat, ali mat". Za zadatke odgovorene ranije polje
+je prazno i to se mora videti kao „ne zna se", ne kao „ništa nije odigrano".
 
 **Povratna informacija** je zaseban sloj: trenerov komentar po zadatku i po
 poziciji. Vidi pitanje 5 — bolje ih rešiti zajedno, jer je oblik isti.

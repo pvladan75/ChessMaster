@@ -4,7 +4,7 @@ Namena: da neko ko dolazi bez istorije razgovora za pet minuta zna gde smo stali
 i zašto je nešto urađeno baš tako. Nije prepis dijaloga — prepis troši prostor,
 a odluke su ono što se ne može rekonstruisati iz koda.
 
-Poslednje ažuriranje: 15.8.2026.
+Poslednje ažuriranje: 20.8.2026.
 
 ---
 
@@ -12,8 +12,8 @@ Poslednje ažuriranje: 15.8.2026.
 
 Ona koja tek treba odlučiti stoje u [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md),
 sa procenom šta svaka mogućnost povlači. Ovde su odluke koje su **već** donete;
-tamo one koje čekaju. Prvo na toj listi nije ekran nego jedna kolona:
-`assignment_items.played_san` se baca svakog dana, a ne može se rekonstruisati.
+tamo one koje čekaju. Prvo na toj listi nije bio ekran nego jedna kolona —
+`assignment_items.played_san`, urađena 20.8.2026, odeljak niže.
 
 ## Prvo pročitati: procena i plan
 
@@ -1380,6 +1380,45 @@ dele se van njegovih učenika.** Ovo ide uz ostale pravne stavke koje ionako če
 pravnika ([TODO-objavljivanje.md](TODO-objavljivanje.md), korak 3).
 
 I: **testne knjige i izvučeni JSON ne smeju u repozitorijum** — javan je.
+
+## Odigran potez se više ne baca — 20.8.2026
+
+Prva stavka iz [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md), urađena pre ijednog
+ekrana koji bi je prikazao — jer ekran može da sačeka, a podatak ne može.
+
+`judgeAttempt` je i ranije vraćao `playedSan`, poslao ga klijentu u odgovoru i
+tu ga ostavljao; u bazu je išlo samo `solved`. Posle toga se za odgovor moglo
+reći „tačno" ili „netačno", nikad **šta je dete probalo** — a to je jedino što
+treneru kaže *zašto* nije uspelo. Promašaj za jedno polje i potez koji nema veze
+sa pozicijom bili su isti red.
+
+Šta je urađeno, i ništa više od toga:
+
+- `assignment_items.played_san VARCHAR(20)` — `ADD COLUMN IF NOT EXISTS`, kao
+  ostale izmene šeme.
+- `recordPuzzleResult` prima `playedSan` i upisuje ga uz `solved` i `ms_taken`.
+  Parametar je **neobavezan**: put preko Lichess zagonetki šalje samo da li je
+  rešeno, i tamo kolona ostaje `NULL` umesto da se izmišlja potez.
+- `getAssignmentDetail` vraća kolonu, pa je podatak dohvatljiv bez novog
+  endpointa kad ekran bude pisan. Rešenje i dalje ne izlazi pre odgovora — ovo
+  je učenikov sopstveni potez, pa ništa ne odaje.
+
+Dve stvari koje su namerno ovako:
+
+- **`NULL` znači „ne zna se", ne „ništa nije odigrano".** Tako stoji za sve što
+  je odgovoreno pre ove kolone i za korake lekcije, koji se čitaju a ne rešavaju.
+  Ekran koji to bude prikazivao mora da poštuje razliku.
+- **Potez koji tabla ne ume da odigra upisuje se kao `NULL`, ali se glasno
+  prijavljuje.** To znači da se klijent i server ne slažu oko pozicije — dete je
+  na svojoj tabli odigralo nešto što ova odbija. Bez upozorenja u dnevniku to bi
+  bio tih slučaj koji se ne vidi nigde, a upravo takvi su nas već koštali.
+
+Pokriveno sa tri testa u `test/assignment.test.js` (upis poteza, `NULL` umesto
+praznog teksta, i pozivalac koji potez ne zna). Backend 190 testova, sve prolazi.
+
+**Nije provereno uživo** — kolona se dodaje pri pokretanju servera i prvi upis
+se desi tek kad dete odgovori na skeniranu poziciju. Vidi `TODO-provera.md`,
+stavka 13.
 
 ## Sledeće na redu
 

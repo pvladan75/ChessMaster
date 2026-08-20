@@ -378,6 +378,21 @@ Ostalo neprovereno iz ovog lanca:
       `lesson_viewer_screen`. Traži zadatu lekciju sa upisanim zadatkom po koraku.
 - [ ] Da li se traka „nema veze sa serverom" sama povuče kad server krene
       (ponavlja proveru na 10 s, a povezivanje socketa je računa kao dokaz).
+- [ ] **Odigran potez se upisuje** (`assignment_items.played_san`, 20.8.2026).
+      Kolona se dodaje pri pokretanju servera — u dnevniku mora da stoji
+      `Verified database table & indexes: assignment_items`. Pusti dete da
+      odgovori na jednu poziciju, tačno i netačno, pa proveri:
+
+      ```sql
+      SELECT puzzle_id, solved, played_san FROM assignment_items
+       WHERE assignment_id = <id> ORDER BY position;
+      ```
+
+      Očekuje se potez u notaciji za oba reda. `NULL` posle stvarnog odgovora
+      znači da tabla nije umela da odigra ono što je klijent poslao — u tom
+      slučaju u dnevniku stoji `Custom attempt could not be resolved to a move`
+      i to je stvarno neslaganje, ne kozmetika. Redovi odgovoreni pre 20.8.2026.
+      ostaju prazni i to je ispravno.
 
 ---
 

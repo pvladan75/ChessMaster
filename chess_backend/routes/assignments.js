@@ -138,11 +138,26 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
     const { fen, solution_san: solutionSan } = item.rows[0];
     const verdict = judgeAttempt({ fen, solutionSan, moveSan });
 
+    // A move the board cannot play means the client and the server disagree
+    // about the position — the student's board offered a move this one refuses.
+    // It is recorded as unknown, which is honest, but it must not pass in
+    // silence: nothing else would ever show it.
+    if (verdict.playedSan === null) {
+      logger.warn(
+        { assignmentId, puzzleId, moveSan, reason: verdict.reason },
+        'Custom attempt could not be resolved to a move'
+      );
+    }
+
+    // The move goes in beside the verdict. `judgeAttempt` has already resolved
+    // it against the position, so this is the move as the board understood it,
+    // not as the client spelled it.
     await assignments.recordPuzzleResult(pool, {
       studentId: req.user.id,
       puzzleId,
       solved: verdict.correct,
       msTaken: Number.parseInt(msTaken, 10) || null,
+      playedSan: verdict.playedSan,
     });
 
     // The solution is released only now, once the question has been answered.

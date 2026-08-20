@@ -288,18 +288,28 @@ async function markLessonStepDone(pool, { studentId, assignmentId, position }) {
 ///
 /// Only the *first* attempt counts. Letting a retry overwrite a failure would
 /// turn the report into a record of persistence rather than of ability.
-async function recordPuzzleResult(pool, { studentId, puzzleId, solved, msTaken }) {
+///
+/// `playedSan` is the move the student actually made, where the caller knows
+/// it. It is optional because not every path does: a Lichess attempt reports
+/// only whether it was solved, and that stays NULL rather than being guessed.
+async function recordPuzzleResult(pool, { studentId, puzzleId, solved, msTaken, playedSan }) {
   try {
     const result = await pool.query(
       `UPDATE assignment_items ai
-       SET solved = $1, ms_taken = $2, attempted_at = CURRENT_TIMESTAMP
+       SET solved = $1, ms_taken = $2, played_san = $5, attempted_at = CURRENT_TIMESTAMP
        FROM assignments a
        WHERE ai.assignment_id = a.id
          AND a.student_id = $3
          AND ai.puzzle_id = $4
          AND ai.attempted_at IS NULL
        RETURNING ai.assignment_id`,
-      [solved, Number.isInteger(msTaken) ? msTaken : null, studentId, puzzleId]
+      [
+        solved,
+        Number.isInteger(msTaken) ? msTaken : null,
+        studentId,
+        puzzleId,
+        typeof playedSan === 'string' && playedSan.trim() !== '' ? playedSan.trim().slice(0, 20) : null,
+      ]
     );
 
     // Stamp any assignment whose last item just landed.
@@ -466,7 +476,7 @@ async function getAssignmentDetail(pool, assignmentId, userId) {
 
   const assignment = result.rows[0];
   const items = await pool.query(
-    `SELECT puzzle_id, position, puzzle_rating, solved, ms_taken, attempted_at
+    `SELECT puzzle_id, position, puzzle_rating, solved, ms_taken, played_san, attempted_at
      FROM assignment_items WHERE assignment_id = $1 ORDER BY position`,
     [assignmentId]
   );

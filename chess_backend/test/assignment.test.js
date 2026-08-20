@@ -9,6 +9,7 @@ const assert = require('node:assert/strict');
 const {
   summariseAttempts,
   resolvePuzzles,
+  recordPuzzleResult,
   MAX_ITEMS,
   DEFAULT_ITEMS,
 } = require('../services/assignmentService');
@@ -170,4 +171,48 @@ test('a missing rating range widens to the whole dataset', async () => {
 
   assert.equal(pool.calls[0].params[0], 400);
   assert.equal(pool.calls[0].params[1], 3200);
+});
+
+
+// The move the student played is the part that cannot be recovered later. A
+// wrong answer one square off and a wrong answer that missed the point are the
+// same row once only `solved` is kept.
+test('the move the student played is stored beside the verdict', async () => {
+  const pool = stubPool([[{ assignment_id: 3 }]]);
+  await recordPuzzleResult(pool, {
+    studentId: 7,
+    puzzleId: 'cust_12',
+    solved: false,
+    msTaken: 4200,
+    playedSan: 'Qh7+',
+  });
+
+  const update = pool.calls[0];
+  assert.ok(update.text.includes('played_san = $5'));
+  assert.equal(update.params[4], 'Qh7+');
+});
+
+test('a move nothing could resolve is stored as unknown, not as empty text', async () => {
+  const pool = stubPool([[{ assignment_id: 3 }]]);
+  await recordPuzzleResult(pool, {
+    studentId: 7,
+    puzzleId: 'cust_12',
+    solved: false,
+    msTaken: null,
+    playedSan: null,
+  });
+
+  // NULL reads as "not known"; '' would read as "played nothing", which is not
+  // a thing a student can do.
+  assert.equal(pool.calls[0].params[4], null);
+});
+
+test('a caller that knows no move leaves the column null rather than failing', async () => {
+  const pool = stubPool([[{ assignment_id: 3 }]]);
+
+  // The Lichess attempt route reports only whether the puzzle was solved. It
+  // must keep marking homework, and must not invent a move.
+  await recordPuzzleResult(pool, { studentId: 7, puzzleId: '00abc', solved: true, msTaken: 900 });
+
+  assert.equal(pool.calls[0].params[4], null);
 });

@@ -481,6 +481,22 @@ async function initDB() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_assignment_items_step
         ON assignment_items(assignment_id, position) WHERE puzzle_id IS NULL;
     `);
+
+    // What the student actually played, not only whether it was accepted.
+    //
+    // `solved` alone cannot be un-lost: a wrong answer that is one square off
+    // and a wrong answer that ignores the position entirely look identical
+    // afterwards, and the move is exactly what tells the trainer *why* it
+    // failed. The server already computes it while judging, so this stores what
+    // was being discarded rather than asking for anything new.
+    //
+    // NULL means the move is not known for that item, which is honest for
+    // everything answered before this column existed and for lesson steps,
+    // which are read rather than solved.
+    await client.query(`
+      ALTER TABLE assignment_items
+        ADD COLUMN IF NOT EXISTS played_san VARCHAR(20);
+    `);
     logger.info('Verified database table & indexes: assignment_items (puzzle and lesson items)');
 
     // Create review_items table — the spaced-repetition schedule.
