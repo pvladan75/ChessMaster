@@ -19,7 +19,7 @@ import { pageSpans } from './pdf.mjs';
  * entry 27 fused, which parses as neither. Split wherever the horizontal gap is
  * far wider than the gaps inside a word.
  */
-const COLUMN_GAP = 1.0; // multiples of the glyph height
+const COLUMN_GAP = 2.5; // multiples of the glyph height
 
 export function spansToLines(spans) {
   const rows = [];

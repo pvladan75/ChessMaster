@@ -15,11 +15,9 @@ export function diagramRows(spans, map) {
   const alphabet = new Set(Object.keys(map.glyphs));
   return spans.filter((s) => {
     const t = s.text;
-    const isLenValid = typeof map.rowLength === 'function'
-      ? map.rowLength(t.length)
-      : Array.isArray(map.rowLength)
-        ? map.rowLength.includes(t.length)
-        : t.length === map.rowLength;
+    const isLenValid = Array.isArray(map.rowLength)
+      ? map.rowLength.includes(t.length)
+      : t.length === map.rowLength;
     if (!isLenValid) return false;
     if (map.isBorderRow(t)) return false;
     return [...map.squares(t)].every((c) => alphabet.has(c));
@@ -108,6 +106,6 @@ export function extractDiagrams(rawSpans, map, pageNo) {
     }
   }
 
-  out.sort((a, b) => (Math.abs(a.y - b.y) < 10 ? a.x - b.x : a.y - b.y));
+  out.sort((a, b) => a.y - b.y || a.x - b.x);
   return { diagrams: out, anomalies };
 }

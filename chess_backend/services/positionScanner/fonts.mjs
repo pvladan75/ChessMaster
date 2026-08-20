@@ -48,12 +48,14 @@ const TACTICS_COURSE = {
   squares: (text) => text.slice(1, 9),
   isBorderRow: (text) => text.startsWith('c') || text.startsWith('C') || text.startsWith('v'),
   glyphs: {
-    w: '.', D: '.', d: '.', X: '.',
+    // Empty squares and diagram target/attack/tutorial square markers
+    w: '.', D: '.', d: '.', X: '.', Z: '.', '*': '.',
+    // White pieces
     P: 'P', ')': 'P', N: 'N', H: 'N', B: 'B', G: 'B',
     R: 'R', $: 'R', Q: 'Q', '1': 'Q', K: 'K', I: 'K',
+    // Black pieces
     p: 'p', '0': 'p', n: 'n', h: 'n', b: 'b', g: 'b',
     r: 'r', '4': 'r', q: 'q', '!': 'q', k: 'k', i: 'k',
-    Z: 'k', '*': 'K',
   },
 };
 
@@ -77,11 +79,9 @@ export function selectFontMap(rows) {
     const alphabet = alphabetOf(map);
     let covered = 0;
     for (const row of rows) {
-      const isLenValid = typeof map.rowLength === 'function'
-        ? map.rowLength(row.length)
-        : Array.isArray(map.rowLength)
-          ? map.rowLength.includes(row.length)
-          : row.length === map.rowLength;
+      const isLenValid = Array.isArray(map.rowLength)
+        ? map.rowLength.includes(row.length)
+        : row.length === map.rowLength;
       if (!isLenValid) continue;
       const squares = map.squares(row);
       if ([...squares].every((c) => alphabet.has(c))) covered += 1;
