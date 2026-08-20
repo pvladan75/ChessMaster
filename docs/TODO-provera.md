@@ -593,8 +593,28 @@ oblačići sa nazivima.
 - [ ] **Dijalog sa linijom motora** (Analysis Studio → klik na liniju) — dugmad
       su sada `<` i `>` kao svugde (ranije druge ikone), brojač `3 / 8` stoji
       između njih, okretanje table na kraju reda.
-- [ ] Na telefonu se nijedna traka ne preliva — naročito „Potez 12 od 24" u
+- [x] Na telefonu se nijedna traka ne preliva — naročito „Potez 12 od 24" u
       pregledu lekcije, gde je natpis najduži.
+
+**Provereno na telefonu 20.8.2026** (Analysis Studio i tabla u sobi). Pri tome
+su nađene tri greške koje su odmah popravljene — sve tri **nevidljive u release
+build-u**, gde Flutter ne crta prugasto upozorenje o prelivu niti išta upisuje u
+log:
+
+- Traka je imala devet dugmadi u jednom redu. Devet × 48 dp = 432 dp, a telefon
+  ima 360–410, pa su **NAG i brisanje poteza bili van ekrana**. Sad je `Wrap`,
+  pa se prelama u drugi red. Test u `move_cursor_test.dart` pada na starom
+  `Row`-u — provereno vraćanjem.
+- Gornji red u Analysis Studio-u je imao devet radnji, a `AppBar` ih ne prelama
+  nego **seče**: „Podešavanja" i „Unos Pozicije / PGN" nisu bili dohvatljivi. Dve
+  ostaju na traci, ostatak je u meniju sa tri tačke, i to samo na uskom ekranu.
+- „Vraćena je vaša poslednja analiza." je snackbar od šest sekundi koji na tom
+  telefonu stoji minutima. Dobio je **✕**; šta god zaustavlja tajmer, poruka bez
+  izlaza je greška sama po sebi.
+
+- [x] Analysis Studio na telefonu: svih devet dugmadi trake se vidi, u dva reda.
+- [x] Gornji red: naslov se vidi ceo, a „Podešavanja" je u meniju sa tri tačke.
+- [x] Baner o vraćenoj analizi se gasi na ✕.
 
 ## 21. Obaveštenja stižu dok je aplikacija otvorena — 20.8.2026, nije viđeno uživo
 
