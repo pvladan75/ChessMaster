@@ -693,3 +693,25 @@ o prelivu:
 **Novi izgled reda sa zahtevom je viđen uživo istog dana:** naslov u jednom
 redu, a ispod njega „✗ Odbij" i „✓ Prihvati" sa natpisima. Redosled je namerno
 takav — odbijanje levo, potvrda desno, da se potvrda ne pritisne u prolazu.
+
+## Značka je stajala i posle čitanja — nađeno i popravljeno 20.8.2026
+
+Korisnik je primetio da zvonce i dalje pokazuje 3 pošto je sve pročitao. Broj je
+bio tačan (1 neodgovoren zahtev + 2 nepročitana obaveštenja), ali se **ništa
+nikad nije označavalo kao pročitano**: jedino je poziv u sobu dobijao `is_read`,
+i to tek kad se na njega pridruži. Sve ostale vrste su ostajale nepročitane
+zauvek, pa broj nije mogao da padne.
+
+Sad otvaranje zvonca označava ono što prikazuje (`POST /notifications/read`).
+Zahtev koji čeka odgovor time nije dirnut — on se broji iz
+`/relationships/pending`, ne iz svog obaveštenja, i baš zato je bezbedno
+označiti sve pročitanim. Test čita rutu i pada ako ikad dodirne
+`trainer_students`.
+
+- [x] Otvori zvonce, zatvori ga: **značka padne** na broj neodgovorenih zahteva.
+      *(Gledano na telefonu: 3 → nema značke, uz 0 zahteva na čekanju.)*
+- [x] Redovi koji su bili podebljani sada stoje sivi, sa „Odgovoreno." gde
+      treba.
+- [ ] Sa **jednim neodgovorenim zahtevom**: posle čitanja značka treba da
+      pokazuje 1, ne 0. Aritmetika je potvrđena sa druge strane (3 = 1 zahtev +
+      2 nepročitana), ali tačno ta kombinacija nije viđena.
