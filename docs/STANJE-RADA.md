@@ -1818,6 +1818,10 @@ nešto drugo.
 Provereno tako što je skripta puštena od početka do kraja: sagradila, instalirala
 i pokrenula `rs.pejovic.chesscoach`, pa ispisala upozorenje o staroj instalaciji.
 
+Stara instalacija je zatim **obrisana sa korisnikovog telefona** (na njegov
+zahtev), pa je ostala samo jedna ikona. Upozorenje u skripti ostaje — isti
+uređaj nije jedini na kom se stara verzija može zateći.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,

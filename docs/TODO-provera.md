@@ -235,11 +235,13 @@ skida `12...` pre poziva `load_pgn`, pozvano iz `_importPgn` u
 
 Aplikacija je sada `rs.pejovic.chesscoach`.
 
-- [ ] Obrisati staru instalaciju sa `com.example.chess_app`. **20.8.2026. je
-      prvi put ujelo**: otvorena je stara ikona, prijava je prošla, i aplikacija
-      je izgledala kao prazan nalog — bez zadataka i bez trenera. Dok stoji na
-      telefonu, dve ikone se lako pomešaju. `build_and_deploy.ps1` od sada
-      upozorava na nju posle svake instalacije. Neće se ažurirati,
+- [x] **Obrisana 20.8.2026** sa korisnikovog telefona (`adb uninstall
+      com.example.chess_app`), pa je na uređaju ostala samo
+      `rs.pejovic.chesscoach`. Istog dana je i ujela: otvorena je stara ikona,
+      prijava je prošla, i aplikacija je izgledala kao prazan nalog — bez
+      zadataka i bez trenera, jer se backend nije menjao a stara instalacija se
+      ne ažurira. `build_and_deploy.ps1` od sada upozorava na nju posle svake
+      instalacije, za slučaj da se pojavi na drugom uređaju. Stara se neće ažurirati,
       to je sada druga aplikacija.
 - [ ] **Google prijava neće raditi na Androidu** dok se ne registruje nov OAuth
       klijent za novi paket. Vidi `TODO-objavljivanje.md`, korak 2.
