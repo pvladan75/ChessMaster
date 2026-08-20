@@ -45,6 +45,19 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
 
   PlayerColor _orientation = PlayerColor.white;
 
+  /// True once the student has moved a piece away from the position the lesson
+  /// is showing.
+  ///
+  /// The board used to be locked, and that was defensible while a step was only
+  /// a picture. It stopped being defensible the moment a step could carry a
+  /// task: a position scanned out of a book says "Beli matira u jednom potezu",
+  /// and a child reading that reasonably tries to play it. Found live, by the
+  /// student, in exactly those words.
+  ///
+  /// Nothing here is judged or recorded — the lesson is still read rather than
+  /// solved. This is a board to try things on, and [_restore] puts it back.
+  bool _explored = false;
+
   List<LessonStep> get _steps => widget.detail.steps;
   LessonStep get _step => _steps[_stepIndex];
 
@@ -100,6 +113,7 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
       _fens = fens;
       _moves = moves;
       _moveIndex = 0;
+      _explored = false;
       _orientation = _sideToMove(step.fen);
     });
     _board.loadFen(step.fen);
@@ -148,8 +162,22 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
   void _applyMovesUpTo(int count) {
     if (_fens.isEmpty) return;
     final index = count.clamp(0, _fens.length - 1);
-    setState(() => _moveIndex = index);
+    setState(() {
+      _moveIndex = index;
+      _explored = false;
+    });
     _board.loadFen(_fens[index]);
+  }
+
+  /// The position the lesson is showing right now — the step's own board, or
+  /// wherever the student has walked to along its line.
+  String get _lessonFen =>
+      _fens.isEmpty ? _step.fen : _fens[_moveIndex.clamp(0, _fens.length - 1)];
+
+  /// Puts the pieces back where the lesson had them.
+  void _restore() {
+    setState(() => _explored = false);
+    _board.loadFen(_lessonFen);
   }
 
   @override
@@ -199,18 +227,25 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
                         controller: _board,
                         boardOrientation: _orientation,
                         boardSize: boardSize,
-                        // The student is reading a lesson, not playing it.
-                        isAllowedToMove: false,
+                        // Playable, but only for trying things: the move is
+                        // not sent anywhere and nothing about the lesson
+                        // changes. A step that asks for a mate and refuses to
+                        // let the child play one is a screen promising what it
+                        // will not do.
+                        isAllowedToMove: true,
                         isDrawingMode: false,
                         drawingStartSquare: null,
                         arrows: const [],
                         engineArrows: const [],
-                        onMove: (_, __) {},
+                        onMove: (_, __) {
+                          if (!_explored) setState(() => _explored = true);
+                        },
                         onSquareTapForDrawing: (_) {},
                       ),
                     ),
                   ),
                   const SizedBox(height: 10),
+                  if (_explored) _buildRestore(),
                   if (_moves.isNotEmpty) _buildMoveControls(),
                   const SizedBox(height: 10),
                   _buildStepControls(),
@@ -294,6 +329,28 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  /// Shown only once the pieces have actually been moved, so it never sits
+  /// there suggesting something is wrong with an untouched board.
+  Widget _buildRestore() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Column(
+        children: [
+          Text(
+            'Probaš poteze — ovde se ništa ne ocenjuje.',
+            style: TextStyle(fontSize: 12, color: context.colors.textMuted),
+          ),
+          const SizedBox(height: 4),
+          OutlinedButton.icon(
+            onPressed: _restore,
+            icon: const Icon(Icons.restart_alt, size: 16),
+            label: const Text('Vrati poziciju'),
+          ),
+        ],
       ),
     );
   }

@@ -1669,6 +1669,58 @@ Redosled je pokriven testovima (`test/solve_order_test.dart`) jer je logika
 
 **Nije viđeno uživo** — `TODO-provera.md`, stavka 16.
 
+## Prva prava upotreba svega urađenog — 20.8.2026
+
+Korisnik je prošao ceo lanac na Windows-u i na telefonu, sa oba naloga. Prošlo
+je: birač biblioteke sa tri police, skenirana pozicija u lekciji **sa svojim
+zadatkom**, mreža sa slobodnim redosledom, „Sledeća nerešena", ocena posle
+netačnog odgovora, pregled sa obe strane, i komentari u oba smera. Dnevnik
+servera je čist — nijedno upozorenje, nijedan potez koji server nije umeo da
+razreši.
+
+Prvi put se uživo video i **odigran potez**: `Odigrao: Qh1# · Rešenje: Qh1#`.
+Na starom Lichess zadatku i dalje piše „nije zabeležen", što je tačno — taj put
+potez ne šalje.
+
+### Zadatak koji se ne može odigrati — našao ga je učenik
+
+Njegovim rečima: *„ovde ne mogu da pomeram figure, samo mogu da gledam
+pozicije"*, napisano kroz komentar koji je tog jutra i dobio.
+
+Uzrok je naš od istog dana. Skenirana pozicija nosi zadatak („Beli matira u
+jednom potezu"), zadatak sada putuje u lekciju — a tabla u pregledaču lekcije
+je bila zaključana, jer se lekcija čita a ne rešava. Dok koraci nisu imali
+zadatke, to se nije videlo. Sa zadacima, **ekran traži potez koji ne prima**.
+
+Isti oblik greške kao ostali u ovom projektu, treći put u novom ruhu: prvo korak
+koji tiho ne uradi ništa, pa sumnja koja se prećuti u tvrdnju, sad obećanje koje
+ekran ne može da ispuni.
+
+Rešenje: **tabla u lekciji prima poteze**, ali ništa ne ocenjuje niti upisuje.
+Kad se figura pomeri, ispod stoji „Probaš poteze — ovde se ništa ne ocenjuje" i
+dugme **Vrati poziciju**. Dugme se pojavljuje tek posle prvog poteza; da stoji
+od početka, sugerisalo bi da nešto sa pozicijom nije u redu. Prelazak na drugi
+korak ili šetnja kroz varijantu vraćaju tablu sami.
+
+Lekcija time nije postala vežba: napredak se i dalje meri pregledanim koracima,
+ništa se ne šalje serveru, i nema ocene. Pokriveno testom
+(`test/lesson_board_playable_test.dart`), koji pini baš to da korak koji traži
+potez mora da ga primi.
+
+### Linija zagonetke se sada može pročitati
+
+U pregledu je stajalo `e7b7 b8b7 g7g8q` — zapis u kom Lichess čuva liniju,
+tačan i nečitljiv. Sada stoji `Rb7 Rxb7 g8=Q Rg7+ Qxg7+ Kxg7`; prevod radi
+server kroz `chess.js` pri sastavljanju pregleda.
+
+Ako se linija ne odigra u toj poziciji, **vraća se onakva kakva je sačuvana**.
+To znači da se pozicija i linija oko nečeg stvarnog ne slažu, a prazno polje bi
+to sakrilo. Delimičan prevod se ne nudi — izgledao bi kao ceo odgovor.
+
+Ostaje nezabeleženo: **odigran potez na Lichess putu**. Klijent zna koji je
+potez dete odigralo u zagonetki, ali ga ne šalje, pa tamo i dalje piše „nije
+zabeležen". Odloženo svesno, nije zaboravljeno.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,

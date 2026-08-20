@@ -409,11 +409,15 @@ Napomena: `custom_puzzles` je nastala pri restartu 19.8.2026
 (`Verified database table & indexes: custom_puzzles`), pa taj korak više ne
 stoji na putu.
 
-## 14. Biblioteka pozicija i „Dodaj u lekciju" — backend proveren uživo 20.8.2026, ekran nije
+## 14. Biblioteka pozicija i „Dodaj u lekciju" — ✅ provereno uživo 20.8.2026
 
-Backend je stvarno pozvan preko HTTP-a (203 stavke iz tri izvora, dopisivanje
-koraka 201, tri odbijanja svako sa svojim razlogom, probna lekcija obrisana).
-Ekran nije otvaran.
+Backend je pozvan preko HTTP-a (203 stavke iz tri izvora, dopisivanje koraka
+201, tri odbijanja svako sa svojim razlogom, probna lekcija obrisana), a
+**korisnik je 20.8.2026. prošao i ekrane**: birač sa sve tri police, skenirana
+pozicija ušla u lekciju sa svojim zadatkom, korak bez zadatka narandžast,
+„Dodaj u lekciju" nad više izabranih pozicija.
+
+Preostale kućice niže su rubovi koje ta proba nije dodirnula.
 
 **Kako:** Sesija → „Kreiraj lekciju" → **Dodaj iz biblioteke**. Pa Biblioteka →
 „Moje pozicije" → dugi pritisak na jednu ili više → **Dodaj u lekciju**.
@@ -435,11 +439,15 @@ Ekran nije otvaran.
 - [ ] Na telefonu traka sa tri dugmeta („Poništi", „Dodaj u lekciju", „Zadaj
       učeniku") mora da se prelomi, ne da iscuri sa ekrana.
 
-## 15. Pregled domaćeg i komentari — backend proveren uživo 20.8.2026, ekran nije
+## 15. Pregled domaćeg i komentari — ✅ provereno uživo 20.8.2026
 
 Backend je pozvan preko HTTP-a sa tokenima obe strane; pravilo o rešenju,
-komentari i sva odbijanja su provereni, probne poruke obrisane. Ekran niko nije
-otvorio.
+komentari i sva odbijanja su provereni, probne poruke obrisane.
+
+**Korisnik je 20.8.2026. prošao i ekrane**, na Windows-u i na telefonu: odigran
+potez uz rešenje po poziciji, „nije zabeležen" na starom Lichess zadatku,
+komentar na poziciju i na ceo zadatak sa oba naloga, iks samo na svojoj poruci.
+Ista proba je otkrila i stavku 17.
 
 **Kako:** kao trener — Prijatelji → učenik → dodir na zadatak u listi. Kao
 učenik — „Moji zadaci" → „Pregled i komentari" na kartici zadatka.
@@ -458,9 +466,13 @@ učenik — „Moji zadaci" → „Pregled i komentari" na kartici zadatka.
 - [ ] Svoju poruku mogu da obrišem, tuđu ne — kod tuđe nema iksa.
 - [ ] Na telefonu se kartica pozicije ne preliva (tabla 120 px + tekst desno).
 
-## 16. Slobodan redosled domaćeg — 20.8.2026, nije viđeno uživo
+## 16. Slobodan redosled domaćeg — ✅ provereno uživo 20.8.2026
 
 Čisto klijentska izmena; server nije menjan.
+
+**Provereno uživo 20.8.2026:** mreža od šest pozicija sa stanjima, „Počni",
+„Pozicija 3 od 6", „Sledeća nerešena", i ocena „Nije to · Rešenje: Qf1#" posle
+namerno pogrešnog odgovora.
 
 **Kako:** kao učenik, „Moji zadaci" → otvori zadatak sastavljen od trenerovih
 pozicija.
@@ -477,3 +489,19 @@ pozicija.
       prvi pokušaj"; figure se ne pomeraju.
 - [ ] Traka napretka raste kako se rešava, a ne kako se šeta kroz spisak.
 - [ ] Na telefonu mreža ima dve kolone i kartica se ne preliva.
+
+## 17. Tabla u lekciji i čitljiva linija — 20.8.2026, nije viđeno uživo
+
+Obe izmene su nastale iz probe u stavkama 14–16.
+
+**Kako:** kao učenik otvori zadatu lekciju u kojoj neki korak ima zadatak.
+
+- [ ] **Figure se pomeraju.** Posle prvog poteza se pojavljuje „Vrati poziciju"
+      i napomena da se ništa ne ocenjuje.
+- [ ] „Vrati poziciju" vraća tačno onu poziciju koju korak pokazuje — i kad se
+      stoji usred varijante, ne na njen početak.
+- [ ] Prelazak na sledeći korak sam vraća tablu; ništa se ne prenosi.
+- [ ] Napredak i dalje broji **pregledane korake**, ne odigrane poteze, i ne
+      pojavljuje se nikakva ocena.
+- [ ] U pregledu Lichess zadatka linija piše kao `Rb7 Rxb7 g8=Q`, a ne kao
+      `e7b7 b8b7 g7g8q`.

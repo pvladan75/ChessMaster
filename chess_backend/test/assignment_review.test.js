@@ -10,6 +10,7 @@ const {
   mayRevealSolution,
   shapeItem,
   stepsByPosition,
+  lineToSan,
 } = require('../services/assignmentReview');
 const { addNote, deleteNote } = require('../services/assignmentNotes');
 
@@ -258,4 +259,35 @@ test('only the author can take a note back', async () => {
   // The author id is part of the statement rather than checked first: one
   // statement cannot be raced, and someone else's note simply matches nothing.
   assert.match(pool.calls[0].text, /author_id = \$3/);
+});
+
+// Seen live: a trainer looking at what their student missed was shown
+// "e7b7 b8b7 g7g8q" — precise, and readable by nobody.
+test('a Lichess line is translated into notation a person reads', () => {
+  const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+  assert.equal(lineToSan(start, 'e2e4 e7e5 g1f3'), 'e4 e5 Nf3');
+});
+
+test('a promotion keeps its piece', () => {
+  assert.equal(lineToSan('8/6P1/8/8/8/8/8/K6k w - - 0 1', 'g7g8q'), 'g8=Q');
+});
+
+test('a line that will not replay is shown as it was stored', () => {
+  const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+  // The position and the line disagree about something real. Returning the raw
+  // line shows that; an empty field would hide it.
+  assert.equal(lineToSan(start, 'e2e5'), 'e2e5');
+  assert.equal(lineToSan(start, 'e2e4 h7h5 e4e5 g8g6'), 'e2e4 h7h5 e4e5 g8g6');
+});
+
+test('a broken position does not take the line down with it', () => {
+  assert.equal(lineToSan('not a fen', 'e2e4'), 'e2e4');
+  assert.equal(lineToSan(null, 'e2e4'), 'e2e4');
+});
+
+test('no line at all stays absent', () => {
+  assert.equal(lineToSan('8/8/8/8/8/8/8/K6k w - - 0 1', ''), null);
+  assert.equal(lineToSan('8/8/8/8/8/8/8/K6k w - - 0 1', null), null);
 });

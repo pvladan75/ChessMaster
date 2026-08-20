@@ -10,6 +10,7 @@
 // line, and a lesson step is read rather than solved; pretending they are the
 // same row would make every reader branch anyway.
 
+const { Chess } = require('chess.js');
 const { assignmentParticipant } = require('./assignmentService');
 
 /// Whether the answer may be shown to whoever is asking.
@@ -23,6 +24,38 @@ const { assignmentParticipant } = require('./assignmentService');
 /// and they may look at an unanswered position without pretending not to know.
 function mayRevealSolution({ attempted, isTrainer }) {
   return attempted || isTrainer;
+}
+
+/// A Lichess puzzle line, in notation a person reads.
+///
+/// It is stored the way Lichess ships it — `e7b7 b8b7 g7g8q`, squares and a
+/// promotion letter — which is precise and unreadable. A trainer looking at
+/// what their student missed should see `Rb7 Rxb7 g8=Q`.
+///
+/// The raw line is returned unchanged if anything at all goes wrong: a move
+/// that will not play means this position and this line disagree, and that is
+/// worth seeing rather than hiding behind an empty field. Half a translated
+/// line is likewise not offered — it would read as the whole answer.
+function lineToSan(fen, uci) {
+  const moves = String(uci || '').trim().split(/\s+/).filter(Boolean);
+  if (!fen || moves.length === 0) return uci || null;
+
+  try {
+    const board = new Chess(fen);
+    const san = [];
+    for (const move of moves) {
+      const played = board.move({
+        from: move.slice(0, 2),
+        to: move.slice(2, 4),
+        promotion: move.length > 4 ? move[4] : undefined,
+      });
+      if (!played) return uci;
+      san.push(played.san);
+    }
+    return san.join(' ');
+  } catch {
+    return uci;
+  }
 }
 
 /// Lesson steps, keyed by position, so an item can find the board it was.
@@ -99,10 +132,10 @@ function shapeItem(row, { isTrainer, step }) {
       instruction: null,
       themes: row.lichess_themes || [],
       rating: row.puzzle_rating ?? row.lichess_rating ?? null,
-      // The whole forced line, in the notation Lichess stores it in. Shown as
-      // it is rather than dressed up: a half-translated line would be worse
-      // than an honest one.
-      solutionMoves: reveal ? row.lichess_moves : null,
+      // The whole forced line, in notation a person reads. Falls back to the
+      // stored form if it will not replay, because a line that disagrees with
+      // its own position is worth seeing.
+      solutionMoves: reveal ? lineToSan(row.lichess_fen, row.lichess_moves) : null,
       solutionHidden: !reveal && Boolean(row.lichess_moves),
     };
   }
@@ -201,4 +234,4 @@ async function listNotes(pool, assignmentId, viewerId) {
   }));
 }
 
-module.exports = { buildReview, listNotes, mayRevealSolution, shapeItem, stepsByPosition };
+module.exports = { buildReview, listNotes, mayRevealSolution, shapeItem, stepsByPosition, lineToSan };
