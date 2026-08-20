@@ -550,7 +550,8 @@ drugi i otvori zvonce.
 - [x] Posle prihvatanja odnos se pojavi u listi kao običan, bez restarta.
 - [x] Odbijanje i dalje šalje obaveštenje pošiljaocu („nije prihvatio vaš
       zahtev"), i ponovno slanje posle odbijanja radi.
-- [ ] Na telefonu se dijalog ne preliva sa dugmadima u redu.
+- [x] Na telefonu se dijalog ne preliva sa dugmadima u redu. *(Prelivao se —
+      vidi belešku ispod.)*
 
 **Telefon još nema ovaj build** — poslednja stavka ostaje neproverena dok se
 uređaj ne priključi i ne odradi `chess_app/build_and_deploy.ps1`.
@@ -628,11 +629,11 @@ jer se baš to proverava.
 
 **Na šta obratiti pažnju:**
 
-- [ ] A pošalje zahtev dok B stoji u aplikaciji: **B-ova značka poraste sama**,
-      bez restarta i bez izlaska iz taba.
-- [ ] B prihvati dok A **stoji u tabu Prijatelji**: A-ov red se sam pretvori iz
+- [x] A pošalje zahtev dok B stoji u aplikaciji: **B-ova značka poraste sama**,
+      bez restarta i bez izlaska iz taba. *(2 → 3, gledano na telefonu.)*
+- [x] B prihvati dok A **stoji u tabu Prijatelji**: A-ov red se sam pretvori iz
       „čeka potvrdu" u običan odnos. Ovo je ono što je prijavljeno.
-- [ ] A dobije obaveštenje „<ime> je prihvatio vaš zahtev." sa ikonom rukovanja.
+- [x] A dobije obaveštenje „<ime> je prihvatio vaš zahtev." sa ikonom rukovanja.
 - [ ] Odbijanje i dalje radi isto, i sad se takođe vidi odmah.
 - [ ] Ugasi aplikaciju kod A, pa neka B odgovori, pa je upali: obaveštenje je
       tu. Soket je samo gurac, red u bazi je ono što se pamti.
@@ -642,15 +643,16 @@ jer se baš to proverava.
 **Drugi deo — zadaci i pregledi.** Za ovo trener i učenik treba da budu otvoreni
 u isto vreme, na dva naloga. Koristi neki **nov** odnos, ne `pavle → Vladan`.
 
-- [ ] Trener zada domaći sa zagonetkama → **učeniku poraste značka odmah**, i u
+- [x] Trener zada domaći sa zagonetkama → **učeniku poraste značka odmah**, i u
       zvoncetu piše „<ime> vam je zadao: <naslov>" sa ikonom zadatka.
 - [ ] Isto i za zadatak od trenerovih **skeniranih pozicija**, i za **lekciju**.
-- [ ] Učenik uradi **poslednju** stavku zadatka → **treneru** stigne „<ime> je
+- [x] Učenik uradi **poslednju** stavku zadatka → **treneru** stigne „<ime> je
       uradio zadatak: <naslov>".
 - [ ] Učenik ponovo otvori taj isti, već gotov zadatak i prošeta kroz njega →
       **ne stiže drugo obaveštenje**. Sme da bude tačno jedno.
-- [ ] U „Pregled i komentari" trener napiše poruku → učeniku stigne „poruka o
-      zadatku". Pa učenik napiše poruku → **treneru** stigne ista vrsta.
+- [x] Učenik napiše poruku u „Pregled i komentari" → **treneru** stigne „<ime>
+      je napisao poruku o zadatku: <naslov>". *(Smer trener → učenik nije
+      posebno gledan; ista ruta, ista funkcija.)*
 - [ ] Poziv na čas i zakazan čas i dalje rade, i sada takođe stižu odmah.
 - [ ] Ono što se **ne** očekuje: učenik koji stoji u „Moji zadaci" neće videti
       nov zadatak u spisku dok se ne vrati na njega. Zvonce hoće. To je poznato
@@ -665,3 +667,28 @@ kvadrat umesto table. Vidi „Koraci lekcije su se čitali na četiri načina" u
       pozicije umesto „Pozicija 1". (Backend je restartovan sam, ne treba ništa.)
 - [ ] Lekcija sa **više** koraka i dalje pokazuje svoj korak, ne svoju prvu
       poziciju.
+
+## Nađeno na telefonu 20.8.2026, popravljeno istog dana
+
+Uz stavke 20 i 21, proba na telefonu je izbacila četiri greške koje **nijedan
+test i nijedan log nisu mogli da pokažu**, jer release build ne crta upozorenje
+o prelivu:
+
+1. **Traka za poteze** — devet dugmadi u jednom redu; NAG i brisanje poteza su
+   bili van ekrana. Sad `Wrap`.
+2. **Gornji red u Analysis Studio-u** — devet radnji, a `AppBar` ih seče;
+   „Podešavanja" i „Unos Pozicije / PGN" nisu bili dohvatljivi. Sad meni sa tri
+   tačke na uskom ekranu.
+3. **Dijalog sa obaveštenjima** — sadržaj je imao fiksnu širinu 360, a telefon
+   *jeste* 360 dp, pa je uz margine izlazio 79 px van ekrana. Zato se
+   „pavle želi da vas upiše kao učenika" lomilo po jednu reč u red. Širina se
+   sad uzima iz ekrana, a dugmad su ispod teksta i nose natpise „Prihvati" i
+   „Odbij" umesto gole kvačice.
+4. **Prazne ikone na Windows-u** — `Icons.handshake` i `Icons.chat_bubble_outline`
+   crtale su se kao ništa, jer `flutter build windows` nije ponovo napravio
+   `MaterialIcons-Regular.otf`; font je bio stariji od trenutka kad su ikone
+   dodate. Android ga je regenerisao, pa je ista verzija bila ispravna na
+   telefonu i pogrešna na Windows-u. Vidi CLAUDE.md.
+
+**Ostaje da se pogleda:** novi izgled reda sa zahtevom (tačka 3) nije viđen
+uživo — kad bude sledeći neodgovoren zahtev, vredi baciti pogled.

@@ -2065,9 +2065,8 @@ uživo. Ostaju:
   lokalnom backendu, a probni da se pravi sa
   `--dart-define=BACKEND_URL=https://api.chesstrainers.app`.
 - ~~Zvonce kao vlasnik odgovora na zahtev~~ — urađeno 20.8.2026.
-- ~~Prihvatanje se ne vidi kod pošiljaoca~~ — rešeno 20.8.2026, čeka proveru
-  uživo (stavka 21 u [TODO-provera.md](TODO-provera.md)). Ostala obaveštenja
-  (zadaci, pregledi) i dalje stižu tek pri pokretanju — vidi odeljak.
+- ~~Prihvatanje se ne vidi kod pošiljaoca~~ — rešeno i **provereno uživo na dva
+  uređaja 20.8.2026** (stavka 21 u [TODO-provera.md](TODO-provera.md)).
 - Ostatak probe pristanka: ponovno slanje posle odbijanja, samo obaveštenje o
   odbijanju, i obaveštenja posle popravke — stavke 0 i 0a u
   [TODO-provera.md](TODO-provera.md). Proba pristanka je inače prošla uživo

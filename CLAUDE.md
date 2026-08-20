@@ -69,6 +69,36 @@ When adding a guard or a fallback, prefer a loud failure. `DB_CA_PATH` pointing
 at a missing file deliberately kills the process rather than downgrading to an
 unverified connection — copy that instinct.
 
+## Two ways a Flutter release build hides a mistake
+
+Both cost time on 20.8.2026, and neither shows up in tests, in `flutter
+analyze`, or in the log.
+
+**A release build paints no overflow warning.** In debug, a `Row` wider than the
+screen gets the yellow-and-black stripes and an assertion. In release it is
+simply clipped: the row looks shorter than it is and the buttons past the edge
+are unreachable. Three of these were found by looking at a phone — the move
+navigation strip, the Analysis Studio's app bar, and the notifications dialog,
+which had a fixed content width of 360 on a 360 dp phone. Where a row can grow,
+use `Wrap`; where a width is fixed, take it from `MediaQuery` instead. A widget
+test at `Size(360, 640)` catches it, because in a *test* build the overflow does
+throw.
+
+**`flutter build windows` can ship a stale icon font.** Icons are tree-shaken
+into `MaterialIcons-Regular.otf`, and that file is not always regenerated when
+new icons are referenced: two builds in a row kept a font from before the icons
+were added, so `Icons.handshake` and `Icons.chat_bubble_outline` rendered as
+nothing at all. Icons already used elsewhere in the app kept working, which is
+what makes it look like a problem with those two icons. If a newly added icon
+comes out blank, check the timestamp:
+
+```bash
+stat -c '%y %s' chess_app/build/flutter_assets/fonts/MaterialIcons-Regular.otf
+```
+
+Delete that file and build again. `build_and_deploy.ps1` (Android) regenerates
+it, so the same build can be right on the phone and wrong on Windows.
+
 ## Where things are written down
 
 - `docs/STANJE-RADA.md` — the handoff document. Decisions and their *why*, which
