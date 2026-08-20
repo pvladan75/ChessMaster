@@ -291,3 +291,27 @@ test('no line at all stays absent', () => {
   assert.equal(lineToSan('8/8/8/8/8/8/8/K6k w - - 0 1', ''), null);
   assert.equal(lineToSan('8/8/8/8/8/8/8/K6k w - - 0 1', null), null);
 });
+
+
+test('a note names the other side, so they can be told about it', async () => {
+  // Whichever side wrote it: a trainer's comment reaches the student, and a
+  // student's question reaches the trainer. Worked out where the access check
+  // already read both, so the route does not ask the database a second time.
+  const asTrainer = stubPool([
+    [{ id: 7, trainer_id: 5, student_id: 9, title: 'Matovi u dva' }],
+    [{ id: 1, item_id: null, author_id: 5, body: 'bravo', created_at: 'now' }],
+  ]);
+  const fromTrainer = await addNote(asTrainer, { assignmentId: 7, authorId: 5, body: 'bravo' });
+
+  assert.equal(fromTrainer.ok, true);
+  assert.equal(fromTrainer.recipientId, 9, 'the student');
+  assert.equal(fromTrainer.assignmentTitle, 'Matovi u dva');
+
+  const asStudent = stubPool([
+    [{ id: 7, trainer_id: 5, student_id: 9, title: 'Matovi u dva' }],
+    [{ id: 2, item_id: null, author_id: 9, body: 'ne razumem', created_at: 'now' }],
+  ]);
+  const fromStudent = await addNote(asStudent, { assignmentId: 7, authorId: 9, body: 'ne razumem' });
+
+  assert.equal(fromStudent.recipientId, 5, 'the trainer');
+});

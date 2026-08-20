@@ -15,6 +15,7 @@ const { authenticateToken, signReportToken } = require('../middleware/auth');
 const { requireQuota, refundQuota } = require('../middleware/entitlements');
 const { ENT } = require('../services/entitlementService');
 const assignments = require('../services/assignmentService');
+const { notify } = require('../services/notifications');
 const reports = require('../services/reportService');
 const { judgeAttempt } = require('../services/customPuzzleJudge');
 const { buildReview } = require('../services/assignmentReview');
@@ -27,6 +28,23 @@ const REPORT_TTL_DAYS = 60;
 /// Trainer notes land in a page a parent opens; a cap keeps one from bloating
 /// the row and the rendered page.
 const MAX_NOTE_LENGTH = 2000;
+
+/// Tells the student that homework arrived.
+///
+/// Here rather than in the service because the trainer's name is already on the
+/// request; the service would have to go and look it up. Best effort inside
+/// [notify]: homework that was created must not fail because the note about it
+/// did.
+async function tellStudent(req, assignment) {
+  await notify(pool, {
+    recipientId: assignment.student_id,
+    senderId: req.user.id,
+    title: 'Novi zadatak',
+    message: `${req.user.name || 'Trener'} vam je zadao: ${assignment.title}`,
+    kind: 'assignment_new',
+    refId: assignment.id,
+  });
+}
 
 // POST /assignments — a trainer sets homework for one of their students.
 router.post('/', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (req, res) => {
@@ -57,6 +75,7 @@ router.post('/', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (req, r
       return res.status(400).json({ error: result.reason });
     }
 
+    await tellStudent(req, result.assignment);
     res.status(201).json({ success: true, assignment: result.assignment });
   } catch (err) {
     await refundQuota(req);
@@ -97,6 +116,7 @@ router.post('/custom', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (
       return res.status(400).json({ error: result.reason, refused: result.refused || [] });
     }
 
+    await tellStudent(req, result.assignment);
     res.status(201).json({
       success: true,
       assignment: result.assignment,
@@ -201,6 +221,7 @@ router.post('/lesson', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (
       return res.status(400).json({ error: result.reason });
     }
 
+    await tellStudent(req, result.assignment);
     res.status(201).json({ success: true, assignment: result.assignment });
   } catch (err) {
     await refundQuota(req);
@@ -334,6 +355,18 @@ router.post('/:id/notes', authenticateToken, async (req, res) => {
     if (!result.ok) {
       return res.status(result.status).json({ error: result.error });
     }
+
+    // The other side of the assignment, whichever side that is: a trainer's
+    // comment reaches the student, a student's question reaches the trainer.
+    await notify(pool, {
+      recipientId: result.recipientId,
+      senderId: req.user.id,
+      title: 'Poruka o zadatku',
+      message: `${req.user.name || 'Korisnik'} je napisao poruku o zadatku: ${result.assignmentTitle}`,
+      kind: 'assignment_note',
+      refId: id,
+    });
+
     res.status(201).json({ success: true, note: result.note });
   } catch (err) {
     logger.error('Error adding assignment note:', err);

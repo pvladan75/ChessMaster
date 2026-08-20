@@ -51,8 +51,14 @@ async function addNote(pool, { assignmentId, itemId = null, authorId, body }) {
   );
 
   const row = inserted.rows[0];
+  const { assignment, isTrainer } = access;
   return {
     ok: true,
+    // Who is on the other end of this note, and what it is about. Worked out
+    // here because the access check above already read both sides of the
+    // assignment; the route would have to ask the database again.
+    recipientId: isTrainer ? assignment.student_id : assignment.trainer_id,
+    assignmentTitle: assignment.title,
     note: {
       id: row.id,
       itemId: row.item_id,

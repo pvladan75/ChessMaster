@@ -12,6 +12,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 
+const realtime = require('../services/realtime');
 const { trainerOwnsStudent } = require('../services/assignmentService');
 const {
   acceptedTrainersOf,
@@ -21,6 +22,11 @@ const {
   notifyAccept,
   notifyDecline,
 } = require('../services/relationshipService');
+
+/// Every notification nudges its recipient, and doing that without a server is
+/// a wiring mistake loud enough to throw. Nobody is registered as online here,
+/// so nothing is actually sent — this only satisfies that check.
+realtime.init({ to: () => ({ emit: () => {} }) });
 
 /// Captures queries and replays canned rows, one result per call in order.
 function stubPool(results = [[]]) {
@@ -259,9 +265,9 @@ test('the accept notice says who accepted', async () => {
 
   const sent = pool.calls[0];
   assert.match(sent.text, /INSERT INTO user_notifications/);
-  assert.match(sent.text, /'request_accepted'/);
   assert.deepEqual(sent.params.slice(0, 2), [3, 4], 'to the sender, from the accepter');
-  assert.equal(sent.params[3], 'pvladan je prihvatio vaš zahtev.');
+  assert.equal(sent.params[4], 'pvladan je prihvatio vaš zahtev.');
+  assert.equal(sent.params[5], 'request_accepted');
 });
 
 test('a failed accept notice does not undo the acceptance', async () => {
@@ -279,9 +285,9 @@ test('the decline notice says no without saying why', async () => {
 
   const sent = pool.calls[0];
   assert.match(sent.text, /INSERT INTO user_notifications/);
-  assert.match(sent.text, /'request_declined'/);
   assert.deepEqual(sent.params.slice(0, 2), [3, 4], 'to the sender, from the decliner');
-  assert.equal(sent.params[3], 'pvladan nije prihvatio vaš zahtev.');
+  assert.equal(sent.params[4], 'pvladan nije prihvatio vaš zahtev.');
+  assert.equal(sent.params[5], 'request_declined');
 });
 
 test('a failed decline notice does not undo the decline', async () => {

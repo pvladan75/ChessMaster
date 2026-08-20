@@ -8,6 +8,7 @@
 // than what they claim.
 
 const logger = require('./logger');
+const { notify } = require('./notifications');
 
 /// Where a theme stops being something to work on and starts being a strength.
 /// The gap between them is intentional: a child in the middle is neither, and
@@ -311,16 +312,44 @@ async function markLessonStepDone(pool, { studentId, assignmentId, position }) {
     }
   }
 
-  await pool.query(
-    `UPDATE assignments SET completed_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND completed_at IS NULL
-       AND NOT EXISTS (
-         SELECT 1 FROM assignment_items
-         WHERE assignment_id = $1 AND attempted_at IS NULL
-       )`,
+  await markCompleteIfDone(pool, assignmentId);
+  return true;
+}
+
+/// Stamps an assignment as finished the moment its last item lands, and tells
+/// the trainer — who otherwise had to keep opening the list to find out.
+///
+/// `completed_at IS NULL` in the UPDATE is what makes "once" true: re-walking a
+/// finished lesson or re-solving a puzzle updates no row, so no second notice
+/// goes out. The student's name comes back from the same statement rather than
+/// from a second query, which would see a different instant.
+async function markCompleteIfDone(pool, assignmentId) {
+  const done = await pool.query(
+    `WITH finished AS (
+       UPDATE assignments SET completed_at = CURRENT_TIMESTAMP
+        WHERE id = $1 AND completed_at IS NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM assignment_items
+            WHERE assignment_id = $1 AND attempted_at IS NULL
+          )
+       RETURNING id, trainer_id, student_id, title
+     )
+     SELECT f.id, f.trainer_id, f.title, u.name AS student_name
+       FROM finished f LEFT JOIN users u ON u.id = f.student_id`,
     [assignmentId]
   );
-  return true;
+  if (done.rows.length === 0) return null;
+
+  const row = done.rows[0];
+  await notify(pool, {
+    recipientId: row.trainer_id,
+    senderId: row.student_id,
+    title: 'Zadatak je urađen',
+    message: `${row.student_name || 'Učenik'} je uradio zadatak: ${row.title}`,
+    kind: 'assignment_done',
+    refId: row.id,
+  });
+  return row;
 }
 
 /// Marks any pending assignment item for this puzzle as done.
@@ -363,15 +392,7 @@ async function recordPuzzleResult(pool, { studentId, puzzleId, solved, msTaken, 
 
     // Stamp any assignment whose last item just landed.
     for (const row of result.rows) {
-      await pool.query(
-        `UPDATE assignments SET completed_at = CURRENT_TIMESTAMP
-         WHERE id = $1 AND completed_at IS NULL
-           AND NOT EXISTS (
-             SELECT 1 FROM assignment_items
-             WHERE assignment_id = $1 AND attempted_at IS NULL
-           )`,
-        [row.assignment_id]
-      );
+      await markCompleteIfDone(pool, row.assignment_id);
     }
 
     return result.rows.length;
@@ -695,6 +716,7 @@ module.exports = {
   loadAssignableLesson,
   createLessonAssignment,
   markLessonStepDone,
+  markCompleteIfDone,
   recordPuzzleResult,
   getStudentAssignments,
   getTrainerAssignments,

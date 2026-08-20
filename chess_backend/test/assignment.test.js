@@ -6,13 +6,20 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const realtime = require('../services/realtime');
 const {
   summariseAttempts,
   resolvePuzzles,
   recordPuzzleResult,
+  markCompleteIfDone,
   MAX_ITEMS,
   DEFAULT_ITEMS,
 } = require('../services/assignmentService');
+
+/// Finishing an assignment notifies the trainer, and notifying nudges them.
+/// Without a server that is a wiring mistake loud enough to throw; nobody is
+/// registered as online here, so nothing is actually sent.
+realtime.init({ to: () => ({ emit: () => {} }) });
 
 /// Captures queries and replays canned rows, one result per call in order.
 function stubPool(results = [[]]) {
@@ -242,4 +249,42 @@ test('a legitimate move survives being cleaned', () => {
   assert.equal(cleanSan('   '), null);
   assert.equal(cleanSan(null), null);
   assert.equal(cleanSan('x'.repeat(40)).length, 20);
+});
+
+
+test('the trainer is told when the last item lands', async () => {
+  // The trainer used to have to keep opening the list to find out.
+  const pool = stubPool([
+    [{ id: 3, trainer_id: 1, student_id: 7, title: 'Matovi u dva', student_name: 'pavle' }],
+  ]);
+  const done = await markCompleteIfDone(pool, 3);
+
+  assert.equal(done.id, 3);
+  const stamp = pool.calls[0];
+  assert.match(stamp.text, /completed_at IS NULL/, 'only the first time');
+  assert.match(stamp.text, /attempted_at IS NULL/, 'and only once nothing is left');
+
+  const notice = pool.calls[1];
+  assert.match(notice.text, /INSERT INTO user_notifications/);
+  assert.equal(notice.params[0], 1, 'to the trainer');
+  assert.equal(notice.params[4], 'pavle je uradio zadatak: Matovi u dva');
+  assert.equal(notice.params[5], 'assignment_done');
+  assert.equal(notice.params[6], 3, 'points at the assignment');
+});
+
+test('an assignment that was already finished tells nobody again', async () => {
+  // Re-walking a finished lesson or re-solving one of its puzzles updates no
+  // row, and that is what keeps the notice to exactly one.
+  const pool = stubPool([[]]);
+  assert.equal(await markCompleteIfDone(pool, 3), null);
+  assert.equal(pool.calls.length, 1, 'stopped before writing a notice');
+});
+
+test('a student whose name is missing is still named something', async () => {
+  const pool = stubPool([
+    [{ id: 3, trainer_id: 1, student_id: 7, title: 'Matovi u dva', student_name: null }],
+  ]);
+  await markCompleteIfDone(pool, 3);
+
+  assert.equal(pool.calls[1].params[4], 'Učenik je uradio zadatak: Matovi u dva');
 });

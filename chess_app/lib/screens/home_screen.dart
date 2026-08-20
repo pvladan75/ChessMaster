@@ -234,14 +234,21 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
 
-    // Somebody asked, accepted or declined at the other end. Both lists are
-    // refetched: the bell counts requests from `/relationships/pending`, and the
-    // Prijatelji list would otherwise keep saying "čeka potvrdu" until the tab
-    // was left and entered again — which is how this was noticed.
+    // Anything that raised a notification at the other end — homework set, a
+    // note written, a lesson scheduled, a request answered. Without this the
+    // bell only ever filled at startup: nothing polls, so a notification
+    // arriving while the app is open was invisible until it was restarted.
+    _socket.on('notifications_changed', (_) {
+      if (!mounted) return;
+      _fetchNotifications();
+    });
+
+    // A relationship in particular also changes the Prijatelji lists, which the
+    // bell does not cover: the tab would otherwise keep saying "čeka potvrdu"
+    // until it was left and entered again — which is how this was noticed.
     _socket.on('relationship_changed', (_) {
       if (!mounted) return;
       _fetchStudents();
-      _fetchNotifications();
     });
 
     _socket.on('session_invite_received', (data) {

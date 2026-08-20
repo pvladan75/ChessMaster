@@ -57,7 +57,14 @@ function emitToUser(userId, event, payload) {
   const socketId = socketIdOf(userId);
   if (!socketId) return false;
 
-  io.to(socketId).emit(event, payload);
+  try {
+    io.to(socketId).emit(event, payload);
+  } catch (err) {
+    // The transport failing is a runtime condition, not a wiring mistake: the
+    // notification row is already written and the action already happened.
+    logger.error(`[REALTIME] could not send ${event} to user ${userId}:`, err);
+    return false;
+  }
   logger.info(`[REALTIME] ${event} -> user ${userId}`);
   return true;
 }

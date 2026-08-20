@@ -6,6 +6,7 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 const { getUserStats } = require('../limitsService');
 const relationships = require('../services/relationshipService');
 const realtime = require('../services/realtime');
+const { notify } = require('../services/notifications');
 
 /// Tells a user, if they are looking right now, that something about their
 /// relationships changed — so the bell and the list refresh themselves instead
@@ -384,11 +385,13 @@ router.post('/invitations/send', authenticateToken, async (req, res) => {
     const message = `${senderName} vas poziva da se pridružite šahovskom času u sobi: ${roomCode}`;
 
     for (const targetId of targetIds) {
-      await pool.query(
-        `INSERT INTO user_notifications (user_id, sender_id, room_code, title, message)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [targetId, senderId, roomCode, title, message]
-      );
+      await notify(pool, {
+        recipientId: targetId,
+        senderId,
+        roomCode,
+        title,
+        message,
+      });
     }
 
     res.json({ success: true, message: 'Pozivnica uspešno poslata.' });
@@ -427,17 +430,13 @@ router.post('/sessions/schedule', authenticateToken, async (req, res) => {
         const hostRes = await pool.query('SELECT name FROM users WHERE id = $1', [hostId]);
         const hostName = hostRes.rows[0]?.name || 'Trener';
 
-        await pool.query(
-          `INSERT INTO user_notifications (user_id, sender_id, room_code, title, message)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [
-            userId,
-            hostId,
-            roomCode,
-            `Zakazan čas: ${title}`,
-            `${hostName} je zakazao čas za ${new Date(scheduledAt).toLocaleString('sr-RS')}. Kod sobe: ${roomCode}`
-          ]
-        );
+        await notify(pool, {
+          recipientId: userId,
+          senderId: hostId,
+          roomCode,
+          title: `Zakazan čas: ${title}`,
+          message: `${hostName} je zakazao čas za ${new Date(scheduledAt).toLocaleString('sr-RS')}. Kod sobe: ${roomCode}`,
+        });
       }
     }
 

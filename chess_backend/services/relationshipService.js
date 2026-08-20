@@ -12,6 +12,7 @@
 // added each other could both set the other homework.
 
 const logger = require('./logger');
+const { notify } = require('./notifications');
 
 /// SQL fragment: the ids of the users who are `param`'s **accepted** trainers.
 ///
@@ -266,15 +267,14 @@ async function notifyRequest(pool, { recipientId, senderId, senderName, requestI
     ? `${senderName} želi da vas upiše kao učenika.`
     : `${senderName} želi da mu budete trener.`;
 
-  try {
-    await pool.query(
-      `INSERT INTO user_notifications (user_id, sender_id, room_code, title, message, kind, ref_id)
-       VALUES ($1, $2, NULL, $3, $4, 'student_request', $5)`,
-      [recipientId, senderId, title, message, requestId]
-    );
-  } catch (err) {
-    logger.error('Could not create relationship notification:', err);
-  }
+  await notify(pool, {
+    recipientId,
+    senderId,
+    title,
+    message,
+    kind: 'student_request',
+    refId: requestId,
+  });
 }
 
 /// Tells the sender that their request was answered with yes.
@@ -284,22 +284,13 @@ async function notifyRequest(pool, { recipientId, senderId, senderName, requestI
 /// sender was left watching a row that said "čeka potvrdu" with no way to learn
 /// that it no longer did — the relationship worked, and only looked broken.
 async function notifyAccept(pool, { recipientId, accepterId, accepterName }) {
-  try {
-    await pool.query(
-      `INSERT INTO user_notifications (user_id, sender_id, room_code, title, message, kind, ref_id)
-       VALUES ($1, $2, NULL, $3, $4, 'request_accepted', NULL)`,
-      [
-        recipientId,
-        accepterId,
-        'Zahtev je prihvaćen',
-        `${accepterName} je prihvatio vaš zahtev.`,
-      ]
-    );
-  } catch (err) {
-    // Best effort, like every other notification here: an accepted request
-    // must not be undone because the note about it failed.
-    logger.error('Could not create accept notification:', err);
-  }
+  await notify(pool, {
+    recipientId,
+    senderId: accepterId,
+    title: 'Zahtev je prihvaćen',
+    message: `${accepterName} je prihvatio vaš zahtev.`,
+    kind: 'request_accepted',
+  });
 }
 
 /// Tells the sender that their request was answered with no.
@@ -312,22 +303,13 @@ async function notifyAccept(pool, { recipientId, accepterId, accepterName }) {
 /// none is passed on; a refusal that has to be justified is harder to give, and
 /// the people refusing here are often children.
 async function notifyDecline(pool, { recipientId, declinerId, declinerName }) {
-  try {
-    await pool.query(
-      `INSERT INTO user_notifications (user_id, sender_id, room_code, title, message, kind, ref_id)
-       VALUES ($1, $2, NULL, $3, $4, 'request_declined', NULL)`,
-      [
-        recipientId,
-        declinerId,
-        'Zahtev nije prihvaćen',
-        `${declinerName} nije prihvatio vaš zahtev.`,
-      ]
-    );
-  } catch (err) {
-    // Best effort, like every other notification here: a decline that went
-    // through must not be undone because the note about it failed.
-    logger.error('Could not create decline notification:', err);
-  }
+  await notify(pool, {
+    recipientId,
+    senderId: declinerId,
+    title: 'Zahtev nije prihvaćen',
+    message: `${declinerName} nije prihvatio vaš zahtev.`,
+    kind: 'request_declined',
+  });
 }
 
 module.exports = {
