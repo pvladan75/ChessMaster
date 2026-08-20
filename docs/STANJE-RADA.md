@@ -1771,6 +1771,10 @@ Treći je nov. Zato u pregledu kod takve zagonetke **ne piše ništa** o potezu 
 red se zove **„Prvo probao"**, a ne „Odigrao": to su dve različite tvrdnje i
 jedna oznaka za obe bila bi netačna kod jedne od njih.
 
+**Provereno uživo 20.8.2026** na telefonu: „Prvo si probao" sa potezom u
+notaciji kod zagonetke sa greškom, nijedan red o potezu kod one rešene iz prve,
+„nije zabeležen" kod starih, i linija u čitljivom zapisu. Dnevnik servera čist.
+
 Napomena o poverenju: ovaj potez dolazi **od klijenta**, za razliku od
 trenerovih pozicija gde ga server izvodi sam dok sudi. To nije novo popuštanje —
 na ovom putu klijent već odlučuje i `solved`, pa potez nije poverljiviji od

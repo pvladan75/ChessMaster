@@ -514,7 +514,7 @@ svežem build-u za Windows i na telefonu.
 - [x] U pregledu Lichess zadatka linija piše kao `Rb7 Rxb7 g8=Q`, a ne kao
       `e7b7 b8b7 g7g8q`.
 
-## 18. Prva pogrešna ideja u zagonetki — 20.8.2026, nije viđeno uživo
+## 18. Prva pogrešna ideja u zagonetki — ✅ provereno uživo 20.8.2026
 
 **Kako:** kao učenik otvori zadatak sa Lichess zagonetkama („Domaći zadatak"),
 pa **namerno odigraj pogrešan potez**, zatim tačan. Onda uradi jednu zagonetku
@@ -522,10 +522,10 @@ pa **namerno odigraj pogrešan potez**, zatim tačan. Onda uradi jednu zagonetku
 
 **Na šta obratiti pažnju:**
 
-- [ ] Kod zagonetke gde si pogrešio piše **„Prvo probao: <potez>"** — u
+- [x] Kod zagonetke gde si pogrešio piše **„Prvo probao: <potez>"** — u
       notaciji, ne kao `e2e4`.
-- [ ] Kod zagonetke rešene iz prve **nema nijednog reda o potezu**. Ne sme da
+- [x] Kod zagonetke rešene iz prve **nema nijednog reda o potezu**. Ne sme da
       piše „nije zabeležen".
-- [ ] Kod starih zagonetki (pre 20.8.2026) i dalje piše „nije zabeležen".
-- [ ] Kod trenera piše isto, samo „Prvo probao" umesto „Prvo si probao".
-- [ ] Linija ispod i dalje stoji u čitljivom zapisu.
+- [x] Kod starih zagonetki (pre 20.8.2026) i dalje piše „nije zabeležen".
+- [x] Kod trenera piše isto, samo „Prvo probao" umesto „Prvo si probao".
+- [x] Linija ispod i dalje stoji u čitljivom zapisu.
