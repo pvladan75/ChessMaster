@@ -28,6 +28,7 @@ import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/arrow_color_button.dart';
+import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/widgets/game_screen/course_step_bar.dart';
 import 'package:chess_app/widgets/board_setup_dialog.dart';
@@ -1952,10 +1953,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   Widget buildNavigationControls() {
     return MoveNavigationControls(
-      moveTree: moveTree,
-      currentNode: currentNode,
+      cursor: MoveTreeCursor(
+        moveTree: moveTree,
+        currentNode: currentNode,
+        onSelect: _selectNode,
+      ),
       canNavigate: canDriveSharedBoard,
-      onSelectNode: _selectNode,
       onFlipBoard: _toggleLocalOrientation,
     );
   }

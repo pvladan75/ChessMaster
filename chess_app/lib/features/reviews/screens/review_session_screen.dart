@@ -2,10 +2,12 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import '../services/review_api_service.dart';
 
 /// Works through the positions that are due for review.
@@ -83,7 +85,9 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
     if (pgn != null && pgn.trim().isNotEmpty) {
       try {
         final parsed = PgnParser.parse(pgn);
-        if (parsed != null && parsed.fens.isNotEmpty && _sameFen(parsed.fens.first, item.step.fen)) {
+        if (parsed != null &&
+            parsed.fens.isNotEmpty &&
+            _sameFen(parsed.fens.first, item.step.fen)) {
           fens = parsed.fens;
           moves = parsed.movesSan;
         }
@@ -153,8 +157,9 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${grade.label} — sledeće ponavljanje $description'),
-        duration: const Duration(milliseconds: 1400)),
+      SnackBar(
+          content: Text('${grade.label} — sledeće ponavljanje $description'),
+          duration: const Duration(milliseconds: 1400)),
     );
 
     setState(() {
@@ -238,7 +243,11 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
 
   Widget _buildPrompt() {
     final item = _current!;
-    final toMove = _orientation == PlayerColor.white ? 'Beli' : 'Crni';
+    // Read from the position, not from [_orientation]: the board starts facing
+    // the side to move but can now be flipped by hand, and a flipped board must
+    // not change who the prompt says is on move.
+    final toMove =
+        _sideToMove(item.step.fen) == PlayerColor.white ? 'Beli' : 'Crni';
 
     return Card(
       color: context.colors.surface,
@@ -252,13 +261,15 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                 Expanded(
                   child: Text(
                     item.lessonTitle,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Text(
                   '${_completed + 1}/${_queue.length}',
-                  style: TextStyle(fontSize: 13, color: context.colors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 13, color: context.colors.textSecondary),
                 ),
               ],
             ),
@@ -267,7 +278,8 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
               item.isNew
                   ? 'Nova pozicija — pogledajte je i ocenite koliko vam je jasna.'
                   : '$toMove na potezu. Setite se ideje, pa proverite.',
-              style: TextStyle(fontSize: 12.5, color: context.colors.textSecondary),
+              style: TextStyle(
+                  fontSize: 12.5, color: context.colors.textSecondary),
             ),
             if (item.step.title.isNotEmpty && _revealed) ...[
               const SizedBox(height: 6),
@@ -291,28 +303,19 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
   }
 
   Widget _buildMoveControls() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.first_page),
-          onPressed: _moveIndex == 0 ? null : () => _seek(0),
-        ),
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: _moveIndex == 0 ? null : () => _seek(_moveIndex - 1),
-        ),
-        Text('$_moveIndex/${_moves.length}',
-            style: TextStyle(fontSize: 12, color: context.colors.textSecondary)),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: _moveIndex >= _moves.length ? null : () => _seek(_moveIndex + 1),
-        ),
-        IconButton(
-          icon: const Icon(Icons.last_page),
-          onPressed: _moveIndex >= _moves.length ? null : () => _seek(_moves.length),
-        ),
-      ],
+    return MoveNavigationControls(
+      cursor: LinearMoveCursor(
+        fens: _fens,
+        movesSan: _moves,
+        index: _moveIndex,
+        onSeek: _seek,
+      ),
+      centerLabel: '$_moveIndex/${_moves.length}',
+      onFlipBoard: () => setState(() {
+        _orientation = _orientation == PlayerColor.white
+            ? PlayerColor.black
+            : PlayerColor.white;
+      }),
     );
   }
 
@@ -343,7 +346,8 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors[grade],
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 ),
                 child: Text(grade.label),
               ),

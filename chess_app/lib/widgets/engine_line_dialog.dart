@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/models/analysis_models.dart';
-import 'package:chess_app/widgets/board_flip_button.dart';
+import 'package:chess_app/core/models/move_cursor.dart';
+import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 
 class EngineLineDialog extends StatefulWidget {
   final AnalysisLine line;
@@ -36,7 +37,9 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
 
   void _toggleOrientation() {
     setState(() {
-      _orientation = _orientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
+      _orientation = _orientation == PlayerColor.white
+          ? PlayerColor.black
+          : PlayerColor.white;
     });
   }
 
@@ -123,45 +126,14 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
               const SizedBox(height: 12),
 
               // Navigation stepper buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.first_page),
-                    onPressed: currentIndex > 0 ? () => _goToIndex(0) : null,
-                    tooltip: 'Početak linije',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.navigate_before),
-                    onPressed: currentIndex > 0
-                        ? () => _goToIndex(currentIndex - 1)
-                        : null,
-                    tooltip: 'Prethodni potez',
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: Text(
-                      '$currentIndex / $maxIndex',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.navigate_next),
-                    onPressed: currentIndex < maxIndex
-                        ? () => _goToIndex(currentIndex + 1)
-                        : null,
-                    tooltip: 'Sledeći potez',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.last_page),
-                    onPressed: currentIndex < maxIndex
-                        ? () => _goToIndex(maxIndex)
-                        : null,
-                    tooltip: 'Kraj linije',
-                  ),
-                  BoardFlipButton(onPressed: _toggleOrientation),
-                ],
+              MoveNavigationControls(
+                cursor: LinearMoveCursor(
+                  fens: widget.line.fenList,
+                  index: currentIndex,
+                  onSeek: _goToIndex,
+                ),
+                centerLabel: '$currentIndex / $maxIndex',
+                onFlipBoard: _toggleOrientation,
               ),
             ],
           ),

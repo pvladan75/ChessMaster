@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
+import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
@@ -18,7 +20,6 @@ import 'package:go_router/go_router.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
-import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/features/analysis_studio/services/position_info_service.dart';
 import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
@@ -643,10 +644,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     });
   }
 
-  void _goFirst() {
-    _jumpToNode(_nearestLineStart(_currentNode));
-  }
-
   /// Orientation is part of the saved draft, so flipping persists the board
   /// the way the user left it rather than resetting on the next visit.
   void _flipBoard() {
@@ -654,40 +651,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       _orientation = _orientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
     });
     _saveDraft();
-  }
-
-  /// Walks up from [node] to the nearest ancestor that is itself a branch
-  /// point (has more than one child) — i.e. the node the current line
-  /// diverged from. If the path back to the root never branches, that's
-  /// effectively the same as "the line's start", so this falls back to it.
-  AnalysisNode _nearestLineStart(AnalysisNode node) {
-    var cur = node;
-    while (!cur.isRoot) {
-      final parent = cur.parent!;
-      if (parent.children.length > 1) return parent;
-      cur = parent;
-    }
-    return cur;
-  }
-
-  void _goPrevious() {
-    if (_currentNode.parent != null) {
-      _jumpToNode(_currentNode.parent!);
-    }
-  }
-
-  void _goNext() {
-    if (_currentNode.children.isNotEmpty) {
-      _jumpToNode(_currentNode.children.first);
-    }
-  }
-
-  void _goLast() {
-    var curr = _currentNode;
-    while (curr.children.isNotEmpty) {
-      curr = curr.children.first;
-    }
-    _jumpToNode(curr);
   }
 
   /// Always opens the checklist editor (see [dialogs.showManualCommentDialog])
@@ -1711,65 +1674,43 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   }
 
   Widget _buildNavigationToolbar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade900,
-        borderRadius: BorderRadius.circular(8),
+    return MoveNavigationControls(
+      cursor: AnalysisNodeCursor(
+        currentNode: _currentNode,
+        onSelect: _jumpToNode,
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.first_page, size: 20),
-            tooltip: 'Početak linije (<<)',
-            onPressed: _currentNode.isRoot ? null : _goFirst,
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_left, size: 20),
-            tooltip: 'Prethodni Potez (<)',
-            onPressed: _currentNode.isRoot ? null : _goPrevious,
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, size: 20),
-            tooltip: 'Sledeći Potez (>)',
-            onPressed: _currentNode.children.isEmpty ? null : _goNext,
-          ),
-          IconButton(
-            icon: const Icon(Icons.last_page, size: 20),
-            tooltip: 'Kraj Glavne Linije (>>)',
-            onPressed: _currentNode.children.isEmpty ? null : _goLast,
-          ),
-          BoardFlipButton(size: 20, onPressed: _flipBoard),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.comment, size: 18, color: Colors.lightBlueAccent),
-            tooltip: 'Dodaj Komentar',
-            onPressed: _showCommentDialog,
-          ),
-          IconButton(
-            icon: _isGeneratingAiComment
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.auto_awesome, size: 18, color: Colors.tealAccent),
-            tooltip: 'Generiši AI komentar',
-            onPressed: (_isGeneratingAiComment || _currentNode.isRoot) ? null : _generateAiComment,
-          ),
-          IconButton(
-            icon: const Icon(Icons.style, size: 18, color: Colors.amberAccent),
-            tooltip: 'NAG Simboli (!, ?)',
-            onPressed: _showNagSelector,
-          ),
-          IconButton(
-            icon: Icon(Icons.delete_outline, size: 18, color: context.colors.danger),
-            tooltip: 'Obriši ovaj potez (i granu iza njega)',
-            onPressed: _currentNode.isRoot ? null : _confirmDeleteCurrentNode,
-          ),
-        ],
-      ),
+      centerLabel: null,
+      iconSize: 20,
+      onFlipBoard: _flipBoard,
+      trailing: [
+        const SizedBox(width: 8),
+        IconButton(
+          icon: const Icon(Icons.comment, size: 18, color: Colors.lightBlueAccent),
+          tooltip: 'Dodaj Komentar',
+          onPressed: _showCommentDialog,
+        ),
+        IconButton(
+          icon: _isGeneratingAiComment
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.auto_awesome, size: 18, color: Colors.tealAccent),
+          tooltip: 'Generiši AI komentar',
+          onPressed: (_isGeneratingAiComment || _currentNode.isRoot) ? null : _generateAiComment,
+        ),
+        IconButton(
+          icon: const Icon(Icons.style, size: 18, color: Colors.amberAccent),
+          tooltip: 'NAG Simboli (!, ?)',
+          onPressed: _showNagSelector,
+        ),
+        IconButton(
+          icon: Icon(Icons.delete_outline, size: 18, color: context.colors.danger),
+          tooltip: 'Obriši ovaj potez (i granu iza njega)',
+          onPressed: _currentNode.isRoot ? null : _confirmDeleteCurrentNode,
+        ),
+      ],
     );
   }
 

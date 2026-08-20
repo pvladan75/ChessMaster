@@ -2,11 +2,12 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/theme/app_colors.dart';
-import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
 
@@ -356,51 +357,19 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
   }
 
   Widget _buildMoveControls() {
-    return Column(
-      children: [
-        Text(
-          'Potez $_moveIndex od ${_moves.length}',
-          style: TextStyle(fontSize: 12, color: context.colors.textSecondary),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.first_page),
-              tooltip: 'Na početak',
-              onPressed: _moveIndex == 0 ? null : () => _applyMovesUpTo(0),
-            ),
-            IconButton(
-              icon: const Icon(Icons.chevron_left),
-              tooltip: 'Nazad',
-              onPressed: _moveIndex == 0
-                  ? null
-                  : () => _applyMovesUpTo(_moveIndex - 1),
-            ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right),
-              tooltip: 'Napred',
-              onPressed: _moveIndex >= _moves.length
-                  ? null
-                  : () => _applyMovesUpTo(_moveIndex + 1),
-            ),
-            IconButton(
-              icon: const Icon(Icons.last_page),
-              tooltip: 'Na kraj',
-              onPressed: _moveIndex >= _moves.length
-                  ? null
-                  : () => _applyMovesUpTo(_moves.length),
-            ),
-            BoardFlipButton(
-              onPressed: () => setState(() {
-                _orientation = _orientation == PlayerColor.white
-                    ? PlayerColor.black
-                    : PlayerColor.white;
-              }),
-            ),
-          ],
-        ),
-      ],
+    return MoveNavigationControls(
+      cursor: LinearMoveCursor(
+        fens: _fens,
+        movesSan: _moves,
+        index: _moveIndex,
+        onSeek: _applyMovesUpTo,
+      ),
+      centerLabel: 'Potez $_moveIndex od ${_moves.length}',
+      onFlipBoard: () => setState(() {
+        _orientation = _orientation == PlayerColor.white
+            ? PlayerColor.black
+            : PlayerColor.white;
+      }),
     );
   }
 

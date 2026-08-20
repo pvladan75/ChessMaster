@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/move_tree.dart';
-import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
+import 'package:chess_app/core/models/move_cursor.dart';
 
 /// Builds a chain of moves under [root], returning the deepest node.
 MoveNode _chain(MoveNode root, List<String> sans) {

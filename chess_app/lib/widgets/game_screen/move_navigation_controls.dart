@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 
-import 'package:chess_app/move_tree.dart';
+import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 
-/// First/prev/next/last toolbar for walking a [MoveTree], with an optional
+/// First/prev/next/last toolbar for walking a line of moves, with an optional
 /// strip of tappable move chips above it and an optional flip button.
 ///
-/// This is the one navigation strip for every screen whose moves live in a
-/// [MoveTree]. It used to be two — this one for the lesson session and a
-/// near-identical `MoveHistoryNavigationWidget` for the AI Studio — which had
-/// drifted into different icons (`navigate_before` vs `chevron_left`) and
-/// different chrome for the same four buttons. Screens on other move models
-/// (the linear index in the lesson viewer and review session, the
-/// `AnalysisNode` tree in the Analysis Studio) still have their own; they need
-/// a cursor abstraction before they can share this.
+/// This is the one navigation strip in the app. It used to be six: this one for
+/// the lesson room, a near-identical `MoveHistoryNavigationWidget` for the AI
+/// Studio, and one apiece in the lesson viewer, the review session and the
+/// Analysis Studio — which had drifted into different icons
+/// (`navigate_before` vs `chevron_left`) and different tooltips for the same
+/// four buttons.
+///
+/// What kept them apart was three different move models underneath, so the
+/// widget no longer speaks to any of them: it drives a [MoveCursor] and knows
+/// nothing else.
 class MoveNavigationControls extends StatelessWidget {
-  final MoveTree moveTree;
-  final MoveNode currentNode;
-  final ValueChanged<MoveNode> onSelectNode;
+  final MoveCursor cursor;
 
   /// Disables every control. Used in a room where this seat may not drive the
   /// shared board, since navigating broadcasts the position to everyone.
@@ -26,65 +26,76 @@ class MoveNavigationControls extends StatelessWidget {
   /// Omitted where the screen has no board orientation to flip.
   final VoidCallback? onFlipBoard;
 
-  /// Shows the played line as tappable chips above the buttons — worth the
+  /// Shows the walked line as tappable chips above the buttons — worth the
   /// vertical space when jumping several moves back is the common action, as
-  /// in puzzle solving.
+  /// in puzzle solving. Ignored when the cursor offers no [MoveCursor.line].
   final bool showMoveChips;
 
-  /// Label between the back and forward buttons. Hidden when chips are shown,
-  /// since the chips already say where you are.
+  /// Label between the back and forward buttons, e.g. "Potez 3 od 12". Hidden
+  /// when chips are shown, since the chips already say where you are.
   final String? centerLabel;
+
+  /// Screen-specific buttons appended after the flip button — the Analysis
+  /// Studio's comment, NAG and delete actions. They sit in this row because
+  /// they act on the move the cursor is standing on.
+  final List<Widget> trailing;
+
+  /// Smaller icons for a screen where this strip shares a crowded column.
+  final double? iconSize;
 
   const MoveNavigationControls({
     super.key,
-    required this.moveTree,
-    required this.currentNode,
-    required this.onSelectNode,
+    required this.cursor,
     this.canNavigate = true,
     this.onFlipBoard,
     this.showMoveChips = false,
     this.centerLabel = 'Navigacija',
+    this.trailing = const [],
+    this.iconSize,
   });
-
-  MoveNode _lastOfLine(MoveNode from) {
-    var curr = from;
-    while (curr.children.isNotEmpty) {
-      curr = curr.children.first;
-    }
-    return curr;
-  }
 
   @override
   Widget build(BuildContext context) {
-    final canGoBack = currentNode != moveTree.root;
-    final canGoForward = currentNode.children.isNotEmpty;
+    final canGoBack = canNavigate && cursor.canGoBack;
+    final canGoForward = canNavigate && cursor.canGoForward;
+    final stops = showMoveChips ? cursor.line : const <MoveStop>[];
 
     final buttons = Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         IconButton(
-          icon: const Icon(Icons.first_page),
-          onPressed: canNavigate && canGoBack ? () => onSelectNode(moveTree.root) : null,
+          icon: Icon(Icons.first_page, size: iconSize),
+          onPressed: canGoBack ? cursor.first : null,
           tooltip: 'Idi na početak',
         ),
         IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: canNavigate && canGoBack ? () => onSelectNode(currentNode.parent!) : null,
+          icon: Icon(Icons.chevron_left, size: iconSize),
+          onPressed: canGoBack ? cursor.previous : null,
           tooltip: 'Prethodni potez',
         ),
-        if (!showMoveChips && centerLabel != null)
-          Text(centerLabel!, style: const TextStyle(fontWeight: FontWeight.bold)),
+        if (stops.isEmpty && centerLabel != null)
+          // Flexible, because the label can be a whole sentence ("Potez 3 od
+          // 12") next to five icon buttons on a 360 dp phone.
+          Flexible(
+            child: Text(
+              centerLabel!,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
         IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: canNavigate && canGoForward ? () => onSelectNode(currentNode.children.first) : null,
+          icon: Icon(Icons.chevron_right, size: iconSize),
+          onPressed: canGoForward ? cursor.next : null,
           tooltip: 'Sledeći potez',
         ),
         IconButton(
-          icon: const Icon(Icons.last_page),
-          onPressed: canNavigate && canGoForward ? () => onSelectNode(_lastOfLine(currentNode)) : null,
+          icon: Icon(Icons.last_page, size: iconSize),
+          onPressed: canGoForward ? cursor.last : null,
           tooltip: 'Idi na kraj',
         ),
-        if (onFlipBoard != null) BoardFlipButton(onPressed: onFlipBoard!),
+        if (onFlipBoard != null)
+          BoardFlipButton(size: iconSize, onPressed: onFlipBoard!),
+        ...trailing,
       ],
     );
 
@@ -98,13 +109,8 @@ class MoveNavigationControls extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showMoveChips) ...[
-            _MoveChipStrip(
-              moveTree: moveTree,
-              currentNode: currentNode,
-              canNavigate: canNavigate,
-              onSelectNode: onSelectNode,
-            ),
+          if (stops.isNotEmpty) ...[
+            _MoveChipStrip(stops: stops, canNavigate: canNavigate),
             const SizedBox(height: 6),
           ],
           buttons,
@@ -114,95 +120,38 @@ class MoveNavigationControls extends StatelessWidget {
   }
 }
 
-/// The played line as chips, oldest first, with the current move selected.
+/// The walked line as chips, oldest first, with the current stop selected.
 class _MoveChipStrip extends StatelessWidget {
-  final MoveTree moveTree;
-  final MoveNode currentNode;
+  final List<MoveStop> stops;
   final bool canNavigate;
-  final ValueChanged<MoveNode> onSelectNode;
 
-  const _MoveChipStrip({
-    required this.moveTree,
-    required this.currentNode,
-    required this.canNavigate,
-    required this.onSelectNode,
-  });
+  const _MoveChipStrip({required this.stops, required this.canNavigate});
 
   @override
   Widget build(BuildContext context) {
-    final lineToHere = <MoveNode>[];
-    MoveNode? curr = currentNode;
-    while (curr != null && curr.parent != null) {
-      lineToHere.insert(0, curr);
-      curr = curr.parent;
-    }
-
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          ActionChip(
-            avatar: const Icon(Icons.flag, size: 14),
-            label: const Text('Početak', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-            onPressed: canNavigate ? () => onSelectNode(moveTree.root) : null,
-          ),
-          const SizedBox(width: 6),
-          ...lineToHere.map((node) {
-            final isCurrent = node == currentNode;
-            return Padding(
+          for (final stop in stops)
+            Padding(
               padding: const EdgeInsets.only(right: 6.0),
               child: ChoiceChip(
+                avatar: stop.icon == null ? null : Icon(stop.icon, size: 14),
                 label: Text(
-                  formatMoveWithNumber(node, moveTree.root),
+                  stop.label,
                   style: TextStyle(
                     fontSize: 11,
-                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                    fontWeight:
+                        stop.isCurrent ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
-                selected: isCurrent,
-                onSelected: canNavigate ? (_) => onSelectNode(node) : null,
+                selected: stop.isCurrent,
+                onSelected: canNavigate ? (_) => stop.onSelect() : null,
               ),
-            );
-          }),
+            ),
         ],
       ),
     );
   }
-}
-
-/// Formats [node]'s SAN with its move number relative to [rootNode], the way
-/// PGN notation does ("12. Nf3", "12... Nf3" only for Black's first move,
-/// otherwise bare "Nf3").
-String formatMoveWithNumber(MoveNode node, MoveNode rootNode) {
-  if (node.parent == null) return 'Početak';
-
-  final path = <MoveNode>[];
-  MoveNode? curr = node;
-  while (curr != null && curr.parent != null) {
-    path.insert(0, curr);
-    curr = curr.parent;
-  }
-
-  final rootParts = rootNode.fen.split(' ');
-  final rootIsWhite = rootParts.length > 1 ? (rootParts[1] == 'w') : true;
-  final rootMoveNum = rootParts.length > 5 ? (int.tryParse(rootParts[5]) ?? 1) : 1;
-
-  final moveIndex = path.indexOf(node);
-  if (moveIndex < 0) return node.san;
-
-  final int currentMoveNum;
-  final bool isWhiteMove;
-  if (rootIsWhite) {
-    currentMoveNum = rootMoveNum + (moveIndex ~/ 2);
-    isWhiteMove = moveIndex % 2 == 0;
-  } else {
-    currentMoveNum = rootMoveNum + ((moveIndex + 1) ~/ 2);
-    isWhiteMove = moveIndex % 2 == 1;
-  }
-
-  if (isWhiteMove) return '$currentMoveNum. ${node.san}';
-  // Only the first Black move of a line needs the "12..." form; after a White
-  // move has just been listed, a bare SAN reads correctly.
-  if (moveIndex == 0) return '$currentMoveNum... ${node.san}';
-  return node.san;
 }

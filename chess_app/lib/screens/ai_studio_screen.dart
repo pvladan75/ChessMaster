@@ -6,6 +6,7 @@ import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/ai_studio/solution_tree_models.dart';
 import 'package:chess_app/widgets/ai_studio/solution_graph_widget.dart';
 import 'package:chess_app/widgets/ai_studio/pgn_solution_tree_widget.dart';
+import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -2286,9 +2287,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           const SizedBox(height: 8),
                           if (_puzzleMoveTree != null)
                             MoveNavigationControls(
-                              moveTree: _puzzleMoveTree!,
-                              currentNode: _puzzleMoveTree!.current,
-                              onSelectNode: _navigateToNode,
+                              cursor: MoveTreeCursor(
+                                moveTree: _puzzleMoveTree!,
+                                currentNode: _puzzleMoveTree!.current,
+                                onSelect: _navigateToNode,
+                              ),
                               showMoveChips: true,
                             ),
                         ],
@@ -2385,9 +2388,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     const SizedBox(height: 12),
                     if (_puzzleMoveTree != null)
                       MoveNavigationControls(
-                        moveTree: _puzzleMoveTree!,
-                        currentNode: _puzzleMoveTree!.current,
-                        onSelectNode: _navigateToNode,
+                        cursor: MoveTreeCursor(
+                          moveTree: _puzzleMoveTree!,
+                          currentNode: _puzzleMoveTree!.current,
+                          onSelect: _navigateToNode,
+                        ),
                         showMoveChips: true,
                       ),
                   ],
