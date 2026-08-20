@@ -1104,6 +1104,68 @@ prva knjiga sledeći put pusti, taj broj treba pogledati — naročito
 `flagDuplicateNumbers`, jer ako i ona negde ponavlja broj, deo dosadašnjih
 „legalnih" rešenja bio je vezan pogrešno.
 
+### Knjiga kao interaktivna lekcija — procenjeno 20.8.2026, nije započeto
+
+Ideja korisnika: skener već daje FEN sa dijagrama; da li može uz to da pokupi i
+**prozu oko dijagrama**, prepozna poteze u njoj, i sve zajedno sklopi u lekciju —
+tabla levo, tekst iz knjige desno, potezi u tekstu klikabilni i vezani za
+navigaciju ispod table. Time se rešava ono zbog čega svako ko uči iz knjige drži
+tablu pored sebe: ručno postavljanje figura i vraćanje poteza kroz varijante.
+
+**Procena: izvodljivo, i bliže nego što deluje.** Više od pola stoji napravljeno:
+
+| Korak | Stanje |
+|---|---|
+| dijagram → FEN | radi, 99,98% na prvoj knjizi |
+| izvlačenje teksta | `pageSpans` već vraća sav tekst **sa koordinatama** |
+| poteze iz teksta u SAN | `normalizeSan` guta `QXg7m`, `eXd8Q`, `0-0-0`, `!?` |
+| stablo sa varijantama | `AnalysisNode` |
+| lekcija sa koracima | `saved_lessons.position_list` |
+| tabla + navigacija | jedna traka nad tri modela, od 20.8.2026 |
+
+Uz to, u odeljku „Iz ovoga sledi da skener ima dva izlaza" **već je zaključeno**
+da knjiga tipa kurs treba da daje lekciju a ne zagonetke. Ovo je nastavak te
+odluke, ne nova grana.
+
+**Šta je stvarno teško — a nije ono što se prvo pomisli.** Nije prepoznavanje
+poteza ni prikaz; to je najlakši deo. Teško je dvoje:
+
+1. **Koji tekst pripada kom dijagramu.** Već je zabeleženo da se natpisi u
+   tekstualnom toku pojavljuju na kraju strane, a ne uz svoj dijagram — spajanje
+   ide **po koordinatama, nikako po redosledu čitanja**.
+2. **Odakle linija kreće.** Knjiga piše `1.Sf3 d5`, ali od pozicije sa dijagrama
+   ili od početka partije? Isti raskorak koji je 20.8.2026 dao „`Re7+` nije
+   legalan" — potez je bio tačan, dijagram pogrešan.
+
+**Zašto je ipak izvodljivo:** `verify.mjs` odigra potez iz teksta u FEN-u sa
+dijagrama i kaže da li prolazi. To je provera istine, a ne pogađanje — bez nje
+bi ovo bio generator uverljivih gluposti. Sa njom se svaka lekcija može izmeriti
+pre nego što je dete vidi.
+
+**Najmanji korak koji nešto dokazuje**, na knjizi koja se već skenira: jedno
+poglavlje `TacticsCourse.pdf`, proza vezana za dijagrame po koordinatama, potezi
+iz nje provereni kroz `verify.mjs`, izlaz jedan red u `saved_lessons`. Mere se
+dve stvari — koliko dijagrama je dobilo tačan tekst, i koji procenat poteza je
+legalan iz svog dijagrama. Ako je drugi broj visok, ostatak je UI: klikabilan
+`TextSpan` iznad table, uz postojeći `MoveCursor` posao od pola dana.
+
+**Prevod — dve različite stvari, ne jedna.**
+
+- **Mapiranje slova figura** (`Кf3` → `Nf3`, ruski/nemački/engleski zapis) je
+  trivijalno i sigurno: tabela po jeziku, a `chess.js` odbije svaki pogrešno
+  mapiran potez. Uklapa se pravo u `normalizeSan`.
+- **Prevod didaktičke proze modelom** je tehnički lak i pravno nije. Skeniranje
+  kupljene knjige za sebe je jedno; **pravljenje prevoda i deljenje učenicima
+  kroz aplikaciju je distribucija izvedenog dela**. To je veća izloženost od
+  imena aplikacije, i to za funkciju koja bi bila reklamna. Pitanje za istog
+  pravnika koji piše tekst o pristanku roditelja, pre nego što se u to uloži red
+  koda.
+
+**Redosled:** ne dizati dok se ne završi ekran za potvrdu skeniranih pozicija i
+objavljivanje. Ovo je nova i velika grana, a sve ostalo na spisku je na dva-tri
+koraka od gotovog. Ali je vredi držati — prirodan je nastavak već izgrađenog, i
+jedina stvar u projektu koju konkurencija nema.
+
 ### Ekran za potvrdu i put do baze — napisano 19.8.2026, nije viđeno uživo
 
 Skener je iz `puzzles/` prešao u aplikaciju:
@@ -2085,6 +2147,10 @@ uživo. Ostaju:
   210 dijagrama, 0 nemogućih pozicija. Sledeće je ekran za potvrdu u aplikaciji;
   faza 2 (skenirane slike) čeka merenje tačnosti na pet strana pre nego što se u
   nju uloži.
+- **Knjiga kao interaktivna lekcija** — procenjeno 20.8.2026, odeljak u skeneru.
+  Izvodljivo, pola je već napravljeno, ali tek posle ekrana za potvrdu i
+  objavljivanja. Prevod proze čeka pravnika, mapiranje slova figura ne čeka
+  nikoga.
 - Veći, netaknuti poduhvati iz procene: dnevna zagonetka i niz dana, grupe i
   prisustvo, chat i video, višejezičnost.
 
