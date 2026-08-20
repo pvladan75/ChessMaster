@@ -709,7 +709,7 @@ označiti sve pročitanim. Test čita rutu i pada ako ikad dodirne
 `trainer_students`.
 
 - [x] Otvori zvonce, zatvori ga: **značka padne** na broj neodgovorenih zahteva.
-      *(Gledano na telefonu: 3 → nema značke, uz 0 zahteva na čekanju.)*
+      *(Telefon: 3 → nema značke. Windows: 5 → 0. Oba uz 0 zahteva na čekanju.)*
 - [x] Redovi koji su bili podebljani sada stoje sivi, sa „Odgovoreno." gde
       treba.
 - [x] Iznad liste piše od čega je broj sastavljen. *(Windows, 20.8.2026:
