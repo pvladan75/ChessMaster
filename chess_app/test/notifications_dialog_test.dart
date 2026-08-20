@@ -123,9 +123,30 @@ void main() {
     // The bell is the owner now. It used to point at the Prijatelji tab, and
     // the notification stayed unread for good because nothing tied the answer
     // back to it.
-    expect(find.byTooltip('Prihvati'), findsOneWidget);
-    expect(find.byTooltip('Odbij'), findsOneWidget);
+    expect(find.text('Prihvati'), findsOneWidget);
+    expect(find.text('Odbij'), findsOneWidget);
     expect(find.text('Odgovorite u tabu Prijatelji.'), findsNothing);
+  });
+
+  testWidgets('a request can be answered on a phone, and still reads',
+      (tester) async {
+    // The buttons used to sit beside the text, which in a 360 px dialog left
+    // the sentence about a hundred pixels and broke it one word per line.
+    // Nothing overflowed — it was simply unreadable, and several tests in this
+    // file were widened to 800 to get around it.
+    await _open(tester, const [], pending: const [_pending]);
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Prihvati'), findsOneWidget);
+    expect(find.text('Odbij'), findsOneWidget);
+
+    final line = tester.getRect(find.text('želi da vas upiše kao učenika'));
+    expect(line.width, greaterThan(180),
+        reason: 'the sentence is squeezed into a column too narrow to read');
+
+    await tester.tap(find.text('Prihvati'));
+    await tester.pumpAndSettle();
+    expect(find.text('Zahtev je prihvaćen.'), findsOneWidget);
   });
 
   testWidgets('a request is offered once, not twice', (tester) async {
@@ -143,7 +164,7 @@ void main() {
     await _open(tester, const [],
         pending: const [_pending], size: const Size(800, 600));
 
-    expect(find.byTooltip('Prihvati'), findsOneWidget);
+    expect(find.text('Prihvati'), findsOneWidget);
     expect(find.text('Nemate novih notifikacija.'), findsNothing);
   });
 
@@ -159,7 +180,7 @@ void main() {
       return true;
     });
 
-    await tester.tap(find.byTooltip('Prihvati'));
+    await tester.tap(find.text('Prihvati'));
     await tester.pumpAndSettle();
 
     expect(answeredId, 8);
@@ -167,7 +188,7 @@ void main() {
     // The dialog stays open and reports the outcome rather than vanishing from
     // under the finger that answered it.
     expect(find.text('Zahtev je prihvaćen.'), findsOneWidget);
-    expect(find.byTooltip('Prihvati'), findsNothing);
+    expect(find.text('Prihvati'), findsNothing);
   });
 
   testWidgets('a refused answer leaves the request where it was',
@@ -177,11 +198,11 @@ void main() {
         size: const Size(800, 600),
         onRespond: (_, __) async => false);
 
-    await tester.tap(find.byTooltip('Prihvati'));
+    await tester.tap(find.text('Prihvati'));
     await tester.pumpAndSettle();
 
     // The server said no. Pretending otherwise would lose the request.
-    expect(find.byTooltip('Prihvati'), findsOneWidget);
+    expect(find.text('Prihvati'), findsOneWidget);
     expect(find.text('Zahtev je prihvaćen.'), findsNothing);
   });
 
@@ -191,7 +212,7 @@ void main() {
     await _open(tester, [_studentRequest]);
 
     expect(find.text('Odgovoreno.'), findsOneWidget);
-    expect(find.byTooltip('Prihvati'), findsNothing);
+    expect(find.text('Prihvati'), findsNothing);
   });
 
   testWidgets('joining passes the room code along', (tester) async {

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -103,10 +104,22 @@ void showNotificationsDialog(
               ),
             ],
           ),
-          // Fixed width, as everywhere here: AlertDialog wraps its content in
-          // an IntrinsicWidth, which cannot descend into a lazy list.
+          // Narrower margins than the default, so a 360 dp phone keeps most of
+          // its width for the content.
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          // A width, because AlertDialog wraps its content in an IntrinsicWidth
+          // which cannot descend into a lazy list — but not a fixed one. It was
+          // 360, and a phone *is* 360 dp: the dialog's own margins and padding
+          // then put the content 79 px past the edge, where a release build
+          // clips it without a word. That is what squeezed the request text
+          // into one word per line, and why several tests in
+          // notifications_dialog_test.dart had been widened to 800 to pass.
           content: SizedBox(
-            width: 360,
+            width: math.min(
+              360,
+              MediaQuery.sizeOf(context).width - 32 - 48,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -164,40 +177,71 @@ Widget _requestCard(
   final iAmStudent = r['i_am_student'] == true;
   final name = r['other_name'] ?? r['other_email'] ?? '';
 
+  // The two buttons sit under the text rather than beside it. In a dialog this
+  // narrow, a trailing pair of icon buttons leaves the text about a hundred
+  // logical pixels, and "pavle želi da vas upiše kao učenika" came out one word
+  // per line on a phone. Nothing overflowed; it was simply unreadable.
   return Card(
     margin: const EdgeInsets.symmetric(vertical: 4.0),
-    child: ListTile(
-      dense: true,
-      leading: Icon(iAmStudent ? Icons.school : Icons.person_add,
-          color: Colors.amber),
-      title: Text(name,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-      subtitle: Text(
-        iAmStudent
-            ? 'želi da vas upiše kao učenika'
-            : 'želi da mu budete trener',
-        style: const TextStyle(fontSize: 11),
-      ),
-      trailing: busy
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2))
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.check, color: Colors.green),
-                  tooltip: 'Prihvati',
-                  onPressed: () => onAnswer(true),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(iAmStudent ? Icons.school : Icons.person_add,
+                  color: Colors.amber),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(
+                      iAmStudent
+                          ? 'želi da vas upiše kao učenika'
+                          : 'želi da mu budete trener',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ],
                 ),
-                IconButton(
+              ),
+            ],
+          ),
+          if (busy)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else
+            // Wrap, not Row: with a wide font or a small screen the two labels
+            // stack instead of running off the edge.
+            Wrap(
+              alignment: WrapAlignment.end,
+              children: [
+                TextButton.icon(
                   icon: const Icon(Icons.close, color: Colors.redAccent),
-                  tooltip: 'Odbij',
+                  label: const Text('Odbij',
+                      style: TextStyle(color: Colors.redAccent)),
                   onPressed: () => onAnswer(false),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.check, color: Colors.green),
+                  label: const Text('Prihvati',
+                      style: TextStyle(color: Colors.green)),
+                  onPressed: () => onAnswer(true),
                 ),
               ],
             ),
+        ],
+      ),
     ),
   );
 }
