@@ -355,6 +355,58 @@ ubedljivo najčešća vrednost je `180+0`. Za gradivo nije upotrebljiva, za dete
 grešaka jeste — medijana rejtinga je 2592, dakle jaki igrači koji greše zbog
 sata.
 
+## Igranje do kraja protiv motora: šta treba odlučiti
+
+Zamišljeno je da dete odigra celu završnicu protiv motora, a da svaki njegov
+potez bude ocenjen **tačno**, iz tablica.
+
+**Građa već postoji** — 478 pozicija sa pet i manje figura, sve iz tablica.
+Ne treba novo rudarenje; nedostaje petlja suđenja.
+
+| tip | dobitne | remi | raspon DTZ (dobitne) |
+|---|---|---|---|
+| RookPawnVsRook | 173 | 248 | 1–41 |
+| PawnEnding | 6 | 23 | 1–17 |
+| QueenVsRook | 7 | 16 | 1–77 |
+| RookBishopVsRook | — | 5 | — |
+
+Remi-pozicija ima više nego dobitnih, 292 naspram 186. Tamo dete brani a motor
+napada, što je verovatno vrednija vežba.
+
+### Kako radi
+
+Posle svakog poteza pitanje nije „je li dobar" nego **„da li je zadržao
+ishod"**, a to je probanje tablice — činjenica, ne procena. Motor igra drugu
+stranu i mora da brani **tablično najbolje**: ako pogreši, zadatak se završi sam
+i ništa nije naučeno.
+
+**DTZ meri napredak**, i to je ono što nijedna ocena u centipionima ne može:
+posle poteza se zna ne samo da je dobitak zadržan nego i da li je dete prišlo
+bliže. „Tačno, ali nisi ništa dobio — i dalje 18 poteza do kraja."
+
+Čim potez promeni ishod, staje se i kaže tačno to: „ovaj potez ispušta
+dobitak". Bez pogađanja.
+
+### Odluka 1: gde stoje tablice
+
+- **Na serveru** — backend dobije 940 MB i endpoint koji prima poziciju i
+  potez, vraća da li je ishod zadržan, koliko je ostalo po DTZ i šta protivnik
+  odgovara. Jedan poziv po potezu, tablice na jednom mestu.
+- **Lichess API** — bez lokalnih tablica, jedan zahtev po potezu, vraća
+  kategoriju za **svaki** legalan potez odjednom. Ovo je ispravna upotreba tog
+  servisa: mali ciljani broj zahteva, ne masovno skeniranje. Mana je zavisnost
+  od tuđeg servisa usred vežbe.
+- **Na telefonu** — 940 MB uz aplikaciju, otpada.
+
+Predlog: **server, uz Lichess kao rezervu.** Time i sedmofiguraške pozicije
+kasnije dolaze besplatno, jer API ide do sedam.
+
+### Odluka 2: pravilo od 50 poteza
+
+Neki dobici u pet figura traju preko pedeset poteza — DTZ ide do 77 kod dame
+protiv topa. Treba odlučiti da li dete to grinduje do kraja ili se vežba
+prekida ranije uz prikaz preostalog.
+
 ## Greške koje su nas koštale
 
 Sve su istog oblika kao ona iz `CLAUDE.md`: ne padaju, nego tiho prestanu da rade.
