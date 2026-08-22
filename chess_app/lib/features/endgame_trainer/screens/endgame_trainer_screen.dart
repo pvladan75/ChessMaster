@@ -81,6 +81,20 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   int _solved = 0;
   int _attempted = 0;
 
+  /// Accepted moves the user has produced for the current position, across
+  /// replays of it. Kept so a second pass can ask for the ones still missing.
+  final Set<String> _found = {};
+
+  /// True once the user has asked to see the remaining answers. Revealing is a
+  /// choice, not what happens automatically on a solve: a position with three
+  /// answers is worth hunting through, and printing them all immediately takes
+  /// that away.
+  bool _revealed = false;
+
+  /// A replayed position must not be counted twice in the tally, and a second
+  /// solve of something already failed must not turn into a clean one.
+  bool _countedThisPuzzle = false;
+
   @override
   void initState() {
     super.initState();
@@ -126,6 +140,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _orientation = puzzle.whiteToMove ? PlayerColor.white : PlayerColor.black;
       _loading = false;
       _boardLocked = false;
+      _found.clear();
+      _revealed = false;
+      _countedThisPuzzle = false;
     });
     _boardController.loadFen(puzzle.fen);
   }
@@ -169,6 +186,15 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       san: _sanFor(game.fen, from, to, promotion),
     );
 
+    if (verdict.alreadyFound) {
+      setState(() {
+        _feedback = 'Taj potez ste već našli. Potražite drugi.';
+        _feedbackIsGood = false;
+      });
+      _boardController.loadFen(game.fen);
+      return;
+    }
+
     if (!verdict.correct) {
       setState(() {
         _feedback = solve.puzzle.mode == EndgameMode.draw
@@ -191,8 +217,13 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     }
     _boardController.loadFen(game.fen);
 
-    _attempted++;
-    if (solve.countsAsSolved) _solved++;
+    if (!_countedThisPuzzle) {
+      _countedThisPuzzle = true;
+      _attempted++;
+      if (solve.countsAsSolved) _solved++;
+    }
+
+    _found.add(uci);
 
     setState(() {
       _hintSquare = null;
@@ -210,11 +241,63 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     final held = solve.puzzle.mode == EndgameMode.draw
         ? 'Tačno — remi je održan.'
         : 'Tačno — dobitak je zadržan.';
-    final others = solve.puzzle.winningMoves.length - 1;
-    if (others <= 0) return '$held Bio je to jedini potez.';
-    return others == 1
-        ? '$held Postojao je još jedan takav potez.'
-        : '$held Postojalo je još $others takvih poteza.';
+    final left = _missing(solve.puzzle).length;
+    if (left == 0) {
+      return solve.puzzle.winningMoves.length == 1
+          ? '$held Bio je to jedini potez.'
+          : '$held Našli ste sve poteze koji drže rezultat.';
+    }
+    return left == 1
+        ? '$held Postoji još jedan takav potez.'
+        : '$held Postoji još $left takvih poteza.';
+  }
+
+  /// Accepted moves not yet produced by the user, in UCI.
+  List<String> _missing(EndgamePuzzle puzzle) => puzzle.winningMoves
+      .where((m) => !_found.any((f) => EndgameSolveSession.sameMove(f, m)))
+      .toList();
+
+  /// The remaining answers in notation a person reads. Worked out against the
+  /// starting position rather than carried in another column, since the server
+  /// sends UCI.
+  List<String> _missingSan(EndgamePuzzle puzzle) {
+    final result = <String>[];
+    for (final uci in _missing(puzzle)) {
+      if (uci.length < 4) continue;
+      final san = _sanFor(puzzle.fen, uci.substring(0, 2), uci.substring(2, 4),
+          uci.length > 4 ? uci[4] : 'q');
+      if (san != null) result.add(san);
+    }
+    return result;
+  }
+
+  /// Puts the same position back, asking for an answer not yet found.
+  void _huntForTheRest() {
+    final puzzle = _solve?.puzzle;
+    if (puzzle == null) return;
+    setState(() {
+      _solve = EndgameSolveSession(puzzle, alreadyFound: Set.of(_found));
+      _game = chess.Chess.fromFEN(puzzle.fen);
+      _feedback = 'Isti položaj — nađite još jedan potez koji drži rezultat.';
+      _feedbackIsGood = false;
+      _hintSquare = null;
+    });
+    _boardController.loadFen(puzzle.fen);
+  }
+
+  void _revealRest() {
+    final puzzle = _solve?.puzzle;
+    if (puzzle == null) return;
+    final rest = _missingSan(puzzle);
+    setState(() {
+      _revealed = true;
+      _feedback = rest.isEmpty
+          ? 'Nema više poteza koji drže rezultat.'
+          : (rest.length == 1
+              ? 'Drži i ${rest.first}.'
+              : 'Drže i: ${rest.join(', ')}.');
+      _feedbackIsGood = true;
+    });
   }
 
   void _showHint() {
@@ -399,6 +482,23 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
             icon: const Icon(Icons.lightbulb_outline),
             label: const Text('Pomoć'),
           ),
+        // Offered only when there is something left to find, and only as a
+        // choice: the position is solved either way.
+        if (solve.status == EndgameSolveStatus.solved &&
+            _missing(solve.puzzle).isNotEmpty) ...[
+          OutlinedButton.icon(
+            onPressed: _huntForTheRest,
+            icon: const Icon(Icons.replay),
+            label: Text('Nađi i ostale (${_found.length}/'
+                '${solve.puzzle.winningMoves.length})'),
+          ),
+          if (!_revealed)
+            TextButton.icon(
+              onPressed: _revealRest,
+              icon: const Icon(Icons.visibility_outlined),
+              label: const Text('Pokaži'),
+            ),
+        ],
         FilledButton.icon(
           onPressed: _loadNext,
           icon: const Icon(Icons.arrow_forward),

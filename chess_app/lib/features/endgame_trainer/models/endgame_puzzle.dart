@@ -146,6 +146,11 @@ class EndgameVerdict {
 
   final bool finished;
 
+  /// True when the move holds the result but the user has already found this
+  /// one. Not a mistake and not progress: they are hunting for the *other*
+  /// answers, so the attempt stays open and the board goes back.
+  final bool alreadyFound;
+
   /// Shown only after a failure. Plural on purpose: there is rarely exactly one
   /// right answer, and naming a single "the" move would misrepresent the
   /// position.
@@ -155,6 +160,7 @@ class EndgameVerdict {
     required this.correct,
     this.opponentReply,
     this.finished = false,
+    this.alreadyFound = false,
     this.accepted = const [],
   });
 }
@@ -164,14 +170,21 @@ class EndgameVerdict {
 /// Board logic stays outside, as in [TacticsSolveSession]: the caller owns the
 /// position and only reports what happened.
 class EndgameSolveSession {
-  EndgameSolveSession(this.puzzle);
+  /// [alreadyFound] holds moves the user has already produced for this position
+  /// in an earlier attempt. They are still correct - they are simply not what
+  /// is being looked for now, because the point of replaying a position with
+  /// several answers is to find the ones you did not.
+  EndgameSolveSession(this.puzzle, {Set<String>? alreadyFound})
+      : _alreadyFound = alreadyFound ?? const {};
 
   final EndgamePuzzle puzzle;
+  final Set<String> _alreadyFound;
 
   EndgameSolveStatus _status = EndgameSolveStatus.solving;
   bool _usedHint = false;
   int _mistakes = 0;
   String? _firstWrongSan;
+  String? _foundMove;
 
   EndgameSolveStatus get status => _status;
   bool get isComplete => _status != EndgameSolveStatus.solving;
@@ -198,6 +211,16 @@ class EndgameSolveSession {
   bool holdsResult(String uci) =>
       puzzle.winningMoves.any((m) => sameMove(uci, m));
 
+  bool _isAlreadyFound(String uci) =>
+      _alreadyFound.any((m) => sameMove(uci, m));
+
+  /// Accepted moves still to be found. Empty once they are all in.
+  List<String> get remainingMoves =>
+      puzzle.winningMoves.where((m) => !_isAlreadyFound(m)).toList();
+
+  /// The move that solved this attempt, once it has.
+  String? get foundMove => _foundMove;
+
   /// One square, not the move: enough to unstick a child without answering for
   /// them. Marks the attempt as hinted so scoring can tell.
   ///
@@ -205,13 +228,23 @@ class EndgameSolveSession {
   /// endgame the piece to move is usually obvious — there are three of them —
   /// and the question is *where*.
   String? revealHint() {
-    if (puzzle.winningMoves.isEmpty) return null;
+    // Points at one still to be found, not at one already in hand.
+    final target = remainingMoves.isNotEmpty
+        ? remainingMoves.first
+        : (puzzle.winningMoves.isNotEmpty ? puzzle.winningMoves.first : null);
+    if (target == null) return null;
     _usedHint = true;
-    return puzzle.winningMoves.first.substring(2, 4);
+    return target.substring(2, 4);
   }
 
   EndgameVerdict submit(String uci, {String? san}) {
     if (isComplete) return const EndgameVerdict(correct: false);
+
+    if (holdsResult(uci) && _isAlreadyFound(uci)) {
+      // Correct, but they are looking for a different one. Not counted as a
+      // mistake: penalising a right move would be plainly unfair.
+      return const EndgameVerdict(correct: true, alreadyFound: true);
+    }
 
     if (!holdsResult(uci)) {
       _mistakes++;
@@ -226,6 +259,7 @@ class EndgameSolveSession {
     }
 
     _status = EndgameSolveStatus.solved;
+    _foundMove = uci;
 
     // The demonstration line starts with the engine's own choice. If the user
     // played a different but equally good move, the rest of that line no longer

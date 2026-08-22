@@ -8,6 +8,26 @@ Poređano od najbržeg za proveru ka najsporijem.
 
 ---
 
+## 0. Trener završnica — ✅ provereno uživo 22.8.2026
+
+Korisnik je prošao tok u Windows verziji: AI Studio → kartica „Završnice iz
+majstorskih partija" → oba dugmeta. Potvrđeno na više pozicija da se prihvata
+**svaki** potez koji drži rezultat, da se posle rešenja nudi „Nađi i ostale"
+sa brojačem, da to vraća polazni položaj, i da već nađen potez daje „Taj potez
+ste već našli. Potražite drugi." bez kažnjavanja.
+
+Provereno i: oznaka „Tačno iz tablica" na pozicijama sa pet i manje figura,
+razlika u tekstu između režima („održite remi" / „zadržite dobitak"), tabla
+okrenuta prema strani koja rešava, i imena igrača sa godinom.
+
+**Nađeno pri toj probi, popravljeno istog dana:** posle rešenja je pisalo
+koliko još poteza drži rezultat, ali se **nije moglo videti koji su** niti
+ponovo odigrati istu poziciju. Brojka bez poteza ne uči ništa — cela poenta
+pozicije sa više odgovora je koji su. Dodati su izbor „Nađi i ostale" i
+„Pokaži".
+
+---
+
 ## 0. Pristanak na odnos trener–učenik — ✅ provereno uživo 17.8.2026
 
 Korisnik je prošao ceo tok na telefonu: poziv sa naloga trenera → red „čeka

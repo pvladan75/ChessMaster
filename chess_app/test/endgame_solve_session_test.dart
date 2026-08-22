@@ -140,6 +140,34 @@ void main() {
       expect(EndgameSolveSession(puzzle).submit('a7a8n').correct, isFalse);
     });
 
+    test('a move already found is neither a mistake nor progress', () {
+      final second =
+          EndgameSolveSession(twoWaysToDraw(), alreadyFound: {'a1f1'});
+
+      final repeat = second.submit('a1f1');
+      expect(repeat.correct, isTrue);
+      expect(repeat.alreadyFound, isTrue);
+      // Still open: they are hunting for the other one.
+      expect(second.isComplete, isFalse);
+      expect(second.mistakes, 0);
+      expect(second.remainingMoves, ['a1e1']);
+
+      final fresh = second.submit('a1e1');
+      expect(fresh.correct, isTrue);
+      expect(fresh.alreadyFound, isFalse);
+      expect(second.isComplete, isTrue);
+      expect(second.foundMove, 'a1e1');
+    });
+
+    test('the hint points at a move not yet found', () {
+      final first = EndgameSolveSession(twoWaysToDraw());
+      expect(first.revealHint(), 'f1');
+
+      final second =
+          EndgameSolveSession(twoWaysToDraw(), alreadyFound: {'a1f1'});
+      expect(second.revealHint(), 'e1');
+    });
+
     test('nothing is accepted once the attempt is over', () {
       final session = EndgameSolveSession(twoWaysToDraw());
       session.submit('a1f1');
