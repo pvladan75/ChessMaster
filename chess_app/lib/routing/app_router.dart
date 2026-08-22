@@ -10,6 +10,8 @@ import 'package:chess_app/screens/settings_screen.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
 import 'package:chess_app/screens/replay_player_screen.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
+import 'package:chess_app/features/endgame_trainer/models/endgame_puzzle.dart';
+import 'package:chess_app/features/endgame_trainer/screens/endgame_trainer_screen.dart';
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/saved_positions_screen.dart';
@@ -72,6 +74,15 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.tactics,
       builder: (context, state) => TacticsTrainerScreen(
         session: SessionService.instance.current,
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.endgames,
+      builder: (context, state) => EndgameTrainerScreen(
+        session: SessionService.instance.current,
+        mode: state.uri.queryParameters['mode'] == 'draw'
+            ? EndgameMode.draw
+            : EndgameMode.win,
       ),
     ),
     GoRoute(

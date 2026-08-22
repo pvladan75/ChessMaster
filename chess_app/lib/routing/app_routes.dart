@@ -20,6 +20,11 @@ abstract final class AppRoutes {
   /// Adaptive tactics training on the Lichess puzzle set.
   static const String tactics = '/tactics';
 
+  /// Endgame technique on positions mined from master games. The mode is a
+  /// query parameter because converting a win and holding a draw are separate
+  /// exercises, not two views of one.
+  static const String endgames = '/endgames';
+
   /// Reading positions out of a trainer's own book and confirming them.
   static const String scan = '/scan';
 

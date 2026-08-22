@@ -5,6 +5,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
   final Function(String presetDifficulty) onSelectBasicMate;
   final VoidCallback onSelectWinningPosition;
   final VoidCallback onSelectTactics;
+  final VoidCallback onSelectEndgameWin;
+  final VoidCallback onSelectEndgameDraw;
 
   const CategorySelectionHubWidget({
     super.key,
@@ -12,6 +14,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
     required this.onSelectBasicMate,
     required this.onSelectWinningPosition,
     required this.onSelectTactics,
+    required this.onSelectEndgameWin,
+    required this.onSelectEndgameDraw,
   });
 
   @override
@@ -78,7 +82,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
                 elevation: 4,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Colors.lightBlueAccent, width: 1.5),
+                  side: const BorderSide(
+                      color: Colors.lightBlueAccent, width: 1.5),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(18.0),
@@ -87,12 +92,14 @@ class CategorySelectionHubWidget extends StatelessWidget {
                     children: [
                       Row(
                         children: const [
-                          Icon(Icons.auto_graph, color: Colors.lightBlueAccent, size: 28),
+                          Icon(Icons.auto_graph,
+                              color: Colors.lightBlueAccent, size: 28),
                           SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               'Taktika po vašoj meri',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
@@ -110,9 +117,90 @@ class CategorySelectionHubWidget extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.lightBlue.shade800,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
                         ),
                         onPressed: onSelectTactics,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // CARD: Zavrsnice.
+              //
+              // Placed next to tactics because it is the same kind of thing to a
+              // user - a position to solve - even though the material behind it
+              // is mined here rather than taken from Lichess. Two buttons, not
+              // one: converting a won position and holding a drawn one are
+              // different skills, and a child asked to "find the move" without
+              // being told which of the two it is has been asked the wrong
+              // question.
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Colors.amber, width: 1.5),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.flag_outlined,
+                              color: Colors.amber, size: 28),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Završnice iz majstorskih partija',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Pozicije izdvojene iz partija velemajstora. Za završnice '
+                        'sa malo figura ishod je tačan, ne procenjen — priznaje se '
+                        'svaki potez koji drži rezultat, a ne samo jedan.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      // Wrap, not Row: two Serbian labels plus icons outgrow a
+                      // 360 dp phone, and a release build clips instead of
+                      // warning.
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.emoji_events_outlined),
+                            label: const Text('Dobij'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber.shade800,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 12),
+                            ),
+                            onPressed: onSelectEndgameWin,
+                          ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.shield_outlined),
+                            label: const Text('Održi remi'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber.shade900,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 12),
+                            ),
+                            onPressed: onSelectEndgameDraw,
+                          ),
+                        ],
                       ),
                     ],
                   ),
