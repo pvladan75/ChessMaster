@@ -302,7 +302,24 @@ async function initDB() {
       );
     `);
 
-    // Create endgame_puzzles table
+    // Create endgame_puzzles table.
+    //
+    // The original table held a position and nothing else - no solution, no
+    // endgame type - because the generator it was written for produced nothing
+    // else. The miner in puzzles/endgame_miner.py does, so the columns below
+    // carry what an exercise actually needs.
+    //
+    // `winning_moves` is the part that matters most: every move that holds the
+    // result, not just the engine's favourite. Measured over the mined set, 68%
+    // of positions have more than one, and a trainer that accepts only the
+    // first tells a child playing an equally winning move that it is wrong.
+    //
+    // `piece_count` and `pawn_count` are denormalised out of the FEN because
+    // every consumer filters on one or the other and for different reasons:
+    // the play-it-out drill needs <= 5 pieces because that is as far as the
+    // tablebases reach, while a pawn-ending lesson wants many pawns, since the
+    // pawn structure is the subject. Deriving them per query would mean parsing
+    // FENs in SQL.
     await client.query(`
       CREATE TABLE IF NOT EXISTS endgame_puzzles (
         id SERIAL PRIMARY KEY,
@@ -313,7 +330,37 @@ async function initDB() {
         piece_tags VARCHAR(100),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
-      CREATE INDEX IF NOT EXISTS idx_endgame_puzzles_difficulty ON endgame_puzzles(difficulty);
+    `);
+    // Added rather than folded into CREATE TABLE, so a database that already
+    // holds the old shape is migrated instead of left behind.
+    await client.query(`
+      ALTER TABLE endgame_puzzles
+        ADD COLUMN IF NOT EXISTS endgame_type VARCHAR(40),
+        ADD COLUMN IF NOT EXISTS mode VARCHAR(8),
+        ADD COLUMN IF NOT EXISTS side_to_move CHAR(1),
+        ADD COLUMN IF NOT EXISTS winning_moves VARCHAR(8)[] NOT NULL DEFAULT '{}',
+        ADD COLUMN IF NOT EXISTS solution VARCHAR(8)[] NOT NULL DEFAULT '{}',
+        ADD COLUMN IF NOT EXISTS solution_san VARCHAR(12)[] NOT NULL DEFAULT '{}',
+        ADD COLUMN IF NOT EXISTS difficulty_score SMALLINT,
+        ADD COLUMN IF NOT EXISTS piece_count SMALLINT,
+        ADD COLUMN IF NOT EXISTS pawn_count SMALLINT,
+        ADD COLUMN IF NOT EXISTS source VARCHAR(16),
+        ADD COLUMN IF NOT EXISTS wdl SMALLINT,
+        ADD COLUMN IF NOT EXISTS dtz INTEGER,
+        ADD COLUMN IF NOT EXISTS game_white VARCHAR(120),
+        ADD COLUMN IF NOT EXISTS game_black VARCHAR(120),
+        ADD COLUMN IF NOT EXISTS game_date VARCHAR(12);
+    `);
+    // Without this the importer's ON CONFLICT DO NOTHING matches nothing and
+    // silently does nothing - every re-run appended the whole file again. The
+    // partial index skips the rows the old importer left with a null id.
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_endgame_puzzles_puzzle_id
+        ON endgame_puzzles(puzzle_id) WHERE puzzle_id IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_endgame_puzzles_difficulty
+        ON endgame_puzzles(difficulty);
+      CREATE INDEX IF NOT EXISTS idx_endgame_puzzles_pick
+        ON endgame_puzzles(endgame_type, mode, piece_count);
     `);
     logger.info('Verified database table & indexes: endgame_puzzles');
     logger.info('Verified database table: user_puzzle_ratings');

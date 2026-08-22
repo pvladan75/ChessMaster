@@ -26,3 +26,7 @@ chess_app/android/.gradle/
 puzzles/*.zst
 puzzles/*.csv
 puzzles/*.json
+
+# Python bytecode from the puzzle tooling
+__pycache__/
+*.pyc

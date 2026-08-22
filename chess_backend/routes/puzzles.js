@@ -111,35 +111,55 @@ router.get('/puzzles/next', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/puzzles/endgame/next - Fetch random endgame position from modul2 dataset
+// GET /api/puzzles/endgame/next - one endgame position to solve.
+//
+// The filters exist because the callers want genuinely different things from
+// the same table, and each has its own reason:
+//   type      - a themed lesson ("today we do rook and pawn")
+//   mode      - win is converting an advantage, draw is holding one; two skills
+//   maxPieces - the play-it-out drill needs <= 5, which is how far the
+//               tablebases reach, so this is a hard limit and not a preference
+//   minPawns  - a pawn-ending lesson wants pawns on the board; there the
+//               structure is the subject, so few pieces is the wrong measure
+//
+// No silent fallback to "any position at all" when a filter matches nothing.
+// The old handler did that, and a screen asking for a drawn rook ending would
+// be handed a won pawn ending without a word.
 router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
-  const { difficulty, excludeId } = req.query;
-  const currentExclude = excludeId || '';
+  const { type, mode, difficulty, maxPieces, minPawns, excludeId } = req.query;
+
+  const where = [];
+  const params = [];
+  // replaceAll, not replace: the exclude clause uses the same parameter twice
+  // and replacing only the first occurrence leaves a literal $? in the SQL.
+  const add = (clause, value) => {
+    params.push(value);
+    where.push(clause.replaceAll('$?', `$${params.length}`));
+  };
+
+  // The table still holds 510 rows from the old generator: a position and a
+  // one-word evaluation, no solution and no type. Serving one would put a board
+  // in front of a child with nothing to find and no way to be right, so only
+  // rows that carry a solution are eligible.
+  where.push("winning_moves <> '{}'");
+
+  add('($? = \'\' OR puzzle_id IS DISTINCT FROM $?)', excludeId || '');
+  if (type && type !== 'all') add('endgame_type = $?', type);
+  if (mode && mode !== 'all') add('mode = $?', mode);
+  if (difficulty && difficulty !== 'all') add('difficulty = $?', difficulty);
+  if (maxPieces) add('piece_count <= $?', parseInt(maxPieces, 10));
+  if (minPawns) add('pawn_count >= $?', parseInt(minPawns, 10));
 
   try {
-    let result;
-    if (difficulty && difficulty !== 'all') {
-      result = await pool.query(
-        `SELECT * FROM endgame_puzzles
-         WHERE difficulty = $1 AND ($2 = '' OR puzzle_id != $2)
-         ORDER BY RANDOM() LIMIT 1`,
-        [difficulty, currentExclude]
-      );
-    } else {
-      result = await pool.query(
-        `SELECT * FROM endgame_puzzles
-         WHERE ($1 = '' OR puzzle_id != $1)
-         ORDER BY RANDOM() LIMIT 1`,
-        [currentExclude]
-      );
-    }
+    const result = await pool.query(
+      `SELECT * FROM endgame_puzzles
+        WHERE ${where.join(' AND ')}
+        ORDER BY RANDOM() LIMIT 1`,
+      params
+    );
 
     if (result.rows.length === 0) {
-      result = await pool.query('SELECT * FROM endgame_puzzles ORDER BY RANDOM() LIMIT 1');
-    }
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Nema dostupnih završnica u bazi.' });
+      return res.status(404).json({ error: 'Nema završnice koja odgovara traženim uslovima.' });
     }
 
     const item = result.rows[0];
@@ -147,10 +167,27 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
       endgame: {
         puzzle_id: item.puzzle_id,
         fen: item.fen,
-        evaluation: item.evaluation,
+        type: item.endgame_type,
+        mode: item.mode,
+        side_to_move: item.side_to_move,
+        // Every move that holds the result. The client must accept any of them:
+        // in 68% of mined positions there is more than one.
+        winning_moves: item.winning_moves,
+        solution: item.solution,
+        solution_san: item.solution_san,
         difficulty: item.difficulty,
-        piece_tags: item.piece_tags
-      }
+        difficulty_score: item.difficulty_score,
+        piece_count: item.piece_count,
+        pawn_count: item.pawn_count,
+        // Exact where it came from a tablebase, an engine estimate otherwise.
+        source: item.source,
+        evaluation: item.evaluation,
+        wdl: item.wdl,
+        dtz: item.dtz,
+        game: item.game_white
+          ? { white: item.game_white, black: item.game_black, date: item.game_date }
+          : null,
+      },
     });
   } catch (err) {
     logger.error('Error fetching endgame puzzle:', err);
