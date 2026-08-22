@@ -2107,6 +2107,51 @@ sa uputstvom, i onaj koji čeka drugu stranu). Aplikacija 310 testova,
 
 **Nije viđeno uživo** — `TODO-provera.md`, stavka 19.
 
+## Dve greške nađene 22.8.2026, nisu popravljene
+
+Obe je korisnik primetio u Windows verziji dok je proveravao trener završnica,
+i obe su van onoga što je tada rađeno. Zapisane su namerno neurađene.
+
+### Glas se uključuje sam i naplaćuje se
+
+`_initAudioChat()` se poziva **bezuslovno iz `initState`** u
+[chess_game_screen.dart](../chess_app/lib/screens/chess_game_screen.dart) —
+čim se uđe u sobu, traži se Agora token, otvara se glasovni kanal i backend
+počne da meri. Iz korisnikovog loga:
+
+```
+19:58:50  [AUDIO] User pavle joined audio in room STUDIO
+19:59:07  [AUDIO] User 5 left audio in room STUDIO
+19:59:08  [AUDIO] Booked 18s of voice for user 5
+```
+
+Osamnaest sekundi glasa naplaćeno za sesiju u kojoj niko nije nameravao da
+priča; minut ranije još četiri. Agora se plaća po minutu i `usage_counters` to
+broji kao potrošnju.
+
+Nije samo trošak. **Mikrofon se otvara pre nego što je iko rekao da hoće
+razgovor**, a većina korisnika su deca. Ulazak u kanal treba da bude na dugme.
+
+Ograda pre popravke: trener verovatno očekuje da ga se čuje odmah po ulasku, pa
+podrazumevano ponašanje možda treba da zavisi od uloge u sobi, a ne da bude
+isto za sve.
+
+### Istekao token ne odjavljuje korisnika
+
+```
+19:56:25  [SOCKET AUTH] Rejected connection: jwt expired
+```
+
+Socket je odbijen, ali klijent to ne tumači kao kraj sesije. `401` se hvata
+jedino u
+[server_status_service.dart](../chess_app/lib/services/server_status_service.dart);
+nema centralnog mesta koje istek pretvara u odjavu.
+
+Posledica koju je korisnik prijavio: aplikacija kaže da se treba prijaviti
+ponovo, ali i dalje smatra korisnika prijavljenim, pa **mora prvo ručno da se
+odjavi**. Taj međukorak ne bi trebalo da postoji — kad backend kaže da je token
+istekao, sesija se čisti sama i vodi na ekran za prijavu.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
