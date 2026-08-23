@@ -120,6 +120,21 @@ do sledeće greške.
       poteza posle poslednje greške, a najduža sto pedeset pet.
 - [ ] Na 360 dp ništa ne izlazi iz ekrana.
 
+## 0j. „Zapamti za kasnije" — napisano 23.8.2026, nije viđeno uživo
+
+Kad pozicija ostane nejasna i pored svih objašnjenja, dugme je sačuva u
+biblioteku sa oznakom **„Nejasno"**, pa se kasnije otvori u Analysis Studiju.
+Ne pravi novu tabelu — to je obična sačuvana pozicija.
+
+- [ ] Dugme stoji **i pre i posle odgovora**, u treneru i u šetnji.
+- [ ] Posle klika piše da je zapamćeno, dugme postaje „Zapamćeno" i ne može
+      dvaput da sačuva istu poziciju.
+- [ ] Sledeća pozicija vraća dugme u početno stanje.
+- [ ] U „Mojim pozicijama" se pojavljuje sa oznakom **Nejasno**, a opis nosi
+      kontekst: šta je odigrano, šta je držalo, pravilo, rejting, partija.
+- [ ] Ista pozicija se otvara u Analysis Studiju iz biblioteke.
+- [ ] Kad server ne odgovara, kaže se to i dugme ostaje aktivno.
+
 ## 0i. Kazna kao odgovor na „zašto" — napisano 23.8.2026, nije viđeno uživo
 
 U šetnji, kad je greška iza tebe, dugme **„Zašto je loše"** odigrava na tabli

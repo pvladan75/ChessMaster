@@ -225,6 +225,47 @@ class EndgameApiService {
     }
   }
 
+  /// The tag every position kept for later carries.
+  ///
+  /// One tag rather than a choice of several: the point is that the click is
+  /// quick, and a menu at that moment is a question nobody asked. It is what
+  /// makes the list findable afterwards - "Moje pozicije" filtered to this is
+  /// everything that was left unexplained, rather than mixed in with the rest.
+  static const unclearTag = 'Nejasno';
+
+  /// Keeps a position in the trainer's own library, to be looked at later.
+  ///
+  /// It goes to the shelf that already exists rather than to a table of its
+  /// own: a kept position is an ordinary saved position, so "Moje pozicije"
+  /// lists it, Analysis Studio opens it, and a lesson or a homework can take it
+  /// without any of that being built for this.
+  Future<bool> keepForLater({
+    required String fen,
+    required String title,
+    required String description,
+  }) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$backendUrl/lessons/save'),
+            headers: _headers,
+            body: jsonEncode({
+              'title': title,
+              'description': description,
+              'fen': fen,
+              'tags': [unclearTag],
+            }),
+          )
+          .timeout(const Duration(seconds: 12));
+      if (res.statusCode == 201) return true;
+      AppLogger.log('[Zavrsnice] Pozicija nije sačuvana (${res.statusCode}).');
+      return false;
+    } catch (e) {
+      AppLogger.log('[Zavrsnice] Greška pri čuvanju pozicije: $e');
+      return false;
+    }
+  }
+
   /// Best play for both sides from a position, as a line of moves.
   ///
   /// What makes a bad move bad is that there is a way to punish it, and this is

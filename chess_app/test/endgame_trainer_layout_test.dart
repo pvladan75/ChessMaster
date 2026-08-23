@@ -25,6 +25,13 @@ class _FakeEndgameApi extends EndgameApiService {
     bool oppositeOnly = false,
   }) async =>
       result;
+  @override
+  Future<bool> keepForLater({
+    required String fen,
+    required String title,
+    required String description,
+  }) async =>
+      true;
 }
 
 /// The longest labels the screen can be handed, all at once: a long type name,

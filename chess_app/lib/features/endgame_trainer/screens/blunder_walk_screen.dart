@@ -191,6 +191,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     }
 
     _stopPlayback();
+    _kept.clear();
     final walk = BlunderWalk(result.game!);
     setState(() {
       _walk = walk;
@@ -300,6 +301,45 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       }
       setState(() => _refutationAt++);
       _boardController.loadFen(_refutation![_refutationAt]);
+    });
+  }
+
+  /// Whether the stop standing here has already been kept.
+  final Set<int> _kept = {};
+  bool _keeping = false;
+
+  /// Keeps this position, with what the screen knows written into it.
+  Future<void> _keepForLater(GameBlunder blunder) async {
+    final walk = _walk;
+    if (walk == null || _keeping || _kept.contains(blunder.ply)) return;
+    setState(() => _keeping = true);
+
+    final who = blunder.side == 'white' ? 'Beli' : 'Crni';
+    final lost = blunder.lostAWin ? 'ispustio dobitak' : 'izgubio remi';
+    final lesson = holdingLesson(
+      fen: blunder.fen,
+      holdingUci: blunder.shouldPlayUci,
+      playedUci: blunder.playedUci,
+    );
+
+    final ok = await _api.keepForLater(
+      fen: blunder.fen,
+      title: '${blunder.material ?? 'Završnica'} — nejasno',
+      description: [
+        '$who je odigrao ${blunder.played} i $lost.',
+        'Držalo je: ${blunder.shouldPlay.join(', ')}.',
+        lesson,
+        walk.game.label,
+      ].whereType<String>().join(' '),
+    );
+    if (!mounted) return;
+    setState(() {
+      _keeping = false;
+      if (ok) _kept.add(blunder.ply);
+      _feedbackIsGood = ok;
+      _feedback = ok
+          ? 'Zapamćeno u „Moje pozicije", oznaka „Nejasno".'
+          : 'Poziciju trenutno nije moguće sačuvati.';
     });
   }
 
@@ -627,6 +667,19 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
             onPressed: _closeRefutation,
             icon: const Icon(Icons.close),
             label: const Text('Nazad na partiju'),
+          ),
+        // Wherever there is a mistake on this board, answered or not.
+        if (_refutation == null && walk.atCursor != null)
+          TextButton.icon(
+            onPressed: _keeping || _kept.contains(walk.atCursor!.ply)
+                ? null
+                : () => _keepForLater(walk.atCursor!),
+            icon: Icon(_kept.contains(walk.atCursor!.ply)
+                ? Icons.bookmark_added_outlined
+                : Icons.bookmark_add_outlined),
+            label: Text(_kept.contains(walk.atCursor!.ply)
+                ? 'Zapamćeno'
+                : 'Zapamti za kasnije'),
           ),
         FilledButton.icon(
           onPressed: _loadNext,

@@ -194,6 +194,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _drillRetryFen = null;
       _drillMistakes = 0;
       _drillMoves = 0;
+      _kept = false;
+      _keeping = false;
     });
     _boardController.loadFen(puzzle.fen);
   }
@@ -473,6 +475,65 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           ? null
           : uciForSan(puzzle.fen, puzzle.playedMove!),
     );
+  }
+
+  /// Whether this position has already been kept, so the button says so
+  /// rather than quietly saving it twice.
+  bool _kept = false;
+  bool _keeping = false;
+
+  /// Keeps the position, with everything the screen knows written into it.
+  ///
+  /// The description is composed rather than asked for. Someone who has just
+  /// failed to understand a position will not stop to type why, and everything
+  /// worth recording is already on the screen at that moment - what was played,
+  /// what held, and the rule behind it. They can add their own later.
+  Future<void> _keepForLater() async {
+    final puzzle = _solve?.puzzle;
+    if (puzzle == null || _kept || _keeping) return;
+    setState(() => _keeping = true);
+
+    final held = puzzle.winningMoves.isEmpty
+        ? null
+        : 'Držalo je: ${_allHoldingSan(puzzle).join(', ')}.';
+    final story = _storyText(puzzle);
+    final lesson = _lessonFor(puzzle);
+    final elo = puzzle.blunderElo == null
+        ? null
+        : 'Pogrešio igrač od ${puzzle.blunderElo}.';
+    final game = puzzle.game?.label;
+    final task = puzzle.mode == EndgameMode.draw
+        ? 'Zadatak: održati remi.'
+        : 'Zadatak: zadržati dobitak.';
+
+    final ok = await _api.keepForLater(
+      fen: puzzle.fen,
+      title: '${kEndgameTypeNames[puzzle.type] ?? puzzle.type} — nejasno',
+      description:
+          [task, story, held, lesson, elo, game].whereType<String>().join(' '),
+    );
+    if (!mounted) return;
+    setState(() {
+      _keeping = false;
+      _kept = ok;
+      _feedbackIsGood = ok;
+      _feedback = ok
+          ? 'Zapamćeno u „Moje pozicije", oznaka „Nejasno".'
+          : 'Poziciju trenutno nije moguće sačuvati.';
+    });
+  }
+
+  /// Every accepted move in notation, for the note that is kept with it.
+  List<String> _allHoldingSan(EndgamePuzzle puzzle) {
+    final out = <String>[];
+    for (final uci in puzzle.winningMoves) {
+      if (uci.length < 4) continue;
+      final san = _sanFor(puzzle.fen, uci.substring(0, 2), uci.substring(2, 4),
+          uci.length > 4 ? uci[4] : 'q');
+      if (san != null) out.add(san);
+    }
+    out.sort();
+    return out;
   }
 
   /// Names the other correct moves after a solve.
@@ -799,6 +860,16 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
               label: const Text('Pokaži'),
             ),
         ],
+        // Offered before and after an answer alike. "I found it and still do
+        // not see why" is the commoner case than a miss, and the one that
+        // slips away.
+        TextButton.icon(
+          onPressed: _kept || _keeping ? null : _keepForLater,
+          icon: Icon(_kept
+              ? Icons.bookmark_added_outlined
+              : Icons.bookmark_add_outlined),
+          label: Text(_kept ? 'Zapamćeno' : 'Zapamti za kasnije'),
+        ),
         // Offered whether or not the position has been solved: knowing which
         // move holds the win and being able to finish it are two different
         // things, and a child may want either one first.

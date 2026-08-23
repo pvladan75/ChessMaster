@@ -29,6 +29,13 @@ class _FakeApi extends EndgameApiService {
     int plies = 10,
   }) async =>
       const ['Kf1', 'Ra1+'];
+  @override
+  Future<bool> keepForLater({
+    required String fen,
+    required String title,
+    required String description,
+  }) async =>
+      true;
 }
 
 /// Seger - Lambert 2005: three mistakes in six moves, alternating sides.
