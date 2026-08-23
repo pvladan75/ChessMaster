@@ -189,4 +189,86 @@ void main() {
 
     expect(find.text('Odigraj do kraja'), findsNothing);
   });
+
+  testWidgets('a thrown-away draw can be punished, and the board turns round',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    // Alexopoulos - Grigorov 1979, as the detector found it: White to move in a
+    // drawn rook ending, played Ra2+ and lost it. Two moves held.
+    final blunder = EndgamePuzzle.fromJson({
+      'puzzle_id': 'eg_blunder',
+      'fen': '8/8/8/8/8/4rp2/5k1K/R7 w - - 2 71',
+      'type': 'KRPvKR',
+      'material': 'KRPvKR',
+      'mode': 'draw',
+      'winning_moves': ['h2h3', 'a1b1'],
+      'piece_count': 5,
+      'source': 'blunder',
+      'played_move': 'Ra2+',
+      'blunder_elo': 2270,
+    });
+
+    await tester.pumpWidget(
+      wrap(
+        EndgameTrainerScreen(
+          key: const ValueKey('punish'),
+          session: UserSession(
+              token: 't', id: 1, email: 'a@b', name: 'Test', role: 'korisnik'),
+          api: _FakeEndgameApi(
+              EndgameFetchResult(EndgameFetchOutcome.ok, blunder)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The story, and the rating of whoever got it wrong.
+    expect(find.textContaining('U partiji je odigrano Ra2+'), findsOneWidget);
+    expect(find.text('Pogrešio: 2270'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Kazni'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kazni'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining('Kaznite grešku'), findsOneWidget);
+    // The mistake is already on the board and the win belongs to the other
+    // side, so the exercise is played from there.
+    expect(find.textContaining('remi je izgubljen'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Nazad na zadatak'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nazad na zadatak'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('održite remi'), findsOneWidget);
+  });
+
+  testWidgets('a position with nothing to punish does not offer it',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    // A win that slipped to a draw leaves nothing to convert, and a position
+    // that never came from a mistake has no move to punish in the first place.
+    await tester.pumpWidget(
+      wrap(
+        EndgameTrainerScreen(
+          key: const ValueKey('nopunish'),
+          session: UserSession(
+              token: 't', id: 1, email: 'a@b', name: 'Test', role: 'korisnik'),
+          api: _FakeEndgameApi(
+            EndgameFetchResult(EndgameFetchOutcome.ok, worstCasePuzzle()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Odigraj do kraja'), findsOneWidget);
+    expect(find.text('Kazni'), findsNothing);
+  });
 }

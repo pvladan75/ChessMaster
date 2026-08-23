@@ -106,6 +106,11 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// whatever the server called it. Null while it is still running.
   String? _drillEnd;
 
+  /// True when the drill running is the punishment rather than the position's
+  /// own task: the board starts one move later, after the mistake, and the
+  /// child plays the side that was wronged.
+  bool _punishing = false;
+
   int _drillMoves = 0;
 
   @override
@@ -157,6 +162,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _revealed = false;
       _countedThisPuzzle = false;
       _drilling = false;
+      _punishing = false;
       _drillEnd = null;
       _drillMoves = 0;
     });
@@ -257,18 +263,73 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   void _startDrill() {
     final puzzle = _solve?.puzzle;
     if (puzzle == null) return;
+    _beginDrill(
+      puzzle.fen,
+      punishing: false,
+      intro: puzzle.mode == EndgameMode.draw
+          ? 'Protivnik igra tablično najbolje i pokušaće da dobije. Držite remi do kraja.'
+          : 'Protivnik brani tablično najbolje. Dobitak morate da odigrate do kraja.',
+    );
+  }
+
+  /// The position one move later, with the mistake already on the board.
+  ///
+  /// Every blunder is two exercises, and this is the second one. Knowing which
+  /// move held is not the same as being able to take what was handed to you -
+  /// a child who spots the error and then fails to convert has learned only
+  /// half of it. Nothing new is needed on the server: the drill judges whatever
+  /// position it is given.
+  String? _positionAfterMistake() {
+    final puzzle = _solve?.puzzle;
+    final played = puzzle?.playedMove;
+    if (puzzle == null || played == null || played.isEmpty) return null;
+    final board = chess.Chess.fromFEN(puzzle.fen);
+    // The move comes from the database as the game recorded it; if this client
+    // cannot read that notation, the offer simply is not made.
+    if (board.move(played) == false) return null;
+    return board.fen;
+  }
+
+  /// Only where there is something to take. A draw thrown away can only have
+  /// become a loss, so those are exactly the punishable ones; a win that
+  /// slipped to a draw leaves nothing to convert, and the position's own task
+  /// already covers holding it.
+  bool get _canPunish =>
+      _solve?.puzzle.mode == EndgameMode.draw &&
+      _solve?.puzzle.playedMove != null &&
+      (_solve?.puzzle.canBePlayedOut ?? false);
+
+  void _startPunish() {
+    final puzzle = _solve?.puzzle;
+    final fen = _positionAfterMistake();
+    if (puzzle == null || fen == null) return;
+    _beginDrill(
+      fen,
+      punishing: true,
+      intro: '${puzzle.playedMove} je upravo odigrano i remi je izgubljen. '
+          'Sada je dobitak vaš — odigrajte ga do kraja.',
+    );
+  }
+
+  void _beginDrill(String fen,
+      {required bool punishing, required String intro}) {
     setState(() {
       _drilling = true;
+      _punishing = punishing;
       _drillEnd = null;
       _drillMoves = 0;
       _hintSquare = null;
-      _game = chess.Chess.fromFEN(puzzle.fen);
+      _game = chess.Chess.fromFEN(fen);
+      // Whoever has to move is whoever the exercise belongs to, and in the
+      // punishment that is the other side of the board from the position's own
+      // task.
+      _orientation = _game!.turn == chess.Color.WHITE
+          ? PlayerColor.white
+          : PlayerColor.black;
       _feedbackIsGood = false;
-      _feedback = puzzle.mode == EndgameMode.draw
-          ? 'Protivnik igra tablično najbolje i pokušaće da dobije. Držite remi do kraja.'
-          : 'Protivnik brani tablično najbolje. Dobitak morate da odigrate do kraja.';
+      _feedback = intro;
     });
-    _boardController.loadFen(puzzle.fen);
+    _boardController.loadFen(fen);
   }
 
   void _stopDrill() {
@@ -276,10 +337,12 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     if (puzzle == null) return;
     setState(() {
       _drilling = false;
+      _punishing = false;
       _drillEnd = null;
       _drillMoves = 0;
       _feedback = null;
       _game = chess.Chess.fromFEN(puzzle.fen);
+      _orientation = puzzle.whiteToMove ? PlayerColor.white : PlayerColor.black;
     });
     _boardController.loadFen(puzzle.fen);
   }
@@ -514,9 +577,11 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     final onMove = puzzle.whiteToMove ? 'Beli' : 'Crni';
     final String task;
     if (_drilling) {
-      task = puzzle.mode == EndgameMode.draw
-          ? 'Igrate do kraja — držite remi'
-          : 'Igrate do kraja — odigrajte dobitak';
+      task = _punishing
+          ? 'Kaznite grešku — odigrajte dobitak do kraja'
+          : (puzzle.mode == EndgameMode.draw
+              ? 'Igrate do kraja — držite remi'
+              : 'Igrate do kraja — odigrajte dobitak');
     } else {
       task = puzzle.mode == EndgameMode.draw
           ? '$onMove na potezu — održite remi'
@@ -608,7 +673,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         alignment: WrapAlignment.center,
         children: [
           OutlinedButton.icon(
-            onPressed: _boardLocked ? null : _startDrill,
+            onPressed:
+                _boardLocked ? null : (_punishing ? _startPunish : _startDrill),
             icon: const Icon(Icons.refresh),
             label: const Text('Ispočetka'),
           ),
@@ -668,6 +734,13 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
             onPressed: _startDrill,
             icon: const Icon(Icons.play_arrow),
             label: const Text('Odigraj do kraja'),
+          ),
+        // The other side of the same position, offered next to it.
+        if (_canPunish)
+          OutlinedButton.icon(
+            onPressed: _startPunish,
+            icon: const Icon(Icons.gavel),
+            label: const Text('Kazni'),
           ),
         FilledButton.icon(
           onPressed: _loadNext,

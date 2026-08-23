@@ -59,7 +59,23 @@ Ostaje:
       restartovati backend i odigrati potez. Mora da kaže da tablica nije
       dostupna i da **vrati tablu na prethodni položaj**, a ne da ostavi
       nepresuđen potez da stoji kao presuđen.
-- [ ] Na telefonu: tri dugmeta vežbe u jednom redu na 360 dp.
+- [ ] Na telefonu: tri dugmeta vežbe u jednom redu na 360 dp.
+
+## 0d. Greške iz partija i kazna — napisano 23.8.2026, nije viđeno uživo
+
+7.173 pozicije iz stvarnih partija, gde je igrač promenio ishod. Trener ih
+servira zajedno sa rudarenim; pozicija nosi i šta je odigrano i rejting onoga
+ko je pogrešio.
+
+- [ ] Pozicija sa greškom kaže „U partiji je odigrano X i remi je izgubljen",
+      uz čip sa rejtingom.
+- [ ] Na takvoj poziciji stoje **oba** dugmeta: „Odigraj do kraja" i „Kazni".
+- [ ] „Kazni" postavlja poziciju **posle** greške, okreće tablu na stranu koja
+      dobija, i naslov postaje „Kaznite grešku".
+- [ ] Kazna se odigra do mata — protivnik brani tablično najbolje.
+- [ ] „Ispočetka" u kazni vraća poziciju posle greške, ne početnu.
+- [ ] „Nazad na zadatak" vraća početnu poziciju **i početni smer table**.
+- [ ] Pozicija tipa „dobitak → remi" nema dugme „Kazni" (nema šta da se uzme).
 
 ---
 
