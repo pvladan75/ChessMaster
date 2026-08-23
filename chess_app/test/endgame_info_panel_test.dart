@@ -20,12 +20,13 @@ Widget harness({required double width, required double height}) => MaterialApp(
                 message: 'Tačno — remi je održan.',
                 messageIsGood: true,
               ),
-              builder: (boardArea) => Column(
+              reserveHeight: 200,
+              builder: (boardSize) => Column(
                 children: [
                   SizedBox(
                     key: _boardKey,
-                    width: boardArea - 24,
-                    height: 200,
+                    width: boardSize,
+                    height: boardSize,
                     child: const ColoredBox(color: Colors.brown),
                   ),
                 ],
@@ -53,6 +54,11 @@ void main() {
     // is being said about it are in view together.
     expect(panel.left, greaterThan(board.right - 1));
     expect(panel.top, lessThan(board.bottom));
+    // And close to it. The first version let the board column swallow every
+    // spare pixel and centred a capped board inside it, which parked the panel
+    // at the far edge of a wide monitor with empty board between the two things
+    // you have to read together.
+    expect(panel.left - board.right, lessThan(40));
   });
 
   testWidgets('on a phone the layout hands the whole width to the board',
@@ -69,6 +75,8 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byType(EndgameInfoPanel), findsNothing);
     expect(tester.getSize(find.byKey(_boardKey)).width, 360 - 24);
+    // Square, and bounded by the tighter axis either way.
+    expect(tester.getSize(find.byKey(_boardKey)).height, 360 - 24);
   });
 
   testWidgets(

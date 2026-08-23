@@ -84,7 +84,8 @@ void main() {
     // place to catch a row that outgrows the phone.
     expect(tester.takeException(), isNull);
     expect(find.textContaining('Crni je ovde odigrao Rd3'), findsOneWidget);
-    expect(find.textContaining('Nađite potez koji drži remi'), findsOneWidget);
+    expect(find.textContaining('Odigrajte na tabli potez koji drži remi'),
+        findsOneWidget);
     expect(find.textContaining('Seger, Ruediger (2416)'), findsOneWidget);
     expect(find.text('Greške: 0/2'), findsOneWidget);
   });

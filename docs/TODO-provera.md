@@ -134,6 +134,17 @@ bio iznad table a odgovor ispod, pa se za jednu vežbu gledalo na dva mesta.
 - [ ] Tabla je na širokom prozoru i dalje dovoljno velika — panel uzima 280 dp.
 - [ ] Na 360 dp ništa ne izlazi iz ekrana ni u jednom od tri ekrana.
 
+Ispravljeno posle prve probe na desktopu 23.8.2026, **nije viđeno uživo**:
+
+- [ ] Panel je **uz tablu**, ne odgurnut na ivicu ekrana. Tabla se širi do 720 dp
+      umesto do 560, a razmak do panela je 16 dp bez obzira na širinu prozora.
+- [ ] Redosled u panelu: **partija gore, šta se traži ispod, odgovor na dnu**.
+- [ ] U šetnji, kad stojiš između dve greške, naslov kaže **„Idite napred do
+      sledeće greške"** i ispod piše koliko poteza — a dugme **„Na grešku" se
+      pojavljuje**. Ranije se nije pojavljivalo nikad.
+- [ ] Kad stojiš na grešci, piše **„Odigrajte na tabli potez koji drži remi"** —
+      dakle šta da uradiš, ne samo šta se desilo.
+
 **Planirano, nije napravljeno:** zvuk za tačan i netačan potez. To je drugi
 kanal za istu stvar — kad se čuje da li je potez prošao, ne mora ni da se gleda.
 

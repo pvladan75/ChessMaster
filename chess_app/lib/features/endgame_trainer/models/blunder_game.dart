@@ -173,6 +173,20 @@ class BlunderWalk {
     return game.moves.length;
   }
 
+  /// The next mistake still waiting for an answer, wherever the cursor is.
+  ///
+  /// Distinct from [pending], and the difference is the whole reason the screen
+  /// can say what to do. [pending] is "there is a question on this board"; this
+  /// is "there is a question somewhere ahead". Reading the first as the second
+  /// left the walk unable to tell anyone where to go, and hid the button that
+  /// takes them there.
+  GameBlunder? get nextStop {
+    for (final blunder in game.blunders) {
+      if (!_answered.contains(blunder.ply)) return blunder;
+    }
+    return null;
+  }
+
   /// The mistake standing at the cursor and still waiting for an answer.
   GameBlunder? get pending {
     for (final blunder in game.blunders) {

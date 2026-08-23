@@ -568,7 +568,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     final wide = Breakpoints.isWide(context);
     final panel = EndgameInfoPanel(
       title: _taskText(solve.puzzle),
-      subtitle: _storyText(solve.puzzle),
+      // The story of the position, then what to do about it. Empty stays
+      // null: a blank line under the heading is not the same as no line.
+      subtitle: _subtitleText(solve),
       chips: _chips(solve.puzzle),
       message: _feedback,
       messageIsGood: _feedbackIsGood,
@@ -582,17 +584,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
             wide: wide,
             constraints: constraints,
             panel: panel,
-            builder: (boardArea) {
-              // The board is square, so the tighter axis bounds it. Beside a
-              // panel there is less width and more height to spend, which is
-              // why the reserve differs.
-              final reserved = wide ? 160.0 : 260.0;
-              final heightBased =
-                  (constraints.maxHeight - reserved).clamp(200.0, 560.0);
-              final widthBased = (boardArea - 24).clamp(180.0, 560.0);
-              final boardSize =
-                  heightBased < widthBased ? heightBased : widthBased;
-
+            // The buttons under the board; on a phone the panel as well.
+            reserveHeight: wide ? 140 : 280,
+            builder: (boardSize) {
               return Column(
                 children: [
                   Center(
@@ -641,6 +635,22 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     return puzzle.mode == EndgameMode.draw
         ? '$onMove na potezu — održite remi'
         : '$onMove na potezu — zadržite dobitak';
+  }
+
+  String? _subtitleText(EndgameSolveSession solve) {
+    final parts =
+        [_storyText(solve.puzzle), _instructionText(solve)].whereType<String>();
+    return parts.isEmpty ? null : parts.join(' ');
+  }
+
+  /// What to do on the board, said plainly. In the drill it changes every move,
+  /// so it is only worth saying while there is a single question standing.
+  String? _instructionText(EndgameSolveSession solve) {
+    if (_drilling) return null;
+    if (solve.isComplete) return null;
+    return solve.puzzle.mode == EndgameMode.draw
+        ? 'Odigrajte na tabli potez koji drži remi.'
+        : 'Odigrajte na tabli potez koji zadržava dobitak.';
   }
 
   /// What actually happened here, when the position came from a real mistake.

@@ -320,17 +320,10 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
             wide: wide,
             constraints: constraints,
             panel: panel,
-            builder: (boardArea) {
-              // The board is square, so the tighter axis bounds it. Beside a
-              // panel there is less width and more height to spend, which is
-              // why the reserve differs.
-              final reserved = wide ? 200.0 : 300.0;
-              final heightBased =
-                  (constraints.maxHeight - reserved).clamp(180.0, 560.0);
-              final widthBased = (boardArea - 24).clamp(160.0, 560.0);
-              final boardSize =
-                  heightBased < widthBased ? heightBased : widthBased;
-
+            // The strip and the buttons under the board; on a phone the panel
+            // as well.
+            reserveHeight: wide ? 190 : 320,
+            builder: (boardSize) {
               return Column(
                 children: [
                   Center(
@@ -385,29 +378,46 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     );
   }
 
+  /// The heading is always something to do, never a description of where you
+  /// happen to be standing.
   String _taskText(BlunderWalk walk) {
-    final blunder = walk.pending;
-    if (blunder == null) {
-      return walk.isFinished
-          ? 'Partija je prošla — nađeno ${walk.solvedCount} od ${walk.totalCount}'
-          : 'Prođite kroz nastavak, pa dalje na sledeću grešku';
+    final here = walk.pending;
+    if (here != null) {
+      final who = here.side == 'white' ? 'Beli' : 'Crni';
+      return here.lostAWin
+          ? '$who je ovde odigrao ${here.played} i ispustio dobitak'
+          : '$who je ovde odigrao ${here.played} i izgubio remi';
     }
-    if (walk.cursor != blunder.ply) {
-      return 'Vratite se na grešku da biste nastavili';
-    }
-    final who = blunder.side == 'white' ? 'Beli' : 'Crni';
-    return blunder.lostAWin
-        ? '$who je ovde odigrao ${blunder.played} i ispustio dobitak'
-        : '$who je ovde odigrao ${blunder.played} i izgubio remi';
+    if (walk.nextStop != null) return 'Idite napred do sledeće greške';
+    return walk.isFinished
+        ? 'Partija je prošla — nađeno ${walk.solvedCount} od ${walk.totalCount}'
+        : 'Sve greške su rešene — ostatak partije je otključan';
   }
 
+  /// And the instruction under it names the thing to press or the thing to do
+  /// on the board, because "you are between two mistakes" is a fact and not an
+  /// instruction.
   String? _hintText(BlunderWalk walk) {
-    final blunder = walk.pending;
-    if (blunder == null || walk.cursor != blunder.ply) return null;
-    return blunder.lostAWin
-        ? 'Nađite potez koji zadržava dobitak.'
-        : 'Nađite potez koji drži remi.';
+    final here = walk.pending;
+    if (here != null) {
+      return here.lostAWin
+          ? 'Odigrajte na tabli potez koji zadržava dobitak.'
+          : 'Odigrajte na tabli potez koji drži remi.';
+    }
+    final next = walk.nextStop;
+    if (next != null) {
+      final away = next.ply - walk.cursor;
+      return 'Još $away ${_moveWord(away)} napred — strelicom ispod table ili '
+          'dugmetom „Na grešku".';
+    }
+    return walk.isFinished
+        ? null
+        : 'Prođite ostatak partije trakom ispod table.';
   }
+
+  /// One potez, two to four poteza, and the same again past twenty.
+  String _moveWord(int n) =>
+      (n % 10 == 1 && n % 100 != 11) ? 'potez' : 'poteza';
 
   List<String> _chips(BlunderWalk walk) {
     final blunder = walk.pending;
@@ -425,16 +435,16 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       runSpacing: 8,
       alignment: WrapAlignment.center,
       children: [
-        // Standing away from an unanswered stop is the one place the strip
-        // cannot help, because the wall is behind the cursor rather than ahead
-        // of it.
-        if (blunder != null && walk.cursor != blunder.ply)
+        // Jumps to the next unanswered stop. This used to be written against
+        // `pending`, which is the mistake *at* the cursor - so the condition
+        // could never hold and the button never appeared.
+        if (blunder == null && walk.nextStop != null)
           FilledButton.icon(
-            onPressed: () => _seek(blunder.ply),
+            onPressed: () => _seek(walk.nextStop!.ply),
             icon: const Icon(Icons.error_outline),
             label: const Text('Na grešku'),
           ),
-        if (blunder != null && walk.cursor == blunder.ply)
+        if (blunder != null)
           TextButton.icon(
             onPressed: _reveal,
             icon: const Icon(Icons.visibility_outlined),

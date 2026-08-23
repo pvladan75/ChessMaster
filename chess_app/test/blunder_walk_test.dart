@@ -128,6 +128,37 @@ void main() {
     expect(walk.canGoBack, isFalse);
   });
 
+  test('the next stop is known even when the cursor is nowhere near it', () {
+    // The bug this guards against reached a screenshot. `pending` is the
+    // mistake *at* the cursor, and the screen used it to answer "is there one
+    // ahead" - so between two stops it read null, the heading fell through to a
+    // vague sentence, and the button that jumps to the mistake could never
+    // appear because its condition was unsatisfiable.
+    final walk = BlunderWalk(game());
+    walk.submit('f3b3');
+    walk.forward();
+    walk.submit('c6c5');
+
+    // Standing at ply one, with the last mistake three plies ahead.
+    expect(walk.cursor, 1);
+    expect(walk.pending, isNull);
+    expect(walk.nextStop, isNotNull);
+    expect(walk.nextStop!.ply, 4);
+    expect(walk.nextStop!.played, 'Kxa5');
+  });
+
+  test('there is no next stop once every mistake is answered', () {
+    final walk = BlunderWalk(game());
+    walk.submit('f3b3');
+    walk.forward();
+    walk.submit('c6c5');
+    walk.toPending();
+    walk.submit('d1c1');
+
+    expect(walk.nextStop, isNull);
+    expect(walk.pending, isNull);
+  });
+
   test('the last answer opens the game to its end', () {
     final walk = BlunderWalk(game());
     walk.submit('f3b3');

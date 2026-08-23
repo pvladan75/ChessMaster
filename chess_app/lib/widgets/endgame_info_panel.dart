@@ -2,18 +2,24 @@ import 'package:flutter/material.dart';
 
 import 'package:chess_app/theme/app_colors.dart';
 
-/// Everything the endgame screens have to say, in one place.
+/// Everything the endgame screens have to say, in one place and in one order.
 ///
-/// It used to be two: the task and the context above the board, the verdict
-/// below it. On a desktop window that meant looking over the board and then
-/// under it to follow a single exercise, and the two halves were never both in
-/// view at once.
+/// It used to be two places: the task and the context above the board, the
+/// verdict below it. On a desktop window that meant looking over the board and
+/// then under it to follow a single exercise, and the two halves were never
+/// both in view.
 ///
-/// So the panel is one block wherever it goes — right of the board when there
-/// is room, under it when there is not. Under rather than over on a phone on
-/// purpose: text that appears and disappears above the board pushes the board
-/// down as it changes, and a board that moves while you are looking at it is
-/// worse than a caption a glance further away.
+/// The order inside it is the order the reader needs it in, which is not the
+/// order it was first written in:
+///
+///   1. which game this is, and how far along the session is;
+///   2. what is being asked right now;
+///   3. what happened when they answered.
+///
+/// Right of the board rather than left, and under rather than over on a phone.
+/// The board is the thing being looked at, so its caption belongs after it; and
+/// text that appears and disappears above a board pushes the board down as it
+/// changes, which is worse than a caption a glance further away.
 class EndgameInfoPanel extends StatelessWidget {
   const EndgameInfoPanel({
     super.key,
@@ -24,13 +30,14 @@ class EndgameInfoPanel extends StatelessWidget {
     this.messageIsGood = false,
   });
 
-  /// What the position asks, in a sentence.
+  /// What to do now, in a sentence, and always phrased as something to do.
   final String title;
 
-  /// The same thing said as an instruction, when there is one.
+  /// The same instruction spelled out, when it needs to be.
   final String? subtitle;
 
-  /// Where it came from: the game, the material, how far along the session is.
+  /// Which game, which ending, how far along. Context rather than instruction,
+  /// so it sits above the ask instead of between the ask and the answer.
   final List<String> chips;
 
   /// The verdict on the last move, or a note about what just happened.
@@ -38,8 +45,7 @@ class EndgameInfoPanel extends StatelessWidget {
 
   final bool messageIsGood;
 
-  /// Beside the board on an expanded window. Narrow enough to leave the board
-  /// the bigger half of a 840 dp layout.
+  /// Beside the board on an expanded window.
   static const double sideWidth = 280;
 
   @override
@@ -56,20 +62,21 @@ class EndgameInfoPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(title, style: theme.textTheme.titleMedium),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(subtitle!, style: theme.textTheme.bodySmall),
-          ],
           if (chips.isNotEmpty) ...[
-            const SizedBox(height: 8),
             // Wrap, not Row: a game label with two full names and two ratings
-            // outgrows any column, and a release build clips instead of warning.
+            // outgrows any column, and a release build clips instead of
+            // warning.
             Wrap(
               spacing: 8,
               runSpacing: 4,
               children: [for (final text in chips) _Chip(text: text)],
             ),
+            const SizedBox(height: 10),
+          ],
+          Text(title, style: theme.textTheme.titleMedium),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(subtitle!, style: theme.textTheme.bodySmall),
           ],
           if (message != null) ...[
             const SizedBox(height: 10),
@@ -106,46 +113,69 @@ class _Chip extends StatelessWidget {
       );
 }
 
-/// Places the panel to the right of the board or under it, and hands the board
-/// what is left of the width either way.
+/// Sizes the board and puts the panel beside it, or under it on a phone.
 ///
-/// The caller works out its own board size from [boardArea] rather than being
-/// told one, because each screen reserves a different amount for its own
-/// controls under the board.
+/// The size is worked out here rather than by each screen because the answer
+/// depends on where the panel went. The first version let the board column take
+/// every pixel left over and centred a capped board inside it, which on a wide
+/// monitor left the panel marooned at the far edge with a hand's width of empty
+/// board between them - the two things you have to read together, as far apart
+/// as the window allowed.
 class EndgameBoardLayout extends StatelessWidget {
   const EndgameBoardLayout({
     super.key,
     required this.wide,
     required this.constraints,
     required this.panel,
+    required this.reserveHeight,
     required this.builder,
+    this.maxBoard = 720,
   });
 
   final bool wide;
   final BoxConstraints constraints;
   final Widget panel;
 
-  /// Called with the width available for the board column.
-  final Widget Function(double boardArea) builder;
+  /// Room the caller needs under the board for its own controls.
+  final double reserveHeight;
+
+  /// Called with the size the board should be.
+  final Widget Function(double boardSize) builder;
+
+  /// A board bigger than this stops being easier to read and starts being a
+  /// long way for the eye to travel.
+  final double maxBoard;
+
+  static const double _gap = 16;
+  static const double _minColumn = 380;
 
   @override
   Widget build(BuildContext context) {
-    if (!wide) {
-      return builder(constraints.maxWidth);
-    }
-    const gap = 16.0;
-    final boardArea = (constraints.maxWidth - EndgameInfoPanel.sideWidth - gap)
-        .clamp(200.0, constraints.maxWidth);
-    // The board first and the panel to the right of it: the board is what is
-    // being looked at, and on a left-to-right reading a caption belongs after
-    // the thing it captions rather than before it.
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: builder(boardArea)),
-        const SizedBox(width: gap),
-        SizedBox(width: EndgameInfoPanel.sideWidth, child: panel),
-      ],
+    final aside = wide ? EndgameInfoPanel.sideWidth + _gap : 0.0;
+    // The board is square, so the tighter axis bounds it. Both are needed: a
+    // short wide window and a tall narrow one fail in opposite directions, and
+    // a release build paints no warning when either does.
+    final widthBased =
+        (constraints.maxWidth - aside - 24).clamp(160.0, maxBoard);
+    final heightBased =
+        (constraints.maxHeight - reserveHeight).clamp(160.0, maxBoard);
+    final boardSize = heightBased < widthBased ? heightBased : widthBased;
+
+    if (!wide) return builder(boardSize);
+
+    // The column is at least wide enough for the navigation strip, which does
+    // not shrink with the board.
+    final columnWidth = boardSize < _minColumn ? _minColumn : boardSize;
+    return Center(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: columnWidth, child: builder(boardSize)),
+          const SizedBox(width: _gap),
+          SizedBox(width: EndgameInfoPanel.sideWidth, child: panel),
+        ],
+      ),
     );
   }
 }
