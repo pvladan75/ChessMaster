@@ -145,6 +145,19 @@ Ispravljeno posle prve probe na desktopu 23.8.2026, **nije viđeno uživo**:
 - [ ] Kad stojiš na grešci, piše **„Odigrajte na tabli potez koji drži remi"** —
       dakle šta da uradiš, ne samo šta se desilo.
 
+Iz druge probe na desktopu 23.8.2026, **nije viđeno uživo**:
+
+- [ ] Kad se stigne na grešku, **stara poruka „Tačno" nestaje**. Ranije je
+      stajala ispod novog pitanja i čitala se kao odgovor na njega.
+- [ ] Na grešci se **crvenom strelicom** označi potez koji je izgubio rezultat,
+      i strelica se **sama skloni posle četiri sekunde** — pre nego što počneš
+      da probaš poteze po tim istim poljima.
+- [ ] Strelica se pojavi i kad se do greške dođe ručno, trakom.
+- [ ] Kad se dođe do kraja partije: **„Kraj partije — nema više poteza"**, sa
+      brojem nađenih.
+- [ ] Ako je poslednja greška ujedno i poslednji potez, poruka to kaže, a ne
+      nudi da se prolazi ostatak kog nema.
+
 **Planirano, nije napravljeno:** zvuk za tačan i netačan potez. To je drugi
 kanal za istu stvar — kad se čuje da li je potez prošao, ne mora ni da se gleda.
 
