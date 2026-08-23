@@ -2453,6 +2453,18 @@ odbaci umesto da padne, ali posledica je da `speak()` na Dart strani ume da
 nikad ne dobije odgovor. Zato zastavica „govori se" ne sme da zavisi samo od
 njega — rok izračunat iz dužine rečenice je jedino što je pouzdano.
 
+### Tačka posle cifre: dva slučaja, ne jedan
+
+Prvo pravilo je bilo pregrubo. Tačka posle cifre jeste oznaka rednog broja, ali
+zato je u „greška je napravljena u 8. potezu" **mora ostati** — bez nje glas
+kaže „u osam potezu". Brisati je treba samo tamo gde je kraj rečenice koja se
+slučajno završava brojem („Nađeno 3 od 12.").
+
+Razlikuju se po onome što sledi, i to je u srpskom pouzdano: iza rednog broja
+ide ostatak rečenice malim slovom, a nova rečenica počinje velikim. Zato tačka
+pada samo na kraju teksta ili pred velikim slovom. Potezi ovo pravilo ne dotiču,
+jer im je rang do tada već reč.
+
 ### Govor prekida samo korisnik
 
 Traženo 23.8.2026: rečenica koja je počela **čuje se do kraja**. Ništa što

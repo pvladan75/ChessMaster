@@ -172,15 +172,25 @@ String _sayMove(Match m, SpeechVocabulary v) {
 /// Quotation marks are the loud one: several voices announce them, so a
 /// sentence quoting a button name gets "navodnik" twice. The dashes become
 /// commas rather than nothing, because they are doing a comma's work.
-/// A full stop straight after a digit is how Serbian writes an ordinal, so
-/// "Nađeno 3 od 12." is read as "dvanaesti". Dropping that stop costs a pause
-/// at the end of a sentence and nothing else; the numbers themselves are left
-/// alone, because a rating or a count is worth hearing as a number.
+/// A full stop straight after a digit is how Serbian writes an ordinal, and
+/// that is a problem in one direction only.
 ///
-/// Only when a space or the end of the text follows, so "1.e4" - which is a
-/// move number, not an ordinal - is not touched.
-String _noOrdinalStops(String text) =>
-    text.replaceAllMapped(RegExp(r'(\d)\.(\s|$)'), (m) => '${m[1]}${m[2]}');
+/// Where it really is an ordinal - "greška je napravljena u 8. potezu" - the
+/// stop must stay, or the voice says "u osam potezu". Where it is the end of a
+/// sentence that happens to finish on a number - "Nađeno 3 od 12." - the same
+/// two characters make the voice say "dvanaesti".
+///
+/// The two are told apart by what follows, which in Serbian is reliable: an
+/// ordinal is followed by the rest of its sentence in lower case, while a new
+/// sentence starts with a capital. So the stop goes only at the end of the
+/// text or before a capital letter.
+///
+/// Moves need none of this - their rank is already a word by the time this
+/// runs - and "1.e4" is untouched either way, having no space after the stop.
+String _noOrdinalStops(String text) => text.replaceAllMapped(
+      RegExp(r'(\d)\.(\s+(?=[A-ZČĆŠŽĐ])|$)'),
+      (m) => '${m[1]}${m[2]}',
+    );
 
 String _plainPunctuation(String text) {
   return text

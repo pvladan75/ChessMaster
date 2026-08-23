@@ -80,13 +80,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await SpeechService.instance.setRate(rate);
   }
 
-  /// A sentence with a move in it, on purpose.
+  /// Everything that can be read wrongly, in one sentence.
   ///
-  /// The interesting half of reading chess aloud is the notation, so the test
-  /// button has to exercise it - a plain sentence would sound right on a setup
-  /// that mangles every verdict the trainer gives.
+  /// Not a greeting: the parts of a chess sentence that a voice gets wrong are
+  /// the file names, the ordinals and the notation, so the test button says all
+  /// three. If the files come out sounding English, the voice chosen is an
+  /// English one - which the list says, and which this makes audible.
   static const _speechSample =
-      'Tačno. Nakon Rd3 beli gubi remi, a Kf2 ga drži.';
+      'Linije se čitaju ovako: a, be, ce, de, e, ef, ge, ha. '
+      'Greška je napravljena u 8. potezu, posle Rd8.';
 
   Widget _speechCard(BuildContext context) {
     final speech = SpeechService.instance;

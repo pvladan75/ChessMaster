@@ -103,12 +103,26 @@ void main() {
       expect(speakable('Držalo je Kf2.'), 'Držalo je kralj ef dva.');
     });
 
-    test('other numbers keep the number and lose the stop', () {
-      // "Nađeno 3 od 12." would be read "dvanaesti" for the same reason.
-      // Dropping the stop costs a pause at the end of a sentence, and the
-      // number itself is worth hearing as a number.
+    test('a sentence that ends on a number loses the stop', () {
+      // "Nađeno 3 od 12." would be read "dvanaesti". At the end of the text
+      // the stop costs a pause and nothing else.
       expect(speakable('Nađeno 3 od 12.'), 'Nađeno 3 od 12');
       expect(speakable('Rejting 2400.'), 'Rejting 2400');
+    });
+
+    test('a real ordinal keeps its stop', () {
+      // The other direction, and the one that was broken: here the stop is not
+      // punctuation, it is the ordinal itself. Without it the voice says "u
+      // osam potezu".
+      expect(speakable('Greška je napravljena u 8. potezu.'),
+          'Greška je napravljena u 8. potezu.');
+      expect(speakable('Vidi 3. dijagram na strani 40.'),
+          'Vidi 3. dijagram na strani 40');
+    });
+
+    test('a stop before a new sentence still goes', () {
+      expect(speakable('Nađeno 3 od 12. Idemo dalje.'),
+          'Nađeno 3 od 12 Idemo dalje.');
     });
 
     test('a stop after a word is left alone', () {
