@@ -1,6 +1,6 @@
 # Završnice: rudarenje pozicija iz PGN baza
 
-Stanje na 22.8.2026.
+Stanje na 23.8.2026.
 
 Alat koji iz majstorskih partija izdvaja završničke pozicije upotrebljive kao
 vežba. Živi u `puzzles/`, pokreće se ručno na radnoj mašini i **nije deo
@@ -33,6 +33,7 @@ T+P protiv T.
 | `dedupe_endgames.py` | čišćenje duplikata iz gotovih fajlova |
 | `run_all_endgames.ps1` | neinteraktivno pokretanje svih tipova sa jednom kvotom |
 | `get_syzygy6.ps1` | preuzimanje šestofiguraških tablica, sa nastavkom |
+| `verify_syzygy6.ps1` | provera SHA-256 suma skinutih tablica, sa nastavkom |
 
 Na strani backenda: `chess_backend/import_endgames.js` prenosi izlaz u bazu.
 
@@ -57,8 +58,9 @@ jedinstvenih po potezima (5,7% su duplikati). Pored njih stoje dve velike baze
 koje još nisu korišćene: `LumbrasGigaBase_OTB_Complete.pgn` sa oko **10,5
 miliona** partija i `LumbrasGigaBase_Online_Complete.pgn` sa oko **7,1 miliona**.
 
-**Syzygy tablice.** Set za tri do pet figura, 290 fajlova, 940 MB, sve
-kontrolne sume proverene. Šestofiguraški set je 149,2 GB i još nije skinut.
+**Syzygy tablice.** Set za tri do pet figura, 290 fajlova, 940 MB, i
+šestofiguraški set, 730 fajlova, 149,2 GB — kod oba su sve kontrolne sume
+proverene (šestofiguraški 23.8.2026, `verify_syzygy6.ps1`).
 
 **Izlaz.** `_mining/<Tip>.json` uz `_mining/<Tip>.json.done`, `.games` i
 `.visited` za nastavak.
