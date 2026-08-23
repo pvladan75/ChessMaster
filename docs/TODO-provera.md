@@ -61,7 +61,7 @@ Ostaje:
       nepresuđen potez da stoji kao presuđen.
 - [ ] Na telefonu: tri dugmeta vežbe u jednom redu na 360 dp.
 
-## 0d. Greške iz partija i kazna — napisano 23.8.2026, nije viđeno uživo
+## 0d. Greške iz partija i kazna — ✅ prošlo uživo 23.8.2026
 
 7.173 pozicije iz stvarnih partija, gde je igrač promenio ishod. Trener ih
 servira zajedno sa rudarenim; pozicija nosi i šta je odigrano i rejting onoga
@@ -76,6 +76,20 @@ ko je pogrešio.
 - [ ] „Ispočetka" u kazni vraća poziciju posle greške, ne početnu.
 - [ ] „Nazad na zadatak" vraća početnu poziciju **i početni smer table**.
 - [ ] Pozicija tipa „dobitak → remi" nema dugme „Kazni" (nema šta da se uzme).
+
+Korisnik je prošao ceo tok 23.8.2026 na Windows verziji i potvrdio da sve gore
+radi. Iz te probe su ispale dve zamerke; obe su napravljene istog dana i
+**nisu viđene uživo**:
+
+- [ ] **„Vrati potez"** posle greške u vežbi vraća položaj pre tog poteza i
+      pušta da se nastavi. Dosad je jedini izlaz bio „Ispočetka", što na
+      dvadeset osmom potezu baca dvadeset sedam poteza koji su bili tačni.
+- [ ] Čip **„Greške: N"** raste sa svakim vraćanjem — vraćanje je besplatno,
+      ali nije nevidljivo.
+- [ ] **Koordinate na tabli**: slova linija ispod, brojevi redova levo. Kad se
+      tabla okrene, oznake se okreću s njom.
+- [ ] Na 360 dp koordinate ne smeju da prošire tablu preko ekrana — traka se
+      uzima iz veličine koju ekran već daje, ne dodaje se na nju.
 
 ---
 
