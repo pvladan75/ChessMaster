@@ -349,7 +349,20 @@ async function initDB() {
         ADD COLUMN IF NOT EXISTS dtz INTEGER,
         ADD COLUMN IF NOT EXISTS game_white VARCHAR(120),
         ADD COLUMN IF NOT EXISTS game_black VARCHAR(120),
-        ADD COLUMN IF NOT EXISTS game_date VARCHAR(12);
+        ADD COLUMN IF NOT EXISTS game_date VARCHAR(12),
+        -- The Syzygy table the position belongs to, normalised so the same
+        -- ending has one name whichever side is stronger: KRPvKR, not both
+        -- that and KRvKRP. Finer than endgame_type, which carries the seven
+        -- hand-picked mined categories and keeps that meaning.
+        ADD COLUMN IF NOT EXISTS material VARCHAR(16),
+        -- The rating of the player who got it wrong, where the position came
+        -- from a real mistake. An honest difficulty signal, and reproducible,
+        -- which the mined difficulty score turned out not to be.
+        ADD COLUMN IF NOT EXISTS blunder_elo SMALLINT,
+        -- What was played instead. Not a solution, but the thing that makes
+        -- the position a story rather than a diagram: somebody stood here
+        -- and chose this.
+        ADD COLUMN IF NOT EXISTS played_move VARCHAR(12);
     `);
     // Without this the importer's ON CONFLICT DO NOTHING matches nothing and
     // silently does nothing - every re-run appended the whole file again. The

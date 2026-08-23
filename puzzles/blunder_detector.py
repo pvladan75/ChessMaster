@@ -319,6 +319,11 @@ def cause_of(tb, fen_before, board_after, before, after):
     return "fifty_move"
 
 
+def material_key(board):
+    """The Syzygy table this position belongs to, named the way the file is."""
+    return chess.syzygy.normalize_tablename(chess.syzygy.calc_key(board))
+
+
 def within_tables(board, max_pieces):
     """Whether the tables can answer this position at all.
 
@@ -354,7 +359,10 @@ def analyse_game(game, tb, cfg):
             wdl_before = playable_wdl(tb, board)
 
         played_san = board.san(move)
-        material = chess.syzygy.calc_key(board) if in_reach else None
+        # Normalised, or the same ending appears under two names: calc_key
+        # writes white first, so KRPvKR and KRvKRP are one ending split in
+        # half, and a lesson asking for it would get half the material.
+        material = material_key(board) if in_reach else None
         fen_before = board.fen()
         pieces_before = len(board.piece_map())
         clock_before = board.halfmove_clock

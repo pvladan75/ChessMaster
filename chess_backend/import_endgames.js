@@ -32,6 +32,7 @@ const JUDGED_COLUMNS = [
   'evaluation', 'difficulty', 'difficulty_score', 'piece_tags',
   'endgame_type', 'mode', 'side_to_move', 'winning_moves', 'solution',
   'solution_san', 'piece_count', 'pawn_count', 'source', 'wdl', 'dtz',
+  'material', 'blunder_elo', 'played_move',
 ];
 
 // The miner scores 1..10. The old column is a three-value string and the app
@@ -140,6 +141,9 @@ async function run() {
         item.source || 'engine',
         item.wdl === undefined ? null : item.wdl,
         item.dtz === undefined ? null : item.dtz,
+        item.material || null,
+        Number.isInteger(item.blunder_elo) ? item.blunder_elo : null,
+        item.played || null,
         item.white || null,
         item.black || null,
         item.date || null,
@@ -178,7 +182,7 @@ async function run() {
         `INSERT INTO endgame_puzzles AS t
            (puzzle_id, fen, evaluation, difficulty, difficulty_score, piece_tags,
             endgame_type, mode, side_to_move, winning_moves, solution, solution_san,
-            piece_count, pawn_count, source, wdl, dtz,
+            piece_count, pawn_count, source, wdl, dtz, material, blunder_elo, played_move,
             game_white, game_black, game_date)
          VALUES ${values.join(',')}
          ON CONFLICT (puzzle_id) WHERE puzzle_id IS NOT NULL ${conflict}

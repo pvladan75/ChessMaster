@@ -140,7 +140,8 @@ router.get('/puzzles/next', authenticateToken, async (req, res) => {
 // The old handler did that, and a screen asking for a drawn rook ending would
 // be handed a won pawn ending without a word.
 router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
-  const { type, mode, difficulty, maxPieces, minPawns, excludeId } = req.query;
+  const { type, mode, difficulty, maxPieces, minPawns, excludeId, material } =
+    req.query;
 
   const where = [];
   const params = [];
@@ -159,6 +160,9 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
 
   add('($? = \'\' OR puzzle_id IS DISTINCT FROM $?)', excludeId || '');
   if (type && type !== 'all') add('endgame_type = $?', type);
+  // The Syzygy table name, which is a far finer grouping than the seven mined
+  // categories: 'KRPvKR' picks out one ending rather than a family of them.
+  if (material && material !== 'all') add('material = $?', material);
   if (mode && mode !== 'all') add('mode = $?', mode);
   if (difficulty && difficulty !== 'all') add('difficulty = $?', difficulty);
   if (maxPieces) add('piece_count <= $?', parseInt(maxPieces, 10));
@@ -195,6 +199,12 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
         pawn_count: item.pawn_count,
         // Exact where it came from a tablebase, an engine estimate otherwise.
         source: item.source,
+        // Where the position came from, when it came from a real mistake:
+        // the table it belongs to, how strong the player who erred was, and
+        // what they played instead.
+        material: item.material,
+        blunder_elo: item.blunder_elo,
+        played_move: item.played_move,
         evaluation: item.evaluation,
         wdl: item.wdl,
         dtz: item.dtz,
