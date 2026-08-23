@@ -167,7 +167,7 @@ void main() {
     expect(service.state, SpeechState.ready);
     expect(service.language, 'hr-HR');
     await service.speak('Kf2 drži remi.');
-    expect(tts.spoken.single, 'kralj ef dva drži remi.');
+    expect(tts.spoken.single, 'kralj f dva drži remi.');
   });
 
   group('speaking', () {
@@ -176,7 +176,7 @@ void main() {
       final tts = FakeTts(['sr-RS']);
       final service = await ready(tts);
       await service.speak('Rd3 ispušta dobitak.');
-      expect(tts.spoken.single, 'top de tri ispušta dobitak.');
+      expect(tts.spoken.single, 'top d tri ispušta dobitak.');
     });
 
     test('the same sentence twice is said once', () async {

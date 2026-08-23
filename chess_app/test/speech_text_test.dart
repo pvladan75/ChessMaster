@@ -5,35 +5,35 @@ import 'package:chess_app/core/services/speech_text.dart';
 void main() {
   group('reading a move out loud', () {
     test('a quiet move is the file by name and the rank as a number', () {
-      // "de" and not "d": the voice says the letter's name, which is what a
-      // player says. The rank is a word rather than a digit, because a digit
-      // before a full stop is how Serbian writes an ordinal.
-      expect(speakable('d4'), 'de četiri');
-      expect(speakable('Kf2'), 'kralj ef dva');
-      expect(speakable('Rd3'), 'top de tri');
+      // The file is the bare letter and the rank is a word. The letter goes
+      // through the voice's own names; the rank cannot be a digit, because a
+      // digit before a full stop is how Serbian writes an ordinal.
+      expect(speakable('d4'), 'd četiri');
+      expect(speakable('Kf2'), 'kralj f dva');
+      expect(speakable('Rd3'), 'top d tri');
     });
 
     test('a capture names the piece that takes', () {
-      expect(speakable('Rxd3'), 'top uzima de tri');
+      expect(speakable('Rxd3'), 'top uzima d tri');
     });
 
     test('a pawn capture names the pawn, which the notation does not', () {
       // `exd5` has no piece letter at all, and "e uzima de 5" sounds like a
       // name was swallowed.
-      expect(speakable('exd5'), 'pešak sa e uzima de pet');
+      expect(speakable('exd5'), 'pešak sa e uzima d pet');
     });
 
     test('a disambiguated move says where the piece came from', () {
       // The one case where the square in front matters. Running the two
       // together - "skakač be de 7" - re-creates the ambiguity the notation
       // exists to remove.
-      expect(speakable('Nbd7'), 'skakač sa b na de sedam');
+      expect(speakable('Nbd7'), 'skakač sa b na d sedam');
       expect(speakable('R1e2'), 'top sa jedan na e dva');
     });
 
     test('check and mate are said, not spelled', () {
-      expect(speakable('Qg3+'), 'dama gje tri, šah');
-      expect(speakable('Qf1#'), 'dama ef jedan, mat');
+      expect(speakable('Qg3+'), 'dama g tri, šah');
+      expect(speakable('Qf1#'), 'dama f jedan, mat');
     });
 
     test('promotion says what the pawn becomes', () {
@@ -52,7 +52,7 @@ void main() {
     test('the prose is left alone and only the moves change', () {
       expect(
         speakable('Rd3 takođe ispušta dobitak. Probajte drugi potez.'),
-        'top de tri takođe ispušta dobitak. Probajte drugi potez.',
+        'top d tri takođe ispušta dobitak. Probajte drugi potez.',
       );
     });
 
@@ -60,13 +60,13 @@ void main() {
       // "Na" is a preposition, and a piece letter followed by a file is
       // exactly what the pattern is looking for. It is not a move because no
       // rank follows, and that is what saves it.
-      expect(speakable('Na d4 stoji top.'), 'Na de četiri stoji top.');
+      expect(speakable('Na d4 stoji top.'), 'Na d četiri stoji top.');
     });
 
     test('several moves in one sentence all get read', () {
       expect(
         speakable('Držalo je: Qc8+, Qf3 i Qg3+.'),
-        'Držalo je: dama ce osam, šah, dama ef tri i dama gje tri, šah.',
+        'Držalo je: dama c osam, šah, dama f tri i dama g tri, šah.',
       );
     });
 
@@ -95,14 +95,14 @@ void main() {
     });
   });
 
-  test('a file is spelled for the voice, not for the page', () {
-    // "ge" is what the g-file is called, and the Croatian voice reads that
-    // token by an English letter name - closer to "dž" than to the g in
-    // "gitara". The spelling here is chosen by ear, against five others, and it
-    // is an instruction rather than orthography.
+  test('a file is a bare letter, because the voice knows their names', () {
+    // Writing them out is what caused the trouble: "ge" was read by its English
+    // name and the g-file came out as "dž". A one-letter token goes through the
+    // voice's own letter-name table instead, which for Croatian gives exactly
+    // what a player says.
     expect(speakable('b4'), 'b četiri');
-    expect(speakable('g4'), 'gje četiri');
-    expect(speakable('Rg7'), 'top gje sedam');
+    expect(speakable('g4'), 'g četiri');
+    expect(speakable('Rg7'), 'top g sedam');
   });
 
   group('the full stop that turns a number into an ordinal', () {
@@ -110,7 +110,7 @@ void main() {
       // The report from the phone: `e6.` came out as "e šesti". The rank is a
       // word now, so there is no digit left for the stop to act on.
       expect(speakable('Odigrano je e6.'), 'Odigrano je e šest.');
-      expect(speakable('Držalo je Kf2.'), 'Držalo je kralj ef dva.');
+      expect(speakable('Držalo je Kf2.'), 'Držalo je kralj f dva.');
     });
 
     test('a sentence that ends on a number loses the stop', () {

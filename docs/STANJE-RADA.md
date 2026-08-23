@@ -2465,29 +2465,31 @@ ide ostatak rečenice malim slovom, a nova rečenica počinje velikim. Zato tač
 pada samo na kraju teksta ili pred velikim slovom. Potezi ovo pravilo ne dotiču,
 jer im je rang do tada već reč.
 
-### Zapis linija je uputstvo glasu, ne pravopis
+### Imena linija: golo slovo, ništa ispisano
 
 Linija `g` se čula kao englesko „džej", a ne kao g u „gitara". Glas nije bio
 kriv i nije bio engleski — u podešavanjima ništa nije bilo upisano pod
 `app_speech_language`, pa je važio automatski izbor i aktivan je bio **hr-HR,
-Microsoft Matej**. On dvoslovni zapis „ge" čita po engleskom imenu slova.
+Microsoft Matej**.
 
-Rešeno uhom, ne pretpostavkom: sonda je izgovorila šest kandidata sa brojevima,
-korisnik je izabrao, pa je uža proba ponovila dva najbliža. Pobedilo je **`gje`**
-— zapis koji na papiru izgleda pogrešno, jer i nije pravopis nego uputstvo tom
-glasu. Zato tabela u `speech_text.dart` i postoji kao tabela: drugi glas može
-tražiti drugačiji zapis, a ostale linije (`be`, `ce`, `de`, `ef`, `ha`) su
-prošle kako jesu.
+Krivo je bilo **naše ispisivanje**. Pisali smo „ge", „be", „ef", a dvoslovni
+token taj glas čita po **engleskom** imenu slova — otud „dž" za `g`. Rešenje
+nije bio bolji zapis nego nijedan: **jedno slovo po liniji**, jer jednoslovni
+token ide kroz glasovnu tablicu imena slova, a hrvatska imena slova su tačno
+ono što igrač i kaže — a, be, ce, de, e, ef, ge, ha.
 
-Isto je posle prošla i linija `b`, i tu se pokazalo pravilo koje vredi znati
-unapred: **jednoslovni token glas čita iz svoje tablice imena slova**, a
-hrvatsko ime slova je tačno ono što nam treba. Zato je `b` ostalo golo slovo —
-„beh" i „bé" zvuče identično, dok se „be" čita engleski. Za `g` to nije bilo
-dovoljno, pa tamo stoji `gje`.
+Do toga se stiglo uhom, u tri kruga sonde: prvo šest kandidata za `g` (pobedilo
+`gje`), pa pet za `b` (gde se videlo da golo slovo zvuči isto kao najbolji
+zapis), pa svih osam kao gola slova — i to je prošlo iz prve, za sve.
 
-Postupak vredi ponoviti kad se javi sledeća: kandidati sa brojevima, korisnik
-kaže broj. Ništa od toga se ne vidi iz koda niti se može čuti sa moje strane.
-Prva stvar koju treba probati je golo slovo.
+Mapa `files` je ostala iako je sada preslikavanje jedan u jedan. Ona je mesto
+koje drugi jezik ili drugi glas menja; bez nje bi ta odluka završila kao grana
+negde u kodu.
+
+**Postupak za sledeći put**, jer se iz koda ne vidi a ja ga ne mogu čuti:
+privremeni `-t lib/tts_probe.dart` koji izgovara kandidate sa brojevima, prvo
+samostalno pa u potezu, korisnik kaže broj. Prva stvar koju treba probati je
+golo slovo.
 
 ### Govor prekida samo korisnik
 

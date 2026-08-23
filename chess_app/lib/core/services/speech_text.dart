@@ -32,11 +32,11 @@ class SpeechVocabulary {
   /// Keyed by the letter used in English SAN, which is what the app stores.
   final Map<String, String> pieces;
 
-  /// How a file is said. Spoken as the name of the letter, not the letter:
-  /// `d3` is "de tri", and a voice given "d 3" says something else.
+  /// How a file is said.
   ///
-  /// These are instructions to a voice, not spelling, and one of them looks
-  /// wrong on paper for that reason. See the table below.
+  /// Instructions to a voice rather than spelling. For Serbian read by a
+  /// Croatian voice they are the bare letters, which the voice already knows
+  /// the names of - see the table below for why writing them out was worse.
   final Map<String, String> files;
 
   /// How a rank is said, as a word rather than a digit.
@@ -67,26 +67,25 @@ const serbianSpeech = SpeechVocabulary(
     'B': 'lovac',
     'N': 'skakač',
   },
+  // One letter each, and nothing spelled out. A one-letter token is read from
+  // the voice's own letter-name table, and the Croatian names of the letters
+  // are exactly what a player says: a, be, ce, de, e, ef, ge, ha. Spelling them
+  // out is what caused the trouble - written "ge", the g-file was read by its
+  // English name and came out as "dž".
+  //
+  // The map stays even though it is now an identity, because it is what another
+  // language would change: a voice that reads bare letters by some other
+  // table gets its own spellings here rather than a branch somewhere in the
+  // code.
   files: {
     'a': 'a',
-    // The bare letter, not "be": a one-letter token is read from the voice's
-    // own letter-name table, and the Croatian name of the letter is exactly
-    // what is wanted. "beh" and "bé" came out identical to it; "be" did not,
-    // being read as the English name.
     'b': 'b',
-    'c': 'ce',
-    'd': 'de',
+    'c': 'c',
+    'd': 'd',
     'e': 'e',
-    'f': 'ef',
-    // Not "ge", which is what it is called and what was here first: Microsoft
-    // Matej, the Croatian voice, reads that two-letter token by an English
-    // letter name, so the g-file came out closer to "dž" than to the g in
-    // "gitara". "gje" is not how anyone spells it - it is what makes this voice
-    // put a hard g in front of the e, chosen by ear against five other
-    // spellings. A different voice may need a different one, which is why the
-    // table is a table.
-    'g': 'gje',
-    'h': 'ha',
+    'f': 'f',
+    'g': 'g',
+    'h': 'h',
   },
   ranks: {
     '1': 'jedan',
