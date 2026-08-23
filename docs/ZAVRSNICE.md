@@ -436,11 +436,11 @@ deci nije svejedno.
 
 ## Sledeći koraci
 
-**1. Ekran u aplikaciji.** `fetchNextEndgamePuzzle` postoji u
-`chess_app/lib/services/puzzle_api_service.dart` i **nijedan ekran ga ne
-poziva**. Tu ide: prihvatanje svih poteza iz `winning_moves`, odvojen režim za
-odbranu, i igranje do kraja protiv motora za pozicije sa pet i manje figura.
-Backend je spreman.
+**1. Ekran u aplikaciji.** ✅ Urađeno. Rešavanje je provereno uživo 22.8.2026,
+igranje do kraja 23.8.2026 — oba u `endgame_trainer_screen.dart`, jedan ekran sa
+dva režima. Prima svaki potez iz `winning_moves`, razdvaja dobitak od odbrane, i
+igra do kraja protiv tablično savršenog protivnika do sedam figura. Otvorene
+ostaju dve provere u [TODO-provera.md](TODO-provera.md), tačka 0c.
 
 **2. Šestofiguraške tablice.** ✅ Skinute i proverene 23.8.2026 — 730 fajlova,
 149,2 GB, sve `sha256` sume se slažu (`verify_syzygy6.ps1`). Domet tablica u
@@ -468,7 +468,7 @@ ubedljivo najčešća vrednost je `180+0`. Za gradivo nije upotrebljiva, za dete
 grešaka jeste — medijana rejtinga je 2592, dakle jaki igrači koji greše zbog
 sata.
 
-## Igranje do kraja protiv motora — napravljeno 23.8.2026
+## Igranje do kraja protiv motora — napravljeno i provereno 23.8.2026
 
 Zamišljeno je da dete odigra celu završnicu protiv motora, a da svaki njegov
 potez bude ocenjen **tačno**, iz tablica.

@@ -34,21 +34,31 @@ jedna pozicija dobila potez više, a sedmofiguraške sada nose `source = lichess
       mora da bude prihvaćen, uz `Qf3` i `Qg3+`. Ranije je vraćao „netačno".
 - [ ] Neka sedmofiguraška pozicija i dalje nosi oznaku „Tačno iz tablica".
 
-## 0c. Igranje do kraja — napisano 23.8.2026, nije viđeno uživo
+## 0c. Igranje do kraja — ✅ prošlo uživo 23.8.2026, dve stavke otvorene
 
 Dugme „Odigraj do kraja" na pozicijama do sedam figura. Backend sudi svaki potez
 iz tablica; protivnik brani tablično najbolje.
 
-- [ ] Dugme se vidi na poziciji sa pet figura, a ne vidi se na onoj sa devet.
-- [ ] Potez koji drži dobitak → „Tačno — dobitak je zadržan i prišli ste bliže",
+Korisnik je 23.8.2026, na Windows verziji, prošao ceo tok i potvrdio sve osim
+dve stavke na dnu:
+
+- [x] Dugme se vidi na poziciji sa pet figura, a ne vidi se na onoj sa devet.
+- [x] Potez koji drži dobitak → „Tačno — dobitak je zadržan i prišli ste bliže",
       pa protivnikov odgovor odigran na tabli.
-- [ ] Potez koji drži ali ne napreduje (šetnja kraljem) → „Tačno, dobitak je
+- [x] Potez koji drži ali ne napreduje (šetnja kraljem) → „Tačno, dobitak je
       zadržan — ali niste prišli bliže".
-- [ ] Potez koji ispušta dobitak → vežba staje i imenuje potez.
-- [ ] Odigrati jednu do kraja: mora da se završi matom, ne da se vrti u krug.
-- [ ] Ugasi mrežu usred vežbe: mora da kaže da tablica nije dostupna i da
-      **vrati tablu na prethodni položaj**, a ne da ostavi nepresuđen potez.
-- [ ] „Nazad na zadatak" vraća početnu poziciju i običan režim rešavanja.
+- [x] Potez koji ispušta dobitak → vežba staje i imenuje potez.
+- [x] Odigrati jednu do kraja: **završava se matom**, ne vrti se u krug. Ovo je
+      ista ona greška koju je odigravanje partije našlo istog dana pri izradi;
+      sada je i uživo potvrđeno da je nema.
+- [x] „Nazad na zadatak" vraća početnu poziciju i običan režim rešavanja.
+
+Ostaje:
+
+- [ ] Nedostupna tablica: postaviti `LICHESS_TABLEBASE_URL` na nepostojeći host,
+      restartovati backend i odigrati potez. Mora da kaže da tablica nije
+      dostupna i da **vrati tablu na prethodni položaj**, a ne da ostavi
+      nepresuđen potez da stoji kao presuđen.
 - [ ] Na telefonu: tri dugmeta vežbe u jednom redu na 360 dp.
 
 ---
