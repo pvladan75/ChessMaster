@@ -5,6 +5,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import '../models/endgame_puzzle.dart';
@@ -111,6 +112,16 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// child plays the side that was wronged.
   bool _punishing = false;
 
+  /// The position as it stood before the move that ended the drill.
+  ///
+  /// Losing a win on move twenty-eight and being offered only "start again" is
+  /// the wrong lesson twice: it throws away twenty-seven moves that were right,
+  /// and it teaches that a mistake is final rather than something to look at
+  /// and try differently. The count stays visible, so taking a move back is
+  /// free but not invisible.
+  String? _drillRetryFen;
+  int _drillMistakes = 0;
+
   int _drillMoves = 0;
 
   @override
@@ -164,6 +175,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _drilling = false;
       _punishing = false;
       _drillEnd = null;
+      _drillRetryFen = null;
+      _drillMistakes = 0;
       _drillMoves = 0;
     });
     _boardController.loadFen(puzzle.fen);
@@ -317,6 +330,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _drilling = true;
       _punishing = punishing;
       _drillEnd = null;
+      _drillRetryFen = null;
+      _drillMistakes = 0;
       _drillMoves = 0;
       _hintSquare = null;
       _game = chess.Chess.fromFEN(fen);
@@ -332,6 +347,20 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     _boardController.loadFen(fen);
   }
 
+  /// Puts the board back to just before the move that lost it.
+  void _retryDrillMove() {
+    final fen = _drillRetryFen;
+    if (fen == null) return;
+    setState(() {
+      _game = chess.Chess.fromFEN(fen);
+      _drillEnd = null;
+      _drillRetryFen = null;
+      _feedbackIsGood = false;
+      _feedback = 'Vraćeno na položaj pre tog poteza. Probajte drugi.';
+    });
+    _boardController.loadFen(fen);
+  }
+
   void _stopDrill() {
     final puzzle = _solve?.puzzle;
     if (puzzle == null) return;
@@ -339,6 +368,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _drilling = false;
       _punishing = false;
       _drillEnd = null;
+      _drillRetryFen = null;
+      _drillMistakes = 0;
       _drillMoves = 0;
       _feedback = null;
       _game = chess.Chess.fromFEN(puzzle.fen);
@@ -399,7 +430,12 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     setState(() {
       _game = chess.Chess.fromFEN(step.fen);
       _boardLocked = false;
-      _drillMoves++;
+      if (step.held) {
+        _drillMoves++;
+      } else {
+        _drillMistakes++;
+        _drillRetryFen = fenBefore;
+      }
       _drillEnd = step.held ? step.finished : 'lost';
       _feedbackIsGood = step.held;
       _feedback = drillFeedbackText(step);
@@ -544,13 +580,13 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
               _buildHeader(solve.puzzle),
               const SizedBox(height: 12),
               Center(
-                child: SizedBox(
-                  width: boardSize,
-                  height: boardSize,
-                  child: ChessBoardWithOverlay(
+                child: BoardWithCoordinates(
+                  size: boardSize,
+                  orientation: _orientation,
+                  builder: (inner) => ChessBoardWithOverlay(
                     controller: _boardController,
                     boardOrientation: _orientation,
-                    boardSize: boardSize,
+                    boardSize: inner,
                     isAllowedToMove: !_boardLocked &&
                         (_drilling ? _drillEnd == null : !solve.isComplete),
                     isDrawingMode: false,
@@ -618,6 +654,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
               _chip('Pogrešio: ${puzzle.blunderElo}'),
             if (puzzle.isExact) _chip('Tačno iz tablica'),
             if (_drilling && _drillMoves > 0) _chip('Odigrano: $_drillMoves'),
+            if (_drilling && _drillMistakes > 0)
+              _chip('Greške: $_drillMistakes'),
             if (!_drilling && _attempted > 0)
               _chip('Rešeno: $_solved/$_attempted'),
             if (puzzle.game != null) _chip(puzzle.game!.label),
@@ -672,6 +710,12 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         runSpacing: 8,
         alignment: WrapAlignment.center,
         children: [
+          if (_drillRetryFen != null)
+            FilledButton.icon(
+              onPressed: _boardLocked ? null : _retryDrillMove,
+              icon: const Icon(Icons.undo),
+              label: const Text('Vrati potez'),
+            ),
           OutlinedButton.icon(
             onPressed:
                 _boardLocked ? null : (_punishing ? _startPunish : _startDrill),
