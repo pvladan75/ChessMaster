@@ -251,6 +251,11 @@ def rejudge_file(path, engines, tb, cfg, args):
         merged = dict(record)
         merged.update(verdict)
         merged["source"] = "syzygy" if pieces <= args.local_max_pieces else "lichess"
+        # The move list is a set; serialising it in whatever order the frozenset
+        # iterated makes every re-import look like a change. Sorted, it matches
+        # winning_moves_san and the hint that shows winningMoves.first stops
+        # depending on the run that wrote the file.
+        merged["winning_moves"] = sorted(verdict["winning_moves"])
         # These belong to the engine's answer and would now be describing a
         # verdict they had no part in.
         for stale in ("eval", "cliff", "depth", "verified_depth"):
@@ -258,6 +263,14 @@ def rejudge_file(path, engines, tb, cfg, args):
 
         was = set(record.get("winning_moves") or [])
         now = set(verdict["winning_moves"])
+
+        # Difficulty leans on shallow_best, which comes from the same shallow
+        # search whose verdict is not reproducible - so recomputing it for a
+        # position whose outcome did not move replaces a score with an equally
+        # arbitrary one. Where the verdict is unchanged, so is the rating.
+        if was == now and record.get("source") == merged["source"] \
+                and record.get("difficulty") is not None:
+            merged["difficulty"] = record["difficulty"]
         if was != now or record.get("mode") != verdict["mode"]:
             changed.append((record, merged, pieces))
         kept.append(merged)

@@ -372,6 +372,28 @@ rekao „0 upisano, N preskočeno" — što izgleda tačno kao „već uvezeno".
 `--update`, a `xmax` u izveštaju razdvaja upisano od ažuriranog. Prepisuju se
 samo kolone suda; partija iz koje pozicija potiče nije sud.
 
+Uz to i uslov `IS DISTINCT FROM` nad tim istim kolonama, bez kog `DO UPDATE`
+pali za svaki red i prijavljuje **1089 ažuriranih** — broj koji izgleda kao rad
+a ne opisuje nijedan. Sa uslovom: 319 ažurirano, 770 netaknuto, a **drugo
+pokretanje javlja nulu**. To je provera samo po sebi — uvoz koji ništa ne menja
+mora i da kaže da ništa nije promenio.
+
+U bazi posle uvoza: 533 `syzygy`, 63 `lichess`, 493 `engine`.
+
+### Šta ponovno suđenje namerno ne dira
+
+Prvi prolaz je prepisao i **ocenu težine kod 185 pozicija**. Težina se računa iz
+`shallow_best`, dakle iz iste plitke pretrage čiji sud nije reproducibilan — pa
+je to bila zamena jedne šumovite ocene drugom, jednako šumovitom. Sada se težina
+zadržava svuda gde se ishod nije pomerio, a računa iznova samo tamo gde je
+pozicija stvarno prešla sa procene na tablicu: 112 pozicija.
+
+Uz to se `winning_moves` sada upisuje **sortirano**. Lista je skup i redosled ne
+znači ništa, ali se serijalizovala onako kako je `frozenset` naišao, pa je
+ponovni upis izgledao kao izmena kod trinaest zapisa čiji su potezi identični.
+Aplikacija uz to koristi `winningMoves.first` kao nagoveštaj — proizvoljan
+redosled je značio i proizvoljan nagoveštaj.
+
 ### Nađeno usput, nije popravljeno: test očiglednosti nije reproducibilan
 
 Isti fajl, isti kod: **tri pozicije ispadaju kad se pusti sam, jedna kad se

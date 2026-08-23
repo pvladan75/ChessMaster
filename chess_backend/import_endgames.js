@@ -163,11 +163,19 @@ async function run() {
       // re-judged file: the position keeps its old verdict, the run reports
       // "0 upisano, N preskoceno", and that reads exactly like "already
       // imported". Hence --update, and xmax to tell the two apart afterwards.
+      //
+      // The WHERE is what makes "azurirano" a fact rather than a row count.
+      // Without it every conflicting row is rewritten with the values it
+      // already had, and a re-import of an untouched file reports the whole
+      // collection as updated - a number that looks like work and describes
+      // none.
       const conflict = update
-        ? `DO UPDATE SET ${JUDGED_COLUMNS.map((c) => `${c} = EXCLUDED.${c}`).join(', ')}`
+        ? `DO UPDATE SET ${JUDGED_COLUMNS.map((c) => `${c} = EXCLUDED.${c}`).join(', ')}
+           WHERE (${JUDGED_COLUMNS.map((c) => `t.${c}`).join(', ')})
+                 IS DISTINCT FROM (${JUDGED_COLUMNS.map((c) => `EXCLUDED.${c}`).join(', ')})`
         : 'DO NOTHING';
       const result = await client.query(
-        `INSERT INTO endgame_puzzles
+        `INSERT INTO endgame_puzzles AS t
            (puzzle_id, fen, evaluation, difficulty, difficulty_score, piece_tags,
             endgame_type, mode, side_to_move, winning_moves, solution, solution_san,
             piece_count, pawn_count, source, wdl, dtz,

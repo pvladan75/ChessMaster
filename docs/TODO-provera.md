@@ -26,6 +26,14 @@ ponovo odigrati istu poziciju. Brojka bez poteza ne uči ništa — cela poenta
 pozicije sa više odgovora je koji su. Dodati su izbor „Nađi i ostale" i
 „Pokaži".
 
+**Dodato 23.8.2026, nije viđeno uživo.** Cela zbirka je presuđena iz tablica
+(vidi [ZAVRSNICE.md](ZAVRSNICE.md), „Ponovno suđenje postojeće zbirke"), pa je
+jedna pozicija dobila potez više, a sedmofiguraške sada nose `source = lichess`:
+
+- [ ] `6k1/5p2/7p/8/4r2P/2Q5/6K1/8 w - - 9 55` (QueenVsRook, dobitak): `Qc8+`
+      mora da bude prihvaćen, uz `Qf3` i `Qg3+`. Ranije je vraćao „netačno".
+- [ ] Neka sedmofiguraška pozicija i dalje nosi oznaku „Tačno iz tablica".
+
 ---
 
 ## 0. Pristanak na odnos trener–učenik — ✅ provereno uživo 17.8.2026
