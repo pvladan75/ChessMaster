@@ -2491,6 +2491,28 @@ privremeni `-t lib/tts_probe.dart` koji izgovara kandidate sa brojevima, prvo
 samostalno pa u potezu, korisnik kaže broj. Prva stvar koju treba probati je
 golo slovo.
 
+### Pravilo koje i pogrešan potez poštuje nije objašnjenje
+
+Nađeno na ekranu 23.8.2026, u istoj kartici, jedno ispod drugog:
+
+> U partiji je odigrano **Qb4+** i remi je izgubljen.
+> Tačno — remi je održan. Bio je to jedini potez.
+> **Dama mora da ostane na B-liniji.**
+
+`Qb4+` **jeste** na b-liniji. Pozicija je `1Q6/8/6K1/3pq3/3k4/8/8/8 w - - 0 84`
+(Da Silva — Gazel Pereira 2010): drži samo `Qb2`, a odigrano je `Qb4+` — oba
+poteza ostaju na istoj liniji, pa pravilo ne razdvaja ništa.
+
+Uzrok: `holding_pattern.dart` je tražio šta je zajedničko potezima koji drže, a
+onda pokazivao najbolje pravilo **i kad nijedno ne isključuje odigrani potez**.
+Poređenje je već umelo da prepozna takvo pravilo (`explainsPlayed`) i da ga
+rangira niže, ali ga niko nije odbacivao.
+
+Sad se pravilo koje odigrani potez poštuje ni ne razmatra. Tamo gde greške nema
+— rudarene pozicije — sve ostaje kao pre, jer tu nema šta da se protivreči.
+Cena je da neke pozicije iz partija ostanu bez rečenice; to je bolje od tačne
+rečenice koja na tom mestu čita kao netačna.
+
 ### Govor prekida samo korisnik
 
 Traženo 23.8.2026: rečenica koja je počela **čuje se do kraja**. Ništa što

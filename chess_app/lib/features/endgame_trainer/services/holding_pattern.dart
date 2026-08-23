@@ -201,6 +201,13 @@ List<HoldingPattern> describeHolding({
     if (!holding.every(matches)) return;
     final excluded = legal.where((m) => !matches(m)).length;
     if (excluded == 0) return;
+    // A rule the losing move also obeys is not a rule about this mistake.
+    // Da Silva - Gazel Pereira 2010: Qb2 holds the draw, Qb4+ threw it away,
+    // and both keep the queen on the b-file. "Dama mora da ostane na B-liniji"
+    // is true of every move that holds and still reads as a flat contradiction
+    // under "U partiji je odigrano Qb4+ i remi je izgubljen". True and useless
+    // is worse here than silent: the sentence is presented as the reason.
+    if (played != null && matches(played)) return;
     found.add(HoldingPattern(
       text: text,
       kind: kind,

@@ -110,6 +110,51 @@ void main() {
     });
   });
 
+  group('a rule the mistake also obeys', () {
+    // Reported from the desktop build. The panel said, one under the other:
+    //
+    //   U partiji je odigrano Qb4+ i remi je izgubljen.
+    //   Tačno — remi je održan. Bio je to jedini potez.
+    //   Dama mora da ostane na B-liniji.
+    //
+    // Qb4+ is on the b-file. The rule is true of every move that holds and
+    // explains nothing about the move that did not, and next to the story it
+    // reads as a contradiction.
+    const daSilva = '1Q6/8/6K1/3pq3/3k4/8/8/8 w - - 0 84';
+
+    test('is not offered as the lesson', () {
+      expect(
+        holdingLesson(
+          fen: daSilva,
+          holdingUci: const ['b8b2'],
+          playedUci: 'b8b4',
+        ),
+        isNull,
+      );
+    });
+
+    test('is still offered where there is no mistake to contradict', () {
+      // A mined position has nobody's move to explain, so the rule stands on
+      // its own: this is where the queen belongs.
+      expect(
+        holdingLesson(fen: daSilva, holdingUci: const ['b8b2']),
+        contains('B-liniji'),
+      );
+    });
+
+    test('a rule the mistake breaks is unaffected', () {
+      // The guard must not swallow the explanations it was written to protect.
+      expect(
+        holdingLesson(
+          fen: '8/8/8/8/8/1k6/8/R3K3 w - - 0 1',
+          holdingUci: const ['a1b1', 'a1c1', 'a1d1'],
+          playedUci: 'a1a8',
+        ),
+        contains('1. redu'),
+      );
+    });
+  });
+
   group('ranking', () {
     test('explaining the mistake outweighs ruling out more moves', () {
       const fen = '8/8/8/8/8/1k6/8/R3K3 w - - 0 1';
