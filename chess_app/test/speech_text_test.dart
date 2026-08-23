@@ -27,7 +27,7 @@ void main() {
       // The one case where the square in front matters. Running the two
       // together - "skakač be de 7" - re-creates the ambiguity the notation
       // exists to remove.
-      expect(speakable('Nbd7'), 'skakač sa be na de sedam');
+      expect(speakable('Nbd7'), 'skakač sa b na de sedam');
       expect(speakable('R1e2'), 'top sa jedan na e dva');
     });
 
@@ -100,6 +100,7 @@ void main() {
     // token by an English letter name - closer to "dž" than to the g in
     // "gitara". The spelling here is chosen by ear, against five others, and it
     // is an instruction rather than orthography.
+    expect(speakable('b4'), 'b četiri');
     expect(speakable('g4'), 'gje četiri');
     expect(speakable('Rg7'), 'top gje sedam');
   });

@@ -2479,8 +2479,15 @@ glasu. Zato tabela u `speech_text.dart` i postoji kao tabela: drugi glas može
 tražiti drugačiji zapis, a ostale linije (`be`, `ce`, `de`, `ef`, `ha`) su
 prošle kako jesu.
 
+Isto je posle prošla i linija `b`, i tu se pokazalo pravilo koje vredi znati
+unapred: **jednoslovni token glas čita iz svoje tablice imena slova**, a
+hrvatsko ime slova je tačno ono što nam treba. Zato je `b` ostalo golo slovo —
+„beh" i „bé" zvuče identično, dok se „be" čita engleski. Za `g` to nije bilo
+dovoljno, pa tamo stoji `gje`.
+
 Postupak vredi ponoviti kad se javi sledeća: kandidati sa brojevima, korisnik
 kaže broj. Ništa od toga se ne vidi iz koda niti se može čuti sa moje strane.
+Prva stvar koju treba probati je golo slovo.
 
 ### Govor prekida samo korisnik
 

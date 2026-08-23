@@ -69,7 +69,11 @@ const serbianSpeech = SpeechVocabulary(
   },
   files: {
     'a': 'a',
-    'b': 'be',
+    // The bare letter, not "be": a one-letter token is read from the voice's
+    // own letter-name table, and the Croatian name of the letter is exactly
+    // what is wanted. "beh" and "bé" came out identical to it; "be" did not,
+    // being read as the English name.
+    'b': 'b',
     'c': 'ce',
     'd': 'de',
     'e': 'e',
