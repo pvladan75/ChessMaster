@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/features/endgame_trainer/screens/blunder_walk_screen.dart';
@@ -130,6 +131,57 @@ void main() {
     // the squares it is drawn over.
     await tester.pump(const Duration(seconds: 5));
     expect(board().arrows, isEmpty);
+  });
+
+  testWidgets('the board takes moves while a mistake is standing on it',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(wrap(screen()));
+    await tester.pumpAndSettle();
+
+    final board = tester
+        .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
+    expect(board.isAllowedToMove, isTrue);
+  });
+
+  testWidgets('a move played on the board is judged', (tester) async {
+    // The flag being true is not the same as the board answering a finger.
+    // Everything between the two - the coordinate frame, the overlay stack, the
+    // orientation - is what this walks through.
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(wrap(screen()));
+    await tester.pumpAndSettle();
+
+    final board = find.byType(ChessBoardWithOverlay);
+    final widget = tester.widget<ChessBoardWithOverlay>(board);
+    final rect = tester.getRect(board);
+    final square = widget.boardSize / 8;
+
+    // Black is to move, so the board is turned: file h is on the left and rank
+    // 1 at the top.
+    Offset at(String name) {
+      final file = name.codeUnitAt(0) - 'a'.codeUnitAt(0);
+      final rank = name.codeUnitAt(1) - '1'.codeUnitAt(0);
+      final col =
+          widget.boardOrientation == PlayerColor.black ? 7 - file : file;
+      final row =
+          widget.boardOrientation == PlayerColor.black ? rank : 7 - rank;
+      return rect.topLeft + Offset((col + 0.5) * square, (row + 0.5) * square);
+    }
+
+    // Rb3 is one of the two moves that held.
+    await tester.tapAt(at('f3'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(at('b3'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Tačno'), findsOneWidget);
   });
 
   testWidgets('the strip cannot walk past an unanswered mistake',
