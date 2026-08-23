@@ -334,9 +334,12 @@ poziva**. Tu ide: prihvatanje svih poteza iz `winning_moves`, odvojen režim za
 odbranu, i igranje do kraja protiv motora za pozicije sa pet i manje figura.
 Backend je spreman.
 
-**2. Šestofiguraške tablice.** 149,2 GB, oko 6 sati na izmerenih 7 MB/s, uz
-obaveznu proveru `sha256`. Udvostručuje broj partija u dometu tablica sa 2,6% na
-5,4%, i tek na šest figura počinju teme koje se stvarno predaju.
+**2. Šestofiguraške tablice.** ✅ Skinute i proverene 23.8.2026 — 730 fajlova,
+149,2 GB, sve `sha256` sume se slažu (`verify_syzygy6.ps1`). Domet tablica u
+partijama raste sa 2,6% na 5,4%, i tek na šest figura počinju teme koje se
+stvarno predaju. Ostaje da ih rudar uzme: `--syzygy-max-pieces` je i dalje 5, a
+`chess.syzygy.open_tablebase()` prima jedan folder, pa drugi set traži
+`add_directory` (Stockfish-u ista putanja ide razdvojena tačka-zarezom).
 
 **3. Detektor grešaka iz tablica.** Zaseban alat: proći kroz pozicije sa pet i
 manje figura i naći poteze koji su **promenili ishod**. To je egzaktna greška,
@@ -389,19 +392,34 @@ bliže. „Tačno, ali nisi ništa dobio — i dalje 18 poteza do kraja."
 Čim potez promeni ishod, staje se i kaže tačno to: „ovaj potez ispušta
 dobitak". Bez pogađanja.
 
-### Odluka 1: gde stoje tablice
+### Odluka 1: gde stoje tablice — ✅ odlučeno 23.8.2026
+
+**Do pet figura sudi server, šest i sedam idu na Lichess API.**
 
 - **Na serveru** — backend dobije 940 MB i endpoint koji prima poziciju i
   potez, vraća da li je ishod zadržan, koliko je ostalo po DTZ i šta protivnik
   odgovara. Jedan poziv po potezu, tablice na jednom mestu.
-- **Lichess API** — bez lokalnih tablica, jedan zahtev po potezu, vraća
-  kategoriju za **svaki** legalan potez odjednom. Ovo je ispravna upotreba tog
-  servisa: mali ciljani broj zahteva, ne masovno skeniranje. Mana je zavisnost
-  od tuđeg servisa usred vežbe.
+- **Lichess API** — jedan zahtev po potezu, vraća kategoriju za **svaki**
+  legalan potez odjednom, i ide do sedam figura. Ovo je ispravna upotreba tog
+  servisa: mali ciljani broj zahteva, ne masovno skeniranje.
 - **Na telefonu** — 940 MB uz aplikaciju, otpada.
 
-Predlog: **server, uz Lichess kao rezervu.** Time i sedmofiguraške pozicije
-kasnije dolaze besplatno, jer API ide do sedam.
+Šestofiguraški set ne ide na server: 149,2 GB ne staje ni na disk droplet-a, a
+Syzygy se uz to čita mapiranjem u memoriju, pa bi i da stane radio loše. Set
+ostaje na radnoj mašini, gde mu je posao rudarenje, ne suđenje.
+
+Šta ovo povlači:
+
+- **Granica se prelazi usred vežbe.** Uzimanje u šestofiguraškoj poziciji je
+  spušta na pet, pa isti zadatak počne na API-ju a završi se na serveru. Ruta se
+  bira po broju figura u tekućoj poziciji, ne jednom po zadatku.
+- **Nedostupan API nije razlog za procenu motora.** Kad se do tablice ne može
+  doći, vežba to kaže i ne nudi se — isto pravilo kao `probe_wdl` u rudaru.
+  Tiho prelaženje na centipione dalo bi „tačno" tamo gde je ishod izgubljen, a
+  ceo smisao ovog režima je da sudija ne pogađa.
+- **Ono što se danas koristi ne zavisi ni od koga.** Svih 478 postojećih
+  pozicija sa pet i manje figura sudi server; API je za građu koja tek dolazi
+  iz šestofiguraškog rudarenja.
 
 ### Odluka 2: pravilo od 50 poteza
 
