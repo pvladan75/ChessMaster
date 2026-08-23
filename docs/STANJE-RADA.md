@@ -2513,6 +2513,23 @@ Sad se pravilo koje odigrani potez poštuje ni ne razmatra. Tamo gde greške nem
 Cena je da neke pozicije iz partija ostanu bez rečenice; to je bolje od tačne
 rečenice koja na tom mestu čita kao netačna.
 
+### „Ispušta dobitak — ostaje remi" nije uvek istina
+
+Prijavljeno sa ekrana 23.8.2026, u kazni nad Da Silva — Gazel Pereira 2010.
+Posle `Kc3` je pisalo „ispušta dobitak — ostaje remi", a pozicija
+`8/8/6K1/3pq3/8/2k5/8/1Q6 w` je **dobijena za belog**: `Qa1+` je jedini potez
+koji dobija (svi ostali gube), jer kralj na c3 i dama na e5 stoje na istoj
+dijagonali, pa šah osvaja damu. Provereno tablicama, ne procenom.
+
+Uzrok je bio prazan: server već šalje pravi ishod (`outcome`: `win`/`draw`/
+`loss` iz tablica), a klijent ga nije čitao — za svaki ispušten dobitak je
+pisao „ostaje remi". Sada piše „pozicija je sada izgubljena" kad je tako.
+
+Ostala mesta su proverena i **ne tvrde ništa slično**: šetnja i trener kažu šta
+je izgubljeno („ispustio dobitak", „izgubio remi"), a to je tvrdnja o poziciji
+pre poteza. Razlika je bitna — reći šta je bilo je činjenica iz rudarenja, reći
+šta je sada je tvrdnja koja mora doći iz tablica.
+
 ### Govor prekida samo korisnik
 
 Traženo 23.8.2026: rečenica koja je počela **čuje se do kraja**. Ništa što

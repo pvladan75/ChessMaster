@@ -66,8 +66,17 @@ class DrillStep {
 /// than they were.
 String drillFeedbackText(DrillStep step) {
   if (!step.held) {
-    return step.goal == 'draw'
-        ? '${step.playedSan} gubi remi. Ovde se prekida.'
+    if (step.goal == 'draw') {
+      return '${step.playedSan} gubi remi. Ovde se prekida.';
+    }
+    // A win that is let go does not always land on a draw, and saying so when
+    // it does not is a false statement about the position, not a rounding.
+    // Reported from a drill: after Kc3 the tables give White a win - Qa1+ is
+    // the only move that does it, skewering the king on c3 and the queen on
+    // e5 - and the screen said "ostaje remi". The verdict is in the answer the
+    // server already sends; it was simply not read.
+    return step.outcome == 'loss'
+        ? '${step.playedSan} ispušta dobitak — pozicija je sada izgubljena.'
         : '${step.playedSan} ispušta dobitak — ostaje remi.';
   }
 

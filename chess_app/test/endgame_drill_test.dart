@@ -48,6 +48,20 @@ void main() {
       expect(text, contains('ispušta dobitak'));
     });
 
+    test('a win that becomes a loss is not called a draw', () {
+      // Reported from a drill on Da Silva - Gazel Pereira 2010. After Kc3 the
+      // five-piece tables give White the win, and Qa1+ is the only move that
+      // takes it: the king on c3 and the queen on e5 stand on one diagonal, so
+      // the check wins the queen. The screen said "ostaje remi", which is not a
+      // softer way of putting it - it is a different result.
+      final text = drillFeedbackText(
+          step(held: false, outcome: 'loss', playedSan: 'Kc3'));
+      expect(text, contains('Kc3'));
+      expect(text, contains('ispušta dobitak'));
+      expect(text, contains('izgubljena'));
+      expect(text, isNot(contains('remi')));
+    });
+
     test('a lost draw is worded as a draw, not as a win', () {
       final text = drillFeedbackText(
           step(held: false, goal: 'draw', outcome: 'loss', playedSan: 'Kf8'));
