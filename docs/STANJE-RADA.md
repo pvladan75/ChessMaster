@@ -2705,6 +2705,28 @@ Jezik same aplikacije nije isto i još ne postoji: svi tekstovi su tvrdo upisani
 na srpskom, pa je stari izbornik jezika i uklonjen jer nije radio ništa.
 Kad se uradi i18n, `SpeechVocabulary` je već pripremljen da dobije drugi jezik.
 
+## Sistematizacija prostora — popis napravljen 24.8.2026
+
+Pre nego što se dira navigacija, popisano je zatečeno stanje:
+[POPIS-PROSTORA.md](POPIS-PROSTORA.md). Ukratko, odredišta su u tri klase koje
+se za korisnika ne razlikuju a ponašaju se različito: **12 sa rutom**, **7 koja
+se guraju `MaterialPageRoute`-om**, i **3 koja su samo stanje** unutar
+`AiStudioScreen`-a. Jedan ekran (`TacticsTrainerScreen`) otvara se na oba
+načina, što je najkraći dokaz da pravilo ne postoji.
+
+Najveća pojedinačna stavka je što je `AiStudioScreen` (2662 linije) istovremeno
+raskrsnica i radni ekran — otud i to što tri kartice iz iste liste vode rutom a
+tri stanjem.
+
+Odluka o strukturi još nije doneta; pitanja su na kraju popisa.
+
+**O Windows-u je odlučeno da ostane jedna prilagodljiva aplikacija**, a ne
+zasebna desktop ljuska: rail i paneli već rade, a prava „Windows aplikacija"
+(meni traka, više prozora) udvostručuje površinu koja se ionako menja svake
+nedelje. Ono što jeste vredno i jeftino: tastatura (strelice kroz poteze, Esc,
+Ctrl+,), pamćenje veličine prozora, desni klik za kopiranje FEN-a, i manje
+modalnih prozora u korist panela — poslednje je već urađeno za nalaz tablica.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
