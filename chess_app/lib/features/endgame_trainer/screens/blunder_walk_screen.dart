@@ -6,6 +6,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/endgame_info_panel.dart';
@@ -88,6 +89,19 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   /// rook across the board and fast enough not to be waited on.
   static const _playbackStep = Duration(milliseconds: 850);
 
+  /// How long the mistake stays drawn on the board when a stop is reached.
+  ///
+  /// Long enough to look at, short enough that it is gone before the reader
+  /// starts trying moves - an arrow left standing while they think would sit on
+  /// top of the squares they are trying to read.
+  static const _arrowLinger = Duration(seconds: 4);
+
+  /// The move that lost the result, drawn from where it started to where it
+  /// went. "White played Ng4" is a sentence to decode; the arrow is the same
+  /// thing already decoded, which on a board is the form that costs nothing.
+  List<ChessArrow> _arrows = const [];
+  Timer? _arrowTimer;
+
   /// How much of it plays by itself.
   ///
   /// Between two mistakes the gap is usually a move or three and watching it is
@@ -103,7 +117,32 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   @override
   void dispose() {
     _playback?.cancel();
+    _arrowTimer?.cancel();
     super.dispose();
+  }
+
+  /// Points at the mistake standing on this board, for a few seconds.
+  void _markMistake(GameBlunder blunder) {
+    _arrowTimer?.cancel();
+    if (blunder.playedUci.length < 4) return;
+    setState(() {
+      _arrows = [
+        ChessArrow(
+          from: blunder.playedUci.substring(0, 2),
+          to: blunder.playedUci.substring(2, 4),
+          colorCode: 'R',
+        ),
+      ];
+    });
+    _arrowTimer = Timer(_arrowLinger, () {
+      if (mounted) setState(() => _arrows = const []);
+    });
+  }
+
+  void _clearMarks() {
+    _arrowTimer?.cancel();
+    _arrowTimer = null;
+    if (_arrows.isNotEmpty) setState(() => _arrows = const []);
   }
 
   @override
@@ -153,6 +192,8 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       _feedback = null;
     });
     _rebuildLine();
+    final first = walk.pending;
+    if (first != null) _markMistake(first);
   }
 
   String _sideToMove(String fen) {
@@ -186,11 +227,14 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     // Reaching for the strip is how the reader says they would rather do this
     // themselves.
     _stopPlayback();
+    _clearMarks();
     setState(() {
       walk.seek(index);
       _feedback = null;
     });
     _showCurrent();
+    final here = walk.pending;
+    if (here != null) _markMistake(here);
   }
 
   void _stopPlayback() {
@@ -212,8 +256,34 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       setState(walk.forward);
       _showCurrent();
       played++;
-      if (!walk.canGoForward || played >= _maxPlayback) _stopPlayback();
+      if (!walk.canGoForward || played >= _maxPlayback) {
+        _stopPlayback();
+        _arrive();
+      }
     });
+  }
+
+  /// What the screen says once the board has stopped moving.
+  ///
+  /// The verdict on the previous move is cleared here rather than left to age.
+  /// A "correct" still sitting under a fresh question reads as an answer to
+  /// that question, which is the one thing it is not.
+  void _arrive() {
+    final walk = _walk;
+    if (walk == null) return;
+    final here = walk.pending;
+    if (here != null) {
+      setState(() => _feedback = null);
+      _markMistake(here);
+      return;
+    }
+    if (walk.isFinished) {
+      setState(() {
+        _feedbackIsGood = true;
+        _feedback = 'Kraj partije — nema više poteza. Nađeno '
+            '${walk.solvedCount} od ${walk.totalCount}.';
+      });
+    }
   }
 
   Future<void> _onMove(String from, String to) async {
@@ -274,14 +344,23 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
                 '${blunder.shouldPlay.where((m) => m != found).join(', ')}.');
 
     // The last answer opens the game to its end rather than to the next stop,
-    // so it is worth saying which of the two just happened.
+    // so it is worth saying which of the two just happened - and if there is
+    // nothing left to open, saying that instead.
     final last = walk.answeredCount == walk.totalCount;
+    final movesLeft = walk.game.moves.length - walk.cursor;
+    // The arrow pointed at a mistake that is now behind us.
+    _clearMarks();
     setState(() {
       _feedbackIsGood = found != null;
-      _feedback = last
-          ? '$verdict To je bila poslednja greška — ostatak partije je '
-              'otključan, prođite kroz njega trakom.'
-          : '$verdict Partija se nastavlja onako kako je odigrana.';
+      if (!last) {
+        _feedback = '$verdict Partija se nastavlja onako kako je odigrana.';
+      } else if (movesLeft <= 0) {
+        _feedback = '$verdict To je bila poslednja greška i poslednji potez — '
+            'kraj partije.';
+      } else {
+        _feedback = '$verdict To je bila poslednja greška — ostatak partije je '
+            'otključan, prođite kroz njega trakom.';
+      }
     });
     // The wall has moved, so the line the strip walks is longer now.
     _rebuildLine();
@@ -338,7 +417,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
                             walk.cursor == walk.pending!.ply,
                         isDrawingMode: false,
                         drawingStartSquare: null,
-                        arrows: const [],
+                        arrows: _arrows,
                         engineArrows: const [],
                         onMove: _onMove,
                         onSquareTapForDrawing: (_) {},

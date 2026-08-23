@@ -7,6 +7,7 @@ class GameBlunder {
     required this.fen,
     required this.side,
     required this.played,
+    required this.playedUci,
     required this.shouldPlay,
     required this.shouldPlayUci,
     required this.outcomeBefore,
@@ -26,6 +27,10 @@ class GameBlunder {
   final String side;
 
   final String played;
+
+  /// The same move in coordinates, which is what an arrow on the board needs.
+  final String playedUci;
+
   final List<String> shouldPlay;
   final List<String> shouldPlayUci;
 
@@ -50,6 +55,7 @@ class GameBlunder {
       fen: json['fen']?.toString() ?? '',
       side: json['side']?.toString() ?? 'white',
       played: json['played']?.toString() ?? '',
+      playedUci: json['played_uci']?.toString() ?? '',
       shouldPlay: list('should_play'),
       shouldPlayUci: list('should_play_uci'),
       outcomeBefore: json['outcome_before']?.toString() ?? 'win',

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/features/endgame_trainer/screens/blunder_walk_screen.dart';
 import 'package:chess_app/features/endgame_trainer/services/endgame_api_service.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 /// Serves one game without a network.
 class _FakeApi extends EndgameApiService {
@@ -39,6 +40,7 @@ BlunderGame game() => BlunderGame.fromJson({
           'fen': '8/8/k1K5/P6R/8/5r2/7P/8 b - - 1 59',
           'side': 'black',
           'played': 'Rd3',
+          'played_uci': 'f3d3',
           'should_play': ['Rb3', 'Rf2'],
           'should_play_uci': ['f3b3', 'f3f2'],
           'outcome_before': 'draw',
@@ -50,6 +52,7 @@ BlunderGame game() => BlunderGame.fromJson({
           'fen': '8/8/k1K5/P6R/8/3r4/7P/8 w - - 2 60',
           'side': 'white',
           'played': 'h4',
+          'played_uci': 'h2h4',
           'should_play': ['Kc5'],
           'should_play_uci': ['c6c5'],
           'outcome_before': 'win',
@@ -88,6 +91,31 @@ void main() {
         findsOneWidget);
     expect(find.textContaining('Seger, Ruediger (2416)'), findsOneWidget);
     expect(find.text('Greške: 0/2'), findsOneWidget);
+  });
+
+  testWidgets('the mistake is drawn on the board, and takes itself off again',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(wrap(screen()));
+    await tester.pumpAndSettle();
+
+    ChessBoardWithOverlay board() => tester
+        .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
+
+    // Rd3 is the move that lost the draw, so the arrow runs f3 to d3. Saying
+    // "White played Rd3" is a sentence to decode; this is the same thing
+    // already decoded.
+    expect(board().arrows, hasLength(1));
+    expect(board().arrows.single.from, 'f3');
+    expect(board().arrows.single.to, 'd3');
+
+    // And it goes away on its own, before the reader starts trying moves on
+    // the squares it is drawn over.
+    await tester.pump(const Duration(seconds: 5));
+    expect(board().arrows, isEmpty);
   });
 
   testWidgets('the strip cannot walk past an unanswered mistake',
