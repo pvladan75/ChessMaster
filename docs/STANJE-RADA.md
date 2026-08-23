@@ -2530,6 +2530,28 @@ je izgubljeno („ispustio dobitak", „izgubio remi"), a to je tvrdnja o pozici
 pre poteza. Razlika je bitna — reći šta je bilo je činjenica iz rudarenja, reći
 šta je sada je tvrdnja koja mora doći iz tablica.
 
+### „Nazad na zadatak" sada zaista vraća na zadatak
+
+Prijavljeno 23.8.2026, treći put isti oblik: našao potez, ušao u „Odigraj do
+kraja", pogrešio, vratio potez, pritisnuo „Nazad na zadatak" — i **nije mogao da
+igra**. Tabla je bila zatvorena s razlogom (pozicija je rešena), a izlaz je bio
+dugme „Nađi i ostale (1/3)" koje korisnik nije imao razloga da traži. Njegovim
+rečima: „izgleda kao bag, a nije".
+
+Dva odgovora, oba mala:
+
+- **Dugme radi ono što piše.** Ako je rešeno a ima još poteza koji drže, izlazak
+  iz vežbe sam nastavlja traženje — isto kao da je „Nađi i ostale" pritisnuto.
+  Nerešena pozicija se ne dira: izlazak bez odgovora vraća običan zadatak, ne
+  „nađite još jedan".
+- **Zatvorena tabla to i kaže.** Naslov više ne glasi „Beli na potezu —
+  zadržite dobitak" nad tablom koja ne prima potez, nego „Rešeno — dobitak je
+  zadržan", a ispod stoji šta otvara poziciju. Broj preostalih poteza ide kroz
+  istu rečenicu koju koristi presuda, pa se padeži slažu bez drugog pravila.
+
+Za sve tri prijave važi isto: tabla je bila u pravu i ćutala je. Kad se negde
+uvodi stanje u kojem se ne igra, ono mora da se predstavi.
+
 ### Govor prekida samo korisnik
 
 Traženo 23.8.2026: rečenica koja je počela **čuje se do kraja**. Ništa što

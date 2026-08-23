@@ -396,6 +396,16 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   void _stopDrill() {
     final puzzle = _solve?.puzzle;
     if (puzzle == null) return;
+    // The button says "back to the task", and the task is not finished while
+    // moves are still unfound - one of three, in the report this came from. So
+    // it goes back to the task, not to a closed board with a button that has to
+    // be discovered: coming out of the drill resumes the hunt on its own.
+    // Solved *and* with moves left, which is the same condition the "Nađi i
+    // ostale" button appears under. Unsolved is not unfinished in this sense -
+    // leaving the drill without having answered goes back to the plain task,
+    // not to "find another one".
+    final unfinished = _solve?.status == EndgameSolveStatus.solved &&
+        _missing(puzzle).isNotEmpty;
     setState(() {
       _drilling = false;
       _punishing = false;
@@ -408,6 +418,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _orientation = puzzle.whiteToMove ? PlayerColor.white : PlayerColor.black;
     });
     _boardController.loadFen(puzzle.fen);
+    if (unfinished) _huntForTheRest();
   }
 
   /// One move of the drill: played, sent, and judged by the server.
@@ -748,6 +759,15 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
               ? 'Igrate do kraja — držite remi'
               : 'Igrate do kraja — odigrajte dobitak');
     }
+    // A solved position still said "Beli na potezu — zadržite dobitak", which
+    // is an instruction to play on a board that will not answer. Coming back
+    // from the drill lands exactly there, and it reads as a frozen board.
+    final solve = _solve;
+    if (solve != null && solve.isComplete) {
+      return puzzle.mode == EndgameMode.draw
+          ? 'Rešeno — remi je održan'
+          : 'Rešeno — dobitak je zadržan';
+    }
     return puzzle.mode == EndgameMode.draw
         ? '$onMove na potezu — održite remi'
         : '$onMove na potezu — zadržite dobitak';
@@ -763,7 +783,21 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// so it is only worth saying while there is a single question standing.
   String? _instructionText(EndgameSolveSession solve) {
     if (_drilling) return null;
-    if (solve.isComplete) return null;
+    // Solved means the board is closed, and saying nothing about that is how a
+    // deliberate lock reads as a broken one. Reported three times now, in three
+    // places; each time the board was right and silent. So it names the way
+    // out, and only the ways that are actually on the screen.
+    if (solve.isComplete) {
+      final left = _missing(solve.puzzle).length;
+      return left > 0
+          // The count goes through the same sentence the verdict uses, so the
+          // cases agree without a second rule to keep in step.
+          ? 'Tabla je zatvorena dok je pozicija rešena. ${movesLeftText(left)} '
+              '„Nađi i ostale" vraća položaj da ih potražite, a „Sledeća" nosi '
+              'novu poziciju.'
+          : 'Tabla je zatvorena dok je pozicija rešena. „Odigraj do kraja" '
+              'nastavlja ovu poziciju, a „Sledeća" nosi novu.';
+    }
     return solve.puzzle.mode == EndgameMode.draw
         ? 'Odigrajte na tabli potez koji drži remi.'
         : 'Odigrajte na tabli potez koji zadržava dobitak.';

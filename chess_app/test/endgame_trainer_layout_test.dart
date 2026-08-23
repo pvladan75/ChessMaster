@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/features/endgame_trainer/models/endgame_puzzle.dart';
 import 'package:chess_app/features/endgame_trainer/screens/endgame_trainer_screen.dart';
 import 'package:chess_app/features/endgame_trainer/services/endgame_api_service.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 /// Serves one position without a network.
 class _FakeEndgameApi extends EndgameApiService {
@@ -167,6 +169,75 @@ void main() {
     await tester.tap(find.text('Nazad na zadatak'));
     await tester.pumpAndSettle();
     expect(find.textContaining('održite remi'), findsOneWidget);
+  });
+
+  testWidgets('leaving the drill goes back to the task, hunt and all',
+      (tester) async {
+    // Reported from the desktop build: found the move, played it out, made a
+    // mistake, took it back, pressed "Nazad na zadatak" - and could not move.
+    // The board was right (the position is solved) and silent, and the way on
+    // was a button the reader had no reason to look for. So the button that
+    // says "back to the task" goes back to the task: one of two moves found is
+    // an unfinished task.
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      wrap(
+        EndgameTrainerScreen(
+          session: UserSession(
+              token: 't', id: 1, email: 'a@b', name: 'Test', role: 'korisnik'),
+          api: _FakeEndgameApi(
+            EndgameFetchResult(EndgameFetchOutcome.ok, worstCasePuzzle()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final board = find.byType(ChessBoardWithOverlay);
+    final widget = tester.widget<ChessBoardWithOverlay>(board);
+    final rect = tester.getRect(board);
+    final square = widget.boardSize / 8;
+    Offset at(String name) {
+      final file = name.codeUnitAt(0) - 'a'.codeUnitAt(0);
+      final rank = name.codeUnitAt(1) - '1'.codeUnitAt(0);
+      final col =
+          widget.boardOrientation == PlayerColor.black ? 7 - file : file;
+      final row =
+          widget.boardOrientation == PlayerColor.black ? rank : 7 - rank;
+      return rect.topLeft + Offset((col + 0.5) * square, (row + 0.5) * square);
+    }
+
+    // Rf1 holds the draw; Re1 also does, and stays unfound.
+    await tester.tapAt(at('a1'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(at('f1'));
+    await tester.pumpAndSettle();
+    // "Tačno" alone also matches the "Tačno iz tablica" chip, and the heading
+    // says "Rešeno — remi je održan" beside the verdict.
+    expect(find.textContaining('remi je održan'), findsWidgets);
+    // The button by its exact label: the panel's explanation names it too.
+    expect(find.text('Nađi i ostale (1/2)'), findsOneWidget);
+    expect(find.textContaining('Tabla je zatvorena'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Odigraj do kraja'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Nazad na zadatak'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nazad na zadatak'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<ChessBoardWithOverlay>(board).isAllowedToMove,
+      isTrue,
+      reason: 'zadatak nije gotov, pa tabla mora da prima potez',
+    );
+    expect(find.textContaining('nađite još jedan'), findsOneWidget);
   });
 
   testWidgets('a position too big for any tablebase is not offered as a drill',
