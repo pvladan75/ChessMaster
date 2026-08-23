@@ -30,6 +30,10 @@ abstract final class AppRoutes {
   /// route and its own screen.
   static const String blunderGames = '/endgames/greske';
 
+  /// Choosing which endings to practise, and at which level, before any board
+  /// is drawn. The mode rides on the query the same way as for [endgames].
+  static const String endgamePicker = '/endgames/izbor';
+
   /// Reading positions out of a trainer's own book and confirming them.
   static const String scan = '/scan';
 

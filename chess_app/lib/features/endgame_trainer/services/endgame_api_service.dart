@@ -5,10 +5,12 @@ import 'package:http/http.dart' as http;
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/services/app_logger.dart';
 import '../models/blunder_game.dart';
+import '../models/endgame_catalog.dart';
 import '../models/drill_step.dart';
 import '../models/endgame_puzzle.dart';
 
 export '../models/blunder_game.dart';
+export '../models/endgame_catalog.dart';
 export '../models/drill_step.dart';
 
 /// Why the request came back empty.
@@ -81,6 +83,9 @@ class EndgameApiService {
     int? maxPieces,
     int? minPawns,
     String? excludeId,
+    String? material,
+    String? band,
+    bool oppositeOnly = false,
   }) async {
     final uri = Uri.parse('$backendUrl/api/puzzles/endgame/next').replace(
       queryParameters: {
@@ -91,6 +96,11 @@ class EndgameApiService {
         if (maxPieces != null) 'maxPieces': '$maxPieces',
         if (minPawns != null) 'minPawns': '$minPawns',
         if (excludeId != null && excludeId.isNotEmpty) 'excludeId': excludeId,
+        // Absent means "any", so a full selection sends nothing rather than a
+        // list of every key there is.
+        if (material != null && material.isNotEmpty) 'material': material,
+        if (band != null && band.isNotEmpty) 'band': band,
+        if (oppositeOnly) 'oppositeBishops': 'true',
       },
     );
 
@@ -127,6 +137,32 @@ class EndgameApiService {
     } catch (e) {
       AppLogger.log('[Zavrsnice] Greška pri dobavljanju: $e');
       return const EndgameFetchResult(EndgameFetchOutcome.unavailable);
+    }
+  }
+
+  /// What there is to practise, counted.
+  ///
+  /// One request per visit to the picker: the counts come split by rating band,
+  /// so every combination of endings and levels is added up on the device
+  /// rather than asked for.
+  Future<EndgameCatalog?> fetchCatalog({EndgameMode? mode}) async {
+    final uri = Uri.parse('$backendUrl/api/puzzles/endgame/catalog').replace(
+      queryParameters: {if (mode != null) 'mode': mode.name},
+    );
+
+    try {
+      final res = await http
+          .get(uri, headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (res.statusCode != 200) {
+        AppLogger.log('[Zavrsnice] Spisak nije stigao (${res.statusCode}).');
+        return null;
+      }
+      return EndgameCatalog.fromJson(
+          jsonDecode(res.body) as Map<String, dynamic>);
+    } catch (e) {
+      AppLogger.log('[Zavrsnice] Greška pri dobavljanju spiska: $e');
+      return null;
     }
   }
 

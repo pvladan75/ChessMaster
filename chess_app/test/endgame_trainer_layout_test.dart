@@ -20,6 +20,9 @@ class _FakeEndgameApi extends EndgameApiService {
     int? maxPieces,
     int? minPawns,
     String? excludeId,
+    String? material,
+    String? band,
+    bool oppositeOnly = false,
   }) async =>
       result;
 }

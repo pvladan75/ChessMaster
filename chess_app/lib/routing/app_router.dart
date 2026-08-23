@@ -12,6 +12,7 @@ import 'package:chess_app/screens/replay_player_screen.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/features/endgame_trainer/models/endgame_puzzle.dart';
 import 'package:chess_app/features/endgame_trainer/screens/blunder_walk_screen.dart';
+import 'package:chess_app/features/endgame_trainer/screens/endgame_picker_screen.dart';
 import 'package:chess_app/features/endgame_trainer/screens/endgame_trainer_screen.dart';
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
@@ -79,12 +80,43 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.endgames,
-      builder: (context, state) => EndgameTrainerScreen(
-        session: SessionService.instance.current,
-        mode: state.uri.queryParameters['mode'] == 'draw'
+      builder: (context, state) {
+        final query = state.uri.queryParameters;
+        return EndgameTrainerScreen(
+          session: SessionService.instance.current,
+          mode: query['mode'] == 'draw' ? EndgameMode.draw : EndgameMode.win,
+          // Absent means "everything", which is what the picker sends when
+          // nothing was unticked.
+          material: query['material'],
+          band: query['band'],
+          oppositeOnly: query['oppositeBishops'] == 'true',
+        );
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.endgamePicker,
+      builder: (context, state) {
+        final mode = state.uri.queryParameters['mode'] == 'draw'
             ? EndgameMode.draw
-            : EndgameMode.win,
-      ),
+            : EndgameMode.win;
+        return EndgamePickerScreen(
+          session: SessionService.instance.current,
+          mode: mode,
+          onStart: (choice) {
+            final params = <String, String>{'mode': mode.name};
+            // Already resolved by the picker, which is the only place that
+            // holds the catalog and so the only one that can tell a full
+            // selection from a partial one.
+            if (choice.materialsParam != null) {
+              params['material'] = choice.materialsParam!;
+            }
+            if (choice.bandId != null) params['band'] = choice.bandId!;
+            if (choice.oppositeOnly) params['oppositeBishops'] = 'true';
+            final query = Uri(queryParameters: params).query;
+            context.pushReplacement('${AppRoutes.endgames}?$query');
+          },
+        );
+      },
     ),
     GoRoute(
       path: AppRoutes.blunderGames,

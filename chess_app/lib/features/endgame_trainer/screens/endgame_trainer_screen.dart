@@ -40,6 +40,9 @@ class EndgameTrainerScreen extends StatefulWidget {
     this.mode,
     this.maxPieces,
     this.minPawns,
+    this.material,
+    this.band,
+    this.oppositeOnly = false,
     this.api,
   });
 
@@ -54,6 +57,13 @@ class EndgameTrainerScreen extends StatefulWidget {
 
   final int? maxPieces;
   final int? minPawns;
+
+  /// What the picker chose: a comma-separated list of material keys, a rating
+  /// band, and whether to keep only opposite-bishop positions. All null means
+  /// everything, which is what the two quick-start buttons send.
+  final String? material;
+  final String? band;
+  final bool oppositeOnly;
 
   /// Injected in tests. A widget test has no server, and the layout is exactly
   /// what needs testing here: a release build paints no overflow warning, so a
@@ -145,6 +155,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       mode: widget.mode,
       maxPieces: widget.maxPieces,
       minPawns: widget.minPawns,
+      material: widget.material,
+      band: widget.band,
+      oppositeOnly: widget.oppositeOnly,
       excludeId: _solve?.puzzle.id,
     );
     if (!mounted) return;

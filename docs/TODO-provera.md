@@ -120,6 +120,23 @@ do sledeće greške.
       poteza posle poslednje greške, a najduža sto pedeset pet.
 - [ ] Na 360 dp ništa ne izlazi iz ekrana.
 
+## 0g. Izbor završnica i nivoa — napisano 23.8.2026, nije viđeno uživo
+
+AI Studio → „Dobij" ili „Održi remi" sada prvo otvara izbor, pa tek onda tablu.
+
+- [ ] Otvara se sa **svim uključenim**, i „Počni" odmah radi kao ranije.
+- [ ] Prva porodica je otvorena, ostale sklopljene; strelica ih otvara.
+- [ ] Kvačica na porodici pali i gasi sve njene vrste; kad je deo izabran,
+      kvačica je na crtici.
+- [ ] Broj u dnu se menja **odmah** i tačan je — bez novog zahteva serveru.
+- [ ] Izbor nivoa menja i broj u dnu i brojeve uz svaku vrstu.
+- [ ] Kad se sve isključi, „Počni" je ugašen i piše da ništa ne odgovara.
+- [ ] „Počni" sa sve uključenim daje isto ponašanje kao pre ovog ekrana.
+- [ ] „Počni" sa uskim izborom (npr. samo `KRPvKR`) stvarno servira samo te
+      pozicije — proveriti čip sa tipom na nekoliko uzastopnih.
+- [ ] Prekidač „samo raznobojni lovci" se vidi (u zbirci ih je 43) i radi.
+- [ ] Na 360 dp lista i donja traka staju bez prelivanja.
+
 ## 0f. Panel sa obaveštenjima — ✅ prošlo na desktopu 23.8.2026
 Korisnik je 23.8.2026. prošao obe tačke na Windows verziji i sve navedeno radi,
 uključujući i ono što je ispravljeno u tri kruga istog dana. **Na telefonu nije

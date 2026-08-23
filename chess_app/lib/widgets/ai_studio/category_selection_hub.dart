@@ -169,7 +169,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
                       const Text(
                         'Pozicije izdvojene iz partija velemajstora. Za završnice '
                         'sa malo figura ishod je tačan, ne procenjen — priznaje se '
-                        'svaki potez koji drži rezultat, a ne samo jedan.',
+                        'svaki potez koji drži rezultat, a ne samo jedan. Pre '
+                        'početka birate koje završnice i koji nivo.',
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       const SizedBox(height: 16),

@@ -185,7 +185,7 @@ router.get('/puzzles/endgame/catalog', authenticateToken, async (req, res) => {
 router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
   const {
     type, mode, difficulty, maxPieces, minPawns, excludeId, material,
-    minElo, maxElo, oppositeBishops,
+    minElo, maxElo, oppositeBishops, band,
   } = req.query;
 
   const where = [];
@@ -218,6 +218,20 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
   // pitched at a level means the level somebody actually failed at.
   if (minElo) add('blunder_elo >= $?', parseInt(minElo, 10));
   if (maxElo) add('blunder_elo <= $?', parseInt(maxElo, 10));
+  // The picker sends a band id rather than two numbers, because one of the
+  // bands is "no rating at all" and that is not a range. Written out rather
+  // than pushed through `add`, which places one parameter and this needs two.
+  if (band && band !== 'all') {
+    const chosen = ELO_BANDS.find((b) => b.id === band);
+    if (chosen && chosen.min === null) {
+      where.push('blunder_elo IS NULL');
+    } else if (chosen) {
+      params.push(chosen.min, chosen.max);
+      where.push(
+        `blunder_elo BETWEEN $${params.length - 1} AND $${params.length}`
+      );
+    }
+  }
   if (oppositeBishops === 'true') where.push('opposite_bishops IS TRUE');
   if (mode && mode !== 'all') add('mode = $?', mode);
   if (difficulty && difficulty !== 'all') add('difficulty = $?', difficulty);
