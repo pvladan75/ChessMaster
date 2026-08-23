@@ -34,6 +34,9 @@ class SpeechVocabulary {
 
   /// How a file is said. Spoken as the name of the letter, not the letter:
   /// `d3` is "de tri", and a voice given "d 3" says something else.
+  ///
+  /// These are instructions to a voice, not spelling, and one of them looks
+  /// wrong on paper for that reason. See the table below.
   final Map<String, String> files;
 
   /// How a rank is said, as a word rather than a digit.
@@ -71,7 +74,14 @@ const serbianSpeech = SpeechVocabulary(
     'd': 'de',
     'e': 'e',
     'f': 'ef',
-    'g': 'ge',
+    // Not "ge", which is what it is called and what was here first: Microsoft
+    // Matej, the Croatian voice, reads that two-letter token by an English
+    // letter name, so the g-file came out closer to "dž" than to the g in
+    // "gitara". "gje" is not how anyone spells it - it is what makes this voice
+    // put a hard g in front of the e, chosen by ear against five other
+    // spellings. A different voice may need a different one, which is why the
+    // table is a table.
+    'g': 'gje',
     'h': 'ha',
   },
   ranks: {

@@ -87,7 +87,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// three. If the files come out sounding English, the voice chosen is an
   /// English one - which the list says, and which this makes audible.
   static const _speechSample =
-      'Linije se čitaju ovako: a, be, ce, de, e, ef, ge, ha. '
+      'Linije se čitaju ovako: a, be, ce, de, e, ef, gje, ha. '
       'Greška je napravljena u 8. potezu, posle Rd8.';
 
   Widget _speechCard(BuildContext context) {

@@ -133,6 +133,7 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
       izgovara — **bez restarta aplikacije**, samo ulaskom u Podešavanja ili
       dugmetom „Potraži glasove ponovo".
 - [ ] „Probaj" pročita `Rd3` kao „top de tri", a `Kf2` kao „kralj ef dva".
+- [ ] Linija `g` se čuje kao g u „gitara" (zapis `gje`), a ne kao englesko „dž".
 - [ ] U treneru završnica se presuda čuje čim se pojavi u panelu.
 - [ ] Nova presuda prekida prethodnu, ne čeka je da se dovrši.
 - [ ] Ista poruka se ne ponavlja kad se prozor promeni ili panel prerisuje.

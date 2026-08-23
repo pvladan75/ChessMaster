@@ -32,7 +32,7 @@ void main() {
     });
 
     test('check and mate are said, not spelled', () {
-      expect(speakable('Qg3+'), 'dama ge tri, šah');
+      expect(speakable('Qg3+'), 'dama gje tri, šah');
       expect(speakable('Qf1#'), 'dama ef jedan, mat');
     });
 
@@ -66,7 +66,7 @@ void main() {
     test('several moves in one sentence all get read', () {
       expect(
         speakable('Držalo je: Qc8+, Qf3 i Qg3+.'),
-        'Držalo je: dama ce osam, šah, dama ef tri i dama ge tri, šah.',
+        'Držalo je: dama ce osam, šah, dama ef tri i dama gje tri, šah.',
       );
     });
 
@@ -93,6 +93,15 @@ void main() {
     test('the newlines a panel wraps at are one pause, not several', () {
       expect(speakable('Prvi red\n  drugi red'), 'Prvi red drugi red');
     });
+  });
+
+  test('a file is spelled for the voice, not for the page', () {
+    // "ge" is what the g-file is called, and the Croatian voice reads that
+    // token by an English letter name - closer to "dž" than to the g in
+    // "gitara". The spelling here is chosen by ear, against five others, and it
+    // is an instruction rather than orthography.
+    expect(speakable('g4'), 'gje četiri');
+    expect(speakable('Rg7'), 'top gje sedam');
   });
 
   group('the full stop that turns a number into an ordinal', () {

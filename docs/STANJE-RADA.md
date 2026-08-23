@@ -2465,6 +2465,23 @@ ide ostatak rečenice malim slovom, a nova rečenica počinje velikim. Zato tač
 pada samo na kraju teksta ili pred velikim slovom. Potezi ovo pravilo ne dotiču,
 jer im je rang do tada već reč.
 
+### Zapis linija je uputstvo glasu, ne pravopis
+
+Linija `g` se čula kao englesko „džej", a ne kao g u „gitara". Glas nije bio
+kriv i nije bio engleski — u podešavanjima ništa nije bilo upisano pod
+`app_speech_language`, pa je važio automatski izbor i aktivan je bio **hr-HR,
+Microsoft Matej**. On dvoslovni zapis „ge" čita po engleskom imenu slova.
+
+Rešeno uhom, ne pretpostavkom: sonda je izgovorila šest kandidata sa brojevima,
+korisnik je izabrao, pa je uža proba ponovila dva najbliža. Pobedilo je **`gje`**
+— zapis koji na papiru izgleda pogrešno, jer i nije pravopis nego uputstvo tom
+glasu. Zato tabela u `speech_text.dart` i postoji kao tabela: drugi glas može
+tražiti drugačiji zapis, a ostale linije (`be`, `ce`, `de`, `ef`, `ha`) su
+prošle kako jesu.
+
+Postupak vredi ponoviti kad se javi sledeća: kandidati sa brojevima, korisnik
+kaže broj. Ništa od toga se ne vidi iz koda niti se može čuti sa moje strane.
+
 ### Govor prekida samo korisnik
 
 Traženo 23.8.2026: rečenica koja je počela **čuje se do kraja**. Ništa što
