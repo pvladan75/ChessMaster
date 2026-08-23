@@ -26,7 +26,13 @@ class FlutterTtsEngine implements TtsEngine {
     // the app has no way to know when the sentence actually ended. With it,
     // the future completes when the voice stops - which is what lets the board
     // wait for it.
-    _tts.awaitSpeakCompletion(true);
+    //
+    // Unawaited, so a platform that rejects it would throw where nothing is
+    // listening and take the app down. Caught here instead: the wait then has
+    // only its deadline to fall back on, which is what the deadline is for.
+    _tts.awaitSpeakCompletion(true).catchError((Object e) {
+      AppLogger.log('[Govor] Čekanje na kraj izgovora nije podržano: $e');
+    });
   }
 
   final FlutterTts _tts;
@@ -182,11 +188,14 @@ class SpeechService extends ChangeNotifier {
     String? preferred,
     TtsEngine? engine,
   }) async {
-    _engine = engine ?? _engine ?? FlutterTtsEngine();
     _enabled = enabled;
     _rate = rate;
 
     try {
+      // Built inside the guard, not before it. Creating the plugin object is
+      // itself a call into the platform, and a machine without speech at all
+      // is a machine where that is where it fails.
+      _engine = engine ?? _engine ?? FlutterTtsEngine();
       _available = await _engine!.languages();
     } catch (e) {
       // A missing engine is a fact about the machine, not a crash: Android
@@ -211,8 +220,9 @@ class SpeechService extends ChangeNotifier {
       return;
     }
 
-    await _apply();
-    _state = _enabled ? SpeechState.ready : SpeechState.off;
+    if (await _apply()) {
+      _state = _enabled ? SpeechState.ready : SpeechState.off;
+    }
     notifyListeners();
   }
 
@@ -229,12 +239,30 @@ class SpeechService extends ChangeNotifier {
         preferred: _language,
       );
 
-  Future<void> _apply() async {
+  /// Hands the choice to the engine, and survives the engine refusing it.
+  ///
+  /// A listed language is not an installed voice. Windows answers `getLanguages`
+  /// from the languages the system knows about, so Croatian is offered on a
+  /// machine that has no Croatian voice at all - and setting it there throws,
+  /// out of an async call nobody was awaiting, which took the whole app down on
+  /// the way into settings.
+  ///
+  /// So the failure is caught and turned into the state that already exists for
+  /// it: listed but unusable is the same thing to the reader as not there, and
+  /// the panel already knows how to say "install a voice".
+  Future<bool> _apply() async {
     final engine = _engine;
     final language = _language;
-    if (engine == null || language == null) return;
-    await engine.setLanguage(language);
-    await engine.setSpeechRate(_rate);
+    if (engine == null || language == null) return false;
+    try {
+      await engine.setLanguage(language);
+      await engine.setSpeechRate(_rate);
+      return true;
+    } catch (e) {
+      AppLogger.log('[Govor] Glas "$language" nije upotrebljiv: $e');
+      _state = SpeechState.noVoice;
+      return false;
+    }
   }
 
   Future<void> setEnabled(bool value) async {
@@ -249,6 +277,8 @@ class SpeechService extends ChangeNotifier {
   Future<void> setLanguage(String language) async {
     _language = language;
     _lastSpoken = '';
+    // Hopeful, then corrected: a voice that turns out not to be installed puts
+    // the state back to noVoice from inside _apply.
     if (_state == SpeechState.noVoice) {
       _state = _enabled ? SpeechState.ready : SpeechState.off;
     }

@@ -2236,6 +2236,15 @@ platforma na kojoj panel ide ispod table.
 **Ostatak OTB baze** je mašinsko vreme: prošlo je 663.000 od 9,7 miliona
 partija, uz poznat prinos od 9,3 partije sa greškom na 1000.
 
+**Majstorske baze su gotove — 798 partija, 1.031 pozicija.** Svih 43 baze
+pojedinačnih igrača su prošle 23.8.2026. Uvezeno je 818 pozicija i 626 partija.
+One **ne stoje odvojeno od OTB-a**: partija odigrana za tablom je partija
+odigrana za tablom, ko god je igrao.
+
+Stanje posle svega: **15.100 pozicija** (13.501 iz grešaka) i **9.581 partija**.
+Od pozicija koje se stvarno serviraju (one sa rešenjem, 14.590): 10.057 za
+tablom, 4.533 online, a 1.053 rudarene nemaju izvor jer nisu iz partije.
+
 **„Lumbras Online" je uvezena — 3.463 partije, 4.537 pozicija.** Odluka je
 menjana istog dana i vredi zapisati oba koraka: dok je rudar još radio uvezen je
 samo OTB deo, a kad je prolaz završen korisnik je rekao da uđe i online.
@@ -2246,13 +2255,27 @@ rejting nije OTB rejting — ista brojka sada znači dve različite stvari u ist
 lestvici. Zbirka je time skoro udvostručena, pa je to prihvaćena cena, ne
 previd.
 
-**Uvezene pozicije se ne razlikuju po koloni.** `endgame_puzzles` pamti izvor
-kao `blunder` za sve, bez imena baze, pa se online deo ne može ni filtrirati ni
-obrisati upitom. Može se izvesti iz fajla, jer je `puzzle_id` izveden iz FEN-a:
-`eg_` + prvih 16 znakova SHA-1 od prva četiri polja FEN-a, a spisak pozicija
-stoji u `_blunder_puzzles/Blunders_online.json`. Ako se ikad ukaže potreba da se
-online isključi iz izbora, prvi korak je kolona sa imenom baze pri uvozu —
-`blunder_games` je već ima (`source_db`).
+**Online se od 23.8.2026. i razdvaja u aplikaciji.** Korisnik je tražio da
+majstorske partije idu zajedno sa OTB-om, a da online ide zasebno, pa pozicije
+sada pamte iz koje baze su došle:
+
+- `endgame_puzzles.source_db`, isto kao `blunder_games` odranije. Uvoz ga
+  upisuje, a `--fill-source` ga je dopisao na 13.537 redova koji su uvezeni pre
+  nego što je kolona postojala. Namerno zaseban prolaz umesto `--update`:
+  `--update` bi preko pozicija vratio i presude iz fajlova, pa bi pobrisao svako
+  ponovno suđenje.
+- Ruta izostavlja online osim ako se traži (`includeOnline=true`), i pozicije i
+  partije za šetnju.
+- U aplikaciji: prekidač „Uključi i online partije" u izboru završnica,
+  podrazumevano isključen, zapamćen na nivou aplikacije (šetnja se ne otvara
+  kroz taj ekran, a pita isto).
+
+**Zamka koja je ovde bila na korak.** Uslov je `IS DISTINCT FROM`, ne `<>`.
+Rudarene pozicije nemaju izvor, `source_db <> '...'` je za njih NULL, NULL nije
+TRUE — pa bi običan uslov nečujno izbacio 1.053 pozicije koje sa online bazom
+nemaju veze. Ime baze zna tačno jedan fajl
+(`services/endgameSources.js`), a test pada ako se pojavi drugi — isto kao kod
+`acceptedTrainersOf`.
 
 ## Govor: aplikacija čita svoje poruke — 23.8.2026
 
@@ -2356,6 +2379,30 @@ Spisak glasova se **označava, a ne filtrira**: uz one koji čitaju srpski piše
 „čita srpski", ali sme da se izabere bilo koji. Čuti kako engleski glas čita naš
 tekst je razumna radoznalost i korisna proba — samo nije za rad, jer notacija i
 dalje izlazi kao srpske reči („top de tri"), pročitane tuđom fonetikom.
+
+### Pad na Windows-u: glas koji je na spisku a nije instaliran
+
+Prijavljeno 23.8.2026: aplikacija je pucala pri **ulasku u Podešavanja**, ako je
+za govor bio izabran hrvatski kojeg na računaru nema.
+
+Uzrok je ono što `getLanguages` na Windows-u vraća — **jezike koje sistem
+poznaje, a ne glasove koji su instalirani**. Hrvatski je zato bio na spisku,
+mogao je da se izabere, a `setLanguage` je na njemu bacio izuzetak. Taj poziv
+nije bio u `try`, i to iz asinhronog toka koji niko ne čeka, pa je rušio ceo
+program.
+
+Popravljeno na tri mesta, sva tri istog oblika — greška sme da postoji, ali mora
+da postane stanje:
+
+- `setLanguage`/`setSpeechRate` su u `try`; kad glas ne radi, stanje postaje
+  „nema glasa" i panel već zna da kaže kako se dodaje.
+- Sam objekat sinteze se pravi unutar `try`, jer je i to poziv ka platformi.
+- `awaitSpeakCompletion` više ne visi nepraćen; ako platforma odbije, ostaje rok
+  iz dužine rečenice, koji za to i postoji.
+
+Uz to i jedna zamka Fluttera: `DropdownButton` čija `value` nije među `items`
+**ne pada na `hint` nego puca**. Sada se prosleđuje samo vrednost koja je na
+spisku.
 
 ### Jezik aplikacije je zasebno pitanje
 

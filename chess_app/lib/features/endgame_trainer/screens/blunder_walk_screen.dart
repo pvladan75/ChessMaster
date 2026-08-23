@@ -7,6 +7,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/move_tree.dart' show ChessArrow;
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
@@ -178,6 +179,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       maxElo: widget.maxElo,
       material: widget.material,
       excludeId: _walk?.game.id,
+      includeOnline: AppSettingsService.instance.endgameIncludeOnline,
     );
     if (!mounted) return;
 

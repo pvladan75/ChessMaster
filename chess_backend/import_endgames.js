@@ -10,6 +10,12 @@
 // Input: the JSON files written by puzzles/endgame_miner.py.
 //
 //   node import_endgames.js [--dir <folder>] [--dry-run] [--update]
+//                            [--fill-source]
+//
+// --fill-source is for one thing only: rows imported before source_db existed,
+// which is every blunder position up to 23.8.2026. It writes that one column
+// and only where it is empty, rather than re-importing with --update, which
+// would also push the files' verdicts back over any that were re-judged since.
 //
 // --update is for a re-judged file: puzzles/rejudge_endgames.py settles six
 // pieces from the local tables and seven through the Lichess API, and without
@@ -34,6 +40,11 @@ const JUDGED_COLUMNS = [
   'endgame_type', 'mode', 'side_to_move', 'winning_moves', 'solution',
   'solution_san', 'piece_count', 'pawn_count', 'source', 'wdl', 'dtz',
   'material', 'blunder_elo', 'played_move', 'opposite_bishops',
+  // Not a verdict, but it arrives with the file and the rows imported before
+  // this column existed have it empty. Leaving it out of the update set would
+  // mean a re-run that reports success and changes nothing - the exact shape
+  // this importer was rewritten to stop.
+  'source_db',
 ];
 
 // The miner scores 1..10. The old column is a three-value string and the app
@@ -89,6 +100,48 @@ function readPositions(dir) {
   return rows;
 }
 
+/// Writes source_db onto rows that predate the column, and nothing else.
+async function fillSource(rows, dryRun) {
+  const byDatabase = new Map();
+  for (const { item } of rows) {
+    if (!item.database) continue;
+    if (!byDatabase.has(item.database)) byDatabase.set(item.database, []);
+    byDatabase.get(item.database).push(puzzleId(item.fen));
+  }
+
+  await initDB();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    let filled = 0;
+    for (const [database, ids] of byDatabase) {
+      // Only where it is empty. A row that already names its base is not to be
+      // renamed by whichever file happens to be read last - the same position
+      // can sit in two bases, and the first one to claim it keeps it.
+      const result = await client.query(
+        `UPDATE endgame_puzzles SET source_db = $1
+          WHERE puzzle_id = ANY($2) AND source_db IS NULL`,
+        [database, ids]
+      );
+      console.log(`${database}: ${result.rowCount} od ${ids.length}`);
+      filled += result.rowCount;
+    }
+    if (dryRun) {
+      await client.query('ROLLBACK');
+      console.log('\n--- PROBNI PROLAZ, nista nije upisano ---');
+    } else {
+      await client.query('COMMIT');
+    }
+    console.log(`dopunjeno: ${filled}`);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+    await pool.end();
+  }
+}
+
 async function run() {
   const args = process.argv.slice(2);
   const dirFlag = args.indexOf('--dir');
@@ -97,6 +150,10 @@ async function run() {
   const update = args.includes('--update');
 
   const rows = readPositions(dir);
+  if (args.includes('--fill-source')) {
+    console.log(`Pronadjeno ${rows.length} pozicija u ${dir}`);
+    return fillSource(rows, dryRun);
+  }
   console.log(`Pronadjeno ${rows.length} pozicija u ${dir}`);
 
   await initDB();
@@ -149,6 +206,7 @@ async function run() {
         item.white || null,
         item.black || null,
         item.date || null,
+        item.database || null,
       ]);
     }
 
@@ -186,7 +244,7 @@ async function run() {
             endgame_type, mode, side_to_move, winning_moves, solution, solution_san,
             piece_count, pawn_count, source, wdl, dtz, material, blunder_elo, played_move,
             opposite_bishops,
-            game_white, game_black, game_date)
+            game_white, game_black, game_date, source_db)
          VALUES ${values.join(',')}
          ON CONFLICT (puzzle_id) WHERE puzzle_id IS NOT NULL ${conflict}
          RETURNING (xmax = 0) AS is_new`,

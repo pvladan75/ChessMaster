@@ -368,7 +368,14 @@ async function initDB() {
         -- it is read from the position at import. NULL where the question does
         -- not arise, which is most of the collection, so a filter can tell "no"
         -- from "not applicable".
-        ADD COLUMN IF NOT EXISTS opposite_bishops BOOLEAN;
+        ADD COLUMN IF NOT EXISTS opposite_bishops BOOLEAN,
+        -- Which base the position was mined out of, by file name, the same way
+        -- blunder_games records it. Over-the-board and the master bases are one
+        -- pool for teaching; the online base is kept apart, because difficulty
+        -- comes from the rating of whoever erred and an online rating is not an
+        -- over-the-board rating. NULL for everything the miner found rather
+        -- than took from a game, which is not online either.
+        ADD COLUMN IF NOT EXISTS source_db VARCHAR(80);
     `);
     // Without this the importer's ON CONFLICT DO NOTHING matches nothing and
     // silently does nothing - every re-run appended the whole file again. The

@@ -158,7 +158,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 8),
                   DropdownButton<String>(
                     isExpanded: true,
-                    value: speech.language,
+                    // Only a value the list actually holds. A DropdownButton
+                    // whose value is missing from its items does not fall back
+                    // to the hint - it asserts, and takes the screen with it.
+                    value: languages.contains(speech.language)
+                        ? speech.language
+                        : null,
                     hint: const Text('Izaberite glas'),
                     items: [
                       for (final language in languages)

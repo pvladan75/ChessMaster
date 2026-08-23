@@ -2,6 +2,7 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
@@ -160,6 +161,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       band: widget.band,
       oppositeOnly: widget.oppositeOnly,
       excludeId: _solve?.puzzle.id,
+      includeOnline: AppSettingsService.instance.endgameIncludeOnline,
     );
     if (!mounted) return;
 

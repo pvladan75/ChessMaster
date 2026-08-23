@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { pool } = require('../db');
+const { excludeOnlineClause } = require('../services/endgameSources');
 const { authenticateToken } = require('../middleware/auth');
 const { requireQuota, refundQuota } = require('../middleware/entitlements');
 const { ENT } = require('../services/entitlementService');
@@ -185,7 +186,7 @@ router.get('/puzzles/endgame/catalog', authenticateToken, async (req, res) => {
 router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
   const {
     type, mode, difficulty, maxPieces, minPawns, excludeId, material,
-    minElo, maxElo, oppositeBishops, band,
+    minElo, maxElo, oppositeBishops, band, includeOnline,
   } = req.query;
 
   const where = [];
@@ -202,6 +203,12 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
   // in front of a child with nothing to find and no way to be right, so only
   // rows that carry a solution are eligible.
   where.push("winning_moves <> '{}'");
+
+  // Online games are left out unless they are asked for. Over-the-board and the
+  // master bases are one pool; the online base is a different rating scale
+  // wearing the same numbers, and difficulty here is the rating of whoever got
+  // it wrong. Opting in is a switch in the picker, not a hidden default.
+  if (includeOnline !== 'true') where.push(excludeOnlineClause());
 
   add('($? = \'\' OR puzzle_id IS DISTINCT FROM $?)', excludeId || '');
   if (type && type !== 'all') add('endgame_type = $?', type);
@@ -336,8 +343,10 @@ router.post('/puzzles/endgame/play', authenticateToken, drillLimiter, async (req
 // nothing, because a game handed over silently instead of the one asked for
 // teaches the caller to distrust the filters.
 router.get('/puzzles/endgame/game/next', authenticateToken, async (req, res) => {
-  const { minBlunders, maxBlunders, minElo, maxElo, material, excludeId } =
-    req.query;
+  const {
+    minBlunders, maxBlunders, minElo, maxElo, material, excludeId,
+    includeOnline,
+  } = req.query;
 
   const where = [];
   const params = [];
@@ -347,6 +356,10 @@ router.get('/puzzles/endgame/game/next', authenticateToken, async (req, res) => 
   };
 
   add('($? = \'\' OR game_id IS DISTINCT FROM $?)', excludeId || '');
+  // Same rule as the positions, and for the same reason: a walk through an
+  // online blitz game is a different exercise from a walk through a game
+  // played at a board.
+  if (includeOnline !== 'true') where.push(excludeOnlineClause());
   if (minBlunders) add('blunder_count >= $?', parseInt(minBlunders, 10));
   if (maxBlunders) add('blunder_count <= $?', parseInt(maxBlunders, 10));
   // min_elo is the weaker player, so a range on it is a statement about the

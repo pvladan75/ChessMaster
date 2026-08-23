@@ -143,6 +143,11 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
       „Postoji još 1 takav potez", „Postoji još 5 takvih poteza".
 - [ ] `e6.` na kraju rečenice se čuje kao „e šest", ne „e šesti".
 - [ ] Kazna kaže „Ovako se kažnjava potez Qxb2", sa potezom na kraju.
+- [ ] Izbor glasa koji nije stvarno instaliran **ne ruši aplikaciju** — ni pri
+      biranju, ni pri sledećem ulasku u Podešavanja; panel kaže da glasa nema.
+- [ ] Prekidač „Uključi i online partije" u izboru završnica: isključen daje
+      samo partije za tablom, uključen i online. Isto važi za šetnju kroz
+      partiju, koja se ne otvara kroz taj ekran.
 - [ ] U spisku glasova uz srpski/hrvatski piše „čita srpski", a strani glas
       sme da se izabere i tada čita naš tekst svojom fonetikom.
 - [ ] Tabla čeka da se rečenica dovrši pa tek onda odigra sledeći potez — i u

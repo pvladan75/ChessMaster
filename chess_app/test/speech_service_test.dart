@@ -37,6 +37,20 @@ class FakeTts implements TtsEngine {
   Future<void> stop() async => stops.add(spoken.length);
 }
 
+/// A synthesiser that lists a language it cannot actually speak.
+///
+/// This is Windows, not a hypothetical: `getLanguages` there answers from the
+/// languages the system knows about, so Croatian is offered on a machine with
+/// no Croatian voice installed, and setting it throws.
+class ListsMoreThanItHas extends FakeTts {
+  ListsMoreThanItHas(super.installed);
+
+  @override
+  Future<void> setLanguage(String value) async {
+    throw StateError('glas nije instaliran: $value');
+  }
+}
+
 /// A synthesiser that holds on to the sentence until the test lets go.
 ///
 /// The point of the wait is what happens *while* a sentence is being read, and
@@ -266,6 +280,42 @@ void main() {
       await service.stop();
       expect(service.isSpeaking, isFalse);
       tts.finish();
+    });
+  });
+
+  group('a voice that is listed but not installed', () {
+    test('does not throw out of startup', () async {
+      // The crash: choosing Croatian on a Windows machine that has no Croatian
+      // voice took the whole app down on the way into settings, because the
+      // engine threw out of an async call nobody was awaiting.
+      final tts = ListsMoreThanItHas(['hr-HR', 'en-US']);
+      final service = SpeechService.forTesting(tts);
+      await service.init(enabled: true, rate: 0.5, engine: tts);
+      expect(service.state, SpeechState.noVoice);
+    });
+
+    test('does not throw when it is chosen by hand', () async {
+      final tts = ListsMoreThanItHas(['hr-HR', 'en-US']);
+      final service = SpeechService.forTesting(tts);
+      await service.init(enabled: true, rate: 0.5, engine: tts);
+      await service.setLanguage('hr-HR');
+      expect(service.state, SpeechState.noVoice);
+    });
+
+    test('stays silent rather than half working', () async {
+      final tts = ListsMoreThanItHas(['hr-HR']);
+      final service = SpeechService.forTesting(tts);
+      await service.init(enabled: true, rate: 0.5, engine: tts);
+      await service.speak('Tačno.');
+      expect(tts.spoken, isEmpty);
+    });
+
+    test('the rate is set through the same guard', () async {
+      final tts = ListsMoreThanItHas(['hr-HR']);
+      final service = SpeechService.forTesting(tts);
+      await service.init(enabled: true, rate: 0.5, engine: tts);
+      await service.setRate(0.9);
+      expect(service.state, SpeechState.noVoice);
     });
   });
 

@@ -23,6 +23,7 @@ class _FakeEndgameApi extends EndgameApiService {
     String? material,
     String? band,
     bool oppositeOnly = false,
+    bool includeOnline = false,
   }) async =>
       result;
   @override

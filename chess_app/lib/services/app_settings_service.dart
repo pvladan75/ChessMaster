@@ -32,6 +32,15 @@ class AppSettingsService extends ChangeNotifier {
   double _speechRate = 0.5;
   String _speechLanguage = '';
 
+  /// Whether the endgame trainer also serves positions and games mined from
+  /// online play.
+  ///
+  /// Off by default, and that is the whole point of the setting. Over-the-board
+  /// games and the master bases are one pool; online is a different rating
+  /// scale wearing the same numbers, and difficulty in the trainer is the
+  /// rating of whoever got the position wrong.
+  bool _endgameIncludeOnline = false;
+
   /// Which opening database the Analysis Studio Opening Explorer panel
   /// queries: 'lichess' (real-game move popularity, needs an API token) or
   /// 'chessdb' (ChessDB.cn's shared engine analysis, no token needed).
@@ -45,6 +54,7 @@ class AppSettingsService extends ChangeNotifier {
   double get boardSizeScale => _boardSizeScale;
   String get lichessApiToken => _lichessApiToken;
   String get openingDbSource => _openingDbSource;
+  bool get endgameIncludeOnline => _endgameIncludeOnline;
   bool get speechEnabled => _speechEnabled;
   double get speechRate => _speechRate;
   String get speechLanguage => _speechLanguage;
@@ -82,6 +92,8 @@ class AppSettingsService extends ChangeNotifier {
     _manualCommentMode = prefs.getBool('app_manual_comment_mode') ?? false;
     _moveAnimationDurationMs =
         (prefs.getInt('app_move_animation_ms') ?? 200).clamp(0, 500);
+    _endgameIncludeOnline =
+        prefs.getBool('app_endgame_include_online') ?? false;
     _speechEnabled = prefs.getBool('app_speech_enabled') ?? false;
     _speechRate = (prefs.getDouble('app_speech_rate') ?? 0.5).clamp(0.2, 1.0);
     _speechLanguage = prefs.getString('app_speech_language') ?? '';
@@ -156,6 +168,13 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('app_move_animation_ms', _moveAnimationDurationMs);
+  }
+
+  Future<void> setEndgameIncludeOnline(bool include) async {
+    _endgameIncludeOnline = include;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('app_endgame_include_online', _endgameIncludeOnline);
   }
 
   Future<void> setSpeechEnabled(bool enabled) async {

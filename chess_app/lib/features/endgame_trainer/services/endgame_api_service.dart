@@ -86,6 +86,7 @@ class EndgameApiService {
     String? material,
     String? band,
     bool oppositeOnly = false,
+    bool includeOnline = false,
   }) async {
     final uri = Uri.parse('$backendUrl/api/puzzles/endgame/next').replace(
       queryParameters: {
@@ -101,6 +102,10 @@ class EndgameApiService {
         if (material != null && material.isNotEmpty) 'material': material,
         if (band != null && band.isNotEmpty) 'band': band,
         if (oppositeOnly) 'oppositeBishops': 'true',
+        // Sent only when asked for. Absent means over-the-board and the master
+        // bases, which is what the trainer serves unless somebody says
+        // otherwise.
+        if (includeOnline) 'includeOnline': 'true',
       },
     );
 
@@ -179,6 +184,7 @@ class EndgameApiService {
     int? maxElo,
     String? material,
     String? excludeId,
+    bool includeOnline = false,
   }) async {
     final uri = Uri.parse('$backendUrl/api/puzzles/endgame/game/next').replace(
       queryParameters: {
@@ -188,6 +194,7 @@ class EndgameApiService {
         if (maxElo != null) 'maxElo': '$maxElo',
         if (material != null && material.isNotEmpty) 'material': material,
         if (excludeId != null && excludeId.isNotEmpty) 'excludeId': excludeId,
+        if (includeOnline) 'includeOnline': 'true',
       },
     );
 

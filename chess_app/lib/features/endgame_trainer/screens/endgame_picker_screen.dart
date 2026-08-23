@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/core/services/serbian_plural.dart';
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 
@@ -154,6 +155,7 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
       children: [
         _buildLevels(catalog),
         if (catalog.oppositeBishops > 0) _buildOppositeSwitch(catalog),
+        _buildOnlineSwitch(),
         const SizedBox(height: 8),
         for (final family in catalog.families) _buildFamily(family),
       ],
@@ -189,6 +191,33 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
+    );
+  }
+
+  /// Whether online games join the over-the-board ones.
+  ///
+  /// Kept out by default rather than mixed in, because difficulty here is the
+  /// rating of the player who erred and an online rating is not an
+  /// over-the-board one. The master bases are not a third thing - a game played
+  /// at a board is a game played at a board, whoever played it.
+  ///
+  /// The choice is remembered app-wide rather than per visit: the walkthrough
+  /// asks the same question and is reached without passing through here.
+  Widget _buildOnlineSwitch() {
+    final settings = AppSettingsService.instance;
+    return AnimatedBuilder(
+      animation: settings,
+      builder: (context, _) => SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        value: settings.endgameIncludeOnline,
+        onChanged: settings.setEndgameIncludeOnline,
+        title: const Text('Uključi i online partije'),
+        subtitle: Text(
+          'Podrazumevano se vežba na partijama igranim za tablom. Online '
+          'partije su druga lestvica rejtinga, pa se dodaju samo namerno.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ),
     );
   }
 

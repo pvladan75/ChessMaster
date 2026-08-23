@@ -21,6 +21,7 @@ class _FakeApi extends EndgameApiService {
     int? maxElo,
     String? material,
     String? excludeId,
+    bool includeOnline = false,
   }) async =>
       result;
 
