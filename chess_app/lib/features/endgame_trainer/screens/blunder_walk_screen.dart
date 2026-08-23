@@ -174,6 +174,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       _loading = true;
       _error = null;
       _feedback = null;
+      _leaveRefutation();
     });
 
     final result = await _api.fetchNextGame(
@@ -250,6 +251,9 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     SpeechService.instance.stop();
     _clearMarks();
     setState(() {
+      // Reaching for the game is leaving the punishment, and "Na grešku" is
+      // offered while one is open.
+      _leaveRefutation();
       walk.seek(index);
       _feedback = null;
     });
@@ -363,11 +367,26 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   void _closeRefutation() {
     _stopPlayback();
     setState(() {
-      _refutation = null;
-      _refutationAt = 0;
+      _leaveRefutation();
       _feedback = null;
     });
     _showCurrent();
+  }
+
+  /// Forgets the punishment line, wherever we are leaving it from.
+  ///
+  /// Written once and called from all three exits, because the one that forgot
+  /// it locked the board: loading the next game reset the walk, the cursor, the
+  /// kept marks and the feedback, and left `_refutation` standing. The board is
+  /// only live while there is no punishment on it, so the new game opened
+  /// unplayable, with no move strip and a "Nazad na partiju" button belonging
+  /// to a position two games back.
+  ///
+  /// Call inside a setState.
+  void _leaveRefutation() {
+    _refutation = null;
+    _refutationAt = 0;
+    _fetchingRefutation = false;
   }
 
   /// Walks the game forward, one move at a time, as far as it is worth doing
@@ -603,6 +622,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   /// The heading is always something to do, never a description of where you
   /// happen to be standing.
   String _taskText(BlunderWalk walk) {
+    if (_refutation != null) return 'Kazna se odigrava sama';
     final here = walk.pending;
     if (here != null) {
       final who = here.side == 'white' ? 'Beli' : 'Crni';
@@ -620,6 +640,15 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   /// on the board, because "you are between two mistakes" is a fact and not an
   /// instruction.
   String? _hintText(BlunderWalk walk) {
+    // Reported from the desktop build, and the second time the same lesson has
+    // had to be learned here: the reader could not pick up a piece and thought
+    // the board had frozen. It had not - a punishment is being shown and there
+    // is nothing to play - but nothing on the screen said so, and a mode you
+    // are in without knowing it is indistinguishable from a bug.
+    if (_refutation != null) {
+      return 'Tabla se ovde ne igra — gledate kako se greška kažnjava. '
+          'Dugme „Nazad na partiju" vraća na šetnju.';
+    }
     final here = walk.pending;
     if (here != null) {
       return here.lostAWin

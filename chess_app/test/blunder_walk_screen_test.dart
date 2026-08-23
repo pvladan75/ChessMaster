@@ -263,6 +263,74 @@ void main() {
     expect(find.textContaining('Tačno'), findsOneWidget);
   });
 
+  testWidgets('the next game is not locked by the punishment left behind it',
+      (tester) async {
+    // Reported from the desktop build: after opening "Zašto je loše" and
+    // skipping to the next game, no piece could be picked up. Loading a game
+    // reset the walk, the cursor, the marks and the feedback - and left the
+    // punishment standing, which is exactly the flag the board's liveness is
+    // written against.
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(wrap(screen()));
+    await tester.pumpAndSettle();
+
+    final board = find.byType(ChessBoardWithOverlay);
+    final widget = tester.widget<ChessBoardWithOverlay>(board);
+    final rect = tester.getRect(board);
+    final square = widget.boardSize / 8;
+    Offset at(String name) {
+      final file = name.codeUnitAt(0) - 'a'.codeUnitAt(0);
+      final rank = name.codeUnitAt(1) - '1'.codeUnitAt(0);
+      final col =
+          widget.boardOrientation == PlayerColor.black ? 7 - file : file;
+      final row =
+          widget.boardOrientation == PlayerColor.black ? rank : 7 - rank;
+      return rect.topLeft + Offset((col + 0.5) * square, (row + 0.5) * square);
+    }
+
+    // Answer the first mistake, so the stop is behind the cursor and the
+    // punishment is on offer.
+    await tester.tapAt(at('f3'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(at('b3'));
+    await tester.pumpAndSettle();
+
+    // Step back onto the answered mistake.
+    final back = find.byIcon(Icons.chevron_left);
+    for (var i = 0; i < 6; i++) {
+      final button = tester.widget<IconButton>(
+          find.ancestor(of: back, matching: find.byType(IconButton)));
+      if (button.onPressed == null) break;
+      await tester.tap(back);
+      await tester.pumpAndSettle();
+      if (find.text('Zašto je loše').evaluate().isNotEmpty) break;
+    }
+
+    expect(find.text('Zašto je loše'), findsOneWidget,
+        reason: 'kazna se nudi tek kad je greška iza kursora');
+    await tester.tap(find.text('Zašto je loše'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nazad na partiju'), findsOneWidget);
+    // And it says so, rather than leaving a board that will not answer. Being
+    // in a mode without knowing it is indistinguishable from a bug.
+    expect(find.textContaining('Tabla se ovde ne igra'), findsOneWidget);
+
+    // Straight on to the next game, without closing the punishment first.
+    await tester.tap(find.text('Preskoči'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nazad na partiju'), findsNothing,
+        reason: 'kazna je ostala iz prethodne partije');
+    expect(
+      tester.widget<ChessBoardWithOverlay>(board).isAllowedToMove,
+      isTrue,
+      reason: 'tabla nove partije mora da prima potez',
+    );
+  });
+
   testWidgets('the strip cannot walk past an unanswered mistake',
       (tester) async {
     tester.view.physicalSize = const Size(360, 800);

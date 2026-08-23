@@ -145,6 +145,9 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
 - [ ] Kazna kaže „Ovako se kažnjava potez Qxb2", sa potezom na kraju.
 - [ ] Isključivanje govora u Podešavanjima **pre nego što je išta rečeno** ne
       ruši aplikaciju (ovo je bio pravi pad, `stop()` pre prvog `speak()`).
+- [ ] „Zašto je loše" pa „Preskoči": nova partija se igra normalno, bez
+      zaostalog dugmeta „Nazad na partiju".
+- [ ] Dok kazna traje panel piše da se tabla tu ne igra.
 - [ ] Rečenica se čuje do kraja: tabla ne odigra sledeći potez preko nje, i
       sledeća poruka je ne preseca nego sačeka.
 - [ ] Govor prestaje kad korisnik dodirne traku za kretanje, odigra potez, ili

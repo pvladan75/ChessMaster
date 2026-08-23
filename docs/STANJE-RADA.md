@@ -2414,6 +2414,45 @@ koštala je jedan krug: privremeni `-t lib/tts_probe.dart` koji zove korak po
 korak i štampa pre svakog poziva. Poslednja odštampana linija je poziv koji se
 nije vratio. Bez toga se iz „Lost connection to device" ne vidi ništa.
 
+### Kazna je preživela prelazak na sledeću partiju
+
+Prijavljeno 23.8.2026: „zaključala mi se tabla". Nije bio govor, iako je log te
+večeri bio pun grešaka iz `flutter_tts`-a — one su prave i zapisane su ispod,
+ali sa ovim nemaju veze.
+
+`_loadNext()` u šetnji je resetovao sve: šetnju, kursor, oznake, poruku,
+orijentaciju — **osim kazne**. A tabla je živa samo dok kazne nema. Nova partija
+se zato otvarala bez trake za kretanje, bez mogućnosti da se figura uzme, i sa
+dugmetom „Nazad na partiju" koje pripada poziciji dve partije unazad. Na slici
+je to bilo vidljivo: nova partija sa „Greške: 0/2", a kazna se nudi isključivo
+na **odgovorenoj** grešci.
+
+Sad postoji jedna metoda za izlazak iz kazne, i zovu je sva tri izlaza —
+zatvaranje, skok na grešku i učitavanje nove partije. Test pada bez popravke,
+provereno `git stash`-om.
+
+**I druga polovina istog nalaza:** korisnik je rekao „bio sam u modu u kom nije
+dozvoljeno pomeranje figura, a to nisam znao". Isti oblik kao ranija prijava o
+nemoj tabli — panel sada u kazni piše da se tabla tu ne igra i kako se izlazi.
+Mod u kojem si a da to ne znaš ne razlikuje se od kvara.
+
+### Šta `flutter_tts` radi pogrešno na Windows-u
+
+Zapisano jer je nađeno u logu i ostaje tačno, bez obzira što nije bilo uzrok
+zaključane table:
+
+```
+The 'flutter_tts' channel sent a message from native to Flutter on a
+non-platform thread.
+Error: Only one of Success, Error, or NotImplemented can be called ...
+Ignoring duplicate result.
+```
+
+Plugin odgovara dvaput na isti poziv i šalje sa pogrešne niti. Motor to sada
+odbaci umesto da padne, ali posledica je da `speak()` na Dart strani ume da
+nikad ne dobije odgovor. Zato zastavica „govori se" ne sme da zavisi samo od
+njega — rok izračunat iz dužine rečenice je jedino što je pouzdano.
+
 ### Govor prekida samo korisnik
 
 Traženo 23.8.2026: rečenica koja je počela **čuje se do kraja**. Ništa što
