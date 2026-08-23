@@ -91,7 +91,7 @@ radi. Iz te probe su ispale dve zamerke; obe su napravljene istog dana i
 - [ ] Na 360 dp koordinate ne smeju da prošire tablu preko ekrana — traka se
       uzima iz veličine koju ekran već daje, ne dodaje se na nju.
 
-## 0e. Šetnja kroz partiju — napisano 23.8.2026, nije viđeno uživo
+## 0e. Šetnja kroz partiju — ✅ prošlo na desktopu 23.8.2026
 
 AI Studio → „Greške iz partija". Otvara se na poziciji gde je partija prvi put
 pošla naopako; kad se nađe potez koji drži, partija se **na tabli** odigra dalje
@@ -120,7 +120,11 @@ do sledeće greške.
       poteza posle poslednje greške, a najduža sto pedeset pet.
 - [ ] Na 360 dp ništa ne izlazi iz ekrana.
 
-## 0f. Panel sa obaveštenjima — napisano 23.8.2026, nije viđeno uživo
+## 0f. Panel sa obaveštenjima — ✅ prošlo na desktopu 23.8.2026
+Korisnik je 23.8.2026. prošao obe tačke na Windows verziji i sve navedeno radi,
+uključujući i ono što je ispravljeno u tri kruga istog dana. **Na telefonu nije
+gledano** — a to je jedina platforma na kojoj panel ide ispod table i na kojoj
+se raspored može prelomiti, pa stavke sa 360 dp ostaju otvorene.
 
 Sve što ekran ima da kaže stoji u jednom bloku, na sva tri ekrana završnica:
 desno od table na širokom prozoru, ispod table na telefonu. Ranije je zadatak
