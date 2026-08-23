@@ -52,6 +52,17 @@ class EndgamePuzzle {
   final int? dtz;
   final EndgameGame? game;
 
+  /// The Syzygy table this position belongs to, normalised: 'KRPvKR'. A far
+  /// finer grouping than [type]'s seven mined categories, and the one a trainer
+  /// asking for "rook and pawn against rook" actually means.
+  final String? material;
+
+  /// When the position comes from a real mistake: how strong the player who
+  /// made it was, and what they played instead. Neither is a solution; together
+  /// they are what turns a diagram into something that happened to somebody.
+  final int? blunderElo;
+  final String? playedMove;
+
   const EndgamePuzzle({
     required this.id,
     required this.fen,
@@ -67,6 +78,9 @@ class EndgamePuzzle {
     this.difficultyScore,
     this.dtz,
     this.game,
+    this.material,
+    this.blunderElo,
+    this.playedMove,
   });
 
   bool get isPlayable => fen.isNotEmpty && winningMoves.isNotEmpty;
@@ -74,9 +88,11 @@ class EndgamePuzzle {
   /// Sources whose answer is a tablebase result rather than a search.
   ///
   /// 'lichess' is the same Syzygy data, asked over the network for positions
-  /// past what we hold locally. Leaving it out would have shown a position that
-  /// just became exact as an estimate, which is the wrong way round.
-  static const _exactSources = {'syzygy', 'lichess'};
+  /// past what we hold locally. 'blunder' is a position taken from a real game
+  /// where a player changed the result: the verdict and the moves that held it
+  /// are tablebase answers too. Leaving either out would show a position that
+  /// is exact as an estimate, which is the wrong way round.
+  static const _exactSources = {'syzygy', 'lichess', 'blunder'};
 
   /// True when the result is known exactly rather than estimated.
   bool get isExact => _exactSources.contains(source);
@@ -117,6 +133,9 @@ class EndgamePuzzle {
       difficulty: json['difficulty']?.toString() ?? 'medium',
       difficultyScore: (json['difficulty_score'] as num?)?.toInt(),
       dtz: (json['dtz'] as num?)?.toInt(),
+      material: json['material']?.toString(),
+      blunderElo: (json['blunder_elo'] as num?)?.toInt(),
+      playedMove: json['played_move']?.toString(),
       game: gameJson is Map<String, dynamic>
           ? EndgameGame.fromJson(gameJson)
           : null,

@@ -527,6 +527,18 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(task, style: Theme.of(context).textTheme.titleMedium),
+        // What actually happened here, when the position came from a real
+        // mistake. It gives away one move out of thirty-odd and buys the whole
+        // point of the position: somebody stood here and chose wrong.
+        if (!_drilling && puzzle.playedMove != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'U partiji je odigrano ${puzzle.playedMove} i '
+              '${puzzle.mode == EndgameMode.draw ? 'remi je izgubljen' : 'dobitak je ispušten'}.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
         const SizedBox(height: 6),
         // Wrap, not Row: these chips grow with the type name and the game
         // label, and a Row wider than the screen is silently clipped in a
@@ -537,6 +549,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           children: [
             _chip(kEndgameTypeNames[puzzle.type] ?? puzzle.type),
             _chip('Težina: ${_difficultyLabel(puzzle)}'),
+            if (puzzle.blunderElo != null)
+              _chip('Pogrešio: ${puzzle.blunderElo}'),
             if (puzzle.isExact) _chip('Tačno iz tablica'),
             if (_drilling && _drillMoves > 0) _chip('Odigrano: $_drillMoves'),
             if (!_drilling && _attempted > 0)
