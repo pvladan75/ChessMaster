@@ -2160,6 +2160,76 @@ ponovo, ali i dalje smatra korisnika prijavljenim, pa **mora prvo ručno da se
 odjavi**. Taj međukorak ne bi trebalo da postoji — kad backend kaže da je token
 istekao, sesija se čisti sama i vodi na ekran za prijavu.
 
+## Završnice: ceo krug urađen 23.8.2026
+
+Jedan dan, i lanac je zaokružen od tablica do ekrana. Redom, sa onim što se iz
+koda ne vidi:
+
+**Šestofiguraške tablice** su skinute (730 fajlova, 149,2 GB) i sve sume su
+proverene. Rudar ih koristi do šest figura; `--syzygy` prima više foldera
+razdvojenih `os.pathsep`, a na startu proba po jednu poziciju za svaki broj
+figura, da mašina bez tablica stane u prvoj sekundi umesto sat vremena unutra.
+
+**Cela zbirka je ponovo presuđena** iz tablica: 596 pozicija, 595 ishoda
+potvrđeno, jedan ispravljen. Motor je bio u pravu 595 puta od 596 — dizanje
+granice nije bila ispravka zatečene građe nego osiguranje buduće.
+
+**Detektor grešaka** (`puzzles/blunder_detector.py`) prošao je 663.000 OTB
+partija i našao 5.256 partija sa 9.811 grešaka. Od toga je 7.173 pozicije ušlo
+u trener, pa je zbirka sa 1.089 narasla na **8.262**.
+
+**Četiri ekrana rade sa tim**: rešavanje pozicije (dobitak / remi), igranje do
+kraja protiv tablično savršenog protivnika, kazna, i šetnja kroz partiju sa
+stajanjem na svakoj grešci. Sve provereno uživo na Windows-u istog dana, osim
+onoga u `TODO-provera.md` tačke 0e–0j.
+
+**Izbor šta se vežba**: 128 tipova završnica svrstano u sedam porodica pravilom
+iz samog ključa, sa srpskim imenima koja se takođe izvode. Ništa se ne održava
+rukom — nov tip iz sledećeg rudarenja sam se svrsta i sam dobije ime.
+
+**Objašnjenje „zašto"** ima četiri stepenika: ishod iz tablice, pravilo koje
+dele svi potezi koji drže (`holding_pattern.dart`, izmereno — 54% pozicija ga
+ima), kazna odigrana na tabli, i „Zapamti za kasnije" sa oznakom `Nejasno` kad
+ni to ne pomogne.
+
+### Greške koje su nas koštale u ovom krugu
+
+Sve su istog oblika kao one iz `CLAUDE.md` — tiho pogrešan rezultat, ne pad:
+
+- **Preneseni znak.** `get_wdl` uvek odgovara za stranu na potezu, pa posle
+  poteza već govori za sledećeg igrača i ne treba ga obrtati. Obrtanje je
+  izvrnulo svaki drugi polupotez, i prvi prolaz je javio da majstori u 77 od 80
+  slučajeva iz dobitka odu pravo u gubitak.
+- **Brojač pedeset poteza.** `probe_wdl` odgovara kao da je na nuli. Prva
+  pronađena greška bila je Lasker–Taraš 1908 na 95 poluposteza, gde je dobitak
+  postojao sa tačno pet na raspolaganju.
+- **DTZ se poredi preko granice nuliranja.** Isti oblik na dva mesta: u oceni
+  napretka i u izboru poteza. Drugo je pravilo „najmanji DTZ" pretvorilo u
+  beskonačno ponavljanje — dobitak se držao, partija se nije završavala.
+- **Jača strana nije prva u ključu.** `KPPvKR` je top protiv dva pešaka. Čitanje
+  belog kao naoružane strane bacilo je petinu zbirke u „Ostalo".
+- **Test očiglednosti nije reproducibilan** i **nije popravljen** — plitki motor
+  nosi transpozicionu tabelu iz pozicije u poziciju. Zapisano u `ZAVRSNICE.md`.
+
+### Otvoreno
+
+**Prijava koju nisam uspeo da reprodukujem.** Korisnik javlja da u šetnji, pošto
+prvi potez promaši, figura se podigne i vrati. Isključeno testovima: zastavica
+`isAllowedToMove`, klik-na-klik potez, prevučen potez, i sekvenca „pogrešan pa
+ispravan" — sve prolazi. Podaci takođe: svih 5.256 partija ima prvu grešku na
+potezu 0.
+
+Najverovatnije objašnjenje, još nepotvrđeno: kursor nije **na** grešci (korisnik
+se vratio strelicom ili je odigravanje stalo pre sledećeg stajanja), pa je tabla
+zaključana kako i treba, a ćutala je o tome. Poruka je dopunjena da to kaže.
+Ako se ponovi i kad poruka stoji, treba tražiti dalje.
+
+**Telefon nije viđen ni za jednu od šest tačaka** (0e–0j), a to je jedina
+platforma na kojoj panel ide ispod table.
+
+**Ostatak OTB baze** je mašinsko vreme: prošlo je 663.000 od 9,7 miliona
+partija, uz poznat prinos od 9,3 partije sa greškom na 1000.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,

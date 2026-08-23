@@ -610,8 +610,11 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     final next = walk.nextStop;
     if (next != null) {
       final away = next.ply - walk.cursor;
-      return 'Još $away ${_moveWord(away)} napred — strelicom ispod table ili '
-          'dugmetom „Na grešku".';
+      // And why the board does not answer here. A piece that lifts and falls
+      // back with nothing said reads as a broken board rather than as a locked
+      // one, which is how this got reported.
+      return 'Tabla se igra samo na grešci. Još $away ${_moveWord(away)} '
+          'napred — strelicom ispod table ili dugmetom „Na grešku".';
     }
     return walk.isFinished
         ? null

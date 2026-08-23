@@ -184,6 +184,84 @@ void main() {
     expect(find.textContaining('Tačno'), findsOneWidget);
   });
 
+  testWidgets('a wrong try does not lock the board against the right one',
+      (tester) async {
+    // Reported from the desktop build: after one wrong move the piece lifts and
+    // falls back, and the move that holds is refused too.
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(wrap(screen()));
+    await tester.pumpAndSettle();
+
+    final board = find.byType(ChessBoardWithOverlay);
+    final widget = tester.widget<ChessBoardWithOverlay>(board);
+    final rect = tester.getRect(board);
+    final square = widget.boardSize / 8;
+
+    Offset at(String name) {
+      final file = name.codeUnitAt(0) - 'a'.codeUnitAt(0);
+      final rank = name.codeUnitAt(1) - '1'.codeUnitAt(0);
+      final col =
+          widget.boardOrientation == PlayerColor.black ? 7 - file : file;
+      final row =
+          widget.boardOrientation == PlayerColor.black ? rank : 7 - rank;
+      return rect.topLeft + Offset((col + 0.5) * square, (row + 0.5) * square);
+    }
+
+    // Rf8 holds nothing here.
+    await tester.tapAt(at('f3'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(at('f8'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('ne drži remi'), findsOneWidget);
+
+    // And now the one that does.
+    await tester.tapAt(at('f3'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(at('b3'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Tačno'), findsOneWidget);
+  });
+
+  testWidgets('a dragged piece is judged the same as a tapped one',
+      (tester) async {
+    // Tap-to-move and drag take different paths through the board: one goes
+    // through the overlay's gesture detector, the other through the package's
+    // own draggable. Only one of them was ever covered.
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(wrap(screen()));
+    await tester.pumpAndSettle();
+
+    final board = find.byType(ChessBoardWithOverlay);
+    final widget = tester.widget<ChessBoardWithOverlay>(board);
+    final rect = tester.getRect(board);
+    final square = widget.boardSize / 8;
+
+    Offset at(String name) {
+      final file = name.codeUnitAt(0) - 'a'.codeUnitAt(0);
+      final rank = name.codeUnitAt(1) - '1'.codeUnitAt(0);
+      final col =
+          widget.boardOrientation == PlayerColor.black ? 7 - file : file;
+      final row =
+          widget.boardOrientation == PlayerColor.black ? rank : 7 - rank;
+      return rect.topLeft + Offset((col + 0.5) * square, (row + 0.5) * square);
+    }
+
+    final gesture = await tester.startGesture(at('f3'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await gesture.moveTo(at('b3'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Tačno'), findsOneWidget);
+  });
+
   testWidgets('the strip cannot walk past an unanswered mistake',
       (tester) async {
     tester.view.physicalSize = const Size(360, 800);
