@@ -134,6 +134,24 @@ class SpeechService extends ChangeNotifier {
     return Duration(milliseconds: ms > 20000 ? 20000 : ms);
   }
 
+  /// Whether anything has been spoken yet in this run of the app.
+  ///
+  /// Guards every stop, and the reason is a null pointer in the Windows half of
+  /// flutter_tts. Its stop() does this:
+  ///
+  ///     if (awaitSpeakCompletion) { speakResult->Success(1); }
+  ///
+  /// and `speakResult` is only ever set inside speak(). Stopping before
+  /// anything has been said dereferences a pointer that was never given a
+  /// value, and the process is gone - no Dart exception, no stack, nothing a
+  /// try/catch could hold. It was reproduced down to those two lines: a fresh
+  /// synthesiser, awaitSpeakCompletion(true), one stop(), and the app dies.
+  ///
+  /// Which is exactly what switching speech off did, since nothing had been
+  /// said yet, and what the first sentence of a session did too - the barge-in
+  /// stop runs before the speak it is making room for.
+  bool _spokeAtLeastOnce = false;
+
   /// What was said last, so the same sentence twice in a row is said once.
   ///
   /// The panel rebuilds for reasons that have nothing to do with its text - a
@@ -292,7 +310,21 @@ class SpeechService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// A sentence waiting for the current one to finish.
+  ///
+  /// One slot, not a queue: if two verdicts arrive while a third is being read,
+  /// the older of the two is already out of date and nobody wants to hear a
+  /// backlog. What must not happen is losing the newest, which is the one that
+  /// describes the board as it now stands.
+  String? _queued;
+
   /// Says a sentence the screen is showing.
+  ///
+  /// A sentence that has started is heard out. Nothing the app does on its own
+  /// cuts it off - not the next verdict, not the board playing a move - because
+  /// being interrupted mid-thought is how a spoken interface becomes noise.
+  /// Only the reader stops it: by moving through the game, by answering, or by
+  /// leaving. Those call [stop].
   ///
   /// [force] is for the settings screen's test button, which has to speak even
   /// though it is saying the same thing every time.
@@ -301,23 +333,36 @@ class SpeechService extends ChangeNotifier {
     final spoken = speakable(text);
     if (spoken.isEmpty) return;
     if (!force && spoken == _lastSpoken) return;
-    _lastSpoken = spoken;
 
+    if (_speaking) {
+      _queued = spoken;
+      return;
+    }
+    _lastSpoken = spoken;
+    await _utter(spoken);
+  }
+
+  /// One sentence, start to finish, and whatever was waiting behind it.
+  Future<void> _utter(String spoken) async {
     try {
-      // Barge-in rather than queue. Verdicts replace each other - the one from
-      // two moves ago is not worth hearing out, and a queue turns a fast
-      // sequence into a monologue that ends long after the position changed.
-      // Marked as speaking before anything is awaited, not after. Between the
-      // stop and the speak there is a gap the event loop can run in, and a
-      // board timer that ticks inside it would see silence and move on.
+      // Marked as speaking before anything is awaited, not after: the board's
+      // timers ask this between frames, and a gap where it reads false is a
+      // move played under a sentence.
       _startSpeaking(spoken);
-      await _engine?.stop();
+      _spokeAtLeastOnce = true;
       await _engine?.speak(spoken);
     } catch (e) {
       AppLogger.log('[Govor] Neuspelo izgovaranje: $e');
     } finally {
       _finishSpeaking();
     }
+
+    final next = _queued;
+    _queued = null;
+    if (next == null) return;
+    if (!_enabled || _state != SpeechState.ready) return;
+    _lastSpoken = next;
+    await _utter(next);
   }
 
   // Neither of these notifies, on purpose, and it is not an oversight to be
@@ -352,13 +397,29 @@ class SpeechService extends ChangeNotifier {
   /// comes back. Called when a screen closes or a new exercise starts.
   void forget() => _lastSpoken = '';
 
+  /// Cuts the voice off. For what the reader does, and nothing else.
+  ///
+  /// Moving to the next move, answering, leaving the screen - each of those
+  /// says the sentence is no longer wanted, and each of them calls this. The
+  /// app itself never does.
   Future<void> stop() async {
     _lastSpoken = '';
+    _queued = null;
     _finishSpeaking();
+    await _stopEngine();
+  }
+
+  /// Silences the voice, if there is anything to silence.
+  ///
+  /// Nothing to stop is not an edge case worth being clever about - it is the
+  /// ordinary state of the app until the first sentence - and on Windows it is
+  /// the one call that must not be made. See [_spokeAtLeastOnce].
+  Future<void> _stopEngine() async {
+    if (!_spokeAtLeastOnce) return;
     try {
       await _engine?.stop();
-    } catch (_) {
-      // Stopping a synthesiser that never started is not worth reporting.
+    } catch (e) {
+      AppLogger.log('[Govor] Prekid nije uspeo: $e');
     }
   }
 }

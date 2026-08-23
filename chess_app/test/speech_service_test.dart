@@ -192,15 +192,79 @@ void main() {
       expect(tts.spoken.length, 2);
     });
 
-    test('a new verdict interrupts the one being read', () async {
-      // Queueing turns a fast sequence into a monologue that ends long after
-      // the position on the board has moved on.
+    test('a sentence already started is heard out', () async {
+      // What the app does on its own never cuts a sentence off. Being
+      // interrupted mid-thought is how a spoken interface turns into noise, and
+      // the board waits for the voice anyway.
+      final tts = SlowTts(['sr-RS']);
+      final service = SpeechService.forTesting(tts);
+      await service.init(enabled: true, rate: 0.5, engine: tts);
+
+      unawaited(service.speak('Prva.'));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      unawaited(service.speak('Druga.'));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(tts.spoken, ['Prva.'], reason: 'druga ceka svoj red');
+      expect(tts.stops, isEmpty, reason: 'aplikacija ne prekida sama sebe');
+
+      tts.finish();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(tts.spoken, ['Prva.', 'Druga.']);
+    });
+
+    test('only the newest of the ones waiting is said', () async {
+      // One slot, not a queue. Two verdicts arriving behind a third means the
+      // older of them already describes a board that has moved on.
+      final tts = SlowTts(['sr-RS']);
+      final service = SpeechService.forTesting(tts);
+      await service.init(enabled: true, rate: 0.5, engine: tts);
+
+      unawaited(service.speak('Prva.'));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      unawaited(service.speak('Druga.'));
+      unawaited(service.speak('Treća.'));
+
+      tts.finish();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(tts.spoken, ['Prva.', 'Treća.']);
+    });
+
+    test('what the reader does cuts it off, and drops what was waiting',
+        () async {
+      // Moving through the game, answering, leaving - each says the sentence is
+      // no longer wanted, and so is anything queued behind it.
+      final tts = SlowTts(['sr-RS']);
+      final service = SpeechService.forTesting(tts);
+      await service.init(enabled: true, rate: 0.5, engine: tts);
+
+      unawaited(service.speak('Prva.'));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      unawaited(service.speak('Druga.'));
+      await service.stop();
+      tts.finish();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(tts.spoken, ['Prva.']);
+      expect(tts.stops.length, 1);
+    });
+
+    test('nothing is stopped before anything has been said', () async {
+      // On Windows this is not a nicety. The plugin's stop() answers the
+      // pending speak result, and there is no result until something has been
+      // spoken - so the call dereferences a pointer that was never set and the
+      // process dies where no try/catch can reach it.
       final tts = FakeTts(['sr-RS']);
       final service = await ready(tts);
-      await service.speak('Prva.');
-      await service.speak('Druga.');
-      expect(tts.stops.length, 2);
-      expect(tts.spoken, ['Prva.', 'Druga.']);
+
+      await service.stop();
+      await service.setEnabled(false);
+      expect(tts.stops, isEmpty);
+
+      await service.setEnabled(true);
+      await service.speak('Tačno.');
+      await service.stop();
+      expect(tts.stops.length, 1);
     });
 
     test('switched off, it says nothing at all', () async {
@@ -228,8 +292,9 @@ void main() {
       final service = await ready(tts);
       await service.speak('Duga rečenica.');
       await service.setEnabled(false);
-      expect(tts.stops.length, 2);
+      expect(tts.stops.length, 1);
       expect(service.state, SpeechState.off);
+      // Switching it off is a reader action, so it does cut the voice off.
     });
   });
 

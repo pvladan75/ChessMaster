@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
@@ -144,6 +145,15 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     _loadNext();
   }
 
+  @override
+  void dispose() {
+    // Leaving the trainer is the reader saying they are done listening. A
+    // sentence that outlives the screen it belongs to is how someone decides
+    // the whole feature is more trouble than it is worth.
+    SpeechService.instance.stop();
+    super.dispose();
+  }
+
   Future<void> _loadNext() async {
     setState(() {
       _loading = true;
@@ -219,6 +229,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   }
 
   Future<void> _onMove(String from, String to) async {
+    // A move is an answer, and an answer ends whatever was still being said.
+    SpeechService.instance.stop();
     final solve = _solve;
     final game = _game;
     if (solve == null || game == null || _boardLocked) return;
@@ -406,6 +418,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// server cannot check — and asking costs nothing extra, since the tables
   /// have to be consulted to answer the child at all.
   Future<void> _onDrillMove(String from, String to) async {
+    // Answering is an answer to the sentence too.
+    SpeechService.instance.stop();
     final game = _game;
     if (game == null || _drillEnd != null) return;
 

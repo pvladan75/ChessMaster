@@ -2380,6 +2380,59 @@ Spisak glasova se **označava, a ne filtrira**: uz one koji čitaju srpski piše
 tekst je razumna radoznalost i korisna proba — samo nije za rad, jer notacija i
 dalje izlazi kao srpske reči („top de tri"), pročitane tuđom fonetikom.
 
+### Pad na Windows-u: `stop()` pre prvog `speak()`
+
+Ovo je pravi uzrok, nađen 23.8.2026. sondom, i **nije bio ono što sam prvo
+mislio**. Hrvatski glas *postoji* na mašini — `Microsoft Matej`, `hr-HR`, u
+`Speech_OneCore` — i svi pozivi u plugin rade. Pad je bio u redosledu.
+
+`stop()` u Windows delu `flutter_tts`-a radi ovo:
+
+```cpp
+void FlutterTtsPlugin::stop() {
+    methodChannel->InvokeMethod("speak.onCancel", NULL);
+    if (awaitSpeakCompletion) {
+        speakResult->Success(1);
+    }
+```
+
+a `speakResult` se postavlja **isključivo unutar `speak()`**. Prekid pre nego
+što je išta izgovoreno razmotava pokazivač koji nikad nije dobio vrednost:
+proces nestaje, bez Dart izuzetka i bez steka, i nijedan `try/catch` tu ne može
+da pomogne. Svedeno na tri linije — nov sintetizator,
+`awaitSpeakCompletion(true)`, jedan `stop()` — i aplikacija umire.
+
+Pogađalo je dva puta: kad se govor **isključi** u podešavanjima pre nego što je
+išta rečeno, i pri **prvoj rečenici** u pokretanju, jer je tadašnji „prekini pa
+reci" zvao `stop()` pre `speak()`-a kojem pravi mesta.
+
+Rešeno zaobilaženjem, ne krpljenjem plugina: `stop()` se ne šalje dok bar jedna
+rečenica nije izgovorena. Test pada ako se to izgubi.
+
+**Kako je nađeno** — vredi zapisati, jer je prva pretpostavka bila pogrešna i
+koštala je jedan krug: privremeni `-t lib/tts_probe.dart` koji zove korak po
+korak i štampa pre svakog poziva. Poslednja odštampana linija je poziv koji se
+nije vratio. Bez toga se iz „Lost connection to device" ne vidi ništa.
+
+### Govor prekida samo korisnik
+
+Traženo 23.8.2026: rečenica koja je počela **čuje se do kraja**. Ništa što
+aplikacija radi sama je ne preseca — ni sledeća presuda, ni tabla koja odigrava
+potez. Ako nova rečenica stigne u međuvremenu, čeka; čeka **samo poslednja**,
+jer starija od dve ionako opisuje tablu koje više nema.
+
+Prekidaju je tri korisnikove radnje, i ništa drugo: dodir trake za kretanje,
+odigran potez, i izlazak sa ekrana.
+
+### Prvi pokušaj, koji nije bio uzrok
+
+Ostavljeno zapisano da se ne ponavlja: mislio sam da je krivac glas koji je na
+spisku a nije instaliran, pošto `getLanguages` na Windows-u nabraja jezike
+instaliranih glasova. Zaštite koje su tada dodate ostaju jer su same po sebi
+tačne — poziv ka sintezi koji padne postaje stanje umesto izuzetka, a
+`DropdownButton` nikad ne dobija vrednost koje nema u spisku (to **ne** pada na
+`hint` nego puca) — ali pad nisu rešile.
+
 ### Pad na Windows-u: glas koji je na spisku a nije instaliran
 
 Prijavljeno 23.8.2026: aplikacija je pucala pri **ulasku u Podešavanja**, ako je

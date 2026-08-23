@@ -132,6 +132,10 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   void dispose() {
     _playback?.cancel();
     _arrowTimer?.cancel();
+    // Leaving is one of the three things that stop a sentence. A voice still
+    // explaining a position on a screen nobody is looking at is the surest way
+    // to make someone switch the whole feature off.
+    SpeechService.instance.stop();
     super.dispose();
   }
 
@@ -241,8 +245,9 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     final walk = _walk;
     if (walk == null) return;
     // Reaching for the strip is how the reader says they would rather do this
-    // themselves.
+    // themselves - including doing without the rest of the sentence.
     _stopPlayback();
+    SpeechService.instance.stop();
     _clearMarks();
     setState(() {
       walk.seek(index);
@@ -410,7 +415,9 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     }
   }
 
+  /// A move from the reader, which answers whatever was being said.
   Future<void> _onMove(String from, String to) async {
+    SpeechService.instance.stop();
     final walk = _walk;
     final blunder = walk?.pending;
     if (walk == null || blunder == null) return;
