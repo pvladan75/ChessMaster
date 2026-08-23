@@ -2565,7 +2565,21 @@ Motor bi dao „najbolji potez"; tablice daju skup onih koji drže i podatak koj
 od njih zaista vodi ka matu.
 
 Broji se: čip „Nalaz: n" stoji pored „Greške", jer vežba odigrana sa nalazom
-pred sobom nije ista kao ona bez njega.
+pred sobom nije ista kao ona bez njega. Broji se **otvaranje**, ne osvežavanje —
+panel koji se sam drži u toku nije nova upotreba pomoći.
+
+**Gde stoji zavisi od ekrana.** Na Windows-u ide kao poseban panel **ispod info
+panela**, u istoj koloni pored table, i **ostaje otvoren dok se igra** — to je i
+bio razlog za promenu: prozorčić je morao da se zatvori pre svakog poteza, a
+baš tada se gleda. Panel se posle svakog presuđenog poteza sam osvežava, i pri
+tome **prvo obriše stari nalaz**: spisak poteza pored table koja je otišla dalje
+čitao bi se kao da je o ovoj poziciji. Na telefonu ostaje prozorčić, jer ispod
+table nema kolone koju bi zauzeo.
+
+Usput je test uhvatio staru zamku iz `CLAUDE.md`: prozorčić je na 360 dp
+prelivao 23 piksela, a red poteza je imao fiksnu širinu za notaciju. Sada se
+širina uzima iz ekrana (uz onih 128 piksela koje `AlertDialog` potroši na svoje
+margine i razmak), a red se skuplja umesto da seče.
 
 ### Šta znače oznake, da se ne meša ponovo
 

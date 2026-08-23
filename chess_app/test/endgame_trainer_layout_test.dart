@@ -29,6 +29,47 @@ class _FakeEndgameApi extends EndgameApiService {
   }) async =>
       result;
   @override
+  Future<TablebaseReadout?> fetchReadout({
+    required String fen,
+    required EndgameMode goal,
+  }) async =>
+      TablebaseReadout.fromJson(const {
+        'goal': 'draw',
+        'outcome': 'draw',
+        'holding': 2,
+        'total': 3,
+        'pawnless': false,
+        'deadDraw': false,
+        'dtz': 0,
+        'moves': [
+          {
+            'san': 'Rf1+',
+            'uci': 'a1f1',
+            'outcome': 'draw',
+            'holds': true,
+            'zeroing': false,
+            'dtz': 0
+          },
+          {
+            'san': 'Re1',
+            'uci': 'a1e1',
+            'outcome': 'draw',
+            'holds': true,
+            'zeroing': false,
+            'dtz': 0
+          },
+          {
+            'san': 'Kg6',
+            'uci': 'g7g6',
+            'outcome': 'loss',
+            'holds': false,
+            'zeroing': false,
+            'dtz': -8
+          },
+        ],
+      });
+
+  @override
   Future<bool> keepForLater({
     required String fen,
     required String title,
@@ -238,6 +279,86 @@ void main() {
       reason: 'zadatak nije gotov, pa tabla mora da prima potez',
     );
     expect(find.textContaining('nađite još jedan'), findsOneWidget);
+  });
+
+  testWidgets('on a wide window the finding sits beside the board, not over it',
+      (tester) async {
+    // Asked for after using it: the dialog had to be closed before the next
+    // move, which is exactly the moment the reader wants it in view. Beside the
+    // board it stays, and the drill goes on being played under it.
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      wrap(
+        EndgameTrainerScreen(
+          session: UserSession(
+              token: 't', id: 1, email: 'a@b', name: 'Test', role: 'korisnik'),
+          api: _FakeEndgameApi(
+            EndgameFetchResult(EndgameFetchOutcome.ok, worstCasePuzzle()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Nalaz tablica'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing,
+        reason: 'na širokom prozoru nema prozorčića');
+    expect(find.text('Nalaz tablica'), findsOneWidget,
+        reason: 'naslov panela; dugme se u tom stanju zove drugačije');
+    expect(find.text('Sakrij nalaz'), findsOneWidget);
+    expect(find.text('Rf1+'), findsOneWidget);
+
+    // And the drill is still playable underneath it.
+    expect(
+      tester
+          .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
+          .isAllowedToMove,
+      isTrue,
+    );
+
+    await tester.tap(find.text('Sakrij nalaz'));
+    await tester.pumpAndSettle();
+    expect(find.text('Rf1+'), findsNothing);
+  });
+
+  testWidgets('on a phone the finding is still a window', (tester) async {
+    // There is no column to spare under the board on 360 dp, and a panel there
+    // would push the board off the screen.
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      wrap(
+        EndgameTrainerScreen(
+          session: UserSession(
+              token: 't', id: 1, email: 'a@b', name: 'Test', role: 'korisnik'),
+          api: _FakeEndgameApi(
+            EndgameFetchResult(EndgameFetchOutcome.ok, worstCasePuzzle()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Odigraj do kraja'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Nalaz tablica'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nalaz tablica'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('a position too big for any tablebase is not offered as a drill',

@@ -169,6 +169,10 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
 
 - [ ] „Nalaz tablica" u vežbi otvara spisak: prvo potezi koji drže, među njima
       prvo oni koji nuliraju brojač (zvezdica), pa oni koji gube.
+- [ ] Na Windows-u je to **panel pored table**, ispod info panela, i **ostaje**
+      dok se igra; dugme se pretvara u „Sakrij nalaz".
+- [ ] Posle svakog poteza panel pokazuje nalaz za **novu** poziciju.
+- [ ] Na telefonu je i dalje prozorčić i ništa se ne preliva na 360 dp.
 - [ ] Uz svaki potez piše ishod i DTZ; ispod stoji šta DTZ znači.
 - [ ] Posle korišćenja se pojavi čip „Nalaz: n", i nestaje na sledećoj poziciji.
 - [ ] U KRP–KR koje pređe u KR–KR pojavi se „Zaključi remi" i zatvori vežbu.

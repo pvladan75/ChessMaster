@@ -98,6 +98,19 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   int _readouts = 0;
   bool _reading = false;
 
+  /// The finding, and the position it belongs to.
+  ///
+  /// Both, because a readout shown beside a board that has moved on is worse
+  /// than no readout: it is a list of moves for a position nobody is looking
+  /// at, and every number in it would be read as being about this one.
+  TablebaseReadout? _readout;
+  String? _readoutFen;
+
+  /// Whether the panel stays open beside the board. Only on a window wide
+  /// enough to have a column to spare; a phone gets the dialog, because a panel
+  /// under the board there would push the board off the screen.
+  bool _readoutOpen = false;
+
   /// Moves still to be held after the reader claimed the draw. Null when no
   /// claim is standing.
   int? _holdLeft;
@@ -214,6 +227,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _drilling = false;
       _punishing = false;
       _readouts = 0;
+      _readout = null;
+      _readoutFen = null;
       _holdLeft = null;
       _drillEnd = null;
       _drillRetryFen = null;
@@ -504,6 +519,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       if (claimed || !step.held) _holdLeft = null;
     });
     _boardController.loadFen(step.fen);
+    _refreshReadout();
   }
 
   /// Opens the tables on the position in front of the reader.
@@ -511,19 +527,50 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// The whole finding, not a chosen move. What makes this drill hard is that
   /// holding and progressing are different things, and that is exactly what the
   /// list shows: which moves keep the result, and which of those get anywhere.
-  Future<void> _showReadout() async {
+  Future<void> _showReadout({bool wide = false}) async {
+    if (wide && _readoutOpen) {
+      setState(() {
+        _readoutOpen = false;
+        _readout = null;
+        _readoutFen = null;
+      });
+      return;
+    }
+    final readout = await _fetchReadout(counted: true);
+    if (readout == null || !mounted) return;
+    if (wide) {
+      setState(() => _readoutOpen = true);
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (context) => _ReadoutDialog(readout: readout),
+    );
+  }
+
+  /// Asks the tables about the position on the board right now.
+  ///
+  /// [counted] separates the reader opening the tables from the panel keeping
+  /// itself current: one is a use of the help and belongs on the chip, the
+  /// other is the same answer refreshed and does not.
+  Future<TablebaseReadout?> _fetchReadout({bool counted = false}) async {
     final solve = _solve;
     final game = _game;
-    if (solve == null || game == null || _reading) return;
+    if (solve == null || game == null || _reading) return null;
+    final fen = game.fen;
     setState(() => _reading = true);
     final readout = await _api.fetchReadout(
-      fen: game.fen,
+      fen: fen,
       goal: _punishing ? EndgameMode.win : solve.puzzle.mode,
     );
-    if (!mounted) return;
+    if (!mounted) return null;
     setState(() {
       _reading = false;
-      if (readout != null) _readouts++;
+      if (readout != null) {
+        _readout = readout;
+        _readoutFen = fen;
+        if (counted) _readouts++;
+      }
     });
     if (readout == null) {
       setState(() {
@@ -531,13 +578,23 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         _feedback = 'Tablica trenutno nije dostupna, pa se nalaz ne može '
             'pročitati.';
       });
-      return;
     }
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => _ReadoutDialog(readout: readout),
-    );
+    return readout;
+  }
+
+  /// Keeps the open panel about the position in front of the reader.
+  ///
+  /// Called after every judged move, so the reader can play on with the tables
+  /// beside them and watch where it goes wrong — which is the point of the
+  /// panel rather than the dialog. The stale answer is dropped first: better an
+  /// empty panel for a moment than a list belonging to a position that is gone.
+  Future<void> _refreshReadout() async {
+    if (!_readoutOpen) return;
+    setState(() {
+      _readout = null;
+      _readoutFen = null;
+    });
+    await _fetchReadout();
   }
 
   /// Whether there is anything left to hold: no pawns on the board.
@@ -815,6 +872,28 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       messageIsGood: _feedbackIsGood,
     );
 
+    // Beside the board and under what the screen is already saying, so one
+    // column holds the whole conversation: what to do, what happened, and - on
+    // request - what the tables say about it.
+    final aside = wide && _readoutOpen
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              panel,
+              const SizedBox(height: 12),
+              _ReadoutPanel(
+                // Guarded by the position it was read for. The refresh clears
+                // it first, so this is a second lock on the same door - and it
+                // is the door that matters: a list of moves under a board that
+                // has moved on would be read as being about this board.
+                readout: _readoutFen == _game?.fen ? _readout : null,
+                loading: _reading,
+              ),
+            ],
+          )
+        : panel;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
@@ -822,7 +901,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           child: EndgameBoardLayout(
             wide: wide,
             constraints: constraints,
-            panel: panel,
+            panel: aside,
             // The buttons under the board; on a phone the panel as well.
             reserveHeight: wide ? 140 : 280,
             builder: (boardSize) {
@@ -977,11 +1056,19 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           // reader is playing against perfect defence and can be stuck without
           // having blundered, which is a different situation from the one the
           // solve screen's hint is for.
-          OutlinedButton.icon(
-            onPressed: _reading || _drillEnd != null ? null : _showReadout,
-            icon: const Icon(Icons.table_chart_outlined),
-            label: const Text('Nalaz tablica'),
-          ),
+          Builder(builder: (context) {
+            final wide = Breakpoints.isWide(context);
+            final open = wide && _readoutOpen;
+            return OutlinedButton.icon(
+              onPressed: _reading || (_drillEnd != null && !open)
+                  ? null
+                  : () => _showReadout(wide: wide),
+              icon: Icon(open
+                  ? Icons.visibility_off_outlined
+                  : Icons.table_chart_outlined),
+              label: Text(open ? 'Sakrij nalaz' : 'Nalaz tablica'),
+            );
+          }),
           if (_mightBeOver && _drillEnd == null)
             OutlinedButton.icon(
               onPressed: _reading ? null : _concludeDraw,
@@ -1095,6 +1182,97 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   }
 }
 
+/// How wide the finding may be inside a dialog on this screen.
+///
+/// 128 is what an AlertDialog spends before its content sees a pixel: 40 of
+/// inset and 24 of padding, twice over.
+double _dialogWidth(BuildContext context) {
+  final room = MediaQuery.sizeOf(context).width - 136;
+  if (room < 200) return 200;
+  return room > 420 ? 420 : room;
+}
+
+/// The finding beside the board, on a window with a column to spare.
+///
+/// The same list as the dialog and a different thing to use: it stays while the
+/// drill is played, so the reader can go on making moves and watch where the
+/// tables and their own idea part company. That is what was asked for, and it
+/// is why this is not modal.
+class _ReadoutPanel extends StatelessWidget {
+  const _ReadoutPanel({required this.readout, required this.loading});
+
+  final TablebaseReadout? readout;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final data = readout;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.colors.surface.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Text('Nalaz tablica', style: theme.textTheme.titleSmall),
+              const Spacer(),
+              if (loading)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (data == null)
+            Text(
+              loading ? 'Čitam tablice…' : 'Nalaz za ovu poziciju još nije tu.',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: context.colors.textMuted),
+            )
+          else ...[
+            Text(
+              '${outcomeWord(data.outcome)}'
+              '${data.dtz == null ? '' : ', DTZ ${data.dtz}'} · '
+              'drži ${data.holding} od ${data.total}',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 6),
+            // Capped rather than endless: a pawnless ending can offer thirty
+            // moves, and a column that long pushes everything else off screen.
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 260),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final move in data.moves) _MoveRow(move: move),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'DTZ: polupotezi do uzimanja ili poteza pešaka, ne do mata. '
+              'Zvezdica = potez nulira taj brojač.',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: context.colors.textMuted),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// The tables' finding for one position, as a list a person can read.
 ///
 /// Ordered the way the drill thinks: the moves that keep the result first, and
@@ -1116,7 +1294,12 @@ class _ReadoutDialog extends StatelessWidget {
     return AlertDialog(
       title: const Text('Nalaz tablica'),
       content: SizedBox(
-        width: 420,
+        // From the screen, never a fixed number, and counting everything the
+        // dialog takes for itself: 40 of inset on each side and 24 of content
+        // padding, which is why subtracting only the insets still overflowed a
+        // 360 dp phone. In a release build that paints no warning - it clips -
+        // and this shape of bug has been shipped here before.
+        width: _dialogWidth(context),
         child: ListView(
           shrinkWrap: true,
           children: [
@@ -1171,14 +1354,20 @@ class _MoveRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          SizedBox(
-            width: 78,
+          // Flexible, not a fixed width. A row of fixed pieces in a dialog is
+          // how the 360 dp phone gets clipped in a release build, where no
+          // warning is painted - the notation is the part that may be cut, and
+          // it is the part that survives being cut.
+          Flexible(
+            flex: 3,
             child: Text(
               '${move.san}${move.zeroing ? ' *' : ''}',
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodyMedium
                   ?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
+          const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
@@ -1189,10 +1378,16 @@ class _MoveRow extends StatelessWidget {
                 style: theme.textTheme.bodySmall),
           ),
           const Spacer(),
-          Text(
-            move.dtz == null ? '—' : 'DTZ ${move.dtz}',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: context.colors.textMuted),
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 2,
+            child: Text(
+              move.dtz == null ? '—' : 'DTZ ${move.dtz}',
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: context.colors.textMuted),
+            ),
           ),
         ],
       ),
