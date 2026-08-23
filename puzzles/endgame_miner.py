@@ -409,6 +409,15 @@ def probe_wdl(tb, board, cfg):
 
 def tablebase_results(board, tb, cfg):
     """{move: result for the mover, after that move}."""
+    # A table reached over the network answers a whole position at once - every
+    # legal move's outcome arrives in the same response - so it is offered the
+    # position before the moves are probed one at a time. Without this the
+    # remote judge pays one request per legal move instead of one per position,
+    # about twenty-five times the traffic. Local tables have no prime() and
+    # skip it.
+    primer = getattr(tb, "prime", None)
+    if primer is not None:
+        primer(board)
     results = {}
     for move in board.legal_moves:
         board.push(move)

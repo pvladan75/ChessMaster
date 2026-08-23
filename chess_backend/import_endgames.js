@@ -9,7 +9,12 @@
 //
 // Input: the JSON files written by puzzles/endgame_miner.py.
 //
-//   node import_endgames.js [--dir <folder>] [--dry-run]
+//   node import_endgames.js [--dir <folder>] [--dry-run] [--update]
+//
+// --update is for a re-judged file: puzzles/rejudge_endgames.py settles six
+// pieces from the local tables and seven through the Lichess API, and without
+// --update those corrected verdicts hit ON CONFLICT DO NOTHING and change
+// nothing while the run reports success.
 
 require('dotenv').config();
 const crypto = require('crypto');
@@ -20,6 +25,14 @@ const { pool, initDB } = require('./db');
 
 const DEFAULT_DIR = process.env.ENDGAME_MINING_DIR
   || path.join('D:', 'chess_base', '_mining');
+
+// What a re-judge is allowed to overwrite: the verdict and everything derived
+// from it. The game the position came from is not a verdict and is left alone.
+const JUDGED_COLUMNS = [
+  'evaluation', 'difficulty', 'difficulty_score', 'piece_tags',
+  'endgame_type', 'mode', 'side_to_move', 'winning_moves', 'solution',
+  'solution_san', 'piece_count', 'pawn_count', 'source', 'wdl', 'dtz',
+];
 
 // The miner scores 1..10. The old column is a three-value string and the app
 // still reads it, so both are kept: the string for existing consumers, the
@@ -79,6 +92,7 @@ async function run() {
   const dirFlag = args.indexOf('--dir');
   const dir = dirFlag >= 0 ? args[dirFlag + 1] : DEFAULT_DIR;
   const dryRun = args.includes('--dry-run');
+  const update = args.includes('--update');
 
   const rows = readPositions(dir);
   console.log(`Pronadjeno ${rows.length} pozicija u ${dir}`);
@@ -86,6 +100,7 @@ async function run() {
   await initDB();
   const client = await pool.connect();
   let inserted = 0;
+  let updated = 0;
   let skipped = 0;
   let rejected = 0;
   const pending = [];
@@ -144,6 +159,13 @@ async function run() {
         values.push('(' + row.map((_, i) => `$${base + i + 1}`).join(',') + ')');
         params.push(...row);
       });
+      // DO NOTHING is right for a re-run of the same data and wrong for a
+      // re-judged file: the position keeps its old verdict, the run reports
+      // "0 upisano, N preskoceno", and that reads exactly like "already
+      // imported". Hence --update, and xmax to tell the two apart afterwards.
+      const conflict = update
+        ? `DO UPDATE SET ${JUDGED_COLUMNS.map((c) => `${c} = EXCLUDED.${c}`).join(', ')}`
+        : 'DO NOTHING';
       const result = await client.query(
         `INSERT INTO endgame_puzzles
            (puzzle_id, fen, evaluation, difficulty, difficulty_score, piece_tags,
@@ -151,11 +173,14 @@ async function run() {
             piece_count, pawn_count, source, wdl, dtz,
             game_white, game_black, game_date)
          VALUES ${values.join(',')}
-         ON CONFLICT (puzzle_id) WHERE puzzle_id IS NOT NULL DO NOTHING`,
+         ON CONFLICT (puzzle_id) WHERE puzzle_id IS NOT NULL ${conflict}
+         RETURNING (xmax = 0) AS is_new`,
         params
       );
-      inserted += result.rowCount;
-      skipped += chunk.length - result.rowCount;
+      const fresh = result.rows.filter((r) => r.is_new).length;
+      inserted += fresh;
+      updated += result.rows.length - fresh;
+      skipped += chunk.length - result.rows.length;
     }
 
     if (dryRun) {
@@ -166,7 +191,8 @@ async function run() {
     }
 
     console.log(`upisano:    ${inserted}`);
-    console.log(`preskoceno: ${skipped}  (vec u bazi)`);
+    console.log(`azurirano:  ${updated}${update ? '' : '  (--update nije zadat)'}`);
+    console.log(`preskoceno: ${skipped}  (vec u bazi, nedirnuto)`);
     console.log(`odbaceno:   ${rejected}  (neispravan FEN)`);
 
     const { rows: summary } = await pool.query(
