@@ -39,7 +39,9 @@ class DrillStep {
 
   final String? replySan;
 
-  /// 'mate', 'stalemate', 'insufficient', 'draw_rule', or null while it runs.
+  /// 'mate', 'stalemate', 'insufficient', 'repetition', 'fifty_moves', or null
+  /// while it runs. 'draw_rule' is the older name for the last two together and
+  /// is still accepted, so an old server does not go unread.
   final String? finished;
 
   /// True once the drill cannot continue, whichever way it went.
@@ -87,6 +89,15 @@ String drillFeedbackText(DrillStep step) {
       return 'Pat — remi je održan.';
     case 'insufficient':
       return 'Nema dovoljno materijala za mat — remi.';
+    case 'repetition':
+      // Named for what happened. A dead drawn rook ending repeats within a few
+      // moves, and calling that "fifty moves without a capture" points at a
+      // counter that has barely started.
+      return step.goal == 'draw'
+          ? 'Pozicija se ponovila tri puta — remi je održan.'
+          : 'Pozicija se ponovila tri puta i po pravilu je remi. Dobitak je '
+              'bio tu, ali se nije napredovalo.';
+    case 'fifty_moves':
     case 'draw_rule':
       // The one ending that looks like success and is not. A win the tables
       // call a win is convertible inside the fifty moves, so running the count

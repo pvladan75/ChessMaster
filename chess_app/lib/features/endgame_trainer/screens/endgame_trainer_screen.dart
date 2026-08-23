@@ -90,6 +90,13 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
   bool _loading = true;
   bool _boardLocked = false;
+
+  /// How many times the tables were opened in this position. Counted for the
+  /// same reason a hint is counted in solve mode: a drill played with the
+  /// finding in front of you is not the same as one played without it, and the
+  /// chips must not read as though it were.
+  int _readouts = 0;
+  bool _reading = false;
   String? _error;
   String? _feedback;
   bool _feedbackIsGood = false;
@@ -202,6 +209,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _countedThisPuzzle = false;
       _drilling = false;
       _punishing = false;
+      _readouts = 0;
       _drillEnd = null;
       _drillRetryFen = null;
       _drillMistakes = 0;
@@ -486,6 +494,96 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _feedback = drillFeedbackText(step);
     });
     _boardController.loadFen(step.fen);
+  }
+
+  /// Opens the tables on the position in front of the reader.
+  ///
+  /// The whole finding, not a chosen move. What makes this drill hard is that
+  /// holding and progressing are different things, and that is exactly what the
+  /// list shows: which moves keep the result, and which of those get anywhere.
+  Future<void> _showReadout() async {
+    final solve = _solve;
+    final game = _game;
+    if (solve == null || game == null || _reading) return;
+    setState(() => _reading = true);
+    final readout = await _api.fetchReadout(
+      fen: game.fen,
+      goal: _punishing ? EndgameMode.win : solve.puzzle.mode,
+    );
+    if (!mounted) return;
+    setState(() {
+      _reading = false;
+      if (readout != null) _readouts++;
+    });
+    if (readout == null) {
+      setState(() {
+        _feedbackIsGood = false;
+        _feedback = 'Tablica trenutno nije dostupna, pa se nalaz ne može '
+            'pročitati.';
+      });
+      return;
+    }
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => _ReadoutDialog(readout: readout),
+    );
+  }
+
+  /// Whether there is anything left to hold: no pawns on the board.
+  ///
+  /// The cheap half of the question, answered here so the button only appears
+  /// where it could apply. Whether the draw is really finished is the tables'
+  /// answer, and it is asked when the button is pressed.
+  bool get _mightBeOver {
+    final game = _game;
+    if (game == null || !_drilling || _punishing) return false;
+    if (_solve?.puzzle.mode != EndgameMode.draw) return false;
+    return !RegExp(r'[pP]').hasMatch(game.fen.split(' ').first);
+  }
+
+  /// Closes a draw that has nothing left in it.
+  ///
+  /// Without this the only way out of a dead drawn rook ending is to shuffle
+  /// until the position repeats, which teaches nothing and reads as the drill
+  /// refusing to end.
+  Future<void> _concludeDraw() async {
+    final solve = _solve;
+    final game = _game;
+    if (solve == null || game == null || _reading) return;
+    setState(() => _reading = true);
+    final readout =
+        await _api.fetchReadout(fen: game.fen, goal: EndgameMode.draw);
+    if (!mounted) return;
+    setState(() => _reading = false);
+
+    if (readout == null) {
+      setState(() {
+        _feedbackIsGood = false;
+        _feedback = 'Tablica trenutno nije dostupna, pa se remi ne može '
+            'zaključiti.';
+      });
+      return;
+    }
+    if (!readout.deadDraw) {
+      // Not a refusal to be argued with: it names what is still here to be got
+      // wrong, which is the answer to "why not".
+      final dropping = readout.dropping;
+      setState(() {
+        _feedbackIsGood = false;
+        _feedback = dropping.isEmpty
+            ? 'Ovde se remi još ne može zaključiti.'
+            : 'Još ima šta da se pokvari: ${dropping.first.san} gubi remi. '
+                'Zato ovo nije mrtva pozicija.';
+      });
+      return;
+    }
+    setState(() {
+      _drillEnd = 'draw';
+      _feedbackIsGood = true;
+      _feedback = 'Remi je zaključen — nema pešaka, a izgubiti se može samo '
+          'poklanjanjem figure. Nema više šta da se drži.';
+    });
   }
 
   /// What the moves that hold have in common, when they have anything.
@@ -821,6 +919,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         if (puzzle.isExact) 'Tačno iz tablica',
         if (_drilling && _drillMoves > 0) 'Odigrano: $_drillMoves',
         if (_drilling && _drillMistakes > 0) 'Greške: $_drillMistakes',
+        if (_readouts > 0) 'Nalaz: $_readouts',
         if (!_drilling && _attempted > 0) 'Rešeno: $_solved/$_attempted',
         if (puzzle.game != null) puzzle.game!.label,
       ];
@@ -859,6 +958,21 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
             icon: const Icon(Icons.refresh),
             label: const Text('Ispočetka'),
           ),
+          // The tables, on request and never on their own. In this mode the
+          // reader is playing against perfect defence and can be stuck without
+          // having blundered, which is a different situation from the one the
+          // solve screen's hint is for.
+          OutlinedButton.icon(
+            onPressed: _reading || _drillEnd != null ? null : _showReadout,
+            icon: const Icon(Icons.table_chart_outlined),
+            label: const Text('Nalaz tablica'),
+          ),
+          if (_mightBeOver && _drillEnd == null)
+            OutlinedButton.icon(
+              onPressed: _reading ? null : _concludeDraw,
+              icon: const Icon(Icons.handshake_outlined),
+              label: const Text('Zaključi remi'),
+            ),
           OutlinedButton.icon(
             onPressed: _boardLocked ? null : _stopDrill,
             icon: const Icon(Icons.close),
@@ -961,6 +1075,111 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The tables' finding for one position, as a list a person can read.
+///
+/// Ordered the way the drill thinks: the moves that keep the result first, and
+/// among those the ones that get somewhere. The two numbers people mix up are
+/// spelled out once at the bottom rather than left as initials - DTZ is the
+/// distance to the next capture or pawn move, and it is not the distance to
+/// mate, which Syzygy does not store at all.
+class _ReadoutDialog extends StatelessWidget {
+  const _ReadoutDialog({required this.readout});
+
+  final TablebaseReadout readout;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final holding = readout.moves.where((m) => m.holds).toList();
+    final losing = readout.moves.where((m) => !m.holds).toList();
+
+    return AlertDialog(
+      title: const Text('Nalaz tablica'),
+      content: SizedBox(
+        width: 420,
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Text(
+              'Pozicija: ${outcomeWord(readout.outcome)}'
+              '${readout.dtz == null ? '' : ', DTZ ${readout.dtz}'}. '
+              'Drži ${readout.holding} od ${readout.total} poteza.',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            if (holding.isNotEmpty) ...[
+              Text('Drže rezultat', style: theme.textTheme.labelLarge),
+              for (final move in holding) _MoveRow(move: move),
+            ],
+            if (losing.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('Gube rezultat', style: theme.textTheme.labelLarge),
+              for (final move in losing) _MoveRow(move: move),
+            ],
+            const Divider(height: 24),
+            Text(
+              'DTZ je broj polupoteza do sledećeg uzimanja ili poteza pešaka, '
+              'ne do mata — po njemu se broji pravilo pedeset poteza. Zvezdica '
+              'znači da potez nulira taj brojač, što je u dobijenoj poziciji '
+              'napredak po definiciji.',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: context.colors.textMuted),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Zatvori'),
+        ),
+      ],
+    );
+  }
+}
+
+class _MoveRow extends StatelessWidget {
+  const _MoveRow({required this.move});
+
+  final ReadoutMove move;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colour = move.holds ? Colors.green : Colors.orange;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 78,
+            child: Text(
+              '${move.san}${move.zeroing ? ' *' : ''}',
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: colour.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(outcomeWord(move.outcome),
+                style: theme.textTheme.bodySmall),
+          ),
+          const Spacer(),
+          Text(
+            move.dtz == null ? '—' : 'DTZ ${move.dtz}',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: context.colors.textMuted),
+          ),
+        ],
       ),
     );
   }

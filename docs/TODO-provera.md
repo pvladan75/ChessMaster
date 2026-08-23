@@ -165,6 +165,18 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
 - [ ] Ako glas ne javi kraj izgovora, šetnja se ipak nastavi (rok iz dužine
       rečenice), a u dnevniku stoji red o tome.
 
+## 0l. Nalaz tablica i „Zaključi remi" — napisano 24.8.2026, nije viđeno uživo
+
+- [ ] „Nalaz tablica" u vežbi otvara spisak: prvo potezi koji drže, među njima
+      prvo oni koji nuliraju brojač (zvezdica), pa oni koji gube.
+- [ ] Uz svaki potez piše ishod i DTZ; ispod stoji šta DTZ znači.
+- [ ] Posle korišćenja se pojavi čip „Nalaz: n", i nestaje na sledećoj poziciji.
+- [ ] U KRP–KR koje pređe u KR–KR pojavi se „Zaključi remi" i zatvori vežbu.
+- [ ] U poziciji sa pešakom tog dugmeta nema.
+- [ ] Kad remi nije mrtav, dugme kaže **koji potez** još gubi, ne samo „ne može".
+- [ ] Kad se pozicija ponovi tri puta, poruka kaže „ponovila se", a ne
+      „pedeset poteza".
+
 ## 0j. „Zapamti za kasnije" — napisano 23.8.2026, nije viđeno uživo
 
 Kad pozicija ostane nejasna i pored svih objašnjenja, dugme je sačuva u

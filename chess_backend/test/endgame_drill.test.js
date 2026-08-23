@@ -1,8 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const { Chess } = require('chess.js');
 const {
-  judgeMove, bestLine, drillOutcome, flip, pieceCount,
+  judgeMove, bestLine, drillOutcome, flip, pieceCount, readout, hangsAfter,
+  endOf,
 } = require('../services/endgameDrill');
 const { TablebaseUnavailable } = require('../services/tablebaseService');
 
@@ -211,4 +213,194 @@ test('a position past seven pieces has no line', async () => {
     }),
     /sedam figura/
   );
+});
+
+// --- The readout, and the dead draw ----------------------------------------
+
+// Rook against rook, nothing else on the board. Every move draws except the
+// ones that put the rook where it can be taken for nothing, and there are no
+// pawns: the trainer's own description of a position that is over.
+const RR = '3r2k1/8/8/8/8/8/8/3R2K1 w - - 0 1';
+
+const RR_PROBE = {
+  category: 'draw',
+  dtz: 0,
+  moves: [
+    // Categories are read from the far side of the move, as the tables give
+    // them: 'win' here means the opponent wins after it.
+    { uci: 'd1d8', san: 'Rxd8+', category: 'draw', dtz: 0, zeroing: true },
+    { uci: 'd1a1', san: 'Ra1', category: 'draw', dtz: 0, zeroing: false },
+    { uci: 'g1f1', san: 'Kf1', category: 'draw', dtz: 0, zeroing: false },
+    { uci: 'd1d4', san: 'Rd4', category: 'win', dtz: 12, zeroing: false },
+    { uci: 'd1d5', san: 'Rd5', category: 'win', dtz: 10, zeroing: false },
+  ],
+};
+
+test('the readout names every move, holders first and progress before them',
+  async () => {
+    const tb = fakeTablebase({ [RR]: RR_PROBE });
+    const r = await readout({ fen: RR, goal: 'draw', tablebase: tb });
+
+    assert.equal(r.outcome, 'draw');
+    assert.equal(r.total, 5);
+    assert.equal(r.holding, 3);
+    // The capture zeroes the counter, so it comes first among the three that
+    // hold; the two that drop the rook come last whatever their distance.
+    // Equal distance and neither zeroing, so the tie falls to the notation.
+    assert.deepEqual(r.moves.map((m) => m.san),
+      ['Rxd8+', 'Kf1', 'Ra1', 'Rd5', 'Rd4']);
+    assert.deepEqual(r.moves.map((m) => m.holds),
+      [true, true, true, false, false]);
+    assert.equal(r.moves[0].zeroing, true);
+    assert.equal(r.moves[3].outcome, 'loss');
+  });
+
+test('a pawnless draw whose only losses give a piece away is finished',
+  async () => {
+    const tb = fakeTablebase({ [RR]: RR_PROBE });
+    const r = await readout({ fen: RR, goal: 'draw', tablebase: tb });
+    assert.equal(r.pawnless, true);
+    assert.equal(r.deadDraw, true);
+  });
+
+test('a loss that is not a piece given away leaves the drill running',
+  async () => {
+    // A shape that is not on the list, so the computed rule decides: here the
+    // king move loses and nothing is hanging, which means there is a decision
+    // to get wrong and the draw is not over.
+    const fen = '3r2k1/8/8/8/8/8/8/2BR2K1 w - - 0 1';
+    const tb = fakeTablebase({
+      [fen]: {
+        category: 'draw',
+        dtz: 0,
+        moves: [
+          { uci: 'd1a1', san: 'Ra1', category: 'draw', dtz: 0, zeroing: false },
+          { uci: 'g1f1', san: 'Kf1', category: 'win', dtz: 8, zeroing: false },
+        ],
+      },
+    });
+    const r = await readout({ fen, goal: 'draw', tablebase: tb });
+    assert.equal(r.deadDraw, false);
+  });
+
+test('a shape off the list is not finished, whatever the moves say', async () => {
+  // Both tests have to pass, not either. Rook and bishop against a rook is
+  // nobody's named ending, so even with nothing but gifts to lose by, the draw
+  // stays open - the cautious way round on purpose: closing a draw that was not
+  // finished takes the exercise away, leaving one open costs a few moves.
+  const fen = '3r2k1/8/8/8/8/8/8/2BR2K1 w - - 0 1';
+  const tb = fakeTablebase({
+    [fen]: {
+      category: 'draw',
+      dtz: 0,
+      moves: [
+        { uci: 'd1a1', san: 'Ra1', category: 'draw', dtz: 0, zeroing: false },
+        { uci: 'd1d4', san: 'Rd4', category: 'win', dtz: 8, zeroing: false },
+      ],
+    },
+  });
+  const r = await readout({ fen, goal: 'draw', tablebase: tb });
+  assert.equal(r.deadDraw, false);
+});
+
+test('an oversight is also the piece lost a move later', () => {
+  // Da Silva - Gazel Pereira 2010 with the pawn gone. Kc3 leaves nothing en
+  // prise and loses the queen anyway: the king on c3 and the queen on e5 stand
+  // on one diagonal, so Qa1+ takes it next move. A fork or a skewer is the
+  // same oversight with a move's delay, which is why this looks two of the
+  // opponent's moves ahead.
+  const fen = '8/8/6K1/4q3/3k4/8/8/1Q6 b - - 0 1';
+  const drill = require('../services/endgameDrill');
+  assert.equal(drill.hangsAfter(fen, 'd4c3'), false, 'nista ne visi odmah');
+  assert.equal(drill.losesPieceOutright(fen, 'd4c3'), true, 'dama pada na Qa1+');
+  assert.equal(drill.losesPieceOutright(fen, 'd4d5'), false, 'bezbedan potez');
+});
+
+test('a pawn on the board is always something left to hold', async () => {
+  const fen = '3r2k1/8/8/8/8/8/6P1/3R2K1 w - - 0 1';
+  const tb = fakeTablebase({ [fen]: RR_PROBE });
+  const r = await readout({ fen, goal: 'draw', tablebase: tb });
+  assert.equal(r.pawnless, false);
+  assert.equal(r.deadDraw, false);
+});
+
+test('a win being played out is never a finished draw', async () => {
+  const tb = fakeTablebase({ [RR]: RR_PROBE });
+  const r = await readout({ fen: RR, goal: 'win', tablebase: tb });
+  assert.equal(r.deadDraw, false);
+  // And with a win to keep, the moves that only draw no longer hold.
+  assert.equal(r.holding, 0);
+});
+
+test('the shapes a draw cannot be lost from are recognised by name', () => {
+  // The trainer's list, and the reason it is a list: these are endings a
+  // player names on sight, and the set is closed rather than something the
+  // next mining run adds to.
+  const dead = require('../services/endgameDrill').deadDrawnMaterial;
+  assert.equal(dead('3r2k1/8/8/8/8/8/8/3R2K1 w - - 0 1'), true, 'R vs R');
+  assert.equal(dead('3q2k1/8/8/8/8/8/8/3Q2K1 w - - 0 1'), true, 'Q vs Q');
+  assert.equal(dead('3b2k1/8/8/8/8/8/8/3R2K1 w - - 0 1'), true, 'B vs R');
+  assert.equal(dead('3n2k1/8/8/8/8/8/8/3R2K1 w - - 0 1'), true, 'N vs R');
+  assert.equal(dead('6k1/8/8/8/8/8/8/3N2K1 w - - 0 1'), true, 'N vs K');
+  assert.equal(dead('6k1/8/8/8/8/8/8/3B2K1 w - - 0 1'), true, 'B vs K');
+  assert.equal(dead('6k1/8/8/8/8/8/8/1N1N2K1 w - - 0 1'), true, 'NN vs K');
+});
+
+test('two bishops are only dead when they share a colour', () => {
+  // On one colour they cannot mate at all. On two they can, and the list must
+  // not be the thing that says otherwise.
+  const dead = require('../services/endgameDrill').deadDrawnMaterial;
+  assert.equal(dead('6k1/8/8/8/8/8/8/2B1B1K1 w - - 0 1'), true, 'obe tamne');
+  assert.equal(dead('6k1/8/8/8/8/8/8/2BB2K1 w - - 0 1'), false, 'raznobojni');
+});
+
+test('a shape the tables call won is won, list or no list', async () => {
+  // Queen against rook is not on the list, and would not survive the verdict
+  // if it were: the outcome from the tables guards every path to deadDraw.
+  const fen = '3r2k1/8/8/8/8/8/8/3Q2K1 w - - 0 1';
+  const tb = fakeTablebase({
+    [fen]: {
+      category: 'win',
+      dtz: 12,
+      moves: [{ uci: 'd1d8', san: 'Qxd8+', category: 'loss', dtz: 0, zeroing: true }],
+    },
+  });
+  const r = await readout({ fen, goal: 'draw', tablebase: tb });
+  assert.equal(r.deadDraw, false);
+});
+
+test('hanging is being taken for nothing, not being taken', () => {
+  // Rd4 can be taken by the rook on d8 and nothing defends it.
+  assert.equal(hangsAfter(RR, 'd1d4'), true);
+  // Rxd8+ is a capture the king answers - an exchange, not a gift, and in this
+  // ending the exchange is the draw itself.
+  assert.equal(hangsAfter(RR, 'd1d8'), false);
+  // A king cannot be left en prise, so a king move never hangs.
+  assert.equal(hangsAfter(RR, 'g1f1'), false);
+});
+
+test('a position past seven pieces has no readout to give', async () => {
+  const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  await assert.rejects(
+    () => readout({ fen, goal: 'win', tablebase: fakeTablebase({}) }),
+    /sedam figura/
+  );
+});
+
+// --- How a draw actually ended ---------------------------------------------
+
+test('a repetition is not reported as fifty moves without a capture', () => {
+  // The two are both draws and are not the same thing to say. A dead drawn
+  // rook ending repeats in a few moves, and saying "fifty moves" there names a
+  // counter that has barely started.
+  const board = new Chess('3r2k1/8/8/8/8/8/8/3R2K1 w - - 0 1');
+  for (const move of ['Rd2', 'Rd7', 'Rd1', 'Rd8', 'Rd2', 'Rd7', 'Rd1', 'Rd8']) {
+    board.move(move);
+  }
+  assert.equal(endOf(board), 'repetition');
+});
+
+test('a counter that really ran out says so', () => {
+  const board = new Chess('3r2k1/8/8/8/8/8/8/3R2K1 w - - 100 80');
+  assert.equal(endOf(board), 'fifty_moves');
 });

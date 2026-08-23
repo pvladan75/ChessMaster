@@ -342,6 +342,34 @@ router.post('/puzzles/endgame/play', authenticateToken, drillLimiter, async (req
 // Same rule as the position route: nothing is served when the filters match
 // nothing, because a game handed over silently instead of the one asked for
 // teaches the caller to distrust the filters.
+// The tables' whole finding for one position, on request.
+//
+// Separate from /play because it judges nothing and changes nothing: it is the
+// reader asking what is here, in a drill they cannot see through. Everything it
+// answers with is a fact from the tables - the outcome, the distance to the
+// next zeroing move, and every legal move with the same - because a hint that
+// guesses is worse than no hint in a mode whose whole promise is exactness.
+router.get('/puzzles/endgame/probe', authenticateToken, async (req, res) => {
+  const { fen, goal } = req.query;
+  try {
+    const result = await endgameDrill.readout({
+      fen,
+      goal: goal === 'draw' ? 'draw' : 'win',
+      tablebase,
+    });
+    res.json(result);
+  } catch (err) {
+    if (err instanceof endgameDrill.DrillError) {
+      return res.status(err.status || 400).json({ error: err.message });
+    }
+    if (err.name === 'TablebaseUnavailable') {
+      return res.status(503).json({ error: err.message });
+    }
+    logger.error(`[Zavrsnice] Nalaz nije izveden: ${err.message}`);
+    res.status(500).json({ error: 'Greska pri citanju tablica.' });
+  }
+});
+
 router.get('/puzzles/endgame/game/next', authenticateToken, async (req, res) => {
   const {
     minBlunders, maxBlunders, minElo, maxElo, material, excludeId,

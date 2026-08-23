@@ -8,10 +8,12 @@ import '../models/blunder_game.dart';
 import '../models/endgame_catalog.dart';
 import '../models/drill_step.dart';
 import '../models/endgame_puzzle.dart';
+import '../models/tablebase_readout.dart';
 
 export '../models/blunder_game.dart';
 export '../models/endgame_catalog.dart';
 export '../models/drill_step.dart';
+export '../models/tablebase_readout.dart';
 
 /// Why the request came back empty.
 ///
@@ -298,6 +300,36 @@ class EndgameApiService {
           .toList();
     } catch (e) {
       AppLogger.log('[Zavrsnice] Greška pri izvođenju linije: $e');
+      return null;
+    }
+  }
+
+  /// What the tables say about the position in front of the reader.
+  ///
+  /// Asked for by hand, in a drill that will not come out. Deliberately the
+  /// whole finding and not one recommended move: which moves hold, which lose,
+  /// how far each is from the next capture or pawn move. A reader who is stuck
+  /// learns more from seeing that three moves hold and only one makes progress
+  /// than from being handed the one.
+  Future<TablebaseReadout?> fetchReadout({
+    required String fen,
+    required EndgameMode goal,
+  }) async {
+    final uri = Uri.parse('$backendUrl/api/puzzles/endgame/probe').replace(
+      queryParameters: {'fen': fen, 'goal': goal.name},
+    );
+    try {
+      final res = await http
+          .get(uri, headers: _headers)
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) {
+        AppLogger.log('[Zavrsnice] Nalaz nije stigao (${res.statusCode}).');
+        return null;
+      }
+      return TablebaseReadout.fromJson(
+          jsonDecode(res.body) as Map<String, dynamic>);
+    } catch (e) {
+      AppLogger.log('[Zavrsnice] Greška pri čitanju tablica: $e');
       return null;
     }
   }

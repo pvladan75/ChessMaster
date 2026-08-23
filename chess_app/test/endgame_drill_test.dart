@@ -73,10 +73,20 @@ void main() {
       expect(drillFeedbackText(step(finished: 'mate')), contains('Mat!'));
     });
 
+    test('a repetition is named for what it was', () {
+      // A dead drawn rook ending repeats within a few moves. Calling that
+      // "fifty moves without a capture" points at a counter that has barely
+      // started, and the two are not the same thing to say.
+      final text =
+          drillFeedbackText(step(goal: 'draw', finished: 'repetition'));
+      expect(text, contains('ponovila'));
+      expect(text, isNot(contains('Pedeset')));
+    });
+
     test('running the fifty moves out is not reported as success', () {
       // The one ending that looks like a win held. It was: the win was there
       // the whole way and the moves ran out, which is the lesson.
-      final text = drillFeedbackText(step(finished: 'draw_rule'));
+      final text = drillFeedbackText(step(finished: 'fifty_moves'));
       expect(text, contains('Pedeset poteza'));
       expect(text, contains('previše poteza'));
     });

@@ -2552,6 +2552,65 @@ Dva odgovora, oba mala:
 Za sve tri prijave važi isto: tabla je bila u pravu i ćutala je. Kad se negde
 uvodi stanje u kojem se ne igra, ono mora da se predstavi.
 
+## Nalaz tablica i zaključivanje remija — 24.8.2026
+
+Traženo pošto se u „Odigraj do kraja" često ne vidi rešenje, a u držanju remija
+se ne vidi ni kraj: KRP–KR pređe u KR–KR i onda nema šta da se odigra do kraja.
+
+**Pun nalaz, na zahtev.** Dugme „Nalaz tablica" u vežbi otvara ono što tablice
+kažu o poziciji koja stoji pred igračem: ishod, DTZ, i **svaki legalan potez**
+sa svojim ishodom, DTZ-om i oznakom da li nulira brojač. Ne jedan preporučen
+potez — cela slika, jer je ovde poenta baš u tome da **držanje nije napredak**.
+Motor bi dao „najbolji potez"; tablice daju skup onih koji drže i podatak koji
+od njih zaista vodi ka matu.
+
+Broji se: čip „Nalaz: n" stoji pored „Greške", jer vežba odigrana sa nalazom
+pred sobom nije ista kao ona bez njega.
+
+### Šta znače oznake, da se ne meša ponovo
+
+- **WDL** — ishod za stranu na potezu, i nije troje nego petoro: uz `win`,
+  `draw`, `loss` idu i `cursed-win` (dobitak koji pravilo 50 poteza pretvara u
+  remi) i `blessed-loss` (gubitak koji isto pravilo spasava). Kategorije
+  `unknown` i `maybe-win` se **odbijaju**, ne nagađaju.
+- **DTZ** — polupotezi do sledećeg uzimanja ili poteza pešaka, **ne do mata**.
+  Po njemu se broji pravilo 50 poteza, i zato ga tablice i čuvaju. Skače naviše
+  posle nuliranja, pa se napredak ne sme meriti prostim poređenjem preko takvog
+  poteza.
+- **DTM** — do mata. **Syzygy ga nema uopšte**; dolazi iz drugih tablica i
+  Lichess ga vraća samo do pet figura. Namerno se ne traži ni ne prikazuje.
+- Uz svaki potez stižu i `zeroing`, `checkmate`, `stalemate`,
+  `insufficient_material`.
+
+### Kad je remi gotov
+
+Korisnikovo pravilo, i traži se da **oba** uslova važe istovremeno:
+
+1. **Materijal je jedan od imenovanih mrtvih oblika**: R–R, Q–Q, B–R, N–R,
+   minorac protiv minorca, i sve što protiv golog kralja ne može da matira
+   (N, B, NN, istobojni lovci). Lista je zatvorena i pisana rukom namerno — to
+   su završnice koje igrač prepoznaje po imenu.
+2. **Svaki potez koji gubi je grub previd**: nije iznuđen, a gubi figuru odmah
+   ili je gubi na fork/nabod u sledećem potezu. Zato provera gleda dva
+   protivnikova poteza unapred, a ne samo da li figura visi — `Kc3` u
+   Da Silva–Gazel Pereira ništa ne ostavlja da visi i svejedno gubi damu na
+   `Qa1+`.
+
+Oba, a ne jedno ili drugo, i to je svesno oprezna strana: zatvoriti remi koji
+nije gotov znači oduzeti vežbu, a ostaviti ga otvorenim košta nekoliko poteza.
+Iznad svega stoji presuda tablica — oblik sa liste koji tablice zovu dobitkom
+jeste dobitak i lista tu nema reč.
+
+Kad su oba ispunjena, dugme „Zaključi remi" zatvara vežbu. Kad nisu, ne odbija
+ćutke nego imenuje šta je još ostalo da se pokvari.
+
+### Ponavljanje nije istek brojača
+
+Usput nađeno: `endOf` je oba remija po pravilu vraćao kao `draw_rule`, pa je
+mrtva topovska završnica — koja se ponovi za nekoliko poteza — završavala
+porukom „Pedeset poteza bez uzimanja". Sada se razlikuju (`repetition`,
+`fifty_moves`) i svaki se imenuje onim što se stvarno desilo.
+
 ### Govor prekida samo korisnik
 
 Traženo 23.8.2026: rečenica koja je počela **čuje se do kraja**. Ništa što
