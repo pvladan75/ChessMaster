@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 
 /// Everything the endgame screens have to say, in one place and in one order.
@@ -20,7 +21,7 @@ import 'package:chess_app/theme/app_colors.dart';
 /// The board is the thing being looked at, so its caption belongs after it; and
 /// text that appears and disappears above a board pushes the board down as it
 /// changes, which is worse than a caption a glance further away.
-class EndgameInfoPanel extends StatelessWidget {
+class EndgameInfoPanel extends StatefulWidget {
   const EndgameInfoPanel({
     super.key,
     required this.title,
@@ -49,8 +50,60 @@ class EndgameInfoPanel extends StatelessWidget {
   static const double sideWidth = 280;
 
   @override
+  State<EndgameInfoPanel> createState() => _EndgameInfoPanelState();
+}
+
+/// The panel is also where the app speaks from.
+///
+/// Here rather than in the two screens that use it, because the panel already
+/// holds the rule about what is worth reading and in what order - and because
+/// a screen that sets its feedback in six places would have to remember to
+/// speak in all six. What is on the panel is what is said; there is no second
+/// list to keep in step.
+class _EndgameInfoPanelState extends State<EndgameInfoPanel> {
+  @override
+  void initState() {
+    super.initState();
+    _say();
+  }
+
+  @override
+  void didUpdateWidget(EndgameInfoPanel old) {
+    super.didUpdateWidget(old);
+    if (old.message != widget.message ||
+        old.title != widget.title ||
+        old.subtitle != widget.subtitle) {
+      _say();
+    }
+  }
+
+  /// The verdict when there is one, the task when there is not.
+  ///
+  /// Both at once would mean hearing the question again after every answer,
+  /// which is the thing that makes spoken interfaces tiring: the verdict is
+  /// the new information, and the task is still on the screen for the eyes.
+  void _say() {
+    final message = widget.message;
+    if (message != null && message.trim().isNotEmpty) {
+      SpeechService.instance.speak(message);
+      return;
+    }
+    final subtitle = widget.subtitle;
+    SpeechService.instance.speak(
+      subtitle == null || subtitle.isEmpty
+          ? widget.title
+          : '${widget.title}. $subtitle',
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final title = widget.title;
+    final subtitle = widget.subtitle;
+    final chips = widget.chips;
+    final message = widget.message;
+    final messageIsGood = widget.messageIsGood;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -76,7 +129,7 @@ class EndgameInfoPanel extends StatelessWidget {
           Text(title, style: theme.textTheme.titleMedium),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
-            Text(subtitle!, style: theme.textTheme.bodySmall),
+            Text(subtitle, style: theme.textTheme.bodySmall),
           ],
           if (message != null) ...[
             const SizedBox(height: 10),
@@ -88,7 +141,7 @@ class EndgameInfoPanel extends StatelessWidget {
                     .withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(message!),
+              child: Text(message),
             ),
           ],
         ],

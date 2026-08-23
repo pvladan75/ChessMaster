@@ -30,6 +30,10 @@ dependencies:
   # Google Play Billing. Play is the merchant of record and is mandatory for
   # digital goods on Android, so it is the app's primary payment rail.
   in_app_purchase: ^3.2.0
+  # Spoken feedback, so the eyes can stay on the board. Android and Windows
+  # both go through the platform's own voices, which is why the app has to ask
+  # what is installed rather than assume Serbian is.
+  flutter_tts: ^4.2.5
 
 dev_dependencies:
   flutter_test:

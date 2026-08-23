@@ -120,6 +120,36 @@ do sledeće greške.
       poteza posle poslednje greške, a najduža sto pedeset pet.
 - [ ] Na 360 dp ništa ne izlazi iz ekrana.
 
+## 0k. Govor (TTS) — napisano 23.8.2026, nije viđeno uživo
+
+Podešavanja → „GOVOR (ČITANJE PORUKA)". Podrazumevano isključeno; na ovoj
+Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
+
+- [ ] Sa isključenim prekidačem aplikacija ćuti, i posle restarta je i dalje
+      isključeno.
+- [ ] Bez instaliranog glasa panel kaže da ga nema i kako se dodaje — a ne
+      ćuti i ne čita engleskim glasom.
+- [ ] Posle instaliranja hrvatskog glasa spisak jezika ga nudi i „Probaj" ga
+      izgovara — **bez restarta aplikacije**, samo ulaskom u Podešavanja ili
+      dugmetom „Potraži glasove ponovo".
+- [ ] „Probaj" pročita `Rd3` kao „top de tri", a `Kf2` kao „kralj ef dva".
+- [ ] U treneru završnica se presuda čuje čim se pojavi u panelu.
+- [ ] Nova presuda prekida prethodnu, ne čeka je da se dovrši.
+- [ ] Ista poruka se ne ponavlja kad se prozor promeni ili panel prerisuje.
+- [ ] Brzina čitanja se čuje kad se pomeri klizač.
+- [x] Isto na telefonu, sa srpskim glasom iz Google-ovog mehanizma —
+      **prošlo 23.8.2026**, uz dve zamerke ispod.
+- [ ] Brojevi u padežu: „Postoje još 2 takva poteza" (ne „2 takvih poteza"),
+      „Postoji još 1 takav potez", „Postoji još 5 takvih poteza".
+- [ ] `e6.` na kraju rečenice se čuje kao „e šest", ne „e šesti".
+- [ ] Kazna kaže „Ovako se kažnjava potez Qxb2", sa potezom na kraju.
+- [ ] U spisku glasova uz srpski/hrvatski piše „čita srpski", a strani glas
+      sme da se izabere i tada čita naš tekst svojom fonetikom.
+- [ ] Tabla čeka da se rečenica dovrši pa tek onda odigra sledeći potez — i u
+      šetnji kroz partiju i u prikazu kazne.
+- [ ] Ako glas ne javi kraj izgovora, šetnja se ipak nastavi (rok iz dužine
+      rečenice), a u dnevniku stoji red o tome.
+
 ## 0j. „Zapamti za kasnije" — napisano 23.8.2026, nije viđeno uživo
 
 Kad pozicija ostane nejasna i pored svih objašnjenja, dugme je sačuva u

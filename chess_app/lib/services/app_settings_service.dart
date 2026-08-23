@@ -21,6 +21,17 @@ class AppSettingsService extends ChangeNotifier {
   /// flutter_chess_board does natively).
   int _moveAnimationDurationMs = 200;
 
+  /// Spoken feedback: whether the app reads its messages out loud, how fast,
+  /// and with which of the machine's voices.
+  ///
+  /// The language is stored as the engine named it rather than as a code the
+  /// app invented, because it is handed straight back to the engine. An empty
+  /// string means "whatever fits Serbian best", which is what a machine with a
+  /// newly installed voice should do without anyone going into settings.
+  bool _speechEnabled = false;
+  double _speechRate = 0.5;
+  String _speechLanguage = '';
+
   /// Which opening database the Analysis Studio Opening Explorer panel
   /// queries: 'lichess' (real-game move popularity, needs an API token) or
   /// 'chessdb' (ChessDB.cn's shared engine analysis, no token needed).
@@ -34,6 +45,9 @@ class AppSettingsService extends ChangeNotifier {
   double get boardSizeScale => _boardSizeScale;
   String get lichessApiToken => _lichessApiToken;
   String get openingDbSource => _openingDbSource;
+  bool get speechEnabled => _speechEnabled;
+  double get speechRate => _speechRate;
+  String get speechLanguage => _speechLanguage;
 
   /// When true, moves no longer get an auto-generated tactical comment —
   /// the user picks which findings to keep (plus their own text) through
@@ -57,14 +71,20 @@ class AppSettingsService extends ChangeNotifier {
     }
 
     _defaultEngineDepth = (prefs.getInt('app_engine_depth') ?? 18).clamp(5, 50);
-    _defaultEngineMoveTimeSeconds = (prefs.getInt('app_engine_movetime') ?? 2).clamp(1, 60);
+    _defaultEngineMoveTimeSeconds =
+        (prefs.getInt('app_engine_movetime') ?? 2).clamp(1, 60);
     _defaultMultiPV = (prefs.getInt('app_multi_pv') ?? 3).clamp(1, 5);
     _customEnginePath = prefs.getString('custom_engine_path') ?? '';
-    _boardSizeScale = (prefs.getDouble('app_board_scale') ?? 1.0).clamp(0.6, 1.0);
+    _boardSizeScale =
+        (prefs.getDouble('app_board_scale') ?? 1.0).clamp(0.6, 1.0);
     _hiddenPanels = (prefs.getStringList('app_hidden_panels') ?? []).toSet();
     _lichessApiToken = prefs.getString('lichess_api_token') ?? '';
     _manualCommentMode = prefs.getBool('app_manual_comment_mode') ?? false;
-    _moveAnimationDurationMs = (prefs.getInt('app_move_animation_ms') ?? 200).clamp(0, 500);
+    _moveAnimationDurationMs =
+        (prefs.getInt('app_move_animation_ms') ?? 200).clamp(0, 500);
+    _speechEnabled = prefs.getBool('app_speech_enabled') ?? false;
+    _speechRate = (prefs.getDouble('app_speech_rate') ?? 0.5).clamp(0.2, 1.0);
+    _speechLanguage = prefs.getString('app_speech_language') ?? '';
     final storedSource = prefs.getString('app_opening_db_source');
     _openingDbSource = (storedSource == 'chessdb') ? 'chessdb' : 'lichess';
     notifyListeners();
@@ -136,6 +156,27 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('app_move_animation_ms', _moveAnimationDurationMs);
+  }
+
+  Future<void> setSpeechEnabled(bool enabled) async {
+    _speechEnabled = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('app_speech_enabled', _speechEnabled);
+  }
+
+  Future<void> setSpeechRate(double rate) async {
+    _speechRate = rate.clamp(0.2, 1.0);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('app_speech_rate', _speechRate);
+  }
+
+  Future<void> setSpeechLanguage(String language) async {
+    _speechLanguage = language;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_speech_language', _speechLanguage);
   }
 
   Future<void> setOpeningDbSource(String source) async {

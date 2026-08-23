@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/game_session_service.dart';
+import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/routing/app_router.dart';
 import 'package:chess_app/theme/app_colors.dart';
 
@@ -14,6 +17,15 @@ void main() async {
   // first route is resolved.
   await SessionService.instance.init();
   await GameSessionService.instance.init();
+  // Not awaited. Asking the platform what voices it has takes a moment on a
+  // cold start, and nothing on the first screen speaks; making the app wait for
+  // an answer it does not need yet would only delay the board.
+  final settings = AppSettingsService.instance;
+  unawaited(SpeechService.instance.init(
+    enabled: settings.speechEnabled,
+    rate: settings.speechRate,
+    preferred: settings.speechLanguage.isEmpty ? null : settings.speechLanguage,
+  ));
 
   runApp(const ProviderScope(child: ChessApp()));
 }

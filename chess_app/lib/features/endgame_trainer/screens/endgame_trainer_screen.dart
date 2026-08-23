@@ -554,10 +554,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         solve.puzzle,
       );
     }
-    final more = left == 1
-        ? '$held Postoji još jedan takav potez.'
-        : '$held Postoji još $left takvih poteza.';
-    return _withLesson(more, solve.puzzle);
+    return _withLesson('$held ${movesLeftText(left)}', solve.puzzle);
   }
 
   String _withLesson(String text, EndgamePuzzle puzzle) {

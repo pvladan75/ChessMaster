@@ -7,6 +7,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/move_tree.dart' show ChessArrow;
+import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/endgame_info_panel.dart';
@@ -286,7 +287,11 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       _refutation = fens;
       _refutationAt = 0;
       _feedbackIsGood = false;
-      _feedback = 'Ovako se ${blunder.played} kažnjava.';
+      // The move goes at the end, after a noun, rather than inside the verb
+      // phrase. "Ovako se Qxb2 kažnjava" reads passably and hears badly: spoken
+      // out, the notation lands in the middle of a construction the listener is
+      // still waiting to have finished.
+      _feedback = 'Ovako se kažnjava potez ${blunder.played}.';
     });
     _boardController.loadFen(fens.first);
 
@@ -295,6 +300,10 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
         _stopPlayback();
         return;
       }
+      // Let the sentence finish first. A board that moves under a verdict
+      // still being read leaves the listener hearing about a position that is
+      // no longer on the screen.
+      if (SpeechService.instance.isSpeaking) return;
       if (_refutationAt + 1 >= _refutation!.length) {
         _stopPlayback();
         return;
@@ -365,6 +374,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
         _stopPlayback();
         return;
       }
+      if (SpeechService.instance.isSpeaking) return;
       setState(walk.forward);
       _showCurrent();
       played++;

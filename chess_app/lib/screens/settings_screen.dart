@@ -4,6 +4,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
+import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -49,6 +50,177 @@ class _SettingsScreenState extends State<SettingsScreen> {
             : 'Lichess token sačuvan.'),
         backgroundColor: Colors.teal,
       ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Whoever opens this screen is usually here because of the voice, and may
+    // have installed one since the app started. Asking again costs a moment
+    // and saves a restart.
+    SpeechService.instance.refresh();
+  }
+
+  /// Turning speech on has to reach two places: what is remembered, and what
+  /// is running. Writing only the setting left the voice silent until a
+  /// restart, which reads as the switch not working.
+  Future<void> _setSpeechEnabled(bool enabled) async {
+    await _settings.setSpeechEnabled(enabled);
+    await SpeechService.instance.setEnabled(enabled);
+  }
+
+  Future<void> _setSpeechLanguage(String language) async {
+    await _settings.setSpeechLanguage(language);
+    await SpeechService.instance.setLanguage(language);
+  }
+
+  Future<void> _setSpeechRate(double rate) async {
+    await _settings.setSpeechRate(rate);
+    await SpeechService.instance.setRate(rate);
+  }
+
+  /// A sentence with a move in it, on purpose.
+  ///
+  /// The interesting half of reading chess aloud is the notation, so the test
+  /// button has to exercise it - a plain sentence would sound right on a setup
+  /// that mangles every verdict the trainer gives.
+  static const _speechSample =
+      'Tačno. Nakon Rd3 beli gubi remi, a Kf2 ga drži.';
+
+  Widget _speechCard(BuildContext context) {
+    final speech = SpeechService.instance;
+    return AnimatedBuilder(
+      animation: speech,
+      builder: (context, _) {
+        final languages = speech.availableLanguages;
+        return Card(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Izgovaraj poruke',
+                      style: TextStyle(fontWeight: FontWeight.w500)),
+                  subtitle: Text(
+                    'Poruke iz info panela se čitaju naglas, da pogled može da '
+                    'ostane na tabli.',
+                    style: AppText.caption
+                        .copyWith(color: context.colors.textMuted),
+                  ),
+                  value: _settings.speechEnabled,
+                  onChanged: _setSpeechEnabled,
+                ),
+                if (speech.state == SpeechState.noVoice ||
+                    speech.state == SpeechState.failed) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.warning_amber,
+                          color: Colors.orange, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          speech.state == SpeechState.failed
+                              ? 'Ovaj uređaj nema sintezu govora, pa čitanje '
+                                  'nije moguće.'
+                              : 'Nema instaliranog glasa za srpski. Windows ga '
+                                  'i ne nudi — instalirajte hrvatski '
+                                  '(Podešavanja → Vreme i jezik → Govor → '
+                                  'Dodaj glasove), koji čita srpski latinični '
+                                  'tekst ispravno. Na Androidu: Podešavanja → '
+                                  'Pristupačnost → Tekst u govor.',
+                          style: AppText.caption
+                              .copyWith(color: context.colors.textMuted),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: speech.refresh,
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('Potraži glasove ponovo'),
+                    ),
+                  ),
+                ],
+                if (languages.isNotEmpty) ...[
+                  const Divider(height: 24),
+                  const Text('Jezik govora:',
+                      style: TextStyle(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 8),
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    value: speech.language,
+                    hint: const Text('Izaberite glas'),
+                    items: [
+                      for (final language in languages)
+                        DropdownMenuItem(
+                          value: language,
+                          child: Text(SpeechService.fitsSerbian(language)
+                              ? '$language · čita srpski'
+                              : language),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) _setSpeechLanguage(value);
+                    },
+                  ),
+                  Text(
+                    'Spisak je ono što uređaj stvarno ima. Glas koji ne čita '
+                    'srpski sme da se izabere — pročitaće naš tekst svojom '
+                    'fonetikom, što je korisno da se čuje, ali nije za rad. '
+                    'Jezik same aplikacije je zasebno pitanje i čeka prevod '
+                    'svih tekstova.',
+                    style: AppText.caption
+                        .copyWith(color: context.colors.textMuted),
+                  ),
+                ],
+                const Divider(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Brzina čitanja:',
+                        style: TextStyle(fontWeight: FontWeight.w500)),
+                    Text(
+                      _settings.speechRate.toStringAsFixed(2),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.accent),
+                    ),
+                  ],
+                ),
+                Slider(
+                  value: _settings.speechRate.clamp(0.2, 1.0),
+                  min: 0.2,
+                  max: 1.0,
+                  divisions: 8,
+                  label: _settings.speechRate.toStringAsFixed(2),
+                  activeColor: context.colors.accent,
+                  onChanged: _setSpeechRate,
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ElevatedButton.icon(
+                    onPressed: _settings.speechEnabled
+                        ? () => speech.speak(_speechSample, force: true)
+                        : null,
+                    icon: const Icon(Icons.volume_up, size: 16),
+                    label: const Text('Probaj'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -176,9 +348,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // so light mode produced white-on-pale text in several panels.
               // Restore this picker once the colors go through theme tokens.
 
-              // A language picker used to live here, but the app has no
-              // localization layer — every string is hardcoded Serbian — so it
-              // silently did nothing. Re-add it together with real i18n.
+              // A language picker for the *app* used to live here, but there
+              // is no localization layer — every string is hardcoded Serbian —
+              // so it silently did nothing. Re-add it together with real i18n.
+              // The voice's language is a different question and is settable
+              // below: it picks among the voices the machine actually has.
 
               const SizedBox(height: 24),
               Text('STOCKFISH ENGINE',
@@ -437,6 +611,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
+
+              const SizedBox(height: 24),
+              Text('GOVOR (ČITANJE PORUKA)',
+                  style: AppText.bodyBold
+                      .copyWith(color: context.colors.textMuted)),
+              const SizedBox(height: 8),
+              _speechCard(context),
 
               const SizedBox(height: 24),
               Text('BAZA OTVARANJA (OPENING EXPLORER)',

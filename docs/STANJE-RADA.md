@@ -2254,6 +2254,116 @@ stoji u `_blunder_puzzles/Blunders_online.json`. Ako se ikad ukaže potreba da s
 online isključi iz izbora, prvi korak je kolona sa imenom baze pri uvozu —
 `blunder_games` je već ima (`source_db`).
 
+## Govor: aplikacija čita svoje poruke — 23.8.2026
+
+Traženo zato što se u treneru završnica pogled stalno cepa između table i info
+panela sa strane. Poruka koja se čuje ne traži da se skrene pogled, pa tabla
+ostaje u fokusu.
+
+**Gde se uključuje:** Podešavanja → „GOVOR (ČITANJE PORUKA)". Prekidač,
+izbor glasa, brzina i dugme „Probaj". **Podrazumevano je isključeno** — čas sa
+detetom u kojem odjednom progovori mašina nije nešto što treba da se desi
+slučajno.
+
+**Šta se čita:** ono što piše u info panelu — presuda kad je ima, inače zadatak.
+Kuka je u samom panelu (`lib/widgets/endgame_info_panel.dart`), a ne u ekranima
+koji ga koriste: ekran koji na šest mesta postavlja `_feedback` morao bi da se
+seti da na svih šest i progovori. Drugim mestima u aplikaciji se dodaje jednim
+pozivom — `SpeechService.instance.speak(tekst)`.
+
+### Notacija se ne čita slovo po slovo
+
+`Rd3` svaki sintetizator pročita kao tri znaka, što je šum. Zato
+`lib/core/services/speech_text.dart` prvo prevede poteze u reči: „top de tri",
+„pešak sa e uzima de pet", „dama ef jedan, mat", „mala rokada". Cifra ranga se
+namerno ostavlja kao cifra — glas je pročita na svom jeziku, pa brojevi ne
+moraju da se pišu.
+
+Rečnik (imena figura, imena linija) stoji odvojeno od pravila, jer se pri
+dodavanju drugog jezika menjaju samo reči — notacija je svuda ista.
+
+### Windows nema srpski glas, i to je uredno rešeno
+
+Microsoft-ov spisak glasova **nema srpski**, ali ima **hrvatski**. Hrvatski
+glas čita srpski latinični tekst ispravno — ista azbuka, isti glasovi — pa je
+redosled izbora `sr`, pa `hr`, `bs`, `sh`, `me`.
+
+Ono što se **nikad** ne radi: pad na engleski ili bilo koji drugi glas. Engleski
+glas kojem se da srpski tekst ne otkaže — pročita ga engleskom fonetikom, što
+zvuči kao da funkcija radi. To je isti oblik greške kao sve iz `CLAUDE.md`, pa
+umesto toga panel u podešavanjima kaže da glasa nema i kako se dodaje.
+
+Spisak glasova se ne čita samo pri pokretanju: glas se instalira iz podešavanja
+operativnog sistema, dok aplikacija već radi. Zato se traži ponovo svaki put kad
+se otvori ekran sa podešavanjima, a postoji i dugme „Potraži glasove ponovo" —
+bez toga bi aplikacija tvrdila da glasa nema onome ko ga je upravo instalirao.
+
+**Na ovoj mašini glasa još nema** (instalirani su samo engleski i nemački).
+Windows: Podešavanja → Vreme i jezik → Govor → Dodaj glasove → Hrvatski.
+Android: Podešavanja → Pristupačnost → Tekst u govor (Google-ov mehanizam ima
+srpski, ali se podaci za jezik skidaju posebno).
+
+### Windows build od sada traži `nuget.exe`
+
+`flutter_tts` na Windows-u u CMake koraku povlači CppWinRT preko NuGet-a i
+**prekida build** ako `nuget` nije na PATH-u. Instalirano 23.8.2026 sa
+`winget install Microsoft.NuGet`. Poruka je jasna i glasna (`nuget.exe not
+found`), pa ovo ne može da prođe nezapaženo — ali novoj mašini treba isti
+korak. CI ne dira: gradi APK na Ubuntu-u.
+
+### Nađeno na telefonu 23.8.2026, popravljeno istog dana
+
+Prva proba uživo (Android) dala je dve stvari, obe iz onoga što se čuje a ne
+vidi:
+
+**Brojevi nisu bili u padežu.** Pisalo je i izgovaralo se „Postoji još 2 takvih
+poteza". Srpski ima tri oblika, ne dva, a aplikacija je svuda pisala treći:
+
+    1, 21, 31 …    Postoji još 1 takav potez.
+    2-4, 22-24 …   Postoje još 2 takva poteza.
+    5-20, 25-30 …  Postoji još 5 takvih poteza.
+    11-14          idu uz poslednji oblik, iako se završavaju na 1-4
+
+Pravilo je sada na jednom mestu (`lib/core/services/serbian_plural.dart`) i
+pokriveno testovima; ekran za izbor završnica je imao svoju kopiju istog
+pravila, pa je i ona zamenjena. U tekstu se broj piše ciframa, jer je „jedan"
+tačno samo za 1 a ne i za 21.
+
+**Tačka posle cifre je redni broj.** `e6.` na kraju rečenice čitalo se „e šesti".
+Rang se zato više ne šalje kao cifra nego kao reč („e šest"), pa nema šta da se
+pročita kao redni broj. Isti problem imaju i brojevi koji nisu polja — „Nađeno 3
+od 12." — pa se tu tačka posle cifre izbacuje; broj ostaje broj, a gubi se samo
+pauza na kraju rečenice. Redosled je bitan: potezi se prevode pre tog pravila,
+inače bi i rečenica sa potezom ostala bez tačke.
+
+**Potez usred glagolske konstrukcije.** „Ovako se Qxb2 kažnjava" prolazi u
+tekstu a ne prolazi na uho: izgovorena notacija padne usred konstrukcije koju
+slušalac još čeka da se dovrši. Sada glasi „Ovako se kažnjava potez Qxb2" —
+potez na kraju, iza imenice. Pravilo za dalje: kad rečenicu treba i čuti, potez
+ide na kraj, a ne između glagola i njegovog nastavka.
+
+**Tabla se pomerala dok se govori.** Odigravanje partije je išlo dalje ispod
+rečenice koja se još čita, pa je slušalac dobijao objašnjenje pozicije koje više
+nema na ekranu. Sada oba odigravanja u šetnji preskaču otkucaj dok govor traje.
+
+Uz to ide osigurač: `flutter_tts` javlja kraj izgovora na Androidu, a Windows je
+druga implementacija i za nju se ne može jemčiti. Zastavica koja se nikad ne
+skine zamrzla bi šetnju zauvek, što je gore od preklopljene rečenice — pa
+postoji i rok, izračunat iz dužine rečenice, posle kojeg se nastavlja i bez
+potvrde. Kad se to desi, piše u dnevniku.
+
+Spisak glasova se **označava, a ne filtrira**: uz one koji čitaju srpski piše
+„čita srpski", ali sme da se izabere bilo koji. Čuti kako engleski glas čita naš
+tekst je razumna radoznalost i korisna proba — samo nije za rad, jer notacija i
+dalje izlazi kao srpske reči („top de tri"), pročitane tuđom fonetikom.
+
+### Jezik aplikacije je zasebno pitanje
+
+U podešavanjima se bira **jezik govora**, iz spiska koji uređaj stvarno ima.
+Jezik same aplikacije nije isto i još ne postoji: svi tekstovi su tvrdo upisani
+na srpskom, pa je stari izbornik jezika i uklonjen jer nije radio ništa.
+Kad se uradi i18n, `SpeechVocabulary` je već pripremljen da dobije drugi jezik.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,

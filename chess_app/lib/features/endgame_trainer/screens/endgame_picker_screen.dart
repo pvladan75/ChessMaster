@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/core/services/serbian_plural.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 
@@ -241,7 +242,7 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
                 }),
                 title: Text(ending.label),
                 subtitle: Text('${ending.material} · '
-                    '${ending.countIn(_band)} pozicija'),
+                    '${_positions(ending.countIn(_band))}'),
               ),
         ],
       ),
@@ -249,13 +250,20 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
   }
 
   /// One vrsta, two to four vrste, five and up vrsta.
-  String _shapeWord(int n) {
-    if (n % 10 == 1 && n % 100 != 11) return 'vrsta';
-    if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) {
-      return 'vrste';
-    }
-    return 'vrsta';
-  }
+  String _shapeWord(int n) => serbianCount(
+        n,
+        one: 'vrsta',
+        few: 'vrste',
+        many: 'vrsta',
+      );
+
+  /// One pozicija, two to four pozicije, five and up pozicija.
+  String _positions(int n) => serbianCount(
+        n,
+        one: '$n pozicija',
+        few: '$n pozicije',
+        many: '$n pozicija',
+      );
 
   Widget _buildBar() {
     final total = _total;
@@ -268,7 +276,7 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
               child: Text(
                 total == 0
                     ? 'Nijedna pozicija ne odgovara ovom izboru'
-                    : 'Izabrano: $total pozicija',
+                    : 'Izabrano: ${_positions(total)}',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
