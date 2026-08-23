@@ -111,6 +111,17 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// under the board there would push the board off the screen.
   bool _readoutOpen = false;
 
+  /// Playing on from the position by hand, with the tables open.
+  ///
+  /// Not the drill any more, and deliberately so: here a move is not judged,
+  /// nothing is counted, and either side may be moved. It is for the question
+  /// the drill cannot answer by stopping — "why was that bad" — which is
+  /// answered by playing the punishment out and watching it happen.
+  bool _exploring = false;
+
+  /// Where to put the board back when the exploring is done.
+  String? _exploreFrom;
+
   /// Moves still to be held after the reader claimed the draw. Null when no
   /// claim is standing.
   int? _holdLeft;
@@ -227,6 +238,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _drilling = false;
       _punishing = false;
       _readouts = 0;
+      _exploring = false;
+      _exploreFrom = null;
       _readout = null;
       _readoutFen = null;
       _holdLeft = null;
@@ -259,6 +272,10 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   Future<void> _onMove(String from, String to) async {
     // A move is an answer, and an answer ends whatever was still being said.
     SpeechService.instance.stop();
+    if (_exploring) {
+      _playExploringMove(from, to);
+      return;
+    }
     final solve = _solve;
     final game = _game;
     if (solve == null || game == null || _boardLocked) return;
@@ -544,7 +561,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     }
     await showDialog<void>(
       context: context,
-      builder: (context) => _ReadoutDialog(readout: readout),
+      builder: (context) =>
+          _ReadoutDialog(readout: readout, onPlay: _playFromReadout),
     );
   }
 
@@ -582,14 +600,83 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     return readout;
   }
 
+  /// Plays a move from the finding, whoever it belongs to.
+  ///
+  /// The reader asked for this after a losing move: rather than take it back
+  /// and never learn anything, play the refutation from the list, answer it on
+  /// the board, and keep going until the reason is on the screen. So the first
+  /// tap steps out of the drill and into exploring, and the position the drill
+  /// stopped at is remembered.
+  void _playFromReadout(ReadoutMove move) {
+    final game = _game;
+    if (game == null) return;
+    final board = chess.Chess.fromFEN(game.fen);
+    final from = move.uci.substring(0, 2);
+    final to = move.uci.substring(2, 4);
+    final promotion = move.uci.length > 4 ? move.uci.substring(4, 5) : 'q';
+    if (board.move({'from': from, 'to': to, 'promotion': promotion}) == false) {
+      return;
+    }
+    setState(() {
+      _exploreFrom ??= game.fen;
+      _exploring = true;
+      _game = board;
+      _boardLocked = false;
+      _feedbackIsGood = move.holds;
+      _feedback = 'Istražujete: ${move.san}. '
+          '${_readoutMoveWord(move)} Tabla je slobodna — odigrajte odgovor ili '
+          'uzmite potez iz nalaza.';
+    });
+    _boardController.loadFen(board.fen);
+    _refreshReadout(force: true);
+  }
+
+  /// One move played by hand on the board while exploring.
+  void _playExploringMove(String from, String to) {
+    final game = _game;
+    if (game == null) return;
+    final board = chess.Chess.fromFEN(game.fen);
+    if (board.move({'from': from, 'to': to, 'promotion': 'q'}) == false) return;
+    setState(() {
+      _game = board;
+      _feedbackIsGood = false;
+      _feedback = 'Istražujete — potezi se ovde ne ocenjuju.';
+    });
+    _boardController.loadFen(board.fen);
+    _refreshReadout(force: true);
+  }
+
+  /// Puts the board back where the exploring started.
+  void _stopExploring() {
+    final back = _exploreFrom;
+    if (back == null) return;
+    setState(() {
+      _exploring = false;
+      _exploreFrom = null;
+      _game = chess.Chess.fromFEN(back);
+      _feedback = null;
+      _feedbackIsGood = false;
+    });
+    _boardController.loadFen(back);
+    _refreshReadout(force: true);
+  }
+
+  /// What one line of the finding says about a move, in words.
+  String _readoutMoveWord(ReadoutMove move) {
+    final outcome = outcomeWord(move.outcome);
+    if (move.dtz == null) return 'Posle njega: $outcome.';
+    return 'Posle njega: $outcome, DTZ ${move.dtz}.';
+  }
+
   /// Keeps the open panel about the position in front of the reader.
   ///
   /// Called after every judged move, so the reader can play on with the tables
   /// beside them and watch where it goes wrong — which is the point of the
   /// panel rather than the dialog. The stale answer is dropped first: better an
   /// empty panel for a moment than a list belonging to a position that is gone.
-  Future<void> _refreshReadout() async {
-    if (!_readoutOpen) return;
+  Future<void> _refreshReadout({bool force = false}) async {
+    if (!_readoutOpen && !force) return;
+    if (!_readoutOpen && _readout == null) return;
     setState(() {
       _readout = null;
       _readoutFen = null;
@@ -889,6 +976,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
                 // has moved on would be read as being about this board.
                 readout: _readoutFen == _game?.fen ? _readout : null,
                 loading: _reading,
+                onPlay: _playFromReadout,
               ),
             ],
           )
@@ -916,7 +1004,10 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
                         boardOrientation: _orientation,
                         boardSize: inner,
                         isAllowedToMove: !_boardLocked &&
-                            (_drilling ? _drillEnd == null : !solve.isComplete),
+                            (_exploring ||
+                                (_drilling
+                                    ? _drillEnd == null
+                                    : !solve.isComplete)),
                         isDrawingMode: false,
                         drawingStartSquare: null,
                         arrows: const [],
@@ -1012,6 +1103,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         if (puzzle.isExact) 'Tačno iz tablica',
         if (_drilling && _drillMoves > 0) 'Odigrano: $_drillMoves',
         if (_drilling && _drillMistakes > 0) 'Greške: $_drillMistakes',
+        if (_exploring) 'Istraživanje',
         if (_readouts > 0) 'Nalaz: $_readouts',
         if (_holdLeft != null && _holdLeft! > 0) 'Do remija: $_holdLeft',
         if (!_drilling && _attempted > 0) 'Rešeno: $_solved/$_attempted',
@@ -1056,6 +1148,12 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           // reader is playing against perfect defence and can be stuck without
           // having blundered, which is a different situation from the one the
           // solve screen's hint is for.
+          if (_exploring)
+            FilledButton.icon(
+              onPressed: _stopExploring,
+              icon: const Icon(Icons.undo),
+              label: const Text('Nazad na poziciju'),
+            ),
           Builder(builder: (context) {
             final wide = Breakpoints.isWide(context);
             final open = wide && _readoutOpen;
@@ -1199,10 +1297,15 @@ double _dialogWidth(BuildContext context) {
 /// tables and their own idea part company. That is what was asked for, and it
 /// is why this is not modal.
 class _ReadoutPanel extends StatelessWidget {
-  const _ReadoutPanel({required this.readout, required this.loading});
+  const _ReadoutPanel({
+    required this.readout,
+    required this.loading,
+    this.onPlay,
+  });
 
   final TablebaseReadout? readout;
   final bool loading;
+  final void Function(ReadoutMove move)? onPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -1254,7 +1357,11 @@ class _ReadoutPanel extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (final move in data.moves) _MoveRow(move: move),
+                    for (final move in data.moves)
+                      _MoveRow(
+                        move: move,
+                        onTap: onPlay == null ? null : () => onPlay!.call(move),
+                      ),
                   ],
                 ),
               ),
@@ -1262,7 +1369,8 @@ class _ReadoutPanel extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               'DTZ: polupotezi do uzimanja ili poteza pešaka, ne do mata. '
-              'Zvezdica = potez nulira taj brojač.',
+              'Zvezdica = potez nulira taj brojač. '
+              'Dodir na potez ga odigra na tabli.',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: context.colors.textMuted),
             ),
@@ -1281,9 +1389,10 @@ class _ReadoutPanel extends StatelessWidget {
 /// distance to the next capture or pawn move, and it is not the distance to
 /// mate, which Syzygy does not store at all.
 class _ReadoutDialog extends StatelessWidget {
-  const _ReadoutDialog({required this.readout});
+  const _ReadoutDialog({required this.readout, this.onPlay});
 
   final TablebaseReadout readout;
+  final void Function(ReadoutMove move)? onPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -1312,19 +1421,21 @@ class _ReadoutDialog extends StatelessWidget {
             const SizedBox(height: 12),
             if (holding.isNotEmpty) ...[
               Text('Drže rezultat', style: theme.textTheme.labelLarge),
-              for (final move in holding) _MoveRow(move: move),
+              for (final move in holding)
+                _MoveRow(move: move, onTap: _tap(context, move)),
             ],
             if (losing.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text('Gube rezultat', style: theme.textTheme.labelLarge),
-              for (final move in losing) _MoveRow(move: move),
+              for (final move in losing)
+                _MoveRow(move: move, onTap: _tap(context, move)),
             ],
             const Divider(height: 24),
             Text(
               'DTZ je broj polupoteza do sledećeg uzimanja ili poteza pešaka, '
               'ne do mata — po njemu se broji pravilo pedeset poteza. Zvezdica '
               'znači da potez nulira taj brojač, što je u dobijenoj poziciji '
-              'napredak po definiciji.',
+              'napredak po definiciji. Dodir na potez ga odigra na tabli.',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: context.colors.textMuted),
             ),
@@ -1339,18 +1450,34 @@ class _ReadoutDialog extends StatelessWidget {
       ],
     );
   }
+
+  /// Closes first, then plays: the move happens on the board behind, and the
+  /// dialog would be standing over the thing it was asked to show.
+  VoidCallback? _tap(BuildContext context, ReadoutMove move) {
+    final play = onPlay;
+    if (play == null) return null;
+    return () {
+      Navigator.of(context).pop();
+      play(move);
+    };
+  }
 }
 
 class _MoveRow extends StatelessWidget {
-  const _MoveRow({required this.move});
+  const _MoveRow({required this.move, this.onTap});
 
   final ReadoutMove move;
+
+  /// Plays this move on the board. The finding stops being a list to read and
+  /// becomes a way to ask "and then what?", which is the question a losing move
+  /// leaves behind.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colour = move.holds ? Colors.green : Colors.orange;
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
@@ -1391,6 +1518,12 @@ class _MoveRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+    if (onTap == null) return row;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: row,
     );
   }
 }

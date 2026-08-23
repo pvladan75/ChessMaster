@@ -328,6 +328,66 @@ void main() {
     expect(find.text('Rf1+'), findsNothing);
   });
 
+  testWidgets('a move from the finding is played, and the board stays open',
+      (tester) async {
+    // Asked for after a losing move: rather than take it back and learn
+    // nothing, play the refutation from the list and answer it on the board.
+    // So the tap plays the move, the drill steps aside, and nothing is judged
+    // or counted while it lasts.
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      wrap(
+        EndgameTrainerScreen(
+          session: UserSession(
+              token: 't', id: 1, email: 'a@b', name: 'Test', role: 'korisnik'),
+          api: _FakeEndgameApi(
+            EndgameFetchResult(EndgameFetchOutcome.ok, worstCasePuzzle()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nalaz tablica'));
+    await tester.pumpAndSettle();
+
+    final board = find.byType(ChessBoardWithOverlay);
+    final before =
+        tester.widget<ChessBoardWithOverlay>(board).controller.game.fen;
+
+    // Rf1+ is one of the moves the fake finding offers.
+    await tester.tap(find.text('Rf1+'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<ChessBoardWithOverlay>(board).controller.game.fen,
+      isNot(before),
+      reason: 'potez iz nalaza mora da se odigra na tabli',
+    );
+    expect(find.text('Istraživanje'), findsOneWidget);
+    expect(find.text('Nazad na poziciju'), findsOneWidget);
+    expect(
+      tester.widget<ChessBoardWithOverlay>(board).isAllowedToMove,
+      isTrue,
+      reason: 'tabla ostaje slobodna da se odgovori',
+    );
+    // Nothing was judged, so nothing is counted against the reader.
+    expect(find.textContaining('Greške:'), findsNothing);
+
+    await tester.tap(find.text('Nazad na poziciju'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<ChessBoardWithOverlay>(board).controller.game.fen,
+      before,
+      reason: 'povratak vraca tacno onu poziciju odakle se krenulo',
+    );
+    expect(find.text('Istraživanje'), findsNothing);
+  });
+
   testWidgets('on a phone the finding is still a window', (tester) async {
     // There is no column to spare under the board on 360 dp, and a panel there
     // would push the board off the screen.

@@ -2581,6 +2581,23 @@ prelivao 23 piksela, a red poteza je imao fiksnu širinu za notaciju. Sada se
 širina uzima iz ekrana (uz onih 128 piksela koje `AlertDialog` potroši na svoje
 margine i razmak), a red se skuplja umesto da seče.
 
+### Potez iz nalaza se može odigrati
+
+Traženo posle prvog korišćenja, i menja čemu nalaz služi: kad potez ispusti
+rezultat, umesto „Vrati potez" — što ne nauči ništa — može se **kliknuti potez
+iz spiska** i on se odigra na tabli. Tabla ostaje slobodna, pa se odgovori
+rukom, pa opet iz spiska, dokle god treba da se vidi **zašto** je potez bio loš.
+
+To je zaseban režim, „Istraživanje", i namerno je odvojen od vežbe:
+
+- potezi se **ne sude** i ne ulaze u brojač grešaka;
+- pomera se **bilo koja strana**, jer se kazna igra protivnikovim potezima;
+- „Nazad na poziciju" vraća tačno onaj položaj odakle se krenulo.
+
+Panel se pri svakom takvom potezu osvežava, pa se ceo niz prati sa tablicama sa
+strane. Na telefonu prozorčić se prvo zatvori pa se potez odigra — inače bi
+stajao preko onoga što je tražio da pokaže.
+
 ### Šta znače oznake, da se ne meša ponovo
 
 - **WDL** — ishod za stranu na potezu, i nije troje nego petoro: uz `win`,

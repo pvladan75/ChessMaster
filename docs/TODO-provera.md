@@ -173,6 +173,11 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
       dok se igra; dugme se pretvara u „Sakrij nalaz".
 - [ ] Posle svakog poteza panel pokazuje nalaz za **novu** poziciju.
 - [ ] Na telefonu je i dalje prozorčić i ništa se ne preliva na 360 dp.
+- [ ] Klik na potez iz nalaza ga odigra na tabli; pojavi se čip „Istraživanje"
+      i dugme „Nazad na poziciju".
+- [ ] U tom režimu se pomera i protivnikova strana, potezi se ne broje kao
+      greške, a panel prati novu poziciju.
+- [ ] „Nazad na poziciju" vrati tačno položaj odakle se krenulo.
 - [ ] Uz svaki potez piše ishod i DTZ; ispod stoji šta DTZ znači.
 - [ ] Posle korišćenja se pojavi čip „Nalaz: n", i nestaje na sledećoj poziciji.
 - [ ] U KRP–KR koje pređe u KR–KR pojavi se „Zaključi remi" i zatvori vežbu.
