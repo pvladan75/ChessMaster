@@ -7,6 +7,8 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/breakpoints.dart';
+import 'package:chess_app/widgets/endgame_info_panel.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
@@ -301,135 +303,120 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     final walk = _walk;
     if (walk == null) return const SizedBox.shrink();
 
+    final wide = Breakpoints.isWide(context);
+    final panel = EndgameInfoPanel(
+      title: _taskText(walk),
+      subtitle: _hintText(walk),
+      chips: _chips(walk),
+      message: _feedback,
+      messageIsGood: _feedbackIsGood,
+    );
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Same reasoning as the trainer: the board is square, so the tighter
-        // axis bounds it, and a release build paints no warning when a row
-        // outgrows the screen.
-        final heightBased = (constraints.maxHeight - 320).clamp(180.0, 520.0);
-        final widthBased = (constraints.maxWidth - 24).clamp(160.0, 520.0);
-        final boardSize = heightBased < widthBased ? heightBased : widthBased;
-
         return SingleChildScrollView(
           padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              _buildHeader(walk),
-              const SizedBox(height: 10),
-              Center(
-                child: BoardWithCoordinates(
-                  size: boardSize,
-                  orientation: _orientation,
-                  builder: (inner) => ChessBoardWithOverlay(
-                    controller: _boardController,
-                    boardOrientation: _orientation,
-                    boardSize: inner,
-                    isAllowedToMove: walk.pending != null &&
-                        walk.cursor == walk.pending!.ply,
-                    isDrawingMode: false,
-                    drawingStartSquare: null,
-                    arrows: const [],
-                    engineArrows: const [],
-                    onMove: _onMove,
-                    onSquareTapForDrawing: (_) {},
+          child: EndgameBoardLayout(
+            wide: wide,
+            constraints: constraints,
+            panel: panel,
+            builder: (boardArea) {
+              // The board is square, so the tighter axis bounds it. Beside a
+              // panel there is less width and more height to spend, which is
+              // why the reserve differs.
+              final reserved = wide ? 200.0 : 300.0;
+              final heightBased =
+                  (constraints.maxHeight - reserved).clamp(180.0, 560.0);
+              final widthBased = (boardArea - 24).clamp(160.0, 560.0);
+              final boardSize =
+                  heightBased < widthBased ? heightBased : widthBased;
+
+              return Column(
+                children: [
+                  Center(
+                    child: BoardWithCoordinates(
+                      size: boardSize,
+                      orientation: _orientation,
+                      builder: (inner) => ChessBoardWithOverlay(
+                        controller: _boardController,
+                        boardOrientation: _orientation,
+                        boardSize: inner,
+                        isAllowedToMove: walk.pending != null &&
+                            walk.cursor == walk.pending!.ply,
+                        isDrawingMode: false,
+                        drawingStartSquare: null,
+                        arrows: const [],
+                        engineArrows: const [],
+                        onMove: _onMove,
+                        onSquareTapForDrawing: (_) {},
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              MoveNavigationControls(
-                cursor: LinearMoveCursor(
-                  fens: _fens,
-                  index: walk.cursor,
-                  onSeek: _seek,
-                ),
-                // No chips. Naming the moves under the board says in notation
-                // what the board is already saying in pieces, and it is the
-                // form a child working on a board needs least.
-                showMoveChips: false,
-                centerLabel: 'Potez ${walk.cursor} od ${walk.frontier}',
-                onFlipBoard: () => setState(() {
-                  _orientation = _orientation == PlayerColor.white
-                      ? PlayerColor.black
-                      : PlayerColor.white;
-                }),
-              ),
-              if (_feedback != null) ...[
-                const SizedBox(height: 8),
-                _buildFeedback(),
-              ],
-              const SizedBox(height: 10),
-              _buildControls(walk),
-            ],
+                  const SizedBox(height: 8),
+                  MoveNavigationControls(
+                    cursor: LinearMoveCursor(
+                      fens: _fens,
+                      index: walk.cursor,
+                      onSeek: _seek,
+                    ),
+                    // No chips. Naming the moves under the board says in
+                    // notation what the board is already saying in pieces, and
+                    // it is the form a child working on a board needs least.
+                    showMoveChips: false,
+                    centerLabel: 'Potez ${walk.cursor} od ${walk.frontier}',
+                    onFlipBoard: () => setState(() {
+                      _orientation = _orientation == PlayerColor.white
+                          ? PlayerColor.black
+                          : PlayerColor.white;
+                    }),
+                  ),
+                  if (!wide) ...[
+                    const SizedBox(height: 8),
+                    panel,
+                  ],
+                  const SizedBox(height: 10),
+                  _buildControls(walk),
+                ],
+              );
+            },
           ),
         );
       },
     );
   }
 
-  Widget _buildHeader(BlunderWalk walk) {
+  String _taskText(BlunderWalk walk) {
     final blunder = walk.pending;
-    final String task;
     if (blunder == null) {
-      task = walk.isFinished
+      return walk.isFinished
           ? 'Partija je prošla — nađeno ${walk.solvedCount} od ${walk.totalCount}'
           : 'Prođite kroz nastavak, pa dalje na sledeću grešku';
-    } else if (walk.cursor != blunder.ply) {
-      task = 'Vratite se na grešku da biste nastavili';
-    } else {
-      final who = blunder.side == 'white' ? 'Beli' : 'Crni';
-      task = blunder.lostAWin
-          ? '$who je ovde odigrao ${blunder.played} i ispustio dobitak'
-          : '$who je ovde odigrao ${blunder.played} i izgubio remi';
     }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(task, style: Theme.of(context).textTheme.titleMedium),
-        if (blunder != null && walk.cursor == blunder.ply)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              blunder.lostAWin
-                  ? 'Nađite potez koji zadržava dobitak.'
-                  : 'Nađite potez koji drži remi.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        const SizedBox(height: 6),
-        // Wrap, not Row: the game label alone can outgrow a narrow phone.
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            _chip(walk.game.label),
-            _chip('Greške: ${walk.answeredCount}/${walk.totalCount}'),
-            if (blunder?.material != null) _chip(blunder!.material!),
-          ],
-        ),
-      ],
-    );
+    if (walk.cursor != blunder.ply) {
+      return 'Vratite se na grešku da biste nastavili';
+    }
+    final who = blunder.side == 'white' ? 'Beli' : 'Crni';
+    return blunder.lostAWin
+        ? '$who je ovde odigrao ${blunder.played} i ispustio dobitak'
+        : '$who je ovde odigrao ${blunder.played} i izgubio remi';
   }
 
-  Widget _chip(String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-      );
+  String? _hintText(BlunderWalk walk) {
+    final blunder = walk.pending;
+    if (blunder == null || walk.cursor != blunder.ply) return null;
+    return blunder.lostAWin
+        ? 'Nađite potez koji zadržava dobitak.'
+        : 'Nađite potez koji drži remi.';
+  }
 
-  Widget _buildFeedback() => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: (_feedbackIsGood ? Colors.green : Colors.orange)
-              .withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(_feedback!, textAlign: TextAlign.center),
-      );
+  List<String> _chips(BlunderWalk walk) {
+    final blunder = walk.pending;
+    return [
+      walk.game.label,
+      'Greške: ${walk.answeredCount}/${walk.totalCount}',
+      if (blunder?.material != null) blunder!.material!,
+    ];
+  }
 
   Widget _buildControls(BlunderWalk walk) {
     final blunder = walk.pending;

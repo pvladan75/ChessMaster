@@ -5,7 +5,9 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
+import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/endgame_info_panel.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import '../models/endgame_puzzle.dart';
@@ -563,107 +565,105 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     final solve = _solve;
     if (solve == null) return const SizedBox.shrink();
 
+    final wide = Breakpoints.isWide(context);
+    final panel = EndgameInfoPanel(
+      title: _taskText(solve.puzzle),
+      subtitle: _storyText(solve.puzzle),
+      chips: _chips(solve.puzzle),
+      message: _feedback,
+      messageIsGood: _feedbackIsGood,
+    );
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        // The board is square, so the tighter axis bounds it. Taking the
-        // minimum against the width matters on a short, narrow window, where
-        // the height-derived size would otherwise overflow sideways - and a
-        // release build paints no warning when it does.
-        final heightBased = (constraints.maxHeight - 260).clamp(200.0, 560.0);
-        final widthBased = (constraints.maxWidth - 24).clamp(180.0, 560.0);
-        final boardSize = heightBased < widthBased ? heightBased : widthBased;
-
         return SingleChildScrollView(
           padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              _buildHeader(solve.puzzle),
-              const SizedBox(height: 12),
-              Center(
-                child: BoardWithCoordinates(
-                  size: boardSize,
-                  orientation: _orientation,
-                  builder: (inner) => ChessBoardWithOverlay(
-                    controller: _boardController,
-                    boardOrientation: _orientation,
-                    boardSize: inner,
-                    isAllowedToMove: !_boardLocked &&
-                        (_drilling ? _drillEnd == null : !solve.isComplete),
-                    isDrawingMode: false,
-                    drawingStartSquare: null,
-                    arrows: const [],
-                    engineArrows: const [],
-                    onMove: _onMove,
-                    onSquareTapForDrawing: (_) {},
+          child: EndgameBoardLayout(
+            wide: wide,
+            constraints: constraints,
+            panel: panel,
+            builder: (boardArea) {
+              // The board is square, so the tighter axis bounds it. Beside a
+              // panel there is less width and more height to spend, which is
+              // why the reserve differs.
+              final reserved = wide ? 160.0 : 260.0;
+              final heightBased =
+                  (constraints.maxHeight - reserved).clamp(200.0, 560.0);
+              final widthBased = (boardArea - 24).clamp(180.0, 560.0);
+              final boardSize =
+                  heightBased < widthBased ? heightBased : widthBased;
+
+              return Column(
+                children: [
+                  Center(
+                    child: BoardWithCoordinates(
+                      size: boardSize,
+                      orientation: _orientation,
+                      builder: (inner) => ChessBoardWithOverlay(
+                        controller: _boardController,
+                        boardOrientation: _orientation,
+                        boardSize: inner,
+                        isAllowedToMove: !_boardLocked &&
+                            (_drilling ? _drillEnd == null : !solve.isComplete),
+                        isDrawingMode: false,
+                        drawingStartSquare: null,
+                        arrows: const [],
+                        engineArrows: const [],
+                        onMove: _onMove,
+                        onSquareTapForDrawing: (_) {},
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (_feedback != null) _buildFeedback(),
-              const SizedBox(height: 12),
-              _buildControls(solve),
-            ],
+                  if (!wide) ...[
+                    const SizedBox(height: 12),
+                    panel,
+                  ],
+                  const SizedBox(height: 12),
+                  _buildControls(solve),
+                ],
+              );
+            },
           ),
         );
       },
     );
   }
 
-  Widget _buildHeader(EndgamePuzzle puzzle) {
+  String _taskText(EndgamePuzzle puzzle) {
     final onMove = puzzle.whiteToMove ? 'Beli' : 'Crni';
-    final String task;
     if (_drilling) {
-      task = _punishing
+      return _punishing
           ? 'Kaznite grešku — odigrajte dobitak do kraja'
           : (puzzle.mode == EndgameMode.draw
               ? 'Igrate do kraja — držite remi'
               : 'Igrate do kraja — odigrajte dobitak');
-    } else {
-      task = puzzle.mode == EndgameMode.draw
-          ? '$onMove na potezu — održite remi'
-          : '$onMove na potezu — zadržite dobitak';
     }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(task, style: Theme.of(context).textTheme.titleMedium),
-        // What actually happened here, when the position came from a real
-        // mistake. It gives away one move out of thirty-odd and buys the whole
-        // point of the position: somebody stood here and chose wrong.
-        if (!_drilling && puzzle.playedMove != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'U partiji je odigrano ${puzzle.playedMove} i '
-              '${puzzle.mode == EndgameMode.draw ? 'remi je izgubljen' : 'dobitak je ispušten'}.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        const SizedBox(height: 6),
-        // Wrap, not Row: these chips grow with the type name and the game
-        // label, and a Row wider than the screen is silently clipped in a
-        // release build.
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            _chip(kEndgameTypeNames[puzzle.type] ?? puzzle.type),
-            _chip('Težina: ${_difficultyLabel(puzzle)}'),
-            if (puzzle.blunderElo != null)
-              _chip('Pogrešio: ${puzzle.blunderElo}'),
-            if (puzzle.isExact) _chip('Tačno iz tablica'),
-            if (_drilling && _drillMoves > 0) _chip('Odigrano: $_drillMoves'),
-            if (_drilling && _drillMistakes > 0)
-              _chip('Greške: $_drillMistakes'),
-            if (!_drilling && _attempted > 0)
-              _chip('Rešeno: $_solved/$_attempted'),
-            if (puzzle.game != null) _chip(puzzle.game!.label),
-          ],
-        ),
-      ],
-    );
+    return puzzle.mode == EndgameMode.draw
+        ? '$onMove na potezu — održite remi'
+        : '$onMove na potezu — zadržite dobitak';
   }
+
+  /// What actually happened here, when the position came from a real mistake.
+  /// It gives away one move out of thirty-odd and buys the whole point of the
+  /// position: somebody stood here and chose wrong.
+  String? _storyText(EndgamePuzzle puzzle) {
+    if (_drilling || puzzle.playedMove == null) return null;
+    final lost = puzzle.mode == EndgameMode.draw
+        ? 'remi je izgubljen'
+        : 'dobitak je ispušten';
+    return 'U partiji je odigrano ${puzzle.playedMove} i $lost.';
+  }
+
+  List<String> _chips(EndgamePuzzle puzzle) => [
+        kEndgameTypeNames[puzzle.type] ?? puzzle.type,
+        'Težina: ${_difficultyLabel(puzzle)}',
+        if (puzzle.blunderElo != null) 'Pogrešio: ${puzzle.blunderElo}',
+        if (puzzle.isExact) 'Tačno iz tablica',
+        if (_drilling && _drillMoves > 0) 'Odigrano: $_drillMoves',
+        if (_drilling && _drillMistakes > 0) 'Greške: $_drillMistakes',
+        if (!_drilling && _attempted > 0) 'Rešeno: $_solved/$_attempted',
+        if (puzzle.game != null) puzzle.game!.label,
+      ];
 
   String _difficultyLabel(EndgamePuzzle puzzle) {
     final score = puzzle.difficultyScore;
@@ -676,29 +676,6 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       default:
         return 'srednje';
     }
-  }
-
-  Widget _chip(String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-      );
-
-  Widget _buildFeedback() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: (_feedbackIsGood ? Colors.green : Colors.orange).withValues(
-          alpha: 0.15,
-        ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(_feedback!, textAlign: TextAlign.center),
-    );
   }
 
   Widget _buildControls(EndgameSolveSession solve) {

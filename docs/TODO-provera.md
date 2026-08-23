@@ -120,6 +120,23 @@ do sledeće greške.
       poteza posle poslednje greške, a najduža sto pedeset pet.
 - [ ] Na 360 dp ništa ne izlazi iz ekrana.
 
+## 0f. Panel sa obaveštenjima — napisano 23.8.2026, nije viđeno uživo
+
+Sve što ekran ima da kaže stoji u jednom bloku, na sva tri ekrana završnica:
+desno od table na širokom prozoru, ispod table na telefonu. Ranije je zadatak
+bio iznad table a odgovor ispod, pa se za jednu vežbu gledalo na dva mesta.
+
+- [ ] Na desktopu (prozor preko 840 dp): panel je **desno** od table, a zadatak,
+      čipovi i odgovor su u njemu — iznad i ispod table nema teksta.
+- [ ] Suzi prozor ispod 840 dp: panel pređe **ispod** table, i tabla se ne
+      pomeri kad se odgovor pojavi ili nestane.
+- [ ] Isto važi na sva tri ulaza: „Dobij", „Održi remi" i „Greške iz partija".
+- [ ] Tabla je na širokom prozoru i dalje dovoljno velika — panel uzima 280 dp.
+- [ ] Na 360 dp ništa ne izlazi iz ekrana ni u jednom od tri ekrana.
+
+**Planirano, nije napravljeno:** zvuk za tačan i netačan potez. To je drugi
+kanal za istu stvar — kad se čuje da li je potez prošao, ne mora ni da se gleda.
+
 ---
 
 ## 0. Pristanak na odnos trener–učenik — ✅ provereno uživo 17.8.2026
