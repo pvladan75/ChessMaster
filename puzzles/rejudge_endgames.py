@@ -209,6 +209,17 @@ def build_config(args):
     # The line walk stops when a position outgrows this, so it has to name the
     # far edge of the judge, not the local half of it.
     cfg.syzygy_max_pieces = args.max_pieces
+    # Re-judging settles the outcome. It does not get to re-open whether a
+    # position is too easy, for two reasons. The position already passed that
+    # test when it was mined; and the test is not reproducible - the same file
+    # rejected three positions run on its own and one run after five hundred
+    # others, because the shallow engine carries its transposition table from
+    # one position to the next. Deleting material on a verdict that depends on
+    # what was analysed before it would be the worst kind of loss: quiet, and
+    # different every time. Measured over the whole collection, every single
+    # rejection came from this test and not one from a disagreement about the
+    # outcome, so switching it off costs nothing and saves 252 positions.
+    cfg.reject_obvious = False
     return cfg
 
 
@@ -251,10 +262,16 @@ def rejudge_file(path, engines, tb, cfg, args):
             changed.append((record, merged, pieces))
         kept.append(merged)
 
-    if args.apply and (changed or dropped):
+    # Rewrite whenever anything was re-judged, not only when a verdict moved.
+    # A position whose outcome the tables confirm still stops being an estimate:
+    # its source becomes the table or the API, and the engine's eval, cliff and
+    # depth go, because they describe an answer they had no part in.
+    if args.apply and (len(kept) - untouched or dropped):
         shutil.copy2(path, path + ".bak")
         with io.open(path, "w", encoding="utf-8") as f:
-            json.dump(kept, f, ensure_ascii=False, indent=1)
+            # Same shape the miner writes, so the next mining run does not
+            # reformat the whole file on its first save.
+            json.dump(kept, f, indent=4, ensure_ascii=False)
 
     return kept, changed, dropped, untouched, tally
 
@@ -313,7 +330,7 @@ def main():
             if not touched:
                 print("{:<32} nema pozicija do {} figura".format(name, args.max_pieces))
                 continue
-            print("{:<32} presudjeno {:>4} | isto {:>4} | promenjeno {:>3} | ispalo {:>3}".format(
+            print("{:<32} presudjeno {:>4} | potvrdjeno {:>4} | promenjeno {:>3} | ispalo {:>3}".format(
                 name, touched, touched - len(changed) - len(dropped),
                 len(changed), len(dropped)))
             for record, merged, pieces in changed:

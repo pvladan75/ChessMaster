@@ -34,6 +34,7 @@ T+P protiv T.
 | `run_all_endgames.ps1` | neinteraktivno pokretanje svih tipova sa jednom kvotom |
 | `get_syzygy6.ps1` | preuzimanje šestofiguraških tablica, sa nastavkom |
 | `verify_syzygy6.ps1` | provera SHA-256 suma skinutih tablica, sa nastavkom |
+| `rejudge_endgames.py` | ponovno suđenje iz tablica i sa Lichess API-ja |
 
 Na strani backenda: `chess_backend/import_endgames.js` prenosi izlaz u bazu.
 
@@ -184,9 +185,11 @@ Stvarna vrednost je oko 5%.
 ```
 
 `winning_moves` nosi **sve** poteze koji drže ishod, ne samo motorov favorit —
-aplikacija mora sve da prihvati. `source` kaže da li je ishod iz tablice ili
-procena motora; pozicije iz motora dodatno imaju `eval`, `cliff`, `depth` i
-`verified_depth`.
+aplikacija mora sve da prihvati. `source` kaže odakle ishod dolazi: `syzygy`
+iz lokalne tablice, `lichess` iz iste tablice preko mreže, `engine` iz procene
+— prve dve su egzaktne. Pozicije iz motora dodatno imaju `eval`, `cliff`,
+`depth` i `verified_depth`; ponovno suđenje ta četiri polja briše, jer opisuju
+odgovor u kome nisu učestvovala.
 
 ## Nastavak i ravnomernost
 
@@ -321,6 +324,73 @@ sekunde.
   na kojoj ne može da bude u pravu. Nisu obrisane — imaju četiri figure, pa im
   se rešenja mogu dopuniti iz tablica za nekoliko sekundi kad se odluči šta sa
   njima.
+
+## Ponovno suđenje postojeće zbirke — 23.8.2026
+
+Kad su tablice stigle do šest figura, 596 pozicija u zbirci se moglo presuditi
+tačno umesto proceniti. `rejudge_endgames.py` to radi: do šest figura lokalne
+tablice, na sedam Lichess API, od osam naviše ostaje motorov odgovor i ne dira
+se. Sud se ne piše ponovo — zove se `evaluate_with_tablebase` iz rudara
+neizmenjen, pa pozicija presuđena danas prolazi kroz isti kriterijum kao ostatak
+zbirke; razlikuje se samo objekat koji odgovara na `get_wdl`.
+
+| | |
+|---|---|
+| presuđeno | 596 |
+| ishod potvrđen | 595 |
+| ishod ispravljen | 1 |
+| ispalo | 0 |
+| zahteva ka Lichess-u | 379 |
+
+**Motor je bio u pravu 595 puta od 596.** To je nalaz sam za sebe: dubina 20 sa
+proverom na 24 daje isti ishod kao tablica gotovo uvek, pa dizanje granice nije
+ispravka postojeće građe nego osiguranje buduće.
+
+Jedina ispravka je `6k1/5p2/7p/8/4r2P/2Q5/6K1/8 w - - 9 55`: motor je našao
+`Qf3` i `Qg3+`, tablica dodaje i `Qc8+`. Dete koje odigra `Qc8+` dosad bi dobilo
+„netačno" za potez koji dobija — a to je tačno razlog zbog kog `winning_moves`
+nosi sve poteze, ne samo najbolji.
+
+### Jedan zahtev po poziciji, ne po potezu
+
+`tablebase_results` je pitao samo poteze, nikad samu poziciju, a API u jednom
+odgovoru daje ishod za **sve** poteze. Bez toga svaki potez plaća svoj zahtev —
+oko dvadeset pet puta više saobraćaja, i to bi od „mali ciljani broj zahteva"
+napravilo upravo skeniranje tuđeg servisa. Sada `tablebase_results` nudi tablici
+`prime()` pre probanja poteza; lokalno je bez dejstva, jer python-chess nema taj
+metod. Mereno: 32 zahteva za četiri sedmofiguraške pozicije umesto oko 800.
+
+Znati ishod pozicije i imati njene potomke nisu ista stvar — potomak naučen iz
+roditeljskog odgovora nosi presudu i nijedan potez — pa se to dvoje prati
+odvojeno. Spajanje bi saobraćaj vratilo tamo gde je bio.
+
+### Uvoz mora da zna da ažurira
+
+`import_endgames.js` je imao `ON CONFLICT DO NOTHING`, što je tačno za ponovni
+uvoz istog fajla i pogrešno za presuđen: red bi zadržao stari sud, a izveštaj bi
+rekao „0 upisano, N preskočeno" — što izgleda tačno kao „već uvezeno". Dodat je
+`--update`, a `xmax` u izveštaju razdvaja upisano od ažuriranog. Prepisuju se
+samo kolone suda; partija iz koje pozicija potiče nije sud.
+
+### Nađeno usput, nije popravljeno: test očiglednosti nije reproducibilan
+
+Isti fajl, isti kod: **tri pozicije ispadaju kad se pusti sam, jedna kad se
+pusti posle 587 drugih.** Plitki motor nosi transpozicionu tabelu iz pozicije u
+poziciju, pa sud „ovo je očigledno" zavisi od toga šta je analizirano pre njega.
+
+Ista je porodica greške kao „zagrejana transpoziciona tabela" niže, samo jedan
+sloj dalje: tamo je plitka pretraga čitala odgovor duboke, ovde čita sopstvene
+ranije odgovore. Pogađa **i samo rudarenje**, jer isti test odlučuje o prijemu —
+dakle koje pozicije uđu u zbirku delom zavisi od redosleda kojim su naišle.
+
+Zato ponovno suđenje ne preispituje težinu, samo ishod (`reject_obvious` je
+isključen). Izmereno nad celom zbirkom: **svih 252 odbijanja u prvom prolazu
+došlo je iz tog testa, nijedno iz neslaganja o ishodu**, pa isključivanje ne
+košta ništa, a čuva 252 pozicije od tihog i svaki put drugačijeg brisanja.
+
+Popravka bi bila `ucinewgame` pre svake analize — u python-chess različit `game`
+objekat po poziciji. To menja i šta rudar prima, pa je posao za sebe i traži
+ponovno merenje praga očiglednosti.
 
 ## Zamisao: kako ovo ulazi u aplikaciju
 

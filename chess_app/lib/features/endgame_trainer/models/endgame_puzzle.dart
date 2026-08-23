@@ -71,8 +71,15 @@ class EndgamePuzzle {
 
   bool get isPlayable => fen.isNotEmpty && winningMoves.isNotEmpty;
 
+  /// Sources whose answer is a tablebase result rather than a search.
+  ///
+  /// 'lichess' is the same Syzygy data, asked over the network for positions
+  /// past what we hold locally. Leaving it out would have shown a position that
+  /// just became exact as an estimate, which is the wrong way round.
+  static const _exactSources = {'syzygy', 'lichess'};
+
   /// True when the result is known exactly rather than estimated.
-  bool get isExact => source == 'syzygy';
+  bool get isExact => _exactSources.contains(source);
 
   /// Whether the position is small enough for the engine to be judged against
   /// a tablebase on every move, which is what a play-it-out drill needs.

@@ -54,6 +54,23 @@ void main() {
       expect(estimated.mode, EndgameMode.win);
     });
 
+    test('a seven-piece answer from the Lichess tables is exact too', () {
+      // Positions past the local six-piece set are judged over the network,
+      // and the answer is a tablebase result all the same. Showing one as an
+      // estimate would understate what the child is being told.
+      final remote = EndgamePuzzle.fromJson({
+        'puzzle_id': 'x',
+        'fen': '8/8/3pkp1p/7P/4KP2/8/8/8 b - - 6 53',
+        'winning_moves': ['e6f7', 'e6d7', 'd6d5'],
+        'piece_count': 7,
+        'source': 'lichess',
+      });
+      expect(remote.isExact, isTrue);
+      // Still not playable out: judging every move belongs to the server, and
+      // the server holds the tables only up to five pieces.
+      expect(remote.canBePlayedOut, isFalse);
+    });
+
     test('a payload with no winning moves is not playable', () {
       final puzzle = EndgamePuzzle.fromJson({'puzzle_id': 'x', 'fen': 'x'});
       expect(puzzle.isPlayable, isFalse);
