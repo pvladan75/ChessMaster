@@ -22,7 +22,10 @@ import chess.pgn
 MINER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "endgame_miner.py")
 BASE_DIR = os.environ.get("CHESS_BASE_DIR", r"D:\chess_base")
 OUT_DIR = os.path.join(BASE_DIR, "_mining")
-SYZYGY = os.environ.get("SYZYGY_PATH", r"D:\syzygy\3-4-5")
+# Both sets, joined the way SyzygyPath wants them. Six-piece endings are then
+# judged from the tables instead of estimated by the engine.
+SYZYGY = os.environ.get("SYZYGY_PATH",
+                        os.pathsep.join((r"D:\syzygy\3-4-5", r"D:\syzygy\6")))
 
 TYPES = [
     "PawnEnding",
@@ -132,8 +135,14 @@ def main():
         command = [sys.executable, MINER, "--type", type_name, "--mode", "any",
                    "--target", str(wanted),
                    "--out", os.path.join(OUT_DIR, type_name + ".json")]
-        if os.path.isdir(SYZYGY):
-            command += ["--syzygy", SYZYGY]
+        # A folder that is not there is named out loud. Dropping it silently
+        # would move a whole run onto the engine without saying so.
+        folders = [d for d in SYZYGY.split(os.pathsep) if d]
+        for gone in [d for d in folders if not os.path.isdir(d)]:
+            print("Nema Syzygy foldera, preskacem ga: " + gone)
+        present = [d for d in folders if os.path.isdir(d)]
+        if present:
+            command += ["--syzygy", os.pathsep.join(present)]
         code = subprocess.call(command)
         if code != 0:
             sys.exit("\n{} nije uspeo (izlazni kod {}). Prekidam.".format(

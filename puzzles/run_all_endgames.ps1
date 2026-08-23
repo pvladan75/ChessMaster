@@ -16,7 +16,11 @@
 $ErrorActionPreference = 'Stop'
 
 $Miner   = 'D:\Projekti\chess_master\puzzles\endgame_miner.py'
-$Syzygy  = 'D:\syzygy\3-4-5'
+# Both table sets, semicolon-separated the way SyzygyPath spells it. With the
+# six-piece folder present the miner judges six-piece endings from the tables
+# rather than from a search; without it, it stops at startup rather than
+# quietly guessing.
+$Syzygy  = 'D:\syzygy\3-4-5;D:\syzygy\6'
 $OutDir  = 'D:\chess_base\_mining'
 $LogFile = "$OutDir\mining.log"
 
@@ -38,7 +42,9 @@ $Types = @(
 )
 
 if (-not (Test-Path $Miner))  { throw "Nema skripte: $Miner" }
-if (-not (Test-Path $Syzygy)) { throw "Nema Syzygy tablica: $Syzygy" }
+foreach ($dir in $Syzygy -split ';') {
+    if (-not (Test-Path $dir)) { throw "Nema Syzygy tablica: $dir" }
+}
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
 # Refuse to start beside another run. Tee-Object holds the log open for append,

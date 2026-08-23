@@ -122,14 +122,30 @@ nije očigledno na maloj dubini. Duboku proveru plaćaju samo preživeli.
 
 ### Motor ili tablica
 
-Ruta se bira jednom, po broju figura, i ne menja se usred procene. Pet i manje
-ide na tablice — tamo ishod nije procena nego činjenica. Šest i više ide na
-motor: plitka pretraga od 6 poluposteza u zasebnom procesu, duboka na dubinu 20
-sa ograničenjem od 3 sekunde, i provera na dubini 24 sa 10 sekundi samo za one
-koje su prošle sve ostalo.
+Ruta se bira jednom, po broju figura, i ne menja se usred procene. **Šest i
+manje ide na tablice** — tamo ishod nije procena nego činjenica. Sedam i više
+ide na motor: plitka pretraga od 6 poluposteza u zasebnom procesu, duboka na
+dubinu 20 sa ograničenjem od 3 sekunde, i provera na dubini 24 sa 10 sekundi
+samo za one koje su prošle sve ostalo.
+
+Granica je bila pet do 23.8.2026, dok je na disku stajao samo trofiguraški do
+petofiguraški set. `--syzygy-max-pieces` je i dalje podesiv, jer nema svaka
+mašina 150 GB, ali je podrazumevana vrednost sada 6.
 
 Motoru se prosleđuje `SyzygyPath`, pa Stockfish sam proba tablice kad varijanta
-siđe ispod šest figura.
+siđe ispod sedam figura.
+
+**Dva foldera, jedan string.** Setovi stoje odvojeno (`3-4-5` i `6`), a
+`chess.syzygy.open_tablebase()` otvara jedan folder, pa se spajaju preko
+`os.pathsep` — tačno onog znaka kojim ih i `SyzygyPath` spaja (`;` na Windows-u,
+`:` drugde). Isti string tako podešava i tablice i motor.
+
+**Provera pokrivenosti na startu.** `probe_wdl` već pada kad tabele nema, ali
+pada na poziciji kojoj ta tabela treba — a to na šestofiguraškom prolazu ume da
+bude sat vremena unutra, sa već potrošenim popodnevom. Zato se sada na startu,
+pre prve partije, proba po jedna pozicija za svaki broj figura do zadatog
+maksimuma (`CANARY_FENS`). Mašina sa samo malim setom i `--syzygy-max-pieces 6`
+staje u prvoj sekundi, sa porukom šta joj nedostaje.
 
 ### Test očiglednosti
 
@@ -337,9 +353,9 @@ Backend je spreman.
 **2. Šestofiguraške tablice.** ✅ Skinute i proverene 23.8.2026 — 730 fajlova,
 149,2 GB, sve `sha256` sume se slažu (`verify_syzygy6.ps1`). Domet tablica u
 partijama raste sa 2,6% na 5,4%, i tek na šest figura počinju teme koje se
-stvarno predaju. Ostaje da ih rudar uzme: `--syzygy-max-pieces` je i dalje 5, a
-`chess.syzygy.open_tablebase()` prima jedan folder, pa drugi set traži
-`add_directory` (Stockfish-u ista putanja ide razdvojena tačka-zarezom).
+stvarno predaju. Rudar ih koristi od istog dana — vidi „Motor ili tablica".
+Ostaje **ponovno rudarenje**: 55 postojećih pozicija sa tačno šest figura
+ocenio je motor, a sada se mogu presuditi tačno.
 
 **3. Detektor grešaka iz tablica.** Zaseban alat: proći kroz pozicije sa pet i
 manje figura i naći poteze koji su **promenili ishod**. To je egzaktna greška,

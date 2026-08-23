@@ -344,12 +344,51 @@ WDL_DRAW = 0
 
 
 def open_tablebase(path):
+    """Open one or more table folders, spelled the way Stockfish spells them.
+
+    The six-piece set is a separate 149 GB folder from the three-to-five one,
+    and python-chess opens a single directory at a time. The two are joined
+    here with os.pathsep - which is exactly SyzygyPath's ';' on Windows and
+    ':' elsewhere - so one string configures both the tables and the engine.
+    """
     if not path:
         return None
-    if not os.path.isdir(path):
-        sys.exit("Syzygy folder ne postoji: {}\n"
-                 "Prosledite --syzygy ili postavite SYZYGY_PATH.".format(path))
-    return chess.syzygy.open_tablebase(path)
+    folders = [d for d in path.split(os.pathsep) if d]
+    for folder in folders:
+        if not os.path.isdir(folder):
+            sys.exit("Syzygy folder ne postoji: {}\n"
+                     "Prosledite --syzygy ili postavite SYZYGY_PATH.".format(folder))
+    tb = chess.syzygy.open_tablebase(folders[0])
+    for folder in folders[1:]:
+        tb.add_directory(folder)
+    return tb
+
+
+# One position per piece count, probed once before the run starts. probe_wdl
+# already dies when a table is missing, but it dies at the position that needs
+# it - which on a six-piece run is an hour in, with the afternoon's work
+# already spent. This asks the same question in the first second.
+CANARY_FENS = {
+    3: "4k3/8/4K3/4P3/8/8/8/8 w - - 0 1",
+    4: "4k3/8/4K3/4P3/8/8/8/R7 w - - 0 1",
+    5: "4k2r/8/4K3/4P3/8/8/8/R7 w - - 0 1",
+    6: "4k2r/8/4K3/4P3/8/8/8/R1B5 w - - 0 1",
+    7: "1n2k2r/8/4K3/4P3/8/8/8/R1B5 w - - 0 1",
+}
+
+
+def check_tablebase_coverage(tb, cfg):
+    """Die at startup if the tables do not reach as far as we claim they do."""
+    for count in range(3, cfg.syzygy_max_pieces + 1):
+        fen = CANARY_FENS.get(count)
+        if fen is None:
+            continue
+        if tb.get_wdl(chess.Board(fen)) is None:
+            sys.exit(
+                "Syzygy: nema tabela za {} figura, a --syzygy-max-pieces je {}.\n"
+                "Folderi: {}\nProbna pozicija: {}\n"
+                "Dopunite tabele ili spustite --syzygy-max-pieces.".format(
+                    count, cfg.syzygy_max_pieces, cfg.syzygy, fen))
 
 
 def probe_wdl(tb, board, cfg):
@@ -1131,9 +1170,10 @@ def build_parser():
     p.add_argument("--base-dir", default=DEFAULT_BASE_DIR)
     p.add_argument("--stockfish", default=DEFAULT_STOCKFISH)
     p.add_argument("--syzygy", default=os.environ.get("SYZYGY_PATH"),
-                   help="Folder sa .rtbw/.rtbz tablicama; bez njega se koristi motor")
-    p.add_argument("--syzygy-max-pieces", type=int, default=5,
-                   help="Do koliko figura se veruje tablicama (4 ako imate samo cetvorke)")
+                   help="Folder(i) sa .rtbw/.rtbz tablicama, razdvojeni znakom "
+                        "'{}'; bez njih se koristi motor".format(os.pathsep))
+    p.add_argument("--syzygy-max-pieces", type=int, default=6,
+                   help="Do koliko figura se veruje tablicama (5 bez sestofiguraskih)")
     p.add_argument("--allow-cursed", action="store_true",
                    help="Racunaj i dobitke koje pravilo od 50 poteza kvari")
     p.add_argument("--type", dest="endgame_type")
@@ -1280,8 +1320,11 @@ def main():
         throttle.threads = cfg.threads
         throttle.settled = True
     if cfg.syzygy:
-        if not os.path.isdir(cfg.syzygy):
-            sys.exit("Syzygy folder ne postoji: " + cfg.syzygy)
+        # Opens every folder and probes one position per piece count, before
+        # the first game is read.
+        canary = open_tablebase(cfg.syzygy)
+        check_tablebase_coverage(canary, cfg)
+        canary.close()
         print("Syzygy: {} (do {} figura)".format(cfg.syzygy, cfg.syzygy_max_pieces))
     print("Stockfish: {}, {} niti i {} MB po radniku | dubina {} | rezim {}".format(
         "fiksno {} radnika".format(cfg.workers) if cfg.workers
