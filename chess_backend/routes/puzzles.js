@@ -249,6 +249,81 @@ router.post('/puzzles/endgame/play', authenticateToken, drillLimiter, async (req
   }
 });
 
+// GET /api/puzzles/endgame/game/next - one game to walk through.
+//
+// A different exercise from a single position, and it needs the whole thing:
+// the board where it first went wrong, the moves as they were actually played,
+// and every mistake in between. The walk stops at each one and asks for the
+// move that held, then plays on the way the game really went.
+//
+// The filters are the ones a trainer would ask for out loud. blunders is how
+// long the session runs - one mistake is a puzzle with context, six is an
+// ending played badly from start to finish. elo is the level the game was
+// played at, and material picks a shape: a game that passes through KRPvKR at
+// any point.
+//
+// Same rule as the position route: nothing is served when the filters match
+// nothing, because a game handed over silently instead of the one asked for
+// teaches the caller to distrust the filters.
+router.get('/puzzles/endgame/game/next', authenticateToken, async (req, res) => {
+  const { minBlunders, maxBlunders, minElo, maxElo, material, excludeId } =
+    req.query;
+
+  const where = [];
+  const params = [];
+  const add = (clause, value) => {
+    params.push(value);
+    where.push(clause.replaceAll('$?', `$${params.length}`));
+  };
+
+  add('($? = \'\' OR game_id IS DISTINCT FROM $?)', excludeId || '');
+  if (minBlunders) add('blunder_count >= $?', parseInt(minBlunders, 10));
+  if (maxBlunders) add('blunder_count <= $?', parseInt(maxBlunders, 10));
+  // min_elo is the weaker player, so a range on it is a statement about the
+  // game rather than about whoever happened to be stronger.
+  if (minElo) add('min_elo >= $?', parseInt(minElo, 10));
+  if (maxElo) add('min_elo <= $?', parseInt(maxElo, 10));
+  if (material && material !== 'all') add('materials @> ARRAY[$?]::varchar[]', material);
+
+  try {
+    const result = await pool.query(
+      `SELECT * FROM blunder_games
+        WHERE ${where.join(' AND ')}
+        ORDER BY RANDOM() LIMIT 1`,
+      params
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Nema partije koja odgovara traženim uslovima.' });
+    }
+
+    const row = result.rows[0];
+    res.json({
+      game: {
+        game_id: row.game_id,
+        white: row.white,
+        black: row.black,
+        white_elo: row.white_elo,
+        black_elo: row.black_elo,
+        date: row.played_on,
+        event: row.event,
+        result: row.result,
+        database: row.source_db,
+        // The board where the walk starts, and the game from there on. Not
+        // from move one: the opening is not the subject and carrying it would
+        // multiply every record for nothing.
+        start_fen: row.start_fen,
+        moves: row.moves,
+        blunders: row.blunders,
+        materials: row.materials,
+      },
+    });
+  } catch (err) {
+    logger.error('Error fetching blunder game:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju partije.' });
+  }
+});
+
 // GET /api/puzzles/adaptive - Next Lichess puzzle chosen for this user.
 //
 // Unlike /puzzles/next, which serves a random row from a fixed category, this

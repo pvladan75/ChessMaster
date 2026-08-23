@@ -378,6 +378,43 @@ async function initDB() {
     logger.info('Verified database table & indexes: endgame_puzzles');
     logger.info('Verified database table: user_puzzle_ratings');
 
+    // Games, not positions. endgame_puzzles holds one board and one question;
+    // this holds a game from where it first went wrong to the end of it, with
+    // every mistake in between - which is a different exercise, walked rather
+    // than solved, and needs the moves in order.
+    //
+    // blunders is JSONB rather than a child table because nothing ever queries
+    // inside it: the walk reads the list whole, in order, and the only thing
+    // worth filtering on is how many there are, which is its own column.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS blunder_games (
+        id SERIAL PRIMARY KEY,
+        game_id VARCHAR(64) UNIQUE NOT NULL,
+        source_db VARCHAR(80),
+        white VARCHAR(120),
+        black VARCHAR(120),
+        white_elo SMALLINT,
+        black_elo SMALLINT,
+        played_on VARCHAR(12),
+        event VARCHAR(160),
+        result VARCHAR(8),
+        start_fen TEXT NOT NULL,
+        moves TEXT[] NOT NULL DEFAULT '{}',
+        blunders JSONB NOT NULL DEFAULT '[]',
+        blunder_count SMALLINT NOT NULL DEFAULT 0,
+        min_elo SMALLINT,
+        materials VARCHAR(16)[] NOT NULL DEFAULT '{}',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_blunder_games_pick
+        ON blunder_games(blunder_count, min_elo);
+      CREATE INDEX IF NOT EXISTS idx_blunder_games_materials
+        ON blunder_games USING GIN(materials);
+    `);
+    logger.info('Verified database table & indexes: blunder_games');
+
     // Create lichess_puzzles table.
     //
     // Kept separate from `puzzles` on purpose: the two have genuinely different
