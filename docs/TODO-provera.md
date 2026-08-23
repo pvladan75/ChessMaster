@@ -63,7 +63,7 @@ Ostaje:
 
 ## 0d. Greške iz partija i kazna — ✅ prošlo uživo 23.8.2026
 
-7.173 pozicije iz stvarnih partija, gde je igrač promenio ishod. Trener ih
+12.683 pozicije iz stvarnih partija, gde je igrač promenio ishod. Trener ih
 servira zajedno sa rudarenim; pozicija nosi i šta je odigrano i rejting onoga
 ko je pogrešio.
 

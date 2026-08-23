@@ -2178,6 +2178,13 @@ granice nije bila ispravka zatečene građe nego osiguranje buduće.
 partija i našao 5.256 partija sa 9.811 grešaka. Od toga je 7.173 pozicije ušlo
 u trener, pa je zbirka sa 1.089 narasla na **8.262**.
 
+**Dopuna istog dana, uveče.** Rudar je u međuvremenu nastavio da radi. Prvo je
+dopunjen OTB deo — 5.489 partija, još 992 pozicije i 250 partija — a onda je,
+kad je prolaz kroz „Lumbras Online" završen, uvezena i ta baza: **još 4.518
+pozicija i 3.449 partija**. Stanje u bazi: **14.282 pozicije** (12.683 iz
+grešaka) i **8.955 partija** za šetnju. Nijedan FEN nije odbačen ni u jednom od
+tri uvoza.
+
 **Četiri ekrana rade sa tim**: rešavanje pozicije (dobitak / remi), igranje do
 kraja protiv tablično savršenog protivnika, kazna, i šetnja kroz partiju sa
 stajanjem na svakoj grešci. Sve provereno uživo na Windows-u istog dana, osim
@@ -2213,22 +2220,39 @@ Sve su istog oblika kao one iz `CLAUDE.md` — tiho pogrešan rezultat, ne pad:
 
 ### Otvoreno
 
-**Prijava koju nisam uspeo da reprodukujem.** Korisnik javlja da u šetnji, pošto
-prvi potez promaši, figura se podigne i vrati. Isključeno testovima: zastavica
-`isAllowedToMove`, klik-na-klik potez, prevučen potez, i sekvenca „pogrešan pa
-ispravan" — sve prolazi. Podaci takođe: svih 5.256 partija ima prvu grešku na
-potezu 0.
+~~**Prijava koju nisam uspeo da reprodukujem.**~~ — **razjašnjeno 23.8.2026,
+nije kvar.** Korisnik je javio da u šetnji, pošto prvi potez promaši, figura se
+podigne i vrati; posle je sam utvrdio šta se dešavalo — odigravao je poteze koji
+ne drže rezultat, pa je tabla odbijala potez tačno kako treba. Pet testova i
+podaci su zato i pokazivali da greške nema.
 
-Najverovatnije objašnjenje, još nepotvrđeno: kursor nije **na** grešci (korisnik
-se vratio strelicom ili je odigravanje stalo pre sledećeg stajanja), pa je tabla
-zaključana kako i treba, a ćutala je o tome. Poruka je dopunjena da to kaže.
-Ako se ponovi i kad poruka stoji, treba tražiti dalje.
+Ostavljeno kako jeste, jer poruka već imenuje potez koji je odbijen („Rd3 takođe
+ispušta dobitak. Probajte drugi potez."), a poruka o zaključanoj tabli je usput
+dopunjena i vredi za slučaj kad kursor zaista ne stoji na grešci.
 
 **Telefon nije viđen ni za jednu od šest tačaka** (0e–0j), a to je jedina
 platforma na kojoj panel ide ispod table.
 
 **Ostatak OTB baze** je mašinsko vreme: prošlo je 663.000 od 9,7 miliona
 partija, uz poznat prinos od 9,3 partije sa greškom na 1000.
+
+**„Lumbras Online" je uvezena — 3.463 partije, 4.537 pozicija.** Odluka je
+menjana istog dana i vredi zapisati oba koraka: dok je rudar još radio uvezen je
+samo OTB deo, a kad je prolaz završen korisnik je rekao da uđe i online.
+
+Ono što ta odluka nosi sa sobom: **težina se izvodi iz rejtinga onoga ko je
+pogrešio** (`difficulty_from_elo` u `puzzles/blunders_to_puzzles.py`), a online
+rejting nije OTB rejting — ista brojka sada znači dve različite stvari u istoj
+lestvici. Zbirka je time skoro udvostručena, pa je to prihvaćena cena, ne
+previd.
+
+**Uvezene pozicije se ne razlikuju po koloni.** `endgame_puzzles` pamti izvor
+kao `blunder` za sve, bez imena baze, pa se online deo ne može ni filtrirati ni
+obrisati upitom. Može se izvesti iz fajla, jer je `puzzle_id` izveden iz FEN-a:
+`eg_` + prvih 16 znakova SHA-1 od prva četiri polja FEN-a, a spisak pozicija
+stoji u `_blunder_puzzles/Blunders_online.json`. Ako se ikad ukaže potreba da se
+online isključi iz izbora, prvi korak je kolona sa imenom baze pri uvozu —
+`blunder_games` je već ima (`source_db`).
 
 ## Sledeće na redu
 
