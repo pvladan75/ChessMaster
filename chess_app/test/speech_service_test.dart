@@ -233,6 +233,21 @@ void main() {
     });
   });
 
+  test('speaking never marks a widget dirty', () async {
+    // The panel asks for a sentence from initState and didUpdateWidget, which
+    // run inside a build. A notification there is "setState() called during
+    // build": the frame fails in layout, and what reaches the screen is a board
+    // with no squares and the pieces floating over the background.
+    final tts = FakeTts(['sr-RS']);
+    final service = await ready(tts);
+    var notifications = 0;
+    service.addListener(() => notifications++);
+
+    await service.speak('Tačno — remi je održan.');
+    expect(tts.spoken, isNotEmpty);
+    expect(notifications, 0);
+  });
+
   group('waiting for the voice', () {
     test('it is speaking while the engine has the sentence', () async {
       // What the walkthrough asks before it plays the next move. Without it the

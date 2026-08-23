@@ -320,6 +320,18 @@ class SpeechService extends ChangeNotifier {
     }
   }
 
+  // Neither of these notifies, on purpose, and it is not an oversight to be
+  // tidied up later.
+  //
+  // The panel asks for a sentence from initState and didUpdateWidget - that is
+  // to say, from inside a build - and a ChangeNotifier that fires there marks
+  // its listeners dirty mid-build, which Flutter refuses:
+  //
+  //   setState() or markNeedsBuild() called during build.
+  //
+  // The frame then failed in layout, and what reached the screen was a board
+  // with no squares and the pieces floating over the background. Nothing
+  // watches [isSpeaking] anyway - the board's timers ask it, they are not told.
   void _startSpeaking(String text) {
     _speaking = true;
     _watchdog?.cancel();
@@ -328,15 +340,12 @@ class SpeechService extends ChangeNotifier {
       AppLogger.log('[Govor] Kraj izgovora nije javljen, nastavljam dalje.');
       _finishSpeaking();
     });
-    notifyListeners();
   }
 
   void _finishSpeaking() {
     _watchdog?.cancel();
     _watchdog = null;
-    if (!_speaking) return;
     _speaking = false;
-    notifyListeners();
   }
 
   /// Clears what was last said, so the same sentence is spoken again when it
