@@ -4,9 +4,11 @@ import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/services/app_logger.dart';
+import '../models/blunder_game.dart';
 import '../models/drill_step.dart';
 import '../models/endgame_puzzle.dart';
 
+export '../models/blunder_game.dart';
 export '../models/drill_step.dart';
 
 /// Why the request came back empty.
@@ -25,6 +27,13 @@ class EndgameFetchResult {
   const EndgameFetchResult(this.outcome, [this.puzzle]);
 
   bool get hasPuzzle => puzzle != null && puzzle!.isPlayable;
+}
+
+class GameFetchResult {
+  const GameFetchResult(this.outcome, [this.game]);
+
+  final EndgameFetchOutcome outcome;
+  final BlunderGame? game;
 }
 
 /// Why a judged move came back without a verdict.
@@ -118,6 +127,65 @@ class EndgameApiService {
     } catch (e) {
       AppLogger.log('[Zavrsnice] Greška pri dobavljanju: $e');
       return const EndgameFetchResult(EndgameFetchOutcome.unavailable);
+    }
+  }
+
+  /// Fetches one game to walk through.
+  ///
+  /// The same outcome split as [fetchNext], and for the same reason: a filter
+  /// that matches nothing is a fact about the filter, while an unreachable
+  /// server might pass. Saying both as one error taught the user to retry
+  /// something that could never work.
+  Future<GameFetchResult> fetchNextGame({
+    int? minBlunders,
+    int? maxBlunders,
+    int? minElo,
+    int? maxElo,
+    String? material,
+    String? excludeId,
+  }) async {
+    final uri = Uri.parse('$backendUrl/api/puzzles/endgame/game/next').replace(
+      queryParameters: {
+        if (minBlunders != null) 'minBlunders': '$minBlunders',
+        if (maxBlunders != null) 'maxBlunders': '$maxBlunders',
+        if (minElo != null) 'minElo': '$minElo',
+        if (maxElo != null) 'maxElo': '$maxElo',
+        if (material != null && material.isNotEmpty) 'material': material,
+        if (excludeId != null && excludeId.isNotEmpty) 'excludeId': excludeId,
+      },
+    );
+
+    try {
+      final res = await http
+          .get(uri, headers: _headers)
+          .timeout(const Duration(seconds: 12));
+
+      if (res.statusCode == 404) {
+        return const GameFetchResult(EndgameFetchOutcome.noneMatch);
+      }
+      if (res.statusCode != 200) {
+        AppLogger.log(
+            '[Zavrsnice] Server je odbio partiju (${res.statusCode}).');
+        return const GameFetchResult(EndgameFetchOutcome.unavailable);
+      }
+
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      final data = body['game'];
+      if (data is! Map<String, dynamic>) {
+        return const GameFetchResult(EndgameFetchOutcome.unavailable);
+      }
+
+      final game = BlunderGame.fromJson(data);
+      if (!game.isPlayable) {
+        // A game with no mistakes in it has nothing to stop at, and one with no
+        // moves has nothing to walk. Either means something upstream changed.
+        AppLogger.log('[Zavrsnice] Partija ${game.id} nema sta da se prodje.');
+        return const GameFetchResult(EndgameFetchOutcome.unavailable);
+      }
+      return GameFetchResult(EndgameFetchOutcome.ok, game);
+    } catch (e) {
+      AppLogger.log('[Zavrsnice] Greška pri dobavljanju partije: $e');
+      return const GameFetchResult(EndgameFetchOutcome.unavailable);
     }
   }
 

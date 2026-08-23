@@ -25,6 +25,11 @@ abstract final class AppRoutes {
   /// exercises, not two views of one.
   static const String endgames = '/endgames';
 
+  /// Walking a real game from where it first went wrong, stopping at every
+  /// mistake in it. A game rather than a position, which is why it is its own
+  /// route and its own screen.
+  static const String blunderGames = '/endgames/greske';
+
   /// Reading positions out of a trainer's own book and confirming them.
   static const String scan = '/scan';
 

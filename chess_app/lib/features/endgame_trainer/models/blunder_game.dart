@@ -223,6 +223,13 @@ class BlunderWalk {
   /// Jumps to the wall, which is where the work is.
   void toPending() => _cursor = frontier;
 
+  /// Where the navigation strip asks to go, clamped to what is open.
+  ///
+  /// Clamped rather than refused: the strip is built from the positions up
+  /// to the wall and cannot ask for more, and a screen that mis-clamps
+  /// should land on the wall rather than throw.
+  void seek(int index) => _cursor = index.clamp(0, frontier);
+
   /// Try a move at the current stop.
   WalkVerdict submit(String uci, {String? san}) {
     final blunder = pending;

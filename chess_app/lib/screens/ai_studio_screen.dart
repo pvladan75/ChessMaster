@@ -1993,6 +1993,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       onSelectTactics: () => context.push(AppRoutes.tactics),
       onSelectEndgameWin: () => context.push('${AppRoutes.endgames}?mode=win'),
       onSelectEndgameDraw: () => context.push('${AppRoutes.endgames}?mode=draw'),
+      onSelectBlunderGames: () => context.push(AppRoutes.blunderGames),
     );
   }
 

@@ -11,6 +11,7 @@ import 'package:chess_app/screens/chess_game_screen.dart';
 import 'package:chess_app/screens/replay_player_screen.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/features/endgame_trainer/models/endgame_puzzle.dart';
+import 'package:chess_app/features/endgame_trainer/screens/blunder_walk_screen.dart';
 import 'package:chess_app/features/endgame_trainer/screens/endgame_trainer_screen.dart';
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
@@ -84,6 +85,24 @@ final GoRouter appRouter = GoRouter(
             ? EndgameMode.draw
             : EndgameMode.win,
       ),
+    ),
+    GoRoute(
+      path: AppRoutes.blunderGames,
+      builder: (context, state) {
+        int? number(String key) {
+          final raw = state.uri.queryParameters[key];
+          return raw == null ? null : int.tryParse(raw);
+        }
+
+        return BlunderWalkScreen(
+          session: SessionService.instance.current,
+          minBlunders: number('minBlunders'),
+          maxBlunders: number('maxBlunders'),
+          minElo: number('minElo'),
+          maxElo: number('maxElo'),
+          material: state.uri.queryParameters['material'],
+        );
+      },
     ),
     GoRoute(
       path: AppRoutes.scan,

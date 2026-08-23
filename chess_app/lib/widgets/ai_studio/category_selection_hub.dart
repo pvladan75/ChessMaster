@@ -7,6 +7,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
   final VoidCallback onSelectTactics;
   final VoidCallback onSelectEndgameWin;
   final VoidCallback onSelectEndgameDraw;
+  final VoidCallback onSelectBlunderGames;
 
   const CategorySelectionHubWidget({
     super.key,
@@ -16,6 +17,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
     required this.onSelectTactics,
     required this.onSelectEndgameWin,
     required this.onSelectEndgameDraw,
+    required this.onSelectBlunderGames,
   });
 
   @override
@@ -199,6 +201,20 @@ class CategorySelectionHubWidget extends StatelessWidget {
                                   horizontal: 20, vertical: 12),
                             ),
                             onPressed: onSelectEndgameDraw,
+                          ),
+                          // The same material read as games rather than as
+                          // positions: a real ending played badly, walked from
+                          // the first mistake to the last.
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.history_edu_outlined),
+                            label: const Text('Greške iz partija'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.brown.shade700,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 12),
+                            ),
+                            onPressed: onSelectBlunderGames,
                           ),
                         ],
                       ),
