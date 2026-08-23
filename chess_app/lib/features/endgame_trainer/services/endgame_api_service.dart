@@ -225,6 +225,35 @@ class EndgameApiService {
     }
   }
 
+  /// Best play for both sides from a position, as a line of moves.
+  ///
+  /// What makes a bad move bad is that there is a way to punish it, and this is
+  /// that way. Asked for after the answer is known, so it gives nothing away.
+  Future<List<String>?> fetchBestLine({
+    required String fen,
+    int plies = 10,
+  }) async {
+    final uri = Uri.parse('$backendUrl/api/puzzles/endgame/line').replace(
+      queryParameters: {'fen': fen, 'plies': '$plies'},
+    );
+    try {
+      final res = await http
+          .get(uri, headers: _headers)
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) {
+        AppLogger.log('[Zavrsnice] Linija nije stigla (${res.statusCode}).');
+        return null;
+      }
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      return ((body['moves'] as List?) ?? const [])
+          .map((e) => e.toString())
+          .toList();
+    } catch (e) {
+      AppLogger.log('[Zavrsnice] Greška pri izvođenju linije: $e');
+      return null;
+    }
+  }
+
   /// Has the server judge one move of a play-it-out drill.
   ///
   /// The verdict is not worked out here even though the answer is a public

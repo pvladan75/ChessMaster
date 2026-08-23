@@ -1,7 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { judgeMove, drillOutcome, flip, pieceCount } = require('../services/endgameDrill');
+const {
+  judgeMove, bestLine, drillOutcome, flip, pieceCount,
+} = require('../services/endgameDrill');
 const { TablebaseUnavailable } = require('../services/tablebaseService');
 
 // Bogoljubow-Alekhine 1922, the position the miner kept: Black to move and
@@ -173,4 +175,40 @@ test('a result read from the other side is the same result', () => {
   assert.equal(flip('loss'), 'win');
   assert.equal(flip('draw'), 'draw');
   assert.equal(pieceCount(WON), 7);
+});
+
+test('the line answers "why was that bad" with the punishment itself', async () => {
+  // From the position after d5+, White is lost. Best play for both sides is
+  // what refutes a move, and a line is a fact where an evaluation is an
+  // opinion.
+  const tb = fakeTablebase();
+  const line = await bestLine({ fen: AFTER_D5, plies: 1, tablebase: tb });
+
+  assert.equal(line.outcome, 'loss');
+  // The losing side takes the longest road: Kd4 runs three plies to the next
+  // zeroing move where the rest run one.
+  assert.deepEqual(line.moves, ['Kd4']);
+});
+
+test('a line that walks off the tables stops loudly, not short', async () => {
+  // Truncating would hand back a line that looks complete and is not, which is
+  // the failure this project keeps meeting: a step that skips and reports
+  // success. The fixture knows three positions; asking for twenty plies walks
+  // past them.
+  const tb = fakeTablebase();
+  await assert.rejects(
+    () => bestLine({ fen: AFTER_D5, plies: 20, tablebase: tb }),
+    TablebaseUnavailable
+  );
+});
+
+test('a position past seven pieces has no line', async () => {
+  const tb = fakeTablebase();
+  await assert.rejects(
+    () => bestLine({
+      fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      tablebase: tb,
+    }),
+    /sedam figura/
+  );
 });

@@ -22,6 +22,13 @@ class _FakeApi extends EndgameApiService {
     String? excludeId,
   }) async =>
       result;
+
+  @override
+  Future<List<String>?> fetchBestLine({
+    required String fen,
+    int plies = 10,
+  }) async =>
+      const ['Kf1', 'Ra1+'];
 }
 
 /// Seger - Lambert 2005: three mistakes in six moves, alternating sides.

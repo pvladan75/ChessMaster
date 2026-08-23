@@ -394,6 +394,37 @@ router.get('/puzzles/endgame/game/next', authenticateToken, async (req, res) => 
   }
 });
 
+// GET /api/puzzles/endgame/line - the tablebase-best continuation.
+//
+// What makes a bad move bad is that there is a way to punish it, and this is
+// that way. Asked for after the answer is already known, so it gives nothing
+// away; before that it would be the solution.
+//
+// Same cap as the drill, and for the same reason: every uncached position is a
+// request to a tablebase somebody else pays to run.
+router.get('/puzzles/endgame/line', authenticateToken, drillLimiter,
+  async (req, res) => {
+    const { fen, plies } = req.query;
+    try {
+      const result = await endgameDrill.bestLine({
+        fen,
+        plies: Math.min(parseInt(plies, 10) || 10, 16),
+        tablebase,
+      });
+      res.json(result);
+    } catch (err) {
+      if (err instanceof endgameDrill.DrillError) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      if (err instanceof TablebaseUnavailable) {
+        logger.warn(`[ZAVRSNICE] tablica nedostupna: ${err.message}`);
+        return res.status(503).json({ error: err.message });
+      }
+      logger.error('Error building endgame line:', err);
+      res.status(500).json({ error: 'Greška pri izvođenju linije.' });
+    }
+  });
+
 // GET /api/puzzles/adaptive - Next Lichess puzzle chosen for this user.
 //
 // Unlike /puzzles/next, which serves a random row from a fixed category, this

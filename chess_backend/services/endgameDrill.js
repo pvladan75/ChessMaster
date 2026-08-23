@@ -180,8 +180,58 @@ async function judgeMove({ fen, move, tablebase }) {
   return result;
 }
 
+/**
+ * Best play for both sides from here, as far as it is worth showing.
+ *
+ * This is the answer to "why was my move bad": because of this. A move that
+ * threw a draw away is refuted by a concrete line, and a line is a fact where
+ * "-0.3" is an opinion.
+ *
+ * Both sides play the tables' best, which is not the same as both sides playing
+ * well: the losing side takes the longest road and the winning side the
+ * shortest, so it reads like a game rather than like a resignation. bestReply
+ * carries that rule, and the same fix that made the drill terminate - a winning
+ * zeroing move first - is what stops this from wandering too.
+ */
+async function bestLine({ fen, plies = 10, tablebase }) {
+  let board;
+  try {
+    board = new Chess(fen);
+  } catch {
+    throw new DrillError('Pozicija nije ispravna.');
+  }
+  if (pieceCount(fen) > 7) {
+    throw new DrillError('Pozicija ima više od sedam figura, pa se linija ne može izvesti.');
+  }
+
+  const start = await tablebase.probe(fen);
+  const outcome = drillOutcome(start.category);
+  const moves = [];
+
+  for (let ply = 0; ply < plies; ply += 1) {
+    if (endOf(board)) break;
+    // Castling rights put a position outside the tables however few pieces
+    // are on it, and the field in the FEN is the plain way to ask.
+    const here = board.fen();
+    if (pieceCount(here) > 7 || here.split(' ')[2] !== '-') break;
+    const probed = await tablebase.probe(here);
+    const next = bestReply(probed.moves);
+    if (!next) break;
+    const played = board.move({
+      from: next.uci.slice(0, 2),
+      to: next.uci.slice(2, 4),
+      promotion: next.uci.slice(4) || undefined,
+    });
+    if (!played) break;
+    moves.push(played.san);
+  }
+
+  return { outcome, moves, fen: board.fen(), finished: endOf(board) };
+}
+
 module.exports = {
   judgeMove,
+  bestLine,
   drillOutcome,
   applyMove,
   endOf,

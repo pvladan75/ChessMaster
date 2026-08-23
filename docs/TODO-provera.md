@@ -120,6 +120,20 @@ do sledeće greške.
       poteza posle poslednje greške, a najduža sto pedeset pet.
 - [ ] Na 360 dp ništa ne izlazi iz ekrana.
 
+## 0i. Kazna kao odgovor na „zašto" — napisano 23.8.2026, nije viđeno uživo
+
+U šetnji, kad je greška iza tebe, dugme **„Zašto je loše"** odigrava na tabli
+tablično najbolju kaznu za taj potez — jer razlog zbog kog je potez loš jeste
+to što postoji konkretan način da se kazni.
+
+- [ ] Dugme se pojavljuje **tek kad je greška odgovorena**, ne dok stojiš na
+      njoj (tada bi bilo rešenje).
+- [ ] Kazna se odigrava na tabli, potez po potez, iz pozicije **posle** greške.
+- [ ] Traka za kretanje kroz partiju **nestaje** dok kazna traje — ona hoda
+      partiju, a ovo nije partija.
+- [ ] „Nazad na partiju" vraća tablu tačno tamo gde je bila.
+- [ ] Ako tablica ne odgovara, kaže se to i tabla se ne dira.
+
 ## 0h. Zašto potez drži — napisano 23.8.2026, nije viđeno uživo
 
 Posle tačnog odgovora (i posle „Pokaži") uz poruku stoji i rečenica o tome šta

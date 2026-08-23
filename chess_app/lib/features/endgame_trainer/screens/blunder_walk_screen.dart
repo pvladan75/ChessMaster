@@ -98,6 +98,16 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   /// top of the squares they are trying to read.
   static const _arrowLinger = Duration(seconds: 4);
 
+  /// The punishment, once it has been asked for: the position after the
+  /// mistake and the tables' best play from there, one board per ply.
+  ///
+  /// Kept apart from the walk's own line rather than folded into it. The game
+  /// went one way and this is the way it did not go, and a reader who has just
+  /// watched them mixed together has no way to tell which was which.
+  List<String>? _refutation;
+  int _refutationAt = 0;
+  bool _fetchingRefutation = false;
+
   /// The move that lost the result, drawn from where it started to where it
   /// went. "White played Ng4" is a sentence to decode; the arrow is the same
   /// thing already decoded, which on a board is the form that costs nothing.
@@ -242,6 +252,66 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   void _stopPlayback() {
     _playback?.cancel();
     _playback = null;
+  }
+
+  /// Plays out how the mistake would have been punished.
+  Future<void> _showRefutation(GameBlunder blunder) async {
+    final board = chess.Chess.fromFEN(blunder.fen);
+    if (board.move(blunder.played) == false) return;
+
+    setState(() => _fetchingRefutation = true);
+    final moves = await _api.fetchBestLine(fen: board.fen);
+    if (!mounted) return;
+
+    if (moves == null || moves.isEmpty) {
+      setState(() {
+        _fetchingRefutation = false;
+        _feedbackIsGood = false;
+        _feedback = 'Kaznu trenutno nije moguće izvesti — tablica ne odgovara.';
+      });
+      return;
+    }
+
+    final fens = <String>[board.fen];
+    for (final san in moves) {
+      if (board.move(san) == false) break;
+      fens.add(board.fen);
+    }
+
+    _stopPlayback();
+    _clearMarks();
+    setState(() {
+      _fetchingRefutation = false;
+      _refutation = fens;
+      _refutationAt = 0;
+      _feedbackIsGood = false;
+      _feedback = 'Ovako se ${blunder.played} kažnjava.';
+    });
+    _boardController.loadFen(fens.first);
+
+    _playback = Timer.periodic(_playbackStep, (timer) {
+      if (!mounted || _refutation == null) {
+        _stopPlayback();
+        return;
+      }
+      if (_refutationAt + 1 >= _refutation!.length) {
+        _stopPlayback();
+        return;
+      }
+      setState(() => _refutationAt++);
+      _boardController.loadFen(_refutation![_refutationAt]);
+    });
+  }
+
+  /// Puts the game back where it was before the punishment was shown.
+  void _closeRefutation() {
+    _stopPlayback();
+    setState(() {
+      _refutation = null;
+      _refutationAt = 0;
+      _feedback = null;
+    });
+    _showCurrent();
   }
 
   /// Walks the game forward, one move at a time, as far as it is worth doing
@@ -425,7 +495,8 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
                         controller: _boardController,
                         boardOrientation: _orientation,
                         boardSize: inner,
-                        isAllowedToMove: walk.pending != null &&
+                        isAllowedToMove: _refutation == null &&
+                            walk.pending != null &&
                             walk.cursor == walk.pending!.ply,
                         isDrawingMode: false,
                         drawingStartSquare: null,
@@ -437,23 +508,24 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  MoveNavigationControls(
-                    cursor: LinearMoveCursor(
-                      fens: _fens,
-                      index: walk.cursor,
-                      onSeek: _seek,
+                  if (_refutation == null)
+                    MoveNavigationControls(
+                      cursor: LinearMoveCursor(
+                        fens: _fens,
+                        index: walk.cursor,
+                        onSeek: _seek,
+                      ),
+                      // No chips. Naming the moves under the board says in
+                      // notation what the board is already saying in pieces, and
+                      // it is the form a child working on a board needs least.
+                      showMoveChips: false,
+                      centerLabel: 'Potez ${walk.cursor} od ${walk.frontier}',
+                      onFlipBoard: () => setState(() {
+                        _orientation = _orientation == PlayerColor.white
+                            ? PlayerColor.black
+                            : PlayerColor.white;
+                      }),
                     ),
-                    // No chips. Naming the moves under the board says in
-                    // notation what the board is already saying in pieces, and
-                    // it is the form a child working on a board needs least.
-                    showMoveChips: false,
-                    centerLabel: 'Potez ${walk.cursor} od ${walk.frontier}',
-                    onFlipBoard: () => setState(() {
-                      _orientation = _orientation == PlayerColor.white
-                          ? PlayerColor.black
-                          : PlayerColor.white;
-                    }),
-                  ),
                   if (!wide) ...[
                     const SizedBox(height: 8),
                     panel,
@@ -540,6 +612,21 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
             onPressed: _reveal,
             icon: const Icon(Icons.visibility_outlined),
             label: const Text('Pokaži'),
+          ),
+        // Offered once the stop is behind us: before that it is the solution.
+        if (_refutation == null && blunder == null && walk.atCursor != null)
+          OutlinedButton.icon(
+            onPressed: _fetchingRefutation
+                ? null
+                : () => _showRefutation(walk.atCursor!),
+            icon: const Icon(Icons.gavel),
+            label: const Text('Zašto je loše'),
+          ),
+        if (_refutation != null)
+          FilledButton.icon(
+            onPressed: _closeRefutation,
+            icon: const Icon(Icons.close),
+            label: const Text('Nazad na partiju'),
           ),
         FilledButton.icon(
           onPressed: _loadNext,
