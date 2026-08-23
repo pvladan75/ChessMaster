@@ -2601,8 +2601,21 @@ nije gotov znači oduzeti vežbu, a ostaviti ga otvorenim košta nekoliko poteza
 Iznad svega stoji presuda tablica — oblik sa liste koji tablice zovu dobitkom
 jeste dobitak i lista tu nema reč.
 
-Kad su oba ispunjena, dugme „Zaključi remi" zatvara vežbu. Kad nisu, ne odbija
-ćutke nego imenuje šta je još ostalo da se pokvari.
+Kad su oba ispunjena, dugme „Zaključi remi" zatvara vežbu odmah.
+
+**Kad nisu — ne odbija, nego traži da se odigra.** Korisnikov predlog, i bolji
+je od svađe oko pravila: pozicija koja nije dokazano mrtva se ne zatvara na
+reč, ali se zato može **pokazati**. Dugme tada imenuje šta još gubi i postavlja
+brojač: održi remi još **osam poteza** (četiri sa svake strane) i vežba se
+zatvara. Čip „Do remija: n" broji unazad.
+
+Razlika je u tome šta se tvrdi. Zatvaranje po pravilu kaže „ovde nema šta da se
+pokvari"; zatvaranje po odigranom kaže „održali ste ga", što je i ono što je
+vežba učila. Poruka na kraju zato ne pominje mrtvu poziciju.
+
+Osam je izabrano tako da odbrana koja samo što nije pukla pukne unutar tog
+raspona, a da ne bude ono isto vrćenje koje zamenjuje. Broj stoji na jednom
+mestu (`holdOutMoves`).
 
 ### Ponavljanje nije istek brojača
 

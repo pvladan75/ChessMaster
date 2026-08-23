@@ -6,6 +6,8 @@
 /// told "eighteen moves to go" would be told something untrue.
 library;
 
+import 'package:chess_app/core/services/serbian_plural.dart';
+
 class DrillStep {
   const DrillStep({
     required this.held,
@@ -57,6 +59,31 @@ class DrillStep {
         replySan: (json['reply'] as Map<String, dynamic>?)?['san']?.toString(),
         finished: json['finished']?.toString(),
       );
+}
+
+/// How many more moves a claimed draw has to be held for.
+///
+/// A position can be drawn and still have something to get wrong, and then no
+/// rule about material can honestly close it. What can be asked instead is a
+/// demonstration: keep it for this many more moves and the exercise is over.
+/// It is not a claim that the position is dead - it is a claim that the reader
+/// can hold it, which is what the drill was teaching.
+///
+/// Eight is four moves each. Long enough that a defence about to collapse
+/// collapses inside it, short enough not to be the shuffling it replaces.
+const holdOutMoves = 8;
+
+/// What the drill says while a claimed draw is being held out.
+String holdOutText(int left) {
+  if (left <= 0) {
+    return 'Remi je održan još $holdOutMoves poteza — vežba je zaključena.';
+  }
+  return serbianCount(
+    left,
+    one: 'Držite remi još $left potez.',
+    few: 'Držite remi još $left poteza.',
+    many: 'Držite remi još $left poteza.',
+  );
 }
 
 /// What to tell the child after one judged move.

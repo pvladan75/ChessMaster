@@ -173,7 +173,10 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
 - [ ] Posle korišćenja se pojavi čip „Nalaz: n", i nestaje na sledećoj poziciji.
 - [ ] U KRP–KR koje pređe u KR–KR pojavi se „Zaključi remi" i zatvori vežbu.
 - [ ] U poziciji sa pešakom tog dugmeta nema.
-- [ ] Kad remi nije mrtav, dugme kaže **koji potez** još gubi, ne samo „ne može".
+- [ ] Kad remi nije mrtav, dugme kaže **koji potez** još gubi i postavi brojač
+      „Do remija: 8"; posle osam održanih poteza vežba se zatvori sama.
+- [ ] Ako se remi u međuvremenu ispusti, brojač nestaje i vežba staje kao i
+      inače.
 - [ ] Kad se pozicija ponovi tri puta, poruka kaže „ponovila se", a ne
       „pedeset poteza".
 

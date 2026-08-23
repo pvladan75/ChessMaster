@@ -97,6 +97,10 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// chips must not read as though it were.
   int _readouts = 0;
   bool _reading = false;
+
+  /// Moves still to be held after the reader claimed the draw. Null when no
+  /// claim is standing.
+  int? _holdLeft;
   String? _error;
   String? _feedback;
   bool _feedbackIsGood = false;
@@ -210,6 +214,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _drilling = false;
       _punishing = false;
       _readouts = 0;
+      _holdLeft = null;
       _drillEnd = null;
       _drillRetryFen = null;
       _drillMistakes = 0;
@@ -485,13 +490,18 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _boardLocked = false;
       if (step.held) {
         _drillMoves++;
+        if (_holdLeft != null) _holdLeft = _holdLeft! - 1;
       } else {
         _drillMistakes++;
         _drillRetryFen = fenBefore;
       }
-      _drillEnd = step.held ? step.finished : 'lost';
+      // A claim held to the end closes the drill, and says so in its own
+      // words: the position was not proved dead, the reader held it.
+      final claimed = _holdLeft != null && _holdLeft! <= 0 && step.held;
+      _drillEnd = claimed ? 'draw' : (step.held ? step.finished : 'lost');
       _feedbackIsGood = step.held;
-      _feedback = drillFeedbackText(step);
+      _feedback = claimed ? holdOutText(0) : drillFeedbackText(step);
+      if (claimed || !step.held) _holdLeft = null;
     });
     _boardController.loadFen(step.fen);
   }
@@ -566,19 +576,23 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       return;
     }
     if (!readout.deadDraw) {
-      // Not a refusal to be argued with: it names what is still here to be got
-      // wrong, which is the answer to "why not".
+      // Not a refusal. The position is not provably finished, so instead of
+      // arguing about it the drill asks for the demonstration: hold it for a
+      // few more moves and it closes. That answers the same complaint without
+      // claiming anything about the position that is not true.
       final dropping = readout.dropping;
+      final why = dropping.isEmpty
+          ? 'Ovo još nije mrtva pozicija.'
+          : 'Ovo još nije mrtva pozicija — ${dropping.first.san} gubi remi.';
       setState(() {
+        _holdLeft = holdOutMoves;
         _feedbackIsGood = false;
-        _feedback = dropping.isEmpty
-            ? 'Ovde se remi još ne može zaključiti.'
-            : 'Još ima šta da se pokvari: ${dropping.first.san} gubi remi. '
-                'Zato ovo nije mrtva pozicija.';
+        _feedback = '$why ${holdOutText(holdOutMoves)}';
       });
       return;
     }
     setState(() {
+      _holdLeft = null;
       _drillEnd = 'draw';
       _feedbackIsGood = true;
       _feedback = 'Remi je zaključen — nema pešaka, a izgubiti se može samo '
@@ -920,6 +934,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         if (_drilling && _drillMoves > 0) 'Odigrano: $_drillMoves',
         if (_drilling && _drillMistakes > 0) 'Greške: $_drillMistakes',
         if (_readouts > 0) 'Nalaz: $_readouts',
+        if (_holdLeft != null && _holdLeft! > 0) 'Do remija: $_holdLeft',
         if (!_drilling && _attempted > 0) 'Rešeno: $_solved/$_attempted',
         if (puzzle.game != null) puzzle.game!.label,
       ];

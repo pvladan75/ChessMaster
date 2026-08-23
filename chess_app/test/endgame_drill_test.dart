@@ -120,6 +120,32 @@ void main() {
     });
   });
 
+  group('holding a claimed draw out', () {
+    test('the countdown is said in the right case', () {
+      // A position can be drawn and still have something to get wrong, and no
+      // rule about material can honestly close that one. What can be asked is
+      // the demonstration: hold it this many more moves.
+      expect(holdOutText(1), 'Držite remi još 1 potez.');
+      expect(holdOutText(2), 'Držite remi još 2 poteza.');
+      expect(holdOutText(8), 'Držite remi još 8 poteza.');
+    });
+
+    test('reaching the end says what was actually proved', () {
+      // Not "the position is dead" - that was never established. What was
+      // established is that the reader held it.
+      final text = holdOutText(0);
+      expect(text, contains('$holdOutMoves'));
+      expect(text, contains('zaključena'));
+      expect(text, isNot(contains('mrtva')));
+    });
+
+    test('the claim is long enough to be worth something', () {
+      // Four moves each side: long enough for a defence about to collapse to
+      // collapse inside it, short enough not to be the shuffling it replaces.
+      expect(holdOutMoves, greaterThanOrEqualTo(6));
+    });
+  });
+
   group('when the drill is over', () {
     test('a move that lost the result ends it', () {
       expect(step(held: false).isOver, isTrue);
