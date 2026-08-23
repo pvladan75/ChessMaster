@@ -34,6 +34,23 @@ jedna pozicija dobila potez više, a sedmofiguraške sada nose `source = lichess
       mora da bude prihvaćen, uz `Qf3` i `Qg3+`. Ranije je vraćao „netačno".
 - [ ] Neka sedmofiguraška pozicija i dalje nosi oznaku „Tačno iz tablica".
 
+## 0c. Igranje do kraja — napisano 23.8.2026, nije viđeno uživo
+
+Dugme „Odigraj do kraja" na pozicijama do sedam figura. Backend sudi svaki potez
+iz tablica; protivnik brani tablično najbolje.
+
+- [ ] Dugme se vidi na poziciji sa pet figura, a ne vidi se na onoj sa devet.
+- [ ] Potez koji drži dobitak → „Tačno — dobitak je zadržan i prišli ste bliže",
+      pa protivnikov odgovor odigran na tabli.
+- [ ] Potez koji drži ali ne napreduje (šetnja kraljem) → „Tačno, dobitak je
+      zadržan — ali niste prišli bliže".
+- [ ] Potez koji ispušta dobitak → vežba staje i imenuje potez.
+- [ ] Odigrati jednu do kraja: mora da se završi matom, ne da se vrti u krug.
+- [ ] Ugasi mrežu usred vežbe: mora da kaže da tablica nije dostupna i da
+      **vrati tablu na prethodni položaj**, a ne da ostavi nepresuđen potez.
+- [ ] „Nazad na zadatak" vraća početnu poziciju i običan režim rešavanja.
+- [ ] Na telefonu: tri dugmeta vežbe u jednom redu na 360 dp.
+
 ---
 
 ## 0. Pristanak na odnos trener–učenik — ✅ provereno uživo 17.8.2026

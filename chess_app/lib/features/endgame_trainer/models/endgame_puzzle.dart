@@ -81,9 +81,14 @@ class EndgamePuzzle {
   /// True when the result is known exactly rather than estimated.
   bool get isExact => _exactSources.contains(source);
 
-  /// Whether the position is small enough for the engine to be judged against
-  /// a tablebase on every move, which is what a play-it-out drill needs.
-  bool get canBePlayedOut => isExact && piecesOnBoard > 0 && piecesOnBoard <= 5;
+  /// Whether every move in this position can be judged against a tablebase,
+  /// which is what a play-it-out drill needs.
+  ///
+  /// Seven, not five. The limit is how far the tables the server can reach go,
+  /// and it asks Lichess rather than holding a set of its own — so the ceiling
+  /// is the seven-piece one rather than the 940 MB a droplet could carry. Past
+  /// seven no tablebase exists and the drill has nothing to promise.
+  bool get canBePlayedOut => isExact && piecesOnBoard > 0 && piecesOnBoard <= 7;
 
   bool get whiteToMove {
     final parts = fen.split(' ');

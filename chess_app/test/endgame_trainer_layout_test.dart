@@ -112,4 +112,81 @@ void main() {
       );
     }
   });
+
+  testWidgets('the drill can be entered, and its controls fit a phone too',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      wrap(
+        EndgameTrainerScreen(
+          session: UserSession(
+              token: 't', id: 1, email: 'a@b', name: 'Test', role: 'korisnik'),
+          api: _FakeEndgameApi(
+            EndgameFetchResult(EndgameFetchOutcome.ok, worstCasePuzzle()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Five pieces and an exact source, so it can be played out.
+    expect(find.text('Odigraj do kraja'), findsOneWidget);
+
+    // The controls sit below the board on a 360 dp phone, so the button has
+    // to be scrolled to before it can be tapped.
+    await tester.ensureVisible(find.text('Odigraj do kraja'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.pumpAndSettle();
+
+    // The whole row of drill buttons has to fit the same 360 dp phone.
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining('Igrate do kraja'), findsOneWidget);
+    expect(find.text('Ispočetka'), findsOneWidget);
+    expect(find.text('Nazad na zadatak'), findsOneWidget);
+    // The solve-mode controls step aside; hunting for other moves makes no
+    // sense once the position is being played out.
+    expect(find.text('Pomoć'), findsNothing);
+
+    await tester.ensureVisible(find.text('Nazad na zadatak'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nazad na zadatak'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('održite remi'), findsOneWidget);
+  });
+
+  testWidgets('a position too big for any tablebase is not offered as a drill',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final tooBig = EndgamePuzzle.fromJson({
+      'puzzle_id': 'eg_big',
+      'fen': '8/4k3/8/1p2Pp2/p7/P1K1P3/1P6/8 w - - 1 42',
+      'type': 'PawnEnding',
+      'mode': 'win',
+      'winning_moves': ['c3d3'],
+      'piece_count': 9,
+      'source': 'engine',
+    });
+
+    await tester.pumpWidget(
+      wrap(
+        EndgameTrainerScreen(
+          key: const ValueKey('big'),
+          session: UserSession(
+              token: 't', id: 1, email: 'a@b', name: 'Test', role: 'korisnik'),
+          api: _FakeEndgameApi(
+              EndgameFetchResult(EndgameFetchOutcome.ok, tooBig)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Odigraj do kraja'), findsNothing);
+  });
 }

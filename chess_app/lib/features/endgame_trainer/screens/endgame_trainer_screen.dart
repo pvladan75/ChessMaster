@@ -95,6 +95,19 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// solve of something already failed must not turn into a clean one.
   bool _countedThisPuzzle = false;
 
+  /// True while the position is being played out against a perfect opponent
+  /// rather than answered in a single move. The two modes share the board and
+  /// nothing else: solving asks "which moves hold the result", playing out asks
+  /// "can you actually finish it", and a child who can do the first often
+  /// cannot yet do the second.
+  bool _drilling = false;
+
+  /// How the drill ended: 'lost' when a move gave the result away, otherwise
+  /// whatever the server called it. Null while it is still running.
+  String? _drillEnd;
+
+  int _drillMoves = 0;
+
   @override
   void initState() {
     super.initState();
@@ -143,6 +156,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _found.clear();
       _revealed = false;
       _countedThisPuzzle = false;
+      _drilling = false;
+      _drillEnd = null;
+      _drillMoves = 0;
     });
     _boardController.loadFen(puzzle.fen);
   }
@@ -166,9 +182,14 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   Future<void> _onMove(String from, String to) async {
     final solve = _solve;
     final game = _game;
-    if (solve == null || game == null || _boardLocked || solve.isComplete) {
+    if (solve == null || game == null || _boardLocked) return;
+    if (_drilling) {
+      await _onDrillMove(from, to);
       return;
     }
+    // A solved position stops taking moves; a drill does not, because there the
+    // point is the moves after the first one.
+    if (solve.isComplete) return;
 
     final isPromotion = _isPromotion(game, from, to);
     const promotion = 'q';
@@ -230,6 +251,97 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _feedbackIsGood = true;
       _feedback = _successText(solve);
     });
+  }
+
+  /// Puts the starting position back and plays it out instead of solving it.
+  void _startDrill() {
+    final puzzle = _solve?.puzzle;
+    if (puzzle == null) return;
+    setState(() {
+      _drilling = true;
+      _drillEnd = null;
+      _drillMoves = 0;
+      _hintSquare = null;
+      _game = chess.Chess.fromFEN(puzzle.fen);
+      _feedbackIsGood = false;
+      _feedback = puzzle.mode == EndgameMode.draw
+          ? 'Protivnik igra tablično najbolje i pokušaće da dobije. Držite remi do kraja.'
+          : 'Protivnik brani tablično najbolje. Dobitak morate da odigrate do kraja.';
+    });
+    _boardController.loadFen(puzzle.fen);
+  }
+
+  void _stopDrill() {
+    final puzzle = _solve?.puzzle;
+    if (puzzle == null) return;
+    setState(() {
+      _drilling = false;
+      _drillEnd = null;
+      _drillMoves = 0;
+      _feedback = null;
+      _game = chess.Chess.fromFEN(puzzle.fen);
+    });
+    _boardController.loadFen(puzzle.fen);
+  }
+
+  /// One move of the drill: played, sent, and judged by the server.
+  ///
+  /// The verdict is not worked out here even though the position is small
+  /// enough to look up. It belongs on the server for the same reason the
+  /// puzzle's own rating does — a result that arrives from a client is one the
+  /// server cannot check — and asking costs nothing extra, since the tables
+  /// have to be consulted to answer the child at all.
+  Future<void> _onDrillMove(String from, String to) async {
+    final game = _game;
+    if (game == null || _drillEnd != null) return;
+
+    final isPromotion = _isPromotion(game, from, to);
+    const promotion = 'q';
+
+    // Trial move on a copy first, so an illegal drag never leaves the board
+    // showing a position the server was never asked about.
+    final probe = chess.Chess.fromFEN(game.fen);
+    if (probe.move({'from': from, 'to': to, 'promotion': promotion}) == false) {
+      return;
+    }
+    final uci = isPromotion ? '$from$to$promotion' : '$from$to';
+    final fenBefore = game.fen;
+
+    setState(() {
+      _boardLocked = true;
+      _feedbackIsGood = false;
+      _feedback = 'Proveravam u tablicama…';
+    });
+
+    final result = await _api.judgeDrillMove(fen: fenBefore, move: uci);
+    if (!mounted) return;
+
+    if (result.outcome != DrillJudgeOutcome.ok || result.step == null) {
+      // Back to where it was. A move nobody judged must not be left standing
+      // as though it had been — that is the whole difference this mode sells.
+      _boardController.loadFen(fenBefore);
+      setState(() {
+        _boardLocked = false;
+        _feedbackIsGood = false;
+        _feedback = result.message ??
+            (result.outcome == DrillJudgeOutcome.unavailable
+                ? 'Tablica trenutno nije dostupna, pa potez ne može da se presudi. '
+                    'Pokušajte za koji trenutak.'
+                : 'Taj potez nije moguće presuditi.');
+      });
+      return;
+    }
+
+    final step = result.step!;
+    setState(() {
+      _game = chess.Chess.fromFEN(step.fen);
+      _boardLocked = false;
+      _drillMoves++;
+      _drillEnd = step.held ? step.finished : 'lost';
+      _feedbackIsGood = step.held;
+      _feedback = drillFeedbackText(step);
+    });
+    _boardController.loadFen(step.fen);
   }
 
   /// Names the other correct moves after a solve.
@@ -376,7 +488,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
                     controller: _boardController,
                     boardOrientation: _orientation,
                     boardSize: boardSize,
-                    isAllowedToMove: !_boardLocked && !solve.isComplete,
+                    isAllowedToMove: !_boardLocked &&
+                        (_drilling ? _drillEnd == null : !solve.isComplete),
                     isDrawingMode: false,
                     drawingStartSquare: null,
                     arrows: const [],
@@ -399,9 +512,16 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
   Widget _buildHeader(EndgamePuzzle puzzle) {
     final onMove = puzzle.whiteToMove ? 'Beli' : 'Crni';
-    final task = puzzle.mode == EndgameMode.draw
-        ? '$onMove na potezu — održite remi'
-        : '$onMove na potezu — zadržite dobitak';
+    final String task;
+    if (_drilling) {
+      task = puzzle.mode == EndgameMode.draw
+          ? 'Igrate do kraja — držite remi'
+          : 'Igrate do kraja — odigrajte dobitak';
+    } else {
+      task = puzzle.mode == EndgameMode.draw
+          ? '$onMove na potezu — održite remi'
+          : '$onMove na potezu — zadržite dobitak';
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -418,7 +538,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
             _chip(kEndgameTypeNames[puzzle.type] ?? puzzle.type),
             _chip('Težina: ${_difficultyLabel(puzzle)}'),
             if (puzzle.isExact) _chip('Tačno iz tablica'),
-            if (_attempted > 0) _chip('Rešeno: $_solved/$_attempted'),
+            if (_drilling && _drillMoves > 0) _chip('Odigrano: $_drillMoves'),
+            if (!_drilling && _attempted > 0)
+              _chip('Rešeno: $_solved/$_attempted'),
             if (puzzle.game != null) _chip(puzzle.game!.label),
           ],
         ),
@@ -465,6 +587,31 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   Widget _buildControls(EndgameSolveSession solve) {
     // Wrap for the same reason as the header: three buttons with Serbian labels
     // outgrow a narrow phone, and the overflow would not show in release.
+    if (_drilling) {
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.center,
+        children: [
+          OutlinedButton.icon(
+            onPressed: _boardLocked ? null : _startDrill,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Ispočetka'),
+          ),
+          OutlinedButton.icon(
+            onPressed: _boardLocked ? null : _stopDrill,
+            icon: const Icon(Icons.close),
+            label: const Text('Nazad na zadatak'),
+          ),
+          FilledButton.icon(
+            onPressed: _boardLocked ? null : _loadNext,
+            icon: const Icon(Icons.arrow_forward),
+            label: const Text('Sledeća'),
+          ),
+        ],
+      );
+    }
+
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -499,6 +646,15 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
               label: const Text('Pokaži'),
             ),
         ],
+        // Offered whether or not the position has been solved: knowing which
+        // move holds the win and being able to finish it are two different
+        // things, and a child may want either one first.
+        if (solve.puzzle.canBePlayedOut)
+          OutlinedButton.icon(
+            onPressed: _startDrill,
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Odigraj do kraja'),
+          ),
         FilledButton.icon(
           onPressed: _loadNext,
           icon: const Icon(Icons.arrow_forward),

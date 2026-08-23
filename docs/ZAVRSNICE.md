@@ -468,7 +468,7 @@ ubedljivo najčešća vrednost je `180+0`. Za gradivo nije upotrebljiva, za dete
 grešaka jeste — medijana rejtinga je 2592, dakle jaki igrači koji greše zbog
 sata.
 
-## Igranje do kraja protiv motora: šta treba odlučiti
+## Igranje do kraja protiv motora — napravljeno 23.8.2026
 
 Zamišljeno je da dete odigra celu završnicu protiv motora, a da svaki njegov
 potez bude ocenjen **tačno**, iz tablica.
@@ -515,6 +515,21 @@ dobitak". Bez pogađanja.
 Šestofiguraški set ne ide na server: 149,2 GB ne staje ni na disk droplet-a, a
 Syzygy se uz to čita mapiranjem u memoriju, pa bi i da stane radio loše. Set
 ostaje na radnoj mašini, gde mu je posao rudarenje, ne suđenje.
+
+**Dopuna istog dana, pri izradi.** Serverska polovina nije preživela dodir sa
+kodom. **Za Node ne postoji čitač Syzygy tablica** — npm nema nijedan — pa bi
+i onih 940 MB tražilo ili Python sa `python-chess` na droplet-u, ili zaseban
+servis, ili pisanje čitača. A tablice se čitaju mapiranjem u memoriju, tako da
+940 MB na mašini sa 960 MB RAM-a ionako ne bi stajalo pored svega ostalog.
+
+Umesto toga backend **posreduje ka istom javnom API-ju i kešira po FEN-u**.
+„Server sudi" ostaje tačno — aplikacija pita naš backend, ne Lichess — menja se
+samo odakle backend zna odgovor, a `LICHESS_TABLEBASE_URL` pokazuje na drugo
+mesto onog dana kad lokalne tablice postanu izvodljive, bez ijedne izmene u
+aplikaciji.
+
+Time granica prestaje da bude pet: sudi se **do sedam figura**, dokle sežu
+tablice koje server pita. Građa za vežbu je 596 pozicija umesto 478.
 
 Šta ovo povlači:
 
@@ -566,6 +581,74 @@ nuliranja brojač kreće iz početka, pa i pozicija sa malim `dtz` može da potr
 Syzygy nema DTM. Ako se u praksi pokaže da dete grinduje predugo, ograničenje
 ide na samu vežbu — stani posle N poteza i pokaži ostatak — a ne na izbor
 pozicija.
+
+### Šta je napravljeno
+
+Tri celine, svaka upotrebljiva sama za sebe:
+
+- `chess_backend/services/tablebaseService.js` — jedino mesto koje pita tablicu.
+  Keš po FEN-u, zahtevi za istu poziciju se stapaju u jedan, ograničen keš.
+  Ništa ne prelazi na motor: nedostupna tablica se prijavljuje kao nedostupna, a
+  kategorija koju servis ne potvrđuje (`unknown`, `maybe-win`) puca umesto da
+  postane ishod.
+- `chess_backend/services/endgameDrill.js` + `POST /api/puzzles/endgame/play` —
+  dva pitanja tablici po potezu: pozicija iz koje se igralo, koja kaže i šta je
+  trebalo držati i šta je potez ostavio, i pozicija posle nje, gde se bira
+  odgovor. Ponovljene pozicije ne koštaju ništa. 503 kad tablice nema.
+- Režim u `endgame_trainer_screen.dart`, ne nov ekran. Dugme „Odigraj do kraja"
+  stoji i pre i posle rešavanja: znati koji potez drži i umeti to odigrati su
+  dve različite stvari.
+
+**Zašto sudi server, a ne aplikacija.** Presuda koja stigne sa klijenta je
+presuda koju server ne može da razlikuje od bilo kog drugog POST-a — a češći
+slučaj nije varanje nego stara verzija APK-a ili ponovljen zahtev posle prekida
+mreže. Ovde to uz to ništa ne košta, jer server ionako mora da pita tablicu da
+bi detetu odgovorio. Napomena radi poštenja: `POST /api/puzzles/attempt` i dalje
+uzima `solved` od klijenta, pa ovo nije pravilo koje projekat primenjuje svuda.
+
+### Šta se ne govori detetu
+
+**Nikad koliko je poteza ostalo.** `dtz` je u polupotezima do sledećeg uzimanja
+ili poteza pešaka, ne do mata, i posle konverzije kreće iz početka — „još
+osamnaest poteza" bilo bi pogrešno dvaput. Ono što jeste tačno i na šta dete
+može da reaguje je poređenje: ishod je zadržan, i jesi li prišao bliže ili nisi.
+Test čuva baš to, jer je iskušenje trajno.
+
+**„Tačno, ali nisi prišao bliže"** je zasebna rečenica namerno. Dete koje šeta
+kraljem tamo-amo bi golo „tačno" pročitalo kao „to je bio potez" i nastavilo.
+
+**Pedeset poteza** je jedini kraj koji liči na uspeh a nije: dobitak koji
+tablica zove dobitkom konvertuje se unutar pravila, pa istrošen brojač znači da
+su potrošeni potezi, ne da pozicija nije dobijala.
+
+### Greška koju je našla tek odigrana partija
+
+Prvi pokušaj je konvertovao šest poteza čisto pa ušao u **beskonačno
+ponavljanje** — `Rf7`/`Rc7` zauvek, uvek „drži", nikad kraj.
+
+Uzrok je isti oblik greške kao kod `closer`: `bestReply` je za dobitnu stranu
+birao najmanji `dtz`, a to poredi razdaljine merene od različitih polazišta, jer
+uzimanje ili potez pešaka nuliraju brojač. Kad pozicija ima `dtz = 1`, dobitni
+potez je baš onaj koji nulira, a njegova razdaljina posle toga izgleda velika.
+
+Sada dobitni potez koji nulira ide prvi: to je napredak po definiciji i to je
+ono što garantuje da se vežba završi. Ista greška stoji i u `tablebase_line` u
+rudaru, gde se ne vidi jer linija ima osam poluposteza — **zabeležena, nije
+popravljena**. Posle popravke ista pozicija konvertuje do mata u 32 poteza, sa
+napretkom u svakom koraku, uz 63 zahteva.
+
+### Ako API zakaže
+
+Vežba kaže da trenutno ne radi i skloni se. Motor je **ne menja**, iako bi u
+ogromnoj većini slučajeva rekao istu stvar — izmereno istog dana, motor se
+složio sa tablicom na 595 od 596 pozicija. Dva razloga: motor ne zna `dtz`, pa
+„tačno, ali nisi prišao bliže" nema ekvivalent u centipionima; i kad greši, ne
+kaže da greši. Ostatak trenera završnica radi normalno.
+
+Trajniji odgovor, ako smetnja postane stvarna, nije zamena nego **keš koji
+preživljava restart**: prebačen u tabelu, svaka pozicija koju je neko dete ikad
+dohvatilo postaje lokalno odgovoriva. To nije zamena koja laže nego lokalna
+kopija tačno onog dela tablica koji se stvarno koristi.
 
 ## Greške koje su nas koštale
 

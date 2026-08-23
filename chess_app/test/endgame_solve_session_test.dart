@@ -66,9 +66,22 @@ void main() {
         'source': 'lichess',
       });
       expect(remote.isExact, isTrue);
-      // Still not playable out: judging every move belongs to the server, and
-      // the server holds the tables only up to five pieces.
-      expect(remote.canBePlayedOut, isFalse);
+      // And playable out, because the server asks the same tables rather than
+      // holding a set of its own: the ceiling is where tablebases end, not
+      // where a droplet's disk does.
+      expect(remote.canBePlayedOut, isTrue);
+    });
+
+    test('past seven pieces there is nothing to play out against', () {
+      final tooBig = EndgamePuzzle.fromJson({
+        'puzzle_id': 'x',
+        'fen': '8/4k3/8/1p2Pp2/p7/P1K1P3/1P6/8 w - - 1 42',
+        'winning_moves': ['c3d3'],
+        'piece_count': 9,
+        'source': 'syzygy',
+      });
+      expect(tooBig.isExact, isTrue);
+      expect(tooBig.canBePlayedOut, isFalse);
     });
 
     test('a payload with no winning moves is not playable', () {
