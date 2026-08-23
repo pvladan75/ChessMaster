@@ -4,7 +4,7 @@ Namena: da neko ko dolazi bez istorije razgovora za pet minuta zna gde smo stali
 i zašto je nešto urađeno baš tako. Nije prepis dijaloga — prepis troši prostor,
 a odluke su ono što se ne može rekonstruisati iz koda.
 
-Poslednje ažuriranje: 20.8.2026.
+Poslednje ažuriranje: 23.8.2026.
 
 ---
 
@@ -2111,6 +2111,14 @@ sa uputstvom, i onaj koji čeka drugu stranu). Aplikacija 310 testova,
 
 Obe je korisnik primetio u Windows verziji dok je proveravao trener završnica,
 i obe su van onoga što je tada rađeno. Zapisane su namerno neurađene.
+
+**Zašto čekaju — odlučeno 23.8.2026.** Projekat je još u izgradnji i korisnik je
+zasad **jedini koji ga koristi**: nema deteta kome se mikrofon otvara i nema
+tuđeg naloga koji ostaje zaglavljen u poluprijavljenom stanju, pa je stvarna
+cena obe greške danas nula. Obe ipak moraju biti zatvorene pre nego što
+aplikaciju dotakne iko osim vlasnika — glas zato što otvara mikrofon detetu i
+troši novac, istek tokena zato što tuđi korisnik nema odakle da zna da treba
+ručno da se odjavi.
 
 ### Glas se uključuje sam i naplaćuje se
 

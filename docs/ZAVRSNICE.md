@@ -152,7 +152,7 @@ Stvarna vrednost je oko 5%.
   "source": "syzygy",
   "mode": "draw",
   "wdl": 0,
-  "dtz": -18,
+  "dtz": 0,
   "difficulty": 5,
   "winning_moves": ["e6e7"],
   "winning_moves_san": ["Ke7"],
@@ -421,11 +421,43 @@ ostaje na radnoj mašini, gde mu je posao rudarenje, ne suđenje.
   pozicija sa pet i manje figura sudi server; API je za građu koja tek dolazi
   iz šestofiguraškog rudarenja.
 
-### Odluka 2: pravilo od 50 poteza
+### Odluka 2: pravilo od 50 poteza — ✅ odlučeno 23.8.2026
 
-Neki dobici u pet figura traju preko pedeset poteza — DTZ ide do 77 kod dame
-protiv topa. Treba odlučiti da li dete to grinduje do kraja ili se vežba
-prekida ranije uz prikaz preostalog.
+**Pozicije čiji dobitak traje preko pedeset poteza se ne zadaju.** Grindovanje
+takvog dobitka ne uči ništa što se ne nauči na kraćem primeru, a vežba koja se
+ne može završiti je vežba koja se ne radi.
+
+Pri upisu ove odluke izmereno je da je pitanje bilo postavljeno u **pogrešnoj
+jedinici** — istoj grešci koja je već jednom pojela regulator broja radnika.
+`dtz` je u **polupotezima**, i meri razdaljinu do sledećeg poteza koji nulira
+brojač (uzimanje ili potez pešaka), a ne dužinu dobitka. „DTZ ide do 77" je
+dakle oko 38 poteza do nuliranja, ne 77 poteza igre.
+
+Izmereno nad svih 478 postojećih pozicija iz tablica:
+
+| | |
+|---|---|
+| dobitne | 186, `dtz` 1–77 polupoteza |
+| remisne | 292, `dtz` 0 |
+| prokleti dobici (`wdl` ±1) | **0** |
+| `dtz` preko 100 polupoteza | **0** |
+
+**Danas filter ne izbacuje nijednu poziciju** — sve narudarano konvertuje se
+unutar pedesetopoteznog prozora. Odluka je doneta unapred, za šestofiguraško
+rudarenje, gde se i prokleti dobici i `dtz` preko 100 stvarno javljaju.
+
+Oblik filtera, kad se bude pisao:
+
+- odbaci `wdl` ±1 — prokleti dobitak je dobitak **samo ako se pravilo od 50
+  poteza zanemari**, dakle tačno klasa koju ova odluka isključuje, i ne traži
+  nikakav prag;
+- odbaci `|dtz| > 100` — nuliranje se ne stiže unutar prozora.
+
+Ono što nijedno od toga ne meri je **ukupna dužina dobitka do mata**: posle
+nuliranja brojač kreće iz početka, pa i pozicija sa malim `dtz` može da potraje.
+Syzygy nema DTM. Ako se u praksi pokaže da dete grinduje predugo, ograničenje
+ide na samu vežbu — stani posle N poteza i pokaži ostatak — a ne na izbor
+pozicija.
 
 ## Greške koje su nas koštale
 
