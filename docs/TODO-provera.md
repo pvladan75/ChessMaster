@@ -114,6 +114,10 @@ do sledeće greške.
       nju.
 - [ ] „Pokaži" otvara prolaz, imenuje poteze koji su držali, i broji se
       odvojeno od nađenih.
+- [ ] Posle **poslednje** greške ostatak partije je otključan do kraja: traka
+      ide skroz napred, a poruka to i kaže. Odigra se dvanaest poteza, pa se
+      stane — ostatak se prolazi rukom, jer četvrtina partija ima preko dvadeset
+      poteza posle poslednje greške, a najduža sto pedeset pet.
 - [ ] Na 360 dp ništa ne izlazi iz ekrana.
 
 ---

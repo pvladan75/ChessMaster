@@ -85,6 +85,17 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   /// Plays the continuation forward after an answer. Slow enough to follow a
   /// rook across the board and fast enough not to be waited on.
   static const _playbackStep = Duration(milliseconds: 850);
+
+  /// How much of it plays by itself.
+  ///
+  /// Between two mistakes the gap is usually a move or three and watching it is
+  /// the point. After the last one the rest of the game is opened, and that is
+  /// another matter: the median tail is eleven moves but a quarter run past
+  /// twenty and the longest is a hundred and fifty-five, which at this speed is
+  /// two minutes of watching a decided game. So the playback stops here and the
+  /// rest stays open to walk through at whatever pace the reader likes.
+  static const _maxPlayback = 12;
+
   Timer? _playback;
 
   @override
@@ -185,9 +196,11 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     _playback = null;
   }
 
-  /// Walks the game forward to the next mistake, one move at a time.
+  /// Walks the game forward, one move at a time, as far as it is worth doing
+  /// by itself.
   void _playForward() {
     _stopPlayback();
+    var played = 0;
     _playback = Timer.periodic(_playbackStep, (timer) {
       final walk = _walk;
       if (!mounted || walk == null || !walk.canGoForward) {
@@ -196,7 +209,8 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       }
       setState(walk.forward);
       _showCurrent();
-      if (!walk.canGoForward) _stopPlayback();
+      played++;
+      if (!walk.canGoForward || played >= _maxPlayback) _stopPlayback();
     });
   }
 
@@ -257,9 +271,15 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
             : 'Tačno. Držalo je i: '
                 '${blunder.shouldPlay.where((m) => m != found).join(', ')}.');
 
+    // The last answer opens the game to its end rather than to the next stop,
+    // so it is worth saying which of the two just happened.
+    final last = walk.answeredCount == walk.totalCount;
     setState(() {
       _feedbackIsGood = found != null;
-      _feedback = '$verdict Partija se nastavlja onako kako je odigrana.';
+      _feedback = last
+          ? '$verdict To je bila poslednja greška — ostatak partije je '
+              'otključan, prođite kroz njega trakom.'
+          : '$verdict Partija se nastavlja onako kako je odigrana.';
     });
     // The wall has moved, so the line the strip walks is longer now.
     _rebuildLine();
