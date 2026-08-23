@@ -91,6 +91,31 @@ radi. Iz te probe su ispale dve zamerke; obe su napravljene istog dana i
 - [ ] Na 360 dp koordinate ne smeju da prošire tablu preko ekrana — traka se
       uzima iz veličine koju ekran već daje, ne dodaje se na nju.
 
+## 0e. Šetnja kroz partiju — napisano 23.8.2026, nije viđeno uživo
+
+AI Studio → „Greške iz partija". Otvara se na poziciji gde je partija prvi put
+pošla naopako; kad se nađe potez koji drži, partija se **na tabli** odigra dalje
+do sledeće greške.
+
+- [ ] Naslov kaže ko je pogrešio i šta je odigrao („Crni je ovde odigrao Rd3 i
+      izgubio remi"), ispod stoji šta se traži.
+- [ ] Pogrešan potez se odbija i tabla ostaje na istom položaju.
+- [ ] Prihvata se **svaki** potez koji drži, ne samo prvi iz spiska.
+- [ ] Posle tačnog odgovora tabla **ne skače** na sledeću grešku — ostaje gde
+      jeste, pa se potezi odigraju jedan po jedan.
+- [ ] Igranje staje tačno na sledećoj grešci i tabla tu postaje živa.
+- [ ] Dodirivanje trake za kretanje **preuzima kontrolu** — igranje prestaje i
+      dalje se korača ručno.
+- [ ] Ručno se ne može preko neodgovorene greške, ni tasterom „na kraj".
+- [ ] **Ispod table nema dugmadi sa potezima** — potezi se vide na tabli.
+- [ ] Tabla se **ne okreće sama** kad grešku napravi drugi igrač; okreće je
+      dugme u traci.
+- [ ] „Na grešku" se pojavljuje kad se stoji iza neodgovorene greške i vraća na
+      nju.
+- [ ] „Pokaži" otvara prolaz, imenuje poteze koji su držali, i broji se
+      odvojeno od nađenih.
+- [ ] Na 360 dp ništa ne izlazi iz ekrana.
+
 ---
 
 ## 0. Pristanak na odnos trener–učenik — ✅ provereno uživo 17.8.2026

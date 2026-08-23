@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -26,9 +28,17 @@ import '../services/endgame_api_service.dart';
 /// the game the tests use — so turning it at each stop would spin it under the
 /// reader. The flip button is there for whoever wants it.
 ///
-/// And moves already seen can be walked over freely, while an unanswered
-/// mistake is a wall. The navigation strip gets only the positions up to that
-/// wall, so it stops there without knowing why.
+/// And the continuation is played on the board rather than listed under it.
+/// After a right answer the board stays where it is and the game plays forward
+/// from there, a move at a time, stopping at the next mistake. A row of move
+/// buttons would say the same thing in notation, which is the one form a child
+/// working on a board does not need it in - and the first version of this
+/// screen did exactly that.
+///
+/// Touching the navigation takes the playback over. From then on the moves are
+/// stepped by hand, still no further than the next mistake: an unanswered one
+/// is a wall, and the strip is handed only the positions up to it, so it stops
+/// there without knowing why.
 class BlunderWalkScreen extends StatefulWidget {
   const BlunderWalkScreen({
     super.key,
@@ -72,6 +82,17 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   /// Rebuilt whenever the wall moves, which is the only time it changes.
   List<String> _fens = const [];
 
+  /// Plays the continuation forward after an answer. Slow enough to follow a
+  /// rook across the board and fast enough not to be waited on.
+  static const _playbackStep = Duration(milliseconds: 850);
+  Timer? _playback;
+
+  @override
+  void dispose() {
+    _playback?.cancel();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -105,6 +126,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       return;
     }
 
+    _stopPlayback();
     final walk = BlunderWalk(result.game!);
     setState(() {
       _walk = walk;
@@ -148,11 +170,34 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   void _seek(int index) {
     final walk = _walk;
     if (walk == null) return;
+    // Reaching for the strip is how the reader says they would rather do this
+    // themselves.
+    _stopPlayback();
     setState(() {
       walk.seek(index);
       _feedback = null;
     });
     _showCurrent();
+  }
+
+  void _stopPlayback() {
+    _playback?.cancel();
+    _playback = null;
+  }
+
+  /// Walks the game forward to the next mistake, one move at a time.
+  void _playForward() {
+    _stopPlayback();
+    _playback = Timer.periodic(_playbackStep, (timer) {
+      final walk = _walk;
+      if (!mounted || walk == null || !walk.canGoForward) {
+        _stopPlayback();
+        return;
+      }
+      setState(walk.forward);
+      _showCurrent();
+      if (!walk.canGoForward) _stopPlayback();
+    });
   }
 
   Future<void> _onMove(String from, String to) async {
@@ -197,28 +242,28 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     _afterStop(blunder, found: null);
   }
 
-  /// Moves on to the next stop and says what the game did in between.
+  /// Says how it went, then lets the game play on from where the board is.
+  ///
+  /// The board is not moved to the next mistake. Jumping there would skip the
+  /// part worth seeing - what the players actually did with the position - and
+  /// it is the part this whole screen exists to show.
   void _afterStop(GameBlunder blunder, {String? found}) {
     final walk = _walk!;
-    final from = walk.cursor;
-    walk.toPending();
-    final passed = walk.game.moves.sublist(from, walk.cursor);
 
-    final opening = found == null
+    final verdict = found == null
         ? 'Držalo je: ${blunder.shouldPlay.join(', ')}.'
         : (blunder.shouldPlay.length == 1
             ? 'Tačno — $found je bio jedini potez.'
             : 'Tačno. Držalo je i: '
                 '${blunder.shouldPlay.where((m) => m != found).join(', ')}.');
-    final played = 'U partiji je odigrano ${passed.join(' ')}.';
 
     setState(() {
       _feedbackIsGood = found != null;
-      _feedback = walk.isFinished || walk.pending == null
-          ? '$opening $played Partija je odigrana do kraja.'
-          : '$opening $played';
+      _feedback = '$verdict Partija se nastavlja onako kako je odigrana.';
     });
+    // The wall has moved, so the line the strip walks is longer now.
     _rebuildLine();
+    _playForward();
   }
 
   @override
@@ -276,9 +321,12 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
                   fens: _fens,
                   index: walk.cursor,
                   onSeek: _seek,
-                  movesSan: walk.game.moves.take(walk.frontier).toList(),
                 ),
-                showMoveChips: true,
+                // No chips. Naming the moves under the board says in notation
+                // what the board is already saying in pieces, and it is the
+                // form a child working on a board needs least.
+                showMoveChips: false,
+                centerLabel: 'Potez ${walk.cursor} od ${walk.frontier}',
                 onFlipBoard: () => setState(() {
                   _orientation = _orientation == PlayerColor.white
                       ? PlayerColor.black
