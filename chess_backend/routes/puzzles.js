@@ -7,6 +7,8 @@ const { authenticateToken } = require('../middleware/auth');
 const { requireQuota, refundQuota } = require('../middleware/entitlements');
 const { ENT } = require('../services/entitlementService');
 const puzzleSelection = require('../services/puzzleSelectionService');
+const endgameDrill = require('../services/endgameDrill');
+const { tablebase, TablebaseUnavailable } = require('../services/tablebaseService');
 const assignmentService = require('../services/assignmentService');
 const geminiService = require('../geminiService');
 
@@ -29,6 +31,18 @@ const aiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Previše AI zahteva. Sačekajte trenutak.' },
+});
+
+// Every uncached position in a drill is a request to a tablebase someone else
+// pays to run, so the endpoint carries a cap even though a child playing an
+// ending moves once every few seconds. This is not there to stop them; it is
+// there to stop a loop in a client from becoming a scan of a donated service.
+const drillLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Previše poteza u minuti. Sačekajte trenutak.' },
 });
 
 // GET /api/puzzles/next - Fetch next puzzle from clean puzzles_23 and winning_chess dataset
@@ -192,6 +206,36 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Error fetching endgame puzzle:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju završnice.' });
+  }
+});
+
+// POST /api/puzzles/endgame/play - judge one move of a play-it-out drill.
+//
+// The verdict is made here rather than in the app, and not out of distrust: a
+// result posted by a client is one the server cannot tell apart from any other
+// POST, and the ordinary case is an old build still installed or a retry after
+// a dropped connection rather than a child cheating. It also costs nothing,
+// because the tables have to be asked anyway to answer the child at all.
+//
+// 503 when the tablebase cannot be reached, never a verdict from an engine
+// standing in for it. This mode's promise is that "that move let the win go" is
+// a fact; an estimate wearing the same sentence would be worse than silence.
+router.post('/puzzles/endgame/play', authenticateToken, drillLimiter, async (req, res) => {
+  const { fen, move } = req.body || {};
+
+  try {
+    const result = await endgameDrill.judgeMove({ fen, move, tablebase });
+    res.json(result);
+  } catch (err) {
+    if (err instanceof endgameDrill.DrillError) {
+      return res.status(err.status).json({ error: err.message });
+    }
+    if (err instanceof TablebaseUnavailable) {
+      logger.warn(`[ZAVRSNICE] tablica nedostupna: ${err.message}`);
+      return res.status(503).json({ error: err.message });
+    }
+    logger.error('Error judging endgame move:', err);
+    res.status(500).json({ error: 'Greška pri suđenju poteza.' });
   }
 });
 

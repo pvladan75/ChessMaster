@@ -77,13 +77,30 @@ function bestReply(moves) {
   const best = Math.max(...scored.map((s) => s.value));
   const tied = scored.filter((s) => s.value === best);
   // Sorted by uci first so the pick is the same on every run; without it two
-  // equally good defences would alternate between requests and the same drill
+  // equally good moves would alternate between requests and the same drill
   // would play out differently each time.
   tied.sort((a, b) => a.move.uci.localeCompare(b.move.uci));
-  if (best < 0) {
+
+  if (best > 0) {
+    // Converting, and this is where the obvious rule is wrong. "Smallest DTZ"
+    // compares distances measured from different starting points, because a
+    // capture or a pawn move resets the counter: at DTZ 1 the winning move is
+    // precisely the zeroing one, and its distance afterwards is whatever the
+    // new ending happens to be - often larger. Played out, that rule had the
+    // winner shuffle a rook back and forth forever, holding the win and never
+    // finishing it, which is not a drill anyone can complete.
+    //
+    // So a zeroing move that keeps the win comes first: it is progress by
+    // definition, it restarts the fifty move count, and it is what guarantees
+    // the drill ends. Among the rest, the shortest road.
+    tied.sort((a, b) => {
+      if (a.move.zeroing !== b.move.zeroing) return a.move.zeroing ? -1 : 1;
+      return a.distance - b.distance;
+    });
+  } else if (best < 0) {
+    // Lost, so the longest road: ending early would teach the child nothing
+    // about converting.
     tied.sort((a, b) => b.distance - a.distance);
-  } else if (best > 0) {
-    tied.sort((a, b) => a.distance - b.distance);
   }
   return tied[0].move;
 }

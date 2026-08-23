@@ -117,6 +117,20 @@ test('the side to move takes its win, and the shortest one', () => {
   assert.equal(bestReply(PAWN_ENDING_REPLY.moves).uci, 'd6d5');
 });
 
+test('at DTZ 1 the winning move is the zeroing one, however far it looks', () => {
+  // The bug this guards against was only visible in a game played to the end.
+  // "Smallest DTZ" compares distances measured from different starting points,
+  // because a capture or a pawn move resets the counter: here f5 wins and
+  // zeroes, and the position it leaves happens to be eight plies from the next
+  // reset, while Rc7 also wins and reads four. Taking Rc7 held the win and
+  // made no progress, and the winner shuffled a rook back and forth forever.
+  const atOne = [
+    { uci: 'c1c7', san: 'Rc7', category: 'loss', dtz: -4, zeroing: false },
+    { uci: 'f4f5', san: 'f5', category: 'loss', dtz: -8, zeroing: true },
+  ];
+  assert.equal(bestReply(atOne).san, 'f5');
+});
+
 test('a lost position is defended for as long as it can be', () => {
   // Every move here leaves the opponent winning, so the mover is lost. Taking
   // the shortest road would end the drill early and teach the child nothing
