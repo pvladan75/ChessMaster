@@ -7,6 +7,9 @@ const { authenticateToken } = require('../middleware/auth');
 const { requireQuota, refundQuota } = require('../middleware/entitlements');
 const { ENT } = require('../services/entitlementService');
 const puzzleSelection = require('../services/puzzleSelectionService');
+const {
+  buildCatalog, ELO_BANDS, ELO_BAND_SQL,
+} = require('../services/endgameCatalog');
 const endgameDrill = require('../services/endgameDrill');
 const { tablebase, TablebaseUnavailable } = require('../services/tablebaseService');
 const assignmentService = require('../services/assignmentService');
@@ -125,6 +128,46 @@ router.get('/puzzles/next', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/puzzles/endgame/catalog - what there is to practise.
+//
+// The collection holds 128 distinct endings and grows with every mining run, so
+// the picker is built from the data rather than from a list someone maintains:
+// families and their endings, each with how many positions stand behind it.
+// A trainer who asks for rook endings gets the thirteen shapes they come in,
+// with the numbers, instead of having to know that 'KRPvKR' is one of them.
+//
+// Counted per mode, because converting and holding are separate exercises and
+// their distributions are not the same.
+router.get('/puzzles/endgame/catalog', authenticateToken, async (req, res) => {
+  const { mode } = req.query;
+  const where = ["material IS NOT NULL", "cardinality(winning_moves) > 0"];
+  const params = [];
+  if (mode && mode !== 'all') {
+    params.push(mode);
+    where.push(`mode = $${params.length}`);
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT material, ${ELO_BAND_SQL} AS band, COUNT(*)::int AS n,
+              COUNT(*) FILTER (WHERE opposite_bishops)::int AS opposite
+         FROM endgame_puzzles
+        WHERE ${where.join(' AND ')}
+        GROUP BY material, band`,
+      params
+    );
+    const opposite = result.rows.reduce((sum, row) => sum + row.opposite, 0);
+    res.json({
+      families: buildCatalog(result.rows),
+      bands: ELO_BANDS,
+      oppositeBishops: opposite,
+    });
+  } catch (err) {
+    logger.error('Error building endgame catalog:', err);
+    res.status(500).json({ error: 'Greška pri dobavljanju spiska završnica.' });
+  }
+});
+
 // GET /api/puzzles/endgame/next - one endgame position to solve.
 //
 // The filters exist because the callers want genuinely different things from
@@ -140,8 +183,10 @@ router.get('/puzzles/next', authenticateToken, async (req, res) => {
 // The old handler did that, and a screen asking for a drawn rook ending would
 // be handed a won pawn ending without a word.
 router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
-  const { type, mode, difficulty, maxPieces, minPawns, excludeId, material } =
-    req.query;
+  const {
+    type, mode, difficulty, maxPieces, minPawns, excludeId, material,
+    minElo, maxElo, oppositeBishops,
+  } = req.query;
 
   const where = [];
   const params = [];
@@ -162,7 +207,18 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
   if (type && type !== 'all') add('endgame_type = $?', type);
   // The Syzygy table name, which is a far finer grouping than the seven mined
   // categories: 'KRPvKR' picks out one ending rather than a family of them.
-  if (material && material !== 'all') add('material = $?', material);
+  // A list, because the picker offers a family and the trainer unticks the
+  // shapes they do not want - so "rook endings except R+B vs R" is one request.
+  if (material && material !== 'all') {
+    add('material = ANY($?)', String(material).split(',').filter(Boolean));
+  }
+  // The rating of the player who got it wrong, which is the honest measure of
+  // how hard a position is. Only blunder positions carry one, so a band asks
+  // for those and leaves the mined ones out - deliberately, since a lesson
+  // pitched at a level means the level somebody actually failed at.
+  if (minElo) add('blunder_elo >= $?', parseInt(minElo, 10));
+  if (maxElo) add('blunder_elo <= $?', parseInt(maxElo, 10));
+  if (oppositeBishops === 'true') where.push('opposite_bishops IS TRUE');
   if (mode && mode !== 'all') add('mode = $?', mode);
   if (difficulty && difficulty !== 'all') add('difficulty = $?', difficulty);
   if (maxPieces) add('piece_count <= $?', parseInt(maxPieces, 10));

@@ -362,7 +362,13 @@ async function initDB() {
         -- What was played instead. Not a solution, but the thing that makes
         -- the position a story rather than a diagram: somebody stood here
         -- and chose this.
-        ADD COLUMN IF NOT EXISTS played_move VARCHAR(12);
+        ADD COLUMN IF NOT EXISTS played_move VARCHAR(12),
+        -- Whether the two bishops stand on different colours. The material key
+        -- cannot say - KBPvKBP covers both - and they are different endings, so
+        -- it is read from the position at import. NULL where the question does
+        -- not arise, which is most of the collection, so a filter can tell "no"
+        -- from "not applicable".
+        ADD COLUMN IF NOT EXISTS opposite_bishops BOOLEAN;
     `);
     // Without this the importer's ON CONFLICT DO NOTHING matches nothing and
     // silently does nothing - every re-run appended the whole file again. The
@@ -374,6 +380,10 @@ async function initDB() {
         ON endgame_puzzles(difficulty);
       CREATE INDEX IF NOT EXISTS idx_endgame_puzzles_pick
         ON endgame_puzzles(endgame_type, mode, piece_count);
+      -- What the picker asks for: a handful of material keys, one mode, maybe
+      -- a rating band.
+      CREATE INDEX IF NOT EXISTS idx_endgame_puzzles_material
+        ON endgame_puzzles(material, mode);
     `);
     logger.info('Verified database table & indexes: endgame_puzzles');
     logger.info('Verified database table: user_puzzle_ratings');
