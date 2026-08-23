@@ -120,6 +120,23 @@ do sledeće greške.
       poteza posle poslednje greške, a najduža sto pedeset pet.
 - [ ] Na 360 dp ništa ne izlazi iz ekrana.
 
+## 0h. Zašto potez drži — napisano 23.8.2026, nije viđeno uživo
+
+Posle tačnog odgovora (i posle „Pokaži") uz poruku stoji i rečenica o tome šta
+je zajedničko svim potezima koji drže: „Top mora da ostane na G-liniji", „Drže
+samo potezi kralja", „Drži samo uzimanje". Računa se na uređaju iz pozicije i
+liste poteza, bez zahteva serveru.
+
+- [ ] Rečenica se pojavljuje uz odgovor, i u treneru i u šetnji.
+- [ ] **Ne pojavljuje se dok je pozicija otvorena** — pre odgovora bi bila
+      nagoveštaj, i to jak.
+- [ ] Kad drži samo jedan potez, ne piše „drže samo potezi kralja" (množina o
+      jednom potezu), ali pravilo o liniji sme da stoji.
+- [ ] Kod otprilike **polovine pozicija rečenice nema** — to je namerno, a ne
+      kvar: ćutanje je bolje od izmišljene pouke.
+- [ ] Ako je pozicija iz stvarne greške, rečenica bira ono pravilo koje je
+      odigrani potez prekršio (npr. potez kralja kad drže samo topovi).
+
 ## 0g. Izbor završnica i nivoa — napisano 23.8.2026, nije viđeno uživo
 
 AI Studio → „Dobij" ili „Održi remi" sada prvo otvara izbor, pa tek onda tablu.

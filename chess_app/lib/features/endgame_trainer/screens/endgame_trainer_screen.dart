@@ -11,6 +11,7 @@ import 'package:chess_app/widgets/endgame_info_panel.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import '../models/endgame_puzzle.dart';
+import '../services/holding_pattern.dart';
 import '../services/endgame_api_service.dart';
 
 /// Serbian names for the mined endgame types. The keys are what the database
@@ -458,6 +459,22 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     _boardController.loadFen(step.fen);
   }
 
+  /// What the moves that hold have in common, when they have anything.
+  ///
+  /// Said once the answer is known rather than while it is being looked for:
+  /// before that it is a hint, and a strong one. Half the positions have no
+  /// such shape and get nothing, which is the point - a sentence invented to
+  /// fill the space would be worse than the silence.
+  String? _lessonFor(EndgamePuzzle puzzle) {
+    return holdingLesson(
+      fen: puzzle.fen,
+      holdingUci: puzzle.winningMoves,
+      playedUci: puzzle.playedMove == null
+          ? null
+          : uciForSan(puzzle.fen, puzzle.playedMove!),
+    );
+  }
+
   /// Names the other correct moves after a solve.
   ///
   /// A child who found one of two drawing moves should learn that the other one
@@ -469,13 +486,22 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         : 'Tačno — dobitak je zadržan.';
     final left = _missing(solve.puzzle).length;
     if (left == 0) {
-      return solve.puzzle.winningMoves.length == 1
-          ? '$held Bio je to jedini potez.'
-          : '$held Našli ste sve poteze koji drže rezultat.';
+      return _withLesson(
+        solve.puzzle.winningMoves.length == 1
+            ? '$held Bio je to jedini potez.'
+            : '$held Našli ste sve poteze koji drže rezultat.',
+        solve.puzzle,
+      );
     }
-    return left == 1
+    final more = left == 1
         ? '$held Postoji još jedan takav potez.'
         : '$held Postoji još $left takvih poteza.';
+    return _withLesson(more, solve.puzzle);
+  }
+
+  String _withLesson(String text, EndgamePuzzle puzzle) {
+    final lesson = _lessonFor(puzzle);
+    return lesson == null ? text : '$text $lesson';
   }
 
   /// Accepted moves not yet produced by the user, in UCI.
@@ -517,11 +543,14 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     final rest = _missingSan(puzzle);
     setState(() {
       _revealed = true;
-      _feedback = rest.isEmpty
-          ? 'Nema više poteza koji drže rezultat.'
-          : (rest.length == 1
-              ? 'Drži i ${rest.first}.'
-              : 'Drže i: ${rest.join(', ')}.');
+      _feedback = _withLesson(
+        rest.isEmpty
+            ? 'Nema više poteza koji drže rezultat.'
+            : (rest.length == 1
+                ? 'Drži i ${rest.first}.'
+                : 'Drže i: ${rest.join(', ')}.'),
+        puzzle,
+      );
       _feedbackIsGood = true;
     });
   }

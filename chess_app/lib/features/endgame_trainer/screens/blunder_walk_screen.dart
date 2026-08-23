@@ -14,6 +14,8 @@ import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 
+import '../services/holding_pattern.dart';
+
 // The service re-exports the game model, as it does the drill step.
 import '../services/endgame_api_service.dart';
 
@@ -343,6 +345,16 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
             : 'Tačno. Držalo je i: '
                 '${blunder.shouldPlay.where((m) => m != found).join(', ')}.');
 
+    // What the moves that hold had in common, when they had anything. Said
+    // now rather than while the position was open, where it would have been a
+    // hint rather than a lesson.
+    final lesson = holdingLesson(
+      fen: blunder.fen,
+      holdingUci: blunder.shouldPlayUci,
+      playedUci: blunder.playedUci,
+    );
+    final taught = lesson == null ? verdict : '$verdict $lesson';
+
     // The last answer opens the game to its end rather than to the next stop,
     // so it is worth saying which of the two just happened - and if there is
     // nothing left to open, saying that instead.
@@ -353,12 +365,12 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     setState(() {
       _feedbackIsGood = found != null;
       if (!last) {
-        _feedback = '$verdict Partija se nastavlja onako kako je odigrana.';
+        _feedback = '$taught Partija se nastavlja onako kako je odigrana.';
       } else if (movesLeft <= 0) {
-        _feedback = '$verdict To je bila poslednja greška i poslednji potez — '
+        _feedback = '$taught To je bila poslednja greška i poslednji potez — '
             'kraj partije.';
       } else {
-        _feedback = '$verdict To je bila poslednja greška — ostatak partije je '
+        _feedback = '$taught To je bila poslednja greška — ostatak partije je '
             'otključan, prođite kroz njega trakom.';
       }
     });
