@@ -165,6 +165,17 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
 - [ ] Ako glas ne javi kraj izgovora, šetnja se ipak nastavi (rok iz dužine
       rečenice), a u dnevniku stoji red o tome.
 
+## 0p. Desktop prečice — 24.8.2026, nije viđeno uživo
+
+- [ ] **Esc** zatvara ono što je otvoreno preko rada (podešavanja, vežbu,
+      analizu) i vraća tačno gde si bio.
+- [ ] **Esc na ljusci ne radi ništa** — prozor se ne prazni.
+- [ ] **Ctrl+,** otvara podešavanja; držanje prečice ih ne otvara dvaput.
+- [ ] **Strelice** u šetnji kroz partiju: levo/desno potez, gore/dole krajevi.
+- [ ] Dok je fokus u polju za tekst, strelice pripadaju polju.
+- [ ] **Desni klik na tablu** kopira FEN i kaže da je kopiran — probaj na više
+      ekrana (analiza, soba, završnice).
+
 ## 0o. Četiri taba — 24.8.2026, nije viđeno uživo
 
 - [ ] Aplikacija se otvara na **Treningu**, ne na sobama.

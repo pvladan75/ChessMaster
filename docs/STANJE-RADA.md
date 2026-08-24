@@ -2727,6 +2727,36 @@ nedelje. Ono što jeste vredno i jeftino: tastatura (strelice kroz poteze, Esc,
 Ctrl+,), pamćenje veličine prozora, desni klik za kopiranje FEN-a, i manje
 modalnih prozora u korist panela — poslednje je već urađeno za nalaz tablica.
 
+## Desktop sitnice — 24.8.2026
+
+Tri stvari koje se od prozora očekuju, i sve tri su napravljene tako da važe
+svuda umesto ekran po ekran.
+
+**Esc i Ctrl+,** su na nivou cele aplikacije (`DesktopShortcuts`, umotan oko
+svega što ruter nacrta), pa ih dobija i ekran napisan sutra. Esc samo
+**izlazi** — ponaša se kao dugme „nazad" i na ljusci ne radi ništa, jer tamo
+nema šta da se zatvori. Ctrl+, otvara podešavanja i **ne otvara ih dvaput** ako
+se prečica drži.
+
+Ruter se prosleđuje izričito, ne traži se po kontekstu: omotač stoji **iznad**
+navigatora na koji deluje, pa ga `GoRouter.maybeOf` odatle ne vidi — pritisak bi
+prošao bez ikakvog traga. To je tačno onaj oblik tihog neuspeha protiv kojeg je
+pola ovog projekta pisano, i test ga hvata.
+
+**Strelice kroz poteze** (`MoveKeyboardShortcuts`) voze **isti kursor** koji
+voze i dugmad u traci, pa nema druge istine o tome gde se stoji: levo/desno je
+potez, gore/dole su krajevi. Sluša se bez preuzimanja fokusa, pa polje za tekst
+zadržava strelice koje su njemu potrebne. Uključeno u šetnji kroz partiju; ostali
+ekrani sa istom trakom dobijaju ih jednim omotačem kad se dođe do njih.
+
+**Desni klik na tablu kopira FEN** — jednim potezom oko zajedničkog omotača
+table, pa radi na svakom ekranu koji crta tablu, a ne na onom na kojem je dodat.
+Na dodirnom ekranu ne smeta, jer sekundarnog dodira nema.
+
+**Pamćenje veličine prozora nije urađeno.** Traži nativni dodatak
+(`window_manager`), a posle iskustva sa `flutter_tts`-om i `nuget`-om to je
+odluka koja se donosi svesno, ne usput.
+
 ## Odakle nastaviti — stanje na kraju 24.8.2026
 
 Prvo pročitaj ovaj odeljak, pa `POPIS-PROSTORA.md` ako je posao oko navigacije.

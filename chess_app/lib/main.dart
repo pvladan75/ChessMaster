@@ -6,6 +6,7 @@ import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/routing/app_router.dart';
+import 'package:chess_app/widgets/desktop_shortcuts.dart';
 import 'package:chess_app/theme/app_colors.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,6 +42,13 @@ class ChessApp extends StatelessWidget {
         return MaterialApp.router(
           title: 'Šahovski trener',
           routerConfig: appRouter,
+          // Wrapped around every screen the router builds, so Escape and the
+          // settings chord work wherever the reader is - including on screens
+          // written after this.
+          builder: (context, child) => DesktopShortcuts(
+            router: appRouter,
+            child: child ?? const SizedBox.shrink(),
+          ),
           // Pairs with the router's own scope id so Android can rebuild the
           // navigation stack after the process is killed in the background.
           restorationScopeId: 'chess_app',

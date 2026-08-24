@@ -1,5 +1,6 @@
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/widgets/board_overlay_painter.dart';
@@ -159,11 +160,33 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
     });
   }
 
+  /// Puts the position on the clipboard and says so.
+  ///
+  /// The FEN rather than a picture: it is what gets pasted into an engine, a
+  /// chat with another trainer, or this app's own analysis board.
+  Future<void> _copyFen(BuildContext context) async {
+    final fen = widget.controller.getFen();
+    await Clipboard.setData(ClipboardData(text: fen));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('FEN je kopiran.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tapModeActive = widget.isAllowedToMove && !widget.isDrawingMode;
 
-    return Stack(
+    // Right-click copies the position. Every board program has this, and here
+    // it is one gesture around the one board widget, so it works on every
+    // screen that draws a board rather than on whichever one it was added to.
+    // Harmless where there is no mouse: a touch screen has no secondary tap.
+    return GestureDetector(
+      onSecondaryTap: () => _copyFen(context),
+      child: Stack(
       children: [
         IgnorePointer(
           ignoring: !widget.isAllowedToMove || widget.isDrawingMode,
@@ -261,6 +284,7 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
             },
           ),
       ],
+    ),
     );
   }
 }
