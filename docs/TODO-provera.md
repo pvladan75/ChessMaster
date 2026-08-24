@@ -170,6 +170,12 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
 - [ ] Aplikacija se otvara na **Treningu**, ne na sobama.
 - [ ] Izlazak iz vežbe **strelicom u ekranu** vraća na Trening sa tabovima —
       i u punom prozoru i u uskom. (Ovo je puklo pri prvoj probi 24.8.2026.)
+- [ ] Statistika naloga je u Podešavanjima, u odeljku „NALOG", i brojevi su
+      tačni (isti kao ranije na Početnoj).
+- [ ] Na „Časovima" te statistike više nema.
+- [ ] Traka „Nastavi" se pojavi kad soba traje ili kad postoji sačuvana
+      analiza, a inače se **ne vidi uopšte**.
+- [ ] Dodir na „Nastavi čas" vraća u sobu, na „Nastavi analizu" u analizu.
 - [ ] Tabovi su: Trening, Časovi, Biblioteka, Ljudi — i na traci dole i na
       rail-u sa strane.
 - [ ] Podešavanja se otvaraju ikonicom u traci i **vraćaju tamo gde si bio**.

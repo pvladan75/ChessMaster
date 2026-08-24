@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
+import 'package:chess_app/features/training/widgets/resume_strip.dart';
+import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/routing/app_router.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/session_service.dart';
@@ -112,6 +114,38 @@ void main() {
     expect(find.byType(TrainingHubScreen), findsOneWidget);
     expect(find.byType(NavigationRail), findsOneWidget,
         reason: 'posle povratka nema tabova sa strane');
+  });
+
+  testWidgets('nothing left open means no strip at all', (tester) async {
+    // An empty state that has to be read is worse than a space that is not
+    // there. With no room running and no analysis saved, the first screen is
+    // the list of exercises and nothing above it.
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await openHome(tester);
+    expect(find.byType(ResumeStrip), findsOneWidget,
+        reason: 'traka postoji u stablu');
+    expect(find.text('Nastavi'), findsNothing,
+        reason: 'ali se ne vidi kad nema šta da se nastavi');
+  });
+
+  testWidgets('a room left running is offered back', (tester) async {
+    // The one thing a reader most wants from the first screen when there is
+    // one: the lesson they stepped out of.
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await GameSessionService.instance.setActive('123456', 'trener');
+    addTearDown(GameSessionService.instance.clear);
+
+    await openHome(tester);
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Nastavi'), findsOneWidget);
+    expect(find.textContaining('123456'), findsWidgets);
   });
 
   testWidgets('the tabs are on a phone too, and nothing overflows',

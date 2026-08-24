@@ -8,7 +8,6 @@ import 'package:chess_app/services/server_status_service.dart';
 class HomeDashboardTab extends StatelessWidget {
   final String userName;
   final TextEditingController codeController;
-  final Map<String, dynamic>? userStats;
   final List<dynamic> recordings;
   final bool isLoadingRecordings;
   final VoidCallback onCreateSessionTap;
@@ -26,7 +25,6 @@ class HomeDashboardTab extends StatelessWidget {
     super.key,
     required this.userName,
     required this.codeController,
-    required this.userStats,
     required this.recordings,
     required this.isLoadingRecordings,
     required this.onCreateSessionTap,
@@ -334,74 +332,6 @@ class HomeDashboardTab extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Resource Usage Card
-              Card(
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: const [
-                              Icon(Icons.pie_chart, color: Colors.tealAccent),
-                              SizedBox(width: 8),
-                              Text('Statistika naloga',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          Chip(
-                            label: Text(
-                              userStats?['account_type'] == 'premium'
-                                  ? 'PREMIUM'
-                                  : 'FREE',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 10),
-                            ),
-                            backgroundColor:
-                                userStats?['account_type'] == 'premium'
-                                    ? Colors.amber.withValues(alpha: 0.3)
-                                    : Colors.teal.withValues(alpha: 0.3),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.bookmark, color: Colors.teal),
-                        title: const Text('Sačuvane lekcije / pozicije',
-                            style: TextStyle(fontSize: 13)),
-                        trailing: Text(
-                          '${userStats?['savedLessonsCount'] ?? 0} / ${userStats?['limits']?['maxSavedLessons'] == -1 ? '∞' : (userStats?['limits']?['maxSavedLessons'] ?? 20)}',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ),
-                      ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.video_camera_front,
-                            color: Colors.blueAccent),
-                        title: const Text('Kreirano sesija u tekućem mesecu',
-                            style: TextStyle(fontSize: 13)),
-                        trailing: Text(
-                          '${userStats?['monthlySessionsCount'] ?? 0} / ${userStats?['limits']?['maxMonthlySessions'] == -1 ? '∞' : (userStats?['limits']?['maxMonthlySessions'] ?? 5)}',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
 
               // Recordings Card
               Card(

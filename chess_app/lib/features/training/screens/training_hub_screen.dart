@@ -6,6 +6,8 @@ import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/ai_studio/category_selection_hub.dart';
 
+import '../widgets/resume_strip.dart';
+
 /// What there is to practise, as a list of cards and nothing else.
 ///
 /// Its own screen because choosing and doing were one widget of 2662 lines, and
@@ -35,21 +37,30 @@ class TrainingHubScreen extends StatelessWidget {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          child: CategorySelectionHubWidget(
-            onSelectTactics: () => context.push(AppRoutes.tactics),
-            onSelectEndgameWin: () =>
-                context.push('${AppRoutes.endgamePicker}?mode=win'),
-            onSelectEndgameDraw: () =>
-                context.push('${AppRoutes.endgamePicker}?mode=draw'),
-            onSelectBlunderGames: () => context.push(AppRoutes.blunderGames),
-            // These three used to be a value on the working screen's state.
-            // They are places, so they have paths.
-            onSelectMatePuzzle: (depth) =>
-                context.push(AppRoutes.drillPath('mate_puzzle', depth: depth)),
-            onSelectBasicMate: (level) =>
-                context.push(AppRoutes.drillPath('basic_mate', level: level)),
-            onSelectWinningPosition: () =>
-                context.push(AppRoutes.drillPath('winning_position')),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // What was left open, above what there is to start. Shows nothing
+              // when nothing was left, which is most visits.
+              const ResumeStrip(),
+              CategorySelectionHubWidget(
+                onSelectTactics: () => context.push(AppRoutes.tactics),
+                onSelectEndgameWin: () =>
+                    context.push('${AppRoutes.endgamePicker}?mode=win'),
+                onSelectEndgameDraw: () =>
+                    context.push('${AppRoutes.endgamePicker}?mode=draw'),
+                onSelectBlunderGames: () =>
+                    context.push(AppRoutes.blunderGames),
+                // These three used to be a value on the working screen's state.
+                // They are places, so they have paths.
+                onSelectMatePuzzle: (depth) => context
+                    .push(AppRoutes.drillPath('mate_puzzle', depth: depth)),
+                onSelectBasicMate: (level) => context
+                    .push(AppRoutes.drillPath('basic_mate', level: level)),
+                onSelectWinningPosition: () =>
+                    context.push(AppRoutes.drillPath('winning_position')),
+              ),
+            ],
           ),
         ),
       ),

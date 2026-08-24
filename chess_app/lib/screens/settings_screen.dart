@@ -6,6 +6,7 @@ import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
+import 'package:chess_app/widgets/account_stats_card.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -360,6 +361,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // so it silently did nothing. Re-add it together with real i18n.
               // The voice's language is a different question and is settable
               // below: it picks among the voices the machine actually has.
+
+              const SizedBox(height: 24),
+              Text('NALOG',
+                  style: AppText.bodyBold
+                      .copyWith(color: context.colors.textMuted)),
+              const SizedBox(height: 8),
+              // Moved here from the first tab, where it was the first thing
+              // under the buttons for starting a lesson. A plan name and a
+              // saved-position count are facts about the account, and this is
+              // the screen about the account.
+              AccountStatsCard(session: widget.session),
 
               const SizedBox(height: 24),
               Text('STOCKFISH ENGINE',

@@ -274,6 +274,30 @@ strelice sada rade isto: kad je ekran svoja ruta, izlaze sa nje.
 Test to vozi kao korisnik: otvori ljusku u širokom prozoru, pritisne „Mat u 2",
 pa **strelicu na ekranu**, i traži da rail bude tu. Pada bez popravke.
 
+## Tabovi dovršeni — 24.8.2026
+
+**Statistika naloga je otišla u Podešavanja.** Stajala je na prvom tabu, odmah
+ispod dugmadi za pokretanje časa — ime plana i broj sačuvanih pozicija su
+činjenice o nalogu, a ne o današnjem radu. Sada je `AccountStatsCard`, u
+odeljku „NALOG", i **sama dohvata** brojeve: ekran na kojem živi otvara se preko
+onoga što si radio, pa iznad njega nema nikoga da mu ih doda.
+
+Usput je iz ljuske nestao i poziv `/users/me/stats` pri pokretanju — jedan
+zahtev manje na startu — i `_showPremiumModal`, koji je **već bio mrtav** pre
+ove izmene: definisan, nigde pozvan. Ako ulaz u kupovinu bude trebao, mesto mu
+je uz onaj `FREE`/`PREMIUM` čip, dakle u toj kartici.
+
+**Traka „Nastavi" je na vrhu Treninga.** Nudi samo ono što je stvarno ostalo
+otvoreno: čas koji još traje i analizu koja je sačuvana. Ništa se ne izmišlja i
+ništa se ne predlaže.
+
+Kad nema ničega, **ne prikazuje se ništa** — ni kartica koja objašnjava da nema
+ničega. Prazno stanje koje treba pročitati gore je od praznine koje nema. Oba
+slučaja drži test.
+
+Time je prvi ekran i univerzalan (svi vežbaju) i ličan (tvoje je gore), a da
+pritom ne pretpostavlja da imaš trenera.
+
 ## Pitanja na koja je odgovoreno gore
 
 1. Da li **svako** odredište dobija rutu, uključujući lanac zadataka i tri

@@ -103,8 +103,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingStudents = false;
   final TextEditingController _studentEmailController = TextEditingController();
 
-  Map<String, dynamic>? _userStats;
-  bool _isLoadingStats = false;
 
   List<dynamic> _recordings = [];
   bool _isLoadingRecordings = false;
@@ -149,7 +147,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _billing.init();
       _initSocket();
       _fetchStudents();
-      _fetchUserStats();
       _fetchRecordings();
       _fetchFriends();
       _fetchNotifications();
@@ -454,27 +451,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _fetchUserStats() async {
-    setState(() => _isLoadingStats = true);
-    try {
-      final response = await http.get(
-        Uri.parse('$backendUrl/users/me/stats'),
-        headers: {'Authorization': 'Bearer ${widget.session.token}'},
-      );
-      if (response.statusCode == 200) {
-        setState(() {
-          _userStats = jsonDecode(response.body);
-        });
-      }
-    } catch (e) {
-      print("Error fetching user stats: $e");
-      if (mounted) {
-        AppFeedback.error(context, 'Greška pri učitavanju statistike.');
-      }
-    } finally {
-      setState(() => _isLoadingStats = false);
-    }
-  }
 
   Future<void> _fetchRecordings() async {
     setState(() => _isLoadingRecordings = true);
@@ -779,15 +755,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) setState(() => _dueReviews = stats.due);
   }
 
-  void _showPremiumModal() {
-    dialogs.showPremiumModal(
-      context,
-      billing: _billing,
-      // Refresh the dashboard's tier badge and limit counters once a purchase
-      // has actually been confirmed by the server.
-      onPurchased: _fetchUserStats,
-    );
-  }
 
   Future<void> _inviteStudent(int studentId) async {
     if (!_checkAuthRequired(PendingSessionIntent.inviteStudent(studentId))) {
@@ -981,7 +948,6 @@ class _HomeScreenState extends State<HomeScreen> {
           return HomeDashboardTab(
             userName: widget.session.name,
             codeController: _codeController,
-            userStats: _userStats,
             recordings: _recordings,
             isLoadingRecordings: _isLoadingRecordings,
             onCreateSessionTap: _showCreateRoomWithFriendsDialog,
