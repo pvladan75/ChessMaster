@@ -88,6 +88,32 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   final StockfishService _stockfishService = StockfishService();
 
+  /// Every wait this screen is in the middle of, so leaving can end them.
+  ///
+  /// `Future.delayed` cannot be called off, and a screen that is gone still
+  /// finishes waiting: the test framework fails a test the moment one of these
+  /// outlives the widget tree, which is why one route had to be left out of the
+  /// navigation tests. Whoever is waiting checks `mounted` afterwards anyway,
+  /// so nothing wrong was happening - it was simply still running.
+  final Map<Timer, Completer<void>> _pending = {};
+
+  /// A pause that ends early when the screen does.
+  ///
+  /// Both halves have to be kept: completing the future lets whoever is waiting
+  /// carry on and stop at its own `mounted` check, and cancelling the timer is
+  /// what actually takes it off the clock. Doing only the first leaves the
+  /// timer pending, which is the thing the test framework objects to.
+  Future<void> _pause(Duration duration) {
+    final completer = Completer<void>();
+    late final Timer timer;
+    timer = Timer(duration, () {
+      _pending.remove(timer);
+      if (!completer.isCompleted) completer.complete();
+    });
+    _pending[timer] = completer;
+    return completer.future;
+  }
+
   /// The pause before the engine answers, kept so that leaving can cancel it.
   Timer? _engineMoveDelay;
 
@@ -753,6 +779,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     // even after the widget tree was disposed".
     _opponentMoveTimer?.cancel();
     _engineMoveDelay?.cancel();
+    // Whatever the screen was in the middle of waiting for ends here. The
+    // waiters all check `mounted` and stop; what matters is that nothing is
+    // still counting after the tree is gone.
+    for (final entry in _pending.entries) {
+      entry.key.cancel();
+      if (!entry.value.isCompleted) entry.value.complete();
+    }
+    _pending.clear();
     AppSettingsService.instance.removeListener(_onAppSettingsChanged);
     _stockfishService.detach(this);
     super.dispose();
@@ -1319,7 +1353,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             _showSnackBar('Sjajno! Rešite i ostalu odbrambenu liniju protivnika.');
 
             // Reset board to the EXACT branching FEN (post-user-move position) and play next opponent variation
-            Future.delayed(const Duration(milliseconds: 600), () {
+            _pause(const Duration(milliseconds: 600)).then((_) {
               if (!mounted) return;
               try {
                 _puzzleGame = chess.Chess.fromFEN(pendingBP!.fenPostUserMove);
@@ -1417,7 +1451,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           setState(() => _gameState = PuzzleGameState.waitingEngineMove);
 
           // Opponent response after 300ms delay
-          Future.delayed(const Duration(milliseconds: 300), () {
+          _pause(const Duration(milliseconds: 300)).then((_) {
             if (!mounted) return;
             try {
               final oppFrom = oppMoveLan.substring(0, 2);
@@ -1726,7 +1760,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       final to = userMove.substring(2, 4);
       final promo = userMove.length > 4 ? userMove[4] : null;
 
-      await Future.delayed(const Duration(milliseconds: 800));
+      await _pause(const Duration(milliseconds: 800));
       if (!mounted) return;
 
       _puzzleGame!.move({'from': from, 'to': to, 'promotion': promo});
@@ -1746,7 +1780,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         final oppTo = oppMove.substring(2, 4);
         final oppPromo = oppMove.length > 4 ? oppMove[4] : null;
 
-        await Future.delayed(const Duration(milliseconds: 800));
+        await _pause(const Duration(milliseconds: 800));
         if (!mounted) return;
 
         _puzzleGame!.move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});

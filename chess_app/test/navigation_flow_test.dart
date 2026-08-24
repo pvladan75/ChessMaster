@@ -76,13 +76,12 @@ void main() {
       AppRoutes.assignments: MyAssignmentsScreen,
       AppRoutes.review: ReviewSessionScreen,
       AppRoutes.studentProgressPath(7, name: 'Marko'): StudentProgressScreen,
-      // Two of the three that used to be a field on one screen's state.
-      // `basic_mate` is left out: loading its preset awaits a pair of
-      // `Future.delayed` calls that cannot be called off, so the screen leaves
-      // a pending timer behind and the test framework fails the test for it.
-      // That is a real leak in that flow rather than a fault of the route, and
-      // it is written down in TODO-provera.md instead of being papered over.
+      // All three of the ones that used to be a field on one screen's state.
+      // `basic_mate` was left out while its preset loader waited on a pair of
+      // `Future.delayed` calls that could not be called off; those are now
+      // pauses that end when the screen does.
       AppRoutes.drillPath('mate_puzzle', depth: '2'): AiStudioScreen,
+      AppRoutes.drillPath('basic_mate', level: 'Srednje'): AiStudioScreen,
       AppRoutes.drillPath('winning_position'): AiStudioScreen,
     };
 
@@ -173,6 +172,21 @@ void main() {
     // which is the point: it is a screen, not a blank.
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.textContaining('Zadatak'), findsWidgets);
+  });
+
+  testWidgets('what is left of an assignment is a place, not a list of ids',
+      (tester) async {
+    // The last screen that could only be pushed. Handing over the puzzle ids
+    // in a query would be a path that stops being true the moment one of them
+    // is answered, so the remainder is worked out from the assignment when the
+    // path opens - which is also what makes it survive a link and a restart.
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await open(tester, AppRoutes.assignmentTacticsPath(42));
+    expect(find.byType(AssignmentDetailGate), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('a path that does not exist says so instead of crashing',

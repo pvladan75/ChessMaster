@@ -216,15 +216,18 @@ prikaže dok odgovor ne stigne, i živi bez njih.
 ### Šta je namerno ostalo bez rute
 
 - **`CustomPuzzleSolverScreen`** — nosi povratni poziv `onAnswered`, dakle nije
-  mesto nego korak u toku koji drži „Pregled zadatka".
-- **Taktika iz zadatka** (`my_assignments_screen.dart`) — prosleđuje **spisak
-  preostalih zagonetki**, a spisak id-eva u putanji nije putanja. Da bi i ovo
-  postalo ruta, ekran taktike bi morao sam da dohvati šta je preostalo po
-  `assignmentId`; to je zaseban posao i vredi ga uraditi, jer „preostalo iz ovog
-  domaćeg" **jeste** mesto.
+  mesto nego korak u toku koji drži „Pregled zadatka". Jedini takav.
 
-Posle ovoga u celoj aplikaciji ostaju **tri** `MaterialPageRoute` poziva: ta dva
-gore i jedan unutar samog rutera.
+**Taktika iz zadatka je dobila putanju 24.8.2026** — `/assignments/:id/tactics`.
+Prosleđivala je spisak preostalih zagonetki, a spisak id-eva u putanji nije
+putanja: prestao bi da bude tačan čim se jedna reši. Umesto toga se **ostatak
+izračuna iz samog zadatka** kad se putanja otvori, kroz isti `AssignmentDetailGate`
+kao i druga dva ekrana. Ako u međuvremenu ništa nije ostalo — što je moguće, jer
+je poslednja zagonetka mogla biti rešena na drugom uređaju — putanja to i kaže
+umesto da otvori praznu vežbu.
+
+U celoj aplikaciji su ostala **dva** `MaterialPageRoute` poziva: rešavač i jedan
+unutar samog rutera.
 
 ## Korak 3 urađen — četiri taba, 24.8.2026
 

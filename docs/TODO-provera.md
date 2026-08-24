@@ -204,8 +204,12 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
       staje na 360 dp — pre ovoga se prelivao za 80 piksela.
 - [ ] Izlazak iz vežbe usred motorovog razmišljanja ništa ne ostavlja za sobom.
 
-**Otvoreno:** `basic_mate` i dalje ostavi tajmer posle zatvaranja ekrana (dva
-`await Future.delayed` u učitavanju preseta koja se ne mogu otkazati).
+- [ ] Zadatak sa zagonetkama se otvara iz liste i nastavlja **tamo gde je
+      stalo**, ne iz početka.
+- [ ] Zadatak kojem je sve rešeno kaže da je završen umesto da otvori praznu
+      vežbu.
+- [ ] Izlazak iz vežbe usred motorove analize ništa ne ostavlja za sobom
+      (`basic_mate` je do 24.8.2026. ostavljao tajmer).
 
 ## 0l. Nalaz tablica i „Zaključi remi" — napisano 24.8.2026, nije viđeno uživo
 

@@ -147,6 +147,34 @@ final List<RouteBase> appRouteTable = [
       ),
     ),
   ),
+  // The same gate as the two above, and for the same reason: what is left of an
+  // assignment is worked out from the assignment, so the id is enough. Handing
+  // over the list of puzzle ids in a query would be a path that stops being
+  // true the moment one of them is answered.
+  GoRoute(
+    path: AppRoutes.assignmentTactics,
+    builder: (context, state) => AssignmentDetailGate(
+      session: SessionService.instance.current,
+      assignmentId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+      detail: state.extra is AssignmentDetail
+          ? state.extra as AssignmentDetail
+          : null,
+      builder: (detail) {
+        final pending = detail.pending;
+        if (pending.isEmpty) {
+          return const _NothingLeftScreen();
+        }
+        return TacticsTrainerScreen(
+          session: SessionService.instance.current,
+          assignmentId: detail.assignment.id,
+          assignmentTitle: detail.assignment.title,
+          // Only what is left, so coming back to a half-done assignment picks
+          // up where the student stopped instead of starting over.
+          puzzleIds: pending.map((item) => item.puzzleId!).toList(),
+        );
+      },
+    ),
+  ),
   GoRoute(
     path: AppRoutes.review,
     builder: (context, state) =>
@@ -263,6 +291,39 @@ final List<RouteBase> appRouteTable = [
         SettingsScreen(session: SessionService.instance.current),
   ),
 ];
+
+/// An assignment opened when there is nothing left in it.
+///
+/// Reachable now that this is a path: the list checks before it navigates, but
+/// a link or a restored session does not, and answering the last puzzle on
+/// another device makes it true while the screen is being opened.
+class _NothingLeftScreen extends StatelessWidget {
+  const _NothingLeftScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Zadatak')),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle_outline,
+                size: 48, color: Colors.green),
+            const SizedBox(height: 12),
+            const Text('Ovaj zadatak je već završen.'),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () => context.pop(),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Nazad'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 /// Shown instead of a crash when a link points somewhere that does not exist.
 class _InvalidRouteScreen extends StatelessWidget {

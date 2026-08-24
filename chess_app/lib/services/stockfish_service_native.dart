@@ -313,6 +313,12 @@ class StockfishService {
       AppLogger.log(
           '[StockfishService] 🔓 detach(${owner.runtimeType}) — ${_subscribers.length} subscriber(s) left');
     }
+    // A request made on the way out has to go too. The debounce waits 180 ms
+    // before it reaches the engine, and a screen that closes inside that window
+    // leaves the wait running with nobody to hear the answer - which is what a
+    // navigation test trips over the moment it opens a screen that analyses on
+    // load.
+    if (_subscribers.isEmpty) _analyzeDebounceTimer?.cancel();
     stopAnalysis();
     _activateTopSubscriber();
   }

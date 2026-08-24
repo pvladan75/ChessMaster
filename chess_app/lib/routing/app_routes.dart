@@ -59,6 +59,12 @@ abstract final class AppRoutes {
   /// An assignment that is a lesson rather than a set of positions.
   static const String assignmentLesson = '/assignments/:id/lesson';
 
+  /// The puzzles of an assignment that are still unanswered, in order. Its own
+  /// path rather than a list of ids on `/tactics`: a list of ids is not a path,
+  /// and "what is left of this homework" is a place - the remainder is worked
+  /// out from the assignment when it opens.
+  static const String assignmentTactics = '/assignments/:id/tactics';
+
   /// Spaced repetition: whatever is due today, in one sitting.
   static const String review = '/review';
 
@@ -96,6 +102,8 @@ abstract final class AppRoutes {
       '/assignments/$id/review${title == null || title.isEmpty ? '' : '?title=${Uri.encodeComponent(title)}'}';
 
   static String assignmentOverviewPath(int id) => '/assignments/$id/positions';
+
+  static String assignmentTacticsPath(int id) => '/assignments/$id/tactics';
 
   static String assignmentLessonPath(int id) => '/assignments/$id/lesson';
 

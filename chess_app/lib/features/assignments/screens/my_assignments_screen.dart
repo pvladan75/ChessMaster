@@ -5,7 +5,6 @@ import 'package:chess_app/routing/app_routes.dart';
 
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
-import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
 
@@ -111,17 +110,9 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
       return;
     }
 
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TacticsTrainerScreen(
-          session: widget.session,
-          assignmentId: assignment.id,
-          assignmentTitle: assignment.title,
-          // Only what is left, so returning to a half-done assignment picks up
-          // where the student stopped instead of starting over.
-          puzzleIds: pending.map((item) => item.puzzleId!).toList(),
-        ),
-      ),
+    await context.push(
+      AppRoutes.assignmentTacticsPath(assignment.id),
+      extra: detail,
     );
 
     if (mounted) _refresh();
