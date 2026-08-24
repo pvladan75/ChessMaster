@@ -226,6 +226,30 @@ prikaže dok odgovor ne stigne, i živi bez njih.
 Posle ovoga u celoj aplikaciji ostaju **tri** `MaterialPageRoute` poziva: ta dva
 gore i jedan unutar samog rutera.
 
+## Korak 3 urađen — četiri taba, 24.8.2026
+
+| | tab | šta drži |
+|---|---|---|
+| 1 | **Trening** | raskrsnica vežbi — i podrazumevani ekran pri otvaranju |
+| 2 | **Časovi** | sobe, pridruživanje, snimci, domaći, ponavljanje |
+| 3 | **Biblioteka** | analiza, skener, sačuvane pozicije |
+| 4 | **Ljudi** | prijatelji, učenici, pozivnice |
+
+**Podešavanja su izašla iz tabova** u ikonicu u traci. Imala su rutu odranije
+(`/preferences`), koja se otvara **preko** trenutnog ekrana umesto da ga ruši —
+a tab je mesto u kojem se boravi, i u podešavanjima niko ne boravi. Uz to,
+četiri odredišta sa rečima ispod njih stanu na 360 dp lakše nego pet.
+
+**Zašto Trening prvi:** stari prvi tab je pretpostavljao odnos — sobe, snimci,
+domaći. Ko vežba sam ili pravi studije, video je prvo tuđi posao. Vežbanje je
+jedina stvar koja važi za svakoga ko otvori aplikaciju.
+
+**Usput je otvoren put za testiranje ljuske.** `HomeScreen` u testu više ne
+otvara soket ni klijent za naplatu — isti onaj čuvar po tipu vezivanja koji AI
+ekran već koristi za svoju proveru servera. Bez toga svaki test koji samo
+otvori ljusku pada na „a Timer is still pending", pa se tabovi nisu mogli
+pokriti uopšte.
+
 ## Pitanja na koja je odgovoreno gore
 
 1. Da li **svako** odredište dobija rutu, uključujući lanac zadataka i tri

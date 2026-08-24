@@ -165,6 +165,16 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
 - [ ] Ako glas ne javi kraj izgovora, šetnja se ipak nastavi (rok iz dužine
       rečenice), a u dnevniku stoji red o tome.
 
+## 0o. Četiri taba — 24.8.2026, nije viđeno uživo
+
+- [ ] Aplikacija se otvara na **Treningu**, ne na sobama.
+- [ ] Tabovi su: Trening, Časovi, Biblioteka, Ljudi — i na traci dole i na
+      rail-u sa strane.
+- [ ] Podešavanja se otvaraju ikonicom u traci i **vraćaju tamo gde si bio**.
+- [ ] Na 360 dp četiri odredišta staju bez preklapanja teksta.
+- [ ] Sve što je bilo na staroj Početnoj i dalje radi iz „Časova": nova sesija,
+      pridruživanje kodom, Studio, moji zadaci, ponavljanje, snimci.
+
 ## 0n. Zadaci dobili putanje — 24.8.2026, nije viđeno uživo
 
 - [ ] „Moji zadaci" sa Početne se otvaraju i „nazad" vraća na Početnu.

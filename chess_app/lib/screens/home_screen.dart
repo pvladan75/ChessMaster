@@ -18,7 +18,6 @@ import 'package:chess_app/features/reviews/services/review_api_service.dart';
 
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 
-import 'package:chess_app/screens/settings_screen.dart';
 import 'package:chess_app/widgets/home/home_dialogs.dart' as dialogs;
 import 'package:chess_app/widgets/home/dashboard_tab.dart';
 import 'package:chess_app/widgets/home/biblioteka_tab.dart';
@@ -123,11 +122,24 @@ class _HomeScreenState extends State<HomeScreen> {
   late final BillingService _billing;
   int _dueReviews = 0;
 
+  /// Whether the app is running under the test binding.
+  ///
+  /// The same guard the AI screen's health check already uses, and for the same
+  /// reason: a socket that keeps trying to reconnect, and a billing client that
+  /// polls, leave timers running after the widget tree is gone - which fails
+  /// every test that so much as opens this screen. Reading the binding's type
+  /// is ugly and is the honest version of the alternative, which is not being
+  /// able to test the shell at all.
+  bool get _inTest {
+    final binding = WidgetsBinding.instance.runtimeType.toString();
+    return binding.contains('Test') || binding.contains('test');
+  }
+
   @override
   void initState() {
     super.initState();
     _billing = BillingService(authToken: widget.session.token);
-    if (!widget.session.isGuest) {
+    if (!widget.session.isGuest && !_inTest) {
       // Before anything else: does being signed in currently mean anything?
       // Everything below assumes a server that answers, and when none does the
       // screen should say so rather than fail one request at a time.
@@ -158,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    if (!widget.session.isGuest) {
+    if (!widget.session.isGuest && !_inTest) {
       _socket.disconnect();
       _socket.dispose();
     }
@@ -960,10 +972,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Unvisited tabs render as an empty box; once visited they stay in the
     // stack so their state survives switching away and back.
-    final List<Widget> pages = List.generate(5, (i) {
+    final List<Widget> pages = List.generate(4, (i) {
       if (!_visitedTabs.contains(i)) return const SizedBox.shrink();
       switch (i) {
-        case 0:
+        // 0 is the crossroads, and it sits at the bottom of this switch as the
+        // default rather than being listed twice.
+        case 1:
           return HomeDashboardTab(
             userName: widget.session.name,
             codeController: _codeController,
@@ -979,10 +993,6 @@ class _HomeScreenState extends State<HomeScreen> {
             onRefreshRecordings: _fetchRecordings,
             onOpenReplay: (id) => context.push(AppRoutes.replayPath(id)),
           );
-        case 1:
-          // The crossroads, not the working screen. Everything it offers is a
-          // route now, so the tab holds a list of cards and nothing heavier.
-          return TrainingHubScreen(session: widget.session);
         case 2:
           return HomeBibliotekaTab(
             onOpenStudio: _openStudioRoom,
@@ -1004,7 +1014,13 @@ class _HomeScreenState extends State<HomeScreen> {
             onOpenProgress: _openStudentProgress,
           );
         default:
-          return SettingsScreen(session: widget.session);
+          // The crossroads, not the working screen. Everything it offers is a
+          // route now, so the tab holds a list of cards and nothing heavier.
+          //
+          // First, and default, because it is the one thing that is true for
+          // everybody who opens the app. Rooms and homework need a second
+          // person; practice does not.
+          return TrainingHubScreen(session: widget.session);
       }
     });
 
@@ -1035,6 +1051,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       label: const Text('Prijavi Se',
                           style: TextStyle(color: Colors.white)),
                     ),
+                  IconButton(
+                    tooltip: 'Podešavanja',
+                    icon: const Icon(Icons.settings_outlined,
+                        color: Colors.white70),
+                    // Out of the tabs and into the bar. Settings is not a place
+                    // anybody lives in, and it already had a path of its own -
+                    // one that opens over whatever is underneath rather than
+                    // tearing it down.
+                    onPressed: () => context.push(AppRoutes.preferences),
+                  ),
                   IconButton(
                     tooltip: 'Notifikacije i Pozivnice',
                     icon: Badge(
@@ -1087,9 +1113,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             selectedIcon: Icon(Icons.dashboard),
                             label: Text('Početna')),
                         NavigationRailDestination(
-                            icon: Icon(Icons.psychology_outlined),
-                            selectedIcon: Icon(Icons.psychology),
-                            label: Text('Trening')),
+                            icon: Icon(Icons.school_outlined),
+                            selectedIcon: Icon(Icons.school),
+                            label: Text('Časovi')),
                         NavigationRailDestination(
                             icon: Icon(Icons.library_books_outlined),
                             selectedIcon: Icon(Icons.library_books),
@@ -1097,11 +1123,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         NavigationRailDestination(
                             icon: Icon(Icons.people_outline),
                             selectedIcon: Icon(Icons.people),
-                            label: Text('Prijatelji')),
-                        NavigationRailDestination(
-                            icon: Icon(Icons.settings_outlined),
-                            selectedIcon: Icon(Icons.settings),
-                            label: Text('Podešavanja')),
+                            label: Text('Ljudi')),
                       ],
                     ),
                   if (isWide || isLandscape)
@@ -1124,13 +1146,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 onDestinationSelected: _selectTab,
                 destinations: const [
                   NavigationDestination(
-                      icon: Icon(Icons.dashboard_outlined),
-                      selectedIcon: Icon(Icons.dashboard),
-                      label: 'Početna'),
-                  NavigationDestination(
                       icon: Icon(Icons.psychology_outlined),
                       selectedIcon: Icon(Icons.psychology),
                       label: 'Trening'),
+                  NavigationDestination(
+                      icon: Icon(Icons.school_outlined),
+                      selectedIcon: Icon(Icons.school),
+                      label: 'Časovi'),
                   NavigationDestination(
                       icon: Icon(Icons.library_books_outlined),
                       selectedIcon: Icon(Icons.library_books),
@@ -1138,11 +1160,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   NavigationDestination(
                       icon: Icon(Icons.people_outline),
                       selectedIcon: Icon(Icons.people),
-                      label: 'Prijatelji'),
-                  NavigationDestination(
-                      icon: Icon(Icons.settings_outlined),
-                      selectedIcon: Icon(Icons.settings),
-                      label: 'Podešavanja'),
+                      label: 'Ljudi'),
                 ],
               ),
       ),
