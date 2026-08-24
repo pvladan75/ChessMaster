@@ -171,6 +171,7 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
       analizu) i vraća tačno gde si bio.
 - [ ] **Esc na ljusci ne radi ništa** — prozor se ne prazni.
 - [ ] **Ctrl+,** otvara podešavanja; držanje prečice ih ne otvara dvaput.
+      (Nije radilo pri prvoj probi — vezano je i za fizički taster.)
 - [ ] **Strelice** u šetnji kroz partiju: levo/desno potez, gore/dole krajevi.
 - [ ] Dok je fokus u polju za tekst, strelice pripadaju polju.
 - [ ] **Desni klik na tablu** kopira FEN i kaže da je kopiran — probaj na više

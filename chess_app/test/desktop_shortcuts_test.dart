@@ -82,6 +82,34 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('the chord works when the layout does not send a comma',
+      (tester) async {
+    // Reported from the desktop build: everything answered but this one. The
+    // logical key a layout produces for that position is not guaranteed to be a
+    // comma, and a chord bound to a key nobody can press fails in the quietest
+    // possible way - nothing happens, nothing is logged. So it is also bound by
+    // where the key sits, which every layout agrees on.
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await open(tester, AppRoutes.scan);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    // The comma's place on the board, sending some other logical key - which is
+    // what a non-US layout does.
+    await simulateKeyDownEvent(
+      LogicalKeyboardKey.semicolon,
+      physicalKey: PhysicalKeyboardKey.comma,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+
+    expect(find.byType(SettingsScreen), findsOneWidget,
+        reason: 'prečica mora da radi i kad raspored ne šalje zarez');
+  });
+
   testWidgets('Ctrl+comma opens settings, and only once', (tester) async {
     tester.view.physicalSize = const Size(1200, 900);
     tester.view.devicePixelRatio = 1.0;

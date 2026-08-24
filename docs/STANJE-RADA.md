@@ -2753,6 +2753,17 @@ ekrani sa istom trakom dobijaju ih jednim omotačem kad se dođe do njih.
 table, pa radi na svakom ekranu koji crta tablu, a ne na onom na kojem je dodat.
 Na dodirnom ekranu ne smeta, jer sekundarnog dodira nema.
 
+**Ctrl+, nije radio pri prvoj probi** (Esc jeste). Prečice se vezuju za
+**logički** taster — ono što raspored kaže da taster daje — a na srpskom
+rasporedu taster pored M ne mora da preda Flutteru zarez kad je Ctrl pritisnut.
+Prečica je tada vezana za taster koji niko ne može da pritisne, i to na
+najtiši mogući način: ništa se ne desi i ništa se ne zapiše.
+
+Sada je vezana i za **fizički** taster, isti na svakom rasporedu. Uz to se svaki
+pritisak sa Ctrl-om koji nije obrađen upiše u dnevnik (`[Prečice] Ctrl +
+logički … / fizički …`), pa sledeći ovakav slučaj traje jedan pritisak umesto
+jednog nagađanja.
+
 **Pamćenje veličine prozora nije urađeno.** Traži nativni dodatak
 (`window_manager`), a posle iskustva sa `flutter_tts`-om i `nuget`-om to je
 odluka koja se donosi svesno, ne usput.
