@@ -739,6 +739,159 @@ async function initDB() {
     `);
     logger.info('Verified database table: usage_counters');
 
+
+    // Create the repertoire tables — what a student has decided to play.
+    //
+    // Keyed on the **position**, not on a line of moves, and that is the whole
+    // design in one word. A repertoire built from the Smith-Morra and one built
+    // from 1.e4 c5 meet in the same positions; keyed by line they would be two
+    // copies to keep in step, and the same position could carry two different
+    // answers depending on which door the student came through. Keyed by
+    // position, the deeper work simply *is* part of the shallower repertoire
+    // the moment it is reached, and transpositions cost nothing.
+    //
+    // `fen_key` is the first four FEN fields — placement, side to move,
+    // castling, en passant — so the same position reached at different move
+    // numbers matches. The move counters are what would otherwise make two
+    // identical boards look like two positions.
+    //
+    // `repertoires` is therefore a **name for a starting point**, not a
+    // container: the moves belong to (user, colour).
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS repertoires (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(120) NOT NULL,
+        color CHAR(1) NOT NULL CHECK (color IN ('w', 'b')),
+        root_fen TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, name)
+      );
+      CREATE INDEX IF NOT EXISTS idx_repertoires_user
+        ON repertoires(user_id, created_at DESC);
+    `);
+    logger.info('Verified database table & indexes: repertoires');
+
+    // One row per move the student decided to play in a position.
+    //
+    // `role` is the second decision: one **primary** move per position, the
+    // rest alternates. Three equal answers are fine for exploring and useless
+    // for drilling — everything is correct, so nothing is ever learned to the
+    // point of not having to think. The partial unique index below is that
+    // rule, held by the database rather than by whoever writes the next query.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS repertoire_moves (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        color CHAR(1) NOT NULL CHECK (color IN ('w', 'b')),
+        fen_key TEXT NOT NULL,
+        uci VARCHAR(6) NOT NULL,
+        san VARCHAR(12) NOT NULL,
+        role VARCHAR(10) NOT NULL DEFAULT 'primary'
+          CHECK (role IN ('primary', 'alternate')),
+        verdict VARCHAR(12),
+        added_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, color, fen_key, uci)
+      );
+      CREATE INDEX IF NOT EXISTS idx_repertoire_moves_node
+        ON repertoire_moves(user_id, color, fen_key);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_repertoire_moves_primary
+        ON repertoire_moves(user_id, color, fen_key)
+        WHERE role = 'primary';
+    `);
+    logger.info('Verified database table & indexes: repertoire_moves');
+
+    // Every first attempt, including the ones that were thrown away.
+    //
+    // This is the most valuable thing the build mode produces, and it is the
+    // part that would be easy to leave out: a repertoire records what the
+    // student decided, but only this records *what they reached for first* and
+    // what the judge said about it. Those positions are where the instinct is
+    // wrong, and they are what the drill should ask about first. Without it,
+    // "learning from your own mistakes" is an anecdote rather than a schedule.
+    //
+    // `looked_up` marks a position answered by opening the book instead of
+    // thinking — the same reason the endgame trainer counts its hints.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS repertoire_attempts (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        color CHAR(1) NOT NULL CHECK (color IN ('w', 'b')),
+        fen_key TEXT NOT NULL,
+        uci VARCHAR(6) NOT NULL,
+        san VARCHAR(12),
+        verdict VARCHAR(12),
+        kept BOOLEAN NOT NULL DEFAULT FALSE,
+        looked_up BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_repertoire_attempts_node
+        ON repertoire_attempts(user_id, color, fen_key, created_at DESC);
+    `);
+    logger.info('Verified database table & indexes: repertoire_attempts');
+
+
+    // The drill's schedule over repertoire positions.
+    //
+    // A second table rather than a widened `review_items`, and the reason is
+    // the same one that keeps `puzzles` and `lichess_puzzles` apart: the
+    // algorithm is what must not be duplicated, and it is not - both go through
+    // `schedule()` in spacedRepetitionService. The *storage* genuinely differs.
+    // A lesson item is (lesson, step index) and is read by joining the lesson;
+    // a repertoire item is (colour, position) and joins nothing. Widening the
+    // homework table to carry both would have meant a nullable lesson_id, a
+    // branch in every query that reads it, and a migration over a feature that
+    // is already verified live - for no gain to the student.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS repertoire_reviews (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        color CHAR(1) NOT NULL CHECK (color IN ('w', 'b')),
+        fen_key TEXT NOT NULL,
+        ease_factor NUMERIC(4, 2) NOT NULL DEFAULT 2.50,
+        interval_days INTEGER NOT NULL DEFAULT 0,
+        repetitions INTEGER NOT NULL DEFAULT 0,
+        lapses INTEGER NOT NULL DEFAULT 0,
+        due_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_reviewed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, color, fen_key)
+      );
+      CREATE INDEX IF NOT EXISTS idx_repertoire_reviews_due
+        ON repertoire_reviews(user_id, color, due_at);
+    `);
+    logger.info('Verified database table & indexes: repertoire_reviews');
+
+    // What the opponent actually plays in a position, kept from the lookup the
+    // build mode already paid for.
+    //
+    // Not a convenience - it is what lets the drill run without spending a
+    // single Lichess request. The rows are about a position and a rating band,
+    // never about a person, so one student's building makes the next student's
+    // drill free too.
+    //
+    // More moves are kept than the build mode covers. The uncovered ones are
+    // the point: a drill that only ever plays the four prepared answers teaches
+    // a repertoire that has never been surprised, and being surprised is the
+    // whole reason to know what falls outside.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS opening_replies (
+        id SERIAL PRIMARY KEY,
+        fen_key TEXT NOT NULL,
+        min_rating INTEGER NOT NULL DEFAULT 0,
+        uci VARCHAR(6) NOT NULL,
+        san VARCHAR(12) NOT NULL,
+        games INTEGER NOT NULL DEFAULT 0,
+        share NUMERIC(6, 5) NOT NULL DEFAULT 0,
+        covered BOOLEAN NOT NULL DEFAULT FALSE,
+        fetched_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (fen_key, min_rating, uci)
+      );
+      CREATE INDEX IF NOT EXISTS idx_opening_replies_node
+        ON opening_replies(fen_key, min_rating);
+    `);
+    logger.info('Verified database table & indexes: opening_replies');
+
   } catch (err) {
     logger.error('Database migration/connection error:', err);
     throw err;
