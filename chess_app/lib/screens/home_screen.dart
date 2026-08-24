@@ -14,9 +14,6 @@ import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/server_status_service.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/services/billing_service.dart';
-import 'package:chess_app/features/assignments/screens/my_assignments_screen.dart';
-import 'package:chess_app/features/assignments/screens/student_progress_screen.dart';
-import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
 import 'package:chess_app/features/reviews/services/review_api_service.dart';
 
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
@@ -746,31 +743,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final id = (student['id'] as num?)?.toInt();
     if (id == null) return;
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => StudentProgressScreen(
-          session: widget.session,
-          studentId: id,
-          studentName: student['name']?.toString() ?? 'Učenik',
-        ),
-      ),
-    );
+    context.push(AppRoutes.studentProgressPath(
+      id,
+      name: student['name']?.toString() ?? 'Učenik',
+    ));
   }
 
   void _openMyAssignments() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => MyAssignmentsScreen(session: widget.session),
-      ),
-    );
+    context.push(AppRoutes.assignments);
   }
 
   Future<void> _openReviews() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ReviewSessionScreen(session: widget.session),
-      ),
-    );
+    await context.push(AppRoutes.review);
     // The badge is stale the moment a session ends, so it is refetched rather
     // than decremented locally — a failed grade must not shrink the count.
     if (mounted) _fetchDueReviews();

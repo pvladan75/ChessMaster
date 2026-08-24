@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:chess_app/routing/app_routes.dart';
 
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
-import 'assignment_review_screen.dart';
-import 'custom_assignment_overview_screen.dart';
-import 'lesson_viewer_screen.dart';
 
 /// What a student sees: the homework they have been set, and what is left.
 class MyAssignmentsScreen extends StatefulWidget {
@@ -51,14 +51,8 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
   /// still open, not only once it is finished: a student stuck on the third
   /// position has something to ask about right then.
   Future<void> _openReview(Assignment assignment) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AssignmentReviewScreen(
-          session: widget.session,
-          assignmentId: assignment.id,
-          title: assignment.title,
-        ),
-      ),
+    await context.push(
+      AppRoutes.assignmentReviewPath(assignment.id, title: assignment.title),
     );
     if (mounted) _refresh();
   }
@@ -82,11 +76,12 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
         return;
       }
 
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) =>
-              LessonViewerScreen(session: widget.session, detail: detail),
-        ),
+      // The detail is already in hand, so it rides along and the route does not
+      // fetch it again. Opened cold - a link, a restored session - the same
+      // path fetches by id instead.
+      await context.push(
+        AppRoutes.assignmentLessonPath(detail.assignment.id),
+        extra: detail,
       );
       if (mounted) _refresh();
       return;
@@ -100,11 +95,9 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
     // A child stuck on the third one could not reach the fourth before, and
     // seeing what is coming is part of how homework gets planned.
     if (detail.isCustom) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => CustomAssignmentOverviewScreen(
-              session: widget.session, detail: detail),
-        ),
+      await context.push(
+        AppRoutes.assignmentOverviewPath(detail.assignment.id),
+        extra: detail,
       );
       if (mounted) _refresh();
       return;

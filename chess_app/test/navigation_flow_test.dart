@@ -10,6 +10,10 @@ import 'package:chess_app/features/position_scanner/screens/scan_review_screen.d
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 import 'package:chess_app/routing/app_router.dart';
 import 'package:chess_app/routing/app_routes.dart';
+import 'package:chess_app/features/assignments/screens/my_assignments_screen.dart';
+import 'package:chess_app/features/assignments/widgets/assignment_detail_gate.dart';
+import 'package:chess_app/features/assignments/screens/student_progress_screen.dart';
+import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/screens/settings_screen.dart';
@@ -68,6 +72,10 @@ void main() {
       AppRoutes.savedPositions: SavedPositionsScreen,
       AppRoutes.preferences: SettingsScreen,
       AppRoutes.training: TrainingHubScreen,
+      // The assignment branch, which had no paths at all until now.
+      AppRoutes.assignments: MyAssignmentsScreen,
+      AppRoutes.review: ReviewSessionScreen,
+      AppRoutes.studentProgressPath(7, name: 'Marko'): StudentProgressScreen,
       // Two of the three that used to be a field on one screen's state.
       // `basic_mate` is left out: loading its preset awaits a pair of
       // `Future.delayed` calls that cannot be called off, so the screen leaves
@@ -144,6 +152,27 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.byType(TrainingHubScreen), findsOneWidget,
         reason: 'izlazak iz vežbe vraća na raskrsnicu');
+  });
+
+  testWidgets('an assignment is opened by its number, not by its object',
+      (tester) async {
+    // The other half of giving these screens paths. Two of them are built from
+    // the whole assignment rather than from its id, which is fine when the list
+    // that was tapped already has one and useless from a link or a restored
+    // session. Opened cold, the id has to be enough - the screen asks for the
+    // assignment and says so while it waits.
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await open(tester, AppRoutes.assignmentOverviewPath(42));
+    expect(find.byType(AssignmentDetailGate), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // No server answers in a test, so it ends up saying it could not fetch it -
+    // which is the point: it is a screen, not a blank.
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.textContaining('Zadatak'), findsWidgets);
   });
 
   testWidgets('a path that does not exist says so instead of crashing',

@@ -190,6 +190,42 @@ umesto 40 i obara `flutter analyze` (formater razbija `if (x) return;` na dva
 reda, a linter traži vitičaste zagrade). Zato je izostavljen; taj fajl se
 formatira kad se bude delio.
 
+## Korak 2 urađen — grana zadataka ima putanje, 24.8.2026
+
+Šest novih ruta, i time cela grana koja je dosad bila izvan sistema:
+
+| putanja | ekran |
+|---|---|
+| `/assignments` | `MyAssignmentsScreen` |
+| `/assignments/:id/review` | `AssignmentReviewScreen` (`?title=` je ukras) |
+| `/assignments/:id/positions` | `CustomAssignmentOverviewScreen` |
+| `/assignments/:id/lesson` | `LessonViewerScreen` |
+| `/review` | `ReviewSessionScreen` |
+| `/students/:id` | `StudentProgressScreen` (`?name=` je ukras) |
+
+**Id je ugovor, objekat je prečica.** Dva ekrana se grade od celog
+`AssignmentDetail`-a, što je u redu kad ih otvara lista koja ga već ima, a
+beskorisno iz veze, iz obnovljene sesije i iz testa. Zato postoji
+`AssignmentDetailGate`: prosledi mu se `extra` kad se objekat ima i ništa se ne
+dohvata, a bez njega se dohvata po id-u. Ni jedan od ta dva ekrana nije morao da
+nauči šta je stanje učitavanja da bi dobio putanju.
+
+Naslov zadatka i ime učenika idu kao upitni parametri i **ukras su** — ekran ih
+prikaže dok odgovor ne stigne, i živi bez njih.
+
+### Šta je namerno ostalo bez rute
+
+- **`CustomPuzzleSolverScreen`** — nosi povratni poziv `onAnswered`, dakle nije
+  mesto nego korak u toku koji drži „Pregled zadatka".
+- **Taktika iz zadatka** (`my_assignments_screen.dart`) — prosleđuje **spisak
+  preostalih zagonetki**, a spisak id-eva u putanji nije putanja. Da bi i ovo
+  postalo ruta, ekran taktike bi morao sam da dohvati šta je preostalo po
+  `assignmentId`; to je zaseban posao i vredi ga uraditi, jer „preostalo iz ovog
+  domaćeg" **jeste** mesto.
+
+Posle ovoga u celoj aplikaciji ostaju **tri** `MaterialPageRoute` poziva: ta dva
+gore i jedan unutar samog rutera.
+
 ## Pitanja na koja je odgovoreno gore
 
 1. Da li **svako** odredište dobija rutu, uključujući lanac zadataka i tri

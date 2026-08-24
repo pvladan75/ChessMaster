@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:chess_app/routing/app_routes.dart';
 
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -6,7 +9,6 @@ import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/assignment.dart';
 import '../models/solve_order.dart';
-import 'assignment_review_screen.dart';
 import 'custom_puzzle_solver_screen.dart';
 
 /// The whole homework at a glance, and a way into it at any point.
@@ -96,15 +98,10 @@ class _CustomAssignmentOverviewScreenState
   }
 
   Future<void> _openReview() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AssignmentReviewScreen(
-          session: widget.session,
-          assignmentId: widget.detail.assignment.id,
-          title: widget.detail.assignment.title,
-        ),
-      ),
-    );
+    await context.push(AppRoutes.assignmentReviewPath(
+      widget.detail.assignment.id,
+      title: widget.detail.assignment.title,
+    ));
   }
 
   @override

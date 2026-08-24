@@ -15,6 +15,14 @@ import 'package:chess_app/features/endgame_trainer/screens/blunder_walk_screen.d
 import 'package:chess_app/features/endgame_trainer/screens/endgame_picker_screen.dart';
 import 'package:chess_app/features/endgame_trainer/screens/endgame_trainer_screen.dart';
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
+import 'package:chess_app/features/assignments/models/assignment.dart';
+import 'package:chess_app/features/assignments/screens/assignment_review_screen.dart';
+import 'package:chess_app/features/assignments/screens/custom_assignment_overview_screen.dart';
+import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
+import 'package:chess_app/features/assignments/screens/my_assignments_screen.dart';
+import 'package:chess_app/features/assignments/screens/student_progress_screen.dart';
+import 'package:chess_app/features/assignments/widgets/assignment_detail_gate.dart';
+import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
@@ -89,6 +97,68 @@ final List<RouteBase> appRouteTable = [
         userSession: SessionService.instance.current,
       );
     },
+  ),
+  // Homework and repetition. Seven screens hung off a MaterialPageRoute until
+  // now, which meant none of them could be linked to, restored, or reached by a
+  // test without walking the whole way there first.
+  GoRoute(
+    path: AppRoutes.assignments,
+    builder: (context, state) =>
+        MyAssignmentsScreen(session: SessionService.instance.current),
+  ),
+  GoRoute(
+    path: AppRoutes.assignmentReview,
+    builder: (context, state) => AssignmentReviewScreen(
+      session: SessionService.instance.current,
+      assignmentId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+      // Decoration until the fetch answers: the screen shows the title it gets
+      // back and only falls back on this one.
+      title: state.uri.queryParameters['title'] ?? '',
+    ),
+  ),
+  // These two are built from the whole assignment rather than from its id, so
+  // the id is turned into one first. Tapping through from the list hands the
+  // object over and nothing is fetched.
+  GoRoute(
+    path: AppRoutes.assignmentOverview,
+    builder: (context, state) => AssignmentDetailGate(
+      session: SessionService.instance.current,
+      assignmentId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+      detail: state.extra is AssignmentDetail
+          ? state.extra as AssignmentDetail
+          : null,
+      builder: (detail) => CustomAssignmentOverviewScreen(
+        session: SessionService.instance.current,
+        detail: detail,
+      ),
+    ),
+  ),
+  GoRoute(
+    path: AppRoutes.assignmentLesson,
+    builder: (context, state) => AssignmentDetailGate(
+      session: SessionService.instance.current,
+      assignmentId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+      detail: state.extra is AssignmentDetail
+          ? state.extra as AssignmentDetail
+          : null,
+      builder: (detail) => LessonViewerScreen(
+        session: SessionService.instance.current,
+        detail: detail,
+      ),
+    ),
+  ),
+  GoRoute(
+    path: AppRoutes.review,
+    builder: (context, state) =>
+        ReviewSessionScreen(session: SessionService.instance.current),
+  ),
+  GoRoute(
+    path: AppRoutes.studentProgress,
+    builder: (context, state) => StudentProgressScreen(
+      session: SessionService.instance.current,
+      studentId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+      studentName: state.uri.queryParameters['name'] ?? '',
+    ),
   ),
   GoRoute(
     path: AppRoutes.training,

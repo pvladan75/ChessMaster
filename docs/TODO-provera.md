@@ -165,6 +165,16 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
 - [ ] Ako glas ne javi kraj izgovora, šetnja se ipak nastavi (rok iz dužine
       rečenice), a u dnevniku stoji red o tome.
 
+## 0n. Zadaci dobili putanje — 24.8.2026, nije viđeno uživo
+
+- [ ] „Moji zadaci" sa Početne se otvaraju i „nazad" vraća na Početnu.
+- [ ] Otvaranje zadatka iz liste radi kao i pre (objekat se prosleđuje, nema
+      novog dohvatanja i nema treptaja).
+- [ ] Ocena zadatka se otvara sa sva tri mesta: iz liste, iz pregleda pozicija
+      i iz napretka učenika.
+- [ ] „Ponavljanje" sa Početne radi, a značka se osveži po povratku.
+- [ ] Napredak učenika prikazuje ime u naslovu (stiže kroz `?name=`).
+
 ## 0m. Raskrsnica Treninga izdvojena — 24.8.2026, nije viđeno uživo
 
 - [ ] Kartica „Trening" otvara listu kartica, bez table ispod.

@@ -45,6 +45,27 @@ abstract final class AppRoutes {
   /// screens would be three places to fix the same bug.
   static const String trainingDrill = '/training/drill';
 
+  /// Homework, from the student's side: what has been set, and what is done.
+  static const String assignments = '/assignments';
+
+  /// One assignment's result, graded. `:id` is the assignment; an optional
+  /// `title` rides along so the heading is right before the fetch answers, and
+  /// the screen lives without it.
+  static const String assignmentReview = '/assignments/:id/review';
+
+  /// The positions of a custom assignment, as a grid to work through.
+  static const String assignmentOverview = '/assignments/:id/positions';
+
+  /// An assignment that is a lesson rather than a set of positions.
+  static const String assignmentLesson = '/assignments/:id/lesson';
+
+  /// Spaced repetition: whatever is due today, in one sitting.
+  static const String review = '/review';
+
+  /// One student's progress, for whoever teaches them. `name` is decoration on
+  /// the same terms as the assignment's title.
+  static const String studentProgress = '/students/:id';
+
   /// Reading positions out of a trainer's own book and confirming them.
   static const String scan = '/scan';
 
@@ -70,6 +91,16 @@ abstract final class AppRoutes {
   }
 
   static String replayPath(int recordingId) => '/replay/$recordingId';
+
+  static String assignmentReviewPath(int id, {String? title}) =>
+      '/assignments/$id/review${title == null || title.isEmpty ? '' : '?title=${Uri.encodeComponent(title)}'}';
+
+  static String assignmentOverviewPath(int id) => '/assignments/$id/positions';
+
+  static String assignmentLessonPath(int id) => '/assignments/$id/lesson';
+
+  static String studentProgressPath(int id, {String? name}) =>
+      '/students/$id${name == null || name.isEmpty ? '' : '?name=${Uri.encodeComponent(name)}'}';
 
   /// The drill, with the exercise it is opening. [depth] belongs to the mate
   /// puzzles and [level] to basic mating; passing the wrong one is harmless and

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:chess_app/routing/app_routes.dart';
 
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -7,7 +10,6 @@ import '../services/assignment_api_service.dart';
 import '../widgets/assign_lesson_dialog.dart';
 import '../widgets/create_assignment_dialog.dart';
 import '../widgets/parent_report_dialog.dart';
-import 'assignment_review_screen.dart';
 
 /// A trainer's view of one student: how they are doing, what has been set, and
 /// the shortest path to setting more.
@@ -100,15 +102,10 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
   }
 
   Future<void> _openReview(Assignment assignment) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AssignmentReviewScreen(
-          session: widget.session,
-          assignmentId: assignment.id,
-          title: assignment.title,
-        ),
-      ),
-    );
+    await context.push(AppRoutes.assignmentReviewPath(
+      assignment.id,
+      title: assignment.title,
+    ));
     if (mounted) _refresh();
   }
 
