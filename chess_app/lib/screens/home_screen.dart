@@ -1054,6 +1054,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       selectedIndex: _selectedIndex,
                       onDestinationSelected: _selectTab,
                       labelType: NavigationRailLabelType.none,
+                      // At the foot of the rail, where a desktop looks for it.
+                      // The same lesson as the bell above: the AppBar is null in
+                      // landscape, and Windows is always landscape, so anything
+                      // that lives only in the bar cannot be reached there at
+                      // all. Settings was put in the bar and was invisible on
+                      // the one platform it was tested on.
+                      trailing: Expanded(
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: IconButton(
+                              tooltip: 'Podešavanja',
+                              icon: const Icon(Icons.settings_outlined,
+                                  color: Colors.white70),
+                              onPressed: () =>
+                                  context.push(AppRoutes.preferences),
+                            ),
+                          ),
+                        ),
+                      ),
                       // The AppBar is null in landscape, and the bell lived in
                       // it — so on Windows, which is always landscape, there
                       // was no way to reach notifications at all. The rail is

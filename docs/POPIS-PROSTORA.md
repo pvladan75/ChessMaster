@@ -298,6 +298,16 @@ slučaja drži test.
 Time je prvi ekran i univerzalan (svi vežbaju) i ličan (tvoje je gore), a da
 pritom ne pretpostavlja da imaš trenera.
 
+**Ispravka istog dana: podešavanja su bila nevidljiva na Windows-u.** Ikonica je
+otišla u traku sa naslovom — a ljuska u landscape rasporedu **nema traku**, i
+Windows je uvek landscape. Iznad rail-a stoji komentar koji tačno to objašnjava
+za zvonce, iz ranijeg kruga: sve što živi samo u traci na toj platformi ne
+postoji. Ponovljena greška, uz postojeće upozorenje.
+
+Sada je ulaz u **podnožju rail-a**, gde ga desktop i traži, a ikonica u traci
+ostaje za uske prozore koji nemaju rail. Prozor koji ima oboje pokaže oboje i to
+ne smeta. Test traži da u rail-u postoji ulaz i pada bez njega.
+
 ## Pitanja na koja je odgovoreno gore
 
 1. Da li **svako** odredište dobija rutu, uključujući lanac zadataka i tri

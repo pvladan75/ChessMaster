@@ -170,6 +170,8 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
 - [ ] Aplikacija se otvara na **Treningu**, ne na sobama.
 - [ ] Izlazak iz vežbe **strelicom u ekranu** vraća na Trening sa tabovima —
       i u punom prozoru i u uskom. (Ovo je puklo pri prvoj probi 24.8.2026.)
+- [ ] Podešavanja se otvaraju **iz podnožja rail-a** u punom prozoru, i iz
+      trake u uskom. (Na Windows-u ih posle prve izmene nije bilo nigde.)
 - [ ] Statistika naloga je u Podešavanjima, u odeljku „NALOG", i brojevi su
       tačni (isti kao ranije na Početnoj).
 - [ ] Na „Časovima" te statistike više nema.

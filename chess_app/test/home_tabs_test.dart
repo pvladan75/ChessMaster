@@ -80,8 +80,11 @@ void main() {
     // Settings has a path of its own and opens over what is underneath. A tab
     // would be a place to live in, and nobody lives in settings.
     expect(find.text('Podešavanja'), findsNothing);
-    expect(find.byTooltip('Podešavanja'), findsOneWidget,
-        reason: 'ikonica u traci je jedini ulaz u podešavanja odavde');
+    // At least one way in, and which one depends on the layout: the foot of
+    // the rail where there is a rail, the app bar where there is a bar. A
+    // window that has both shows both, which costs nothing.
+    expect(find.byTooltip('Podešavanja'), findsWidgets,
+        reason: 'nema nijednog ulaza u podešavanja');
   });
 
   testWidgets('the rail is still there after an exercise is closed',
@@ -114,6 +117,27 @@ void main() {
     expect(find.byType(TrainingHubScreen), findsOneWidget);
     expect(find.byType(NavigationRail), findsOneWidget,
         reason: 'posle povratka nema tabova sa strane');
+  });
+
+  testWidgets('settings can be reached where there is no app bar',
+      (tester) async {
+    // The bug this exists for: on Windows the shell's AppBar is null, because
+    // the window is always landscape - so anything that lives only in the bar
+    // cannot be reached at all. The bell above the rail carries a comment
+    // saying exactly this, and settings was put in the bar anyway.
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await openHome(tester);
+
+    final rail = find.byType(NavigationRail);
+    expect(rail, findsOneWidget);
+    expect(
+      find.descendant(of: rail, matching: find.byTooltip('Podešavanja')),
+      findsOneWidget,
+      reason: 'u rail-u nema ulaza u podešavanja',
+    );
   });
 
   testWidgets('nothing left open means no strip at all', (tester) async {
