@@ -3055,6 +3055,71 @@ učestalosti, a nepokriveni potezi su u izvlačenju namerno. Pozicija koju učen
 nije pripremio nije kvar nego jedina stvar koju knjiga ne ume — pokazuje mu ivicu
 onoga što je pokrio — i vodi pravo u izgradnju te iste pozicije.
 
+### Roditeljska saglasnost: tekst je potvrđen, tok nije napisan
+
+**Advokat je 25.8.2026 potvrdio** da su politika privatnosti i obrazac
+saglasnosti ispravni i da pokrivaju ono što aplikacija stvarno radi —
+uključujući snimanje glasa dece, koje je i bio razlog da se pišu. Time je pao
+jedini razlog zbog kog tok nije napisan: čekao se tekst, ne kod.
+
+**Ograda je njegova, ne naša:** proverio je za Srbiju i rekao da za druge države
+ne zna. Iz toga slede dve stvari, i obe su inženjerske:
+
+1. **Gde se aplikacija nudi je odluka, a ne podrazumevana vrednost.** Play deli
+   svuda ako mu se ne kaže drugačije. Dok pravna provera pokriva jednu državu,
+   spisak zemalja treba suziti na nju.
+2. **Uzrast ide u podešavanje, ne u `if`.** Granica ispod koje je saglasnost
+   obavezna razlikuje se po državama, pa je nijedan broj u kodu ne sme
+   predstavljati kao univerzalnu. Isto važi za sam tekst: verzija na koju je
+   neko pristao upisuje se u `parent_consent_version` — kolona postoji od ranije
+   i do sada je bila prazna.
+
+Šta je u bazi već pripremljeno, a nema ko da napuni: `trainer_students` ima
+`parent_email`, `parent_consent_at`, `parent_consent_ip` i
+`parent_consent_version`, i status `awaiting_parent` između `pending` i
+`accepted`. Oblik toka je dakle već zamišljen — veza sa trenerom ne postaje
+`accepted` dok roditelj ne potvrdi.
+
+Popunjena verzija dokumenata (ime, adresa, email, URL) **ne ide u ovaj
+repozitorijum**, jer je javan; u `docs/` ostaju nacrti sa praznim poljima, koji
+su ionako ono što opisuje šta aplikacija radi.
+
+### Rizik koji nije u tekstu saglasnosti nego u obliku aplikacije
+
+Primedba je korisnikova i tačna: problem u drugim državama verovatno neće biti
+*šta* aplikacija radi sa podacima — to pokriva saglasnost — nego **da li
+izgleda kao mesto na kom se maloletnici povezuju međusobno**. Propisi koji
+ograničavaju decu na društvenim mrežama (Australija ima zakon za mlađe od 16;
+sličnih predloga ima i drugde) kače se za oblik: veze korisnik–korisnik,
+pronalaženje drugih korisnika i direktna komunikacija. Ne za temu.
+
+**Kod nas je ta površina mala i uglavnom već zatvorena pristankom** — veza
+trener–učenik ne postoji dok druga strana ne prihvati, i test pada ako neko
+napiše četvrtu kopiju tog uslova bez `status = 'accepted'`.
+
+**Jedan izuzetak, i on je oštar:** `POST /friends/add` prima **email**, nađe
+korisnika i odmah upiše vezu **u oba smera, bez ijednog pristanka druge
+strane**; `GET /friends` zatim vraća ime i email. Dakle svako ko zna email
+deteta može sebe da ubaci u njegov spisak — i to je istovremeno ono što najviše
+liči na društvenu mrežu i jedina rupa u modelu pristanka koji je svuda drugde
+poštovan. U aplikaciji to je tab „Ljudi".
+
+Tri izlaza, od najjeftinijeg:
+
+1. **Prijateljstvo dobija pristanak**, isto kao veza trener–učenik: `pending` →
+   `accepted`, isti obrazac koji već postoji i već je testiran.
+2. **Maloletnik nema prijatelje, nego samo trenera.** Najjači odgovor na pitanje
+   o državama, jer aplikacija tada nije mesto gde se deca povezuju međusobno —
+   a jeftin je, pošto model veze već postoji.
+3. **Izbaciti prijatelje.** Tab „Ljudi" bi pokazivao trenere i učenike. Time se
+   pravna površina svodi na „alat za podučavanje" umesto na „mrežu".
+
+Uz bilo koji od njih: spiskovi ne treba da vraćaju **email** drugog korisnika.
+To je podatak koji tamo ništa ne rešava, a jeste podatak o detetu.
+
+Ovo nije pravni savet i ne zamenjuje advokata; ovde je zapisano samo šta
+aplikacija stvarno jeste, da bi pitanje njemu moglo da bude precizno.
+
 ### Sledeće, po redu
 
 Stanje na kraju 24.8.2026. Sve iz prošlog spiska pod 2–6 je urađeno; ostaje

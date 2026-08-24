@@ -153,6 +153,9 @@ unanswered request already unlocked the sender's lessons. A test reads the sourc
 and fails if a fourth copy appears.
 
 Still open: **the parent half**. The `parent_consent_*` columns exist and are
-empty — no flow writes them, and the consent text is waiting on a lawyer. Parent
-observation of a lesson is designed (`docs/STANJE-RADA.md`, "Dogovoren model
-uloga i nadzora") and not built.
+empty — no flow writes them. The consent text is no longer the blocker: a lawyer
+confirmed it on 25.8.2026, **for Serbia only, and said so explicitly**. So the
+age threshold and the text version belong in configuration rather than in the
+code, and the country list in Play Console is a decision somebody has to make
+rather than a default to accept. Parent observation of a lesson is designed
+(`docs/STANJE-RADA.md`, "Dogovoren model uloga i nadzora") and not built.

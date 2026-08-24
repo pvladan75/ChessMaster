@@ -49,11 +49,36 @@ Publika ID tokena se ne menja preimenovanjem paketa.
 
 ## 3. Pravni dokumenti
 
-- [ ] Dati advokatu na proveru: `docs/politika-privatnosti.md` i
-      `docs/saglasnost-roditelja.md`. Posebno delove o maloletnicima i o
-      prenosu podataka van Srbije.
-- [ ] Popuniti označena polja: ime/naziv, adresa, email za privatnost, rokovi
-      čuvanja snimaka, hosting provajder i region.
+- [x] **Advokat potvrdio 25.8.2026** da su `docs/politika-privatnosti.md` i
+      `docs/saglasnost-roditelja.md` ispravni i da pokrivaju ono što aplikacija
+      radi — uključujući snimanje glasa dece, zbog kog su i pisani.
+      **Ograda je njegova: proveravao je za Srbiju, za druge države ne zna.**
+- [ ] **Odlučiti gde se aplikacija nudi.** Play podrazumevano deli svuda; dok
+      pravna provera pokriva jednu državu, spisak zemalja u Play Console-u
+      treba suziti na nju. Proširenje je onda odluka, a ne previd.
+- [ ] **Uzrast ne sme da bude zakucan u kodu.** Granica ispod koje je saglasnost
+      roditelja obavezna razlikuje se po državama (u EU je između 13 i 16, po
+      članici; u SAD postoji COPPA ispod 13). Za Srbiju tražiti od advokata i
+      sam broj, da uđe u podešavanje umesto u `if`.
+- [ ] Popuniti označena polja (`[IME I PREZIME / NAZIV]`, `[ADRESA]`,
+      `[EMAIL ZA PRIVATNOST]`, `[DATUM]`, `[URL]`) — **ali ne u ovom
+      repozitorijumu.** On je javan, a to su lično ime, adresa i email.
+      Popunjena verzija ide na sajt; u `docs/` ostaje nacrt sa praznim poljima,
+      jer je on ono što opisuje šta aplikacija radi.
+- [ ] Datirati verziju teksta (npr. `2026-08-25`) i tu oznaku upisivati u
+      `parent_consent_version` pri svakoj saglasnosti — kolona već postoji. Bez
+      nje se posle prve izmene teksta ne zna na šta je ko pristao.
+- [ ] **Pitati advokata o obliku, ne samo o tekstu.** Neke države ograničavaju
+      maloletnike na *društvenim mrežama*, a to se meri vezama korisnik–korisnik
+      i direktnom komunikacijom, ne temom aplikacije. Kod nas je sve zatvoreno
+      pristankom osim `POST /friends/add`, koje upisuje vezu u oba smera bez
+      pristanka druge strane i vraća email. Odluka o tome (pristanak /
+      samo trener za maloletnike / izbaciti) je u `STANJE-RADA.md`, odeljak
+      „Rizik koji nije u tekstu saglasnosti nego u obliku aplikacije".
+- [ ] U Play Console-u popuniti **Target audience & content** i deo o
+      korisnički generisanom sadržaju iskreno: soba ima glas, a „Ljudi" ima
+      veze među korisnicima. Šta se tamo prijavi mora da odgovara onome što
+      aplikacija zaista radi tog dana.
 - [ ] **Objaviti politiku privatnosti na javnom URL-u.** Play Console traži link
       pre nego što pusti aplikaciju — bez toga se ne može objaviti. Gde tačno:
       vidi korak 3a niže.
