@@ -68,6 +68,15 @@ Publika ID tokena se ne menja preimenovanjem paketa.
 - [ ] Datirati verziju teksta (npr. `2026-08-25`) i tu oznaku upisivati u
       `parent_consent_version` pri svakoj saglasnosti — kolona već postoji. Bez
       nje se posle prve izmene teksta ne zna na šta je ko pristao.
+- [ ] **Soba: spisak zvanica.** Danas `joinGame` i `audio_join` u `server.js`
+      ne proveravaju ništa — ni vezu, ni poziv, ni prijavu — a kod sobe je šest
+      cifara iz `Math.random()` bez ograničenja pokušaja. Dok to stoji, stranac
+      sa pogođenim kodom može da bude u živom glasu sa detetom i u snimku.
+      **Ovo ide pre svega ostalog.**
+- [ ] **Email van spiskova** (`GET /friends`, učenici, treneri): ime i javni
+      identifikator, ne email.
+- [ ] **Maloletnik samo sa prihvaćenim trenerom;** prijatelji za odrasle uz
+      obavezan pristanak druge strane. Odlučeno 25.8.2026.
 - [ ] **Pitati advokata o obliku, ne samo o tekstu.** Neke države ograničavaju
       maloletnike na *društvenim mrežama*, a to se meri vezama korisnik–korisnik
       i direktnom komunikacijom, ne temom aplikacije. Kod nas je sve zatvoreno

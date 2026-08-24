@@ -3117,6 +3117,45 @@ Tri izlaza, od najjeftinijeg:
 Uz bilo koji od njih: spiskovi ne treba da vraćaju **email** drugog korisnika.
 To je podatak koji tamo ništa ne rešava, a jeste podatak o detetu.
 
+**Teže od prijatelja: soba nema spisak zvanica.** Nađeno 25.8.2026, dok se
+proveravala tuđa preporuka da se „glas isključi maloletnicima". Ta preporuka
+promašuje metu — glas *jeste* čas, trener drži lekciju glasom i snima je — ali
+je pokazala pravo pitanje: ne da li dete sme da priča, nego **ko sme da bude u
+sobi dok priča**. Odgovor je danas: bilo ko.
+
+    socket.on('joinGame', async ({ roomId, playerColor }) => {
+      socket.join(roomId);
+
+`joinGame` u `server.js` ne proverava ni vezu trener–učenik, ni poziv, ni to da
+li je pozivalac uopšte prijavljen — gost ulazi kao „Gost". `audio_join` je isti,
+pa ko uđe u sobu, uđe i u glas; ako trener snima, taj glas ide u `uploads/`,
+među snimke dečjih glasova. Kod sobe je šest cifara iz `Math.random()`
+(`routes/rooms.js`), bez ograničenja broja pokušaja.
+
+To je gore od `/friends/add`: prijatelj vidi email, a ovo je neko u živom
+razgovoru sa detetom. Zato ide **prvo**, pre svega ostalog oko saglasnosti.
+
+### Odlučeno 25.8.2026, radi se sutra
+
+1. **Soba dobija spisak zvanica.** Ulaz samo za tvorca sobe i za prihvaćenu
+   vezu (ili izričito pozvanog); gost samo ako trener to uključi; glas samo za
+   člana sobe. Uz to kod iz kriptografskog izvora i ograničenje pokušaja, jer
+   šest cifara iz `Math.random()` nije brava.
+2. **Email izlazi iz spiskova.** `GET /friends`, spiskovi učenika i trenera
+   vraćaju ime i javni identifikator. Email tamo ništa ne rešava, a jeste
+   podatak o detetu.
+3. **Maloletnik se povezuje samo sa prihvaćenim trenerom.** Odrasli zadržavaju
+   prijatelje, ali uz obavezan pristanak druge strane (`pending → accepted`,
+   isti obrazac koji veza trener–učenik već ima). Time aplikacija prestaje da
+   bude mesto gde se deca povezuju međusobno, a odrasli ne gube ništa.
+4. **Tok roditeljske saglasnosti**, sad kad je tekst potvrđen.
+5. **Play Console deklaracije poslednje** — ono što se tamo prijavi mora da
+   opisuje aplikaciju kakva jeste tog dana, a ne kakva će biti.
+
+Uz to jedna korekcija tuđe preporuke koju ne treba ponoviti: granica godina ne
+ide globalno na 18. GDPR ide najviše do 16, pa 18 dodaje trenje bez pravne
+koristi — najstroža *primenljiva* je 16, uz spuštanje po državi.
+
 Ovo nije pravni savet i ne zamenjuje advokata; ovde je zapisano samo šta
 aplikacija stvarno jeste, da bi pitanje njemu moglo da bude precizno.
 
