@@ -2727,6 +2727,65 @@ nedelje. Ono što jeste vredno i jeftino: tastatura (strelice kroz poteze, Esc,
 Ctrl+,), pamćenje veličine prozora, desni klik za kopiranje FEN-a, i manje
 modalnih prozora u korist panela — poslednje je već urađeno za nalaz tablica.
 
+## Odakle nastaviti — stanje na kraju 24.8.2026
+
+Prvo pročitaj ovaj odeljak, pa `POPIS-PROSTORA.md` ako je posao oko navigacije.
+
+### Šta je urađeno u poslednjem krugu
+
+**Govor (TTS)** — čita poruke iz info panela, notaciju prevodi u reči, prekida
+ga samo korisnik. Radi na Androidu i na Windows-u (hrvatski glas `Matej`).
+
+**Trener završnica** — nalaz tablica na zahtev, zaključivanje remija po dva
+uslova ili odigravanjem osam poteza, igranje poteza iz nalaza kao istraživanje.
+
+**Navigacija** — četiri koraka, sva četiri gotova i puširana:
+mreža testova → raskrsnica izdvojena iz `AiStudioScreen`-a → šest ruta za granu
+zadataka → četiri taba, prvi je Trening.
+
+### Sledeće, po redu
+
+1. **Provera uživo svega iz ovog kruga.** Tačke `0l`–`0o` u
+   [TODO-provera.md](TODO-provera.md). Ništa od navigacije nije viđeno kako radi
+   — samo kako prolazi testove, a ovaj projekat je već tri puta pokazao da to
+   nije isto. Korisnik je 24.8.2026. uveče krenuo da proba; **prvo pitaj šta je
+   video.**
+
+2. **Statistika naloga i PREMIUM iz „Časova" u Podešavanja.** Odlučeno, nije
+   urađeno. To su podaci o nalogu, a stoje u tabu o časovima.
+
+3. **Traka „Nastavi" na vrhu Treninga** — nedovršena vežba, poslednja analiza,
+   soba u toku. Time prvi ekran postaje i ličan, a ne samo univerzalan.
+
+4. **Taktika otvorena iz zadatka postaje ruta.** Sada se gura, jer prosleđuje
+   spisak preostalih zagonetki. Traži da ekran taktike sam dohvati ostatak po
+   `assignmentId`. „Preostalo iz ovog domaćeg" jeste mesto i zaslužuje putanju.
+
+5. **`basic_mate` ostavlja tajmer** posle zatvaranja ekrana — dva
+   `await Future.delayed` u učitavanju preseta koja se ne mogu otkazati. Zbog
+   toga je ta ruta izuzeta iz `navigation_flow_test.dart`.
+
+6. **Desktop sitnice**, jeftine i vredne: tastatura (strelice kroz poteze, Esc,
+   Ctrl+,), pamćenje veličine prozora, desni klik za kopiranje FEN-a.
+
+7. **i18n na kraju**, kad prestanu da se menjaju ekrani. Odluka i razlozi su u
+   odeljku „Sistematizacija prostora".
+
+### Šta namerno nije urađeno
+
+- **`CustomPuzzleSolverScreen` nema rutu** — nosi povratni poziv `onAnswered`,
+  dakle je korak u toku, ne mesto.
+- **`AiStudioScreen` nije formatiran** `dart format`-om — nad tim fajlom pravi
+  850 izmenjenih linija umesto 40 i obara `analyze`. Formatira se kad se bude
+  delio, i tada mu ide i pravo ime: nema veze sa AI.
+- **Unija „Dobij" i „Greške iz partija"** — procenjeno, korisnik odložio.
+  Šetnja i dalje nema „Odigraj do kraja" ni igranu kaznu.
+
+### Brojke, da se vidi da li je nešto puklo
+
+`cd chess_app && flutter test` → **507**, `flutter analyze` čist.
+`cd chess_backend && npm test` → **320**.
+
 ## Sledeće na redu
 
 Poređano po odnosu dobitka i uloženog. Sve sa ranije liste (admin nalog, swap,
