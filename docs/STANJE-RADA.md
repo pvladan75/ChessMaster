@@ -2786,28 +2786,45 @@ zadataka → četiri taba, prvi je Trening.
 
 ### Sledeće, po redu
 
-1. **Provera uživo svega iz ovog kruga.** Tačke `0l`–`0o` u
-   [TODO-provera.md](TODO-provera.md). Ništa od navigacije nije viđeno kako radi
-   — samo kako prolazi testove, a ovaj projekat je već tri puta pokazao da to
-   nije isto. Korisnik je 24.8.2026. uveče krenuo da proba; **prvo pitaj šta je
-   video.**
+Stanje na kraju 24.8.2026. Sve iz prošlog spiska pod 2–6 je urađeno; ostaje
+ovo.
 
-2. **Statistika naloga i PREMIUM iz „Časova" u Podešavanja.** Odlučeno, nije
-   urađeno. To su podaci o nalogu, a stoje u tabu o časovima.
+1. **Provera uživo onoga što još nije viđeno.** Tačke `0l`–`0p` u
+   [TODO-provera.md](TODO-provera.md). Korisnik je prošao navigaciju, tabove i
+   desktop prečice i našao tri stvari koje su odmah popravljene (nestali tabovi
+   pri izlasku iz vežbe, nevidljiva podešavanja na Windows-u, Ctrl+, vezan za
+   pogrešan taster). **Nije još viđeno:** sve oko govora na telefonu, nalaz
+   tablica, „Zaključi remi", i rute zadataka.
 
-3. **Traka „Nastavi" na vrhu Treninga** — nedovršena vežba, poslednja analiza,
-   soba u toku. Time prvi ekran postaje i ličan, a ne samo univerzalan.
+2. **Spisak prečica** — F1 ili `?`, plus red u Podešavanjima. **Ovo ide pre
+   svake nove prečice.** Ctrl+, je dokaz zašto: bila je napravljena, prolazila
+   je test, a korisnik nije mogao da je nađe ni da je upotrebi. Prečica koju
+   niko ne zna ne postoji.
 
-4. **Taktika otvorena iz zadatka postaje ruta.** Sada se gura, jer prosleđuje
-   spisak preostalih zagonetki. Traži da ekran taktike sam dohvati ostatak po
-   `assignmentId`. „Preostalo iz ovog domaćeg" jeste mesto i zaslužuje putanju.
+3. **Ostale prečice**, tek posle spiska. Dogovoreno šta i kojim redom:
+   - Ctrl+1…4 za četiri taba, Ctrl+C za kopiranje FEN-a (par desnom kliku);
+   - strelice na preostalih pet ekrana sa istom trakom (analiza, soba, lekcija,
+     ponavljanje, AI ekran) — po jedan omotač, bez nove logike; uz Home/End;
+   - u treneru završnica slova: N sledeća, R ispočetka, H pomoć, T nalaz,
+     U vrati potez; razmak za pusti/pauziraj u reprodukciji.
 
-5. **`basic_mate` ostavlja tajmer** posle zatvaranja ekrana — dva
-   `await Future.delayed` u učitavanju preseta koja se ne mogu otkazati. Zbog
-   toga je ta ruta izuzeta iz `navigation_flow_test.dart`.
+   Dve ograde: prečica **nikad nije jedini put** do radnje, jer na Androidu
+   tastature nema; i **jedno slovo samo na ekranima bez unosa teksta**, pošto
+   dok je fokus u polju to slovo pripada polju.
 
-6. **Desktop sitnice**, jeftine i vredne: tastatura (strelice kroz poteze, Esc,
-   Ctrl+,), pamćenje veličine prozora, desni klik za kopiranje FEN-a.
+4. **Pamćenje veličine i položaja prozora.** Traži nativni dodatak
+   (`window_manager`) — odluka o zavisnosti, ne usputan posao. Posle
+   `flutter_tts`-a i `nuget`-a vredi je doneti svesno.
+
+5. **Lichess, dve stavke.** Dugme sa pre-popunjenim linkom za pravljenje tokena
+   (pet minuta), i **proksi za bazu otvaranja kroz naš backend sa kešom** (sat
+   vremena). Drugo je jedino što menja nešto korisnicima: token prestaje da bude
+   obavezan, a saobraćaj ka Lichess-u pada višestruko jer se pozicije iz
+   otvaranja ponavljaju. Isti oblik koji `tablebaseService` već ima za tablice.
+
+6. **Unija „Dobij" i „Greške iz partija"** — procenjeno i odloženo. Šetnja
+   nema „Odigraj do kraja" ni igranu kaznu. Kad se bude radilo, izdvojiti alate
+   nad pozicijom u zajedničku komponentu umesto spajanja ekrana.
 
 7. **i18n na kraju**, kad prestanu da se menjaju ekrani. Odluka i razlozi su u
    odeljku „Sistematizacija prostora".
