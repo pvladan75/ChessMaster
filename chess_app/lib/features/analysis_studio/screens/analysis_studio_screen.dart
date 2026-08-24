@@ -6,6 +6,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
+import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
@@ -28,6 +29,8 @@ import 'package:chess_app/features/analysis_studio/widgets/syzygy_panel_widget.d
 import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/features/analysis_studio/services/chessdb_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
+import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
+import 'package:chess_app/features/analysis_studio/widgets/opening_judge_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/core/models/tactical_motif.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
@@ -45,7 +48,8 @@ import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
 import 'package:chess_app/pgn_parser.dart' show PgnParser;
 import 'package:chess_app/services/puzzle_api_service.dart';
-import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart' as dialogs;
+import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart'
+    as dialogs;
 
 class AnalysisStudioScreen extends StatefulWidget {
   final UserSession userSession;
@@ -120,15 +124,33 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   int _syzygyRequestId = 0;
 
   // Lichess Opening Explorer state
-  final OpeningExplorerService _openingExplorerService = OpeningExplorerService.instance;
+  final OpeningExplorerService _openingExplorerService =
+      OpeningExplorerService.instance;
   OpeningExplorerResult? _openingExplorerResult;
   bool _openingExplorerLoading = false;
   int _openingExplorerRequestId = 0;
+
+  /// False once a lookup came back unreachable — the panel then shows ChessDB
+  /// instead of an empty Lichess book. Reset on the next lookup, so one bad
+  /// minute does not cost the rest of the session.
+  bool _openingExplorerAvailable = true;
 
   final ChessDbService _chessDbService = ChessDbService.instance;
   ChessDbResult? _chessDbResult;
   bool _chessDbLoading = false;
   int? _openingExplorerMinRating;
+
+  /// The verdict on one move, and the node it belongs to.
+  ///
+  /// Both, for the reason the endgame trainer keeps its readout's FEN: a
+  /// verdict shown under a board that has moved on is not stale information,
+  /// it is wrong information — every word of it would be read as being about
+  /// the move now on the screen. Keeping the id means nothing has to remember
+  /// to clear it.
+  OpeningJudgement? _judgement;
+  String? _judgedNodeId;
+  String? _judgeReason;
+  bool _judgeLoading = false;
 
   // Tactical motifs for _currentNode, memoized by fen+move so the frequent
   // setState calls while the engine streams eval updates don't re-run the
@@ -170,8 +192,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   @override
   void initState() {
     super.initState();
-    final startFen = widget.initialFen ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-    AppLogger.log('[AnalysisStudio] 🎬 initState initialized with FEN: $startFen');
+    final startFen = widget.initialFen ??
+        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    AppLogger.log(
+        '[AnalysisStudio] 🎬 initState initialized with FEN: $startFen');
     _initAnalysisTree(startFen);
     _initEngine();
     OpeningBookService.instance.ensureLoaded().then((_) {
@@ -219,19 +243,29 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// warning.
   List<Widget> _toolbarActions(BuildContext context) {
     final actions = <_ToolAction>[
-      _ToolAction(Icons.tune, context.colors.accent, 'Unos Pozicije / PGN', _showSetupDialog),
-      _ToolAction(Icons.fact_check, context.colors.accent, 'Analiziraj celu partiju', _showGameReviewDialog),
-      _ToolAction(Icons.auto_awesome, context.colors.warning, 'Automatska Analiza ⚡', _showAutoAnalysisDialog),
-      _ToolAction(Icons.trending_flat, context.colors.accent, 'Produži granu (najbolja linija motora)', _showQuickExtendDialog),
-      _ToolAction(Icons.extension, context.colors.accent, 'Sačuvane vežbe', _showSavedPuzzleSetsDialog),
+      _ToolAction(Icons.tune, context.colors.accent, 'Unos Pozicije / PGN',
+          _showSetupDialog),
+      _ToolAction(Icons.fact_check, context.colors.accent,
+          'Analiziraj celu partiju', _showGameReviewDialog),
+      _ToolAction(Icons.auto_awesome, context.colors.warning,
+          'Automatska Analiza ⚡', _showAutoAnalysisDialog),
+      _ToolAction(Icons.trending_flat, context.colors.accent,
+          'Produži granu (najbolja linija motora)', _showQuickExtendDialog),
+      _ToolAction(Icons.extension, context.colors.accent, 'Sačuvane vežbe',
+          _showSavedPuzzleSetsDialog),
       _ToolAction(Icons.share, context.colors.info, 'Izvezi PGN', _exportPgn),
-      _ToolAction(Icons.cloud_outlined, context.colors.info, 'Sačuvane analize', _showSavedAnalysesDialog),
-      _ToolAction(Icons.settings, context.colors.textMuted, 'Podešavanja', _openAppSettings),
-      _ToolAction(Icons.terminal, context.colors.warning, 'Logovi Engine-a 📜', () => dialogs.showLogsDialog(context)),
+      _ToolAction(Icons.cloud_outlined, context.colors.info, 'Sačuvane analize',
+          _showSavedAnalysesDialog),
+      _ToolAction(Icons.settings, context.colors.textMuted, 'Podešavanja',
+          _openAppSettings),
+      _ToolAction(Icons.terminal, context.colors.warning, 'Logovi Engine-a 📜',
+          () => dialogs.showLogsDialog(context)),
     ];
 
-    Widget asIcon(_ToolAction a) =>
-        IconButton(icon: Icon(a.icon, color: a.color), tooltip: a.tooltip, onPressed: a.onPressed);
+    Widget asIcon(_ToolAction a) => IconButton(
+        icon: Icon(a.icon, color: a.color),
+        tooltip: a.tooltip,
+        onPressed: a.onPressed);
 
     if (Breakpoints.isWide(context)) {
       return actions.map(asIcon).toList();
@@ -270,7 +304,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     setState(() {
       _rootNode = draft.rootNode;
       _currentNode = draft.resolveCurrentNode();
-      _orientation = draft.blackOrientation ? PlayerColor.black : PlayerColor.white;
+      _orientation =
+          draft.blackOrientation ? PlayerColor.black : PlayerColor.white;
       _chessGame = chess.Chess.fromFEN(_currentNode.fen);
       _boardController.loadFen(_currentNode.fen);
       _engineLinesMap.clear();
@@ -296,7 +331,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           onPressed: () {
             AnalysisDraftService.instance.clear();
             setState(() {
-              _initAnalysisTree('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+              _initAnalysisTree(
+                  'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
               _engineLinesMap.clear();
             });
             _refreshArrows();
@@ -333,7 +369,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       this,
       getFen: () => _currentNode.fen,
       isEnabled: () => _showEvaluation || _showEvalBar,
-      onEvaluation: (evaluation, bestMove, continuation, multipv, depth, isFinal, analyzedFen) {
+      onEvaluation: (evaluation, bestMove, continuation, multipv, depth,
+          isFinal, analyzedFen) {
         if (!mounted) return;
         if (!_showEvaluation && !_showEvalBar) return;
 
@@ -348,7 +385,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             // into view while the engine is still climbing toward its
             // target depth) regress an eval a prior whole-game review
             // already computed at a greater depth.
-            if (_currentNode.evalDepth == null || depth >= _currentNode.evalDepth!) {
+            if (_currentNode.evalDepth == null ||
+                depth >= _currentNode.evalDepth!) {
               _currentNode.eval = parsedEval;
               _currentNode.evalDepth = depth;
             }
@@ -409,13 +447,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   Future<void> _fetchOpeningExplorerIfEligible() async {
     final reqId = ++_openingExplorerRequestId;
 
-    final wantsChessDb = AppSettingsService.instance.openingDbSource == 'chessdb';
-    AppLogger.log('[OpeningExplorer] 🔍 hasToken=${OpeningExplorerService.hasToken} | wantsChessDb=$wantsChessDb | FEN: ${_currentNode.fen}');
+    final wantsChessDb =
+        AppSettingsService.instance.openingDbSource == 'chessdb';
+    AppLogger.log(
+        '[OpeningExplorer] 🔍 wantsChessDb=$wantsChessDb | FEN: ${_currentNode.fen}');
 
-    if (wantsChessDb || !OpeningExplorerService.hasToken) {
-      AppLogger.log(wantsChessDb
-          ? '[OpeningExplorer] ⚙️ Korisnik je izabrao ChessDB'
-          : '[OpeningExplorer] ⛔ Nema tokena — koristim ChessDB fallback');
+    if (wantsChessDb) {
+      AppLogger.log('[OpeningExplorer] ⚙️ Korisnik je izabrao ChessDB');
       if (_openingExplorerResult != null || _openingExplorerLoading) {
         setState(() {
           _openingExplorerResult = null;
@@ -429,15 +467,33 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     setState(() {
       _openingExplorerLoading = true;
       _openingExplorerResult = null;
+      _openingExplorerAvailable = true;
     });
 
-    final result = await _openingExplorerService.lookup(
+    final lookup = await _openingExplorerService.lookup(
       _currentNode.fen,
       minRating: _openingExplorerMinRating,
     );
     if (!mounted || reqId != _openingExplorerRequestId) return;
 
-    AppLogger.log('[OpeningExplorer] 📊 Rezultat: ${result == null ? "null" : "${result.moves.length} poteza, ${result.total} partija"}');
+    // A book that could not be reached is not an opening nobody has played.
+    // Only the first of those may turn the panel into ChessDB, and only the
+    // log says which of the two it was.
+    if (!lookup.isAvailable) {
+      AppLogger.log(
+          '[OpeningExplorer] ⛔ Nedostupno (${lookup.reason}) — koristim ChessDB');
+      setState(() {
+        _openingExplorerAvailable = false;
+        _openingExplorerResult = null;
+        _openingExplorerLoading = false;
+      });
+      await _fetchChessDbFallback(reqId);
+      return;
+    }
+
+    final result = lookup.result;
+    AppLogger.log(
+        '[OpeningExplorer] 📊 Rezultat: ${result == null ? "prazno" : "${result.moves.length} poteza, ${result.total} partija"}');
 
     setState(() {
       _openingExplorerResult = result;
@@ -454,7 +510,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     final result = await _chessDbService.lookup(_currentNode.fen);
     if (!mounted || reqId != _openingExplorerRequestId) return;
 
-    AppLogger.log('[ChessDB] 📊 Rezultat: ${result == null ? "null" : "${result.moves.length} poteza"}');
+    AppLogger.log(
+        '[ChessDB] 📊 Rezultat: ${result == null ? "null" : "${result.moves.length} poteza"}');
 
     setState(() {
       _chessDbResult = result;
@@ -484,6 +541,43 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Judges the move that led to the position on the board.
+  ///
+  /// On request and never on its own: this spends the reader's own Lichess
+  /// allowance, and a panel that spends it while somebody clicks through a game
+  /// empties something nobody agreed to give.
+  Future<void> _judgeCurrentMove() async {
+    final node = _currentNode;
+    final parent = node.parent;
+    final move = node.moveUci ?? node.moveSan;
+    if (parent == null || move == null) return;
+
+    setState(() {
+      _judgeLoading = true;
+      _judgeReason = null;
+      _judgement = null;
+      _judgedNodeId = node.id;
+    });
+
+    final lookup = await OpeningJudgeService.instance.judge(
+      parent.fen,
+      move,
+      // The same rating floor the opening panel is showing, so the two are
+      // never quietly answering about different sets of players.
+      minRating: _openingExplorerMinRating,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _judgeLoading = false;
+      // Judged against the node it was asked for. A reader who walked on while
+      // the answer was in the air gets no verdict rather than the wrong one.
+      if (_judgedNodeId != node.id) return;
+      _judgement = lookup.judgement;
+      _judgeReason = lookup.reason;
+    });
+  }
+
   Future<void> _openEngineSettings() async {
     await showEngineSettingsDialog(
       context,
@@ -494,16 +588,19 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   }
 
   void _triggerEngineAnalysis() {
-    AppLogger.log('[AnalysisStudio] ⚡ _triggerEngineAnalysis fired | showEval: $_showEvaluation | showEvalBar: $_showEvalBar | Current FEN: ${_currentNode.fen}');
+    AppLogger.log(
+        '[AnalysisStudio] ⚡ _triggerEngineAnalysis fired | showEval: $_showEvaluation | showEvalBar: $_showEvalBar | Current FEN: ${_currentNode.fen}');
     _fetchSyzygyIfEligible();
     _fetchOpeningExplorerIfEligible();
     if (_showEvaluation || _showEvalBar) {
       // Validate FEN before sending to engine
       try {
         final testGame = chess.Chess.fromFEN(_currentNode.fen);
-        AppLogger.log('[AnalysisStudio] ✅ FEN is valid for chess game: ${_currentNode.fen}');
+        AppLogger.log(
+            '[AnalysisStudio] ✅ FEN is valid for chess game: ${_currentNode.fen}');
       } catch (e) {
-        AppLogger.log('[AnalysisStudio ERROR] ❌ Invalid FEN string: ${_currentNode.fen} | Error: $e');
+        AppLogger.log(
+            '[AnalysisStudio ERROR] ❌ Invalid FEN string: ${_currentNode.fen} | Error: $e');
       }
 
       final depth = AppSettingsService.instance.defaultEngineDepth;
@@ -511,7 +608,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
       _stockfishService.analyzePosition(_currentNode.fen, depth: depth);
     } else {
-      AppLogger.log('[AnalysisStudio] ⏸️ Engine evaluation disabled by user switch. Stopping analysis.');
+      AppLogger.log(
+          '[AnalysisStudio] ⏸️ Engine evaluation disabled by user switch. Stopping analysis.');
       _stockfishService.stopAnalysis();
       setState(() {
         _engineLinesMap.clear();
@@ -547,10 +645,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   List<EngineArrow> _buildArrowsFromChildren(AnalysisNode node) {
     if (!_showEngineOverlay || node.children.isEmpty) return [];
 
-    final isWhiteToMove = node.fen.split(' ').length > 1 && node.fen.split(' ')[1] == 'w';
+    final isWhiteToMove =
+        node.fen.split(' ').length > 1 && node.fen.split(' ')[1] == 'w';
 
     // Rank by how good the reply is for the side to move.
-    final ranked = node.children.where((c) => c.moveUci != null && c.moveUci!.length >= 4).toList()
+    final ranked = node.children
+        .where((c) => c.moveUci != null && c.moveUci!.length >= 4)
+        .toList()
       ..sort((a, b) {
         final ea = a.eval;
         final eb = b.eval;
@@ -568,7 +669,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         from: uci.substring(0, 2),
         to: uci.substring(2, 4),
         evalText: child.eval != null
-            ? (child.eval! > 0 ? '+${child.eval!.toStringAsFixed(2)}' : child.eval!.toStringAsFixed(2))
+            ? (child.eval! > 0
+                ? '+${child.eval!.toStringAsFixed(2)}'
+                : child.eval!.toStringAsFixed(2))
             : (child.moveSan ?? ''),
         rank: i + 1,
       ));
@@ -625,7 +728,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// [animate] is off for moves the user made by dragging: the piece has
   /// already travelled to [to] under their pointer, so sliding it along the
   /// same path again reads as the move happening twice.
-  void _handleUserMove(String from, String to, String promotion, {bool animate = true}) {
+  void _handleUserMove(String from, String to, String promotion,
+      {bool animate = true}) {
     if (_chessGame == null) return;
 
     final movingPiece = _chessGame!.get(from);
@@ -644,7 +748,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     final promo = promotion.isEmpty ? null : promotion;
     for (final m in _chessGame!.moves({'verbose': true})) {
       if (m['from'] == from && m['to'] == to) {
-        if (promo == null || m['promotion'] == promo || m['promotion'] == promo.toLowerCase()) {
+        if (promo == null ||
+            m['promotion'] == promo ||
+            m['promotion'] == promo.toLowerCase()) {
           san = (m['san'] as String?) ?? san;
           break;
         }
@@ -662,13 +768,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         uci: uci,
       );
 
-      if (!AppSettingsService.instance.manualCommentMode && childNode.comment.isEmpty) {
+      if (!AppSettingsService.instance.manualCommentMode &&
+          childNode.comment.isEmpty) {
         final tacticalDiff = _tacticalDetector.explainMove(
           beforeFen: _currentNode.fen,
           afterFen: newFen,
           lastMoveUci: uci,
         );
-        final positionalDiff = _positionalEvaluator.explainMove(beforeFen: _currentNode.fen, afterFen: newFen);
+        final positionalDiff = _positionalEvaluator.explainMove(
+            beforeFen: _currentNode.fen, afterFen: newFen);
         final autoComment = [
           _tacticalDetector.describeMoveDiff(tacticalDiff),
           _positionalEvaluator.describeMoveDiff(positionalDiff),
@@ -690,7 +798,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       // `to` is already the queen the real board now shows, while
       // movingPiece is still the pre-move pawn.
       final animatedPiece = _chessGame!.get(to) ?? movingPiece;
-      if (animate && animatedPiece != null) _triggerMoveAnimation(from, to, animatedPiece);
+      if (animate && animatedPiece != null) {
+        _triggerMoveAnimation(from, to, animatedPiece);
+      }
 
       _saveDraft();
       _refreshArrows();
@@ -702,7 +812,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     final durationMs = AppSettingsService.instance.moveAnimationDurationMs;
     if (durationMs <= 0) return;
     setState(() {
-      _pendingAnimations.add(PendingMoveAnimation(from: from, to: to, piece: movingPiece));
+      _pendingAnimations
+          .add(PendingMoveAnimation(from: from, to: to, piece: movingPiece));
     });
   }
 
@@ -710,7 +821,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// the way the user left it rather than resetting on the next visit.
   void _flipBoard() {
     setState(() {
-      _orientation = _orientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
+      _orientation = _orientation == PlayerColor.white
+          ? PlayerColor.black
+          : PlayerColor.white;
     });
     _saveDraft();
   }
@@ -734,12 +847,17 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         afterFen: _currentNode.fen,
         lastMoveUci: moveUci,
       );
-      final positionalDiff = _positionalEvaluator.explainMove(beforeFen: parentFen, afterFen: _currentNode.fen);
-      tacticalCandidates.addAll(_tacticalDetector.candidateCommentLines(tacticalDiff));
-      positionalCandidates.addAll(_positionalEvaluator.candidateCommentLines(positionalDiff));
+      final positionalDiff = _positionalEvaluator.explainMove(
+          beforeFen: parentFen, afterFen: _currentNode.fen);
+      tacticalCandidates
+          .addAll(_tacticalDetector.candidateCommentLines(tacticalDiff));
+      positionalCandidates
+          .addAll(_positionalEvaluator.candidateCommentLines(positionalDiff));
     }
 
-    dialogs.showManualCommentDialog(context, _currentNode.comment, tacticalCandidates, positionalCandidates, (comment) {
+    dialogs.showManualCommentDialog(
+        context, _currentNode.comment, tacticalCandidates, positionalCandidates,
+        (comment) {
       setState(() => _currentNode.comment = comment);
     });
   }
@@ -761,16 +879,23 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// for the AI endpoint — the same computation [_generateAiComment] needs
   /// for the played move, the previous move, engine alternatives, and
   /// sibling variations alike, just with different (beforeFen, afterFen).
-  ({List<Map<String, dynamic>> tactical, List<Map<String, dynamic>> positional}) _findingsPairFor(
+  ({List<Map<String, dynamic>> tactical, List<Map<String, dynamic>> positional})
+      _findingsPairFor(
     String beforeFen,
     String afterFen,
     String lastMoveUci,
   ) {
-    final tacticalDiff = _tacticalDetector.explainMove(beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: lastMoveUci);
-    final positionalDiff = _positionalEvaluator.explainMove(beforeFen: beforeFen, afterFen: afterFen);
+    final tacticalDiff = _tacticalDetector.explainMove(
+        beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: lastMoveUci);
+    final positionalDiff = _positionalEvaluator.explainMove(
+        beforeFen: beforeFen, afterFen: afterFen);
     return (
-      tactical: [...tacticalDiff.created, ...tacticalDiff.resolved].map(_motifFindingToJson).toList(),
-      positional: [...positionalDiff.created, ...positionalDiff.resolved].map(_positionalFindingToJson).toList(),
+      tactical: [...tacticalDiff.created, ...tacticalDiff.resolved]
+          .map(_motifFindingToJson)
+          .toList(),
+      positional: [...positionalDiff.created, ...positionalDiff.resolved]
+          .map(_positionalFindingToJson)
+          .toList(),
     );
   }
 
@@ -793,10 +918,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
     final played = _findingsPairFor(parent.fen, _currentNode.fen, moveUci);
     final tacticalCandidates = _tacticalDetector.candidateCommentLines(
-      _tacticalDetector.explainMove(beforeFen: parent.fen, afterFen: _currentNode.fen, lastMoveUci: moveUci),
+      _tacticalDetector.explainMove(
+          beforeFen: parent.fen,
+          afterFen: _currentNode.fen,
+          lastMoveUci: moveUci),
     );
     final positionalCandidates = _positionalEvaluator.candidateCommentLines(
-      _positionalEvaluator.explainMove(beforeFen: parent.fen, afterFen: _currentNode.fen),
+      _positionalEvaluator.explainMove(
+          beforeFen: parent.fen, afterFen: _currentNode.fen),
     );
 
     // Previous move — what led into the position this move was played from.
@@ -854,15 +983,24 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           if (!moveOk && best.bestMoveLan.length >= 4) {
             final from = best.bestMoveLan.substring(0, 2);
             final to = best.bestMoveLan.substring(2, 4);
-            final promo = best.bestMoveLan.length > 4 ? best.bestMoveLan.substring(4, 5) : null;
+            final promo = best.bestMoveLan.length > 4
+                ? best.bestMoveLan.substring(4, 5)
+                : null;
             try {
-              moveOk = altGame.move({'from': from, 'to': to, if (promo != null) 'promotion': promo});
+              moveOk = altGame.move({
+                'from': from,
+                'to': to,
+                if (promo != null) 'promotion': promo
+              });
             } catch (_) {}
           }
           if (moveOk) {
-            final pair = _findingsPairFor(parent.fen, altGame.fen, best.bestMoveLan);
+            final pair =
+                _findingsPairFor(parent.fen, altGame.fen, best.bestMoveLan);
             engineAlternativeData = {
-              'moveSan': best.bestMoveSan.isNotEmpty ? best.bestMoveSan : best.bestMoveLan,
+              'moveSan': best.bestMoveSan.isNotEmpty
+                  ? best.bestMoveSan
+                  : best.bestMoveLan,
               'eval': best.evaluation,
               'tacticalFindings': pair.tactical,
               'positionalFindings': pair.positional,
@@ -871,7 +1009,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         }
       }
     } catch (e) {
-      print('[AnalysisStudio] Engine alternative query for AI comment failed: $e');
+      print(
+          '[AnalysisStudio] Engine alternative query for AI comment failed: $e');
     } finally {
       // Resume live analysis for the position actually on screen.
       _triggerEngineAnalysis();
@@ -884,7 +1023,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (engineAlternativeData == null && _currentNode.children.isNotEmpty) {
       final nextChild = _currentNode.children.first;
       if (nextChild.eval != null) {
-        nextMoveEvalData = {'moveSan': nextChild.moveSan ?? '', 'eval': nextChild.eval};
+        nextMoveEvalData = {
+          'moveSan': nextChild.moveSan ?? '',
+          'eval': nextChild.eval
+        };
       }
     }
 
@@ -909,12 +1051,16 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (!mounted) return;
     if (aiComment == null || aiComment.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Greška pri generisanju AI komentara.'), backgroundColor: Colors.redAccent),
+        const SnackBar(
+            content: Text('Greška pri generisanju AI komentara.'),
+            backgroundColor: Colors.redAccent),
       );
       return;
     }
 
-    dialogs.showManualCommentDialog(context, aiComment, tacticalCandidates, positionalCandidates, (comment) {
+    dialogs.showManualCommentDialog(
+        context, aiComment, tacticalCandidates, positionalCandidates,
+        (comment) {
       setState(() => _currentNode.comment = comment);
     });
   }
@@ -936,7 +1082,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           setState(() => _lastAutoAnalysisDeltaCutoff = deltaCutoffUsed);
           _refreshArrows();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('⚡ Automatska analiza uspešno završena i sačuvana u stablo!'), backgroundColor: Colors.amber),
+            const SnackBar(
+                content: Text(
+                    '⚡ Automatska analiza uspešno završena i sačuvana u stablo!'),
+                backgroundColor: Colors.amber),
           );
         },
       ),
@@ -978,7 +1127,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           if (extractedPuzzles != null && extractedPuzzles.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('🧩 Izvučeno ${extractedPuzzles.length} vežbi (sačuvano)'),
+                content: Text(
+                    '🧩 Izvučeno ${extractedPuzzles.length} vežbi (sačuvano)'),
                 backgroundColor: Colors.teal,
                 duration: const Duration(seconds: 6),
                 action: SnackBarAction(
@@ -1028,7 +1178,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _triggerEngineAnalysis();
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('🧩 ${puzzle.themeLabel}'), backgroundColor: Colors.teal),
+      SnackBar(
+          content: Text('🧩 ${puzzle.themeLabel}'),
+          backgroundColor: Colors.teal),
     );
 
     if (canReveal) {
@@ -1069,7 +1221,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (!success) return;
 
     final newFen = _chessGame!.fen;
-    final childNode = _currentNode.addChild(childFen: newFen, san: san, uci: uci);
+    final childNode =
+        _currentNode.addChild(childFen: newFen, san: san, uci: uci);
 
     setState(() {
       _currentNode = childNode;
@@ -1129,7 +1282,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       final tempGame = chess.Chess();
       if (!tempGame.load_pgn(pgn)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('⚠️ Neispravan PGN format.'), backgroundColor: Colors.red),
+          const SnackBar(
+              content: Text('⚠️ Neispravan PGN format.'),
+              backgroundColor: Colors.red),
         );
         return;
       }
@@ -1149,8 +1304,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       _pgnWhiteElo = (tempGame.header['WhiteElo'] as String?)?.trim();
       _pgnBlackElo = (tempGame.header['BlackElo'] as String?)?.trim();
       _pgnResult = (tempGame.header['Result'] as String?)?.trim();
-      if (_pgnWhiteName != null && (_pgnWhiteName!.isEmpty || _pgnWhiteName == '?')) _pgnWhiteName = null;
-      if (_pgnBlackName != null && (_pgnBlackName!.isEmpty || _pgnBlackName == '?')) _pgnBlackName = null;
+      if (_pgnWhiteName != null &&
+          (_pgnWhiteName!.isEmpty || _pgnWhiteName == '?')) {
+        _pgnWhiteName = null;
+      }
+      if (_pgnBlackName != null &&
+          (_pgnBlackName!.isEmpty || _pgnBlackName == '?')) {
+        _pgnBlackName = null;
+      }
 
       final replay = chess.Chess.fromFEN(startFen);
       var node = _rootNode;
@@ -1158,7 +1319,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
       for (final san in sanHistory) {
         if (!replay.move(san)) {
-          AppLogger.log('[AnalysisStudio] ⚠️ PGN uvoz zaustavljen na nelegalnom potezu: $san');
+          AppLogger.log(
+              '[AnalysisStudio] ⚠️ PGN uvoz zaustavljen na nelegalnom potezu: $san');
           break;
         }
         final moveObj = replay.history.last.move;
@@ -1178,7 +1340,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       _saveDraft();
       _triggerEngineAnalysis();
 
-      AppLogger.log('[AnalysisStudio] 📥 PGN uvezen: $imported poteza od ${sanHistory.length}');
+      AppLogger.log(
+          '[AnalysisStudio] 📥 PGN uvezen: $imported poteza od ${sanHistory.length}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('✅ PGN učitan — $imported poteza u stablu.'),
@@ -1187,7 +1350,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Greška pri uvozu PGN-a: $e'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Greška pri uvozu PGN-a: $e'),
+            backgroundColor: Colors.red),
       );
     }
   }
@@ -1205,7 +1370,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   }
 
   Future<void> _loadSavedAnalysis(SavedAnalysisSummary summary) async {
-    final confirmed = await dialogs.confirmReplaceAnalysisDialog(context, summary.title);
+    final confirmed =
+        await dialogs.confirmReplaceAnalysisDialog(context, summary.title);
     if (!confirmed) return;
 
     final loadedRoot = await AnalysisPersistenceService.instance.loadAnalysis(
@@ -1217,7 +1383,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
     if (loadedRoot == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('⚠️ Učitavanje nije uspelo. Proverite konekciju.'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('⚠️ Učitavanje nije uspelo. Proverite konekciju.'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -1234,21 +1402,26 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _triggerEngineAnalysis();
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('✅ Učitano: "${summary.title}"'), backgroundColor: Colors.teal),
+      SnackBar(
+          content: Text('✅ Učitano: "${summary.title}"'),
+          backgroundColor: Colors.teal),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     // Landscape: board width must leave room for the panel column next to it
     // (kMinPanelWidth), so its true ceiling is screen-derived, not a fixed
     // constant — on a big monitor the board should actually get bigger.
     const double kMinPanelWidth = 300.0;
-    final double landscapeHeightBudget = screenSize.height - 120.0 - (_showEvalBar ? 30.0 : 0.0);
+    final double landscapeHeightBudget =
+        screenSize.height - 120.0 - (_showEvalBar ? 30.0 : 0.0);
     final double boardSize = (isLandscape
-            ? math.min(landscapeHeightBudget, screenSize.width - kMinPanelWidth - 28.0)
+            ? math.min(
+                landscapeHeightBudget, screenSize.width - kMinPanelWidth - 28.0)
             : math.min(screenSize.width - 32.0, 700.0)) *
         AppSettingsService.instance.boardSizeScale;
 
@@ -1272,10 +1445,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                           maxLines: 1,
                           style: AppText.title,
                         ),
-                        if (_pgnResult != null && _pgnResult!.isNotEmpty && _pgnResult != '*')
+                        if (_pgnResult != null &&
+                            _pgnResult!.isNotEmpty &&
+                            _pgnResult != '*')
                           Text(
                             _pgnResult!,
-                            style: AppText.micro.copyWith(color: context.colors.textMuted),
+                            style: AppText.micro
+                                .copyWith(color: context.colors.textMuted),
                           ),
                       ],
                     )
@@ -1290,7 +1466,17 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         ),
         actions: _toolbarActions(context),
       ),
-      body: isLandscape ? _buildLandscapeLayout(boardSize) : _buildPortraitLayout(boardSize),
+      // Arrow keys drive the same cursor the strip's buttons do. This is the
+      // screen a variation is read on, and reading it with the mouse alone is
+      // what makes a desktop window feel like a phone in a frame.
+      body: MoveKeyboardShortcuts(
+        cursor: _moveCursor(),
+        // _jumpToNode does its own setState.
+        onChanged: () {},
+        child: isLandscape
+            ? _buildLandscapeLayout(boardSize)
+            : _buildPortraitLayout(boardSize),
+      ),
     );
   }
 
@@ -1328,7 +1514,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         // Scrollable Controls Below Board
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Column(
               children: [
                 if (_showEvalBar) ...[
@@ -1427,7 +1614,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     return Builder(
       builder: (ctx) {
         final phaseInfo = PositionInfoService.analyzeFen(_currentNode.fen);
-        final bookEntry = OpeningBookService.instance.lookupByFen(_currentNode.fen);
+        final bookEntry =
+            OpeningBookService.instance.lookupByFen(_currentNode.fen);
         final displayOpeningName = (!phaseInfo.isEndgame && bookEntry != null)
             ? '${bookEntry.eco} · ${bookEntry.name}'
             : phaseInfo.openingName;
@@ -1438,10 +1626,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: phaseInfo.isEndgame ? Colors.indigo.shade900 : Colors.grey.shade900,
+                color: phaseInfo.isEndgame
+                    ? Colors.indigo.shade900
+                    : Colors.grey.shade900,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
+                  color: phaseInfo.isEndgame
+                      ? Colors.cyanAccent
+                      : Colors.tealAccent,
                   width: 1,
                 ),
               ),
@@ -1449,14 +1641,19 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 children: [
                   Icon(
                     phaseInfo.isEndgame ? Icons.auto_awesome : Icons.menu_book,
-                    color: phaseInfo.isEndgame ? Colors.cyanAccent : Colors.tealAccent,
+                    color: phaseInfo.isEndgame
+                        ? Colors.cyanAccent
+                        : Colors.tealAccent,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       displayOpeningName,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
                     ),
                   ),
                 ],
@@ -1464,8 +1661,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             ),
             if (AppSettingsService.instance.isPanelVisible('tactical_motifs'))
               TacticalFindingsPanelWidget(result: _computeTacticalFindings()),
-            if (AppSettingsService.instance.isPanelVisible('positional_factors'))
-              PositionalFindingsPanelWidget(result: _computePositionalFindings()),
+            if (AppSettingsService.instance
+                .isPanelVisible('positional_factors'))
+              PositionalFindingsPanelWidget(
+                  result: _computePositionalFindings()),
             if (AppSettingsService.instance.isPanelVisible('syzygy'))
               SyzygyPanelWidget(
                 isEligible: phaseInfo.isSyzygyReady,
@@ -1473,9 +1672,20 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 result: _syzygyResult,
                 onMoveSelected: _playUciMove,
               ),
+            if (AppSettingsService.instance.isPanelVisible('opening_judge'))
+              OpeningJudgePanelWidget(
+                hasToken: OpeningJudgeService.instance.hasPersonalToken,
+                moveSan: _currentNode.moveSan,
+                isLoading: _judgeLoading,
+                judgement: _judgedNodeId == _currentNode.id ? _judgement : null,
+                reason: _judgedNodeId == _currentNode.id ? _judgeReason : null,
+                onJudge: _currentNode.isRoot ? null : _judgeCurrentMove,
+                onOpenSettings: _openAppSettings,
+              ),
             if (AppSettingsService.instance.isPanelVisible('opening_explorer'))
               OpeningExplorerPanelWidget(
-                hasToken: OpeningExplorerService.hasToken && AppSettingsService.instance.openingDbSource != 'chessdb',
+                useLichess: _openingExplorerAvailable &&
+                    AppSettingsService.instance.openingDbSource != 'chessdb',
                 isLoading: _openingExplorerLoading,
                 result: _openingExplorerResult,
                 minRating: _openingExplorerMinRating,
@@ -1524,7 +1734,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             isAllowedToUseEngine: true,
             isOnline: _stockfishService.isOnline,
             isCustomEngineActive: _stockfishService.isCustomEngineActive,
-            onOpenSettings: isCustomEngineSupported ? _openEngineSettings : null,
+            onOpenSettings:
+                isCustomEngineSupported ? _openEngineSettings : null,
             onForceRestart: _triggerEngineAnalysis,
             lines: _engineLinesMap.values.toList(),
             orientation: _orientation,
@@ -1553,7 +1764,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     final isOwnPiece = piece != null && piece.color == game.turn;
 
     if (isOwnPiece) {
-      setState(() => _selectedSquareForTap = (square == _selectedSquareForTap) ? null : square);
+      setState(() => _selectedSquareForTap =
+          (square == _selectedSquareForTap) ? null : square);
       return;
     }
 
@@ -1586,24 +1798,25 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         // Translucent, so the tap overlay joins the gesture arena without
         // reporting a hit — dragging still reaches the board beneath it.
         Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTapUp: (details) {
-                final square = getSquareFromOffset(details.localPosition, size, _orientation);
-                _handleTapMoveInput(square);
-              },
-              child: CustomPaint(
-                size: Size(size, size),
-                painter: _selectedSquareForTap != null
-                    ? SelectedSquarePainter(
-                        selectedSquare: _selectedSquareForTap!,
-                        boardSize: size,
-                        orientation: _orientation,
-                      )
-                    : null,
-              ),
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTapUp: (details) {
+              final square = getSquareFromOffset(
+                  details.localPosition, size, _orientation);
+              _handleTapMoveInput(square);
+            },
+            child: CustomPaint(
+              size: Size(size, size),
+              painter: _selectedSquareForTap != null
+                  ? SelectedSquarePainter(
+                      selectedSquare: _selectedSquareForTap!,
+                      boardSize: size,
+                      orientation: _orientation,
+                    )
+                  : null,
             ),
           ),
+        ),
         if (_lastMoveFrom != null && _lastMoveTo != null)
           Positioned.fill(
             child: IgnorePointer(
@@ -1639,9 +1852,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             pending: pendingAnim,
             boardSize: size,
             orientation: _orientation,
-            duration: Duration(milliseconds: AppSettingsService.instance.moveAnimationDurationMs),
+            duration: Duration(
+                milliseconds:
+                    AppSettingsService.instance.moveAnimationDurationMs),
             onCompleted: () {
-              if (mounted) setState(() => _pendingAnimations.remove(pendingAnim));
+              if (mounted) {
+                setState(() => _pendingAnimations.remove(pendingAnim));
+              }
             },
           ),
       ],
@@ -1675,9 +1892,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             style: AppText.bodyBold.copyWith(color: Colors.white),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right, size: 20, color: Colors.white),
+            icon:
+                const Icon(Icons.chevron_right, size: 20, color: Colors.white),
             tooltip: 'Sledeća vežba',
-            onPressed: _activePuzzleIndex < set.length - 1 ? () => _goToPuzzle(1) : null,
+            onPressed: _activePuzzleIndex < set.length - 1
+                ? () => _goToPuzzle(1)
+                : null,
           ),
           IconButton(
             icon: const Icon(Icons.close, size: 20, color: Colors.white70),
@@ -1689,19 +1909,23 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     );
   }
 
+  /// The one cursor this screen is walked by. The strip's buttons and the arrow
+  /// keys read it from here rather than each building their own, so there is no
+  /// second copy to fall out of step.
+  AnalysisNodeCursor _moveCursor() =>
+      AnalysisNodeCursor(currentNode: _currentNode, onSelect: _jumpToNode);
+
   Widget _buildNavigationToolbar() {
     return MoveNavigationControls(
-      cursor: AnalysisNodeCursor(
-        currentNode: _currentNode,
-        onSelect: _jumpToNode,
-      ),
+      cursor: _moveCursor(),
       centerLabel: null,
       iconSize: 20,
       onFlipBoard: _flipBoard,
       trailing: [
         const SizedBox(width: 8),
         IconButton(
-          icon: const Icon(Icons.comment, size: 18, color: Colors.lightBlueAccent),
+          icon: const Icon(Icons.comment,
+              size: 18, color: Colors.lightBlueAccent),
           tooltip: 'Dodaj Komentar',
           onPressed: _showCommentDialog,
         ),
@@ -1712,9 +1936,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.auto_awesome, size: 18, color: Colors.tealAccent),
+              : const Icon(Icons.auto_awesome,
+                  size: 18, color: Colors.tealAccent),
           tooltip: 'Generiši AI komentar',
-          onPressed: (_isGeneratingAiComment || _currentNode.isRoot) ? null : _generateAiComment,
+          onPressed: (_isGeneratingAiComment || _currentNode.isRoot)
+              ? null
+              : _generateAiComment,
         ),
         IconButton(
           icon: const Icon(Icons.style, size: 18, color: Colors.amberAccent),
@@ -1722,7 +1949,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           onPressed: _showNagSelector,
         ),
         IconButton(
-          icon: Icon(Icons.delete_outline, size: 18, color: context.colors.danger),
+          icon: Icon(Icons.delete_outline,
+              size: 18, color: context.colors.danger),
           tooltip: 'Obriši ovaj potez (i granu iza njega)',
           onPressed: _currentNode.isRoot ? null : _confirmDeleteCurrentNode,
         ),
@@ -1751,7 +1979,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         decoration: BoxDecoration(
           color: Colors.grey.shade900,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: context.colors.info.withValues(alpha: 0.35)),
+          border:
+              Border.all(color: context.colors.info.withValues(alpha: 0.35)),
         ),
         // A long auto-generated comment (several concatenated findings) can
         // wrap several lines — capping the panel's height and letting it
@@ -1768,7 +1997,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               Expanded(
                 child: RichText(
                   text: TextSpan(
-                    style: AppText.caption.copyWith(color: context.colors.textPrimary),
+                    style: AppText.caption
+                        .copyWith(color: context.colors.textPrimary),
                     children: [
                       if (_currentNode.moveSan != null)
                         TextSpan(
@@ -1778,7 +2008,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                       if (nag != null)
                         TextSpan(
                           text: ' $nag',
-                          style: TextStyle(color: context.colors.warning, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              color: context.colors.warning,
+                              fontWeight: FontWeight.bold),
                         ),
                       if (comment.isNotEmpty) TextSpan(text: '  $comment'),
                     ],
@@ -1818,7 +2050,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: context.colors.surface,
-        title: Text('Obriši potez?', style: TextStyle(color: context.colors.textPrimary)),
+        title: Text('Obriši potez?',
+            style: TextStyle(color: context.colors.textPrimary)),
         content: Text(
           removedCount > 1
               ? 'Ovo briše "$label" i svih preostalih $removedCount poteza u ovoj grani (uključujući varijacije). Ne može se opozvati.'
@@ -1826,9 +2059,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           style: TextStyle(color: context.colors.textMuted),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Otkaži')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Otkaži')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: context.colors.danger, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: context.colors.danger,
+                foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Obriši'),
           ),

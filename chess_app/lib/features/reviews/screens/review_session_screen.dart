@@ -7,6 +7,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import '../services/review_api_service.dart';
 
@@ -192,7 +193,16 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                 ),
               ),
       ),
-      body: SafeArea(child: _buildBody()),
+      // Arrow keys drive the same cursor the strip's buttons do — but only once
+      // the continuation is showing. Walking the line before that is being told
+      // the answer by the keyboard, which is the one thing this screen must not
+      // do: the whole exercise is recalling the move before seeing it.
+      body: MoveKeyboardShortcuts(
+        cursor: _moveCursor(),
+        onChanged: () {},
+        enabled: _revealed && _moves.isNotEmpty,
+        child: SafeArea(child: _buildBody()),
+      ),
     );
   }
 
@@ -302,14 +312,18 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
     );
   }
 
-  Widget _buildMoveControls() {
-    return MoveNavigationControls(
-      cursor: LinearMoveCursor(
+  /// The one cursor this screen is walked by — the strip's buttons and the
+  /// arrow keys read it from here rather than each building their own.
+  MoveCursor _moveCursor() => LinearMoveCursor(
         fens: _fens,
         movesSan: _moves,
         index: _moveIndex,
         onSeek: _seek,
-      ),
+      );
+
+  Widget _buildMoveControls() {
+    return MoveNavigationControls(
+      cursor: _moveCursor(),
       centerLabel: '$_moveIndex/${_moves.length}',
       onFlipBoard: () => setState(() {
         _orientation = _orientation == PlayerColor.white

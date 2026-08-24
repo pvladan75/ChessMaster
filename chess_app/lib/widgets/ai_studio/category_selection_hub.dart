@@ -8,6 +8,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
   final VoidCallback onSelectEndgameWin;
   final VoidCallback onSelectEndgameDraw;
   final VoidCallback onSelectBlunderGames;
+  final VoidCallback onSelectRepertoire;
 
   const CategorySelectionHubWidget({
     super.key,
@@ -18,6 +19,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
     required this.onSelectEndgameWin,
     required this.onSelectEndgameDraw,
     required this.onSelectBlunderGames,
+    required this.onSelectRepertoire,
   });
 
   @override
@@ -216,6 +218,20 @@ class CategorySelectionHubWidget extends StatelessWidget {
                                   horizontal: 20, vertical: 12),
                             ),
                             onPressed: onSelectBlunderGames,
+                          ),
+                          // Not a set of exercises but a thing the student
+                          // builds: what they would play, position by
+                          // position, judged as they go.
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.menu_book_outlined),
+                            label: const Text('Repertoar otvaranja'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.indigo.shade700,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 12),
+                            ),
+                            onPressed: onSelectRepertoire,
                           ),
                         ],
                       ),

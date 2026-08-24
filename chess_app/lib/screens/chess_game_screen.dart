@@ -29,6 +29,7 @@ import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/arrow_color_button.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
+import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/widgets/game_screen/course_step_bar.dart';
 import 'package:chess_app/widgets/board_setup_dialog.dart';
@@ -1951,13 +1952,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
-  Widget buildNavigationControls() {
-    return MoveNavigationControls(
-      cursor: MoveTreeCursor(
+  /// The one cursor this screen is walked by. The strip's buttons and the arrow
+  /// keys read it from here rather than each building their own, so there is no
+  /// second copy to fall out of step.
+  MoveCursor _moveCursor() => MoveTreeCursor(
         moveTree: moveTree,
         currentNode: currentNode,
         onSelect: _selectNode,
-      ),
+      );
+
+  Widget buildNavigationControls() {
+    return MoveNavigationControls(
+      cursor: _moveCursor(),
       canNavigate: canDriveSharedBoard,
       onFlipBoard: _toggleLocalOrientation,
     );
@@ -3138,85 +3144,37 @@ class _ChessGamePageState extends State<ChessGamePage> {
         // Mobile layout has a Drawer for lessons listing (if Trainer)
         drawer:
             (!isWide && isTrener) ? Drawer(child: buildLeftSidebar()) : null,
-        body: Column(children: [
-          _buildCourseStepBar(),
-          Expanded(
-            child: isWide
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      buildLeftSidebar(),
-                      const VerticalDivider(width: 1, thickness: 1),
-                      Expanded(
-                        child: Center(
-                          child: SingleChildScrollView(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  isHost
-                                      ? "Igrate kao Beli (Host)"
-                                      : "Igrate kao Crni (Korisnik)",
-                                  style: TextStyle(
-                                      color: Colors.grey[400], fontSize: 15),
-                                ),
-                                const SizedBox(height: 12),
-                                if (_showEvalBar) ...[
-                                  SizedBox(
-                                    width: boardSize,
-                                    child: HorizontalEvalBarWidget(
-                                      eval: _currentRawEval,
-                                      evalString: currentEngineEval,
-                                      depth: _currentEvalDepth,
-                                      orientation: boardOrientation,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                ],
-                                _buildChessBoardWithOverlay(boardSize),
-                                const SizedBox(height: 12),
-                                // PGN navigators
-                                SizedBox(
-                                  width: boardSize,
-                                  child: buildNavigationControls(),
-                                ),
-                                const SizedBox(height: 8),
-                                // Stockfish analysis widget directly UNDER board
-                                SizedBox(
-                                  width: boardSize,
-                                  child: _buildStockfishAnalysisWidget(),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const VerticalDivider(width: 1, thickness: 1),
-                      buildRightSidebar(),
-                    ],
-                  )
-                : isLandscape
-                    // Phone landscape: no room to stack board + everything else
-                    // vertically, so it goes side by side instead — board (+nav)
-                    // on the left, everything else in one scrollable pane on the
-                    // right. The left (lessons) sidebar stays in the Drawer.
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
+        body: MoveKeyboardShortcuts(
+          cursor: _moveCursor(),
+          // _selectNode does its own setState.
+          onChanged: () {},
+          // Same condition the strip already uses: a seat that does not
+          // drive the shared board must not drive it with the keyboard
+          // either.
+          enabled: canDriveSharedBoard,
+          child: Column(children: [
+            _buildCourseStepBar(),
+            Expanded(
+              child: isWide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        buildLeftSidebar(),
+                        const VerticalDivider(width: 1, thickness: 1),
+                        Expanded(
+                          child: Center(
                             child: SingleChildScrollView(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const SizedBox(height: 8),
                                   Text(
                                     isHost
                                         ? "Igrate kao Beli (Host)"
                                         : "Igrate kao Crni (Korisnik)",
                                     style: TextStyle(
-                                        color: Colors.grey[400], fontSize: 13),
+                                        color: Colors.grey[400], fontSize: 15),
                                   ),
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: 12),
                                   if (_showEvalBar) ...[
                                     SizedBox(
                                       width: boardSize,
@@ -3227,89 +3185,149 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                         orientation: boardOrientation,
                                       ),
                                     ),
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 8),
                                   ],
                                   _buildChessBoardWithOverlay(boardSize),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 12),
+                                  // PGN navigators
                                   SizedBox(
                                     width: boardSize,
                                     child: buildNavigationControls(),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Stockfish analysis widget directly UNDER board
+                                  SizedBox(
+                                    width: boardSize,
+                                    child: _buildStockfishAnalysisWidget(),
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                          const VerticalDivider(width: 1, thickness: 1),
-                          Expanded(
-                            child: SingleChildScrollView(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0, vertical: 8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  _buildStockfishAnalysisWidget(),
-                                  const SizedBox(height: 8),
-                                  buildRightSidebar(),
-                                ],
+                        ),
+                        const VerticalDivider(width: 1, thickness: 1),
+                        buildRightSidebar(),
+                      ],
+                    )
+                  : isLandscape
+                      // Phone landscape: no room to stack board + everything else
+                      // vertically, so it goes side by side instead — board (+nav)
+                      // on the left, everything else in one scrollable pane on the
+                      // right. The left (lessons) sidebar stays in the Drawer.
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      isHost
+                                          ? "Igrate kao Beli (Host)"
+                                          : "Igrate kao Crni (Korisnik)",
+                                      style: TextStyle(
+                                          color: Colors.grey[400],
+                                          fontSize: 13),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    if (_showEvalBar) ...[
+                                      SizedBox(
+                                        width: boardSize,
+                                        child: HorizontalEvalBarWidget(
+                                          eval: _currentRawEval,
+                                          evalString: currentEngineEval,
+                                          depth: _currentEvalDepth,
+                                          orientation: boardOrientation,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                    ],
+                                    _buildChessBoardWithOverlay(boardSize),
+                                    const SizedBox(height: 8),
+                                    SizedBox(
+                                      width: boardSize,
+                                      child: buildNavigationControls(),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          const SizedBox(height: 8),
-                          Text(
-                            isHost
-                                ? "Igrate kao Beli (Host)"
-                                : "Igrate kao Crni (Korisnik)",
-                            style: TextStyle(
-                                color: Colors.grey[400], fontSize: 13),
-                          ),
-                          const SizedBox(height: 6),
-                          if (_showEvalBar) ...[
-                            SizedBox(
-                              width: boardSize,
-                              child: HorizontalEvalBarWidget(
-                                eval: _currentRawEval,
-                                evalString: currentEngineEval,
-                                depth: _currentEvalDepth,
-                                orientation: boardOrientation,
+                            const VerticalDivider(width: 1, thickness: 1),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 8.0),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    _buildStockfishAnalysisWidget(),
+                                    const SizedBox(height: 8),
+                                    buildRightSidebar(),
+                                  ],
+                                ),
                               ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            const SizedBox(height: 8),
+                            Text(
+                              isHost
+                                  ? "Igrate kao Beli (Host)"
+                                  : "Igrate kao Crni (Korisnik)",
+                              style: TextStyle(
+                                  color: Colors.grey[400], fontSize: 13),
                             ),
                             const SizedBox(height: 6),
-                          ],
-                          _buildChessBoardWithOverlay(boardSize),
-                          const SizedBox(height: 8),
-                          // PGN navigators on mobile (fixed)
-                          SizedBox(
-                            width: boardSize,
-                            child: buildNavigationControls(),
-                          ),
-                          const SizedBox(height: 8),
-                          // Scrollable sidebar below the fixed board — the Stockfish
-                          // eval toggles ("Prikaži evaluaciju" / "Prikaži
-                          // evaluacionu liniju") live in here too now instead of
-                          // being pinned above it, so they scroll with everything
-                          // else rather than staying fixed on screen.
-                          Expanded(
-                            child: SingleChildScrollView(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0, vertical: 8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  _buildStockfishAnalysisWidget(),
-                                  const SizedBox(height: 8),
-                                  buildRightSidebar(),
-                                ],
+                            if (_showEvalBar) ...[
+                              SizedBox(
+                                width: boardSize,
+                                child: HorizontalEvalBarWidget(
+                                  eval: _currentRawEval,
+                                  evalString: currentEngineEval,
+                                  depth: _currentEvalDepth,
+                                  orientation: boardOrientation,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                            ],
+                            _buildChessBoardWithOverlay(boardSize),
+                            const SizedBox(height: 8),
+                            // PGN navigators on mobile (fixed)
+                            SizedBox(
+                              width: boardSize,
+                              child: buildNavigationControls(),
+                            ),
+                            const SizedBox(height: 8),
+                            // Scrollable sidebar below the fixed board — the Stockfish
+                            // eval toggles ("Prikaži evaluaciju" / "Prikaži
+                            // evaluacionu liniju") live in here too now instead of
+                            // being pinned above it, so they scroll with everything
+                            // else rather than staying fixed on screen.
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 8.0),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    _buildStockfishAnalysisWidget(),
+                                    const SizedBox(height: 8),
+                                    buildRightSidebar(),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-          ),
-        ]),
+                          ],
+                        ),
+            ),
+          ]),
+        ),
       ),
     );
   }

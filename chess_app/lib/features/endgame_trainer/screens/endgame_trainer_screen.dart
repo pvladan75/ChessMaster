@@ -1,11 +1,13 @@
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/widgets/action_key_shortcuts.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -917,6 +919,50 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     _boardController.loadFen(game.fen);
   }
 
+  /// The letters, and the button each of them presses.
+  ///
+  /// Written as a mirror of [_buildControls] on purpose: a key stands for a
+  /// button that is on the screen, and null everywhere that button is not
+  /// offered or is disabled. A key that works while its button is greyed out
+  /// would be a second way in with nothing to see it by - and this screen locks
+  /// the board on purpose while the tables are being asked.
+  Map<LogicalKeyboardKey, VoidCallback?> _shortcutBindings(
+      BuildContext context) {
+    final solve = _solve;
+    // Nothing to press while the position is still on its way, or when the
+    // fetch failed and the screen is one button wide.
+    if (solve == null || _loading || _error != null) {
+      return const {};
+    }
+
+    if (_drilling) {
+      final open = Breakpoints.isWide(context) && _readoutOpen;
+      return {
+        LogicalKeyboardKey.keyN: _boardLocked ? null : _loadNext,
+        LogicalKeyboardKey.keyR:
+            _boardLocked ? null : (_punishing ? _startPunish : _startDrill),
+        LogicalKeyboardKey.keyT: _reading || (_drillEnd != null && !open)
+            ? null
+            : () => _showReadout(wide: Breakpoints.isWide(context)),
+        LogicalKeyboardKey.keyU:
+            _boardLocked || _drillRetryFen == null ? null : _retryDrillMove,
+      };
+    }
+
+    return {
+      LogicalKeyboardKey.keyN: _loadNext,
+      // "Ispočetka" in this mode is the button the failed answer puts up, and
+      // it is there and nowhere else.
+      LogicalKeyboardKey.keyR:
+          solve.status == EndgameSolveStatus.failed ? _retry : null,
+      LogicalKeyboardKey.keyH: solve.isComplete ? null : _showHint,
+      // The tables are a drill button; solving a position with the answer in
+      // front of you is not solving it.
+      LogicalKeyboardKey.keyT: null,
+      LogicalKeyboardKey.keyU: null,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -937,7 +983,12 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           ),
         ],
       ),
-      body: SafeArea(child: _buildBody()),
+      body: SafeArea(
+        child: ActionKeyShortcuts(
+          bindings: _shortcutBindings(context),
+          child: _buildBody(),
+        ),
+      ),
     );
   }
 

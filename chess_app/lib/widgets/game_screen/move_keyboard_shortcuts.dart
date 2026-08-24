@@ -57,12 +57,28 @@ class MoveKeyboardShortcuts extends StatelessWidget {
             _step(cursor.first, cursor.canGoBack),
         const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
             _step(cursor.last, cursor.canGoForward),
+        // Home and End say the same thing as up and down, and are what a
+        // reader coming from a text editor reaches for. Two names for one jump
+        // costs a line here and saves the reader from having to learn ours.
+        const SingleActivator(LogicalKeyboardKey.home): () =>
+            _step(cursor.first, cursor.canGoBack),
+        const SingleActivator(LogicalKeyboardKey.end): () =>
+            _step(cursor.last, cursor.canGoForward),
       },
       child: Focus(
-        // Not autofocus, and not a focus of its own: the keys are heard on the
-        // way up from whatever has focus, and a text field that wants an arrow
-        // keeps it.
-        canRequestFocus: false,
+        // Holds the focus this screen would otherwise leave on the route itself
+        // — and that is the whole difference between working and not. A key
+        // press is offered to whatever has focus and then to its ancestors, so
+        // a binding sitting *below* the focused node is never asked: without
+        // this the arrows did nothing until the reader happened to click
+        // something inside the screen first.
+        //
+        // Only when nothing else wants it. A text field takes the focus when it
+        // is tapped, and from then on the arrows are the field's, which is what
+        // anyone typing a comment expects.
+        autofocus: true,
+        // Never a stop on the Tab tour: it is here to hear keys, not to be
+        // reached.
         skipTraversal: true,
         child: child,
       ),

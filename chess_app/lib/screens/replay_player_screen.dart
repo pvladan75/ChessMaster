@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -11,6 +12,7 @@ import 'package:chess_app/constants.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/recording_models.dart';
+import 'package:chess_app/widgets/action_key_shortcuts.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -665,162 +667,174 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Interactive Board View
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: AspectRatio(
-                    aspectRatio: 1.0,
-                    child: LayoutBuilder(
-                      builder: (ctx, constraints) {
-                        final boardSize = constraints.maxWidth;
-                        return Stack(
-                          children: [
-                            ChessBoard(
-                              controller: _boardController,
-                              boardOrientation: boardOrientation,
-                              enableUserMoves: false,
-                            ),
-                            Positioned.fill(
-                              child: CustomPaint(
-                                painter: ChessBoardPainter(
-                                  arrows: currentArrows,
-                                  engineArrows: currentEngineArrows,
-                                  boardSize: boardSize,
-                                  orientation: boardOrientation,
+        // Space for play and pause, the key every player in the world uses.
+        // It presses the same button that is drawn below the board and stands
+        // aside whenever something else on the screen has the focus, so a
+        // reader walking the controls with Tab still presses what they landed
+        // on.
+        child: ActionKeyShortcuts(
+          bindings: {
+            LogicalKeyboardKey.space:
+                maxDurationMs > 0 ? _togglePlayPause : null,
+          },
+          child: Column(
+            children: [
+              // Interactive Board View
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: AspectRatio(
+                      aspectRatio: 1.0,
+                      child: LayoutBuilder(
+                        builder: (ctx, constraints) {
+                          final boardSize = constraints.maxWidth;
+                          return Stack(
+                            children: [
+                              ChessBoard(
+                                controller: _boardController,
+                                boardOrientation: boardOrientation,
+                                enableUserMoves: false,
+                              ),
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: ChessBoardPainter(
+                                    arrows: currentArrows,
+                                    engineArrows: currentEngineArrows,
+                                    boardSize: boardSize,
+                                    orientation: boardOrientation,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        );
-                      },
+                            ],
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
 
-            // Player Control Deck
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                boxShadow: const [
-                  BoxShadow(blurRadius: 4, color: Colors.black26)
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        isAudioAvailable ? Icons.volume_up : Icons.graphic_eq,
-                        size: 14,
-                        color: isPlaying ? Colors.tealAccent : Colors.grey,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        isAudioAvailable
-                            ? 'Audio zapis usklađen'
-                            : 'Sinhronizovana reprodukcija poteza i strelica',
-                        style: TextStyle(
-                          fontSize: 11,
+              // Player Control Deck
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  boxShadow: const [
+                    BoxShadow(blurRadius: 4, color: Colors.black26)
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          isAudioAvailable ? Icons.volume_up : Icons.graphic_eq,
+                          size: 14,
                           color: isPlaying ? Colors.tealAccent : Colors.grey,
-                          fontWeight:
-                              isPlaying ? FontWeight.bold : FontWeight.normal,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Scrubber Timeline
-                  Row(
-                    children: [
-                      Text(_formatDuration(currentMs),
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.bold)),
-                      Expanded(
-                        child: Slider(
-                          value: currentMs.toDouble().clamp(
-                              0.0,
-                              maxDurationMs > 0
-                                  ? maxDurationMs.toDouble()
-                                  : 1.0),
-                          min: 0.0,
-                          max: maxDurationMs > 0
-                              ? maxDurationMs.toDouble()
-                              : 1.0,
-                          onChanged: (val) => _seekTo(val.toInt()),
+                        const SizedBox(width: 6),
+                        Text(
+                          isAudioAvailable
+                              ? 'Audio zapis usklađen'
+                              : 'Sinhronizovana reprodukcija poteza i strelica',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isPlaying ? Colors.tealAccent : Colors.grey,
+                            fontWeight:
+                                isPlaying ? FontWeight.bold : FontWeight.normal,
+                          ),
                         ),
-                      ),
-                      Text(_formatDuration(maxDurationMs),
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.grey)),
-                    ],
-                  ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
 
-                  // Playback Buttons & Speed Selector
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // Reset to start
-                      IconButton(
-                        icon: const Icon(Icons.skip_previous),
-                        onPressed: () => _seekTo(0),
-                      ),
+                    // Scrubber Timeline
+                    Row(
+                      children: [
+                        Text(_formatDuration(currentMs),
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.bold)),
+                        Expanded(
+                          child: Slider(
+                            value: currentMs.toDouble().clamp(
+                                0.0,
+                                maxDurationMs > 0
+                                    ? maxDurationMs.toDouble()
+                                    : 1.0),
+                            min: 0.0,
+                            max: maxDurationMs > 0
+                                ? maxDurationMs.toDouble()
+                                : 1.0,
+                            onChanged: (val) => _seekTo(val.toInt()),
+                          ),
+                        ),
+                        Text(_formatDuration(maxDurationMs),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
 
-                      // Play/Pause Button
-                      FloatingActionButton(
-                        mini: true,
-                        backgroundColor: Colors.teal,
-                        onPressed: _togglePlayPause,
-                        child: Icon(isPlaying ? Icons.pause : Icons.play_arrow,
-                            color: Colors.white),
-                      ),
+                    // Playback Buttons & Speed Selector
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Reset to start
+                        IconButton(
+                          icon: const Icon(Icons.skip_previous),
+                          onPressed: () => _seekTo(0),
+                        ),
 
-                      // Speed Chips
-                      DropdownButton<double>(
-                        value: playbackSpeed,
-                        underline: const SizedBox(),
-                        items: const [
-                          DropdownMenuItem(
-                              value: 1.0,
-                              child:
-                                  Text('1.0x', style: TextStyle(fontSize: 12))),
-                          DropdownMenuItem(
-                              value: 1.25,
-                              child: Text('1.25x',
-                                  style: TextStyle(fontSize: 12))),
-                          DropdownMenuItem(
-                              value: 1.5,
-                              child:
-                                  Text('1.5x', style: TextStyle(fontSize: 12))),
-                          DropdownMenuItem(
-                              value: 2.0,
-                              child:
-                                  Text('2.0x', style: TextStyle(fontSize: 12))),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() => playbackSpeed = val);
-                            if (isPlaying) {
-                              _play(); // restart timer with new speed
+                        // Play/Pause Button
+                        FloatingActionButton(
+                          mini: true,
+                          backgroundColor: Colors.teal,
+                          onPressed: _togglePlayPause,
+                          child: Icon(
+                              isPlaying ? Icons.pause : Icons.play_arrow,
+                              color: Colors.white),
+                        ),
+
+                        // Speed Chips
+                        DropdownButton<double>(
+                          value: playbackSpeed,
+                          underline: const SizedBox(),
+                          items: const [
+                            DropdownMenuItem(
+                                value: 1.0,
+                                child: Text('1.0x',
+                                    style: TextStyle(fontSize: 12))),
+                            DropdownMenuItem(
+                                value: 1.25,
+                                child: Text('1.25x',
+                                    style: TextStyle(fontSize: 12))),
+                            DropdownMenuItem(
+                                value: 1.5,
+                                child: Text('1.5x',
+                                    style: TextStyle(fontSize: 12))),
+                            DropdownMenuItem(
+                                value: 2.0,
+                                child: Text('2.0x',
+                                    style: TextStyle(fontSize: 12))),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => playbackSpeed = val);
+                              if (isPlaying) {
+                                _play(); // restart timer with new speed
+                              }
                             }
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

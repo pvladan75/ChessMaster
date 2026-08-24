@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/core/services/board_on_screen.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart'
     show SelectedSquarePainter;
@@ -81,10 +82,19 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
   // piece just snaps into place instead of visibly sliding there.
   final List<PendingMoveAnimation> _pendingAnimations = [];
 
+  /// Kept rather than rebuilt: the same closure has to be handed back on the
+  /// way out, or the board is never forgotten and the keyboard keeps copying
+  /// from a screen that is gone.
+  late final VoidCallback _copyPositionForKeyboard;
+
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_clearSelection);
+    // Ctrl+C is bound above every screen and asks whoever is on top; the right
+    // click asks this same method directly. One behaviour, two ways in.
+    _copyPositionForKeyboard = () => _copyFen(context);
+    BoardOnScreen.register(_copyPositionForKeyboard);
   }
 
   @override
@@ -103,6 +113,7 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
 
   @override
   void dispose() {
+    BoardOnScreen.forget(_copyPositionForKeyboard);
     widget.controller.removeListener(_clearSelection);
     super.dispose();
   }
@@ -187,104 +198,104 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
     return GestureDetector(
       onSecondaryTap: () => _copyFen(context),
       child: Stack(
-      children: [
-        IgnorePointer(
-          ignoring: !widget.isAllowedToMove || widget.isDrawingMode,
-          child: ChessBoard(
-            controller: widget.controller,
-            boardColor: BoardColor.brown,
-            boardOrientation: widget.boardOrientation,
-            size: widget.boardSize,
-            onMove: () {
-              // Deliberately not animated: the user just dragged the piece to
-              // this square themselves, so sliding it along the same path again
-              // reads as the move happening twice.
-              final played =
-                  ChessBoardWithOverlay.lastMoveSquares(widget.controller.game);
-              if (played != null) {
-                widget.onMove(played.from, played.to);
-              }
-            },
-          ),
-        ),
-        // Tap-to-move interactive overlay (selects a piece, then a destination).
-        // Translucent, not opaque: it must take part in hit testing without
-        // reporting a hit, so the board underneath still receives the pointer
-        // and dragging keeps working while this is active.
-        IgnorePointer(
-          ignoring: !tapModeActive,
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTapUp: (details) {
-              final square = getSquareFromOffset(details.localPosition,
-                  widget.boardSize, widget.boardOrientation);
-              _handleSquareTapForMove(square);
-            },
-            child: CustomPaint(
-              size: Size(widget.boardSize, widget.boardSize),
-              painter: _selectedSquare != null
-                  ? SelectedSquarePainter(
-                      selectedSquare: _selectedSquare!,
-                      boardSize: widget.boardSize,
-                      orientation: widget.boardOrientation,
-                    )
-                  : null,
-            ),
-          ),
-        ),
-        // Interactive paint overlay for trainer drawing arrows
-        IgnorePointer(
-          ignoring: !widget.isDrawingMode,
-          child: GestureDetector(
-            onTapDown: (details) {
-              if (!widget.isDrawingMode) return;
-              final localPos = details.localPosition;
-              final square = getSquareFromOffset(
-                  localPos, widget.boardSize, widget.boardOrientation);
-              widget.onSquareTapForDrawing(square);
-            },
-            child: CustomPaint(
-              size: Size(widget.boardSize, widget.boardSize),
-              painter: ChessBoardPainter(
-                arrows: widget.arrows,
-                engineArrows: widget.engineArrows,
-                boardSize: widget.boardSize,
-                orientation: widget.boardOrientation,
-                highlightedSquare: widget.drawingStartSquare,
-              ),
-            ),
-          ),
-        ),
-        // Non-interactive overlay to draw arrows for both when not in drawing mode
-        if (!widget.isDrawingMode)
+        children: [
           IgnorePointer(
-            child: CustomPaint(
-              size: Size(widget.boardSize, widget.boardSize),
-              painter: ChessBoardPainter(
-                arrows: widget.arrows,
-                engineArrows: widget.engineArrows,
-                boardSize: widget.boardSize,
-                orientation: widget.boardOrientation,
+            ignoring: !widget.isAllowedToMove || widget.isDrawingMode,
+            child: ChessBoard(
+              controller: widget.controller,
+              boardColor: BoardColor.brown,
+              boardOrientation: widget.boardOrientation,
+              size: widget.boardSize,
+              onMove: () {
+                // Deliberately not animated: the user just dragged the piece to
+                // this square themselves, so sliding it along the same path again
+                // reads as the move happening twice.
+                final played = ChessBoardWithOverlay.lastMoveSquares(
+                    widget.controller.game);
+                if (played != null) {
+                  widget.onMove(played.from, played.to);
+                }
+              },
+            ),
+          ),
+          // Tap-to-move interactive overlay (selects a piece, then a destination).
+          // Translucent, not opaque: it must take part in hit testing without
+          // reporting a hit, so the board underneath still receives the pointer
+          // and dragging keeps working while this is active.
+          IgnorePointer(
+            ignoring: !tapModeActive,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTapUp: (details) {
+                final square = getSquareFromOffset(details.localPosition,
+                    widget.boardSize, widget.boardOrientation);
+                _handleSquareTapForMove(square);
+              },
+              child: CustomPaint(
+                size: Size(widget.boardSize, widget.boardSize),
+                painter: _selectedSquare != null
+                    ? SelectedSquarePainter(
+                        selectedSquare: _selectedSquare!,
+                        boardSize: widget.boardSize,
+                        orientation: widget.boardOrientation,
+                      )
+                    : null,
               ),
             ),
           ),
-        for (final pendingAnim in _pendingAnimations)
-          AnimatedMovePiece(
-            key: ValueKey(pendingAnim),
-            pending: pendingAnim,
-            boardSize: widget.boardSize,
-            orientation: widget.boardOrientation,
-            duration: Duration(
-                milliseconds:
-                    AppSettingsService.instance.moveAnimationDurationMs),
-            onCompleted: () {
-              if (mounted) {
-                setState(() => _pendingAnimations.remove(pendingAnim));
-              }
-            },
+          // Interactive paint overlay for trainer drawing arrows
+          IgnorePointer(
+            ignoring: !widget.isDrawingMode,
+            child: GestureDetector(
+              onTapDown: (details) {
+                if (!widget.isDrawingMode) return;
+                final localPos = details.localPosition;
+                final square = getSquareFromOffset(
+                    localPos, widget.boardSize, widget.boardOrientation);
+                widget.onSquareTapForDrawing(square);
+              },
+              child: CustomPaint(
+                size: Size(widget.boardSize, widget.boardSize),
+                painter: ChessBoardPainter(
+                  arrows: widget.arrows,
+                  engineArrows: widget.engineArrows,
+                  boardSize: widget.boardSize,
+                  orientation: widget.boardOrientation,
+                  highlightedSquare: widget.drawingStartSquare,
+                ),
+              ),
+            ),
           ),
-      ],
-    ),
+          // Non-interactive overlay to draw arrows for both when not in drawing mode
+          if (!widget.isDrawingMode)
+            IgnorePointer(
+              child: CustomPaint(
+                size: Size(widget.boardSize, widget.boardSize),
+                painter: ChessBoardPainter(
+                  arrows: widget.arrows,
+                  engineArrows: widget.engineArrows,
+                  boardSize: widget.boardSize,
+                  orientation: widget.boardOrientation,
+                ),
+              ),
+            ),
+          for (final pendingAnim in _pendingAnimations)
+            AnimatedMovePiece(
+              key: ValueKey(pendingAnim),
+              pending: pendingAnim,
+              boardSize: widget.boardSize,
+              orientation: widget.boardOrientation,
+              duration: Duration(
+                  milliseconds:
+                      AppSettingsService.instance.moveAnimationDurationMs),
+              onCompleted: () {
+                if (mounted) {
+                  setState(() => _pendingAnimations.remove(pendingAnim));
+                }
+              },
+            ),
+        ],
+      ),
     );
   }
 }

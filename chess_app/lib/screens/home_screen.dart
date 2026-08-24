@@ -1,5 +1,6 @@
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -10,6 +11,7 @@ import 'package:chess_app/models/pending_session_intent.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/desktop_shortcuts.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/server_status_service.dart';
 import 'package:chess_app/services/game_session_service.dart';
@@ -51,6 +53,38 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Index of the "Prijatelji" tab in the navigation bar.
   static const _friendsTabIndex = 3;
+
+  /// Ctrl+1…4 for the four tabs.
+  ///
+  /// Bound here rather than in [DesktopShortcuts] because this is the screen
+  /// that owns the tabs: with an exercise or a room open over the shell, the
+  /// keys belong to what is on top, and reaching down to switch a tab
+  /// underneath would move the ground while the reader is standing on it.
+  ///
+  /// Twice each, by what the key types and by where it sits — the digit row is
+  /// not the same logical key on every layout, which is the lesson Ctrl+, cost
+  /// a live session to learn.
+  Map<ShortcutActivator, VoidCallback> _tabShortcuts() {
+    const logical = [
+      LogicalKeyboardKey.digit1,
+      LogicalKeyboardKey.digit2,
+      LogicalKeyboardKey.digit3,
+      LogicalKeyboardKey.digit4,
+    ];
+    const physical = [
+      PhysicalKeyboardKey.digit1,
+      PhysicalKeyboardKey.digit2,
+      PhysicalKeyboardKey.digit3,
+      PhysicalKeyboardKey.digit4,
+    ];
+
+    return {
+      for (var i = 0; i < logical.length; i++) ...{
+        SingleActivator(logical[i], control: true): () => _selectTab(i),
+        CtrlPhysical(physical[i]): () => _selectTab(i),
+      },
+    };
+  }
 
   void _selectTab(int idx) {
     if (idx == _selectedIndex) return;
@@ -993,7 +1027,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final bool isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
-    return PopScope(
+    return CallbackShortcuts(
+      bindings: _tabShortcuts(),
+      // Holds the focus the route would otherwise keep for itself. A key press
+      // is offered to whatever has focus and then upwards, so a binding below
+      // the focused node is never asked at all — the chord did nothing until
+      // something inside the screen had been clicked. Only when nothing else
+      // wants it: the join-by-code field takes the focus when it is tapped, and
+      // digits typed into it stay in it.
+      child: Focus(
+      autofocus: true,
+      skipTraversal: true,
+      child: PopScope(
       canPop: _tabHistory.length <= 1,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop || _tabHistory.length <= 1) return;
@@ -1150,6 +1195,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       label: 'Ljudi'),
                 ],
               ),
+      ),
+    ),
       ),
     );
   }

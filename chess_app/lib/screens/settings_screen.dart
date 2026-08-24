@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/app_settings_service.dart';
@@ -31,6 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ('Taktički motivi', 'tactical_motifs'),
     ('Pozicioni faktori', 'positional_factors'),
     ('Opening Explorer (baza otvaranja)', 'opening_explorer'),
+    ('Sud o potezu (teorija / igrivo / greška)', 'opening_judge'),
     ('Tablebase (Syzygy)', 'syzygy'),
     ('Panel analize engine-a', 'engine_analysis'),
   ];
@@ -39,6 +42,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await showEngineSettingsDialog(context,
         stockfishService: _stockfishService);
     await _settings.refreshCustomEnginePath();
+  }
+
+  /// Opens the Lichess token form with the description filled in and no scope
+  /// asked for. A browser that refuses to open says so — a button that looks
+  /// like it worked and did nothing is the worst of the three outcomes.
+  Future<void> _openLichessTokenPage() async {
+    final uri = Uri.parse(OpeningExplorerService.createTokenUrl);
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nije moguće otvoriti lichess.org u pregledaču.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   Future<void> _saveLichessToken() async {
@@ -639,6 +658,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _speechCard(context),
 
               const SizedBox(height: 24),
+              Text('PREČICE NA TASTATURI',
+                  style: AppText.bodyBold
+                      .copyWith(color: context.colors.textMuted)),
+              const SizedBox(height: 8),
+
+              Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                child: ListTile(
+                  leading: Icon(Icons.keyboard, color: context.colors.accent),
+                  title: const Text('Spisak prečica'),
+                  // The row exists because the keys are invisible. Ctrl+, was
+                  // built, tested and unusable for exactly as long as there was
+                  // nowhere to read that it existed.
+                  subtitle:
+                      const Text('Šta koji taster radi. Isto otvara i F1.'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push(AppRoutes.shortcuts),
+                ),
+              ),
+
+              const SizedBox(height: 24),
               Text('BAZA OTVARANJA (OPENING EXPLORER)',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
@@ -681,14 +722,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 8),
                       Text(
                         _settings.openingDbSource == 'lichess'
-                            ? 'Lichess: popularnost poteza iz stvarno odigranih partija igrača. Zahteva besplatni API token ispod — bez njega se automatski koristi ChessDB.'
-                            : 'ChessDB: procena kvaliteta poteza iz deljene baze motorske analize (chessdb.cn) — ne zahteva token, ali ne pokazuje statistiku partija.',
+                            ? 'Lichess: popularnost poteza iz stvarno odigranih partija igrača. Ne traži nikakvo podešavanje — upit ide preko našeg servera, koji pamti odgovore.'
+                            : 'ChessDB: procena kvaliteta poteza iz deljene baze motorske analize (chessdb.cn) — ne pokazuje statistiku odigranih partija.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
                       Text(
-                        'Lichess sada zahteva lični API token za pristup bazi otvaranja (statistika poteza iz odigranih partija). Napravite besplatan token na lichess.org/account/oauth/token (nije potrebna nijedna dozvola/scope) i nalepite ga ovde.',
+                        'Lični Lichess token nije potreban. Unesite ga samo ako želite da vaši upiti idu direktno na Lichess, na vaš nalog, umesto preko zajedničkog. Dugme otvara stranicu sa već popunjenim opisom i bez ijedne tražene dozvole — ostaje samo „Create".',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
@@ -698,7 +739,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         obscureText: true,
                         style: AppText.bodyLarge,
                         decoration: InputDecoration(
-                          labelText: 'Lichess API token',
+                          labelText: 'Lichess API token (nije obavezan)',
                           hintText: 'lip_...',
                           isDense: true,
                           border: const OutlineInputBorder(),
@@ -709,13 +750,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: ElevatedButton.icon(
-                          onPressed: _saveLichessToken,
-                          icon: const Icon(Icons.save, size: 16),
-                          label: const Text('Sačuvaj token'),
-                        ),
+                      // Wrap, not Row: two buttons and a long label fit on a
+                      // desktop and do not on a 360 dp phone, where a release
+                      // build clips the overflow without a word of warning.
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _openLichessTokenPage,
+                            icon: const Icon(Icons.open_in_new, size: 16),
+                            label: const Text('Napravi token'),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: _saveLichessToken,
+                            icon: const Icon(Icons.save, size: 16),
+                            label: const Text('Sačuvaj token'),
+                          ),
+                        ],
                       ),
                     ],
                   ),

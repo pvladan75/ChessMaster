@@ -17,7 +17,9 @@ const _e4Json = '''
 ''';
 
 void main() {
-  testWidgets('OpeningExplorerPanelWidget shows opening name and moves, tap invokes callback', (tester) async {
+  testWidgets(
+      'OpeningExplorerPanelWidget shows opening name and moves, tap invokes callback',
+      (tester) async {
     final result = OpeningExplorerResult.fromJson(
       'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
       jsonDecode(_e4Json) as Map<String, dynamic>,
@@ -29,7 +31,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: OpeningExplorerPanelWidget(
-            hasToken: true,
+            useLichess: true,
             isLoading: false,
             result: result,
             onMoveSelected: (uci) => tappedUci = uci,
@@ -51,18 +53,21 @@ void main() {
     expect(tappedUci, 'e7e5');
   });
 
-  testWidgets('OpeningExplorerPanelWidget rating dropdown reports the selected bucket', (tester) async {
+  testWidgets(
+      'OpeningExplorerPanelWidget rating dropdown reports the selected bucket',
+      (tester) async {
     final result = OpeningExplorerResult.fromJson(
       'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
       jsonDecode(_e4Json) as Map<String, dynamic>,
     );
 
-    int? changedTo = -1; // sentinel distinct from any valid value including null
+    int? changedTo =
+        -1; // sentinel distinct from any valid value including null
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: OpeningExplorerPanelWidget(
-            hasToken: true,
+            useLichess: true,
             isLoading: false,
             result: result,
             minRating: null,
@@ -82,11 +87,13 @@ void main() {
     expect(changedTo, 2500);
   });
 
-  testWidgets('OpeningExplorerPanelWidget renders nothing without a token', (tester) async {
+  testWidgets('OpeningExplorerPanelWidget shows ChessDB instead of Lichess',
+      (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          body: OpeningExplorerPanelWidget(hasToken: false, isLoading: false, result: null),
+          body: OpeningExplorerPanelWidget(
+              useLichess: false, isLoading: false, result: null),
         ),
       ),
     );

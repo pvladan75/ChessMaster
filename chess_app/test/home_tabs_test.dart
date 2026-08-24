@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
+import 'package:chess_app/widgets/home/dashboard_tab.dart';
 import 'package:chess_app/features/training/widgets/resume_strip.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/routing/app_router.dart';
@@ -184,5 +186,26 @@ void main() {
     // much room to spare, which is half of why settings left.
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Ctrl+2 switches to the second tab', (tester) async {
+    // The shortcut lives on this screen rather than above the app: with an
+    // exercise open over the shell the keys belong to what is on top, and
+    // switching the tab underneath would move the ground someone is standing
+    // on.
+    tester.view.physicalSize = const Size(1400, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await openHome(tester);
+    expect(find.byType(TrainingHubScreen), findsOneWidget);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.byType(HomeDashboardTab), findsOneWidget,
+        reason: 'Ctrl+2 mora da otvori drugi tab');
   });
 }

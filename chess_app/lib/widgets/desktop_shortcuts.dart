@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:chess_app/core/services/board_on_screen.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/app_logger.dart';
+import 'package:chess_app/widgets/action_key_shortcuts.dart';
 
 /// The two keys a desktop expects from any window, wrapped around the whole
 /// app.
@@ -27,8 +29,8 @@ import 'package:chess_app/services/app_logger.dart';
 /// The physical key is the same hole in the plastic on every layout, so this
 /// matches by that. The logical binding is kept beside it, since either may be
 /// the one that arrives.
-class _CtrlPhysical extends ShortcutActivator {
-  const _CtrlPhysical(this.key);
+class CtrlPhysical extends ShortcutActivator {
+  const CtrlPhysical(this.key);
 
   final PhysicalKeyboardKey key;
 
@@ -47,6 +49,35 @@ class _CtrlPhysical extends ShortcutActivator {
   String debugDescribeKeys() => 'Ctrl + ${key.debugName}';
 }
 
+/// Ctrl+C over a board: copy the position, the pair to the right click.
+///
+/// An [Action] rather than one more line in [CallbackShortcuts], because the
+/// difference is what happens when it should *not* run. A callback binding
+/// swallows the key whether or not the callback did anything, and this binding
+/// sits closer to whatever has focus than Flutter's own text-editing shortcuts
+/// do — so as a callback it took Ctrl+C away from every comment box in the app,
+/// copying a chess position instead of the selected words, or nothing at all.
+///
+/// A disabled action declines the key instead, and it carries on up to the text
+/// field's own copy. So: not while the reader is typing, and not where there is
+/// no board to copy from.
+class _CopyBoardIntent extends Intent {
+  const _CopyBoardIntent();
+}
+
+class _CopyBoardAction extends Action<_CopyBoardIntent> {
+  @override
+  bool isEnabled(_CopyBoardIntent intent) {
+    if (!BoardOnScreen.isPresent) return false;
+    // The same question the letter keys ask, asked in one place: a second copy
+    // of this condition is a second chance to get it wrong.
+    return !readerIsTyping();
+  }
+
+  @override
+  void invoke(_CopyBoardIntent intent) => BoardOnScreen.copyPosition();
+}
+
 class DesktopShortcuts extends StatelessWidget {
   const DesktopShortcuts({
     super.key,
@@ -61,47 +92,66 @@ class DesktopShortcuts extends StatelessWidget {
 
   final Widget child;
 
-  void _openSettings() {
-    // Not twice. Holding the chord, or having both bindings match the same
-    // press, would otherwise stack a settings screen on top of a settings
-    // screen.
-    if (router.state.uri.path == AppRoutes.preferences) return;
-    router.push(AppRoutes.preferences);
+  /// Opens [path] over whatever is underneath, and never twice.
+  ///
+  /// Holding the key down, or two bindings matching the same press, would
+  /// otherwise stack the screen on top of itself — and then one Escape leaves
+  /// the reader looking at a copy of what they just closed.
+  void _openOver(String path) {
+    if (router.state.uri.path == path) return;
+    router.push(path);
   }
 
   @override
   Widget build(BuildContext context) {
-    return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.escape): () {
-          if (router.canPop()) router.pop();
-        },
-        // Ctrl+, is what every desktop application uses for preferences, and
-        // this app already has a path for them that opens over the work rather
-        // than replacing it.
-        const SingleActivator(LogicalKeyboardKey.comma, control: true): () =>
-            _openSettings(),
-        // The same chord by position, for layouts where the logical key that
-        // arrives is not a comma.
-        const _CtrlPhysical(PhysicalKeyboardKey.comma): () => _openSettings(),
+    return Shortcuts(
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.keyC, control: true):
+            _CopyBoardIntent(),
       },
-      child: Focus(
-        autofocus: true,
-        // Says what actually arrived when a chord does not fire. A shortcut
-        // bound to a key the layout never produces is the quietest failure
-        // there is - nothing happens and nothing is written down - and this is
-        // the line that would have found it in one press instead of one guess.
-        onKeyEvent: (node, event) {
-          if (event is KeyDownEvent &&
-              HardwareKeyboard.instance.isControlPressed) {
-            AppLogger.log(
-                '[Prečice] Ctrl + logički ${event.logicalKey.keyLabel}'
-                ' / fizički ${event.physicalKey.debugName}');
-          }
-          // Never swallowed: this only watches.
-          return KeyEventResult.ignored;
-        },
-        child: child,
+      child: Actions(
+        actions: {_CopyBoardIntent: _CopyBoardAction()},
+        child: CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.escape): () {
+              if (router.canPop()) router.pop();
+            },
+            // Ctrl+, is what every desktop application uses for preferences, and
+            // this app already has a path for them that opens over the work rather
+            // than replacing it.
+            const SingleActivator(LogicalKeyboardKey.comma, control: true):
+                () => _openOver(AppRoutes.preferences),
+            // The same chord by position, for layouts where the logical key that
+            // arrives is not a comma.
+            const CtrlPhysical(PhysicalKeyboardKey.comma): () =>
+                _openOver(AppRoutes.preferences),
+            // F1 and not `?`: the question mark is a character someone can be in
+            // the middle of typing into a comment or a room code, and a binding
+            // above the whole app would take it out of the field. F1 is a key
+            // nothing types, on every layout, which is the same reason the settings
+            // chord had to be bound by position.
+            const SingleActivator(LogicalKeyboardKey.f1): () =>
+                _openOver(AppRoutes.shortcuts),
+          },
+          child: Focus(
+            autofocus: true,
+            // Says what actually arrived when a chord does not fire. A shortcut
+            // bound to a key the layout never produces is the quietest failure
+            // there is - nothing happens and nothing is written down - and this is
+            // the line that would have found it in one press instead of one guess.
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent &&
+                  HardwareKeyboard.instance.isControlPressed) {
+                AppLogger.log(
+                    '[Prečice] Ctrl + logički ${event.logicalKey.keyLabel}'
+                    ' / fizički ${event.physicalKey.debugName}');
+              }
+              // Never swallowed: this only watches.
+              return KeyEventResult.ignored;
+            },
+            child: child,
+          ),
+        ),
       ),
     );
   }

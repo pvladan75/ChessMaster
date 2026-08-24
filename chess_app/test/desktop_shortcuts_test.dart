@@ -9,6 +9,7 @@ import 'package:chess_app/features/position_scanner/screens/scan_review_screen.d
 import 'package:chess_app/routing/app_router.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/screens/settings_screen.dart';
+import 'package:chess_app/screens/shortcuts_screen.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/widgets/desktop_shortcuts.dart';
 
@@ -136,5 +137,51 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.byType(SettingsScreen), findsNothing);
     expect(find.byType(ScanReviewScreen), findsOneWidget);
+  });
+
+  testWidgets('F1 opens the shortcut list, and only once', (tester) async {
+    // The list is what makes every other shortcut findable, so the key that
+    // opens it is the one that must not be quietly broken.
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await open(tester, AppRoutes.scan);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.f1);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(ShortcutsScreen), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.f1);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(ShortcutsScreen), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(ShortcutsScreen), findsNothing);
+    expect(find.byType(ScanReviewScreen), findsOneWidget);
+  });
+
+  testWidgets('Settings has a row that opens the same list', (tester) async {
+    // On Android there is no F1 and no keyboard at all, so the row is the only
+    // way in — and the rule is that a shortcut is never the single path to
+    // anything.
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await open(tester, AppRoutes.preferences);
+    expect(find.byType(SettingsScreen), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('Spisak prečica'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Spisak prečica'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.byType(ShortcutsScreen), findsOneWidget);
   });
 }

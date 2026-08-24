@@ -7,12 +7,14 @@ import 'package:chess_app/models/pending_session_intent.dart';
 import 'package:chess_app/screens/home_screen.dart';
 import 'package:chess_app/screens/login_screen.dart';
 import 'package:chess_app/screens/settings_screen.dart';
+import 'package:chess_app/screens/shortcuts_screen.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
 import 'package:chess_app/screens/replay_player_screen.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/features/endgame_trainer/models/endgame_puzzle.dart';
 import 'package:chess_app/features/endgame_trainer/screens/blunder_walk_screen.dart';
 import 'package:chess_app/features/endgame_trainer/screens/endgame_picker_screen.dart';
+import 'package:chess_app/features/repertoire/screens/repertoire_list_screen.dart';
 import 'package:chess_app/features/endgame_trainer/screens/endgame_trainer_screen.dart';
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart';
@@ -231,6 +233,10 @@ final List<RouteBase> appRouteTable = [
     },
   ),
   GoRoute(
+    path: AppRoutes.repertoire,
+    builder: (context, state) => const RepertoireListScreen(),
+  ),
+  GoRoute(
     path: AppRoutes.endgamePicker,
     builder: (context, state) {
       final mode = state.uri.queryParameters['mode'] == 'draw'
@@ -289,6 +295,10 @@ final List<RouteBase> appRouteTable = [
     path: AppRoutes.preferences,
     builder: (context, state) =>
         SettingsScreen(session: SessionService.instance.current),
+  ),
+  GoRoute(
+    path: AppRoutes.shortcuts,
+    builder: (context, state) => const ShortcutsScreen(),
   ),
 ];
 

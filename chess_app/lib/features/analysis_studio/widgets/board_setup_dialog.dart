@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:chess/chess.dart' as chess;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
-import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
+import 'package:chess_app/features/analysis_studio/widgets/opening_picker.dart';
 import 'package:chess_app/move_tree.dart' show PgnGameInfo, MoveTree;
 import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/game_selector_dialog.dart';
@@ -48,10 +48,6 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
   bool _blackCastleQ = true;
   String _selectedPalettePiece = 'P'; // Default White Pawn, 'CLEAR' for eraser
 
-  // Tab 4: Opening Search
-  final TextEditingController _openingSearchController = TextEditingController();
-  List<OpeningBookEntry> _openingSearchResults = [];
-  bool _openingBookLoading = true;
 
   // Tab 5: Import from Chess.com / Lichess
   ChessPlatform _importPlatform = ChessPlatform.lichess;
@@ -65,9 +61,8 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
     _fenTextController = TextEditingController(text: widget.initialFen);
     _validateFen(widget.initialFen);
     _initBuilderBoardFromFen(widget.initialFen);
-    OpeningBookService.instance.ensureLoaded().then((_) {
-      if (mounted) setState(() => _openingBookLoading = false);
-    });
+    // The ECO dataset is loaded by the picker that uses it, so it is not this
+    // dialog's business any more.
   }
 
   @override
@@ -75,7 +70,6 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
     _tabController.dispose();
     _fenTextController.dispose();
     _pgnTextController.dispose();
-    _openingSearchController.dispose();
     _importUsernameController.dispose();
     super.dispose();
   }
@@ -183,12 +177,6 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
     );
-  }
-
-  void _onOpeningSearchChanged(String query) {
-    setState(() {
-      _openingSearchResults = OpeningBookService.instance.search(query);
-    });
   }
 
   void _validateFen(String fen) {
@@ -644,66 +632,15 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog> wit
   }
 
   Widget _buildOpeningSearchTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Pretražite otvaranja i varijante po imenu (npr. "Najdorf"):',
-          style: TextStyle(fontSize: 13, color: Colors.grey),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _openingSearchController,
-          enabled: !_openingBookLoading,
-          style: const TextStyle(color: Colors.white, fontSize: 13),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.black45,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            hintText: _openingBookLoading ? 'Učitavanje baze otvaranja...' : 'Naziv otvaranja ili varijante...',
-            hintStyle: const TextStyle(color: Colors.grey),
-            prefixIcon: const Icon(Icons.search, color: Colors.grey),
-          ),
-          onChanged: _onOpeningSearchChanged,
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: _openingSearchResults.isEmpty
-              ? Center(
-                  child: Text(
-                    _openingBookLoading
-                        ? ''
-                        : (_openingSearchController.text.trim().isEmpty
-                            ? 'Ukucajte naziv otvaranja da vidite rezultate.'
-                            : 'Nema rezultata.'),
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: _openingSearchResults.length,
-                  itemBuilder: (context, index) {
-                    final entry = _openingSearchResults[index];
-                    return ListTile(
-                      dense: true,
-                      title: Text(
-                        entry.name,
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                      ),
-                      subtitle: Text(
-                        '${entry.eco} · ${entry.pgn}',
-                        style: const TextStyle(color: Colors.grey, fontSize: 11),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      onTap: () {
-                        widget.onPgnLoaded?.call(entry.pgn);
-                        Navigator.pop(context);
-                      },
-                    );
-                  },
-                ),
-        ),
-      ],
+    // The search itself now lives in [OpeningPicker], because the repertoire
+    // screen needs exactly this and none of the four tabs around it. One
+    // implementation, two doors.
+    return OpeningPicker(
+      hint: 'Pretražite otvaranja i varijante po imenu (npr. "Najdorf"):',
+      onPicked: (entry) {
+        widget.onPgnLoaded?.call(entry.pgn);
+        Navigator.pop(context);
+      },
     );
   }
 

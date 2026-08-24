@@ -7,6 +7,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
@@ -205,55 +206,63 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
           ),
         ),
       ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final heightBased =
-                (constraints.maxHeight - 250).clamp(200.0, 520.0);
-            final widthBased = (constraints.maxWidth - 24).clamp(180.0, 520.0);
-            final boardSize =
-                heightBased < widthBased ? heightBased : widthBased;
+      // Arrow keys drive the same cursor the strip's buttons do. A lesson is
+      // walked far more than it is clicked through.
+      body: MoveKeyboardShortcuts(
+        cursor: _moveCursor(),
+        // The cursor's own onSeek already redraws the screen.
+        onChanged: () {},
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final heightBased =
+                  (constraints.maxHeight - 250).clamp(200.0, 520.0);
+              final widthBased =
+                  (constraints.maxWidth - 24).clamp(180.0, 520.0);
+              final boardSize =
+                  heightBased < widthBased ? heightBased : widthBased;
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  _buildHeader(done),
-                  const SizedBox(height: 10),
-                  Center(
-                    child: SizedBox(
-                      width: boardSize,
-                      height: boardSize,
-                      child: ChessBoardWithOverlay(
-                        controller: _board,
-                        boardOrientation: _orientation,
-                        boardSize: boardSize,
-                        // Playable, but only for trying things: the move is
-                        // not sent anywhere and nothing about the lesson
-                        // changes. A step that asks for a mate and refuses to
-                        // let the child play one is a screen promising what it
-                        // will not do.
-                        isAllowedToMove: true,
-                        isDrawingMode: false,
-                        drawingStartSquare: null,
-                        arrows: const [],
-                        engineArrows: const [],
-                        onMove: (_, __) {
-                          if (!_explored) setState(() => _explored = true);
-                        },
-                        onSquareTapForDrawing: (_) {},
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    _buildHeader(done),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: SizedBox(
+                        width: boardSize,
+                        height: boardSize,
+                        child: ChessBoardWithOverlay(
+                          controller: _board,
+                          boardOrientation: _orientation,
+                          boardSize: boardSize,
+                          // Playable, but only for trying things: the move is
+                          // not sent anywhere and nothing about the lesson
+                          // changes. A step that asks for a mate and refuses to
+                          // let the child play one is a screen promising what it
+                          // will not do.
+                          isAllowedToMove: true,
+                          isDrawingMode: false,
+                          drawingStartSquare: null,
+                          arrows: const [],
+                          engineArrows: const [],
+                          onMove: (_, __) {
+                            if (!_explored) setState(() => _explored = true);
+                          },
+                          onSquareTapForDrawing: (_) {},
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  if (_explored) _buildRestore(),
-                  if (_moves.isNotEmpty) _buildMoveControls(),
-                  const SizedBox(height: 10),
-                  _buildStepControls(),
-                ],
-              ),
-            );
-          },
+                    const SizedBox(height: 10),
+                    if (_explored) _buildRestore(),
+                    if (_moves.isNotEmpty) _buildMoveControls(),
+                    const SizedBox(height: 10),
+                    _buildStepControls(),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -356,14 +365,19 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
     );
   }
 
-  Widget _buildMoveControls() {
-    return MoveNavigationControls(
-      cursor: LinearMoveCursor(
+  /// The one cursor this screen is walked by. The strip's buttons and the arrow
+  /// keys read it from here rather than each building their own, so there is no
+  /// second copy to fall out of step.
+  MoveCursor _moveCursor() => LinearMoveCursor(
         fens: _fens,
         movesSan: _moves,
         index: _moveIndex,
         onSeek: _applyMovesUpTo,
-      ),
+      );
+
+  Widget _buildMoveControls() {
+    return MoveNavigationControls(
+      cursor: _moveCursor(),
       centerLabel: 'Potez $_moveIndex od ${_moves.length}',
       onFlipBoard: () => setState(() {
         _orientation = _orientation == PlayerColor.white

@@ -45,6 +45,11 @@ abstract final class AppRoutes {
   /// screens would be three places to fix the same bug.
   static const String trainingDrill = '/training/drill';
 
+  /// The student's own opening repertoire: the list of what they have started,
+  /// and the screen that asks them what they would play. Its own route because
+  /// it is a place, and because the training hub and Settings both name it.
+  static const String repertoire = '/repertoire';
+
   /// Homework, from the student's side: what has been set, and what is done.
   static const String assignments = '/assignments';
 
@@ -83,6 +88,11 @@ abstract final class AppRoutes {
   /// room mounted underneath, so closing it returns the user exactly where they
   /// were rather than tearing their work down.
   static const String preferences = '/preferences';
+
+  /// The keyboard shortcuts, written down. A place rather than a dialog because
+  /// two things that must not know about each other open it — the F1 key and a
+  /// row in Settings — and a path is what both can name.
+  static const String shortcuts = '/shortcuts';
 
   // ── Builders, so callers never hand-assemble a path ──
 

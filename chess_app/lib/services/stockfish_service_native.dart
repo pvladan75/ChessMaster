@@ -1,5 +1,6 @@
 import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:chess_app/services/app_logger.dart';
+import 'package:chess_app/services/cloud_eval_format.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -395,25 +396,18 @@ class StockfishService {
           if (pvsRaw != null && pvsRaw.isNotEmpty) {
             final depthVal =
                 ((cloudData['depth'] as int?) ?? effectiveDepth).clamp(5, 50);
-            final bool isBlackToMove = fen.contains(' b ');
             // Lichess returns up to 5 PVs when the position is in its DB;
             // surface as many as the user asked for instead of only the top one.
             final pvsToUse = pvsRaw.take(_currentMultiPV).toList();
 
-            String evalFor(dynamic pv) {
-              if (pv['cp'] != null) {
-                double score = (pv['cp'] as num) / 100.0;
-                if (isBlackToMove) score = -score;
-                return score > 0
-                    ? '+${score.toStringAsFixed(2)}'
-                    : score.toStringAsFixed(2);
-              } else if (pv['mate'] != null) {
-                int mate = pv['mate'] as int;
-                if (isBlackToMove) mate = -mate;
-                return mate > 0 ? 'M$mate' : '-M${mate.abs()}';
-              }
-              return '0.00';
-            }
+            // No flip here, unlike the native engine below: the cloud counts
+            // from White's side already. See [cloudEvalLabel] — this used to
+            // negate every Black-to-move evaluation, which showed them all with
+            // the wrong sign, and only for one colour.
+            String evalFor(dynamic pv) => cloudEvalLabel(
+                  cp: pv['cp'] as num?,
+                  mate: pv['mate'] as int?,
+                );
 
             final topMoves = pvsToUse
                 .map((pv) => (pv['moves'] as String? ?? '').trim())

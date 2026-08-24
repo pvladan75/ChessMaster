@@ -7,6 +7,7 @@ import 'package:chess_app/widgets/ai_studio/solution_tree_models.dart';
 import 'package:chess_app/widgets/ai_studio/solution_graph_widget.dart';
 import 'package:chess_app/widgets/ai_studio/pgn_solution_tree_widget.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
+import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -2051,9 +2052,20 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   ),
                 ),
               ),
-        body: SafeArea(child: _buildPuzzlesTab()),
+        // Arrow keys drive the same cursor the strip's buttons do. With no line
+        // on the board there is nothing to walk, and the strip is hidden for
+        // that same reason.
+        body: SafeArea(child: _withMoveKeys(_buildPuzzlesTab())),
       ),
     );
+  }
+
+  /// Wraps [child] in the arrow keys when there is a line to walk with them.
+  Widget _withMoveKeys(Widget child) {
+    final cursor = _moveCursor();
+    if (cursor == null) return child;
+    // _navigateToNode does its own setState.
+    return MoveKeyboardShortcuts(cursor: cursor, onChanged: () {}, child: child);
   }
 
   String _getCategoryTitle() {
@@ -2096,6 +2108,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       onSelectEndgameDraw: () =>
           context.push('${AppRoutes.endgamePicker}?mode=draw'),
       onSelectBlunderGames: () => context.push(AppRoutes.blunderGames),
+      onSelectRepertoire: () => context.push(AppRoutes.repertoire),
     );
   }
 
@@ -2407,11 +2420,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           const SizedBox(height: 8),
                           if (_puzzleMoveTree != null)
                             MoveNavigationControls(
-                              cursor: MoveTreeCursor(
-                                moveTree: _puzzleMoveTree!,
-                                currentNode: _puzzleMoveTree!.current,
-                                onSelect: _navigateToNode,
-                              ),
+                              cursor: _moveCursor()!,
                               showMoveChips: true,
                             ),
                         ],
@@ -2508,11 +2517,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     const SizedBox(height: 12),
                     if (_puzzleMoveTree != null)
                       MoveNavigationControls(
-                        cursor: MoveTreeCursor(
-                          moveTree: _puzzleMoveTree!,
-                          currentNode: _puzzleMoveTree!.current,
-                          onSelect: _navigateToNode,
-                        ),
+                        cursor: _moveCursor()!,
                         showMoveChips: true,
                       ),
                   ],
@@ -2622,6 +2627,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     ),
   );
 }
+
+  /// The one cursor this screen is walked by, or null while there is no line to
+  /// walk. The strip appears in two layouts here and the arrow keys read the
+  /// same thing both times, rather than three copies drifting apart.
+  MoveCursor? _moveCursor() {
+    final tree = _puzzleMoveTree;
+    if (tree == null) return null;
+    return MoveTreeCursor(moveTree: tree, currentNode: tree.current, onSelect: _navigateToNode);
+  }
 
   void _navigateToNode(MoveNode node) {
     if (_puzzleGame == null || _puzzleMoveTree == null) return;
