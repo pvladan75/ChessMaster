@@ -2780,9 +2780,280 @@ ga samo korisnik. Radi na Androidu i na Windows-u (hrvatski glas `Matej`).
 **Trener završnica** — nalaz tablica na zahtev, zaključivanje remija po dva
 uslova ili odigravanjem osam poteza, igranje poteza iz nalaza kao istraživanje.
 
+**Baza otvaranja bez tokena** — upit ide na `GET /opening-explorer` našeg
+backenda, koji drži jedan Lichess token i pamti odgovore. Korisniku token
+više nije potreban; lični, ako ga neko unese, i dalje pretekne naš i ide
+pravo na Lichess. ChessDB ostaje kao izbor i kao mreža kad Lichess ne
+odgovori — panel tada pređe na njega, a dnevnik kaže zbog čega.
+
+**Sud o potezu** — `GET /opening-judge` odgovara šta je jedan potez u
+otvaranju: *glavna teorija*, *praktična alternativa*, *sumnjiv potez* — ili
+*nije presuđeno*. Panel u Analizi to pokazuje na zahtev. Ovo je prvi i
+najmanji deo trenažera repertoara, i vredi sam za sebe. Odluke iza njega su
+u odeljku „Sudija: šta je odlučeno i zašto".
+
 **Navigacija** — četiri koraka, sva četiri gotova i puširana:
 mreža testova → raskrsnica izdvojena iz `AiStudioScreen`-a → šest ruta za granu
 zadataka → četiri taba, prvi je Trening.
+
+### Sudija: šta je odlučeno i zašto
+
+Urađeno i **provereno uživo** 24.8.2026 (stavka 27 u
+[TODO-provera.md](TODO-provera.md)) — uključujući onu proveru koja jedina ne bi
+ličila na grešku: loš potez odigran crnim piše da gubi. Sedam odluka koje treba
+znati pre nego što se na ovome dalje zida.
+
+**Sud se računa na serveru, nikad u aplikaciji.** Motor na telefonu odgovara sa
+one dubine do koje je stigao pre nego što je dete kliknulo dalje, pa bi isti
+potez bio „igriv" danas i „greška" sutra na sporijem uređaju. To je oblik kvara
+koji ovaj projekat stalno plaća: rezultat koji izgleda izračunato, a zapravo je
+pogodak. Lichess-ova oblačna ocena je jedan fiksan broj po poziciji, isti za
+sve, keširan i gore i kod nas.
+
+**Troši se korisnikov token, ne naš.** Suđenje jednog poteza košta do četiri
+upita gore, a token servera je jedno grlo za svu decu — prvi ko prošeta dužu
+varijantu ostavio bi ostale bez baze otvaranja. Zato ruta traži lični token u
+zaglavlju `X-Lichess-Token`, ne pamti ga i ne piše ga u dnevnik, a ko ga nema
+dobija rečenicu i put do Podešavanja umesto tihe usluge sa zajedničke kvote.
+Ograda stoji na dva mesta, na ruti i u aplikaciji, da se do rute uopšte ne
+dođe bez tokena.
+
+**Ocena se meri kao *gubitak*, ne kao apsolutna vrednost.** Ovo je jedina
+izmena u odnosu na prvobitnu skicu (`repertoire_trainer_spec.md`, prag
+-0.40). Gambit koji je i pre poteza stajao na -0.3 nije greška; pitanje je da
+li je potez nešto *dao*, a to je razlika. Praktična alternativa mora da prođe
+oba uslova: `MAX_LOSS_CP = 40` i `MIN_EVAL_CP = -100` — potez koji ne gubi
+ništa zato što nema šta da izgubi nije igriv ni u kom korisnom smislu.
+
+**Knjige pretiču motor.** Potez koji majstori igraju (`MIN_MASTER_GAMES = 10`)
+je teorija i kad ga oblak ima desetinku lošijim od prvog izbora. Uz to štedi
+tri upita: kad je odgovor iz knjige, motor se i ne pita.
+
+**„Nije presuđeno" je četvrti ishod, a ne blaža greška.** Kad oblak nikad nije
+ocenio poziciju, ruta to kaže i panel to kaže drugom bojom. Nepresuđen potez
+prikazan kao greška je tačno onaj oblik tihog kvara zbog kog je pisano sve
+gore.
+
+**Crvena presuda nosi i lek i kaznu.** Uz „gubi 4.20 pešaka" idu i „bolje je
+bilo Nf3" i „kažnjava se sa Qh4 Nf3 Qxe4+". Obe linije stižu unutar ocena koje
+su ionako plaćene, pa ne koštaju nijedan dodatni upit. Ista pouka koju je
+trener završnica platio: broj bez poteza ne uči ništa.
+
+**Limiti se poštuju na tri načina, i nijedan nije nagađanje.** Lichess daje
+anonimnom pozivaocu oko 1 upit u sekundi, a onome sa tokenom 15–20; Explorer
+rute su računske, pa traže 100–200 ms razmaka između uzastopnih upita; a
+prekoračenje (429) blokira **adresu** na minut, i duže — do sat vremena — ako
+se kucanje nastavi. Zato: token uvek ide u `Authorization`; sve što izlazi iz
+sudije prolazi kroz jedan red sa razmakom od `MIN_REQUEST_GAP_MS = 150` ms, pa
+četiri upita jednog suđenja nisu nalet; i posle 429 se `RATE_LIMIT_COOLDOWN_MS
+= 60 s` ne šalje **ništa**, nego se čeka ovde. To poslednje je važnije nego što
+izgleda: ovaj server ima jednu adresu za svu decu, pa je ponovno pitanje u
+blokadi ono što jedan izgubljen minut pretvara u izgubljen sat.
+
+Isto važi i za bazu otvaranja, od 24.8.2026: pravilo je izdvojeno u
+`lichessPacing.js` i koriste ga oba servisa, jer je drugi primerak jednog
+limita druga prilika da bude pogrešan — a pogrešan je nevidljiv, pošto prebrzo
+radi sve dok jednog dana ne prestane. Tamo je i važnije nego kod sudije: token
+koji se troši u bazi je serverov, pa bi blokada koju zaradi jedno dete zatvorila
+bazu otvaranja svima.
+
+**Lichess-ova oblačna ocena je iz ugla belog.** `mate: -8` sa crnim na potezu
+znači da se *beli* matira. Provereno pozivom na živi API, a ne pročitano, jer
+je znak jedina stvar ovde koju čitanje ne hvata: sve presude bi bile pogrešne,
+dosledno, i to samo za jednu boju. Test to drži (`opening_judge_service.test.js`,
+„a black move is judged from black's side").
+
+Isti nalaz je otkrio i **grešku u onlajn motoru, popravljenu 24.8.2026**:
+`stockfish_service_native.dart` je obrtao znak oblačne ocene za svaku poziciju
+sa crnim na potezu, pa su se sve takve ocene prikazivale naopako — i to samo za
+jednu boju, što je oblik kvara koji preživi sto pogleda. Za nativni UCI motor
+to obrtanje **ostaje**, jer UCI računa iz ugla onoga ko je na potezu; dve
+konvencije, dva izvora. Formatiranje oblačne ocene je zato izdvojeno u
+`lib/services/cloud_eval_format.dart`, gde konvencija piše jednom, sa vrednostima
+iz živog API-ja u testu (`cloud_eval_format_test.dart`).
+
+### Repertoar: režim izgradnje
+
+Urađeno 24.8.2026, **nije viđeno uživo** (stavka 29 u
+[TODO-provera.md](TODO-provera.md)). Korisnikova zamisao, sa četiri odluke koje
+je potvrdio i koje su ugrađene tako da se ne mogu zaobići.
+
+**Čvor je pozicija, ne potez u nizu.** Ključ je prva četiri polja FEN-a, isti
+oblik koji stablo u Analizi koristi za transpozicije. Zato je i čuvanje **jedan
+graf po korisniku i po boji**, a `repertoires` je samo *ime za početnu
+poziciju*. Time se dobija tačno ono što je traženo: rad iz Smit-More je već deo
+kasnijeg, šireg repertoara protiv 1.e4 čim taj repertoar dođe do iste table —
+bez spajanja i bez mogućnosti da ista pozicija nosi dva odgovora zavisno od
+toga na koja se vrata ušlo.
+
+**Jedan glavni potez po poziciji, ostalo su alternative.** Tri ravnopravna
+odgovora se ne mogu uvežbavati: sve je tačno, pa se ništa ne nauči preko toga
+da se svaki put mora stati i misliti. Pravilo drži **baza** (parcijalni
+jedinstveni indeks), ne ekran; brisanje glavnog unapređuje najstariju
+alternativu, jer čvor sa potezima a bez glavnog je čvor koji drill ne ume da
+pita.
+
+**Odgovori protivnika staju na udelu, ne na broju koji neko izabere.** Server
+pokriva ono što igra 80% partija u izabranoj traci, najviše četiri poteza, i
+uvek kaže koliko je ostalo napolju. Rep se ne baca nego se broji — to je tačno
+skup poteza koje će drill jednog dana odigrati, a učenik na njih neće imati
+odgovor. Bez tog praga pozicija nema kraj, jer je grananje 3–8 po nivou.
+
+**Sudi se automatski, uz brojač.** U ovom režimu je suđenje poenta poteza, pa
+se ne čeka dugme; ali u uglu stoji koliko je upita ka Lichessu sesija potrošila,
+jer je to korisnikova kvota. Sve ide kroz isti keš i isti red kao sudija:
+odgovori protivnika i presuda o potezu čitaju **istu** knjigu za istu poziciju,
+pa druga stvar ne košta ništa.
+
+**Peto, što nije bilo u planu, a ispalo je najvrednije:** `repertoire_attempts`
+pamti i **odbijene** pokušaje. Repertoar beleži šta je učenik odlučio; samo ta
+tabela beleži za čim je prvo posegnuo i šta je sud o tome rekao. To su pozicije
+u kojima je instinkt pogrešan, i to je ono što drill treba da pita prvo — inače
+je „učenje na svojim greškama" anegdota, a ne raspored.
+
+**Pravljenje repertoara ide preko table, ne preko FEN-a.** Prva verzija je
+tražila FEN u polju za tekst, i to je pala na prvom korisniku: nalepio je deo
+niza i dobio „Nije sačuvano — ili je ime zauzeto, ili server ne odgovara", što
+je jedna rečenica za tri različita uzroka. Sada je to ekran na kom se otvaranje
+**odigra na tabli** (sa „Nazad" i „Ispočetka"), a FEN je sporedni izlaz za
+poziciju koju je brže nalepiti nego odigrati. Uz to, boja i pozicija su jedna
+odluka: dugme „Napravi" je živo samo dok je na potezu strana za koju se gradi,
+pa greška „gradite za belog a crni je na potezu" više ne može ni da nastane.
+
+**Knjiga se otvara sama, čim se potez odigra.** Traženo pri prvoj upotrebi, i
+tačno: bez spiska kandidata čovek ne bira nego pogađa, a presuda o jednom potezu
+kaže da li je taj potez zdrav — ne i da li je pored njega stajao bolji. Pravilo
+je zato o *trenutku*, ne o tome da li se knjiga vidi: skrivena dok se učenik
+odlučuje, besplatna čim se opredelio. Spisak nosi i procenat partija i procenat
+učinka za stranu na potezu (istorija, ne ocena, i tako i piše), zvezdicu na
+potezima koji su već uzeti i strelicu na onom koji je upravo predložen. Dugme
+„Ne znam" je ostalo za zavirivanje **pre** odluke i jedino ono upisuje da je
+pozicija rešena gledanjem.
+
+**Glavni potez se bira, i to sada piše.** Izbor je oduvek postojao — dodir na
+čip ga je postavljao — ali nigde nije stajalo da postoji, a kontrola koju niko
+ne vidi ne postoji. Sada su to redovi sa zvezdicom, uz rečenicu „Zvezdica je
+glavni potez — to će drill tražiti od vas. Dodirnite drugi potez da on postane
+glavni."
+
+**Rokada je pisana dvojako, i to je tiho lomilo tri stvari.** Lichess piše
+rokadu kao „kralj uzima top" (`e1h1`, `e8h8`, potvrđeno pozivom na živi
+cloud-eval 25.8.2026: `d2d3 d7d6 e1h1 a7a5 f1e1 e8h8 …`), a tabla u ovoj
+aplikaciji piše `e1g1`. Posledice se nisu prijavljivale kao greška nego kao
+ništa: potez iz knjige koji je rokada nije mogao da se odigra, pa ga je svako
+ko pokuša tiho ispuštao — protivnik u drillu nikad ne rokira, sledeći talas u
+izgradnji ostane bez grane, a u panelu Analize klik na „O-O" ne uradi ništa.
+Nađeno je tek kad je korisnik video spisak u kom red piše „O-O", a rečenica
+ispod tvrdi da tog poteza nema u spisku.
+
+Prevod stoji na granici, u `openingMoveNotation.js`, i ide **preko SAN-a** a ne
+preko pravila o poljima — biblioteka već ume da pročita SAN, a ručno pravilo za
+rokadu je još jedna stvar koju treba pogoditi. Koriste ga oba servisa koja
+čitaju knjigu (sudija i baza otvaranja), pa je aplikacija nizvodno ne vidi.
+Uz to, `opening_replies` se sada **zamenjuje** za poziciju umesto da se dopunjuje:
+spajanje bi ostavilo jučerašnje `e1h1` redove pored današnjih ispravnih, zauvek
+u izvlačenju.
+
+**Motor pomaže pri izboru, na zahtev.** Traženo pri prvoj upotrebi: „Pitaj
+motor" pušta **lokalni** Stockfish na tekuću poziciju, sa dubinom i brojem
+linija koji se biraju tu, u panelu — i to su iste postavke koje koristi i tabla
+za analizu, ne druga kopija koju niko ne bi našao. Ne troši nijedan Lichess
+upit. Pita se jednom (`analyzePositionSync`) umesto da stoji upaljen: ovo je
+razgovor o jednoj poziciji, a motor koji radi u pozadini greje telefon zbog
+pitanja koje još niko nije postavio. Klik na liniju **odigra njen prvi potez
+kao korisnikov predlog** — dakle kroz isti sud i istu odluku uzmi/odbaci, jer
+predlog nije odluka.
+
+**Odgovor pripada poziciji za koju je tražen.** Nađeno pri prvoj upotrebi
+motora, sa slikom kao dokazom: motor je nudio `Bxb2` u poziciji u kojoj tog
+uzimanja nema, jer je taj potez bio moguć jednu poziciju ranije. Pretraga na
+dubini 28 traje sekundama, korisnik u međuvremenu ode dalje, i odgovor stigne
+za tablu koju niko više ne gleda. Isto važi za knjigu i za presudu, pa sada sve
+tri provere da li je pozicija na ekranu i dalje ona o kojoj su pitale — isti
+onaj čuvar koji trener završnica ima uz nalaz tablica (`_readoutFen`) i analiza
+uz presuđeni čvor. Zapisan je i razlog, jer ovo je treći put da se ista greška
+pojavi u trećem obliku.
+
+**Promena dubine je novo pitanje.** Prijavljeno kao „motor staje da radi": nije
+stajao, nego se ništa nije ponovo pokrenulo, pa je stari odgovor ostajao na
+ekranu ispod novog broja — što je iz korisnikove stolice ista stvar. Sada
+promena dubine ili broja linija odmah ponovo pita. Panel ostaje otvoren i kad
+motor ne vrati ništa, jer je to trenutak kad čovek najviše želi dugme za drugu
+dubinu.
+
+**Otvaranje se bira po imenu.** Pretraga ECO baze je već postojala u Analizi,
+kao jedna od pet kartica u dijalogu za postavljanje table; izdvojena je u
+`OpeningPicker` i sada je koriste oba mesta — jedna implementacija, dvoja vrata.
+Ko hoće repertoar za Smit-Moru sada ga **imenuje** umesto da ga sricanjem
+odigra: linija, pozicija i predloženo ime stižu zajedno, a strana za koju se
+gradi je ona koja je na potezu na kraju te linije. Potez iz knjige koji tabla
+odbije **zaustavlja** prepisivanje umesto da bude preskočen — pola tiho
+učitane linije je pozicija koju niko nije tražio, sa imenom one koju jeste.
+
+**Ime se predlaže iz ECO baze.** Aplikacija već nosi 3810 imenovanih linija, pa
+polje samo ponudi „Sicilian Defense — crni" i dovoljno je pritisnuti „Napravi".
+Pamti se poslednje ime kroz koje je linija prošla, jer repertoar obično zađe
+dublje nego što knjiga ima ime; čim korisnik nešto otkuca, predlog prestaje da
+ga ispravlja.
+
+Usput je jedan test otkrio zamku koja bi se inače vukla: **učitavanje ECO baze
+ne završava unutar `testWidgets`**, jer ide kroz `compute()`, a izolat u tom
+okruženju nikad ne odgovori — jedan `await` na to je držao ceo krug dok ga
+vreme nije pokosilo na deset minuta. Zato ekran prima izvor imena spolja
+(`nameFor`), pa test nikad ne poseže za pravom bazom.
+
+Ista pouka je stigla i drugi put, u suprotnom smeru: pozicija je bila ispravna,
+red ispod table zelen, a dugme „Napravi" sivo — jer ime nije bilo upisano, što
+nigde nije pisalo. Sada svako ugašeno dugme na tom ekranu ima svoj razlog
+odštampan tu gde se gleda (`_whyNot`), a kolona je ograničena na 560 px, pošto
+je na desktopu polje za ime bilo razvučeno preko celog prozora, metar od table
+kojoj pripada.
+
+I sama poruka o neuspehu je popravljena na istom mestu gde je i nastala:
+`_send` sada vraća **razlog**, a ne samo `null`. Zauzeto ime, ugašen backend i
+odbijena pozicija su tri različite stvari — jednu čovek popravlja u polju pred
+sobom, drugu u terminalu, a treća nije njegova krivica.
+
+Šta **nije** urađeno, namerno: drilla još nema (sledeći korak, kroz postojeći
+`spacedRepetitionService.js`), radara pokrivenosti nema (poslednji je, najlepši
+i najmanje uči), a red pozicija u kom se radi ne preživljava zatvaranje ekrana —
+sačuvano je ono što je izabrano, ne dokle se stiglo.
+
+### Repertoar: drill
+
+Urađeno 24.8.2026, **nije viđeno uživo** (stavka 30 u
+[TODO-provera.md](TODO-provera.md)). Zatvara krug koji je korisnik zamislio:
+gradi → vežba → drill podmetne nepokriven potez → vraća se u izgradnju.
+
+**Algoritam se ne ponavlja.** Raspored ide kroz `schedule()` iz
+`spacedRepetitionService.js`, isti SM-2 koji vozi domaći. Ono što je novo je
+samo *skladište*, `repertoire_reviews`, i to je svesna odluka a ne propust:
+stavka domaćeg je (lekcija, korak) i čita se spajanjem sa lekcijom, a stavka
+repertoara je (boja, pozicija) i ne spaja se ni sa čim. Širenje postojeće
+tabele značilo bi `lesson_id` koji sme da bude prazan, granu u svakom upitu nad
+njom i migraciju nad funkcijom koja je već proverena uživo — a učenik od toga
+ne bi dobio ništa.
+
+**Drill ne košta ništa.** Nijedan upit ka Lichessu se ne šalje: šta protivnik
+igra dolazi iz `opening_replies`, knjige koju je izgradnja već platila. Ko je
+potrošio kvotu, ili nikad nije ni imao token, i dalje vežba sve što je
+izgradio. Redovi su o poziciji i traci rejtinga, nikad o čoveku, pa gradnja
+jednog deteta čini drill sledećem besplatnim.
+
+**Ne pita se učenik kako je znao.** U drillu je odgovor objektivan — to je
+njegova sopstvena odluka, zapisana — pa se ocena izvodi: setio se je prolaz,
+morao je da pogleda je slabiji prolaz, sve ostalo je pad. **I dobar potez koji
+nije njegov je pad**, jer drill pita za odluku, ne za šahovsku ispravnost; kad
+bi se primalo sve što je zdravo, raspored ne bi značio ništa jer bi sve uvek
+bilo tačno.
+
+**Pitanje ne nosi svoj odgovor.** `GET /repertoire/drill/next` vraća poziciju i
+ništa više; „Pokaži" je zaseban poziv, pa je gledanje radnja koju raspored vidi.
+
+**Drillu je dozvoljeno da iznenadi.** Protivnikov potez se izvlači težinski po
+učestalosti, a nepokriveni potezi su u izvlačenju namerno. Pozicija koju učenik
+nije pripremio nije kvar nego jedina stvar koju knjiga ne ume — pokazuje mu ivicu
+onoga što je pokrio — i vodi pravo u izgradnju te iste pozicije.
 
 ### Sledeće, po redu
 
@@ -2796,37 +3067,141 @@ ovo.
    pogrešan taster). **Nije još viđeno:** sve oko govora na telefonu, nalaz
    tablica, „Zaključi remi", i rute zadataka.
 
-2. **Spisak prečica** — F1 ili `?`, plus red u Podešavanjima. **Ovo ide pre
-   svake nove prečice.** Ctrl+, je dokaz zašto: bila je napravljena, prolazila
-   je test, a korisnik nije mogao da je nađe ni da je upotrebi. Prečica koju
-   niko ne zna ne postoji.
+2. ~~**Spisak prečica**~~ — urađeno 24.8.2026, **nije viđeno uživo** (stavka
+   23 u [TODO-provera.md](TODO-provera.md)). Ruta `/shortcuts`, a otvaraju je
+   **F1** i red „Spisak prečica" u Podešavanjima — na telefonu, gde tastature
+   nema, taj red je jedini put.
 
-3. **Ostale prečice**, tek posle spiska. Dogovoreno šta i kojim redom:
-   - Ctrl+1…4 za četiri taba, Ctrl+C za kopiranje FEN-a (par desnom kliku);
-   - strelice na preostalih pet ekrana sa istom trakom (analiza, soba, lekcija,
-     ponavljanje, AI ekran) — po jedan omotač, bez nove logike; uz Home/End;
-   - u treneru završnica slova: N sledeća, R ispočetka, H pomoć, T nalaz,
-     U vrati potez; razmak za pusti/pauziraj u reprodukciji.
+   `?` namerno **nije** vezan, iako je bio predviđen: to je znak koji neko može
+   da kuca u komentar ili u kod sobe, a prečica iznad cele aplikacije bi mu ga
+   uzela iz polja. F1 nijedan raspored ne kuca — ista pouka kao Ctrl+, vezan po
+   mestu tastera, a ne po znaku.
+
+   Spisak ne može da zastari ćutke: test čita `desktop_shortcuts.dart` i
+   `move_keyboard_shortcuts.dart`, vadi svaki `LogicalKeyboardKey` iz njih i
+   pada ako se veže taster koji na spisku ne piše. Zato i piše, uz svaku grupu,
+   *gde* radi — strelice su za sada samo u šetnji kroz partiju, i tako i stoji.
+
+3. ~~**Ostale prečice**~~ — sve tri stavke urađene 24.8.2026. Strelice i
+   Ctrl-prečice su i **proverene uživo** istog dana (stavke 24 i 25 u
+   [TODO-provera.md](TODO-provera.md)); slova u treneru završnica i razmak u
+   reprodukciji još nisu (stavka 26). Dogovoreno je bilo, ovim redom:
+   - ~~Ctrl+1…4 za četiri taba, Ctrl+C za kopiranje FEN-a~~ — urađeno i
+     **provereno uživo** 24.8.2026 (stavka 25 u
+     [TODO-provera.md](TODO-provera.md));
+   - ~~strelice na preostalih pet ekrana~~ — urađeno 24.8.2026, **nije viđeno
+     uživo** (stavka 24 u [TODO-provera.md](TODO-provera.md)). Analiza, soba,
+     lekcija, ponavljanje i AI ekran; `MoveKeyboardShortcuts` je isti omotač
+     koji je šetnja kroz partiju već imala, plus Home/End kao drugo ime za
+     ↑/↓. Dva mesta su dobila i ogradu koja nije bila u planu: u **ponavljanju**
+     tasteri rade tek kad je nastavak otkriven, jer bi inače tastatura govorila
+     odgovor pre nego što se dete seti; u **sobi** važi isti uslov koji traka
+     već ima (`canDriveSharedBoard`), da mesto koje ne vodi zajedničku tablu ne
+     povede je tastaturom. Uz to, na svakom od pet ekrana kursor se sada pravi
+     na **jednom** mestu (`_moveCursor()`) umesto po jednom za traku i jednom za
+     tastere. Test čita `lib/` i pada ako ekran sa trakom nema i strelice;
+     jedini izuzetak je `engine_line_dialog`, jer dijalog drži fokus i uzeo bi
+     tastere ekranu ispod sebe;
+   - ~~u treneru završnica slova: N sledeća, R ispočetka, H pomoć, T nalaz,
+     U vrati potez; razmak za pusti/pauziraj u reprodukciji~~ — urađeno
+     24.8.2026, **nije viđeno uživo** (stavka 26 u
+     [TODO-provera.md](TODO-provera.md)). Time je spisak pod 3 završen.
+
+     Slova i razmak dele jedan omotač, `ActionKeyShortcuts`: dobija mapu
+     taster → dugme, gde **null znači da tog dugmeta sada nema na ekranu**.
+     To je pravilo koje drži spisak prečica istinitim — taster radi tačno
+     onoliko koliko i dugme koje predstavlja, pa nema stanja u kom tastatura
+     ume nešto što se na ekranu ne vidi. U treneru je mapa pisana kao ogledalo
+     `_buildControls`, uslov po uslov, uključujući i zaključanu tablu dok
+     tablica odgovara.
+
+     **Razmak je jedini taster koji namerno ustupa mesto.** Fokusirano dugme
+     na razmak odgovara samo, i to je pravilo koje aplikacija ne sme da
+     razbije: ko šeta ekran Tab-om mora da može da pritisne ono na čemu je
+     stao. Zato je razmak vezan samo dok fokus drži sam omotač. Slova takvog
+     suparnika nemaju.
 
    Dve ograde: prečica **nikad nije jedini put** do radnje, jer na Androidu
    tastature nema; i **jedno slovo samo na ekranima bez unosa teksta**, pošto
    dok je fokus u polju to slovo pripada polju.
 
+   **Tri stvari koje je ovaj krug naučio, i koje važe za svaku sledeću
+   prečicu.**
+
+   *Prvo: prečica vezana unutar ekrana ne radi dok ekran ne drži fokus.* Pritisak
+   se nudi onome ko ima fokus pa redom njegovim precima — vezivanje koje sedi
+   *ispod* fokusiranog čvora niko nikad ne pita. Tek otvoren ekran ostavlja
+   fokus na samoj ruti, pa su strelice ćutale sve dok se na ekranu nešto ne
+   klikne. Izgleda kao „ponekad radi", što je najgori oblik kvara. Lek je jedna
+   linija: omotač drži `Focus(autofocus: true, skipTraversal: true)` — uzima
+   fokus samo ako ga niko drugi ne traži, pa polje za tekst i dalje dobija svoje
+   tastere kad se u njega klikne. Test `move_keyboard_shortcuts_test.dart` pritiska
+   strelicu **bez ijednog klika pre toga** i pada ako se to vrati.
+
+   *Drugo: `CallbackShortcuts` proguta taster i kad ništa nije uradio.* Ctrl+C
+   vezan tako je uzimao kopiranje svakom polju za tekst u aplikaciji — a to
+   vezivanje stoji bliže fokusu nego Flutter-ovi ugrađeni tasteri za tekst, pa
+   je pobeđivalo. Zato je Ctrl+C napisan kao `Action` koji ume da **odbije**
+   taster (`isEnabled` je netačno dok se kuca ili kad table nema): odbijen
+   taster putuje dalje i polje odradi svoje kopiranje. Isto važi za svaku
+   buduću prečicu koja se preklapa sa nečim ugrađenim.
+
+   *Treće, nađeno pri poslednjoj stavci: spisak prečica je bio nepotpun, a test
+   to nije video.* Test je čitao tri fajla po imenu, a stablo poteza u Analizi
+   veže **+** i **−** iz četvrtog — ni jedno ni drugo nije bilo na spisku, jer
+   fajl koji je dobio prečicu niko nije dopisao u test. Sada se čita ceo `lib/`,
+   pa nema liste koja mora da se održava da bi test radio; izuzet je samo sam
+   omotač, koji imenuje tastere kojima **ustupa** mesto, a ne veže nijedan svoj.
+   Tri prečice stabla poteza su usput dopisane na spisak, uz „gde radi" — one
+   traže da se prvo klikne u stablo.
+
 4. **Pamćenje veličine i položaja prozora.** Traži nativni dodatak
    (`window_manager`) — odluka o zavisnosti, ne usputan posao. Posle
    `flutter_tts`-a i `nuget`-a vredi je doneti svesno.
 
-5. **Lichess, dve stavke.** Dugme sa pre-popunjenim linkom za pravljenje tokena
-   (pet minuta), i **proksi za bazu otvaranja kroz naš backend sa kešom** (sat
-   vremena). Drugo je jedino što menja nešto korisnicima: token prestaje da bude
-   obavezan, a saobraćaj ka Lichess-u pada višestruko jer se pozicije iz
-   otvaranja ponavljaju. Isti oblik koji `tablebaseService` već ima za tablice.
+5. ~~**Lichess, dve stavke.**~~ — urađeno i **provereno uživo** 24.8.2026
+   (stavka 22 u [TODO-provera.md](TODO-provera.md)). Baza otvaranja ide kroz
+   `GET /opening-explorer`: jedan token stoji u `.env` na serveru, keš je isti
+   oblik koji `tablebaseService` ima za tablice, i token je prestao da bude
+   uslov za korisnika. Dugme sa pre-popunjenim linkom je ostalo u Podešavanjima,
+   ali sada za onoga ko *hoće* svoj — polje uz njega je izlaz u nuždi ako naš
+   token ikad bude odbijen.
+
+   Dve stvari koje treba znati pre nego što se pusti u rad: **`LICHESS_API_TOKEN`
+   mora u `.env`**, inače ruta vraća 503 sa `reason: "not-configured"` i svi
+   dobijaju ChessDB; i **jedan token je jedno grlo za sve**, pošto Lichess broji
+   upite po tokenu. Keš zato nije ušteda nego uslov — pozicije iz otvaranja se
+   kod sve dece ponavljaju, pa je pogodak čest. Ruta traži prijavu (`authenticateToken`)
+   da ne bi bila otvoren proksi čim server izađe na internet; gost dobija ChessDB,
+   što je tačno ono što je i pre imao.
 
 6. **Unija „Dobij" i „Greške iz partija"** — procenjeno i odloženo. Šetnja
    nema „Odigraj do kraja" ni igranu kaznu. Kad se bude radilo, izdvojiti alate
    nad pozicijom u zajedničku komponentu umesto spajanja ekrana.
 
-7. **i18n na kraju**, kad prestanu da se menjaju ekrani. Odluka i razlozi su u
+7. **Trenažer repertoara**, po delovima. Skica je u
+   [repertoire_trainer_spec.md](repertoire_trainer_spec.md); dogovoreno je da
+   se gradi odozdo, jer je celina najveća stavka koja je do sada predložena i
+   takmiči se sa objavljivanjem.
+
+   - ~~**Sudija** — jedan endpoint i panel u Analizi~~ — urađeno i provereno
+     uživo 24.8.2026. Vredi sam za sebe i bez ijednog repertoara, i dokazuje
+     priču o kešu i opterećenju pre nego što se na njoj zida.
+   - ~~**Režim izgradnje**~~ — urađeno 24.8.2026, nije viđeno uživo (stavka
+     29). Prag je 80% u izabranoj traci, najviše četiri odgovora, a ostatak se
+     broji i prijavljuje. Odluke su u odeljku „Repertoar: režim izgradnje".
+   - ~~**Uvežbavanje**~~ — urađeno 24.8.2026, nije viđeno uživo (stavka 30).
+     Kroz postojeći SM-2, ali sa svojom tabelom `repertoire_reviews`; zašto ne
+     kroz proširen `review_items`, piše u odeljku „Repertoar: drill".
+   - **Radar pokrivenosti** — poslednji. Najlepši je i najmanje uči.
+
+   Tri odluke koje važe za sve delove: repertoar živi **na serveru**, ne u
+   lokalnoj bazi, jer ga trener zadaje i gleda, a reinstalacija ne sme da
+   obriše godinu dana rada; rang se bira **prema učeniku**, ne fiksnih „1800+",
+   pošto dete sreće poteze od 1200; i kazna se **odigra**, ne objasni — za to
+   već postoje „Kazni" i „Odigraj do kraja" iz trenera završnica.
+
+8. **i18n na kraju**, kad prestanu da se menjaju ekrani. Odluka i razlozi su u
    odeljku „Sistematizacija prostora".
 
 ### Šta namerno nije urađeno
@@ -2841,8 +3216,8 @@ ovo.
 
 ### Brojke, da se vidi da li je nešto puklo
 
-`cd chess_app && flutter test` → **507**, `flutter analyze` čist.
-`cd chess_backend && npm test` → **320**.
+`cd chess_app && flutter test` → **533**, `flutter analyze` čist.
+`cd chess_backend && npm test` → **337**.
 
 ## Sledeće na redu
 

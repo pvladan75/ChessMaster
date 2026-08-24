@@ -309,6 +309,10 @@ Redosled (odrađeno):
 - [ ] **Prebacivanje:** `systemctl enable --now chess-backend`, pa `backendUrl` u
       aplikaciji sa LAN adrese na `https://api.chesstrainers.app`. Jedan smer u
       jednom trenutku.
+- [ ] **`LICHESS_API_TOKEN` u `.env` na serveru** pre prebacivanja. Baza
+      otvaranja od 24.8.2026. ide kroz backend; bez tokena ruta vraća 503 i svi
+      dobijaju ChessDB umesto statistike iz partija — tiho, jer aplikacija na to
+      i treba da pređe kad Lichess nije dostupan.
 - [ ] **Veća baza pre punog Lichess seta.** 50k zagonetki je zanemarljivo, ali
       punih 6,1M sa GIN indeksom po temama neće udobno stati u 1 GB RAM-a.
 

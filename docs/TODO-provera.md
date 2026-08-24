@@ -61,6 +61,8 @@ Ostaje:
       nepresuđen potez da stoji kao presuđen.
 - [ ] Na telefonu: tri dugmeta vežbe u jednom redu na 360 dp.
 
+
+
 ## 0d. Greške iz partija i kazna — ✅ prošlo uživo 23.8.2026
 
 12.683 pozicije iz stvarnih partija, gde je igrač promenio ishod. Trener ih
@@ -1070,3 +1072,261 @@ označiti sve pročitanim. Test čita rutu i pada ako ikad dodirne
       potvrđena sa obe strane (3 = 1 zahtev + 2 nepročitana, pa 5 = 0 + 5), ali
       tačno ta kombinacija nije viđena. Ne vredi je praviti namerno — videće se
       prvi put kad neko pošalje zahtev.
+
+## 22. Baza otvaranja preko servera — ✅ provereno uživo 24.8.2026
+
+Lichess Explorer se više ne zove iz aplikacije nego iz backenda, koji drži jedan
+token i keš. Korisniku token više nije potreban.
+
+**Pre probe:** `LICHESS_API_TOKEN=...` u `chess_backend/.env` i restart backenda.
+Token se pravi na `lichess.org/account/oauth/token/create` **bez ijedne dozvole**
+— dugme „Napravi token" u Podešavanjima otvara baš tu stranicu sa popunjenim
+opisom. Dok toga nema, ruta vraća 503 sa `reason: "not-configured"`, što je
+ispravno ponašanje, ali nije ono što se ovde proverava.
+
+- [x] Analiza → panel „Lichess Opening Explorer" pokazuje statistiku partija
+      **bez ikakvog tokena u Podešavanjima**. To je cela poenta izmene.
+      *(Korisnik potvrdio 24.8.2026, uz token u `.env` na lokalnom backendu.)*
+- [x] Ista pozicija drugi put: panel se popuni odmah, a u dnevniku backenda nema
+      novog upita ka Lichess-u. To je keš.
+- [x] Filter „2000+" menja brojeve. Ranije je pokazivao samo partije između 2000
+      i 2199 iako je pisalo 2000+; sada su uključene i sve grupe iznad.
+- [x] Ugašen backend, pa pomeren potez: panel pređe na ChessDB, a u dnevniku
+      aplikacije stoji `⛔ Nedostupno (network)`. **Prazna baza i nedostupna baza
+      ne smeju da izgledaju isto** — to je greška koja se u ovom projektu vraća.
+- [x] Namerno pokvaren token u `.env`: u dnevniku backenda `[EXPLORER]
+      unauthorized`, u aplikaciji ChessDB. Ista provera kao za tablice.
+- [x] Podešavanja → „Napravi token" otvara lichess.org sa popunjenim opisom i
+      **bez ijedne čekirane dozvole**.
+- [x] Unet lični token: upit onda ide pravo na Lichess (u dnevniku aplikacije
+      nema poziva ka našem backendu za otvaranja), i panel i dalje radi.
+- [x] Gost, bez prijave: panel pokazuje ChessDB, ne praznu Lichess tablu.
+
+**Korisnik je prošao ovo 24.8.2026. na Windows verziji i potvrdio da radi kako je opisano.**
+
+## 23. Spisak prečica — ✅ provereno uživo 24.8.2026
+
+Stranica „Prečice na tastaturi" (`/shortcuts`). Postoji jer je Ctrl+, bila
+napravljena, testirana i neupotrebljiva — nije imalo gde da se pročita da
+postoji.
+
+- [x] **F1** na Windows-u otvara spisak preko onoga što je bilo, a **Esc** ga
+      zatvara i vraća tačno tamo.
+- [x] Držanje F1 ne slaže spisak na spisak.
+- [x] Podešavanja → „PREČICE NA TASTATURI" → „Spisak prečica" otvara istu
+      stranu. To je jedini put na telefonu.
+- [x] Sve što na spisku piše zaista radi: Esc, Ctrl+`,`, strelice u šetnji kroz
+      partiju, desni klik na tablu. Spisak koji laže gori je od nepostojećeg.
+- [x] Na 360 dp se nijedan red ne preliva — tekst se prelama unutar kartice.
+- [x] F1 dok je fokus u polju za tekst i dalje otvara spisak, a slova i strelice
+      u tom polju ostaju polju.
+
+**Korisnik je prošao spisak 24.8.2026. na Windows-u i potvrdio da radi kako je
+opisano.**
+
+## 24. Strelice na pet ekrana — ✅ provereno uživo 24.8.2026
+
+Tastature na Androidu nema, pa je ovo provera za Windows. Svuda gde ispod table
+stoji traka sa potezima važi isto: ← → potez, ↑ ↓ krajevi linije, Home/End isto
+što i ↑ ↓.
+
+- [x] **Analiza:** strelice šetaju po varijanti, i tabla ih prati.
+- [x] **Soba:** strelice rade kod onoga ko vodi tablu, a kod onoga ko je ne vodi
+      **ne rade** — isto pravilo koje traka već poštuje.
+- [x] **Lekcija (zadatak tipa lekcija):** strelice šetaju kroz liniju koraka.
+- [x] **Ponavljanje:** pre „Prikaži nastavak" strelice **ne rade**. Ovo je
+      namerno: inače bi tastatura rekla odgovor pre nego što se dete seti.
+      Posle otkrivanja rade.
+- [x] **AI ekran (vežbe):** strelice rade kad ispod table postoji traka, a kad
+      trake nema ne rade ništa (nema linije za šetnju).
+- [x] Home i End rade svuda gde i ↑ ↓.
+- [x] **Dok je fokus u polju za tekst** (komentar u analizi, kod sobe), strelice
+      pripadaju polju i ne pomeraju poteze.
+- [x] Šetnja kroz partiju i dalje radi kao pre — nije dirana.
+
+**Korisnik je prošao svih pet ekrana 24.8.2026. na Windows-u i potvrdio da rade
+kako je opisano — uključujući obe ograde (ponavljanje pre otkrivanja, mesto koje
+ne vodi tablu u sobi) i strelice u polju za tekst.**
+
+## 25. Ctrl+1…4 i Ctrl+C — ✅ provereno uživo 24.8.2026
+
+- [x] **Ctrl+1…4** na početnom ekranu menja tabove: Trening, Časovi,
+      Biblioteka, Ljudi. Radi **odmah po otvaranju**, bez ijednog klika pre
+      toga.
+- [x] Dok je otvorena vežba ili soba preko početnog ekrana, Ctrl+2 ne menja tab
+      ispod — tasteri pripadaju onome što je gore.
+- [x] Dok je fokus u polju za kod sobe, cifre se kucaju u polje.
+- [x] **Ctrl+C** kopira FEN sa table koja je na ekranu, isto što i desni klik, i
+      isto tako kaže da je kopirano. Probati na više ekrana (analiza, soba,
+      vežbe).
+- [x] **Ctrl+C dok je označen tekst u polju** (komentar u analizi) kopira
+      **tekst**, ne poziciju. Ovo je bilo pokvareno pri izradi i popravljeno;
+      vredi videti uživo.
+- [x] Ctrl+C na ekranu bez table ne radi ništa i ne javlja ništa.
+- [x] Uz to, ponovo: strelice na ekranu koji je **tek otvoren**, bez klika pre
+      toga. Isti uzrok kao gore, popravljen posle provere stavke 24.
+
+**Korisnik je prošao ovo 24.8.2026. na Windows verziji i potvrdio da radi kako je opisano.**
+
+## 26. Slova u treneru završnica i razmak u reprodukciji — 24.8.2026, nije viđeno uživo
+
+Poslednja stavka iz dogovorenog spiska prečica. Pravilo je isto svuda: **taster
+pritiska dugme koje je u tom trenutku na ekranu**, i ne radi ništa kad tog
+dugmeta nema ili je ugašeno.
+
+Trener završnica (Windows, AI Studio → „Završnice iz majstorskih partija"):
+
+- [ ] **N** — sledeća pozicija, isto što i dugme „Sledeća" / „Preskoči". Radi
+      **odmah po otvaranju ekrana**, bez ijednog klika pre toga.
+- [ ] **H** — pomoć; poruka kaže na koje polje potez vodi. Kad je pozicija
+      rešena, dugmeta „Pomoć" nema — pa ni **H** ne sme ništa da uradi.
+- [ ] **R** — „Pokušaj ponovo" posle netačnog poteza; u igranju do kraja
+      „Ispočetka". Kad tog dugmeta nema, taster ćuti.
+- [ ] **T** — „Nalaz tablica", i to samo dok se pozicija igra do kraja. Na
+      širokom prozoru drugi pritisak zatvara panel, isto što i „Sakrij nalaz".
+- [ ] **U** — „Vrati potez", i to tek pošto je neki potez ispustio rezultat.
+- [ ] Dok tablica odgovara (tabla je zaključana), N, R i U ne rade — isto kao
+      što su i dugmad tada ugašena.
+
+Reprodukcija snimka (ekran sa snimljenim časom):
+
+- [ ] **Razmak** pušta i pauzira snimak, isto što i dugme ispod table.
+- [ ] Kliknuti prvo na neko dugme na tom ekranu, pa pritisnuti razmak: razmak
+      tada pripada **tom dugmetu**. Ovo je namerno — ko šeta ekran Tab-om mora
+      da može da pritisne ono na čemu je stao.
+
+Ovo poslednje je jedino mesto gde prečica namerno ustupa taster, pa je vredno
+videti oba slučaja.
+
+## 27. Sud o potezu u Analizi — ✅ provereno uživo 24.8.2026
+
+Novi panel „Sud o potezu" u Analizi, i `GET /opening-judge` iza njega. Traži
+**vaš** Lichess token u Podešavanjima — server svoj namerno ne troši na ovo.
+Backend mora da radi (`npm run dev`).
+
+Bez tokena:
+
+- [x] Panel objašnjava zašto ne radi i nudi dugme „Podešavanja". Nema dugmeta
+      „Presudi".
+- [x] Baza otvaranja u istoj Analizi i dalje radi normalno — nju token ne
+      uslovljava.
+
+Sa tokenom, na tabli na kojoj je odigran potez:
+
+- [x] Dugme „Presudi <potez>" stoji tek kad je neki potez odigran; na početnoj
+      poziciji piše „Odigrajte potez na tabli pa ga presudite".
+- [x] **Teorija:** odigrati 1.e4 e5 2.Nf3 i presuditi — „Glavna teorija", uz
+      broj partija majstora.
+- [x] **Greška:** odigrati 1.e4 e5 2.Bc4 Qh4?? ili 1.f3 e5 2.g4 — presuda je
+      „Sumnjiv potez", uz „Bolje je bilo …" i „Kažnjava se sa …".
+- [x] Kazna koja se ispiše zaista mat ili gubitak figure — odigrati je rukom na
+      tabli i videti da linija ima smisla.
+- [x] **Crni potez se sudi iz ugla crnog.** Ovo je jedino mesto gde greška ne
+      bi ličila na grešku: presuda bi bila obrnuta, i to samo za jednu boju.
+      Odigrati loš potez **crnim** i proveriti da piše da gubi, a ne da dobija.
+- [x] Presuda ostaje uz svoj potez: presuditi potez, pa strelicom otići na
+      drugi — panel više ne pokazuje staru presudu.
+- [x] Isti potez presuđen dvaput ne pravi novi upit (drugi put stiže odmah).
+- [x] Retka pozicija koju oblak nema: presuda je „Nije presuđeno", sivo, sa
+      rečenicom da to nije isto što i loš potez.
+
+Ograničenja i greške:
+
+- [x] Pogrešan token u Podešavanjima → „Lichess je odbio vaš token".
+- [x] Panel se može isključiti u Podešavanjima („Sud o potezu"), kao i ostali
+      paneli Analize.
+
+**Korisnik je prošao ovo 24.8.2026. na Windows verziji i potvrdio da radi kako je opisano.**
+
+## 28. Znak ocene u onlajn motoru — 24.8.2026, nije viđeno uživo
+
+Popravka nađena pri izradi sudije: Lichess-ova oblačna ocena je iz ugla belog, a
+aplikacija ju je obrtala za pozicije sa crnim na potezu. Za nativni motor
+obrtanje ostaje ispravno, pa se proverava da se dva izvora sada slažu.
+
+- [ ] Analiza, pozicija sa **crnim na potezu** u kojoj beli stoji bolje (npr.
+      posle 1.e4 e5 2.Nf3 Nc6 3.Bb5): sa **onlajn** motorom ocena je pozitivna,
+      kao i sa nativnim. Ranije je bila negativna.
+- [ ] Ista pozicija, prebaciti motor sa onlajn na nativni i nazad: broj se ne
+      prevrće oko nule.
+- [ ] Pozicija sa matom za crnog i crnim na potezu (1.f3 e5 2.g4): onlajn motor
+      piše mat za **crnog** (`-M1`), ne za belog.
+
+## 29. Repertoar — režim izgradnje, 24.8.2026, nije viđeno uživo
+
+Trening → „Repertoar otvaranja". Traži **vaš** Lichess token (isti kao sudija) i
+pokrenut backend. Baza pravi tri nove tabele pri pokretanju servera.
+
+Pravljenje (izmenjeno 25.8.2026 — pozicija se postavlja na tabli):
+
+- [ ] „Novi" otvara ekran sa tablom. Odigrati otvaranje potezima, na primer
+      `1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3`; linija se ispisuje ispod table.
+- [ ] Ime se **samo predloži** iz baze otvaranja (npr. „Sicilian Defense — crni"); dovoljno je pritisnuti „Napravi". Kad se ime otkuca ručno, predlog ga više ne menja.
+- [ ] „Nađi otvaranje" → ukucati „Smith-Morra": klik na rezultat postavi celu liniju na tablu, izabere stranu koja je na potezu i predloži ime. Ista pretraga koja je u Analizi.
+- [ ] „Nazad" vraća jedan potez, „Ispočetka" celu liniju.
+- [ ] Dugme „Napravi" je **ugašeno** dok na potezu nije strana za koju se gradi,
+      a rečenica iznad kaže čiji je potez. Promena strane ga oživi.
+- [ ] „Nalepi FEN" postavlja poziciju iz niza; neispravan niz kaže da nije
+      ispravan, a ne „nije sačuvano".
+- [ ] Dok je ime prazno, dugme je ugašeno **i ispod table piše zašto** („Upišite ime repertoara.“).
+      Nađeno pri prvoj upotrebi: pozicija je bila u redu, red ispod table zelen, a dugme sivo bez ijedne reči.
+- [ ] Na širokom prozoru polje za ime stoji uz tablu, a ne razvučeno preko celog ekrana.
+- [ ] Napravljen repertoar se odmah otvara; ime stoji u naslovu.
+- [ ] Isto ime drugi put → **„Već imate repertoar sa tim imenom."**
+- [ ] Ugašen backend → **„Server nije dostupan — proverite da li backend radi."**
+      Tri uzroka, tri rečenice; ovo je bila greška nađena pri prvoj upotrebi.
+
+Petlja (probati sa Smit-Morom: `1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3`, crni):
+
+- [ ] Tabla je okrenuta prema izabranoj boji, a pitanje glasi „Šta igrate
+      crnim?".
+- [ ] Odigran potez se **odmah** sudi; brojač u uglu poraste za jedan.
+- [ ] „Uzmi" ga dodaje kao čip sa zvezdicom (glavni). Drugi uzet potez dobija
+      praznu zvezdicu — klik na njega ga postavlja za glavnog.
+- [ ] „Odbaci" ga ne dodaje, ali ga zabeleži: to se vidi kasnije u drillu, a
+      sada bar ne sme ništa da padne.
+- [ ] **Čim se potez odigra, spisak „Šta se ovde igra" iskoči sam**, sa procentom partija i procentom učinka za stranu na potezu; potez koji ste upravo odigrali je označen strelicom, a već uzeti zvezdicom.
+- [ ] „Ne znam" pokaže isti spisak **pre** odluke — i samo se to broji kao rešeno gledanjem.
+- [ ] **Rokada:** odigrati O-O i proveriti da je u spisku označena kao vaš potez (strelica), a ne da piše „nije među ovim potezima". Isto i u panelu Analize: klik na „O-O" u bazi otvaranja odigra rokadu.
+- [ ] „Pitaj motor" daje linije na izabranoj **dubini** i u izabranom **broju linija**; obe kontrole su u panelu. Klik na liniju odigra njen prvi potez i on prolazi kroz isti sud kao potez odigran rukom.
+- [ ] Motor radi i kad Lichess token nije unet — lokalni je i ne troši kvotu.
+- [ ] **Promena dubine odmah ponovo pokreće motor** (ne ostaje stari odgovor). Isto i promena broja linija.
+- [ ] **Pitati motor na dubini 28, pa preći na sledeću poziciju pre nego što odgovori:** stari odgovor se ne sme pojaviti u novoj poziciji. Ovo je bila greška nađena na slici — motor je nudio potez koji u novoj poziciji nije ni moguć.
+- [ ] Uzeti drugi potez u istoj poziciji pa dodirnuti red sa njim: postaje glavni (zvezdica se pomeri). To je ono što će drill tražiti.
+- [ ] „Dalje" otvara odgovore belog i javlja koliko je pokriveno i koliko je
+      poteza ostalo van toga; sledeća pozicija je opet sa crnim na potezu.
+- [ ] Kad se red isprazni, ekran to kaže i **zadrži** poslednji izveštaj o
+      pokrivenosti.
+
+Ono što se lako previdi:
+
+- [ ] Isti potez uzet dvaput ne pravi duplikat.
+- [ ] Zatvaranje i ponovno otvaranje repertoara: izabrani potezi su tu (red
+      pozicija nije — to je namerno).
+- [ ] Na telefonu 360 dp: tabla i dugmad staju bez sečenja.
+
+## 30. Repertoar — drill, 24.8.2026, nije viđeno uživo
+
+Trening → „Repertoar otvaranja" → dugme sa tegom na kartici. **Ne troši token**,
+pa radi i kad je kvota potrošena — to je i deo provere.
+
+- [ ] Pre vežbe izgraditi bar tri-četiri pozicije, inače drill nema šta da pita
+      („Još nema šta da se vežba." je tačan ekran, ali nije ono što se
+      proverava).
+- [ ] Pitanje dolazi **bez odgovora**: nigde na ekranu ne piše koji je potez
+      izabran dok se ne odigra ili ne pritisne „Pokaži".
+- [ ] Tačan potez → „Tačno" i rečenica kad se pozicija vraća.
+- [ ] Alternativa koju ste sami uzeli → „I to je vaše", uz ime glavnog poteza.
+- [ ] **Dobar potez koji nije vaš** (npr. potpuno zdrav razvojni potez koji
+      niste uzeli) → „Nije to", uz vaš potez. Ovo je namerno i vredi videti.
+- [ ] „Pokaži" pa zatim tačan potez → i dalje prolaz, ali se pozicija vraća
+      ranije nego kad se pogodi iz glave.
+- [ ] Protivnik odgovori sam, i ponekad odgovori nešto što niste pokrili — tada
+      to piše žutim („to niste pokrili").
+- [ ] „Nastavi liniju" nastavlja iz pozicije u kojoj se stalo.
+- [ ] Kad se dođe do pozicije koju niste gradili: „Ovu poziciju niste pokrili" i
+      dugme „Izgradi ovu poziciju" otvara izgradnju **baš tu**, ne od početka.
+- [ ] Posle nekoliko odgovora, brojač „na redu / novo" u naslovu se menja.
+- [ ] Isključiti internet i vežbati dalje — pitanja i ocene rade, jer je sve
+      naše; padne samo ako backend nije dostupan.
+- [ ] Na telefonu 360 dp: tabla, poruka i tri dugmeta staju bez sečenja.

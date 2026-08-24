@@ -25,7 +25,8 @@ Designed for chess trainers and students, it provides real-time interactive ches
   - Fetches real-time game popularity and outcome statistics (White %, Draw %, Black %) from the Lichess Opening Explorer API.
   - Supports rating bucket filtering (`Svi rejtinzi`, `1600+`, `1800+`, `2000+`, `2200+`, `2500+`).
   - Interactive candidate move chips: tapping any opening move chip plays the move on the board and branches into the move tree.
-  - Token supplied at build time (`--dart-define-from-file=dart_defines.json`), never entered manually by users.
+  - No token anywhere near the client: the lookup goes to `GET /opening-explorer` on our backend, which holds one Lichess token in `.env` and caches every position it asks about. Users never create or paste one; a personal token in Settings is optional and only redirects that user's own lookups straight to Lichess.
+  - Unreachable is not the same as empty: the panel falls back to ChessDB when the Explorer cannot be reached, and the log names which of `not-configured` / `unauthorized` / `rate-limited` / `network` it was.
 - **Syzygy Tablebase Explorer (`SyzygyTablebaseService` & `SyzygyPanelWidget`)**:
   - Automatically activates when $\le 7$ pieces remain on the board.
   - Displays exact WDL (Win/Draw/Loss) evaluations, distance-to-zero (DTZ), and winning/drawing candidate move chips.
