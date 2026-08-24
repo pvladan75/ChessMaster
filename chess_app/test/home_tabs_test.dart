@@ -30,6 +30,18 @@ void main() {
     await SessionService.instance.init();
   });
 
+  Future<GoRouter> openHomeRouter(WidgetTester tester) async {
+    final router = GoRouter(
+      initialLocation: AppRoutes.home,
+      routes: appRouteTable,
+      errorBuilder: appRouteErrorBuilder,
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pump(const Duration(milliseconds: 200));
+    return router;
+  }
+
   Future<void> openHome(WidgetTester tester) async {
     final router = GoRouter(
       initialLocation: AppRoutes.home,
@@ -68,6 +80,38 @@ void main() {
     expect(find.text('Podešavanja'), findsNothing);
     expect(find.byTooltip('Podešavanja'), findsOneWidget,
         reason: 'ikonica u traci je jedini ulaz u podešavanja odavde');
+  });
+
+  testWidgets('the rail is still there after an exercise is closed',
+      (tester) async {
+    // Reported from the desktop build: entering "Mat u N" and coming back left
+    // the window without its side tabs.
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final router = await openHomeRouter(tester);
+    expect(find.byType(NavigationRail), findsOneWidget, reason: 'pre ulaska');
+
+    await tester.ensureVisible(find.text('Mat u 2').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mat u 2').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    // Out the way a person gets out: the arrow on the screen. A desktop window
+    // is landscape, and this screen used to drop its bar there because the
+    // shell's rail was beside it - which stopped being true when it became a
+    // pushed route. Without the bar there is no way back at all.
+    expect(find.byIcon(Icons.arrow_back), findsOneWidget,
+        reason: 'u landscape prozoru nema izlaza iz vežbe');
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.byType(TrainingHubScreen), findsOneWidget);
+    expect(find.byType(NavigationRail), findsOneWidget,
+        reason: 'posle povratka nema tabova sa strane');
   });
 
   testWidgets('the tabs are on a phone too, and nothing overflows',

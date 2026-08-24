@@ -168,6 +168,8 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
 ## 0o. Četiri taba — 24.8.2026, nije viđeno uživo
 
 - [ ] Aplikacija se otvara na **Treningu**, ne na sobama.
+- [ ] Izlazak iz vežbe **strelicom u ekranu** vraća na Trening sa tabovima —
+      i u punom prozoru i u uskom. (Ovo je puklo pri prvoj probi 24.8.2026.)
 - [ ] Tabovi su: Trening, Časovi, Biblioteka, Ljudi — i na traci dole i na
       rail-u sa strane.
 - [ ] Podešavanja se otvaraju ikonicom u traci i **vraćaju tamo gde si bio**.

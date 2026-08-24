@@ -1966,15 +1966,23 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         }
       },
       child: Scaffold(
+        // No bar in landscape: that layout is a deliberate square board sized
+        // off the window's height, and a bar costs it 38 pixels. The way out
+        // there is the arrow in the landscape header, which knows the same
+        // thing this one does - see `ownRoute` in _buildPuzzlesTab.
         appBar: isLandscape
             ? null
             : PreferredSize(
                 preferredSize: const Size.fromHeight(38.0),
                 child: AppBar(
                   toolbarHeight: 38.0,
+                  // One arrow, not two. The bar puts its own back button in
+                  // when the screen is a pushed route, and this screen already
+                  // carries one in its title row.
+                  automaticallyImplyLeading: false,
                   title: Row(
                     children: [
-                      if (_selectedCategory != null) ...[
+                      if (ownRoute || _selectedCategory != null) ...[
                         IconButton(
                           icon: const Icon(Icons.arrow_back, size: 18),
                           padding: EdgeInsets.zero,
@@ -1983,12 +1991,19 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           // than nothing, though still short of the 48dp
                           // Material guideline (no room for that here).
                           constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-                          onPressed: () {
-                            _resetEngineState();
-                            setState(() {
-                              _selectedCategory = null;
-                            });
-                          },
+                          // Leaving means leaving. Setting the category back to
+                          // null showed the crossroads that still lives inside
+                          // this screen - on top of the shell, so the side tabs
+                          // were gone and the way out was a screen that no
+                          // longer belongs to anybody.
+                          onPressed: ownRoute
+                              ? () => context.pop()
+                              : () {
+                                  _resetEngineState();
+                                  setState(() {
+                                    _selectedCategory = null;
+                                  });
+                                },
                         ),
                         const SizedBox(width: 8),
                       ],
@@ -2160,20 +2175,29 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         height: 24,
         child: Row(
           children: [
-            // Landscape hides the AppBar, so without this there is no way back
-            // to the category hub on platforms with no hardware back button.
+            // Landscape hides the AppBar, so without this there is no way out at
+            // all on a desktop window - the shell's rail used to be beside this
+            // screen and no longer is, because it opens as its own route now.
             if (_selectedCategory != null) ...[
               IconButton(
                 icon: const Icon(Icons.arrow_back, size: 18, color: Colors.white),
-                tooltip: 'Nazad na izbor kategorije',
+                tooltip: widget.initialCategory != null
+                    ? 'Nazad na trening'
+                    : 'Nazad na izbor kategorije',
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                onPressed: () {
-                  _resetEngineState();
-                  setState(() {
-                    _selectedCategory = null;
-                  });
-                },
+                // Reported from the desktop build: this arrow set the category
+                // back to null, which drew the crossroads that still lives
+                // inside this screen - on top of the shell, so the side tabs
+                // were gone. Opened as a route, leaving means leaving.
+                onPressed: widget.initialCategory != null
+                    ? () => context.pop()
+                    : () {
+                        _resetEngineState();
+                        setState(() {
+                          _selectedCategory = null;
+                        });
+                      },
               ),
               const SizedBox(width: 8),
             ],

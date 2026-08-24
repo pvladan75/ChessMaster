@@ -250,6 +250,30 @@ ekran već koristi za svoju proveru servera. Bez toga svaki test koji samo
 otvori ljusku pada na „a Timer is still pending", pa se tabovi nisu mogli
 pokriti uopšte.
 
+## Nađeno pri prvoj probi uživo — 24.8.2026
+
+Prijava: „ušao sam u Mat u N i vratio se, izgubio sam tabove sa strane"
+(Windows). U logu ničega — nije pad nego ponašanje, i bilo je dvoje.
+
+**Strelica u ekranu nije izlazila sa rute.** Radila je ono što je radila dok je
+taj ekran bio i raskrsnica: `_selectedCategory = null`, što nacrta **unutrašnju**
+raskrsnicu koja i dalje živi u tom fajlu — preko ljuske, dakle bez tabova sa
+strane. Sada, kad je ekran otvoren kao ruta, strelica **izlazi**.
+
+**A prava strelica je bila druga.** Na Windows-u je prozor uvek landscape, a taj
+raspored **namerno nema traku sa naslovom** — tabla se računa od visine prozora.
+Dok je ekran bio unutar ljuske to je bilo u redu, jer je rail stajao pored
+njega; komentar u `home_screen.dart` to izričito kaže. Otkad je ruta, rail je
+pokriven, pa je jedini izlaz strelica u landscape zaglavlju — i baš ona je
+vodila u unutrašnju raskrsnicu.
+
+Probano je i drugo rešenje — vratiti traku i u landscape — pa odbačeno: uzima
+38 piksela visine tabli u rasporedu koji je namerno kvadratni. Umesto toga obe
+strelice sada rade isto: kad je ekran svoja ruta, izlaze sa nje.
+
+Test to vozi kao korisnik: otvori ljusku u širokom prozoru, pritisne „Mat u 2",
+pa **strelicu na ekranu**, i traži da rail bude tu. Pada bez popravke.
+
 ## Pitanja na koja je odgovoreno gore
 
 1. Da li **svako** odredište dobija rutu, uključujući lanac zadataka i tri
