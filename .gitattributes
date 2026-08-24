@@ -1,3 +1,15 @@
+# Every text file is stored with LF and checked out with whatever this machine
+# uses, rather than leaving the decision to git's guess on each clone.
+#
+# The guess can fail, and it fails the way everything else in this repository
+# fails: quietly, one layer away. Git calls a blob binary as soon as its CR
+# count and its CRLF count disagree - and a binary blob is never normalized and
+# never diffed by line. `docs/TODO-provera.md` picked up two stray CR bytes
+# (`\r\r\n`, the fingerprint of one conversion applied twice), and from then on
+# every edit to it showed all 1100 lines as changed, with nothing anywhere to
+# say why. This line decides it instead of the heuristic.
+* text=auto
+
 # Shell scripts must keep LF even when checked out on Windows: these are copied
 # straight from the working copy to a Linux host, and CRLF makes bash fail with
 # "$'\r': command not found".

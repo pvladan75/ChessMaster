@@ -59,8 +59,8 @@ Ostaje:
       restartovati backend i odigrati potez. Mora da kaže da tablica nije
       dostupna i da **vrati tablu na prethodni položaj**, a ne da ostavi
       nepresuđen potez da stoji kao presuđen.
-- [ ] Na telefonu: tri dugmeta vežbe u jednom redu na 360 dp.
-
+- [ ] Na telefonu: tri dugmeta vežbe u jednom redu na 360 dp.
+
 ## 0d. Greške iz partija i kazna — ✅ prošlo uživo 23.8.2026
 
 12.683 pozicije iz stvarnih partija, gde je igrač promenio ishod. Trener ih
