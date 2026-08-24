@@ -19,7 +19,7 @@ import 'package:chess_app/features/assignments/screens/student_progress_screen.d
 import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
 import 'package:chess_app/features/reviews/services/review_api_service.dart';
 
-import 'package:chess_app/screens/ai_studio_screen.dart';
+import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 
 import 'package:chess_app/screens/settings_screen.dart';
 import 'package:chess_app/widgets/home/home_dialogs.dart' as dialogs;
@@ -996,7 +996,9 @@ class _HomeScreenState extends State<HomeScreen> {
             onOpenReplay: (id) => context.push(AppRoutes.replayPath(id)),
           );
         case 1:
-          return AiStudioScreen(userSession: widget.session);
+          // The crossroads, not the working screen. Everything it offers is a
+          // route now, so the tab holds a list of cards and nothing heavier.
+          return TrainingHubScreen(session: widget.session);
         case 2:
           return HomeBibliotekaTab(
             onOpenStudio: _openStudioRoom,

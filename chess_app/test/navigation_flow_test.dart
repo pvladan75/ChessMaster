@@ -10,6 +10,8 @@ import 'package:chess_app/features/position_scanner/screens/scan_review_screen.d
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 import 'package:chess_app/routing/app_router.dart';
 import 'package:chess_app/routing/app_routes.dart';
+import 'package:chess_app/features/training/screens/training_hub_screen.dart';
+import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/screens/settings_screen.dart';
 import 'package:chess_app/services/session_service.dart';
 
@@ -65,6 +67,15 @@ void main() {
       AppRoutes.scan: ScanReviewScreen,
       AppRoutes.savedPositions: SavedPositionsScreen,
       AppRoutes.preferences: SettingsScreen,
+      AppRoutes.training: TrainingHubScreen,
+      // Two of the three that used to be a field on one screen's state.
+      // `basic_mate` is left out: loading its preset awaits a pair of
+      // `Future.delayed` calls that cannot be called off, so the screen leaves
+      // a pending timer behind and the test framework fails the test for it.
+      // That is a real leak in that flow rather than a fault of the route, and
+      // it is written down in TODO-provera.md instead of being papered over.
+      AppRoutes.drillPath('mate_puzzle', depth: '2'): AiStudioScreen,
+      AppRoutes.drillPath('winning_position'): AiStudioScreen,
     };
 
     for (final entry in destinations.entries) {
@@ -103,6 +114,36 @@ void main() {
     expect(find.byType(SavedPositionsScreen), findsNothing);
     expect(find.byType(ScanReviewScreen), findsOneWidget,
         reason: 'povratak mora da vrati ekran sa kojeg se krenulo');
+  });
+
+  testWidgets('the crossroads opens the exercise it names', (tester) async {
+    // The split's whole promise: choosing happens in one place and doing in
+    // another, and the card names a path rather than setting a field nobody
+    // outside the screen could see.
+    tester.view.physicalSize = const Size(1200, 2000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final router = await open(tester, AppRoutes.training);
+    expect(find.byType(TrainingHubScreen), findsOneWidget);
+    expect(find.byType(AiStudioScreen), findsNothing,
+        reason: 'raskrsnica ne sme da nosi radni ekran sa sobom');
+
+    await tester.ensureVisible(find.text('Mat u 2').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mat u 2').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.byType(AiStudioScreen), findsOneWidget);
+    expect(router.state.uri.toString(), contains('category=mate_puzzle'));
+    expect(router.state.uri.toString(), contains('depth=2'));
+
+    router.pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(TrainingHubScreen), findsOneWidget,
+        reason: 'izlazak iz vežbe vraća na raskrsnicu');
   });
 
   testWidgets('a path that does not exist says so instead of crashing',

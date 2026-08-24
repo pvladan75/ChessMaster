@@ -28,11 +28,22 @@ abstract final class AppRoutes {
   /// Walking a real game from where it first went wrong, stopping at every
   /// mistake in it. A game rather than a position, which is why it is its own
   /// route and its own screen.
-  static const String blunderGames = '/endgames/greske';
+  static const String blunderGames = '/endgames/blunders';
 
   /// Choosing which endings to practise, and at which level, before any board
   /// is drawn. The mode rides on the query the same way as for [endgames].
-  static const String endgamePicker = '/endgames/izbor';
+  static const String endgamePicker = '/endgames/picker';
+
+  /// The crossroads of practice: what there is to train, as a list of cards and
+  /// nothing else. It draws no board, which is the whole point of it being its
+  /// own place - choosing and doing were one 2662-line screen.
+  static const String training = '/training';
+
+  /// One working screen for the exercises that share a board and a verdict.
+  /// `category` says which: mate_puzzle, basic_mate or winning_position, with
+  /// `depth` for the first and `level` for the second. Three near-identical
+  /// screens would be three places to fix the same bug.
+  static const String trainingDrill = '/training/drill';
 
   /// Reading positions out of a trainer's own book and confirming them.
   static const String scan = '/scan';
@@ -59,4 +70,17 @@ abstract final class AppRoutes {
   }
 
   static String replayPath(int recordingId) => '/replay/$recordingId';
+
+  /// The drill, with the exercise it is opening. [depth] belongs to the mate
+  /// puzzles and [level] to basic mating; passing the wrong one is harmless and
+  /// ignored, which is why they are named rather than positional.
+  static String drillPath(String category, {String? depth, String? level}) {
+    final query = <String>[
+      'category=$category',
+      if (depth != null && depth.isNotEmpty) 'depth=$depth',
+      if (level != null && level.isNotEmpty)
+        'level=${Uri.encodeComponent(level)}',
+    ].join('&');
+    return '$trainingDrill?$query';
+  }
 }

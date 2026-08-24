@@ -155,6 +155,41 @@ otvara sokete.
 Namerno **nisu** pokriveni soba i analiza: prva diže sokete, druga motor. Njih
 pokrivaju sopstveni testovi.
 
+## Korak 1 urađen — raskrsnica je izašla, 24.8.2026
+
+`AiStudioScreen` više nije i raskrsnica i radni ekran.
+
+- **`TrainingHubScreen`** je nov, lagan ekran: kartice i ništa drugo, bez table
+  i bez motora. Svih sedam kartica sada radi istu stvar — imenuje putanju.
+- **Tri unutrašnja stanja su postala jedna ruta sa parametrom**:
+  `/training/drill?category=mate_puzzle&depth=2`, `…&category=basic_mate&level=…`,
+  `…&category=winning_position`. Radni ekran ih prima kroz konstruktor i otvara
+  se odmah na vežbi.
+- **Putanje su prevedene na engleski**: `/endgames/izbor` → `/endgames/picker`,
+  `/endgames/greske` → `/endgames/blunders`.
+- Kartica „Trening" u ljusci sada drži raskrsnicu, ne radni ekran.
+- „Nazad" iz vežbe otvorene rutom **izlazi** sa nje; stara petlja (povratak na
+  listu unutar istog ekrana) ostaje samo dok postoji poslednji pozivalac.
+
+**Nađeno zato što je nešto konačno otvorilo taj ekran u testu:**
+
+1. Red sa tri dugmeta (`Analiza`, `Probaj Ponovo`, `Naredna Pozicija`) prelivao
+   se za 80 piksela — u release buildu se to ne vidi, treće dugme prosto nema.
+   Sada je `Wrap`.
+2. **Dva tajmera su nadživljavala ekran**: protivnikov potez i sekunda pauze pre
+   motorovog odgovora. Oba se sada otkazuju u `dispose`; drugi je zbog toga
+   pretvoren iz `Future.delayed` u `Timer`, jer se `Future` ne može otkazati.
+
+**Ostalo otvoreno:** učitavanje preseta za `basic_mate` čeka dva
+`await Future.delayed` koja se ne mogu otkazati, pa ekran i dalje ostavi tajmer
+za sobom. Ta ruta je zato izuzeta iz testa, sa objašnjenjem na licu mesta —
+prepisivanje tog toka je zaseban posao.
+
+**O formatiranju:** `dart format` nad tim fajlom pravi 850 izmenjenih linija
+umesto 40 i obara `flutter analyze` (formater razbija `if (x) return;` na dva
+reda, a linter traži vitičaste zagrade). Zato je izostavljen; taj fajl se
+formatira kad se bude delio.
+
 ## Pitanja na koja je odgovoreno gore
 
 1. Da li **svako** odredište dobija rutu, uključujući lanac zadataka i tri

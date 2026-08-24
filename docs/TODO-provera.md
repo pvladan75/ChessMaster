@@ -165,6 +165,18 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
 - [ ] Ako glas ne javi kraj izgovora, šetnja se ipak nastavi (rok iz dužine
       rečenice), a u dnevniku stoji red o tome.
 
+## 0m. Raskrsnica Treninga izdvojena — 24.8.2026, nije viđeno uživo
+
+- [ ] Kartica „Trening" otvara listu kartica, bez table ispod.
+- [ ] Svaka od sedam kartica vodi tamo gde piše, a „nazad" vraća na listu.
+- [ ] Mat u 1/2/3 otvara zadatu dubinu; osnovno matiranje zadatu težinu.
+- [ ] Red dugmadi ispod table (`Analiza`, `Probaj Ponovo`, `Naredna Pozicija`)
+      staje na 360 dp — pre ovoga se prelivao za 80 piksela.
+- [ ] Izlazak iz vežbe usred motorovog razmišljanja ništa ne ostavlja za sobom.
+
+**Otvoreno:** `basic_mate` i dalje ostavi tajmer posle zatvaranja ekrana (dva
+`await Future.delayed` u učitavanju preseta koja se ne mogu otkazati).
+
 ## 0l. Nalaz tablica i „Zaključi remi" — napisano 24.8.2026, nije viđeno uživo
 
 - [ ] „Nalaz tablica" u vežbi otvara spisak: prvo potezi koji drže, među njima

@@ -15,6 +15,8 @@ import 'package:chess_app/features/endgame_trainer/screens/blunder_walk_screen.d
 import 'package:chess_app/features/endgame_trainer/screens/endgame_picker_screen.dart';
 import 'package:chess_app/features/endgame_trainer/screens/endgame_trainer_screen.dart';
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
+import 'package:chess_app/features/training/screens/training_hub_screen.dart';
+import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/saved_positions_screen.dart';
 
@@ -85,6 +87,27 @@ final List<RouteBase> appRouteTable = [
       return ReplayPlayerScreen(
         recordingId: id,
         userSession: SessionService.instance.current,
+      );
+    },
+  ),
+  GoRoute(
+    path: AppRoutes.training,
+    builder: (context, state) => TrainingHubScreen(
+      session: SessionService.instance.current,
+    ),
+  ),
+  // One screen for three exercises that share a board and a verdict. Three
+  // near-identical screens would be three places to fix the same bug, and the
+  // differences between them are a preset and a title.
+  GoRoute(
+    path: AppRoutes.trainingDrill,
+    builder: (context, state) {
+      final category = state.uri.queryParameters['category'] ?? 'mate_puzzle';
+      return AiStudioScreen(
+        userSession: SessionService.instance.current,
+        initialCategory: category,
+        mateDepth: state.uri.queryParameters['depth'],
+        basicMateLevel: state.uri.queryParameters['level'],
       );
     },
   ),

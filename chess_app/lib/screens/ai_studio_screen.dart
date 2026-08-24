@@ -50,10 +50,34 @@ class VariationBranchPoint {
   });
 }
 
+/// The working screen for the exercises that share a board and a verdict.
+///
+/// It used to be the crossroads as well, and that is why three of the choices
+/// there navigated by route and three by setting a field here. Now the choice
+/// arrives as [initialCategory] and this screen only does the exercise. Its
+/// name is scaffolding from when it did something else; what the reader sees is
+/// the title, and that names the exercise.
 class AiStudioScreen extends ConsumerStatefulWidget {
   final UserSession userSession;
 
-  const AiStudioScreen({super.key, required this.userSession});
+  /// Which exercise to open: mate_puzzle, basic_mate or winning_position.
+  /// Null keeps the old behaviour - the crossroads inside this screen - which
+  /// nothing reaches any more and which goes with its last caller.
+  final String? initialCategory;
+
+  /// How many moves the mate is in, for `mate_puzzle`.
+  final String? mateDepth;
+
+  /// Which preset to load, for `basic_mate`.
+  final String? basicMateLevel;
+
+  const AiStudioScreen({
+    super.key,
+    required this.userSession,
+    this.initialCategory,
+    this.mateDepth,
+    this.basicMateLevel,
+  });
 
   @override
   ConsumerState<AiStudioScreen> createState() => _AiStudioScreenState();
@@ -63,6 +87,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   final ChessBoardController _puzzleBoardController = ChessBoardController();
 
   final StockfishService _stockfishService = StockfishService();
+
+  /// The pause before the engine answers, kept so that leaving can cancel it.
+  Timer? _engineMoveDelay;
 
   Future<void> _openEngineSettings() async {
     await showEngineSettingsDialog(
@@ -161,6 +188,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     super.initState();
     _initStockfish();
     _startServerHealthCheck();
+    // Opened at an exercise rather than at the list of them. After the first
+    // frame, because loading a puzzle talks to the network and sets state.
+    final opening = widget.initialCategory;
+    if (opening != null) {
+      if (widget.mateDepth != null) _selectedMateDepth = widget.mateDepth!;
+      if (widget.basicMateLevel != null) _selectedBasicMateType = widget.basicMateLevel!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _launchCategory(opening);
+      });
+    }
     // Settings is reached through a shared shell here (no local push/pop to
     // hang a setState off), so listen directly for live updates like the
     // move-input-mode toggle.
@@ -543,7 +580,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       'eval': evaluation,
     });
 
-    Future.delayed(const Duration(milliseconds: 1000), () {
+    // A Timer rather than Future.delayed, because a Future cannot be called
+    // off. The second's pause keeps the engine's reply from landing on top of
+    // the reader's own move - and if they leave inside it, it goes with them.
+    _engineMoveDelay?.cancel();
+    _engineMoveDelay = Timer(const Duration(milliseconds: 1000), () {
       if (!mounted) return;
       _playPuzzleMove(validMove);
       if (_puzzleGame != null) {
@@ -706,6 +747,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   void dispose() {
     _serverHealthTimer?.cancel();
     _verificationTimeoutTimer?.cancel();
+    // Both of these outlived the screen. Harmless-looking, since the callbacks
+    // check `mounted` - but they are timers running with nothing to fire into,
+    // and a navigation test trips over them at once: "a Timer is still pending
+    // even after the widget tree was disposed".
+    _opponentMoveTimer?.cancel();
+    _engineMoveDelay?.cancel();
     AppSettingsService.instance.removeListener(_onAppSettingsChanged);
     _stockfishService.detach(this);
     super.dispose();
@@ -1903,11 +1950,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   Widget build(BuildContext context) {
     final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
+    // Opened as its own destination, back leaves it; opened as the old
+    // all-in-one screen, back returns to the list inside it. The second is what
+    // is left of the crossroads, and it goes with its last caller.
+    final ownRoute = widget.initialCategory != null;
     return PopScope(
-      canPop: _selectedCategory == null,
+      canPop: ownRoute || _selectedCategory == null,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        if (_selectedCategory != null) {
+        if (!ownRoute && _selectedCategory != null) {
           _resetEngineState();
           setState(() {
             _selectedCategory = null;
@@ -2062,8 +2113,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       ),
     );
 
-    final actionButtonsRow = Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    // Wrap, not Row. Three buttons with words on them outgrow a narrow column,
+    // and the navigation test is the first thing that ever rendered this screen
+    // at a size nobody had tried. In a release build the overflow paints no
+    // warning - the third button is simply not there.
+    final actionButtonsRow = Wrap(
+      alignment: WrapAlignment.spaceEvenly,
+      spacing: 8,
+      runSpacing: 8,
       children: [
         ElevatedButton.icon(
           icon: const Icon(Icons.biotech, size: 16),
