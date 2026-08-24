@@ -1,0 +1,118 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:chess_app/features/endgame_trainer/screens/blunder_walk_screen.dart';
+import 'package:chess_app/features/endgame_trainer/screens/endgame_picker_screen.dart';
+import 'package:chess_app/features/position_scanner/screens/saved_positions_screen.dart';
+import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
+import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
+import 'package:chess_app/routing/app_router.dart';
+import 'package:chess_app/routing/app_routes.dart';
+import 'package:chess_app/screens/settings_screen.dart';
+import 'package:chess_app/services/session_service.dart';
+
+/// Opening a path and getting the screen it promises, and getting back.
+///
+/// Written as the net under the navigation work rather than as a description of
+/// it: what these hold is that a path leads to a screen and that leaving it
+/// returns where it was. Both are about to be rearranged - seven screens have
+/// no path at all today, three "places" are a field on one screen's state - and
+/// nothing else in the app would notice if a destination quietly changed.
+///
+/// The screens are opened directly rather than tapped through from the home
+/// screen. Walking there first would make every one of these a test of
+/// everything on the way, and the home screen opens sockets.
+void main() {
+  setUp(() async {
+    // A signed-in session, because every screen here is built from one. The
+    // router reads it from the service rather than from arguments, which is
+    // what makes a cold-started deep link land in the same place as a tap.
+    SharedPreferences.setMockInitialValues({
+      'remember_me': true,
+      'user_token': 'test-token',
+      'user_id': 1,
+      'user_email': 'test@example.com',
+      'user_name': 'Test',
+      'user_role': 'korisnik',
+    });
+    await SessionService.instance.init();
+  });
+
+  /// Builds the app at one path. No network answers in a test, so screens
+  /// settle into their own error or empty states - which is enough to prove
+  /// which screen was built.
+  Future<GoRouter> open(WidgetTester tester, String path) async {
+    final router = GoRouter(
+      initialLocation: path,
+      routes: appRouteTable,
+      errorBuilder: appRouteErrorBuilder,
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    // Deliberately not pumpAndSettle: several of these screens keep a spinner
+    // or a retry timer going while a request that will never answer is out.
+    await tester.pump(const Duration(milliseconds: 100));
+    return router;
+  }
+
+  group('a path leads to the screen it promises', () {
+    final destinations = <String, Type>{
+      AppRoutes.tactics: TacticsTrainerScreen,
+      AppRoutes.blunderGames: BlunderWalkScreen,
+      '${AppRoutes.endgamePicker}?mode=draw': EndgamePickerScreen,
+      AppRoutes.scan: ScanReviewScreen,
+      AppRoutes.savedPositions: SavedPositionsScreen,
+      AppRoutes.preferences: SettingsScreen,
+    };
+
+    for (final entry in destinations.entries) {
+      testWidgets(entry.key, (tester) async {
+        tester.view.physicalSize = const Size(1200, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+
+        await open(tester, entry.key);
+        expect(find.byType(entry.value), findsOneWidget,
+            reason: '${entry.key} ne vodi na ${entry.value}');
+      });
+    }
+  });
+
+  testWidgets('pushing a destination and popping it comes back',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final router = await open(tester, AppRoutes.scan);
+    expect(find.byType(ScanReviewScreen), findsOneWidget);
+
+    router.push(AppRoutes.savedPositions);
+    // Two pumps: the first lets the router rebuild, the second runs out the
+    // page transition. One long pump catches the new screen mid-slide and
+    // finds nothing.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(SavedPositionsScreen), findsOneWidget);
+
+    router.pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(SavedPositionsScreen), findsNothing);
+    expect(find.byType(ScanReviewScreen), findsOneWidget,
+        reason: 'povratak mora da vrati ekran sa kojeg se krenulo');
+  });
+
+  testWidgets('a path that does not exist says so instead of crashing',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await open(tester, '/ovoga-nema');
+    expect(find.textContaining('ne postoji'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}

@@ -26,137 +26,150 @@ import 'package:chess_app/features/position_scanner/screens/saved_positions_scre
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.home,
   restorationScopeId: 'chess_app_router',
-  routes: [
-    GoRoute(
-      path: AppRoutes.login,
-      builder: (context, state) => LoginRegisterScreen(
-          pendingIntent: state.extra as PendingSessionIntent?),
-    ),
-    GoRoute(
-      path: AppRoutes.home,
-      builder: (context, state) => HomeScreen(
-        session: SessionService.instance.current,
-        pendingIntent: state.extra as PendingSessionIntent?,
-      ),
-    ),
-    GoRoute(
-      path: AppRoutes.room,
-      builder: (context, state) {
-        final roomCode = state.pathParameters['roomCode'] ?? '';
-        final role = state.uri.queryParameters['role'];
-        return ChessGamePage(
-          roomCode: roomCode,
-          // The room's role wins over the account's own role for this screen.
-          userSession: SessionService.instance.current.copyWith(role: role),
-          initialRole: role,
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.analysis,
-      builder: (context, state) => AnalysisStudioScreen(
-        userSession: SessionService.instance.current,
-        initialFen: state.uri.queryParameters['fen'],
-      ),
-    ),
-    GoRoute(
-      path: AppRoutes.replay,
-      builder: (context, state) {
-        final id = int.tryParse(state.pathParameters['recordingId'] ?? '');
-        if (id == null) {
-          return const _InvalidRouteScreen(detail: 'Neispravan ID snimka.');
-        }
-        return ReplayPlayerScreen(
-          recordingId: id,
-          userSession: SessionService.instance.current,
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.tactics,
-      builder: (context, state) => TacticsTrainerScreen(
-        session: SessionService.instance.current,
-      ),
-    ),
-    GoRoute(
-      path: AppRoutes.endgames,
-      builder: (context, state) {
-        final query = state.uri.queryParameters;
-        return EndgameTrainerScreen(
-          session: SessionService.instance.current,
-          mode: query['mode'] == 'draw' ? EndgameMode.draw : EndgameMode.win,
-          // Absent means "everything", which is what the picker sends when
-          // nothing was unticked.
-          material: query['material'],
-          band: query['band'],
-          oppositeOnly: query['oppositeBishops'] == 'true',
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.endgamePicker,
-      builder: (context, state) {
-        final mode = state.uri.queryParameters['mode'] == 'draw'
-            ? EndgameMode.draw
-            : EndgameMode.win;
-        return EndgamePickerScreen(
-          session: SessionService.instance.current,
-          mode: mode,
-          onStart: (choice) {
-            final params = <String, String>{'mode': mode.name};
-            // Already resolved by the picker, which is the only place that
-            // holds the catalog and so the only one that can tell a full
-            // selection from a partial one.
-            if (choice.materialsParam != null) {
-              params['material'] = choice.materialsParam!;
-            }
-            if (choice.bandId != null) params['band'] = choice.bandId!;
-            if (choice.oppositeOnly) params['oppositeBishops'] = 'true';
-            final query = Uri(queryParameters: params).query;
-            context.pushReplacement('${AppRoutes.endgames}?$query');
-          },
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.blunderGames,
-      builder: (context, state) {
-        int? number(String key) {
-          final raw = state.uri.queryParameters[key];
-          return raw == null ? null : int.tryParse(raw);
-        }
-
-        return BlunderWalkScreen(
-          session: SessionService.instance.current,
-          minBlunders: number('minBlunders'),
-          maxBlunders: number('maxBlunders'),
-          minElo: number('minElo'),
-          maxElo: number('maxElo'),
-          material: state.uri.queryParameters['material'],
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.scan,
-      builder: (context, state) => ScanReviewScreen(
-        session: SessionService.instance.current,
-      ),
-    ),
-    GoRoute(
-      path: AppRoutes.savedPositions,
-      builder: (context, state) => SavedPositionsScreen(
-        session: SessionService.instance.current,
-      ),
-    ),
-    GoRoute(
-      path: AppRoutes.preferences,
-      builder: (context, state) =>
-          SettingsScreen(session: SessionService.instance.current),
-    ),
-  ],
-  errorBuilder: (context, state) =>
-      _InvalidRouteScreen(detail: state.uri.toString()),
+  routes: appRouteTable,
+  errorBuilder: appRouteErrorBuilder,
 );
+
+/// What a link to nowhere lands on. Exposed beside [appRouteTable] and for the
+/// same reason: a test that builds its own router should get the app's answer
+/// to a bad path, not go_router's default one.
+Widget appRouteErrorBuilder(BuildContext context, GoRouterState state) =>
+    _InvalidRouteScreen(detail: state.uri.toString());
+
+/// The destinations themselves, apart from the router that starts at the home
+/// screen.
+///
+/// Separated so a test can build a router that opens at any one of them. The
+/// alternative is starting every navigation test on the home screen and walking
+/// to the place under test, which makes each test a test of everything between.
+final List<RouteBase> appRouteTable = [
+  GoRoute(
+    path: AppRoutes.login,
+    builder: (context, state) => LoginRegisterScreen(
+        pendingIntent: state.extra as PendingSessionIntent?),
+  ),
+  GoRoute(
+    path: AppRoutes.home,
+    builder: (context, state) => HomeScreen(
+      session: SessionService.instance.current,
+      pendingIntent: state.extra as PendingSessionIntent?,
+    ),
+  ),
+  GoRoute(
+    path: AppRoutes.room,
+    builder: (context, state) {
+      final roomCode = state.pathParameters['roomCode'] ?? '';
+      final role = state.uri.queryParameters['role'];
+      return ChessGamePage(
+        roomCode: roomCode,
+        // The room's role wins over the account's own role for this screen.
+        userSession: SessionService.instance.current.copyWith(role: role),
+        initialRole: role,
+      );
+    },
+  ),
+  GoRoute(
+    path: AppRoutes.analysis,
+    builder: (context, state) => AnalysisStudioScreen(
+      userSession: SessionService.instance.current,
+      initialFen: state.uri.queryParameters['fen'],
+    ),
+  ),
+  GoRoute(
+    path: AppRoutes.replay,
+    builder: (context, state) {
+      final id = int.tryParse(state.pathParameters['recordingId'] ?? '');
+      if (id == null) {
+        return const _InvalidRouteScreen(detail: 'Neispravan ID snimka.');
+      }
+      return ReplayPlayerScreen(
+        recordingId: id,
+        userSession: SessionService.instance.current,
+      );
+    },
+  ),
+  GoRoute(
+    path: AppRoutes.tactics,
+    builder: (context, state) => TacticsTrainerScreen(
+      session: SessionService.instance.current,
+    ),
+  ),
+  GoRoute(
+    path: AppRoutes.endgames,
+    builder: (context, state) {
+      final query = state.uri.queryParameters;
+      return EndgameTrainerScreen(
+        session: SessionService.instance.current,
+        mode: query['mode'] == 'draw' ? EndgameMode.draw : EndgameMode.win,
+        // Absent means "everything", which is what the picker sends when
+        // nothing was unticked.
+        material: query['material'],
+        band: query['band'],
+        oppositeOnly: query['oppositeBishops'] == 'true',
+      );
+    },
+  ),
+  GoRoute(
+    path: AppRoutes.endgamePicker,
+    builder: (context, state) {
+      final mode = state.uri.queryParameters['mode'] == 'draw'
+          ? EndgameMode.draw
+          : EndgameMode.win;
+      return EndgamePickerScreen(
+        session: SessionService.instance.current,
+        mode: mode,
+        onStart: (choice) {
+          final params = <String, String>{'mode': mode.name};
+          // Already resolved by the picker, which is the only place that
+          // holds the catalog and so the only one that can tell a full
+          // selection from a partial one.
+          if (choice.materialsParam != null) {
+            params['material'] = choice.materialsParam!;
+          }
+          if (choice.bandId != null) params['band'] = choice.bandId!;
+          if (choice.oppositeOnly) params['oppositeBishops'] = 'true';
+          final query = Uri(queryParameters: params).query;
+          context.pushReplacement('${AppRoutes.endgames}?$query');
+        },
+      );
+    },
+  ),
+  GoRoute(
+    path: AppRoutes.blunderGames,
+    builder: (context, state) {
+      int? number(String key) {
+        final raw = state.uri.queryParameters[key];
+        return raw == null ? null : int.tryParse(raw);
+      }
+
+      return BlunderWalkScreen(
+        session: SessionService.instance.current,
+        minBlunders: number('minBlunders'),
+        maxBlunders: number('maxBlunders'),
+        minElo: number('minElo'),
+        maxElo: number('maxElo'),
+        material: state.uri.queryParameters['material'],
+      );
+    },
+  ),
+  GoRoute(
+    path: AppRoutes.scan,
+    builder: (context, state) => ScanReviewScreen(
+      session: SessionService.instance.current,
+    ),
+  ),
+  GoRoute(
+    path: AppRoutes.savedPositions,
+    builder: (context, state) => SavedPositionsScreen(
+      session: SessionService.instance.current,
+    ),
+  ),
+  GoRoute(
+    path: AppRoutes.preferences,
+    builder: (context, state) =>
+        SettingsScreen(session: SessionService.instance.current),
+  ),
+];
 
 /// Shown instead of a crash when a link points somewhere that does not exist.
 class _InvalidRouteScreen extends StatelessWidget {

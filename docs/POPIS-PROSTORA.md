@@ -101,7 +101,61 @@ se naslepo.
 - Četiri najveća: soba 3384, Trening 2662, analiza 1855, trener završnica 1529.
 - Navigacijskih poziva: 24 preko `AppRoutes`, 11 preko `MaterialPageRoute`.
 
-## Pitanja koja čekaju odluku
+## Odluke, 24.8.2026
+
+Donete posle ovog popisa, pre nego što je išta pomereno:
+
+1. **Svako odredište dobija rutu — osim jednog.** Šest ekrana iz grane zadataka
+   dobija putanju; `CustomPuzzleSolverScreen` je ne dobija, jer nosi povratni
+   poziv `onAnswered` i time nije mesto nego **korak u toku** koji drži
+   „Pregled zadatka". Ruta koja radi samo kad je neko ručno dohrani objektom je
+   ruta samo po imenu.
+2. **Ekrani koji traže ceo objekat rade po id-u**, sa dohvatanjem; `extra` je
+   prečica kad se objekat već ima, ne uslov.
+3. **Tri unutrašnja stanja postaju jedan parametrizovan radni ekran**
+   (`/training/drill?category=…`), a raskrsnica ostaje lagana lista kartica.
+4. **Putanje su na engleskom**, sve; `/endgames/izbor` i `/endgames/greske` se
+   preimenuju dok nema objavljenih dubokih veza.
+5. **Četiri taba**, jer prvi ekran ne sme da pretpostavlja odnos sa trenerom:
+
+   | | tab | sadržaj |
+   |---|---|---|
+   | 1 | Trening | „Nastavi" · taktika, završnice, matovi, greške iz partija |
+   | 2 | Časovi | sobe, pridruživanje, snimci, domaći, ponavljanje, napredak |
+   | 3 | Biblioteka | analiza, skener, sačuvane pozicije |
+   | 4 | Ljudi | prijatelji, učenici, pozivnice |
+
+   Podešavanja izlaze u ikonicu; statistika naloga i PREMIUM idu u njih. Isti
+   tabovi za sve, sadržaj se prilagođava — „trener" nije svojstvo naloga nego
+   uloga u odnosu i menja se u toku rada.
+6. **Imena u kodu su skela.** `AiStudioScreen` nema veze sa AI. Unutrašnja
+   imena se smeju zadržati radi mira, ali **naslovi pred korisnikom moraju da
+   odgovaraju funkciji**.
+
+## Mreža je postavljena — 24.8.2026
+
+Pre bilo kakvog pomeranja, tri sloja, sva tri prolaze:
+
+- `test/navigation_map_test.dart` — čita `AppRoutes` i ruter kao tekst i pada
+  ako ruta postoji a ruter je ne gradi, ako je putanja u ruteru upisana rukom
+  umesto konstantom, ako se dve konstante poklope, ili ako putanja nije
+  apsolutna i mala slova (parametri kao `:roomCode` su izuzeti).
+- `test/training_hub_test.dart` — svaka kartica raskrsnice vodi tamo gde piše,
+  i ništa se ne okida samo od sebe. To je ono što se pri deobi najlakše
+  nečujno pomeri, jer tri kartice danas idu rutom a tri stanjem.
+- `test/navigation_flow_test.dart` — otvara šest putanja i traži da na stablu
+  bude baš onaj ekran, gura i vraća se (`push` pa `pop`), i proverava da
+  nepostojeća putanja daje poruku umesto pada.
+
+Uz to je iz `app_router.dart` izdvojen `appRouteTable` (i `appRouteErrorBuilder`),
+da test može da otvori aplikaciju **na bilo kojoj putanji**. Bez toga svaki
+navigacioni test počinje na Početnoj i time postaje test svega usput — a Početna
+otvara sokete.
+
+Namerno **nisu** pokriveni soba i analiza: prva diže sokete, druga motor. Njih
+pokrivaju sopstveni testovi.
+
+## Pitanja na koja je odgovoreno gore
 
 1. Da li **svako** odredište dobija rutu, uključujući lanac zadataka i tri
    stanja iz Treninga?
