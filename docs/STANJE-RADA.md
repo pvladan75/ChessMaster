@@ -4036,6 +4036,41 @@ nijedan neispunjen `{{...}}`, nemaju vodoravno prelivanje na širini telefona, i
 konzola je prazna. Ostaje da se u `.env` na dropletu upišu vrednosti i pokrene
 skripta — to je jedina radnja koja traži server.
 
+### Odakle sutra — 26.8.2026, 00:20
+
+Sve je commitovano i **pushovano** (`493f8db`), droplet je povučen na isti
+commit, CI se pokrenuo i nije proveren.
+
+**Sajt stoji na jednom koraku:** u `.env` na dropletu fale `PRIVACY_EMAIL` i
+`SUPPORT_EMAIL`, jer adrese na domenu još ne postoje. MX zapisi
+`chesstrainers.app` već pokazuju na Namecheap-ovo preusmeravanje
+(`eforward1–5.registrar-servers.com`), pa je posao samo dodati aliase u panelu
+i proslediti ih na Gmail. Ostale vrednosti su upisane i proverene
+(`OPERATOR_NAME`, `OPERATOR_ADDRESS`, hosting, `SMTP_PROVIDER=Google (Gmail)`,
+datum, `EXPORT_RETENTION_DAYS=14`). Posle toga je objava jedna komanda:
+`LE_EMAIL=… bash deploy/site-setup.sh` — i **pre nje prevod stranica na
+engleski**, po odluci iznad.
+
+**Nađeno usput, popravljeno na dropletu:** `MAIL_FROM` je glasio
+`Chess Master <…@gmail.com>` — Ubisoft-ov brend u pošiljaocu svake poruke,
+uključujući poruku roditelju. Ime je promenjeno u `Šahovska obuka`; adresa nije
+dirana, jer Gmail ne šalje sa neverifikovane. **Isti red skoro sigurno stoji i u
+lokalnom `.env`.**
+
+**Zamka na koju sam nasankao, da se ne ponovi:** `git fetch --depth 1 origin
+master` na plitkom klonu ostavi `origin/master` na starom commitu, pa
+`checkout -B master origin/master` „uspe" i vrati stari kod. Traži izričit
+refspec `+refs/heads/master:refs/remotes/origin/master` — kako i piše u
+`deploy/app-setup.sh`, dva reda iznad te komande. I dalje: **ne pokretati
+`app-setup.sh`** samo radi povlačenja koda, jer on radi `systemctl enable` i
+`restart` servisa koji je namerno ugašen.
+
+**Ostalo otvoreno, po veličini:** prevod sajta i pravni status prevoda; nivoi
+pretplate (`CENA-I-PRETPLATA.md`, odeljak 7); `checkUserLimits` bez pozivaoca;
+slanje pošte sa domena (SPF/DKIM) umesto sa lične Gmail adrese;
+`PUBLIC_BASE_URL` prazan na dropletu; i kanvas sa predlozima za panel trenera,
+koji čeka izbor varijante.
+
 ### Sledeće, po redu
 
 Stanje na kraju 24.8.2026. Sve iz prošlog spiska pod 2–6 je urađeno; ostaje

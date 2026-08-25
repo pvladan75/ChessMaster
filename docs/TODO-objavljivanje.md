@@ -176,6 +176,19 @@ desktop verzija uopšte podeli — nju Play ne raznosi.
       sertifikata pukne, i sa njim padne `api` koji niko nije dirao. Tri meseca
       kasnije i bez ijedne poruke — isti oblik kao zatvaranje porta 80.
 
+- [x] **Jezik sajta — odlučeno 26.8.2026: engleski.** Otuda i adrese
+      `privacy@` i `support@`, a ne `privatnost@`/`podrska@`. Ovo je **izuzetak
+      od pravila** iz `CLAUDE.md` da su korisnički tekstovi srpski: ono važi za
+      aplikaciju, sajt je druga publika.
+
+      **Posledica koju treba rešiti pre objave:** stranice u `site/` su
+      napisane na srpskom i treba ih prevesti. A politiku privatnosti je
+      advokat proverio **na srpskom i za Srbiju** — prevod nije provereni
+      tekst. Treba odlučiti šta je merodavno: ili sajt nosi obe verzije uz
+      izričitu napomenu koja je obavezujuća, ili engleska verzija ide na novu
+      pravnu proveru. Stranica saglasnosti koju servira backend ostaje srpska,
+      jer je vezana za `PARENT_CONSENT_VERSION` i za tekst koji je potvrđen.
+
 **Šta sajt mora da nosi:**
 
 - [x] Politika privatnosti i saglasnost roditelja — na stalnim URL-ovima koji se
