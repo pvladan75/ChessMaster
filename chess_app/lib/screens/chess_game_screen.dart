@@ -41,6 +41,7 @@ import 'package:chess_app/widgets/game_selector_dialog.dart';
 import 'package:chess_app/widgets/share_position_dialog.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
+import 'package:chess_app/features/groups/widgets/room_guests_dialog.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:go_router/go_router.dart';
@@ -3136,6 +3137,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
           title: Text(isConnected ? gameStatus : 'Uspostavljanje veze...'),
           centerTitle: true,
           actions: [
+            // Only the person whose room it is: the guest list decides who gets
+            // in, and that is not a decision a seat in the room grants.
+            if (activeRole == 'trener' && widget.roomCode != 'STUDIO')
+              IconButton(
+                icon: const Icon(Icons.groups, color: Colors.tealAccent),
+                tooltip: 'Ko sme u sobu',
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => RoomGuestsDialog(
+                    roomCode: widget.roomCode,
+                  ),
+                ),
+              ),
             IconButton(
               icon: const Icon(Icons.biotech, color: Colors.tealAccent),
               tooltip: 'Izvezi u Tablu za Analizu 🔬',

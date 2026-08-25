@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/features/groups/screens/groups_screen.dart';
+
 /// The "Prijatelji" tab: add-by-email form plus the current friends list.
 class HomeFriendsTab extends StatelessWidget {
   final TextEditingController studentEmailController;
@@ -144,19 +146,35 @@ class HomeFriendsTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        children: const [
-                          Icon(Icons.people,
+                        children: [
+                          const Icon(Icons.people,
                               color: Colors.purpleAccent, size: 28),
-                          SizedBox(width: 12),
+                          const SizedBox(width: 12),
                           // Expanded, not a bare Text: at 360 px this title is
                           // wider than the card and overflowed off the right
                           // edge. Only the phone shows it, and the tab had
                           // never been rendered at that width.
-                          Expanded(
+                          const Expanded(
                             child: Text('Moji Prijatelji & Kontakti',
                                 style: TextStyle(
                                     fontSize: 18, fontWeight: FontWeight.bold)),
                           ),
+                          // Groups live here because they are lists of the
+                          // people on this very screen. Shown only to somebody
+                          // who teaches: a group is a list of *your* students,
+                          // and a student has none.
+                          if (myStudents.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.groups,
+                                  color: Colors.purpleAccent),
+                              tooltip: 'Grupe učenika',
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      GroupsScreen(students: students),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 16),

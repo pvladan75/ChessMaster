@@ -1347,8 +1347,16 @@ postojeći tok. Treba dva naloga (trener i učenik) i pokrenut backend.
       `[AUDIO] Odbijen ulazak` sa razlogom.
 - [ ] Glas: odbijeni nalog ne može da uđe ni u glas ni kad pokuša direktno.
 
-Kad ekrani za grupe budu gotovi, ovde se dodaje i provera da „pozovi grupu"
-pušta unutra samo tu grupu.
+Grupe i spisak zvanica (ekrani napisani 25.8.2026):
+
+- [ ] „Ljudi" → dugme sa grupama otvara ekran; napraviti grupu, preimenovati je, dodati dva učenika, izbaciti jednog.
+- [ ] U biraču se nude **samo prihvaćeni** učenici — onaj koji nije potvrdio vezu se ne pojavljuje.
+- [ ] Nigde u tim spiskovima ne stoji tuđ email.
+- [ ] U sobi, trener → „Ko sme u sobu": prazan spisak kaže da soba prima sve njegove učenike.
+- [ ] Pozvati **celu grupu** jednim klikom; poruka se promeni u „Ulaze samo oni sa ovog spiska".
+- [ ] Učenik **iz te grupe** uđe kodom; učenik istog trenera **van grupe** dobije „Niste na spisku za ovu sobu".
+- [ ] Pozvati i **jednog** učenika poimence — ulazi i on.
+- [ ] Skinuti grupu sa spiska: kad spisak ostane prazan, soba se opet otvara svim učenicima tog trenera.
 
 Uz to, sitno ali vidljivo:
 

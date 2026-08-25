@@ -3200,9 +3200,25 @@ imenom zamenjeno onim što red zaista jeste („Čeka potvrdu", „Vaš učenik"
 Polje za *pozivanje* po adresi ostaje — pozivaš nekoga čiju adresu već znaš —
 ali tuđa adresa više ne putuje kroz liste, a većina ljudi u tim listama su deca.
 
-Šta **nije** urađeno: ekrani za grupe i za spisak zvanica (backend i rute
-postoje), prekidač „soba prima goste" u sobi, i pravilo da maloletnik ima samo
-trenera. To je sledeći korak.
+**Ekrani su napisani 25.8.2026.** „Ljudi" ima dugme *Grupe učenika* (samo za
+onoga ko nekoga uči — grupa je spisak *tvojih* učenika), gde se grupe prave,
+preimenuju, brišu i pune; u sobi trener ima *Ko sme u sobu*, gde se pozivaju
+cele grupe i pojedinci. Dijalog kaže naglas šta spisak radi: prazan znači „svi
+moji učenici", a prvi red sužava sobu na spisak. Tiho sužavanje toga ko sme
+unutra bilo bi ista vrsta iznenađenja kao kontrola koja radi dok joj je dugme
+sakriveno.
+
+Ekran nudi samo **prihvaćene** učenike. Server to ionako odbija, ali ekran koji
+ponudi ono što će server odbiti pravi grešku koja izgleda kao njegova.
+
+Usput nađena i popravljena greška koju je test izvukao: `TextEditingController`
+napravljen oko `showDialog` i obrisan čim se dijalog zatvori umire dok se
+dijalog još animira, pa se polje jedan kadar kasnije crta nad mrtvim
+kontrolerom. Isti obrazac je bio napisan istog dana i u repertoaru („Nalepi
+FEN"); oba dijaloga sada drže svoj kontroler koliko i sami traju.
+
+Šta **nije** urađeno: prekidač „soba prima goste" u sobi, i pravilo da
+maloletnik ima samo trenera. To je sledeći korak.
 
 ### Uzrast i saglasnost: šta znamo o korisniku (ništa) i kako to popraviti
 

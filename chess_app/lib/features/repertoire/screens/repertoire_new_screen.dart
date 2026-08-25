@@ -256,31 +256,13 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
   /// from a book, a position somebody sent. Kept small and off to the side,
   /// because it is the exception.
   Future<void> _pasteFen() async {
-    final controller = TextEditingController(text: _game.fen);
+    // The controller belongs to the dialog, not to this method: disposing it
+    // when `showDialog` returns kills it while the dialog is still animating
+    // out, and the field rebuilds a frame later against a dead controller.
     final fen = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Nalepi poziciju (FEN)'),
-        content: TextField(
-          controller: controller,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            helperText: 'Ceo FEN, sa poljem koje kaže ko je na potezu.',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Odustani'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-            child: const Text('Postavi'),
-          ),
-        ],
-      ),
+      builder: (_) => _PasteFenDialog(initial: _game.fen),
     );
-    controller.dispose();
     if (fen == null || fen.isEmpty || !mounted) return;
 
     chess.Chess board;
@@ -501,6 +483,51 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
           onPressed: _canSave ? _save : null,
           icon: const Icon(Icons.check, size: 18),
           label: const Text('Napravi'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Pasting a position, with the controller living as long as the dialog.
+class _PasteFenDialog extends StatefulWidget {
+  const _PasteFenDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_PasteFenDialog> createState() => _PasteFenDialogState();
+}
+
+class _PasteFenDialogState extends State<_PasteFenDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Nalepi poziciju (FEN)'),
+      content: TextField(
+        controller: _controller,
+        maxLines: 3,
+        decoration: const InputDecoration(
+          helperText: 'Ceo FEN, sa poljem koje kaže ko je na potezu.',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Odustani'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
+          child: const Text('Postavi'),
         ),
       ],
     );
