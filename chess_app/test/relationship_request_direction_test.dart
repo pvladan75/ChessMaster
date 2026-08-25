@@ -29,6 +29,7 @@ Widget _tab({
   ValueChanged<Map<String, dynamic>>? onOpenProgress,
   ValueChanged<int>? onDeleteStudent,
   Future<void> Function()? onRefresh,
+  VoidCallback? onFixParentEmail,
 }) =>
     HomeFriendsTab(
       studentEmailController: TextEditingController(),
@@ -41,6 +42,7 @@ Widget _tab({
       iAmTrainerInRequest: iAmTrainer,
       onRoleChanged: onRoleChanged,
       onRefresh: onRefresh ?? () async {},
+      onFixParentEmail: onFixParentEmail ?? () {},
     );
 
 void main() {

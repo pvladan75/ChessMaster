@@ -17,7 +17,8 @@ class EngineMove {
 class AnalysisLine {
   final int multipv;
   final int depth;
-  final String evaluation; // Evaluacija fiksirana iz ugla Belog (+ za belog, - za crnog)
+  final String
+      evaluation; // Evaluacija fiksirana iz ugla Belog (+ za belog, - za crnog)
   final String bestMoveLan; // e.g. e2e4
   final String bestMoveSan; // e.g. e4 ili Qe2
   final String continuationLan;
@@ -50,7 +51,11 @@ class AnalysisLine {
     required String pvString,
     required String startingFen,
   }) {
-    final tokens = pvString.trim().split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+    final tokens = pvString
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((t) => t.isNotEmpty)
+        .toList();
     if (tokens.isEmpty) {
       return AnalysisLine(
         multipv: multipv,
@@ -90,7 +95,8 @@ class AnalysisLine {
         final turnBeforeMove = game.turn;
         final fenBefore = game.fen;
         final parts = fenBefore.split(' ');
-        final moveNum = int.tryParse(parts.length > 5 ? parts[5] : '1') ?? (i ~/ 2 + 1);
+        final moveNum =
+            int.tryParse(parts.length > 5 ? parts[5] : '1') ?? (i ~/ 2 + 1);
 
         final moveMap = {'from': from, 'to': to, 'promotion': promo};
         final ok = game.move(moveMap);
@@ -118,8 +124,10 @@ class AnalysisLine {
       // Fallback if parsing fails
     }
 
-    final bestMoveSan = sanMoveList.isNotEmpty ? sanMoveList.first : bestMoveLan;
-    final continuationSan = numberedSanTokens.isNotEmpty ? numberedSanTokens.join(' ') : pvString;
+    final bestMoveSan =
+        sanMoveList.isNotEmpty ? sanMoveList.first : bestMoveLan;
+    final continuationSan =
+        numberedSanTokens.isNotEmpty ? numberedSanTokens.join(' ') : pvString;
 
     return AnalysisLine(
       multipv: multipv,

@@ -2,7 +2,8 @@ import 'package:chess/chess.dart' as chess;
 
 class PgnGame {
   final List<String> movesSan;
-  final List<String> fens; // fens[0] starting position, fens[1] after 1st move...
+  final List<String>
+      fens; // fens[0] starting position, fens[1] after 1st move...
 
   PgnGame({required this.movesSan, required this.fens});
 }
@@ -65,7 +66,6 @@ class PgnParser {
     } catch (_) {
       // Failed standard load_pgn, falling back to manual parse
     }
-
 
     try {
       final tokens = cleaned.split(RegExp(r'\s+'));

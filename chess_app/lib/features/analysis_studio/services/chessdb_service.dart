@@ -53,7 +53,9 @@ class ChessDbService {
       }
 
       final body = res.body.trim();
-      if (body.isEmpty || body.startsWith('unknown') || body.startsWith('invalid')) {
+      if (body.isEmpty ||
+          body.startsWith('unknown') ||
+          body.startsWith('invalid')) {
         final result = ChessDbResult(fen: fen, moves: []);
         _cache[fen] = result;
         return result;
@@ -84,7 +86,8 @@ class ChessDbService {
       });
 
       final result = ChessDbResult(fen: fen, moves: moves);
-      AppLogger.log('[ChessDB] ✅ Parsed: ${result.moves.length} poteza za FEN: $fen');
+      AppLogger.log(
+          '[ChessDB] ✅ Parsed: ${result.moves.length} poteza za FEN: $fen');
       _cache[fen] = result;
       return result;
     } catch (e) {

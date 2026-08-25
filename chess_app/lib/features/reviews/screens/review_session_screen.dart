@@ -10,6 +10,7 @@ import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import '../services/review_api_service.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// Works through the positions that are due for review.
 ///
@@ -151,14 +152,17 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
 
     if (description == null) {
       setState(() => _grading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ocena nije sačuvana — proverite vezu.')),
+      AppFeedback.show(
+        context,
+        () => const SnackBar(
+            content: Text('Ocena nije sačuvana — proverite vezu.')),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    AppFeedback.show(
+      context,
+      () => SnackBar(
           content: Text('${grade.label} — sledeće ponavljanje $description'),
           duration: const Duration(milliseconds: 1400)),
     );

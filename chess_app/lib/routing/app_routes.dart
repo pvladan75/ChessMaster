@@ -94,6 +94,12 @@ abstract final class AppRoutes {
   /// row in Settings — and a path is what both can name.
   static const String shortcuts = '/shortcuts';
 
+  /// Correcting the stated year of birth. The gate itself is not a route — it
+  /// draws over the whole app until it is answered — but the answer has to stay
+  /// reachable afterwards: somebody who typed 2017 instead of 1997 must not be
+  /// locked out by a field they can never open again.
+  static const String birthYear = '/birth-year';
+
   // ── Builders, so callers never hand-assemble a path ──
 
   static String roomPath(String roomCode, {String? role}) {

@@ -53,11 +53,14 @@ class MotifResult {
 
   const MotifResult({required this.findings});
 
-  List<TacticalMotif> get motifs => findings.expand((f) => f.motifs).toSet().toList();
+  List<TacticalMotif> get motifs =>
+      findings.expand((f) => f.motifs).toSet().toList();
 
-  String get description => findings.map((f) => f.description).where((d) => d.isNotEmpty).join(' | ');
+  String get description =>
+      findings.map((f) => f.description).where((d) => d.isNotEmpty).join(' | ');
 
-  List<String> get affectedSquares => findings.expand((f) => f.affectedSquares).toSet().toList();
+  List<String> get affectedSquares =>
+      findings.expand((f) => f.affectedSquares).toSet().toList();
 
   bool get hasMotif => findings.isNotEmpty;
 

@@ -29,7 +29,8 @@ class SelectedSquarePainter extends CustomPainter {
       row = rank - 1;
     }
 
-    final rect = Rect.fromLTWH(col * squareSize, row * squareSize, squareSize, squareSize);
+    final rect = Rect.fromLTWH(
+        col * squareSize, row * squareSize, squareSize, squareSize);
     final borderPaint = Paint()
       ..color = Colors.amberAccent
       ..style = PaintingStyle.stroke
@@ -71,11 +72,14 @@ class HorizontalEvalBarWidget extends StatelessWidget {
     }
 
     String formattedEval = evalString;
-    if (!evalString.contains('M') && !evalString.contains('+') && !evalString.contains('-')) {
+    if (!evalString.contains('M') &&
+        !evalString.contains('+') &&
+        !evalString.contains('-')) {
       final double val = double.tryParse(evalString) ?? 0.0;
       if (val > 0) formattedEval = '+$evalString';
     }
-    final String displayEvalText = depth > 0 ? '$formattedEval (d$depth)' : formattedEval;
+    final String displayEvalText =
+        depth > 0 ? '$formattedEval (d$depth)' : formattedEval;
 
     return Container(
       height: 18,
@@ -173,11 +177,17 @@ class VerticalEvalBarWidget extends StatelessWidget {
           children: [
             Expanded(
               flex: (topPct * 1000).round(),
-              child: Container(color: isWhiteOrientation ? Colors.grey.shade900 : Colors.grey.shade100),
+              child: Container(
+                  color: isWhiteOrientation
+                      ? Colors.grey.shade900
+                      : Colors.grey.shade100),
             ),
             Expanded(
               flex: (bottomPct * 1000).round(),
-              child: Container(color: isWhiteOrientation ? Colors.grey.shade100 : Colors.grey.shade900),
+              child: Container(
+                  color: isWhiteOrientation
+                      ? Colors.grey.shade100
+                      : Colors.grey.shade900),
             ),
           ],
         ),

@@ -52,8 +52,8 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
 
   /// Positions the engine will be asked to evaluate, before delta pruning:
   /// 1 at the root, n at the next ply, n^2 after that, and so on.
-  int get _worstCasePositions =>
-      _generatorService.calculateAnalyzedPositions(_pliesDepth, _candidateCount);
+  int get _worstCasePositions => _generatorService.calculateAnalyzedPositions(
+      _pliesDepth, _candidateCount);
 
   /// Rough wall-clock estimate. Search cost grows sharply with depth, so this is
   /// a ballpark meant to stop obviously runaway settings, not a promise.
@@ -124,11 +124,13 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
           children: [
             Row(
               children: [
-                Icon(Icons.auto_awesome, color: context.colors.warning, size: 22),
+                Icon(Icons.auto_awesome,
+                    color: context.colors.warning, size: 22),
                 const SizedBox(width: 8),
                 Text(
                   'Automatska Analiza Pozicije',
-                  style: AppText.title.copyWith(color: context.colors.textPrimary),
+                  style:
+                      AppText.title.copyWith(color: context.colors.textPrimary),
                 ),
               ],
             ),
@@ -144,8 +146,12 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Dubina pretrage (N polupoteza): $_pliesDepth', style: AppText.body.copyWith(color: context.colors.textPrimary)),
-                  Text('$_pliesDepth polupoteza', style: AppText.bodyBold.copyWith(color: context.colors.accent)),
+                  Text('Dubina pretrage (N polupoteza): $_pliesDepth',
+                      style: AppText.body
+                          .copyWith(color: context.colors.textPrimary)),
+                  Text('$_pliesDepth polupoteza',
+                      style: AppText.bodyBold
+                          .copyWith(color: context.colors.accent)),
                 ],
               ),
               Slider(
@@ -161,8 +167,13 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Kandidat potezi (n linija): $_candidateCount', style: AppText.body.copyWith(color: context.colors.textPrimary)),
-                  Text('Top $_candidateCount poteza', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent)),
+                  Text('Kandidat potezi (n linija): $_candidateCount',
+                      style: AppText.body
+                          .copyWith(color: context.colors.textPrimary)),
+                  Text('Top $_candidateCount poteza',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.cyanAccent)),
                 ],
               ),
               Slider(
@@ -171,15 +182,21 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 max: 3,
                 divisions: 2,
                 activeColor: Colors.cyanAccent,
-                onChanged: (val) => setState(() => _candidateCount = val.round()),
+                onChanged: (val) =>
+                    setState(() => _candidateCount = val.round()),
               ),
 
               // deltaCutoff: Centipawn cutoff
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Cutoff prag (delta): ${_deltaCutoff.toStringAsFixed(1)} pešaka', style: AppText.body.copyWith(color: context.colors.textPrimary)),
-                  Text('${(_deltaCutoff * 100).round()} cp', style: AppText.bodyBold.copyWith(color: context.colors.warning)),
+                  Text(
+                      'Cutoff prag (delta): ${_deltaCutoff.toStringAsFixed(1)} pešaka',
+                      style: AppText.body
+                          .copyWith(color: context.colors.textPrimary)),
+                  Text('${(_deltaCutoff * 100).round()} cp',
+                      style: AppText.bodyBold
+                          .copyWith(color: context.colors.warning)),
                 ],
               ),
               Slider(
@@ -195,8 +212,13 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Dubina motora (d): $_engineDepth', style: AppText.body.copyWith(color: context.colors.textPrimary)),
-                  Text('depth $_engineDepth', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orangeAccent)),
+                  Text('Dubina motora (d): $_engineDepth',
+                      style: AppText.body
+                          .copyWith(color: context.colors.textPrimary)),
+                  Text('depth $_engineDepth',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orangeAccent)),
                 ],
               ),
               Slider(
@@ -215,14 +237,19 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 decoration: BoxDecoration(
                   color: Colors.black38,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _isHeavy ? context.colors.danger : Colors.grey.shade700),
+                  border: Border.all(
+                      color: _isHeavy
+                          ? context.colors.danger
+                          : Colors.grey.shade700),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       _isHeavy ? Icons.warning_amber : Icons.timer_outlined,
                       size: 16,
-                      color: _isHeavy ? context.colors.danger : context.colors.textMuted,
+                      color: _isHeavy
+                          ? context.colors.danger
+                          : context.colors.textMuted,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -230,7 +257,9 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                         'Do $_worstCasePositions pozicija na dubini $_engineDepth · procena ~$_estimatedSeconds s'
                         '${_isHeavy ? '\nSmanjite N, n ili d da skratite analizu.' : ''}',
                         style: AppText.caption.copyWith(
-                          color: _isHeavy ? context.colors.danger : context.colors.textMuted,
+                          color: _isHeavy
+                              ? context.colors.danger
+                              : context.colors.textMuted,
                         ),
                       ),
                     ),
@@ -243,7 +272,8 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.flash_on),
-                  label: const Text('Započni Automatsku Analizu ⚡', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: const Text('Započni Automatsku Analizu ⚡',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amber.shade800,
                     foregroundColor: Colors.white,
@@ -259,23 +289,28 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Center(
                 child: Column(
                   children: [
-                    Icon(Icons.check_circle, color: context.colors.accent, size: 36),
+                    Icon(Icons.check_circle,
+                        color: context.colors.accent, size: 36),
                     const SizedBox(height: 12),
                     Text(
                       'Gotovo! Analizirano $_processedNodes pozicija.',
                       textAlign: TextAlign.center,
-                      style: AppText.subtitle.copyWith(color: context.colors.accent),
+                      style: AppText.subtitle
+                          .copyWith(color: context.colors.accent),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Gornja granica je bila $_totalEstimatedNodes (da nije bilo orezivanja). '
                       'Grane čiji je eval bio gori od najboljeg poteza za više od ${_deltaCutoff.toStringAsFixed(1)} pešaka su preskočene — to je očekivano, ne greška.',
                       textAlign: TextAlign.center,
-                      style: AppText.caption.copyWith(color: context.colors.textMuted),
+                      style: AppText.caption
+                          .copyWith(color: context.colors.textMuted),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade700, foregroundColor: Colors.white),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal.shade700,
+                          foregroundColor: Colors.white),
                       onPressed: () => Navigator.pop(context),
                       child: const Text('Zatvori'),
                     ),
@@ -287,28 +322,35 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Center(
                 child: Column(
                   children: [
-                    LinearProgressIndicator(value: progressPct, backgroundColor: Colors.grey.shade800, color: context.colors.warning),
+                    LinearProgressIndicator(
+                        value: progressPct,
+                        backgroundColor: Colors.grey.shade800,
+                        color: context.colors.warning),
                     const SizedBox(height: 16),
                     Text(
                       'Obrađeno čvorova: $_processedNodes / $_totalEstimatedNodes',
-                      style: AppText.bodyLargeBold.copyWith(color: context.colors.accent),
+                      style: AppText.bodyLargeBold
+                          .copyWith(color: context.colors.accent),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       _statusMsg,
                       textAlign: TextAlign.center,
-                      style: AppText.body.copyWith(color: context.colors.textMuted),
+                      style: AppText.body
+                          .copyWith(color: context.colors.textMuted),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Napomena: broj iznad je gornja granica bez orezivanja — grane sa slabijim potezima se preskaču pa se stvarni broj skoro uvek zaustavi mnogo ranije.',
                       textAlign: TextAlign.center,
-                      style: AppText.micro.copyWith(color: context.colors.textMuted),
+                      style: AppText.micro
+                          .copyWith(color: context.colors.textMuted),
                     ),
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
                       icon: Icon(Icons.cancel, color: context.colors.danger),
-                      label: Text('Otkaži', style: TextStyle(color: context.colors.danger)),
+                      label: Text('Otkaži',
+                          style: TextStyle(color: context.colors.danger)),
                       onPressed: () {
                         _generatorService.cancel();
                         Navigator.pop(context);

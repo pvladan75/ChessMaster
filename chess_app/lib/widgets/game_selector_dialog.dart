@@ -26,7 +26,8 @@ class GameSelectorDialog extends StatelessWidget {
             return ListTile(
               title: Text(
                 game.displayName,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
               subtitle: Text(
                 game.pgnBody.length > 60

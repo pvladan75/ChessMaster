@@ -91,9 +91,11 @@ class AnalysisDraftService {
 
       return AnalysisDraft(
         rootNode: root,
-        currentPath: ((map['path'] as List?) ?? const []).whereType<int>().toList(),
+        currentPath:
+            ((map['path'] as List?) ?? const []).whereType<int>().toList(),
         blackOrientation: map['blackOrientation'] == true,
-        savedAt: DateTime.tryParse(map['savedAt'] as String? ?? '') ?? DateTime.now(),
+        savedAt: DateTime.tryParse(map['savedAt'] as String? ?? '') ??
+            DateTime.now(),
       );
     } catch (e) {
       AppLogger.log('[AnalysisDraft] ❌ Load failed: $e');

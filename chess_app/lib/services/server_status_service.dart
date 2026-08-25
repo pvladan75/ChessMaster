@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -21,6 +22,16 @@ enum ServerStatus {
   /// The server answered and refused the token. Signed in on the phone, signed
   /// out everywhere that matters.
   expired,
+
+  /// The server answered that the account behind the token is not there any
+  /// more. Its own state rather than a shade of [expired], because the two need
+  /// opposite things: an expired token is waiting for a fresh sign-in by the
+  /// same person, and this one has nobody to sign back in.
+  ///
+  /// It matters that the app acts on it. An id freed by a deleted account can
+  /// be handed to somebody else, and a device still holding the old slip would
+  /// then be holding theirs.
+  gone,
 }
 
 /// Tells whether being "signed in" currently means anything.
@@ -50,7 +61,9 @@ class ServerStatusService extends ChangeNotifier {
 
   /// Whether anything is worth saying to the user about the connection.
   bool get hasProblem =>
-      _status == ServerStatus.offline || _status == ServerStatus.expired;
+      _status == ServerStatus.offline ||
+      _status == ServerStatus.expired ||
+      _status == ServerStatus.gone;
 
   String get message {
     switch (_status) {
@@ -59,6 +72,8 @@ class ServerStatusService extends ChangeNotifier {
             'ali ništa se ne čuva niti učitava.';
       case ServerStatus.expired:
         return 'Prijava je istekla. Prijavite se ponovo da bi čuvanje radilo.';
+      case ServerStatus.gone:
+        return 'Ovaj nalog više ne postoji na serveru.';
       case ServerStatus.online:
       case ServerStatus.unknown:
         return '';
@@ -105,6 +120,40 @@ class ServerStatusService extends ChangeNotifier {
     });
   }
 
+  /// What one answer from the server means, apart from the asking.
+  ///
+  /// Separated so the decision can be tested without a network, because the
+  /// thing that must not go wrong here is a distinction rather than a request:
+  /// the server tells "your token is stale" and "your account is gone" apart,
+  /// and an app that flattens them back into one 401 undoes that at the last
+  /// step.
+  @visibleForTesting
+  static ServerStatus statusFor(int code, String body) {
+    if (code == 200) return ServerStatus.online;
+    if (code == 401 || code == 403) {
+      return _reasonOf(body) == 'account-gone'
+          ? ServerStatus.gone
+          : ServerStatus.expired;
+    }
+    // Reachable but unhappy — treat as offline rather than claiming a working
+    // link on the strength of a 500.
+    return ServerStatus.offline;
+  }
+
+  /// Why the server refused, when it says. A body that is not JSON says
+  /// nothing about why, and an absent reason means the older, vaguer refusal.
+  static String? _reasonOf(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map && decoded['reason'] is String) {
+        return decoded['reason'] as String;
+      }
+    } catch (_) {
+      // Not JSON. No reason, which is a fine answer.
+    }
+    return null;
+  }
+
   /// Asks the server whether it is there and whether [token] still counts.
   ///
   /// A guest has nothing to check: there is no token to be refused and no
@@ -124,15 +173,7 @@ class ServerStatusService extends ChangeNotifier {
         headers: {'Authorization': 'Bearer $token'},
       ).timeout(const Duration(seconds: 8));
 
-      if (res.statusCode == 200) {
-        _status = ServerStatus.online;
-      } else if (res.statusCode == 401 || res.statusCode == 403) {
-        _status = ServerStatus.expired;
-      } else {
-        // Reachable but unhappy — treat as offline rather than claiming a
-        // working link on the strength of a 500.
-        _status = ServerStatus.offline;
-      }
+      _status = statusFor(res.statusCode, res.body);
     } catch (e) {
       AppLogger.log('[ServerStatus] Provera veze nije prošla: $e');
       _status = ServerStatus.offline;

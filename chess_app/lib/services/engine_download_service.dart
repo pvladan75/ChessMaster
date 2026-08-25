@@ -49,9 +49,11 @@ class EngineDownloadService {
   /// Downloads the most compatible working Stockfish build, saves it under
   /// the app's support directory and points `custom_engine_path` at it.
   /// Returns the installed executable path.
-  Future<String> downloadAndInstall({EngineDownloadProgress? onProgress}) async {
+  Future<String> downloadAndInstall(
+      {EngineDownloadProgress? onProgress}) async {
     if (!Platform.isWindows) {
-      throw UnsupportedError('Automatsko preuzimanje engine-a je trenutno podržano samo na Windows-u.');
+      throw UnsupportedError(
+          'Automatsko preuzimanje engine-a je trenutno podržano samo na Windows-u.');
     }
     if (_busy) {
       throw StateError('Preuzimanje je već u toku.');
@@ -86,7 +88,8 @@ class EngineDownloadService {
 
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('custom_engine_path', exePath);
-          AppLogger.log('[EngineDownloadService] ✅ Installed $tier at $exePath');
+          AppLogger.log(
+              '[EngineDownloadService] ✅ Installed $tier at $exePath');
           return exePath;
         } catch (e) {
           AppLogger.log('[EngineDownloadService] ⚠️ $tier failed: $e');
@@ -99,13 +102,15 @@ class EngineDownloadService {
         }
       }
 
-      throw Exception('Nijedna verzija engine-a nije uspela da se preuzme/pokrene:\n${errors.join('\n')}');
+      throw Exception(
+          'Nijedna verzija engine-a nije uspela da se preuzme/pokrene:\n${errors.join('\n')}');
     } finally {
       _busy = false;
     }
   }
 
-  Future<void> _downloadFile(String url, String savePath, void Function(double) onProgress) async {
+  Future<void> _downloadFile(
+      String url, String savePath, void Function(double) onProgress) async {
     final client = http.Client();
     try {
       final request = http.Request('GET', Uri.parse(url));

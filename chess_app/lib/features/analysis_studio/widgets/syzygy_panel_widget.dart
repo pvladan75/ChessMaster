@@ -80,7 +80,8 @@ class SyzygyPanelWidget extends StatelessWidget {
                 const SizedBox(
                   width: 12,
                   height: 12,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyanAccent),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.cyanAccent),
                 )
               else if (result != null)
                 _buildVerdictChip(result!),
@@ -90,7 +91,8 @@ class SyzygyPanelWidget extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               'Tablebase nije dostupan za ovu poziciju.',
-              style: AppText.caption.copyWith(color: context.colors.textSecondary),
+              style:
+                  AppText.caption.copyWith(color: context.colors.textSecondary),
             ),
           ],
           if (!isLoading && result != null && result!.moves.isNotEmpty) ...[
@@ -98,7 +100,9 @@ class SyzygyPanelWidget extends StatelessWidget {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: result!.moves.map((move) => _buildMoveChip(context, move)).toList(),
+              children: result!.moves
+                  .map((move) => _buildMoveChip(context, move))
+                  .toList(),
             ),
           ],
         ],
@@ -118,7 +122,8 @@ class SyzygyPanelWidget extends StatelessWidget {
       ),
       child: Text(
         dtz != null ? '${style.label} · $dtz' : style.label,
-        style: AppText.micro.copyWith(fontWeight: FontWeight.bold, color: style.color),
+        style: AppText.micro
+            .copyWith(fontWeight: FontWeight.bold, color: style.color),
       ),
     );
   }
@@ -138,7 +143,8 @@ class SyzygyPanelWidget extends StatelessWidget {
         ),
         child: Text(
           dtz != null ? '${move.san} ($dtz)' : move.san,
-          style: AppText.caption.copyWith(color: style.color, fontWeight: FontWeight.w600),
+          style: AppText.caption
+              .copyWith(color: style.color, fontWeight: FontWeight.w600),
         ),
       ),
     );

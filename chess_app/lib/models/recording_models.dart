@@ -30,7 +30,8 @@ class PauseInterval {
 
 class TimelineEvent {
   final int timestampMs;
-  final String eventType; // 'init', 'move', 'fen_change', 'arrow_drawn', 'lesson_loaded', 'orientation_changed'
+  final String
+      eventType; // 'init', 'move', 'fen_change', 'arrow_drawn', 'lesson_loaded', 'orientation_changed'
   final Map<String, dynamic> data;
 
   TimelineEvent({
@@ -89,7 +90,10 @@ class SessionRecording {
         raw = jsonDecode(raw);
       }
       if (raw is List) {
-        events = raw.map((item) => TimelineEvent.fromJson(Map<String, dynamic>.from(item))).toList();
+        events = raw
+            .map((item) =>
+                TimelineEvent.fromJson(Map<String, dynamic>.from(item)))
+            .toList();
       }
     }
 
@@ -102,7 +106,9 @@ class SessionRecording {
       audioUrl: json['audio_url'],
       videoUrl: json['video_url'],
       timelineEvents: events,
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
     );
   }
 }

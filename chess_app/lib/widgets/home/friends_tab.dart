@@ -34,6 +34,11 @@ class HomeFriendsTab extends StatelessWidget {
   /// keeps the id and the display name together.
   final void Function(Map<String, dynamic> student) onOpenProgress;
 
+  /// Opens the place where a missing parent address is filled in. Handed in
+  /// rather than opened here so the tab stays a tab: the dialog belongs to the
+  /// screen that owns the session.
+  final VoidCallback onFixParentEmail;
+
   const HomeFriendsTab({
     super.key,
     required this.studentEmailController,
@@ -46,6 +51,7 @@ class HomeFriendsTab extends StatelessWidget {
     required this.onRoleChanged,
     required this.onRefresh,
     required this.onOpenProgress,
+    required this.onFixParentEmail,
   });
 
   /// Everyone, in whatever state the relationship is.
@@ -64,15 +70,29 @@ class HomeFriendsTab extends StatelessWidget {
   /// one side is not consent.
   List<Widget> _rows(List<dynamic> rows, {required bool iTeachThem}) {
     return rows.map((r) {
-      final isPending = r['status'] == 'pending';
+      // Three states, not two. `awaiting_parent` is a relationship both people
+      // agreed to that still does not exist, because a parent has not answered
+      // — and a row that drew it as "Vaš učenik" would say a trainer may teach
+      // a child they may not.
+      final status = r['status'];
+      final awaitingParent = status == 'awaiting_parent';
+      final isPending = status == 'pending';
+      final notYet = isPending || awaitingParent;
+      // The child's own side of a wait on their parent is the one row here
+      // that has something to do, so it stays enabled: `ListTile` drops
+      // `onTap` entirely when it is not, which would have made the tap target
+      // look right and do nothing.
+      final actionable = awaitingParent && !iTeachThem;
       return ListTile(
         contentPadding: EdgeInsets.zero,
-        enabled: !isPending,
+        enabled: !notYet || actionable,
         leading: CircleAvatar(
-          backgroundColor: isPending ? Colors.grey.shade700 : null,
-          child: Icon(isPending
-              ? Icons.hourglass_empty
-              : (iTeachThem ? Icons.person : Icons.school)),
+          backgroundColor: notYet ? Colors.grey.shade700 : null,
+          child: Icon(awaitingParent
+              ? Icons.family_restroom
+              : (isPending
+                  ? Icons.hourglass_empty
+                  : (iTeachThem ? Icons.person : Icons.school))),
         ),
         title: Text(r['name'] ?? 'Korisnik',
             style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -83,25 +103,37 @@ class HomeFriendsTab extends StatelessWidget {
           // The address used to stand here and no longer arrives: a list of
           // people, most of them children, is not the place for their emails.
           // What is left is what the row is actually about.
-          isPending
-              ? (r['i_asked'] == true
-                  ? 'Čeka potvrdu'
-                  : 'Odgovorite u zvoncetu')
-              : (iTeachThem ? 'Vaš učenik' : 'Vaš trener'),
+          awaitingParent
+              ? (iTeachThem
+                  ? 'Čeka saglasnost roditelja'
+                  : 'Čeka saglasnost roditelja — dodirnite')
+              : (isPending
+                  ? (r['i_asked'] == true
+                      ? 'Čeka potvrdu'
+                      : 'Odgovorite u zvoncetu')
+                  : (iTeachThem ? 'Vaš učenik' : 'Vaš trener')),
         ),
-        onTap: (isPending || !iTeachThem)
-            ? null
-            : () => onOpenProgress(Map<String, dynamic>.from(r)),
+        // The student's own side of a row waiting on a parent is the one place
+        // where the wait can be ended: without an address on the account
+        // nobody was ever written to, and Settings is not where a child would
+        // think to look.
+        onTap: awaitingParent
+            ? (iTeachThem ? null : () => onFixParentEmail())
+            : ((isPending || !iTeachThem)
+                ? null
+                : () => onOpenProgress(Map<String, dynamic>.from(r))),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (iTeachThem)
               IconButton(
                 icon: const Icon(Icons.insights, size: 20),
-                tooltip: isPending
-                    ? 'Dostupno kad učenik prihvati'
-                    : 'Napredak i zadaci',
-                onPressed: isPending
+                tooltip: awaitingParent
+                    ? 'Dostupno kad roditelj potvrdi'
+                    : (isPending
+                        ? 'Dostupno kad učenik prihvati'
+                        : 'Napredak i zadaci'),
+                onPressed: notYet
                     ? null
                     : () => onOpenProgress(Map<String, dynamic>.from(r)),
               ),

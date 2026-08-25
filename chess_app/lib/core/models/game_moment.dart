@@ -55,9 +55,12 @@ class GameMoment {
     required this.positionalComment,
   });
 
-  String get combinedComment => [tacticalComment, positionalComment].where((s) => s.isNotEmpty).join(' | ');
+  String get combinedComment => [tacticalComment, positionalComment]
+      .where((s) => s.isNotEmpty)
+      .join(' | ');
 
   /// True when this move gave up at least [threshold] pawns of value from
   /// the mover's own perspective — a blunder the opponent can now exploit.
-  bool isBlunderBeyond(double threshold) => swingForMover != null && swingForMover! <= -threshold;
+  bool isBlunderBeyond(double threshold) =>
+      swingForMover != null && swingForMover! <= -threshold;
 }

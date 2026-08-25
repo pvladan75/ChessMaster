@@ -30,7 +30,8 @@ class SavedPuzzleSet {
   factory SavedPuzzleSet.fromJson(Map<String, dynamic> json) => SavedPuzzleSet(
         id: json['id'] as String,
         title: json['title'] as String,
-        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+            DateTime.now(),
         puzzles: ((json['puzzles'] as List?) ?? const [])
             .whereType<Map>()
             .map((m) => LocalPuzzle.fromJson(Map<String, dynamic>.from(m)))
@@ -44,7 +45,8 @@ class SavedPuzzleSet {
 /// sessions.
 class LocalPuzzleSetStorageService {
   LocalPuzzleSetStorageService._();
-  static final LocalPuzzleSetStorageService instance = LocalPuzzleSetStorageService._();
+  static final LocalPuzzleSetStorageService instance =
+      LocalPuzzleSetStorageService._();
 
   static const String _key = 'analysis_studio_puzzle_sets';
 
@@ -87,7 +89,8 @@ class LocalPuzzleSetStorageService {
       final prefs = await SharedPreferences.getInstance();
       final existing = await loadSets();
       final updated = [set, ...existing].take(_maxSets).toList();
-      await prefs.setString(_key, jsonEncode(updated.map((s) => s.toJson()).toList()));
+      await prefs.setString(
+          _key, jsonEncode(updated.map((s) => s.toJson()).toList()));
     } catch (e) {
       AppLogger.log('[LocalPuzzleSetStorage] ❌ Save failed: $e');
     }
@@ -100,7 +103,8 @@ class LocalPuzzleSetStorageService {
       final prefs = await SharedPreferences.getInstance();
       final existing = await loadSets();
       existing.removeWhere((s) => s.id == id);
-      await prefs.setString(_key, jsonEncode(existing.map((s) => s.toJson()).toList()));
+      await prefs.setString(
+          _key, jsonEncode(existing.map((s) => s.toJson()).toList()));
     } catch (e) {
       AppLogger.log('[LocalPuzzleSetStorage] ❌ Delete failed: $e');
     }

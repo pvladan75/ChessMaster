@@ -5,6 +5,7 @@ import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/models/pending_session_intent.dart';
 import 'package:chess_app/screens/home_screen.dart';
+import 'package:chess_app/screens/age_gate_screen.dart';
 import 'package:chess_app/screens/login_screen.dart';
 import 'package:chess_app/screens/settings_screen.dart';
 import 'package:chess_app/screens/shortcuts_screen.dart';
@@ -299,6 +300,10 @@ final List<RouteBase> appRouteTable = [
   GoRoute(
     path: AppRoutes.shortcuts,
     builder: (context, state) => const ShortcutsScreen(),
+  ),
+  GoRoute(
+    path: AppRoutes.birthYear,
+    builder: (context, state) => const BirthYearScreen(canCancel: true),
   ),
 ];
 

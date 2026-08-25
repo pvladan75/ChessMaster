@@ -100,7 +100,8 @@ class AnalysisNode {
 
   /// Rebuilds a node and its full subtree from [toJson] output, wiring each
   /// child's [parent] back-reference as it goes.
-  factory AnalysisNode.fromJson(Map<String, dynamic> json, {AnalysisNode? parent}) {
+  factory AnalysisNode.fromJson(Map<String, dynamic> json,
+      {AnalysisNode? parent}) {
     final node = AnalysisNode(
       fen: json['fen'] as String,
       moveSan: json['moveSan'] as String?,
@@ -114,7 +115,8 @@ class AnalysisNode {
     final childrenJson = (json['children'] as List?) ?? const [];
     node.children = childrenJson
         .whereType<Map>()
-        .map((c) => AnalysisNode.fromJson(Map<String, dynamic>.from(c), parent: node))
+        .map((c) =>
+            AnalysisNode.fromJson(Map<String, dynamic>.from(c), parent: node))
         .toList();
     return node;
   }

@@ -49,11 +49,13 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.account_tree, color: context.colors.accent, size: 18),
+                    Icon(Icons.account_tree,
+                        color: context.colors.accent, size: 18),
                     const SizedBox(width: 6),
                     Text(
                       'Stablo Varijanti',
-                      style: AppText.bodyLargeBold.copyWith(color: context.colors.textPrimary),
+                      style: AppText.bodyLargeBold
+                          .copyWith(color: context.colors.textPrimary),
                     ),
                   ],
                 ),
@@ -64,17 +66,26 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       onTap: () => setState(() => _showVisualGraph = true),
                       borderRadius: BorderRadius.circular(6),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _showVisualGraph ? Colors.teal.shade800 : Colors.transparent,
+                          color: _showVisualGraph
+                              ? Colors.teal.shade800
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: _showVisualGraph ? context.colors.accent : context.colors.border),
+                          border: Border.all(
+                              color: _showVisualGraph
+                                  ? context.colors.accent
+                                  : context.colors.border),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.bar_chart, size: 13, color: context.colors.accent),
+                            Icon(Icons.bar_chart,
+                                size: 13, color: context.colors.accent),
                             const SizedBox(width: 3),
-                            Text('Grafičko', style: AppText.caption.copyWith(color: context.colors.textPrimary)),
+                            Text('Grafičko',
+                                style: AppText.caption.copyWith(
+                                    color: context.colors.textPrimary)),
                           ],
                         ),
                       ),
@@ -84,17 +95,26 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       onTap: () => setState(() => _showVisualGraph = false),
                       borderRadius: BorderRadius.circular(6),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: !_showVisualGraph ? Colors.teal.shade800 : Colors.transparent,
+                          color: !_showVisualGraph
+                              ? Colors.teal.shade800
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: !_showVisualGraph ? context.colors.accent : context.colors.border),
+                          border: Border.all(
+                              color: !_showVisualGraph
+                                  ? context.colors.accent
+                                  : context.colors.border),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.notes, size: 13, color: context.colors.accent),
+                            Icon(Icons.notes,
+                                size: 13, color: context.colors.accent),
                             const SizedBox(width: 3),
-                            Text('PGN', style: AppText.caption.copyWith(color: context.colors.textPrimary)),
+                            Text('PGN',
+                                style: AppText.caption.copyWith(
+                                    color: context.colors.textPrimary)),
                           ],
                         ),
                       ),
@@ -104,8 +124,10 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       IconButton(
                         onPressed: () => _openFullscreen(context),
                         tooltip: 'Prikaži preko celog ekrana',
-                        icon: Icon(Icons.open_in_full, size: 16, color: context.colors.accent),
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        icon: Icon(Icons.open_in_full,
+                            size: 16, color: context.colors.accent),
+                        constraints:
+                            const BoxConstraints(minWidth: 32, minHeight: 32),
                         padding: const EdgeInsets.all(6),
                       ),
                     ],
@@ -160,17 +182,20 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.account_tree, color: dialogContext.colors.accent, size: 18),
+                          Icon(Icons.account_tree,
+                              color: dialogContext.colors.accent, size: 18),
                           const SizedBox(width: 6),
                           Text(
                             'Stablo Varijanti',
-                            style: AppText.subtitle.copyWith(color: dialogContext.colors.textPrimary),
+                            style: AppText.subtitle.copyWith(
+                                color: dialogContext.colors.textPrimary),
                           ),
                         ],
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(dialogContext),
-                        icon: Icon(Icons.close, color: dialogContext.colors.textSecondary),
+                        icon: Icon(Icons.close,
+                            color: dialogContext.colors.textSecondary),
                       ),
                     ],
                   ),
@@ -202,7 +227,8 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
     );
   }
 
-  List<Widget> _buildTreeSpans(BuildContext context, AnalysisNode current, int moveNumber) {
+  List<Widget> _buildTreeSpans(
+      BuildContext context, AnalysisNode current, int moveNumber) {
     final List<Widget> widgets = [];
 
     if (current.children.isEmpty) return widgets;
@@ -224,30 +250,43 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
           decoration: BoxDecoration(
             color: isSelected ? Colors.teal.shade800 : Colors.grey.shade800,
             borderRadius: BorderRadius.circular(4),
-            border: isSelected ? Border.all(color: context.colors.accent, width: 1.5) : null,
+            border: isSelected
+                ? Border.all(color: context.colors.accent, width: 1.5)
+                : null,
           ),
           child: RichText(
             text: TextSpan(
-              style: AppText.bodyLarge.copyWith(color: context.colors.textPrimary),
+              style:
+                  AppText.bodyLarge.copyWith(color: context.colors.textPrimary),
               children: [
                 if (moveNumStr.isNotEmpty)
-                  TextSpan(text: moveNumStr, style: AppText.caption.copyWith(color: context.colors.textMuted)),
+                  TextSpan(
+                      text: moveNumStr,
+                      style: AppText.caption
+                          .copyWith(color: context.colors.textMuted)),
                 TextSpan(
                   text: mainChild.moveSan ?? '',
                   style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? context.colors.accent : context.colors.textPrimary,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected
+                        ? context.colors.accent
+                        : context.colors.textPrimary,
                   ),
                 ),
                 if (mainChild.nag != null)
                   TextSpan(
                     text: ' ${mainChild.nag!}',
-                    style: TextStyle(color: context.colors.warning, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: context.colors.warning,
+                        fontWeight: FontWeight.bold),
                   ),
                 if (mainChild.comment.isNotEmpty)
                   TextSpan(
                     text: ' {${mainChild.comment}}',
-                    style: AppText.caption.copyWith(color: context.colors.info, fontStyle: FontStyle.italic),
+                    style: AppText.caption.copyWith(
+                        color: context.colors.info,
+                        fontStyle: FontStyle.italic),
                   ),
               ],
             ),
@@ -266,7 +305,8 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
             decoration: BoxDecoration(
               color: Colors.deepPurple.shade900.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.purpleAccent.shade100, width: 0.8),
+              border:
+                  Border.all(color: Colors.purpleAccent.shade100, width: 0.8),
             ),
             child: InkWell(
               onTap: () => widget.onSelectNode(varChild),
@@ -274,15 +314,23 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('(', style: AppText.caption.copyWith(color: context.colors.accentAlt)),
+                  Text('(',
+                      style: AppText.caption
+                          .copyWith(color: context.colors.accentAlt)),
                   Text(
                     '${isWhiteMove ? "$moveNumber..." : ""}${varChild.moveSan ?? ""}${varChild.nag ?? ""}',
                     style: AppText.body.copyWith(
-                      fontWeight: varChild.id == widget.activeNode.id ? FontWeight.bold : FontWeight.normal,
-                      color: varChild.id == widget.activeNode.id ? context.colors.warning : Colors.purpleAccent.shade100,
+                      fontWeight: varChild.id == widget.activeNode.id
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: varChild.id == widget.activeNode.id
+                          ? context.colors.warning
+                          : Colors.purpleAccent.shade100,
                     ),
                   ),
-                  Text(')', style: AppText.caption.copyWith(color: context.colors.accentAlt)),
+                  Text(')',
+                      style: AppText.caption
+                          .copyWith(color: context.colors.accentAlt)),
                 ],
               ),
             ),
@@ -302,7 +350,8 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
     showModalBottomSheet(
       context: context,
       backgroundColor: context.colors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) {
         return SafeArea(
           child: Column(
@@ -310,7 +359,8 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
             children: [
               ListTile(
                 leading: Icon(Icons.star, color: ctx.colors.warning),
-                title: Text('Unapredi u Glavnu Liniju (Main Line)', style: TextStyle(color: ctx.colors.textPrimary)),
+                title: Text('Unapredi u Glavnu Liniju (Main Line)',
+                    style: TextStyle(color: ctx.colors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   if (node.parent != null) {
@@ -320,7 +370,8 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
               ),
               ListTile(
                 leading: Icon(Icons.delete, color: ctx.colors.danger),
-                title: Text('Obriši Ovu Varijantu', style: TextStyle(color: ctx.colors.textPrimary)),
+                title: Text('Obriši Ovu Varijantu',
+                    style: TextStyle(color: ctx.colors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   widget.onDeleteNode?.call(node);

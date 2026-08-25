@@ -55,7 +55,8 @@ class PuzzleApiService {
         return jsonDecode(res.body) as Map<String, dynamic>;
       }
     } catch (e) {
-      print('[PUZZLE_API_SERVICE] Server unreachable. Falling back to local offline puzzle DB: $e');
+      print(
+          '[PUZZLE_API_SERVICE] Server unreachable. Falling back to local offline puzzle DB: $e');
     }
 
     // Offline fallback for mate and winning position puzzles
@@ -182,7 +183,8 @@ class PuzzleApiService {
               'tacticalFindings': tacticalFindings,
               'positionalFindings': positionalFindings,
               if (previousMove != null) 'previousMove': previousMove,
-              if (engineAlternative != null) 'engineAlternative': engineAlternative,
+              if (engineAlternative != null)
+                'engineAlternative': engineAlternative,
               if (nextMoveEval != null) 'nextMoveEval': nextMoveEval,
               if (siblingAlternatives != null && siblingAlternatives.isNotEmpty)
                 'siblingAlternatives': siblingAlternatives,
@@ -192,7 +194,8 @@ class PuzzleApiService {
           .timeout(const Duration(seconds: 10));
 
       if (res.statusCode == 200) {
-        return (jsonDecode(res.body) as Map<String, dynamic>)['comment'] as String?;
+        return (jsonDecode(res.body) as Map<String, dynamic>)['comment']
+            as String?;
       }
     } catch (e) {
       print('[PUZZLE_API_SERVICE] Error generating move comment: $e');

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:chess_app/services/billing_service.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// Dialogs used by [HomeScreen] that are pure UI: they read whatever they
 /// need from their parameters and report the result back through a callback
@@ -313,6 +314,10 @@ Widget _messageCard(
           'assignment_new' => Icons.assignment,
           'assignment_done' => Icons.assignment_turned_in,
           'assignment_note' => Icons.chat_bubble_outline,
+          // Both about a parent, and neither is an accepted relationship: the
+          // handshake above would say the opposite of what they mean.
+          'awaiting_parent' => Icons.family_restroom,
+          'student_stated_minor_age' => Icons.family_restroom,
           _ => Icons.star,
         },
         color: isRead ? Colors.grey : Colors.amber,
@@ -753,8 +758,9 @@ void showPremiumModal(
                             if (outcome == PurchaseOutcome.unavailable ||
                                 outcome == PurchaseOutcome.failed) {
                               if (!ctx.mounted) return;
-                              ScaffoldMessenger.of(ctx).showSnackBar(
-                                const SnackBar(
+                              AppFeedback.show(
+                                ctx,
+                                () => const SnackBar(
                                   content:
                                       Text('Kupovinu nije moguće pokrenuti.'),
                                   backgroundColor: Colors.redAccent,

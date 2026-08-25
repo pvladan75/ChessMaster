@@ -19,7 +19,8 @@ class EngineArrow {
   });
 }
 
-Offset getSquareCenter(String square, double boardSize, PlayerColor orientation) {
+Offset getSquareCenter(
+    String square, double boardSize, PlayerColor orientation) {
   if (square.length < 2) return Offset.zero;
   final file = square.codeUnitAt(0) - 'a'.codeUnitAt(0); // 0 to 7
   final rank = int.parse(square[1]) - 1; // 0 to 7
@@ -39,7 +40,8 @@ Offset getSquareCenter(String square, double boardSize, PlayerColor orientation)
   return Offset(x, y);
 }
 
-String getSquareFromOffset(Offset localOffset, double boardSize, PlayerColor orientation) {
+String getSquareFromOffset(
+    Offset localOffset, double boardSize, PlayerColor orientation) {
   final squareSize = boardSize / 8;
   int col = (localOffset.dx / squareSize).floor();
   int row = (localOffset.dy / squareSize).floor();
@@ -84,13 +86,17 @@ class ChessBoardPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final effectiveBoardSize = (size.width > 0 && size.width != double.infinity) ? size.width : boardSize;
+    final effectiveBoardSize = (size.width > 0 && size.width != double.infinity)
+        ? size.width
+        : boardSize;
     final squareSize = effectiveBoardSize / 8;
 
     // Draw last move square highlights (origin & destination in glowing amber)
     if (lastMoveFrom != null && lastMoveTo != null) {
-      final fromCenter = getSquareCenter(lastMoveFrom!, effectiveBoardSize, orientation);
-      final toCenter = getSquareCenter(lastMoveTo!, effectiveBoardSize, orientation);
+      final fromCenter =
+          getSquareCenter(lastMoveFrom!, effectiveBoardSize, orientation);
+      final toCenter =
+          getSquareCenter(lastMoveTo!, effectiveBoardSize, orientation);
 
       final fillPaint = Paint()
         ..color = Colors.amberAccent.withValues(alpha: 0.45)
@@ -101,12 +107,14 @@ class ChessBoardPainter extends CustomPainter {
         ..strokeWidth = 2.5;
 
       if (fromCenter != Offset.zero) {
-        final rectFrom = Rect.fromCenter(center: fromCenter, width: squareSize, height: squareSize);
+        final rectFrom = Rect.fromCenter(
+            center: fromCenter, width: squareSize, height: squareSize);
         canvas.drawRect(rectFrom, fillPaint);
         canvas.drawRect(rectFrom, borderPaint);
       }
       if (toCenter != Offset.zero) {
-        final rectTo = Rect.fromCenter(center: toCenter, width: squareSize, height: squareSize);
+        final rectTo = Rect.fromCenter(
+            center: toCenter, width: squareSize, height: squareSize);
         canvas.drawRect(rectTo, fillPaint);
         canvas.drawRect(rectTo, borderPaint);
       }
@@ -114,7 +122,8 @@ class ChessBoardPainter extends CustomPainter {
 
     // Draw highlighted starting square for drawing mode
     if (highlightedSquare != null) {
-      final center = getSquareCenter(highlightedSquare!, effectiveBoardSize, orientation);
+      final center =
+          getSquareCenter(highlightedSquare!, effectiveBoardSize, orientation);
       final paint = Paint()
         ..color = Colors.tealAccent.withValues(alpha: 0.4)
         ..style = PaintingStyle.fill;
@@ -137,7 +146,8 @@ class ChessBoardPainter extends CustomPainter {
     if (engineArrows != null) {
       for (final eArrow in engineArrows!) {
         final ui.Color color = _getEngineColor(eArrow.rank);
-        final start = getSquareCenter(eArrow.from, effectiveBoardSize, orientation);
+        final start =
+            getSquareCenter(eArrow.from, effectiveBoardSize, orientation);
         final end = getSquareCenter(eArrow.to, effectiveBoardSize, orientation);
 
         if (start == Offset.zero || end == Offset.zero) continue;
@@ -173,7 +183,8 @@ class ChessBoardPainter extends CustomPainter {
           final badgeCenter = Offset(end.dx, end.dy - 12.0);
 
           final badgeRect = RRect.fromRectAndRadius(
-            Rect.fromCenter(center: badgeCenter, width: badgeWidth, height: badgeHeight),
+            Rect.fromCenter(
+                center: badgeCenter, width: badgeWidth, height: badgeHeight),
             const Radius.circular(4),
           );
 
@@ -190,7 +201,8 @@ class ChessBoardPainter extends CustomPainter {
           canvas.drawRRect(badgeRect, borderPaint);
           textPainter.paint(
             canvas,
-            Offset(badgeCenter.dx - textPainter.width / 2, badgeCenter.dy - textPainter.height / 2),
+            Offset(badgeCenter.dx - textPainter.width / 2,
+                badgeCenter.dy - textPainter.height / 2),
           );
         }
       }
@@ -305,7 +317,8 @@ class PendingMoveAnimation {
   final String to;
   final chess.Piece piece;
 
-  const PendingMoveAnimation({required this.from, required this.to, required this.piece});
+  const PendingMoveAnimation(
+      {required this.from, required this.to, required this.piece});
 }
 
 Widget pieceImageForAnimation(chess.Piece piece) {
@@ -372,7 +385,8 @@ class AnimatedMovePiece extends StatefulWidget {
   State<AnimatedMovePiece> createState() => _AnimatedMovePieceState();
 }
 
-class _AnimatedMovePieceState extends State<AnimatedMovePiece> with SingleTickerProviderStateMixin {
+class _AnimatedMovePieceState extends State<AnimatedMovePiece>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<Offset> _offset;
 
@@ -380,8 +394,10 @@ class _AnimatedMovePieceState extends State<AnimatedMovePiece> with SingleTicker
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    final start = getSquareCenter(widget.pending.from, widget.boardSize, widget.orientation);
-    final end = getSquareCenter(widget.pending.to, widget.boardSize, widget.orientation);
+    final start = getSquareCenter(
+        widget.pending.from, widget.boardSize, widget.orientation);
+    final end = getSquareCenter(
+        widget.pending.to, widget.boardSize, widget.orientation);
     _offset = Tween<Offset>(begin: start, end: end).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
@@ -399,8 +415,9 @@ class _AnimatedMovePieceState extends State<AnimatedMovePiece> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final squareSize = widget.boardSize / 8;
-    final destTopLeft =
-        getSquareCenter(widget.pending.to, widget.boardSize, widget.orientation) - Offset(squareSize / 2, squareSize / 2);
+    final destTopLeft = getSquareCenter(
+            widget.pending.to, widget.boardSize, widget.orientation) -
+        Offset(squareSize / 2, squareSize / 2);
 
     // Sized explicitly, because every child below is Positioned and a Stack
     // with no non-positioned child falls back to filling whatever its parent

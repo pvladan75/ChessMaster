@@ -32,7 +32,12 @@ class ArrowColorButton extends StatelessWidget {
                 ? Border.all(color: Colors.white, width: 2.0)
                 : Border.all(color: Colors.transparent),
             boxShadow: isSelected
-                ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6, spreadRadius: 1)]
+                ? [
+                    BoxShadow(
+                        color: color.withValues(alpha: 0.5),
+                        blurRadius: 6,
+                        spreadRadius: 1)
+                  ]
                 : [],
           ),
           child: isSelected

@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:chess_app/theme/app_colors.dart';
 import '../services/assignment_api_service.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// Composes the monthly report a trainer sends to a parent, then hands back the
 /// link.
@@ -65,8 +66,9 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
   Future<void> _copy() async {
     await Clipboard.setData(ClipboardData(text: _url!));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Link je kopiran.')),
+    AppFeedback.show(
+      context,
+      () => const SnackBar(content: Text('Link je kopiran.')),
     );
   }
 
@@ -75,8 +77,9 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
     if (uri == null) return;
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ne mogu da otvorim link.')),
+      AppFeedback.show(
+        context,
+        () => const SnackBar(content: Text('Ne mogu da otvorim link.')),
       );
     }
   }
@@ -88,7 +91,8 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
     final width = (MediaQuery.of(context).size.width - 128).clamp(180.0, 420.0);
 
     return AlertDialog(
-      title: Text(_url == null ? 'Izveštaj za roditelja' : 'Izveštaj je spreman'),
+      title:
+          Text(_url == null ? 'Izveštaj za roditelja' : 'Izveštaj je spreman'),
       content: SizedBox(
         width: width,
         child: SingleChildScrollView(
@@ -104,7 +108,10 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
               ElevatedButton(
                 onPressed: _working ? null : _generate,
                 child: _working
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : const Text('Napravi'),
               ),
             ]
@@ -158,12 +165,14 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
           maxLength: 2000,
           decoration: const InputDecoration(
             labelText: 'Poruka roditelju (opciono)',
-            hintText: 'Šta ide dobro, na čemu radite, šta biste tražili od kuće.',
+            hintText:
+                'Šta ide dobro, na čemu radite, šta biste tražili od kuće.',
             alignLabelWithHint: true,
           ),
         ),
         if (_error != null)
-          Text(_error!, style: TextStyle(color: context.colors.danger, fontSize: 12.5)),
+          Text(_error!,
+              style: TextStyle(color: context.colors.danger, fontSize: 12.5)),
       ],
     );
   }

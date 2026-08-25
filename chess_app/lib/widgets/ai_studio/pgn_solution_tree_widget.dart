@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:chess/chess.dart' as chess;
 
 /// Called when the user taps a move chip to jump the board to that position.
-typedef PgnMoveSelected = void Function(String from, String to, String targetFen, String labelSan);
+typedef PgnMoveSelected = void Function(
+    String from, String to, String targetFen, String labelSan);
 
 /// Flat, chip-per-move rendering of the puzzle's solution tree, read straight
 /// off the raw `{uci: {uci: ...}}` solutions map (as opposed to
@@ -50,7 +51,10 @@ class PgnSolutionTreeWidget extends StatelessWidget {
               SizedBox(width: 8),
               Text(
                 'Stablo Rešenja (PGN):',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.white),
               ),
             ],
           ),
@@ -73,7 +77,8 @@ class PgnSolutionTreeWidget extends StatelessWidget {
     int moveNum = fenParts.length > 5 ? (int.tryParse(fenParts[5]) ?? 1) : 1;
     bool isWhiteToMove = (tempBoard.turn == chess.Color.WHITE);
 
-    void traverseNode(Map<String, dynamic> node, int num, bool isWhite, String prefix) {
+    void traverseNode(
+        Map<String, dynamic> node, int num, bool isWhite, String prefix) {
       for (var uciMove in node.keys) {
         if (uciMove.length < 4) continue;
         final from = uciMove.substring(0, 2);
@@ -87,7 +92,9 @@ class PgnSolutionTreeWidget extends StatelessWidget {
         String sanStr = uciMove;
         for (final m in tempBoard.moves({'verbose': true})) {
           if (m['from'] == from && m['to'] == to) {
-            if (promo == null || m['promotion'] == promo || m['promotion'] == promo.toLowerCase()) {
+            if (promo == null ||
+                m['promotion'] == promo ||
+                m['promotion'] == promo.toLowerCase()) {
               sanStr = (m['san'] as String?) ?? uciMove;
               break;
             }
@@ -107,10 +114,13 @@ class PgnSolutionTreeWidget extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: isCurrentPos ? Colors.amber.shade700 : Colors.teal.shade900,
+                color:
+                    isCurrentPos ? Colors.amber.shade700 : Colors.teal.shade900,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: isCurrentPos ? Colors.amberAccent : Colors.tealAccent.withValues(alpha: 0.5),
+                  color: isCurrentPos
+                      ? Colors.amberAccent
+                      : Colors.tealAccent.withValues(alpha: 0.5),
                   width: isCurrentPos ? 2 : 1,
                 ),
               ),
@@ -118,7 +128,8 @@ class PgnSolutionTreeWidget extends StatelessWidget {
                 labelStr,
                 style: TextStyle(
                   color: isCurrentPos ? Colors.white : Colors.tealAccent,
-                  fontWeight: isCurrentPos ? FontWeight.bold : FontWeight.normal,
+                  fontWeight:
+                      isCurrentPos ? FontWeight.bold : FontWeight.normal,
                   fontSize: 13,
                 ),
               ),

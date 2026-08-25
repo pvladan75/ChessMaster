@@ -32,14 +32,21 @@ class CourseStepBar extends StatelessWidget {
               initialValue: activeIndex,
               onSelected: onGoToStep,
               itemBuilder: (ctx) => List.generate(items.length, (i) {
-                final stepTitle = items[i]['title']?.toString() ?? 'Korak ${i + 1}';
+                final stepTitle =
+                    items[i]['title']?.toString() ?? 'Korak ${i + 1}';
                 return PopupMenuItem<int>(
                   value: i,
                   child: Row(
                     children: [
-                      if (i == activeIndex) const Icon(Icons.check, size: 16, color: Colors.deepPurple) else const SizedBox(width: 16),
+                      if (i == activeIndex)
+                        const Icon(Icons.check,
+                            size: 16, color: Colors.deepPurple)
+                      else
+                        const SizedBox(width: 16),
                       const SizedBox(width: 6),
-                      Expanded(child: Text('${i + 1}. $stepTitle', overflow: TextOverflow.ellipsis)),
+                      Expanded(
+                          child: Text('${i + 1}. $stepTitle',
+                              overflow: TextOverflow.ellipsis)),
                     ],
                   ),
                 );
@@ -49,11 +56,15 @@ class CourseStepBar extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '${courseTitle ?? 'Kurs'} — korak ${activeIndex + 1}/${items.length}',
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 18),
+                  const Icon(Icons.arrow_drop_down,
+                      color: Colors.white70, size: 18),
                 ],
               ),
             ),
@@ -61,12 +72,15 @@ class CourseStepBar extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.chevron_left, color: Colors.white),
             tooltip: 'Prethodni korak',
-            onPressed: activeIndex > 0 ? () => onGoToStep(activeIndex - 1) : null,
+            onPressed:
+                activeIndex > 0 ? () => onGoToStep(activeIndex - 1) : null,
           ),
           IconButton(
             icon: const Icon(Icons.chevron_right, color: Colors.white),
             tooltip: 'Sledeći korak',
-            onPressed: activeIndex < items.length - 1 ? () => onGoToStep(activeIndex + 1) : null,
+            onPressed: activeIndex < items.length - 1
+                ? () => onGoToStep(activeIndex + 1)
+                : null,
           ),
           IconButton(
             icon: const Icon(Icons.close, color: Colors.white70, size: 18),

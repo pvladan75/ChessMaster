@@ -32,9 +32,21 @@ class CreateAssignmentDialog extends StatefulWidget {
 
 class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
   static const _offerableThemes = [
-    'fork', 'pin', 'skewer', 'discoveredAttack', 'hangingPiece',
-    'deflection', 'attraction', 'backRankMate', 'trappedPiece', 'sacrifice',
-    'mateIn1', 'mateIn2', 'mateIn3', 'rookEndgame', 'pawnEndgame',
+    'fork',
+    'pin',
+    'skewer',
+    'discoveredAttack',
+    'hangingPiece',
+    'deflection',
+    'attraction',
+    'backRankMate',
+    'trappedPiece',
+    'sacrifice',
+    'mateIn1',
+    'mateIn2',
+    'mateIn3',
+    'rookEndgame',
+    'pawnEndgame',
   ];
 
   late final TextEditingController _title;
@@ -151,7 +163,8 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
                   padding: const EdgeInsets.only(top: 2, bottom: 6),
                   child: Text(
                     'Predložene su teme na kojima učenik najviše greši.',
-                    style: TextStyle(fontSize: 11, color: context.colors.textMuted),
+                    style: TextStyle(
+                        fontSize: 11, color: context.colors.textMuted),
                   ),
                 ),
               const SizedBox(height: 6),
@@ -161,7 +174,8 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
                 children: [
                   for (final theme in _offerableThemes)
                     FilterChip(
-                      label: Text(themeLabel(theme), style: const TextStyle(fontSize: 12)),
+                      label: Text(themeLabel(theme),
+                          style: const TextStyle(fontSize: 12)),
                       selected: _themes.contains(theme),
                       onSelected: (on) => setState(() {
                         if (on) {
@@ -178,12 +192,14 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     'Bez izabrane teme zadatak uzima zagonetke svih vrsta.',
-                    style: TextStyle(fontSize: 11, color: context.colors.textMuted),
+                    style: TextStyle(
+                        fontSize: 11, color: context.colors.textMuted),
                   ),
                 ),
 
               const SizedBox(height: 18),
-              Text('Broj zagonetki: $_count', style: Theme.of(context).textTheme.labelLarge),
+              Text('Broj zagonetki: $_count',
+                  style: Theme.of(context).textTheme.labelLarge),
               Slider(
                 value: _count.toDouble(),
                 min: 5,
@@ -237,7 +253,9 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
 
               if (_error != null) ...[
                 const SizedBox(height: 10),
-                Text(_error!, style: TextStyle(color: context.colors.danger, fontSize: 12.5)),
+                Text(_error!,
+                    style: TextStyle(
+                        color: context.colors.danger, fontSize: 12.5)),
               ],
             ],
           ),
@@ -251,7 +269,10 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
         ElevatedButton(
           onPressed: _saving ? null : _submit,
           child: _saving
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
               : const Text('Zadaj'),
         ),
       ],

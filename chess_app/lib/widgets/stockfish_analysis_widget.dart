@@ -45,7 +45,6 @@ class StockfishAnalysisWidget extends StatelessWidget {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     final bestLine = lines.isNotEmpty ? lines.first : null;
@@ -65,7 +64,8 @@ class StockfishAnalysisWidget extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.psychology, color: Colors.tealAccent, size: 20),
+                    const Icon(Icons.psychology,
+                        color: Colors.tealAccent, size: 20),
                     const SizedBox(width: 8),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,7 +74,8 @@ class StockfishAnalysisWidget extends StatelessWidget {
                           children: [
                             const Text(
                               'Prikaži evaluaciju',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                             if (onOpenSettings != null) ...[
                               const SizedBox(width: 6),
@@ -82,7 +83,8 @@ class StockfishAnalysisWidget extends StatelessWidget {
                                 onTap: onOpenSettings,
                                 child: const MouseRegion(
                                   cursor: SystemMouseCursors.click,
-                                  child: Icon(Icons.settings, size: 14, color: Colors.grey),
+                                  child: Icon(Icons.settings,
+                                      size: 14, color: Colors.grey),
                                 ),
                               ),
                             ],
@@ -93,8 +95,10 @@ class StockfishAnalysisWidget extends StatelessWidget {
                                 child: const MouseRegion(
                                   cursor: SystemMouseCursors.click,
                                   child: Tooltip(
-                                    message: 'Prekini i ponovo pokreni analizu trenutne pozicije',
-                                    child: Icon(Icons.restart_alt, size: 15, color: Colors.tealAccent),
+                                    message:
+                                        'Prekini i ponovo pokreni analizu trenutne pozicije',
+                                    child: Icon(Icons.restart_alt,
+                                        size: 15, color: Colors.tealAccent),
                                   ),
                                 ),
                               ),
@@ -106,10 +110,14 @@ class StockfishAnalysisWidget extends StatelessWidget {
                               ? 'Zaključano od strane trenera'
                               : (isCustomEngineActive
                                   ? 'Sopstveni lokalni engine (.exe)'
-                                  : (isOnline ? 'Spoljašnji Stockfish (Online API)' : 'Lokalni Engine (Nativni)')),
+                                  : (isOnline
+                                      ? 'Spoljašnji Stockfish (Online API)'
+                                      : 'Lokalni Engine (Nativni)')),
                           style: TextStyle(
                             fontSize: 10,
-                            color: !isAllowedToUseEngine ? Colors.redAccent : Colors.grey,
+                            color: !isAllowedToUseEngine
+                                ? Colors.redAccent
+                                : Colors.grey,
                           ),
                         ),
                       ],
@@ -119,7 +127,8 @@ class StockfishAnalysisWidget extends StatelessWidget {
                 Switch(
                   value: isEngineEnabled,
                   activeThumbColor: Colors.tealAccent,
-                  onChanged: isAllowedToUseEngine ? (_) => onToggleEngine() : null,
+                  onChanged:
+                      isAllowedToUseEngine ? (_) => onToggleEngine() : null,
                 ),
               ],
             ),
@@ -131,11 +140,15 @@ class StockfishAnalysisWidget extends StatelessWidget {
                 children: [
                   Row(
                     children: const [
-                      Icon(Icons.bar_chart, size: 18, color: Colors.amberAccent),
+                      Icon(Icons.bar_chart,
+                          size: 18, color: Colors.amberAccent),
                       SizedBox(width: 8),
                       Text(
                         'Prikaži evaluacionu liniju',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white),
                       ),
                     ],
                   ),
@@ -156,15 +169,20 @@ class StockfishAnalysisWidget extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.teal.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.tealAccent.withValues(alpha: 0.4)),
+                        border: Border.all(
+                            color: Colors.tealAccent.withValues(alpha: 0.4)),
                       ),
                       child: Text(
                         'Eval: ${bestLine.evaluation} (depth: ${bestLine.depth > 0 ? bestLine.depth : 0})',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.tealAccent),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.tealAccent),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -176,8 +194,13 @@ class StockfishAnalysisWidget extends StatelessWidget {
                             style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                           Text(
-                            bestLine.bestMoveSan.isNotEmpty ? bestLine.bestMoveSan : '...',
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                            bestLine.bestMoveSan.isNotEmpty
+                                ? bestLine.bestMoveSan
+                                : '...',
+                            style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
                           ),
                         ],
                       ),
@@ -190,7 +213,10 @@ class StockfishAnalysisWidget extends StatelessWidget {
               // Top 3 Lines List (Compact 1 line per row with '...' inspector button)
               Text(
                 'Top ${AppSettingsService.instance.defaultMultiPV} Linije (Klik na liniju za kompletan pregled):',
-                style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
 
@@ -199,16 +225,22 @@ class StockfishAnalysisWidget extends StatelessWidget {
                   padding: EdgeInsets.all(8.0),
                   child: Text(
                     'Računanje poteza...',
-                    style: TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic),
                   ),
                 )
               else
-                ...lines.take(AppSettingsService.instance.defaultMultiPV).map((line) {
+                ...lines
+                    .take(AppSettingsService.instance.defaultMultiPV)
+                    .map((line) {
                   return InkWell(
                     onTap: () => _openLineDialog(context, line),
                     borderRadius: BorderRadius.circular(6),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 4.0),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 3.0, horizontal: 4.0),
                       child: Row(
                         children: [
                           SizedBox(
@@ -227,11 +259,13 @@ class StockfishAnalysisWidget extends StatelessWidget {
                               line.continuationSan,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 11, color: Colors.white),
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.white),
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(Icons.more_horiz, size: 16, color: Colors.grey),
+                          const Icon(Icons.more_horiz,
+                              size: 16, color: Colors.grey),
                         ],
                       ),
                     ),

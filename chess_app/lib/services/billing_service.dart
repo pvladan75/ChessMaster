@@ -38,7 +38,8 @@ class EntitlementState {
     required this.quotas,
   });
 
-  static const free = EntitlementState(tier: 'free', entitlements: {}, quotas: {});
+  static const free =
+      EntitlementState(tier: 'free', entitlements: {}, quotas: {});
 
   bool get isPaid => tier != 'free';
   bool has(String entitlement) => entitlements.contains(entitlement);
@@ -48,9 +49,12 @@ class EntitlementState {
     final rawQuotas = (json['quotas'] as Map<String, dynamic>?) ?? const {};
     return EntitlementState(
       tier: json['tier'] ?? 'free',
-      entitlements: ((json['entitlements'] as List?) ?? const []).map((e) => e.toString()).toSet(),
+      entitlements: ((json['entitlements'] as List?) ?? const [])
+          .map((e) => e.toString())
+          .toSet(),
       quotas: rawQuotas.map(
-        (key, value) => MapEntry(key, QuotaInfo.fromJson(Map<String, dynamic>.from(value))),
+        (key, value) =>
+            MapEntry(key, QuotaInfo.fromJson(Map<String, dynamic>.from(value))),
       ),
     );
   }
@@ -80,7 +84,8 @@ class BillingService {
 
   final String authToken;
 
-  final ValueNotifier<EntitlementState> entitlements = ValueNotifier(EntitlementState.free);
+  final ValueNotifier<EntitlementState> entitlements =
+      ValueNotifier(EntitlementState.free);
   final ValueNotifier<bool> purchaseInProgress = ValueNotifier(false);
 
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
@@ -123,7 +128,8 @@ class BillingService {
 
       _purchaseSubscription ??= InAppPurchase.instance.purchaseStream.listen(
         _onPurchasesUpdated,
-        onError: (Object e) => AppLogger.log('[Billing] Greška u toku kupovine: $e'),
+        onError: (Object e) =>
+            AppLogger.log('[Billing] Greška u toku kupovine: $e'),
       );
 
       await _loadProducts();
@@ -140,16 +146,18 @@ class BillingService {
   Future<void> _loadProducts() async {
     _configuredProductIds = await _fetchConfiguredProductIds();
     if (_configuredProductIds.isEmpty) {
-      AppLogger.log('[Billing] Server nije prijavio nijedan proizvod za kupovinu.');
+      AppLogger.log(
+          '[Billing] Server nije prijavio nijedan proizvod za kupovinu.');
       return;
     }
 
-    final response =
-        await InAppPurchase.instance.queryProductDetails(_configuredProductIds.toSet());
+    final response = await InAppPurchase.instance
+        .queryProductDetails(_configuredProductIds.toSet());
     if (response.notFoundIDs.isNotEmpty) {
       // Usually means the product is not yet active in Play Console, or the
       // build's application id does not match the one the products live under.
-      AppLogger.log('[Billing] Play ne prepoznaje proizvode: ${response.notFoundIDs.join(', ')}');
+      AppLogger.log(
+          '[Billing] Play ne prepoznaje proizvode: ${response.notFoundIDs.join(', ')}');
     }
     _products = response.productDetails;
   }
@@ -163,7 +171,9 @@ class BillingService {
       if (response.statusCode != 200) return const [];
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (data['playConfigured'] != true) return const [];
-      return ((data['productIds'] as List?) ?? const []).map((e) => e.toString()).toList();
+      return ((data['productIds'] as List?) ?? const [])
+          .map((e) => e.toString())
+          .toList();
     } catch (e) {
       AppLogger.log('[Billing] Ne mogu da učitam konfiguraciju naplate: $e');
       return const [];
@@ -181,7 +191,8 @@ class BillingService {
           .get(Uri.parse('$backendUrl/billing/entitlements'), headers: _headers)
           .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
-        entitlements.value = EntitlementState.fromJson(jsonDecode(response.body));
+        entitlements.value =
+            EntitlementState.fromJson(jsonDecode(response.body));
       }
     } catch (e) {
       AppLogger.log('[Billing] Ne mogu da učitam prava pristupa: $e');
@@ -215,7 +226,8 @@ class BillingService {
           break;
 
         case PurchaseStatus.error:
-          AppLogger.log('[Billing] Kupovina neuspešna: ${purchase.error?.message}');
+          AppLogger.log(
+              '[Billing] Kupovina neuspešna: ${purchase.error?.message}');
           purchaseInProgress.value = false;
           break;
 
@@ -259,13 +271,16 @@ class BillingService {
           .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
-        entitlements.value = EntitlementState.fromJson(jsonDecode(response.body));
-        AppLogger.log('[Billing] Kupovina potvrđena — nivo: ${entitlements.value.tier}');
+        entitlements.value =
+            EntitlementState.fromJson(jsonDecode(response.body));
+        AppLogger.log(
+            '[Billing] Kupovina potvrđena — nivo: ${entitlements.value.tier}');
         return true;
       }
 
       final message = _errorMessage(response.body);
-      AppLogger.log('[Billing] Server nije potvrdio kupovinu (${response.statusCode}): $message');
+      AppLogger.log(
+          '[Billing] Server nije potvrdio kupovinu (${response.statusCode}): $message');
       return false;
     } catch (e) {
       AppLogger.log('[Billing] Provera kupovine nije uspela: $e');
@@ -275,7 +290,8 @@ class BillingService {
 
   String _errorMessage(String body) {
     try {
-      return (jsonDecode(body) as Map<String, dynamic>)['error']?.toString() ?? body;
+      return (jsonDecode(body) as Map<String, dynamic>)['error']?.toString() ??
+          body;
     } catch (_) {
       return body;
     }

@@ -11,6 +11,7 @@ import '../models/assignment.dart';
 import '../models/solve_order.dart';
 import '../services/assignment_api_service.dart';
 import 'assignment_review_screen.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// A student works through homework built from the trainer's own positions.
 ///
@@ -150,8 +151,10 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
     if (result == null) {
       setState(() => _sending = false);
       _board.loadFen(_current.fen);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Odgovor nije poslat — pokušaj ponovo.')),
+      AppFeedback.show(
+        context,
+        () => const SnackBar(
+            content: Text('Odgovor nije poslat — pokušaj ponovo.')),
       );
       return;
     }

@@ -4,6 +4,7 @@ import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// One-click branch extension: "add the engine's best line from here" —
 /// unlike [AutoAnalysisDialog] (which branches into several candidate moves
@@ -84,14 +85,18 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final progressPct = _total > 0 ? (_processed / _total).clamp(0.0, 1.0) : 0.0;
+    final progressPct =
+        _total > 0 ? (_processed / _total).clamp(0.0, 1.0) : 0.0;
 
     return PopScope(
       canPop: !_isRunning,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop || !_isRunning) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sačekajte kraj ili kliknite Otkaži.'), duration: Duration(seconds: 2)),
+        AppFeedback.show(
+          context,
+          () => const SnackBar(
+              content: Text('Sačekajte kraj ili kliknite Otkaži.'),
+              duration: Duration(seconds: 2)),
         );
       },
       child: Dialog(
@@ -109,9 +114,12 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.trending_flat, color: context.colors.accent, size: 22),
+                      Icon(Icons.trending_flat,
+                          color: context.colors.accent, size: 22),
                       const SizedBox(width: 8),
-                      Text('Produži granu', style: AppText.title.copyWith(color: context.colors.textPrimary)),
+                      Text('Produži granu',
+                          style: AppText.title
+                              .copyWith(color: context.colors.textPrimary)),
                     ],
                   ),
                   IconButton(
@@ -123,7 +131,12 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
                 ],
               ),
               const SizedBox(height: 8),
-              if (!_isRunning) ..._buildSetup() else if (_isDone) ..._buildDone() else ..._buildProgress(progressPct),
+              if (!_isRunning)
+                ..._buildSetup()
+              else if (_isDone)
+                ..._buildDone()
+              else
+                ..._buildProgress(progressPct),
             ],
           ),
         ),
@@ -141,7 +154,8 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Broj poteza: $_plies', style: AppText.body.copyWith(color: context.colors.textPrimary)),
+          Text('Broj poteza: $_plies',
+              style: AppText.body.copyWith(color: context.colors.textPrimary)),
         ],
       ),
       Slider(
@@ -157,7 +171,8 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
         width: double.infinity,
         child: ElevatedButton.icon(
           icon: const Icon(Icons.play_arrow),
-          label: const Text('Dodaj poteze', style: TextStyle(fontWeight: FontWeight.bold)),
+          label: const Text('Dodaj poteze',
+              style: TextStyle(fontWeight: FontWeight.bold)),
           style: ElevatedButton.styleFrom(
             backgroundColor: context.colors.accent,
             foregroundColor: Colors.white,
@@ -174,16 +189,21 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
       Center(
         child: Column(
           children: [
-            LinearProgressIndicator(value: progressPct, backgroundColor: Colors.grey.shade800, color: context.colors.accent),
+            LinearProgressIndicator(
+                value: progressPct,
+                backgroundColor: Colors.grey.shade800,
+                color: context.colors.accent),
             const SizedBox(height: 16),
             Text(
               'Odigrano poteza: $_processed / $_total',
-              style: AppText.bodyLargeBold.copyWith(color: context.colors.accent),
+              style:
+                  AppText.bodyLargeBold.copyWith(color: context.colors.accent),
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
               icon: Icon(Icons.cancel, color: context.colors.danger),
-              label: Text('Otkaži', style: TextStyle(color: context.colors.danger)),
+              label: Text('Otkaži',
+                  style: TextStyle(color: context.colors.danger)),
               onPressed: () {
                 _generator.cancel();
                 Navigator.pop(context);
@@ -203,13 +223,17 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
             Icon(Icons.check_circle, color: context.colors.accent, size: 36),
             const SizedBox(height: 12),
             Text(
-              _lastAdded == null ? 'Nije dodat nijedan potez (kraj partije?).' : 'Dodato $_processed poteza.',
+              _lastAdded == null
+                  ? 'Nije dodat nijedan potez (kraj partije?).'
+                  : 'Dodato $_processed poteza.',
               textAlign: TextAlign.center,
               style: AppText.subtitle.copyWith(color: context.colors.accent),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade700, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal.shade700,
+                  foregroundColor: Colors.white),
               onPressed: () {
                 widget.onCompleted(_lastAdded);
                 Navigator.pop(context);

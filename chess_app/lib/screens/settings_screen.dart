@@ -4,14 +4,17 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
+import 'package:chess_app/services/account_standing_service.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/widgets/account_stats_card.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
+import 'package:chess_app/widgets/parent_email_dialog.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 class SettingsScreen extends StatefulWidget {
   final UserSession session;
@@ -51,8 +54,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final uri = Uri.parse(OpeningExplorerService.createTokenUrl);
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+      AppFeedback.show(
+        context,
+        () => const SnackBar(
           content: Text('Nije moguće otvoriti lichess.org u pregledaču.'),
           backgroundColor: Colors.redAccent,
         ),
@@ -63,8 +67,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveLichessToken() async {
     await _settings.setLichessApiToken(_lichessTokenController.text);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    AppFeedback.show(
+      context,
+      () => SnackBar(
         content: Text(_settings.lichessApiToken.isEmpty
             ? 'Token uklonjen.'
             : 'Lichess token sačuvan.'),
@@ -109,6 +114,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const _speechSample =
       'Linije se čitaju ovako: a, b, c, d, e, f, g, h. '
       'Greška je napravljena u 8. potezu, posle Rd8.';
+
+  /// The stated year of birth, and the way back to it.
+  ///
+  /// The gate asks once and then never appears again, so without this row a
+  /// mistyped year would be permanent — and the year decides whether the
+  /// account is treated as a child's. It says out loud when nothing has been
+  /// stated, rather than showing an empty value that reads as "fine".
+  Widget _birthYearCard(BuildContext context) {
+    final standing = AccountStandingService.instance;
+    return AnimatedBuilder(
+      animation: standing,
+      builder: (context, _) {
+        final known = standing.current?.birthYear;
+        return Card(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            leading: Icon(Icons.cake_outlined, color: context.colors.accent),
+            title: const Text('Godina rođenja'),
+            subtitle: Text(known == null
+                ? 'Nije uneta.'
+                : '$known — dodirnite da ispravite.'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.birthYear),
+          ),
+        );
+      },
+    );
+  }
+
+  /// The address a parent is written to, shown only when there is a parent to
+  /// write to — that is, when the server says this account belongs to a minor.
+  ///
+  /// An empty row here is not cosmetic: a relationship with a trainer stops at
+  /// "waiting for a parent" and stays there until an address exists, so this is
+  /// where a stuck relationship is unstuck. Saving one sends whatever was
+  /// waiting.
+  Widget _parentEmailCard(BuildContext context) {
+    final standing = AccountStandingService.instance;
+    return AnimatedBuilder(
+      animation: standing,
+      builder: (context, _) {
+        final current = standing.current;
+        if (current == null || !current.minor) return const SizedBox.shrink();
+        final onFile = current.parentEmailOnFile;
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: ListTile(
+              leading: Icon(
+                onFile ? Icons.mark_email_read_outlined : Icons.email_outlined,
+                color: onFile ? context.colors.accent : Colors.orange,
+              ),
+              title: const Text('Email roditelja'),
+              subtitle: Text(onFile
+                  ? 'Upisan. Dodirnite da ga promenite — poruka o saglasnosti '
+                      'ide na novu adresu.'
+                  : 'Nije upisan. Bez njega trener ne može da radi sa vama.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => showParentEmailDialog(context),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Widget _speechCard(BuildContext context) {
     final speech = SpeechService.instance;
@@ -656,6 +729,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       .copyWith(color: context.colors.textMuted)),
               const SizedBox(height: 8),
               _speechCard(context),
+
+              if (!widget.session.isGuest) ...[
+                const SizedBox(height: 24),
+                Text('NALOG',
+                    style: AppText.bodyBold
+                        .copyWith(color: context.colors.textMuted)),
+                const SizedBox(height: 8),
+                _birthYearCard(context),
+                _parentEmailCard(context),
+              ],
 
               const SizedBox(height: 24),
               Text('PREČICE NA TASTATURI',

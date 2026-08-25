@@ -65,7 +65,8 @@ class MoveTree {
   // Serialize the tree to standard PGN string
   String exportToPgn() {
     final sb = StringBuffer();
-    if (root.fen != 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
+    if (root.fen !=
+        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
       sb.writeln('[SetUp "1"]');
       sb.writeln('[FEN "${root.fen}"]');
       sb.writeln();
@@ -91,7 +92,7 @@ class MoveTree {
     }
 
     sb.write('${mainChild.san} ');
-    
+
     // Write comment and arrows if any
     final mainCommentBuffer = StringBuffer();
     if (mainChild.comment.isNotEmpty) {
@@ -101,7 +102,8 @@ class MoveTree {
       if (mainCommentBuffer.isNotEmpty) {
         mainCommentBuffer.write(' ');
       }
-      mainCommentBuffer.write('[%cal ${mainChild.arrows.map((a) => a.toString()).join(',')}]');
+      mainCommentBuffer.write(
+          '[%cal ${mainChild.arrows.map((a) => a.toString()).join(',')}]');
     }
     if (mainCommentBuffer.isNotEmpty) {
       sb.write('{ ${mainCommentBuffer.toString()} } ');
@@ -119,7 +121,7 @@ class MoveTree {
       }
 
       sb.write('${varChild.san} ');
-      
+
       final varCommentBuffer = StringBuffer();
       if (varChild.comment.isNotEmpty) {
         varCommentBuffer.write(varChild.comment);
@@ -128,7 +130,8 @@ class MoveTree {
         if (varCommentBuffer.isNotEmpty) {
           varCommentBuffer.write(' ');
         }
-        varCommentBuffer.write('[%cal ${varChild.arrows.map((a) => a.toString()).join(',')}]');
+        varCommentBuffer.write(
+            '[%cal ${varChild.arrows.map((a) => a.toString()).join(',')}]');
       }
       if (varCommentBuffer.isNotEmpty) {
         sb.write('{ ${varCommentBuffer.toString()} } ');
@@ -174,10 +177,12 @@ class MoveTree {
         extractedFen = fenMatch.group(1);
       }
     }
-    final actualStartingFen = extractedFen ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-    
+    final actualStartingFen = extractedFen ??
+        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
     // Clean headers but preserve annotations like [%cal ...]
-    var cleaned = pgn.replaceAll(RegExp(r'^\s*\[[^%][^\]]*\]\s*$', multiLine: true), '');
+    var cleaned =
+        pgn.replaceAll(RegExp(r'^\s*\[[^%][^\]]*\]\s*$', multiLine: true), '');
     cleaned = cleaned.replaceAll('{', ' { ');
     cleaned = cleaned.replaceAll('}', ' } ');
     cleaned = cleaned.replaceAll('(', ' ( ');
@@ -186,7 +191,7 @@ class MoveTree {
 
     final tokens = cleaned.split(RegExp(r'\s+'));
     final tree = MoveTree(startingFen: actualStartingFen);
-    
+
     MoveNode currentNode = tree.root;
     final List<MoveNode> variationStack = [];
 
@@ -232,12 +237,15 @@ class MoveTree {
         // Clean move number prefixes (e.g. "1.e4" -> "e4", "1...e5" -> "e5") and evaluation annotations (e.g. "e5?!" -> "e5")
         var cleanedToken = token.replaceAll(RegExp(r'^\d+\.{1,3}'), '');
         cleanedToken = cleanedToken.replaceAll(RegExp(r'[!?]+$'), '');
-        
+
         if (cleanedToken.isEmpty) continue;
-        
+
         // Skip purely numeric/result tokens
         if (RegExp(r'^\d+(\.+)?$').hasMatch(cleanedToken) ||
-            cleanedToken == '1-0' || cleanedToken == '0-1' || cleanedToken == '1/2-1/2' || cleanedToken == '*') {
+            cleanedToken == '1-0' ||
+            cleanedToken == '0-1' ||
+            cleanedToken == '1/2-1/2' ||
+            cleanedToken == '*') {
           continue;
         }
 

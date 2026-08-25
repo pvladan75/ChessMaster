@@ -52,7 +52,8 @@ class EvalCache {
   /// draw score served for a position that is not actually drawn would be a very
   /// hard bug to find. The wins this cache is for — the same game analysed twice
   /// — produce identical FENs anyway.
-  static String keyFor(String fen, int depth, int multiPV) => '$fen|d$depth|pv$multiPV';
+  static String keyFor(String fen, int depth, int multiPV) =>
+      '$fen|d$depth|pv$multiPV';
 
   List<AnalysisLine>? peek(String fen, int depth, int multiPV) =>
       _entries[keyFor(fen, depth, multiPV)];
@@ -105,7 +106,8 @@ class EvalCache {
       }
 
       _misses++;
-      final future = inner(fen, depth: depth, multiPV: multiPV, timeout: timeout);
+      final future =
+          inner(fen, depth: depth, multiPV: multiPV, timeout: timeout);
       _inFlight[key] = future;
 
       try {
@@ -124,6 +126,7 @@ class EvalCache {
     final total = _hits + _misses;
     if (total == 0) return;
     final percent = ((_hits / total) * 100).round();
-    AppLogger.log('[EvalCache] $context — $_hits/$total iz keša ($percent%), $size pozicija.');
+    AppLogger.log(
+        '[EvalCache] $context — $_hits/$total iz keša ($percent%), $size pozicija.');
   }
 }

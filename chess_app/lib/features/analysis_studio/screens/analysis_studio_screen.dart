@@ -50,6 +50,7 @@ import 'package:chess_app/pgn_parser.dart' show PgnParser;
 import 'package:chess_app/services/puzzle_api_service.dart';
 import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart'
     as dialogs;
+import 'package:chess_app/widgets/app_feedback.dart';
 
 class AnalysisStudioScreen extends StatefulWidget {
   final UserSession userSession;
@@ -314,8 +315,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _triggerEngineAnalysis();
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    AppFeedback.show(
+      context,
+      () => SnackBar(
         content: const Text('Vraćena je vaša poslednja analiza.'),
         backgroundColor: Colors.teal,
         duration: const Duration(seconds: 6),
@@ -1050,8 +1052,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
     if (!mounted) return;
     if (aiComment == null || aiComment.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+      AppFeedback.show(
+        context,
+        () => const SnackBar(
             content: Text('Greška pri generisanju AI komentara.'),
             backgroundColor: Colors.redAccent),
       );
@@ -1081,8 +1084,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           // The start node now has candidate children — surface them as arrows.
           setState(() => _lastAutoAnalysisDeltaCutoff = deltaCutoffUsed);
           _refreshArrows();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+          AppFeedback.show(
+            context,
+            () => const SnackBar(
                 content: Text(
                     '⚡ Automatska analiza uspešno završena i sačuvana u stablo!'),
                 backgroundColor: Colors.amber),
@@ -1125,8 +1129,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           setState(() {});
           _saveDraft();
           if (extractedPuzzles != null && extractedPuzzles.isNotEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+            AppFeedback.show(
+              context,
+              () => SnackBar(
                 content: Text(
                     '🧩 Izvučeno ${extractedPuzzles.length} vežbi (sačuvano)'),
                 backgroundColor: Colors.teal,
@@ -1177,8 +1182,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _saveDraft();
     _triggerEngineAnalysis();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    AppFeedback.show(
+      context,
+      () => SnackBar(
           content: Text('🧩 ${puzzle.themeLabel}'),
           backgroundColor: Colors.teal),
     );
@@ -1281,8 +1287,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       final pgn = PgnParser.sanitizeForLoadPgn(rawPgn);
       final tempGame = chess.Chess();
       if (!tempGame.load_pgn(pgn)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+        AppFeedback.show(
+          context,
+          () => const SnackBar(
               content: Text('⚠️ Neispravan PGN format.'),
               backgroundColor: Colors.red),
         );
@@ -1342,15 +1349,17 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
       AppLogger.log(
           '[AnalysisStudio] 📥 PGN uvezen: $imported poteza od ${sanHistory.length}');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+      AppFeedback.show(
+        context,
+        () => SnackBar(
           content: Text('✅ PGN učitan — $imported poteza u stablu.'),
           backgroundColor: Colors.teal,
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+      AppFeedback.show(
+        context,
+        () => SnackBar(
             content: Text('Greška pri uvozu PGN-a: $e'),
             backgroundColor: Colors.red),
       );
@@ -1382,8 +1391,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (!mounted) return;
 
     if (loadedRoot == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+      AppFeedback.show(
+        context,
+        () => const SnackBar(
             content: Text('⚠️ Učitavanje nije uspelo. Proverite konekciju.'),
             backgroundColor: Colors.red),
       );
@@ -1401,8 +1411,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _saveDraft();
     _triggerEngineAnalysis();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    AppFeedback.show(
+      context,
+      () => SnackBar(
           content: Text('✅ Učitano: "${summary.title}"'),
           backgroundColor: Colors.teal),
     );

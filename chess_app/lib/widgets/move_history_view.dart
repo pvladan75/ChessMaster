@@ -20,7 +20,8 @@ class MoveHistoryView extends StatelessWidget {
     return spans;
   }
 
-  void _collectSpans(MoveNode node, List<InlineSpan> spans, BuildContext context, bool showMoveNumber) {
+  void _collectSpans(MoveNode node, List<InlineSpan> spans,
+      BuildContext context, bool showMoveNumber) {
     if (node.children.isEmpty) return;
 
     final mainChild = node.children[0];
@@ -31,12 +32,14 @@ class MoveHistoryView extends StatelessWidget {
     if (isWhite) {
       spans.add(TextSpan(
         text: '$moveNum. ',
-        style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
+        style: const TextStyle(
+            color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
       ));
     } else if (showMoveNumber) {
       spans.add(TextSpan(
         text: '$moveNum... ',
-        style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
+        style: const TextStyle(
+            color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
       ));
     }
 
@@ -48,7 +51,9 @@ class MoveHistoryView extends StatelessWidget {
         fontWeight: FontWeight.bold,
         fontSize: 13,
         color: isMainActive ? Colors.greenAccent : Colors.white,
-        backgroundColor: isMainActive ? Colors.green.withValues(alpha: 0.3) : Colors.transparent,
+        backgroundColor: isMainActive
+            ? Colors.green.withValues(alpha: 0.3)
+            : Colors.transparent,
       ),
       recognizer: TapGestureRecognizer()..onTap = () => onSelectNode(mainChild),
     ));
@@ -56,7 +61,10 @@ class MoveHistoryView extends StatelessWidget {
     if (mainChild.comment.isNotEmpty) {
       spans.add(TextSpan(
         text: '{${mainChild.comment}} ',
-        style: const TextStyle(color: Colors.yellowAccent, fontStyle: FontStyle.italic, fontSize: 12),
+        style: const TextStyle(
+            color: Colors.yellowAccent,
+            fontStyle: FontStyle.italic,
+            fontSize: 12),
       ));
     }
 
@@ -88,15 +96,21 @@ class MoveHistoryView extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.normal,
           color: isVarActive ? Colors.greenAccent : Colors.grey[400],
-          backgroundColor: isVarActive ? Colors.green.withValues(alpha: 0.3) : Colors.transparent,
+          backgroundColor: isVarActive
+              ? Colors.green.withValues(alpha: 0.3)
+              : Colors.transparent,
         ),
-        recognizer: TapGestureRecognizer()..onTap = () => onSelectNode(varChild),
+        recognizer: TapGestureRecognizer()
+          ..onTap = () => onSelectNode(varChild),
       ));
 
       if (varChild.comment.isNotEmpty) {
         spans.add(TextSpan(
           text: '{${varChild.comment}} ',
-          style: const TextStyle(color: Colors.yellowAccent, fontStyle: FontStyle.italic, fontSize: 10),
+          style: const TextStyle(
+              color: Colors.yellowAccent,
+              fontStyle: FontStyle.italic,
+              fontSize: 10),
         ));
       }
 

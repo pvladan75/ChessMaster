@@ -150,7 +150,8 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
       content: SizedBox(
         width: width,
         child: _loading
-            ? const SizedBox(height: 120, child: Center(child: CircularProgressIndicator()))
+            ? const SizedBox(
+                height: 120, child: Center(child: CircularProgressIndicator()))
             : SingleChildScrollView(child: _buildBody(context)),
       ),
       actions: [
@@ -161,7 +162,10 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
         ElevatedButton(
           onPressed: _saving || _lessons.isEmpty ? null : _submit,
           child: _saving
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
               : const Text('Zadaj'),
         ),
       ],
@@ -248,7 +252,8 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
           ],
         ),
         if (_error != null)
-          Text(_error!, style: TextStyle(color: context.colors.danger, fontSize: 12.5)),
+          Text(_error!,
+              style: TextStyle(color: context.colors.danger, fontSize: 12.5)),
       ],
     );
   }

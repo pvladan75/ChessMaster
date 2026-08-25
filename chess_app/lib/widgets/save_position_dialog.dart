@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 class SavePositionDialog extends StatefulWidget {
   final List<String> availableUserLabels;
@@ -194,8 +195,9 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
             final desc = descController.text.trim();
 
             if (title.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
+              AppFeedback.show(
+                context,
+                () => const SnackBar(
                     content: Text('Unesite naziv lekcije.'),
                     backgroundColor: Colors.redAccent),
               );

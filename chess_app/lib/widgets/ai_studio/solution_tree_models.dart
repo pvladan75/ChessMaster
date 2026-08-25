@@ -80,7 +80,8 @@ class TreeEdgesPainter extends CustomPainter {
         final childX = pn.x + pn.width / 2;
         final childY = pn.y;
 
-        final bool isChildActive = (activeFenShort != null && activeFenShort == pn.node.fen.split(' ')[0]);
+        final bool isChildActive = (activeFenShort != null &&
+            activeFenShort == pn.node.fen.split(' ')[0]);
 
         final Path path = Path();
         path.moveTo(parentX, parentY);
@@ -94,6 +95,7 @@ class TreeEdgesPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant TreeEdgesPainter oldDelegate) {
-    return oldDelegate.activeFen != activeFen || oldDelegate.positionedNodes != positionedNodes;
+    return oldDelegate.activeFen != activeFen ||
+        oldDelegate.positionedNodes != positionedNodes;
   }
 }

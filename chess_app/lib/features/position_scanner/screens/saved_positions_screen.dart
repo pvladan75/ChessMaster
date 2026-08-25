@@ -14,6 +14,7 @@ import '../services/scanner_api_service.dart';
 import '../services/side_proposal.dart';
 import '../services/side_proposal_runner.dart';
 import '../widgets/assign_positions_dialog.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// Everything the trainer has kept from their own books.
 ///
@@ -127,8 +128,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     );
     if (message == null || !mounted) return;
     setState(_picked.clear);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    AppFeedback.show(context, () => SnackBar(content: Text(message)));
   }
 
   /// Puts the ticked positions into an existing lesson.
@@ -179,8 +179,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     final message = firstError == null
         ? 'Dodato $added u „${course.title}".'
         : 'Dodato $added, nije prošlo ${chosen.length - added}: $firstError';
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    AppFeedback.show(context, () => SnackBar(content: Text(message)));
   }
 
   Future<void> _runCheck() async {
@@ -206,13 +205,15 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
         _checking = false;
         _runner = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text(
-          'Motor nije pokrenut kao lokalni, pa ne može da odgovori — mrežni ne '
-          'poznaje pozicije iz knjiga. Proveri Podešavanja → Lokalni engine (.exe).',
-        ),
-        duration: Duration(seconds: 8),
-      ));
+      AppFeedback.show(
+          context,
+          () => const SnackBar(
+                content: Text(
+                  'Motor nije pokrenut kao lokalni, pa ne može da odgovori — mrežni ne '
+                  'poznaje pozicije iz knjiga. Proveri Podešavanja → Lokalni engine (.exe).',
+                ),
+                duration: Duration(seconds: 8),
+              ));
       return;
     }
 
@@ -272,8 +273,9 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
       if (await _accept(position, proposal)) accepted += 1;
       if (!mounted) return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Prihvaćeno $accepted od ${batch.length}.')),
+    AppFeedback.show(
+      context,
+      () => SnackBar(content: Text('Prihvaćeno $accepted od ${batch.length}.')),
     );
   }
 
@@ -314,8 +316,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     final ok = await _api.setInstruction(position.puzzleId, text);
     if (!mounted) return;
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Uputstvo nije sačuvano.')));
+      AppFeedback.show(context,
+          () => const SnackBar(content: Text('Uputstvo nije sačuvano.')));
       return;
     }
     setState(() => position.instruction = text.isEmpty ? null : text);
@@ -366,8 +368,11 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     final fen = await _api.setSideToMove(position.puzzleId, side);
     if (!mounted) return;
     if (fen == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Ta strana ne može biti na potezu u ovoj poziciji.')));
+      AppFeedback.show(
+          context,
+          () => const SnackBar(
+              content:
+                  Text('Ta strana ne može biti na potezu u ovoj poziciji.')));
       return;
     }
     setState(() => position.settleSide(side, fen));
@@ -397,8 +402,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     final ok = await _api.deleteSaved(position.puzzleId);
     if (!mounted) return;
     if (!ok) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Brisanje nije uspelo.')));
+      AppFeedback.show(context,
+          () => const SnackBar(content: Text('Brisanje nije uspelo.')));
       return;
     }
     setState(() => _positions =

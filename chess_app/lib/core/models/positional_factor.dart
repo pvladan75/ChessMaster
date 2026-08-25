@@ -51,11 +51,14 @@ class PositionalResult {
 
   const PositionalResult({required this.findings});
 
-  List<PositionalFactor> get factors => findings.expand((f) => f.factors).toSet().toList();
+  List<PositionalFactor> get factors =>
+      findings.expand((f) => f.factors).toSet().toList();
 
-  String get description => findings.map((f) => f.description).where((d) => d.isNotEmpty).join(' | ');
+  String get description =>
+      findings.map((f) => f.description).where((d) => d.isNotEmpty).join(' | ');
 
-  List<String> get affectedSquares => findings.expand((f) => f.affectedSquares).toSet().toList();
+  List<String> get affectedSquares =>
+      findings.expand((f) => f.affectedSquares).toSet().toList();
 
   bool get hasFinding => findings.isNotEmpty;
 

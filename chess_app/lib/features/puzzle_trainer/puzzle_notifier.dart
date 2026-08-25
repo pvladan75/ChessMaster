@@ -101,8 +101,8 @@ class PuzzleNotifier extends StateNotifier<PuzzleTrainerState> {
   void retryPuzzle() {
     if (state.initialFen == null || state.currentPuzzle == null) return;
 
-    final Map<String, dynamic> solutions = Map<String, dynamic>.from(
-        state.currentPuzzle!['solutions'] ?? {});
+    final Map<String, dynamic> solutions =
+        Map<String, dynamic>.from(state.currentPuzzle!['solutions'] ?? {});
     final engine = PuzzleEngine(solutions);
 
     state = state.copyWith(

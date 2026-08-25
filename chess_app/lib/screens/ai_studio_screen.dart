@@ -29,6 +29,7 @@ import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:go_router/go_router.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 enum PuzzleGameState {
   idle,
@@ -137,7 +138,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _engineLinesMap.clear();
       _engineArrows.clear();
     });
-    _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: targetDepth);
+    _stockfishService.analyzePosition(_puzzleBoardController.getFen(),
+        depth: targetDepth);
   }
 
   // Engine Analysis State
@@ -146,7 +148,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   List<ChessArrow> _engineArrows = [];
 
   // Reorganization Category State
-  String? _selectedCategory; // null = Selection Hub, 'mate_puzzle', 'basic_mate', 'winning_position'
+  String?
+      _selectedCategory; // null = Selection Hub, 'mate_puzzle', 'basic_mate', 'winning_position'
   String _selectedMateDepth = '2'; // '1', '2', '3'
   String _selectedBasicMateType = 'easy'; // 'easy', 'medium', 'hard'
   final Map<String, int> _selectedGroupedMoveIndices = {};
@@ -220,7 +223,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     final opening = widget.initialCategory;
     if (opening != null) {
       if (widget.mateDepth != null) _selectedMateDepth = widget.mateDepth!;
-      if (widget.basicMateLevel != null) _selectedBasicMateType = widget.basicMateLevel!;
+      if (widget.basicMateLevel != null)
+        _selectedBasicMateType = widget.basicMateLevel!;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _launchCategory(opening);
       });
@@ -240,26 +244,31 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     final bindingStr = WidgetsBinding.instance.runtimeType.toString();
     if (bindingStr.contains('Test') || bindingStr.contains('test')) return;
     _serverHealthTimer?.cancel();
-    _serverHealthTimer = Timer.periodic(const Duration(seconds: 5), (_) => _checkServerHealth());
+    _serverHealthTimer =
+        Timer.periodic(const Duration(seconds: 5), (_) => _checkServerHealth());
   }
 
   Future<void> _checkServerHealth() async {
     try {
-      final res = await http.get(Uri.parse('$backendUrl/api/health')).timeout(const Duration(seconds: 5));
+      final res = await http
+          .get(Uri.parse('$backendUrl/api/health'))
+          .timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         _consecutiveServerFailures = 0;
         if (!_isBackendConnected && mounted) {
           print('[HEALTH_CHECK_LOG] ✅ Server reconnected at ${DateTime.now()}');
           setState(() => _isBackendConnected = true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+          AppFeedback.show(
+            context,
+            () => const SnackBar(
               backgroundColor: Colors.teal,
               duration: Duration(seconds: 3),
               content: Row(
                 children: [
                   Icon(Icons.wifi, color: Colors.white),
                   SizedBox(width: 8),
-                  Text('✅ Veza sa backend serverom je ponovo uspostavljena.', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('✅ Veza sa backend serverom je ponovo uspostavljena.',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -267,14 +276,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         }
       } else {
         _consecutiveServerFailures++;
-        print('[HEALTH_CHECK_LOG] ⚠️ Server check returned HTTP ${res.statusCode} (Consecutive failures: $_consecutiveServerFailures)');
+        print(
+            '[HEALTH_CHECK_LOG] ⚠️ Server check returned HTTP ${res.statusCode} (Consecutive failures: $_consecutiveServerFailures)');
         if (_consecutiveServerFailures >= 3) {
           _handleServerDisconnected();
         }
       }
     } catch (e) {
       _consecutiveServerFailures++;
-      print('[HEALTH_CHECK_LOG] ❌ Server connection error: $e (Consecutive failures: $_consecutiveServerFailures)');
+      print(
+          '[HEALTH_CHECK_LOG] ❌ Server connection error: $e (Consecutive failures: $_consecutiveServerFailures)');
       if (_consecutiveServerFailures >= 3) {
         _handleServerDisconnected();
       }
@@ -283,7 +294,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   void _handleServerDisconnected() {
     if (_isBackendConnected && mounted) {
-      print('[HEALTH_CHECK_LOG] ℹ️ Backend server is offline or unreachable. Switching silently to offline mode.');
+      print(
+          '[HEALTH_CHECK_LOG] ℹ️ Backend server is offline or unreachable. Switching silently to offline mode.');
       setState(() => _isBackendConnected = false);
     }
   }
@@ -293,7 +305,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     final oldFen = _activeFen ?? _puzzleBoardController.getFen();
     _positionToken++;
     final int currentToken = _positionToken;
-    print('[STATE RESET] Cleared arrows and stopped analysis for FEN: $oldFen (Token: $currentToken)');
+    print(
+        '[STATE RESET] Cleared arrows and stopped analysis for FEN: $oldFen (Token: $currentToken)');
     _sendBackendLog({
       'type': 'stateReset',
       'oldFen': oldFen,
@@ -348,14 +361,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   Future<void> _sendBackendLog(Map<String, dynamic> details) async {
     try {
       final uri = Uri.parse('$backendUrl/api/puzzles/log');
-      final res = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.userSession.token}',
-        },
-        body: jsonEncode({'details': details}),
-      ).timeout(const Duration(seconds: 4));
+      final res = await http
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${widget.userSession.token}',
+            },
+            body: jsonEncode({'details': details}),
+          )
+          .timeout(const Duration(seconds: 4));
 
       if (res.statusCode == 200) {
         if (!_isBackendConnected && mounted) {
@@ -372,11 +387,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   Future<void> _initStockfish() async {
     await _stockfishService.initEngine();
-    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation, multipv, depth, isFinal, analyzedFen) async {
+    _stockfishService.onEvaluationChanged = (evaluation, bestMove, continuation,
+        multipv, depth, isFinal, analyzedFen) async {
       if (!mounted) return;
       if (_selectedCategory == 'mate_puzzle') return;
 
-      print('[ENGINE STREAM] Received eval for FEN: $analyzedFen | Depth: $depth | Best Move: $bestMove');
+      print(
+          '[ENGINE STREAM] Received eval for FEN: $analyzedFen | Depth: $depth | Best Move: $bestMove');
       _sendBackendLog({
         'type': 'engineStream',
         'fen': analyzedFen,
@@ -384,11 +401,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         'bestMove': bestMove,
       });
 
-      final currentBoardFen = (_puzzleGame?.fen ?? _activeFen ?? _puzzleBoardController.getFen()).split(' ')[0];
+      final currentBoardFen =
+          (_puzzleGame?.fen ?? _activeFen ?? _puzzleBoardController.getFen())
+              .split(' ')[0];
       final eventFen = analyzedFen.split(' ')[0];
 
       if (analyzedFen.isEmpty || eventFen != currentBoardFen) {
-        print('[IGNORED EVENT] Discarding stale evaluation from old FEN: $analyzedFen (Current Board FEN: $currentBoardFen)');
+        print(
+            '[IGNORED EVENT] Discarding stale evaluation from old FEN: $analyzedFen (Current Board FEN: $currentBoardFen)');
         _sendBackendLog({
           'type': 'ignoredEvent',
           'oldFen': analyzedFen,
@@ -397,7 +417,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         return; // Odbaci stari event i NEMOJ crtati strelice!
       }
 
-      print('[UI RENDER] Attempting to draw arrows for FEN: $analyzedFen | Current Board FEN: $currentBoardFen');
+      print(
+          '[UI RENDER] Attempting to draw arrows for FEN: $analyzedFen | Current Board FEN: $currentBoardFen');
       _sendBackendLog({
         'type': 'uiRender',
         'fen': analyzedFen,
@@ -409,8 +430,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       if (numVal != null) {
         parsedEval = numVal;
       } else if (evaluation.contains('M')) {
-        final mateNum = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-        parsedEval = evaluation.contains('-') ? (-10000.0 + mateNum) : (10000.0 - mateNum);
+        final mateNum =
+            int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+        parsedEval = evaluation.contains('-')
+            ? (-10000.0 + mateNum)
+            : (10000.0 - mateNum);
       }
 
       // Build top 1-5 engine arrows for display matching user MultiPV setting
@@ -456,11 +480,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           int? userMateScore;
           if (evaluation.contains('M')) {
             final isNegative = evaluation.contains('-');
-            final mateVal = int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), ''));
+            final mateVal =
+                int.tryParse(evaluation.replaceAll(RegExp(r'[^0-9]'), ''));
             if (mateVal != null) {
               if (_puzzleOrientation == PlayerColor.white && !isNegative) {
                 userMateScore = mateVal;
-              } else if (_puzzleOrientation == PlayerColor.black && isNegative) {
+              } else if (_puzzleOrientation == PlayerColor.black &&
+                  isNegative) {
                 userMateScore = mateVal;
               }
             }
@@ -468,7 +494,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
           // EARLY EXIT: Stockfish found mate M <= (N - k) -> ACCEPT USER MOVE!
           if (userMateScore != null && userMateScore <= remainingNeeded) {
-            print('\n[MATE_VERIFICATION] ✅ EARLY EXIT (Depth $depth): Nađen mat M$userMateScore <= $remainingNeeded! Potez prihvaćen!\n');
+            print(
+                '\n[MATE_VERIFICATION] ✅ EARLY EXIT (Depth $depth): Nađen mat M$userMateScore <= $remainingNeeded! Potez prihvaćen!\n');
             _verificationTimeoutTimer?.cancel();
             _isVerifyingUserMove = false;
             _stockfishService.stopAnalysis();
@@ -477,7 +504,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           }
 
           // FAST REJECTION (Depth >= 6): Stockfish shows no mate in remainingNeeded moves -> REJECT IMMEDIATELY!
-          final bool isFastFail = (depth >= 6 && (userMateScore == null || userMateScore > remainingNeeded));
+          final bool isFastFail = (depth >= 6 &&
+              (userMateScore == null || userMateScore > remainingNeeded));
 
           // REJECTION: Stockfish reached Depth 25 or fast fail without finding M <= (N - k) -> REJECT USER MOVE!
           if (isFinal || depth >= 25 || isFastFail) {
@@ -493,14 +521,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               if (_userMoveCount > 0) _userMoveCount--;
             }
 
-            print('\n[MATE_VERIFICATION] ❌ POTEZ ODBIJEN! (Stockfish na dubini $depth nije pronašao mat u $remainingNeeded poteza). Potez vraćen, tabla otključana.\n');
+            print(
+                '\n[MATE_VERIFICATION] ❌ POTEZ ODBIJEN! (Stockfish na dubini $depth nije pronašao mat u $remainingNeeded poteza). Potez vraćen, tabla otključana.\n');
 
             await _sendBackendLog({
               'mode': _categoryDisplayName,
               'dynamicFen': _puzzleGame?.fen,
               'status': 'REJECTED',
               'eval': evaluation,
-              'reason': 'Stockfish na dubini $depth nije pronašao mat u $remainingNeeded poteza.',
+              'reason':
+                  'Stockfish na dubini $depth nije pronašao mat u $remainingNeeded poteza.',
             });
 
             _showSnackBar('Netačan potez! Pokušajte sa drugim potezom.');
@@ -512,12 +542,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
       // --- PHASE B: OPPONENT BOT TURN RESPONSE ---
       if (_isOpponentTurn) {
-        if (multipv == 1 && bestMove.isNotEmpty && bestMove != '-' && bestMove.length >= 4) {
+        if (multipv == 1 &&
+            bestMove.isNotEmpty &&
+            bestMove != '-' &&
+            bestMove.length >= 4) {
           _latestEngineBestMove = bestMove;
           _latestEngineEval = evaluation;
           final targetDepth = AppSettingsService.instance.defaultEngineDepth;
           if (depth >= targetDepth || isFinal) {
-            _executeOpponentEngineMoveDueToTimeoutOrDepth('Zadata dubina dostignuta ($depth >= $targetDepth)');
+            _executeOpponentEngineMoveDueToTimeoutOrDepth(
+                'Zadata dubina dostignuta ($depth >= $targetDepth)');
           }
         }
       }
@@ -528,10 +562,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       if (linesMap.isEmpty) return;
 
       final lineFen = linesMap.values.first.startingFen.split(' ')[0];
-      final currentBoardFen = (_puzzleGame?.fen ?? _activeFen ?? _puzzleBoardController.getFen()).split(' ')[0];
+      final currentBoardFen =
+          (_puzzleGame?.fen ?? _activeFen ?? _puzzleBoardController.getFen())
+              .split(' ')[0];
 
       if (lineFen != currentBoardFen) {
-        print('[IGNORED EVENT] Discarding stale MultiPV lines from old FEN: $lineFen (Current Board FEN: $currentBoardFen)');
+        print(
+            '[IGNORED EVENT] Discarding stale MultiPV lines from old FEN: $lineFen (Current Board FEN: $currentBoardFen)');
         return;
       }
 
@@ -556,11 +593,18 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _opponentMoveTimer?.cancel();
     _isOpponentTurn = false;
 
-    final move = _latestEngineBestMove ?? (_engineLinesMap.isNotEmpty ? _engineLinesMap.values.first.bestMoveLan : '');
-    final eval = _latestEngineEval ?? (_engineLinesMap.isNotEmpty ? _engineLinesMap.values.first.evaluation : '0.00');
+    final move = _latestEngineBestMove ??
+        (_engineLinesMap.isNotEmpty
+            ? _engineLinesMap.values.first.bestMoveLan
+            : '');
+    final eval = _latestEngineEval ??
+        (_engineLinesMap.isNotEmpty
+            ? _engineLinesMap.values.first.evaluation
+            : '0.00');
 
     if (move.isNotEmpty && move != '-' && move.length >= 4) {
-      print('\n[ENGINE_MOVE_TRIGGER] ⚡ Odigravanje poteza engine-a: $reason! Odabran potez: $move (Eval: $eval)\n');
+      print(
+          '\n[ENGINE_MOVE_TRIGGER] ⚡ Odigravanje poteza engine-a: $reason! Odabran potez: $move (Eval: $eval)\n');
       _stockfishService.stopAnalysis();
       _playOpponentMove(move, eval);
     }
@@ -583,7 +627,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         final to = fallbackObj['to'] ?? '';
         final promo = fallbackObj['promotion'] ?? '';
         validMove = '$from$to$promo';
-        print('\n[TRAINING_LOG] ⚠️ ENGINE JE VRATIO NELEGALAN POTEZ ($bestMove)! Zamenjen legalnim potezom: $validMove\n');
+        print(
+            '\n[TRAINING_LOG] ⚠️ ENGINE JE VRATIO NELEGALAN POTEZ ($bestMove)! Zamenjen legalnim potezom: $validMove\n');
       }
     }
 
@@ -591,11 +636,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     print('\n--------------------------------------------------');
     print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
-    print('[TRAINING_LOG] 3) FEN POZICIJA KOJU ANALIZIRA ENGINE: ${_puzzleGame?.fen}');
+    print(
+        '[TRAINING_LOG] 3) FEN POZICIJA KOJU ANALIZIRA ENGINE: ${_puzzleGame?.fen}');
     print('[TRAINING_LOG] 5) POTEZ ENGINE-A: $validMove');
-    print('[TRAINING_LOG] 5) OSNOV ODABIRA: Stockfish kalkulacija najbolje linije');
+    print(
+        '[TRAINING_LOG] 5) OSNOV ODABIRA: Stockfish kalkulacija najbolje linije');
     print('[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): $targetDepth');
-    print('[TRAINING_LOG] 5) EVALUACIJA POZICIJE: $evaluation (Best: $validMove)');
+    print(
+        '[TRAINING_LOG] 5) EVALUACIJA POZICIJE: $evaluation (Best: $validMove)');
     print('--------------------------------------------------\n');
 
     _sendBackendLog({
@@ -628,10 +676,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         } else if (_puzzleGame!.in_stalemate || _puzzleGame!.in_draw) {
           _showSnackBar('🤝 Pat / Remi u poziciji.');
         } else {
-          if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
+          if (_selectedCategory != 'mate_puzzle' &&
+              (_showEvaluation || _showEvalBar)) {
             _selectedGroupedMoveIndices.clear();
-      _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
-            _stockfishService.analyzePosition(_puzzleGame!.fen, depth: AppSettingsService.instance.defaultEngineDepth);
+            _stockfishService
+                .setMultiPV(AppSettingsService.instance.defaultMultiPV);
+            _stockfishService.analyzePosition(_puzzleGame!.fen,
+                depth: AppSettingsService.instance.defaultEngineDepth);
           }
         }
       }
@@ -648,10 +699,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     });
 
     // If puzzle solution JSON has the predefined response move at _moveIndex, play it!
-    if (_expectedMoves.length > _moveIndex && _expectedMoves[_moveIndex].isNotEmpty) {
+    if (_expectedMoves.length > _moveIndex &&
+        _expectedMoves[_moveIndex].isNotEmpty) {
       final jsonResponseMove = _expectedMoves[_moveIndex];
       _moveIndex++;
-      print('\n[OPPONENT_BOT_DEBUG] 🎯 Pronađen spreman odgovor u JSON rešenju: $jsonResponseMove\n');
+      print(
+          '\n[OPPONENT_BOT_DEBUG] 🎯 Pronađen spreman odgovor u JSON rešenju: $jsonResponseMove\n');
       _stockfishService.stopAnalysis();
       _isOpponentTurn = false;
       _playOpponentMove(jsonResponseMove, 'JSON');
@@ -661,10 +714,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _opponentMoveTimer?.cancel();
     _latestEngineBestMove = null;
     _latestEngineEval = null;
-    final moveTimeSec = AppSettingsService.instance.defaultEngineMoveTimeSeconds;
+    final moveTimeSec =
+        AppSettingsService.instance.defaultEngineMoveTimeSeconds;
     _opponentMoveTimer = Timer(Duration(seconds: moveTimeSec), () {
       if (_isOpponentTurn && mounted) {
-        _executeOpponentEngineMoveDueToTimeoutOrDepth('Vreme razmišljanja isteka ($moveTimeSec s)');
+        _executeOpponentEngineMoveDueToTimeoutOrDepth(
+            'Vreme razmišljanja isteka ($moveTimeSec s)');
       }
     });
 
@@ -677,26 +732,34 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   void _showBlunderAlert(double evalDiff, double currentEval) {
     if (!mounted) return;
     final isCritical = currentEval <= 0.5;
-    final title = isCritical ? '🚨 TEŠKA GREŠKA (BLUNDER)!' : '⚠️ NEPRECIZNOST!';
+    final title =
+        isCritical ? '🚨 TEŠKA GREŠKA (BLUNDER)!' : '⚠️ NEPRECIZNOST!';
     final msg = isCritical
         ? 'Ovim potezom ste izgubili dobitnu poziciju (Pad evaluacije: -${evalDiff.toStringAsFixed(1)}).'
         : 'Napravili ste neprecizan potez, ali ste i dalje u prednosti (Pad: -${evalDiff.toStringAsFixed(1)}).';
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: isCritical ? Colors.red.shade900 : Colors.amber.shade900,
+    AppFeedback.show(
+      context,
+      () => SnackBar(
+        backgroundColor:
+            isCritical ? Colors.red.shade900 : Colors.amber.shade900,
         duration: const Duration(seconds: 4),
         content: Row(
           children: [
-            Icon(isCritical ? Icons.cancel : Icons.warning_amber, color: Colors.white),
+            Icon(isCritical ? Icons.cancel : Icons.warning_amber,
+                color: Colors.white),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                  Text(msg, style: const TextStyle(fontSize: 11, color: Colors.white70)),
+                  Text(title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text(msg,
+                      style:
+                          const TextStyle(fontSize: 11, color: Colors.white70)),
                 ],
               ),
             ),
@@ -809,8 +872,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   }
 
   String get _categoryDisplayName {
-    if (_selectedCategory == 'mate_puzzle') return 'Zagonetke: Mat u $_selectedMateDepth poteza';
-    if (_selectedCategory == 'basic_mate') return 'Vežbajte osnovno matiranje ($_selectedBasicMateType)';
+    if (_selectedCategory == 'mate_puzzle')
+      return 'Zagonetke: Mat u $_selectedMateDepth poteza';
+    if (_selectedCategory == 'basic_mate')
+      return 'Vežbajte osnovno matiranje ($_selectedBasicMateType)';
     if (_selectedCategory == 'winning_position') return 'Pronađite dobitni put';
     return _selectedCategory ?? 'Trening';
   }
@@ -862,7 +927,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           _lastMoveFrom = null;
           _lastMoveTo = null;
           _isOpponentTurn = false;
-          _puzzleOrientation = turnIsWhite ? PlayerColor.white : PlayerColor.black;
+          _puzzleOrientation =
+              turnIsWhite ? PlayerColor.white : PlayerColor.black;
           _showEvalBar = false;
         });
 
@@ -874,7 +940,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           }
         });
 
-        _stockfishService.analyzePosition(fen, depth: AppSettingsService.instance.defaultEngineDepth);
+        _stockfishService.analyzePosition(fen,
+            depth: AppSettingsService.instance.defaultEngineDepth);
       }
     } catch (e) {
       print('Error loading basic mate preset $difficulty: $e');
@@ -883,7 +950,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   Future<void> _fetchNextPuzzle() async {
     _resetEngineState();
-    final String currentId = _currentPuzzle?['puzzle_id'] ?? _currentPuzzle?['id'] ?? '';
+    final String currentId =
+        _currentPuzzle?['puzzle_id'] ?? _currentPuzzle?['id'] ?? '';
     setState(() {
       _isLoadingPuzzle = true;
       _puzzleSolved = false;
@@ -929,7 +997,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
         print('[TRAINING_LOG] 2) UČITANI FEN: $fen');
         print('[TRAINING_LOG] OČEKIVANI POTEZI (JSON): $moves');
-        print('[TREE_VERIFICATION] 🌳 Stablo rešenja učitano (${_currentSolutionsNode?.keys.length ?? 0} grana)');
+        print(
+            '[TREE_VERIFICATION] 🌳 Stablo rešenja učitano (${_currentSolutionsNode?.keys.length ?? 0} grana)');
         print('==================================================\n');
 
         _sendBackendLog({
@@ -939,7 +1008,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
         final sideToMove = fen.split(' ')[1];
         setState(() {
-          _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
+          _puzzleOrientation =
+              (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
           _isOpponentTurn = false;
         });
 
@@ -951,8 +1021,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           }
         });
 
-        if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
-          _stockfishService.analyzePosition(fen, depth: AppSettingsService.instance.defaultEngineDepth);
+        if (_selectedCategory != 'mate_puzzle' &&
+            (_showEvaluation || _showEvalBar)) {
+          _stockfishService.analyzePosition(fen,
+              depth: AppSettingsService.instance.defaultEngineDepth);
         }
       } else {
         _showSnackBar('Nije moguće učitati poziciju.');
@@ -1004,10 +1076,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _puzzleMoveTree = MoveTree(startingFen: _initialPuzzleFen!);
     });
 
-    if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
+    if (_selectedCategory != 'mate_puzzle' &&
+        (_showEvaluation || _showEvalBar)) {
       _selectedGroupedMoveIndices.clear();
       _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
-      _stockfishService.analyzePosition(_initialPuzzleFen!, depth: AppSettingsService.instance.defaultEngineDepth);
+      _stockfishService.analyzePosition(_initialPuzzleFen!,
+          depth: AppSettingsService.instance.defaultEngineDepth);
     }
 
     _sendBackendLog({
@@ -1027,8 +1101,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     bool isFriendlyPiece = false;
     if (piece != null) {
-      if (isTurnWhite && piece.color == chess.Color.WHITE) isFriendlyPiece = true;
-      if (!isTurnWhite && piece.color == chess.Color.BLACK) isFriendlyPiece = true;
+      if (isTurnWhite && piece.color == chess.Color.WHITE)
+        isFriendlyPiece = true;
+      if (!isTurnWhite && piece.color == chess.Color.BLACK)
+        isFriendlyPiece = true;
     }
 
     if (isFriendlyPiece) {
@@ -1057,12 +1133,17 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         // fail to match (no candidate has 'q' when none is a promotion).
         String? promoPiece;
         final promoMoves = _puzzleGame!.moves({'verbose': true}).where(
-          (m) => m['from'] == from && m['to'] == to && m['promotion'] != null && m['promotion'].toString().isNotEmpty,
+          (m) =>
+              m['from'] == from &&
+              m['to'] == to &&
+              m['promotion'] != null &&
+              m['promotion'].toString().isNotEmpty,
         );
 
         if (promoMoves.isNotEmpty) {
           promoPiece = 'q';
-          _currentSolutionsNode ??= Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
+          _currentSolutionsNode ??=
+              Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
           if (_currentSolutionsNode != null) {
             for (var pm in promoMoves) {
               final candUci = '$from$to${pm['promotion']}';
@@ -1076,7 +1157,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
         final movingPiece = _puzzleGame!.get(from);
         if (movingPiece != null) _triggerMoveAnimation(from, to, movingPiece);
-        _onUserPuzzleMoveMade(manualFrom: from, manualTo: to, manualPromo: promoPiece);
+        _onUserPuzzleMoveMade(
+            manualFrom: from, manualTo: to, manualPromo: promoPiece);
       }
     }
   }
@@ -1085,7 +1167,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     final durationMs = AppSettingsService.instance.moveAnimationDurationMs;
     if (durationMs <= 0) return;
     setState(() {
-      _pendingAnimations.add(PendingMoveAnimation(from: from, to: to, piece: movingPiece));
+      _pendingAnimations
+          .add(PendingMoveAnimation(from: from, to: to, piece: movingPiece));
     });
   }
 
@@ -1104,16 +1187,22 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             break;
           }
         }
-        _puzzleGame!.move({'from': fromStr, 'to': toStr, 'promotion': lanMove.length > 4 ? lanMove[4] : 'q'});
+        _puzzleGame!.move({
+          'from': fromStr,
+          'to': toStr,
+          'promotion': lanMove.length > 4 ? lanMove[4] : 'q'
+        });
         final animatedPiece = _puzzleGame!.get(toStr);
-        if (animatedPiece != null) _triggerMoveAnimation(fromStr, toStr, animatedPiece);
+        if (animatedPiece != null)
+          _triggerMoveAnimation(fromStr, toStr, animatedPiece);
         _puzzleBoardController.loadFen(_puzzleGame!.fen);
         _activeFen = _puzzleGame!.fen;
         _recordMoveInTree(fromStr, toStr, san: san);
       } else {
         _puzzleBoardController.makeMove(from: fromStr, to: toStr);
         final animatedPiece = _puzzleBoardController.game.get(toStr);
-        if (animatedPiece != null) _triggerMoveAnimation(fromStr, toStr, animatedPiece);
+        if (animatedPiece != null)
+          _triggerMoveAnimation(fromStr, toStr, animatedPiece);
         _activeFen = _puzzleBoardController.getFen();
       }
       setState(() {
@@ -1127,8 +1216,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
   }
 
-  Future<void> _onUserPuzzleMoveMade({String? manualFrom, String? manualTo, String? manualPromo}) async {
-    if (_isOpponentTurn || _puzzleGame == null || _isVerifyingUserMove || _puzzleSolved) return;
+  Future<void> _onUserPuzzleMoveMade(
+      {String? manualFrom, String? manualTo, String? manualPromo}) async {
+    if (_isOpponentTurn ||
+        _puzzleGame == null ||
+        _isVerifyingUserMove ||
+        _puzzleSolved) return;
     _isVerifyingUserMove = true;
     setState(() {
       _gameState = PuzzleGameState.verifyingMove;
@@ -1186,10 +1279,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       }
 
       // Promotion handling refinement:
-      if (matchedMove != null && matchedMove['promotion'] != null && matchedMove['promotion'].toString().isNotEmpty) {
+      if (matchedMove != null &&
+          matchedMove['promotion'] != null &&
+          matchedMove['promotion'].toString().isNotEmpty) {
         final from = matchedMove['from'] ?? '';
         final to = matchedMove['to'] ?? '';
-        _currentSolutionsNode ??= Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
+        _currentSolutionsNode ??=
+            Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
 
         if (_currentSolutionsNode != null) {
           for (var candidate in allLegalMoves) {
@@ -1201,7 +1297,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               if (_currentSolutionsNode!.containsKey(candUci)) {
                 matchedMove = candidate;
                 userLan = candUci;
-                print('[MOVE_MADE_DEBUG] 🎯 Solution tree expects promotion move: $userLan');
+                print(
+                    '[MOVE_MADE_DEBUG] 🎯 Solution tree expects promotion move: $userLan');
                 break;
               }
             }
@@ -1251,7 +1348,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         'reason': 'Korisnik je uspešno zadao mat na tabli!',
       });
 
-      if (_selectedCategory == 'basic_mate' || _selectedCategory == 'winning_position') {
+      if (_selectedCategory == 'basic_mate' ||
+          _selectedCategory == 'winning_position') {
         setState(() => _puzzleSolved = true);
         _showEndgameWinDialog();
       } else {
@@ -1262,8 +1360,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     // --- STEP 1: DIRECT LOCAL SOLUTION TREE VERIFICATION FOR MATE PUZZLES ---
     if (_selectedCategory == 'mate_puzzle') {
-      _currentSolutionsNode ??= Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
-      final primaryJsonMove = _currentPuzzle?['winning_move_uci'] ?? (_expectedMoves.length > _moveIndex ? _expectedMoves[_moveIndex] : '');
+      _currentSolutionsNode ??=
+          Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
+      final primaryJsonMove = _currentPuzzle?['winning_move_uci'] ??
+          (_expectedMoves.length > _moveIndex
+              ? _expectedMoves[_moveIndex]
+              : '');
 
       dynamic subBranch = _currentSolutionsNode?[userLan];
       // Case-insensitive fallback for promotion moves (e.g. h7h8q vs h7h8Q)
@@ -1279,7 +1381,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       }
 
       // Fallback for single-move puzzles (Mate in 1) or when position is in checkmate
-      if (subBranch == null && primaryJsonMove.isNotEmpty && userLan == primaryJsonMove) {
+      if (subBranch == null &&
+          primaryJsonMove.isNotEmpty &&
+          userLan == primaryJsonMove) {
         final reqN = int.tryParse(_selectedMateDepth) ?? 1;
         if (reqN == 1 || _puzzleGame!.in_checkmate) {
           subBranch = "CHECKMATE";
@@ -1287,7 +1391,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       }
 
       print('\n==================================================');
-      print('[TREE_VERIFICATION] 🌳 User move: $userLan | Primary JSON move: $primaryJsonMove');
+      print(
+          '[TREE_VERIFICATION] 🌳 User move: $userLan | Primary JSON move: $primaryJsonMove');
       print('[TREE_VERIFICATION] 🌳 Sub-branch: $subBranch');
       print('==================================================\n');
 
@@ -1302,10 +1407,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           'userMove': '$userLan ($san)',
           'status': 'ACCEPTED',
           'validTreeKeys': _currentSolutionsNode?.keys.join(', '),
-          'subBranch': subBranch == "CHECKMATE" ? "CHECKMATE (Matni kraj)" : (subBranch is Map ? "Grana sa odgovora: ${subBranch.keys.join(', ')}" : subBranch.toString()),
+          'subBranch': subBranch == "CHECKMATE"
+              ? "CHECKMATE (Matni kraj)"
+              : (subBranch is Map
+                  ? "Grana sa odgovora: ${subBranch.keys.join(', ')}"
+                  : subBranch.toString()),
         });
 
-        final bool isTerminalCheckmate = (subBranch == "CHECKMATE" || _puzzleGame!.in_checkmate);
+        final bool isTerminalCheckmate =
+            (subBranch == "CHECKMATE" || _puzzleGame!.in_checkmate);
 
         if (isTerminalCheckmate || (subBranch is Map && subBranch.isEmpty)) {
           // DEDUPLICATION: Clean up any pending opponent moves in active branch points that are ALSO satisfied by userLan!
@@ -1336,14 +1446,17 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               pendingBP = top;
               break;
             } else {
-              _activeBranchPoints.removeLast(); // Clean up completed branch points
+              _activeBranchPoints
+                  .removeLast(); // Clean up completed branch points
             }
           }
 
           if (pendingBP != null) {
-            final String nextOppMove = pendingBP.pendingOpponentMoves.removeAt(0);
-            print('[TREE_VERIFICATION] 🔁 Rešena linija do mata! Nastavak na drugu odbrambenu varijantu od tačke razgranjenja: $nextOppMove');
-            
+            final String nextOppMove =
+                pendingBP.pendingOpponentMoves.removeAt(0);
+            print(
+                '[TREE_VERIFICATION] 🔁 Rešena linija do mata! Nastavak na drugu odbrambenu varijantu od tačke razgranjenja: $nextOppMove');
+
             _sendBackendLog({
               'type': 'branchReset',
               'mode': _categoryDisplayName,
@@ -1351,7 +1464,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               'remainingBranches': pendingBP.pendingOpponentMoves.length,
             });
 
-            _showSnackBar('Sjajno! Rešite i ostalu odbrambenu liniju protivnika.');
+            _showSnackBar(
+                'Sjajno! Rešite i ostalu odbrambenu liniju protivnika.');
 
             // Reset board to the EXACT branching FEN (post-user-move position) and play next opponent variation
             _pause(const Duration(milliseconds: 600)).then((_) {
@@ -1365,9 +1479,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 final oppTo = nextOppMove.substring(2, 4);
                 final oppPromo = nextOppMove.length > 4 ? nextOppMove[4] : null;
 
-                _puzzleGame!.move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
+                _puzzleGame!.move(
+                    {'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
                 final animatedPiece = _puzzleGame!.get(oppTo);
-                if (animatedPiece != null) _triggerMoveAnimation(oppFrom, oppTo, animatedPiece);
+                if (animatedPiece != null)
+                  _triggerMoveAnimation(oppFrom, oppTo, animatedPiece);
                 _puzzleBoardController.loadFen(_puzzleGame!.fen);
                 _activeFen = _puzzleGame!.fen;
                 _lastMoveFrom = oppFrom;
@@ -1398,7 +1514,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           }
 
           // All variations completely solved!
-          print('[TREE_VERIFICATION] 🎉 SVE VARIJANTE U POTPUNOSTI REŠENE! Zagonetka je uspešno rešena.');
+          print(
+              '[TREE_VERIFICATION] 🎉 SVE VARIJANTE U POTPUNOSTI REŠENE! Zagonetka je uspešno rešena.');
           setState(() {
             _puzzleSolved = true;
             _gameState = PuzzleGameState.puzzleCompleted;
@@ -1409,24 +1526,28 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         }
 
         if (subBranch is Map) {
-          final Map<String, dynamic> oppTree = Map<String, dynamic>.from(subBranch);
-          
+          final Map<String, dynamic> oppTree =
+              Map<String, dynamic>.from(subBranch);
+
           // Check unicity: do all opponent replies require identical user responses?
-          final bool isIdenticalUserMoves = _areUserMovesIdenticalForAllOpponentReplies(oppTree);
+          final bool isIdenticalUserMoves =
+              _areUserMovesIdenticalForAllOpponentReplies(oppTree);
 
           String oppMoveLan;
           if (!isIdenticalUserMoves && oppTree.keys.length > 1) {
             // Find or record branch point for current user move
             VariationBranchPoint? existingBP;
             for (var bp in _activeBranchPoints) {
-              if (bp.fenPostUserMove == _puzzleGame!.fen && bp.userMoveUci == userLan) {
+              if (bp.fenPostUserMove == _puzzleGame!.fen &&
+                  bp.userMoveUci == userLan) {
                 existingBP = bp;
                 break;
               }
             }
 
             if (existingBP == null) {
-              final uniqueOppKeys = _getUniqueOpponentRepresentativeMoves(oppTree);
+              final uniqueOppKeys =
+                  _getUniqueOpponentRepresentativeMoves(oppTree);
               oppMoveLan = uniqueOppKeys.first;
               final pendingKeys = uniqueOppKeys.sublist(1);
 
@@ -1459,10 +1580,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               final oppTo = oppMoveLan.substring(2, 4);
               final oppPromo = oppMoveLan.length > 4 ? oppMoveLan[4] : null;
 
-              final moveObj = _puzzleGame!.move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
+              final moveObj = _puzzleGame!
+                  .move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
               if (moveObj) {
                 final animatedPiece = _puzzleGame!.get(oppTo);
-                if (animatedPiece != null) _triggerMoveAnimation(oppFrom, oppTo, animatedPiece);
+                if (animatedPiece != null)
+                  _triggerMoveAnimation(oppFrom, oppTo, animatedPiece);
                 _puzzleBoardController.loadFen(_puzzleGame!.fen);
                 _activeFen = _puzzleGame!.fen;
                 _lastMoveFrom = oppFrom;
@@ -1486,7 +1609,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 _isOpponentTurn = false;
               });
 
-              if (_currentSolutionsNode!.isEmpty || nextSubTree == "CHECKMATE" || _puzzleGame!.in_checkmate) {
+              if (_currentSolutionsNode!.isEmpty ||
+                  nextSubTree == "CHECKMATE" ||
+                  _puzzleGame!.in_checkmate) {
                 bool hasPendingBP = false;
                 for (var bp in _activeBranchPoints) {
                   if (bp.pendingOpponentMoves.isNotEmpty) {
@@ -1495,7 +1620,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   }
                 }
 
-                if (!hasPendingBP && (_puzzleGame!.in_checkmate || nextSubTree == "CHECKMATE")) {
+                if (!hasPendingBP &&
+                    (_puzzleGame!.in_checkmate || nextSubTree == "CHECKMATE")) {
                   setState(() {
                     _puzzleSolved = true;
                     _gameState = PuzzleGameState.puzzleCompleted;
@@ -1525,7 +1651,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         return;
       } else {
         // Move NOT in solution tree -> Show failure modal dialog with 3 choices!
-        print('[TREE_VERIFICATION] ❌ Potez $userLan nije u stablu rešenja! Prikazivanje dijaloga za grešku.');
+        print(
+            '[TREE_VERIFICATION] ❌ Potez $userLan nije u stablu rešenja! Prikazivanje dijaloga za grešku.');
         _sendBackendLog({
           'mode': _categoryDisplayName,
           'initialFen': _initialPuzzleFen,
@@ -1544,7 +1671,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _triggerOpponentBotResponse();
   }
 
-  List<String> _getUniqueOpponentRepresentativeMoves(Map<String, dynamic> oppBranchMap) {
+  List<String> _getUniqueOpponentRepresentativeMoves(
+      Map<String, dynamic> oppBranchMap) {
     final List<String> uniqueOpponentMoves = [];
     final Set<String> seenUserSignatures = {};
 
@@ -1565,10 +1693,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       }
     }
 
-    return uniqueOpponentMoves.isNotEmpty ? uniqueOpponentMoves : oppBranchMap.keys.map((k) => k.toString()).toList();
+    return uniqueOpponentMoves.isNotEmpty
+        ? uniqueOpponentMoves
+        : oppBranchMap.keys.map((k) => k.toString()).toList();
   }
 
-  bool _areUserMovesIdenticalForAllOpponentReplies(Map<String, dynamic> oppBranchMap) {
+  bool _areUserMovesIdenticalForAllOpponentReplies(
+      Map<String, dynamic> oppBranchMap) {
     if (oppBranchMap.isEmpty) return true;
     String? firstUserMoveSet;
 
@@ -1612,7 +1743,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       ),
       builder: (ctx) {
         final bottomPadding = MediaQuery.of(ctx).padding.bottom;
-        final isLandscape = MediaQuery.of(ctx).orientation == Orientation.landscape;
+        final isLandscape =
+            MediaQuery.of(ctx).orientation == Orientation.landscape;
         return SafeArea(
           child: Container(
             constraints: BoxConstraints(
@@ -1628,11 +1760,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.cancel_outlined, color: Colors.redAccent, size: isLandscape ? 36 : 48),
+                  Icon(Icons.cancel_outlined,
+                      color: Colors.redAccent, size: isLandscape ? 36 : 48),
                   const SizedBox(height: 8),
                   const Text(
                     'Netačan Potez!',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                   ),
                   const SizedBox(height: 6),
                   const Text(
@@ -1653,7 +1789,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
-                        _sendBackendLog({'type': 'buttonClick', 'button': 'Modal - Pokušaj Ponovo'});
+                        _sendBackendLog({
+                          'type': 'buttonClick',
+                          'button': 'Modal - Pokušaj Ponovo'
+                        });
                         _undoIncorrectUserMove();
                       },
                     ),
@@ -1672,7 +1811,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           ),
                           onPressed: () {
                             Navigator.pop(ctx);
-                            _sendBackendLog({'type': 'buttonClick', 'button': 'Modal - Prikaži Rešenje'});
+                            _sendBackendLog({
+                              'type': 'buttonClick',
+                              'button': 'Modal - Prikaži Rešenje'
+                            });
                             _playFullSolutionReplay();
                           },
                         ),
@@ -1689,7 +1831,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           ),
                           onPressed: () {
                             Navigator.pop(ctx);
-                            _sendBackendLog({'type': 'buttonClick', 'button': 'Modal - Sledeća Zagonetka'});
+                            _sendBackendLog({
+                              'type': 'buttonClick',
+                              'button': 'Modal - Sledeća Zagonetka'
+                            });
                             _fetchNextPuzzle();
                           },
                         ),
@@ -1708,7 +1853,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   void _undoIncorrectUserMove() {
     _stockfishService.stopAnalysis();
     if (_currentPuzzle != null && _currentPuzzle!['solutions'] != null) {
-      _rootSolutionsTree = Map<String, dynamic>.from(_currentPuzzle!['solutions']);
+      _rootSolutionsTree =
+          Map<String, dynamic>.from(_currentPuzzle!['solutions']);
       _currentSolutionsNode = Map<String, dynamic>.from(_rootSolutionsTree);
     }
     _activeBranchPoints.clear();
@@ -1748,12 +1894,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _puzzleBoardController.loadFen(_initialPuzzleFen!);
     _activeFen = _initialPuzzleFen!;
     if (_currentPuzzle != null && _currentPuzzle!['solutions'] != null) {
-      _rootSolutionsTree = Map<String, dynamic>.from(_currentPuzzle!['solutions']);
+      _rootSolutionsTree =
+          Map<String, dynamic>.from(_currentPuzzle!['solutions']);
       _currentSolutionsNode = Map<String, dynamic>.from(_rootSolutionsTree);
     }
     _activeBranchPoints.clear();
 
-    Map<String, dynamic> current = Map<String, dynamic>.from(_rootSolutionsTree);
+    Map<String, dynamic> current =
+        Map<String, dynamic>.from(_rootSolutionsTree);
 
     while (current.isNotEmpty) {
       final userMove = current.keys.first;
@@ -1784,9 +1932,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         await _pause(const Duration(milliseconds: 800));
         if (!mounted) return;
 
-        _puzzleGame!.move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
+        _puzzleGame!
+            .move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
         final replayOppPiece = _puzzleGame!.get(oppTo);
-        if (replayOppPiece != null) _triggerMoveAnimation(oppFrom, oppTo, replayOppPiece);
+        if (replayOppPiece != null)
+          _triggerMoveAnimation(oppFrom, oppTo, replayOppPiece);
         _puzzleBoardController.loadFen(_puzzleGame!.fen);
         _activeFen = _puzzleGame!.fen;
         setState(() {
@@ -1831,7 +1981,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           ElevatedButton.icon(
             icon: const Icon(Icons.arrow_forward),
             label: const Text('Sledeća Pozicija'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple, foregroundColor: Colors.white),
             onPressed: () {
               Navigator.pop(ctx);
               if (_selectedCategory == 'basic_mate') {
@@ -1865,7 +2016,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _puzzleGame = chess.Chess.fromFEN(fen);
     _activeFen = fen;
 
-    _rootSolutionsTree = Map<String, dynamic>.from(_currentPuzzle!['solutions'] ?? {});
+    _rootSolutionsTree =
+        Map<String, dynamic>.from(_currentPuzzle!['solutions'] ?? {});
     _currentSolutionsNode = Map<String, dynamic>.from(_rootSolutionsTree);
     _activeBranchPoints.clear();
 
@@ -1881,12 +2033,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _isOpponentTurn = false;
       _isVerifyingUserMove = false;
       _gameState = PuzzleGameState.idle;
-      _puzzleOrientation = (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
+      _puzzleOrientation =
+          (sideToMove == 'b') ? PlayerColor.black : PlayerColor.white;
     });
 
     _puzzleBoardController.loadFen(fen);
-    if (_selectedCategory != 'mate_puzzle' && (_showEvaluation || _showEvalBar)) {
-      _stockfishService.analyzePosition(fen, depth: AppSettingsService.instance.defaultEngineDepth);
+    if (_selectedCategory != 'mate_puzzle' &&
+        (_showEvaluation || _showEvalBar)) {
+      _stockfishService.analyzePosition(fen,
+          depth: AppSettingsService.instance.defaultEngineDepth);
     }
   }
 
@@ -1926,14 +2081,18 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 children: const [
                   Icon(Icons.emoji_events, color: Colors.amber, size: 28),
                   SizedBox(width: 8),
-                  Text('Zagonetka Rešena!', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('Zagonetka Rešena!',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
-              content: Text('Bravo! Tačno ste odigrali sve poteze.\nNovi rejting: $newRating (${change >= 0 ? "+" : ""}$change)'),
+              content: Text(
+                  'Bravo! Tačno ste odigrali sve poteze.\nNovi rejting: $newRating (${change >= 0 ? "+" : ""}$change)'),
               actions: [
                 OutlinedButton.icon(
-                  icon: const Icon(Icons.account_tree_outlined, color: Colors.tealAccent, size: 18),
-                  label: const Text('Prikaži Rešenje', style: TextStyle(color: Colors.tealAccent, fontSize: 13)),
+                  icon: const Icon(Icons.account_tree_outlined,
+                      color: Colors.tealAccent, size: 18),
+                  label: const Text('Prikaži Rešenje',
+                      style: TextStyle(color: Colors.tealAccent, fontSize: 13)),
                   onPressed: () {
                     Navigator.pop(ctx);
                     setState(() {
@@ -1943,8 +2102,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.arrow_forward, size: 18),
-                  label: const Text('Naredna Zagonetka', style: TextStyle(fontSize: 13)),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                  label: const Text('Naredna Zagonetka',
+                      style: TextStyle(fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white),
                   onPressed: () {
                     Navigator.pop(ctx);
                     _fetchNextPuzzle();
@@ -1967,7 +2129,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   void _showSnackBar(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    AppFeedback.show(context, () => SnackBar(content: Text(msg)));
   }
 
   /// The board defaults to the solver's side each time a new puzzle loads
@@ -1977,13 +2139,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   /// until the next puzzle.
   void _toggleOrientation() {
     setState(() {
-      _puzzleOrientation = _puzzleOrientation == PlayerColor.white ? PlayerColor.black : PlayerColor.white;
+      _puzzleOrientation = _puzzleOrientation == PlayerColor.white
+          ? PlayerColor.black
+          : PlayerColor.white;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final bool isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
     // Opened as its own destination, back leaves it; opened as the old
     // all-in-one screen, back returns to the list inside it. The second is what
@@ -2025,7 +2190,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           // target a bit past the bare 18px icon — better
                           // than nothing, though still short of the 48dp
                           // Material guideline (no room for that here).
-                          constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                          constraints:
+                              const BoxConstraints(minWidth: 34, minHeight: 34),
                           // Leaving means leaving. Setting the category back to
                           // null showed the crossroads that still lives inside
                           // this screen - on top of the shell, so the side tabs
@@ -2042,10 +2208,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                         ),
                         const SizedBox(width: 8),
                       ],
-                      const Icon(Icons.psychology, color: Colors.amberAccent, size: 20),
+                      const Icon(Icons.psychology,
+                          color: Colors.amberAccent, size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        _selectedCategory == null ? 'Šahovski trener i vežbe' : _getCategoryTitle(),
+                        _selectedCategory == null
+                            ? 'Šahovski trener i vežbe'
+                            : _getCategoryTitle(),
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
@@ -2065,7 +2234,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     final cursor = _moveCursor();
     if (cursor == null) return child;
     // _navigateToNode does its own setState.
-    return MoveKeyboardShortcuts(cursor: cursor, onChanged: () {}, child: child);
+    return MoveKeyboardShortcuts(
+        cursor: cursor, onChanged: () {}, child: child);
   }
 
   String _getCategoryTitle() {
@@ -2116,7 +2286,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   Widget _buildActiveBoardScreen() {
     final screenSize = MediaQuery.of(context).size;
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
     final String headerGoal = _selectedCategory == 'mate_puzzle'
         ? '${_puzzleOrientation == PlayerColor.white ? "⚪ Beli" : "⚫ Crni"} na potezu - Mat u $_selectedMateDepth ${_selectedMateDepth == '1' ? 'potez' : 'poteza'}'
@@ -2133,7 +2304,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           children: [
             OutlinedButton.icon(
               icon: const Icon(Icons.arrow_back, size: 16),
-              label: const Text('Nazad na izbor', style: TextStyle(fontSize: 12)),
+              label:
+                  const Text('Nazad na izbor', style: TextStyle(fontSize: 12)),
               onPressed: () {
                 _resetEngineState();
                 setState(() {
@@ -2151,9 +2323,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: _puzzleOrientation == PlayerColor.white ? Colors.blueGrey.shade900 : Colors.teal.shade900,
+        color: _puzzleOrientation == PlayerColor.white
+            ? Colors.blueGrey.shade900
+            : Colors.teal.shade900,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _puzzleOrientation == PlayerColor.white ? Colors.white38 : Colors.tealAccent),
+        border: Border.all(
+            color: _puzzleOrientation == PlayerColor.white
+                ? Colors.white38
+                : Colors.tealAccent),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -2161,13 +2338,18 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           Icon(
             Icons.flag,
             size: 18,
-            color: _puzzleOrientation == PlayerColor.white ? Colors.white : Colors.tealAccent,
+            color: _puzzleOrientation == PlayerColor.white
+                ? Colors.white
+                : Colors.tealAccent,
           ),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
               headerGoal,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: Colors.white),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -2187,19 +2369,24 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         ElevatedButton.icon(
           icon: const Icon(Icons.biotech, size: 16),
           label: const Text('Analiza 🔬'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo.shade800, foregroundColor: Colors.white),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo.shade800,
+              foregroundColor: Colors.white),
           onPressed: _exportToAnalysisStudio,
         ),
         ElevatedButton.icon(
           icon: const Icon(Icons.refresh, size: 16),
           label: const Text('Probaj Ponovo'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade800, foregroundColor: Colors.white),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber.shade800,
+              foregroundColor: Colors.white),
           onPressed: _restartCurrentPuzzle,
         ),
         ElevatedButton.icon(
           icon: const Icon(Icons.arrow_forward),
           label: const Text('Naredna Pozicija'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal, foregroundColor: Colors.white),
           onPressed: () {
             if (_selectedCategory == 'basic_mate') {
               _loadBasicMatePreset(_selectedBasicMateType);
@@ -2214,9 +2401,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     if (isLandscape) {
       // STRICT 1:1 SQUARE LANDSCAPE LAYOUT with SafeArea & 3-side margins (Left, Top, Bottom)
       final padding = MediaQuery.of(context).padding;
-      final double safeHeight = screenSize.height - padding.top - padding.bottom;
-      final double availableVerticalHeight = safeHeight - (28.0 + (_showEvalBar ? 20.0 : 0.0));
-      final double boardSize = math.max(160.0, availableVerticalHeight - 16.0) * AppSettingsService.instance.boardSizeScale;
+      final double safeHeight =
+          screenSize.height - padding.top - padding.bottom;
+      final double availableVerticalHeight =
+          safeHeight - (28.0 + (_showEvalBar ? 20.0 : 0.0));
+      final double boardSize = math.max(160.0, availableVerticalHeight - 16.0) *
+          AppSettingsService.instance.boardSizeScale;
 
       final landscapeTopHeader = SizedBox(
         height: 24,
@@ -2227,7 +2417,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             // screen and no longer is, because it opens as its own route now.
             if (_selectedCategory != null) ...[
               IconButton(
-                icon: const Icon(Icons.arrow_back, size: 18, color: Colors.white),
+                icon:
+                    const Icon(Icons.arrow_back, size: 18, color: Colors.white),
                 tooltip: widget.initialCategory != null
                     ? 'Nazad na trening'
                     : 'Nazad na izbor kategorije',
@@ -2251,14 +2442,19 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             Expanded(
               child: Text(
                 headerGoal,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            BoardFlipButton(size: 18, color: Colors.white70, onPressed: _toggleOrientation),
+            BoardFlipButton(
+                size: 18, color: Colors.white70, onPressed: _toggleOrientation),
             const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(Icons.biotech, size: 18, color: Colors.indigoAccent),
+              icon: const Icon(Icons.biotech,
+                  size: 18, color: Colors.indigoAccent),
               tooltip: 'Analiziraj u Tabli za Analizu 🔬',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -2266,7 +2462,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             ),
             const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(Icons.refresh, size: 16, color: Colors.amberAccent),
+              icon: const Icon(Icons.refresh,
+                  size: 16, color: Colors.amberAccent),
               tooltip: 'Probaj Ponovo',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -2274,7 +2471,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             ),
             const SizedBox(width: 10),
             IconButton(
-              icon: const Icon(Icons.arrow_forward, size: 16, color: Colors.tealAccent),
+              icon: const Icon(Icons.arrow_forward,
+                  size: 16, color: Colors.tealAccent),
               tooltip: 'Naredna Pozicija',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -2291,7 +2489,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       );
 
       return Padding(
-        padding: const EdgeInsets.only(left: 12.0, top: 4.0, bottom: 8.0, right: 8.0),
+        padding: const EdgeInsets.only(
+            left: 12.0, top: 4.0, bottom: 8.0, right: 8.0),
         child: Column(
           children: [
             landscapeTopHeader,
@@ -2340,11 +2539,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               Expanded(
                                 child: ElevatedButton.icon(
                                   icon: const Icon(Icons.biotech, size: 16),
-                                  label: const Text('Analiza 🔬', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  label: const Text('Analiza 🔬',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.indigo.shade800,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 4),
                                   ),
                                   onPressed: _exportToAnalysisStudio,
                                 ),
@@ -2353,11 +2556,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               Expanded(
                                 child: ElevatedButton.icon(
                                   icon: const Icon(Icons.refresh, size: 16),
-                                  label: const Text('Probaj ponovo', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  label: const Text('Probaj ponovo',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.amber.shade900,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 4),
                                   ),
                                   onPressed: _restartCurrentPuzzle,
                                 ),
@@ -2365,16 +2572,22 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               const SizedBox(width: 4),
                               Expanded(
                                 child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.arrow_forward, size: 16),
-                                  label: const Text('Naredna pozicija', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  icon:
+                                      const Icon(Icons.arrow_forward, size: 16),
+                                  label: const Text('Naredna pozicija',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.teal.shade800,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 4),
                                   ),
                                   onPressed: () {
                                     if (_selectedCategory == 'basic_mate') {
-                                      _loadBasicMatePreset(_selectedBasicMateType);
+                                      _loadBasicMatePreset(
+                                          _selectedBasicMateType);
                                     } else {
                                       _fetchNextPuzzle();
                                     }
@@ -2391,8 +2604,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               isEngineEnabled: _showEvaluation,
                               isAllowedToUseEngine: true,
                               isOnline: _stockfishService.isOnline,
-                              isCustomEngineActive: _stockfishService.isCustomEngineActive,
-                              onOpenSettings: isCustomEngineSupported ? _openEngineSettings : null,
+                              isCustomEngineActive:
+                                  _stockfishService.isCustomEngineActive,
+                              onOpenSettings: isCustomEngineSupported
+                                  ? _openEngineSettings
+                                  : null,
                               onForceRestart: _restartEngineEvaluation,
                               lines: _engineLinesMap.values.toList(),
                               orientation: _puzzleOrientation,
@@ -2407,9 +2623,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                                   _showEvaluation = !_showEvaluation;
                                   if (_showEvaluation) {
                                     _selectedGroupedMoveIndices.clear();
-      _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
-                                    final targetDepth = AppSettingsService.instance.defaultEngineDepth;
-                              _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: targetDepth);
+                                    _stockfishService.setMultiPV(
+                                        AppSettingsService
+                                            .instance.defaultMultiPV);
+                                    final targetDepth = AppSettingsService
+                                        .instance.defaultEngineDepth;
+                                    _stockfishService.analyzePosition(
+                                        _puzzleBoardController.getFen(),
+                                        depth: targetDepth);
                                   } else {
                                     _engineLinesMap.clear();
                                     _engineArrows.clear();
@@ -2436,7 +2657,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
 
     // PORTRAIT LAYOUT: Static Board & Scrollable Controls Below
-    final double boardSize = math.min(screenSize.width - 32.0, 700.0) * AppSettingsService.instance.boardSizeScale;
+    final double boardSize = math.min(screenSize.width - 32.0, 700.0) *
+        AppSettingsService.instance.boardSizeScale;
 
     return Column(
       children: [
@@ -2464,7 +2686,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         // SCROLLABLE CONTROLS & BUTTONS BELOW THE BOARD
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Center(
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 650),
@@ -2486,8 +2709,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                         isEngineEnabled: _showEvaluation,
                         isAllowedToUseEngine: true,
                         isOnline: _stockfishService.isOnline,
-                        isCustomEngineActive: _stockfishService.isCustomEngineActive,
-                        onOpenSettings: isCustomEngineSupported ? _openEngineSettings : null,
+                        isCustomEngineActive:
+                            _stockfishService.isCustomEngineActive,
+                        onOpenSettings: isCustomEngineSupported
+                            ? _openEngineSettings
+                            : null,
                         onForceRestart: _restartEngineEvaluation,
                         lines: _engineLinesMap.values.toList(),
                         orientation: _puzzleOrientation,
@@ -2502,9 +2728,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                             _showEvaluation = !_showEvaluation;
                             if (_showEvaluation) {
                               _selectedGroupedMoveIndices.clear();
-                              _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
-                              final targetDepth = AppSettingsService.instance.defaultEngineDepth;
-                              _stockfishService.analyzePosition(_puzzleBoardController.getFen(), depth: targetDepth);
+                              _stockfishService.setMultiPV(
+                                  AppSettingsService.instance.defaultMultiPV);
+                              final targetDepth = AppSettingsService
+                                  .instance.defaultEngineDepth;
+                              _stockfishService.analyzePosition(
+                                  _puzzleBoardController.getFen(),
+                                  depth: targetDepth);
                             } else {
                               _engineLinesMap.clear();
                               _engineArrows.clear();
@@ -2537,96 +2767,109 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       width: boardSize,
       height: boardSize,
       child: GestureDetector(
-      // Opaque so this detector is always in the hit-test path, including
-      // over the arrow/selection overlays that never report a hit themselves.
-      // It does not shut the board out: children are hit-tested first, so a
-      // drag still reaches the board and wins the arena, while a stationary
-      // tap is claimed here. Tap is an addition to dragging, not a swap.
-      behavior: HitTestBehavior.opaque,
-      onTapUp: (details) {
-        if (_isOpponentTurn || _puzzleSolved) return;
-        final localOffset = details.localPosition;
-        final x = localOffset.dx;
-        final y = localOffset.dy;
+        // Opaque so this detector is always in the hit-test path, including
+        // over the arrow/selection overlays that never report a hit themselves.
+        // It does not shut the board out: children are hit-tested first, so a
+        // drag still reaches the board and wins the arena, while a stationary
+        // tap is claimed here. Tap is an addition to dragging, not a swap.
+        behavior: HitTestBehavior.opaque,
+        onTapUp: (details) {
+          if (_isOpponentTurn || _puzzleSolved) return;
+          final localOffset = details.localPosition;
+          final x = localOffset.dx;
+          final y = localOffset.dy;
 
-        if (x < 0 || y < 0 || x >= boardSize || y >= boardSize) return;
+          if (x < 0 || y < 0 || x >= boardSize || y >= boardSize) return;
 
-        final col = (x / squareSize).floor().clamp(0, 7);
-        final row = (y / squareSize).floor().clamp(0, 7);
+          final col = (x / squareSize).floor().clamp(0, 7);
+          final row = (y / squareSize).floor().clamp(0, 7);
 
-        String square;
-        if (_puzzleOrientation == PlayerColor.white) {
-          final file = String.fromCharCode('a'.codeUnitAt(0) + col);
-          final rank = 8 - row;
-          square = '$file$rank';
-        } else {
-          final file = String.fromCharCode('h'.codeUnitAt(0) - col);
-          final rank = 1 + row;
-          square = '$file$rank';
-        }
+          String square;
+          if (_puzzleOrientation == PlayerColor.white) {
+            final file = String.fromCharCode('a'.codeUnitAt(0) + col);
+            final rank = 8 - row;
+            square = '$file$rank';
+          } else {
+            final file = String.fromCharCode('h'.codeUnitAt(0) - col);
+            final rank = 1 + row;
+            square = '$file$rank';
+          }
 
-        _handleSquareTap(square);
-      },
-      child: Stack(
-        children: [
-          IgnorePointer(
-            ignoring: _isOpponentTurn || _puzzleSolved || _puzzleFailed || _gameState != PuzzleGameState.idle,
-            child: ChessBoard(
-              controller: _puzzleBoardController,
-              boardOrientation: _puzzleOrientation,
-              onMove: () {
-                _selectedSquare = null;
-                // Deliberately not animated: the piece has already travelled
-                // to its destination under the user's pointer, so replaying
-                // the slide shows the same move a second time.
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _onUserPuzzleMoveMade();
-                });
-              },
-            ),
-          ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(
-                painter: ChessBoardPainter(
-                  arrows: (_showEvaluation && _selectedCategory != 'mate_puzzle') ? _engineArrows : [],
-                  engineArrows: (_showEvaluation && _selectedCategory != 'mate_puzzle') ? _buildEngineArrowsFromLines(_engineLinesMap.values.toList()) : [],
-                  boardSize: boardSize,
-                  orientation: _puzzleOrientation,
-                  lastMoveFrom: _lastMoveFrom,
-                  lastMoveTo: _lastMoveTo,
-                ),
+          _handleSquareTap(square);
+        },
+        child: Stack(
+          children: [
+            IgnorePointer(
+              ignoring: _isOpponentTurn ||
+                  _puzzleSolved ||
+                  _puzzleFailed ||
+                  _gameState != PuzzleGameState.idle,
+              child: ChessBoard(
+                controller: _puzzleBoardController,
+                boardOrientation: _puzzleOrientation,
+                onMove: () {
+                  _selectedSquare = null;
+                  // Deliberately not animated: the piece has already travelled
+                  // to its destination under the user's pointer, so replaying
+                  // the slide shows the same move a second time.
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _onUserPuzzleMoveMade();
+                  });
+                },
               ),
             ),
-          ),
-          if (_selectedSquare != null)
             Positioned.fill(
               child: IgnorePointer(
                 child: CustomPaint(
-                  painter: SelectedSquarePainter(
-                    selectedSquare: _selectedSquare!,
+                  painter: ChessBoardPainter(
+                    arrows:
+                        (_showEvaluation && _selectedCategory != 'mate_puzzle')
+                            ? _engineArrows
+                            : [],
+                    engineArrows:
+                        (_showEvaluation && _selectedCategory != 'mate_puzzle')
+                            ? _buildEngineArrowsFromLines(
+                                _engineLinesMap.values.toList())
+                            : [],
                     boardSize: boardSize,
                     orientation: _puzzleOrientation,
+                    lastMoveFrom: _lastMoveFrom,
+                    lastMoveTo: _lastMoveTo,
                   ),
                 ),
               ),
             ),
-          for (final pendingAnim in _pendingAnimations)
-            AnimatedMovePiece(
-              key: ValueKey(pendingAnim),
-              pending: pendingAnim,
-              boardSize: boardSize,
-              orientation: _puzzleOrientation,
-              duration: Duration(milliseconds: AppSettingsService.instance.moveAnimationDurationMs),
-              onCompleted: () {
-                if (mounted) setState(() => _pendingAnimations.remove(pendingAnim));
-              },
-            ),
-        ],
+            if (_selectedSquare != null)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: SelectedSquarePainter(
+                      selectedSquare: _selectedSquare!,
+                      boardSize: boardSize,
+                      orientation: _puzzleOrientation,
+                    ),
+                  ),
+                ),
+              ),
+            for (final pendingAnim in _pendingAnimations)
+              AnimatedMovePiece(
+                key: ValueKey(pendingAnim),
+                pending: pendingAnim,
+                boardSize: boardSize,
+                orientation: _puzzleOrientation,
+                duration: Duration(
+                    milliseconds:
+                        AppSettingsService.instance.moveAnimationDurationMs),
+                onCompleted: () {
+                  if (mounted)
+                    setState(() => _pendingAnimations.remove(pendingAnim));
+                },
+              ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   /// The one cursor this screen is walked by, or null while there is no line to
   /// walk. The strip appears in two layouts here and the arrow keys read the
@@ -2634,7 +2877,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   MoveCursor? _moveCursor() {
     final tree = _puzzleMoveTree;
     if (tree == null) return null;
-    return MoveTreeCursor(moveTree: tree, currentNode: tree.current, onSelect: _navigateToNode);
+    return MoveTreeCursor(
+        moveTree: tree, currentNode: tree.current, onSelect: _navigateToNode);
   }
 
   void _navigateToNode(MoveNode node) {
@@ -2648,14 +2892,19 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _puzzleFailed = false;
     });
     if (_showEvaluation) {
-      _stockfishService.analyzePosition(node.fen, depth: AppSettingsService.instance.defaultEngineDepth);
+      _stockfishService.analyzePosition(node.fen,
+          depth: AppSettingsService.instance.defaultEngineDepth);
     }
   }
+
   /// The mate-puzzle graph view and the plain-puzzle PGN chip view are
   /// mutually exclusive renderings of the same solutions map; see
   /// [SolutionGraphWidget] and [PgnSolutionTreeWidget].
   Widget _buildSolutionTreeSection() {
-    final visible = _showSolutionTree || _puzzleSolved || _puzzleFailed || _isReplayingSolution;
+    final visible = _showSolutionTree ||
+        _puzzleSolved ||
+        _puzzleFailed ||
+        _isReplayingSolution;
     final solutions = Map<String, dynamic>.from(
       (_currentPuzzle?['solutions'] as Map?)?.cast<String, dynamic>() ?? {},
     );
@@ -2682,7 +2931,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     );
   }
 
-  void _onPgnChipSelected(String from, String to, String targetFen, String labelSan) {
+  void _onPgnChipSelected(
+      String from, String to, String targetFen, String labelSan) {
     _sendBackendLog({
       'type': 'pgnChipClick',
       'moveSan': labelSan,
@@ -2703,18 +2953,25 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     if (_puzzleGame == null) return;
     try {
       String computedFen = targetNode.fen;
-      String? lastFrom = targetNode.moveUci.length >= 4 ? targetNode.moveUci.substring(0, 2) : null;
-      String? lastTo = targetNode.moveUci.length >= 4 ? targetNode.moveUci.substring(2, 4) : null;
+      String? lastFrom = targetNode.moveUci.length >= 4
+          ? targetNode.moveUci.substring(0, 2)
+          : null;
+      String? lastTo = targetNode.moveUci.length >= 4
+          ? targetNode.moveUci.substring(2, 4)
+          : null;
 
       if (_initialPuzzleFen != null && _selectedCategory == 'mate_puzzle') {
-        final List<SolutionGraphNode> path = findPathToGraphNode(_solutionGraphNodesCache, targetNode);
+        final List<SolutionGraphNode> path =
+            findPathToGraphNode(_solutionGraphNodesCache, targetNode);
         if (path.isNotEmpty) {
           try {
             final game = chess.Chess.fromFEN(_initialPuzzleFen!);
             for (var n in path) {
               String uciToPlay = n.moveUci;
               if (n.isGrouped && n.groupedOpponentMovesUci.isNotEmpty) {
-                final idx = (_selectedGroupedMoveIndices[n.id] ?? n.selectedGroupedIndex).clamp(0, n.groupedOpponentMovesUci.length - 1);
+                final idx = (_selectedGroupedMoveIndices[n.id] ??
+                        n.selectedGroupedIndex)
+                    .clamp(0, n.groupedOpponentMovesUci.length - 1);
                 uciToPlay = n.groupedOpponentMovesUci[idx];
               }
               if (uciToPlay.length >= 4) {
@@ -2760,7 +3017,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       return;
     }
 
-    final selectedUci = node.groupedOpponentMovesUci[moveIndex.clamp(0, node.groupedOpponentMovesUci.length - 1)];
+    final selectedUci = node.groupedOpponentMovesUci[
+        moveIndex.clamp(0, node.groupedOpponentMovesUci.length - 1)];
     final game = chess.Chess.fromFEN(node.parentFen!);
     final from = selectedUci.substring(0, 2);
     final to = selectedUci.substring(2, 4);
@@ -2778,14 +3036,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _lastMoveTo = to;
     });
 
-    final String sanLabel = (moveIndex >= 0 && moveIndex < node.groupedOpponentMoves.length)
-        ? node.groupedOpponentMoves[moveIndex]
-        : selectedUci;
+    final String sanLabel =
+        (moveIndex >= 0 && moveIndex < node.groupedOpponentMoves.length)
+            ? node.groupedOpponentMoves[moveIndex]
+            : selectedUci;
     _showSnackBar('Prikazana pozicija za potez protivnika: $sanLabel');
   }
-
 } // end _AiStudioScreenState
-
-
-
-

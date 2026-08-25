@@ -8,19 +8,32 @@ import 'package:chess_vectors_flutter/chess_vectors_flutter.dart';
 Widget? chessPieceWidget(String? p, {double size = 45}) {
   if (p == null) return null;
   switch (p) {
-    case 'P': return WhitePawn(size: size);
-    case 'N': return WhiteKnight(size: size);
-    case 'B': return WhiteBishop(size: size);
-    case 'R': return WhiteRook(size: size);
-    case 'Q': return WhiteQueen(size: size);
-    case 'K': return WhiteKing(size: size);
-    case 'p': return BlackPawn(size: size);
-    case 'n': return BlackKnight(size: size);
-    case 'b': return BlackBishop(size: size);
-    case 'r': return BlackRook(size: size);
-    case 'q': return BlackQueen(size: size);
-    case 'k': return BlackKing(size: size);
-    default: return null;
+    case 'P':
+      return WhitePawn(size: size);
+    case 'N':
+      return WhiteKnight(size: size);
+    case 'B':
+      return WhiteBishop(size: size);
+    case 'R':
+      return WhiteRook(size: size);
+    case 'Q':
+      return WhiteQueen(size: size);
+    case 'K':
+      return WhiteKing(size: size);
+    case 'p':
+      return BlackPawn(size: size);
+    case 'n':
+      return BlackKnight(size: size);
+    case 'b':
+      return BlackBishop(size: size);
+    case 'r':
+      return BlackRook(size: size);
+    case 'q':
+      return BlackQueen(size: size);
+    case 'k':
+      return BlackKing(size: size);
+    default:
+      return null;
   }
 }
 
@@ -37,7 +50,8 @@ class BoardThumbnail extends StatelessWidget {
   static const _darkSquare = Color(0xFF769656);
 
   List<List<String?>> _parseBoard() {
-    final grid = List<List<String?>>.generate(8, (_) => List<String?>.filled(8, null));
+    final grid =
+        List<List<String?>>.generate(8, (_) => List<String?>.filled(8, null));
     try {
       final placement = fen.trim().split(' ').first;
       final rows = placement.split('/');
@@ -70,7 +84,8 @@ class BoardThumbnail extends StatelessWidget {
         height: size,
         child: GridView.builder(
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 8),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 8),
           itemCount: 64,
           itemBuilder: (context, index) {
             final r = index ~/ 8;

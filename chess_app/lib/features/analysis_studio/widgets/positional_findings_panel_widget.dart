@@ -60,7 +60,8 @@ class PositionalFindingsPanelWidget extends StatelessWidget {
             children: [
               const Icon(Icons.grid_view, color: Colors.amberAccent, size: 16),
               const SizedBox(width: 6),
-              Text('Pozicioni faktori', style: AppText.bodyBold.copyWith(color: Colors.amberAccent)),
+              Text('Pozicioni faktori',
+                  style: AppText.bodyBold.copyWith(color: Colors.amberAccent)),
             ],
           ),
           const SizedBox(height: 8),
@@ -87,7 +88,8 @@ class PositionalFindingsPanelWidget extends StatelessWidget {
         ),
         child: Text(
           _factorLabel(finding.factors.first),
-          style: AppText.caption.copyWith(color: color, fontWeight: FontWeight.w600),
+          style: AppText.caption
+              .copyWith(color: color, fontWeight: FontWeight.w600),
         ),
       ),
     );

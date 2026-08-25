@@ -6,6 +6,7 @@ import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/routing/app_router.dart';
+import 'package:chess_app/screens/age_gate_screen.dart';
 import 'package:chess_app/widgets/desktop_shortcuts.dart';
 import 'package:chess_app/theme/app_colors.dart';
 
@@ -45,9 +46,16 @@ class ChessApp extends StatelessWidget {
           // Wrapped around every screen the router builds, so Escape and the
           // settings chord work wherever the reader is - including on screens
           // written after this.
-          builder: (context, child) => DesktopShortcuts(
-            router: appRouter,
-            child: child ?? const SizedBox.shrink(),
+          //
+          // The age gate sits outside all of it, for the same reason: a
+          // question asked on one screen is a question the other forty screens
+          // never ask, and this one has to reach accounts that were made long
+          // before it existed.
+          builder: (context, child) => AgeGate(
+            child: DesktopShortcuts(
+              router: appRouter,
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
           // Pairs with the router's own scope id so Android can rebuild the
           // navigation stack after the process is killed in the background.

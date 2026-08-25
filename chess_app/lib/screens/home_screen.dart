@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
+import 'dart:async';
 import 'dart:convert';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:chess_app/constants.dart';
+import 'package:chess_app/services/account_standing_service.dart';
+import 'package:chess_app/widgets/parent_email_dialog.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/pending_session_intent.dart';
 import 'package:chess_app/routing/app_routes.dart';
@@ -137,13 +140,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingStudents = false;
   final TextEditingController _studentEmailController = TextEditingController();
 
-
   List<dynamic> _recordings = [];
   bool _isLoadingRecordings = false;
 
   List<dynamic> _friends = [];
   bool _isLoadingFriends = false;
-  final TextEditingController _friendEmailController = TextEditingController();
 
   List<dynamic> _notifications = [];
   bool _isLoadingNotifications = false;
@@ -175,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Before anything else: does being signed in currently mean anything?
       // Everything below assumes a server that answers, and when none does the
       // screen should say so rather than fail one request at a time.
-      ServerStatusService.instance.check(widget.session.token);
+      unawaited(_checkServerAndSession());
       // Also picks up a subscription bought on another device and finishes any
       // purchase whose verification was interrupted.
       _billing.init();
@@ -209,7 +210,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _billing.dispose();
     _codeController.dispose();
     _studentEmailController.dispose();
-    _friendEmailController.dispose();
     super.dispose();
   }
 
@@ -411,8 +411,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Sačuvano.')),
+        AppFeedback.show(
+          context,
+          () => SnackBar(content: Text(data['message'] ?? 'Sačuvano.')),
         );
         await _fetchStudents();
         return true;
@@ -426,6 +427,47 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Asks whether being signed in still means anything, and acts on one answer.
+  ///
+  /// Only one: `gone` — the server says this account no longer exists. There is
+  /// nobody to sign back in as, and the id it names can be handed to somebody
+  /// else, so the stored session goes rather than sitting there looking valid.
+  ///
+  /// An **expired** token deliberately does not do this yet. It is the same
+  /// shape and a wider change — every request in the app would have to route
+  /// its 401 somewhere — and it is written down as its own open item. Doing
+  /// half of it here under the other one's name is how a fix ends up looking
+  /// finished.
+  Future<void> _checkServerAndSession() async {
+    final status =
+        await ServerStatusService.instance.check(widget.session.token);
+    if (!mounted || status != ServerStatus.gone) return;
+
+    await SessionService.instance.signOut();
+    AccountStandingService.instance.forget();
+    if (!mounted) return;
+    AppFeedback.show(
+      context,
+      () => const SnackBar(
+        content: Text('Ovaj nalog više ne postoji na serveru. '
+            'Prijavite se ponovo.'),
+        backgroundColor: Colors.redAccent,
+        duration: Duration(seconds: 6),
+      ),
+    );
+    context.go(AppRoutes.login);
+  }
+
+  /// Opens the parent-address dialog, and refreshes afterwards.
+  ///
+  /// The refresh is the point: saving the address makes the server send the
+  /// consent letters that were waiting on it, so the row the student just
+  /// tapped has something new to say.
+  Future<void> _askForParentEmail() async {
+    final saved = await showParentEmailDialog(context);
+    if (saved == true && mounted) await _fetchStudents();
+  }
+
   Future<void> _deleteStudent(int studentId) async {
     try {
       final res = await http.delete(
@@ -435,8 +477,10 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       if (res.statusCode == 200) {
         _fetchStudents();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Prijatelj je uklonjen iz liste.')),
+        AppFeedback.show(
+          context,
+          () =>
+              const SnackBar(content: Text('Prijatelj je uklonjen iz liste.')),
         );
       }
     } catch (e) {
@@ -469,13 +513,15 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       if (response.statusCode == 200) {
         _studentEmailController.clear();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Učenik dodat.')),
+        AppFeedback.show(
+          context,
+          () => SnackBar(content: Text(data['message'] ?? 'Učenik dodat.')),
         );
         _fetchStudents();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        AppFeedback.show(
+          context,
+          () => SnackBar(
               content: Text(data['error'] ?? 'Greška pri dodavanju učenika.')),
         );
       }
@@ -484,7 +530,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) AppFeedback.error(context, 'Greška pri dodavanju učenika.');
     }
   }
-
 
   Future<void> _fetchRecordings() async {
     setState(() => _isLoadingRecordings = true);
@@ -526,47 +571,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _addFriend() async {
-    final email = _friendEmailController.text.trim();
-    if (email.isEmpty) return;
-    try {
-      final res = await http.post(
-        Uri.parse('$backendUrl/friends/add'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.session.token}'
-        },
-        body: jsonEncode({'friendEmail': email}),
-      );
-      final data = jsonDecode(res.body);
-      // The endpoint answers 200, not 201 — checking for 201 reported a
-      // successful add as a failure.
-      if (res.statusCode == 200) {
-        _friendEmailController.clear();
-        _fetchFriends();
-        _showSuccess(data['message'] ?? 'Prijatelj je uspešno dodat!');
-      } else {
-        _showError(data['error'] ?? 'Neuspešno dodavanje prijatelja.');
-      }
-    } catch (e) {
-      _showError('Greška pri dodavanju prijatelja.');
-    }
-  }
-
-  Future<void> _removeFriend(int friendId) async {
-    try {
-      final res = await http.delete(
-        Uri.parse('$backendUrl/friends/$friendId'),
-        headers: {'Authorization': 'Bearer ${widget.session.token}'},
-      );
-      if (res.statusCode == 200) {
-        _fetchFriends();
-        _showSuccess('Prijatelj je uklonjen iz liste.');
-      }
-    } catch (e) {
-      _showError('Greška pri uklanjanju prijatelja.');
-    }
-  }
+  // There was an _addFriend() and a _removeFriend() here, calling
+  // POST /friends/add and DELETE /friends/:id. Nothing on any screen called
+  // either of them — the "Ljudi" tab sends a trainer–student request instead —
+  // and the endpoint behind them wrote a two-way connection with nobody's
+  // consent. Both are gone, along with the routes; a `friends` row now exists
+  // only because a relationship was accepted.
 
   Future<void> _fetchNotifications() async {
     setState(() => _isLoadingNotifications = true);
@@ -789,7 +799,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) setState(() => _dueReviews = stats.due);
   }
 
-
   Future<void> _inviteStudent(int studentId) async {
     if (!_checkAuthRequired(PendingSessionIntent.inviteStudent(studentId))) {
       return;
@@ -814,8 +823,9 @@ class _HomeScreenState extends State<HomeScreen> {
           'roomCode': createdRoomCode,
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        AppFeedback.show(
+          context,
+          () => SnackBar(
               content: Text(
                   'Pozivnica poslata za sobu $createdRoomCode! Povezivanje...')),
         );
@@ -827,15 +837,17 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       } else {
         final errorData = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        AppFeedback.show(
+          context,
+          () => SnackBar(
               content: Text(errorData['error'] ?? 'Greška pri kreiranju sobe')),
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Greška pri kreiranju sobe: $e')),
+      AppFeedback.show(
+        context,
+        () => SnackBar(content: Text('Greška pri kreiranju sobe: $e')),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -914,8 +926,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    AppFeedback.show(
+      context,
+      () => SnackBar(
         content: Text(message),
         backgroundColor: Colors.teal,
       ),
@@ -923,8 +936,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    AppFeedback.show(
+      context,
+      () => SnackBar(
         content: Text(message),
         backgroundColor: Colors.redAccent,
       ),
@@ -1012,6 +1026,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onAddStudent: _addStudent,
             onDeleteStudent: _deleteStudent,
             onOpenProgress: _openStudentProgress,
+            onFixParentEmail: _askForParentEmail,
           );
         default:
           // The crossroads, not the working screen. Everything it offers is a
@@ -1036,167 +1051,168 @@ class _HomeScreenState extends State<HomeScreen> {
       // wants it: the join-by-code field takes the focus when it is tapped, and
       // digits typed into it stay in it.
       child: Focus(
-      autofocus: true,
-      skipTraversal: true,
-      child: PopScope(
-      canPop: _tabHistory.length <= 1,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop || _tabHistory.length <= 1) return;
-        setState(() {
-          _tabHistory.removeLast();
-          _selectedIndex = _tabHistory.last;
-        });
-      },
-      child: Scaffold(
-        appBar: isLandscape
-            ? null
-            : AppBar(
-                title: const Text('Šahovski trener'),
-                actions: [
-                  if (widget.session.isGuest)
-                    TextButton.icon(
-                      onPressed: () {
-                        context.push(AppRoutes.login);
-                      },
-                      icon: const Icon(Icons.login, color: Colors.white),
-                      label: const Text('Prijavi Se',
-                          style: TextStyle(color: Colors.white)),
-                    ),
-                  IconButton(
-                    tooltip: 'Podešavanja',
-                    icon: const Icon(Icons.settings_outlined,
-                        color: Colors.white70),
-                    // Out of the tabs and into the bar. Settings is not a place
-                    // anybody lives in, and it already had a path of its own -
-                    // one that opens over whatever is underneath rather than
-                    // tearing it down.
-                    onPressed: () => context.push(AppRoutes.preferences),
-                  ),
-                  IconButton(
-                    tooltip: 'Notifikacije i Pozivnice',
-                    icon: Badge(
-                      isLabelVisible: _unreadNotifications > 0,
-                      label: Text('$_unreadNotifications'),
-                      child: const Icon(Icons.notifications,
-                          color: Colors.amberAccent),
-                    ),
-                    onPressed: _showNotificationsDialog,
-                  ),
-                ],
-              ),
-        body: Column(
-          children: [
-            _buildActiveSessionBanner(),
-            Expanded(
-              child: Row(
-                children: [
-                  // The rail stays visible for every tab in landscape. AI Studio's
-                  // landscape board is sized from available *height*, so the rail's
-                  // width costs it nothing — and hiding it used to leave that tab with
-                  // no AppBar, no bottom bar and no rail, i.e. no way out at all.
-                  if (isWide || isLandscape)
-                    NavigationRail(
-                      selectedIndex: _selectedIndex,
-                      onDestinationSelected: _selectTab,
-                      labelType: NavigationRailLabelType.none,
-                      // At the foot of the rail, where a desktop looks for it.
-                      // The same lesson as the bell above: the AppBar is null in
-                      // landscape, and Windows is always landscape, so anything
-                      // that lives only in the bar cannot be reached there at
-                      // all. Settings was put in the bar and was invisible on
-                      // the one platform it was tested on.
-                      trailing: Expanded(
-                        child: Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: IconButton(
-                              tooltip: 'Podešavanja',
-                              icon: const Icon(Icons.settings_outlined,
-                                  color: Colors.white70),
-                              onPressed: () =>
-                                  context.push(AppRoutes.preferences),
-                            ),
-                          ),
+        autofocus: true,
+        skipTraversal: true,
+        child: PopScope(
+          canPop: _tabHistory.length <= 1,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop || _tabHistory.length <= 1) return;
+            setState(() {
+              _tabHistory.removeLast();
+              _selectedIndex = _tabHistory.last;
+            });
+          },
+          child: Scaffold(
+            appBar: isLandscape
+                ? null
+                : AppBar(
+                    title: const Text('Šahovski trener'),
+                    actions: [
+                      if (widget.session.isGuest)
+                        TextButton.icon(
+                          onPressed: () {
+                            context.push(AppRoutes.login);
+                          },
+                          icon: const Icon(Icons.login, color: Colors.white),
+                          label: const Text('Prijavi Se',
+                              style: TextStyle(color: Colors.white)),
                         ),
+                      IconButton(
+                        tooltip: 'Podešavanja',
+                        icon: const Icon(Icons.settings_outlined,
+                            color: Colors.white70),
+                        // Out of the tabs and into the bar. Settings is not a place
+                        // anybody lives in, and it already had a path of its own -
+                        // one that opens over whatever is underneath rather than
+                        // tearing it down.
+                        onPressed: () => context.push(AppRoutes.preferences),
                       ),
-                      // The AppBar is null in landscape, and the bell lived in
-                      // it — so on Windows, which is always landscape, there
-                      // was no way to reach notifications at all. The rail is
-                      // the only thing that survives this layout.
-                      leading: widget.session.isGuest
-                          ? null
-                          : Padding(
-                              padding: const EdgeInsets.only(top: 8, bottom: 8),
-                              child: IconButton(
-                                tooltip: 'Notifikacije i Pozivnice',
-                                icon: Badge(
-                                  isLabelVisible: _unreadNotifications > 0,
-                                  label: Text('$_unreadNotifications'),
-                                  child: const Icon(Icons.notifications,
-                                      color: Colors.amberAccent),
+                      IconButton(
+                        tooltip: 'Notifikacije i Pozivnice',
+                        icon: Badge(
+                          isLabelVisible: _unreadNotifications > 0,
+                          label: Text('$_unreadNotifications'),
+                          child: const Icon(Icons.notifications,
+                              color: Colors.amberAccent),
+                        ),
+                        onPressed: _showNotificationsDialog,
+                      ),
+                    ],
+                  ),
+            body: Column(
+              children: [
+                _buildActiveSessionBanner(),
+                Expanded(
+                  child: Row(
+                    children: [
+                      // The rail stays visible for every tab in landscape. AI Studio's
+                      // landscape board is sized from available *height*, so the rail's
+                      // width costs it nothing — and hiding it used to leave that tab with
+                      // no AppBar, no bottom bar and no rail, i.e. no way out at all.
+                      if (isWide || isLandscape)
+                        NavigationRail(
+                          selectedIndex: _selectedIndex,
+                          onDestinationSelected: _selectTab,
+                          labelType: NavigationRailLabelType.none,
+                          // At the foot of the rail, where a desktop looks for it.
+                          // The same lesson as the bell above: the AppBar is null in
+                          // landscape, and Windows is always landscape, so anything
+                          // that lives only in the bar cannot be reached there at
+                          // all. Settings was put in the bar and was invisible on
+                          // the one platform it was tested on.
+                          trailing: Expanded(
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: IconButton(
+                                  tooltip: 'Podešavanja',
+                                  icon: const Icon(Icons.settings_outlined,
+                                      color: Colors.white70),
+                                  onPressed: () =>
+                                      context.push(AppRoutes.preferences),
                                 ),
-                                onPressed: _showNotificationsDialog,
                               ),
                             ),
-                      destinations: const [
-                        NavigationRailDestination(
-                            icon: Icon(Icons.dashboard_outlined),
-                            selectedIcon: Icon(Icons.dashboard),
-                            label: Text('Početna')),
-                        NavigationRailDestination(
-                            icon: Icon(Icons.school_outlined),
-                            selectedIcon: Icon(Icons.school),
-                            label: Text('Časovi')),
-                        NavigationRailDestination(
-                            icon: Icon(Icons.library_books_outlined),
-                            selectedIcon: Icon(Icons.library_books),
-                            label: Text('Biblioteka')),
-                        NavigationRailDestination(
-                            icon: Icon(Icons.people_outline),
-                            selectedIcon: Icon(Icons.people),
-                            label: Text('Ljudi')),
-                      ],
-                    ),
-                  if (isWide || isLandscape)
-                    const VerticalDivider(width: 1, thickness: 1),
-                  Expanded(
-                    child: IndexedStack(
-                      index: _selectedIndex,
-                      children: pages,
-                    ),
+                          ),
+                          // The AppBar is null in landscape, and the bell lived in
+                          // it — so on Windows, which is always landscape, there
+                          // was no way to reach notifications at all. The rail is
+                          // the only thing that survives this layout.
+                          leading: widget.session.isGuest
+                              ? null
+                              : Padding(
+                                  padding:
+                                      const EdgeInsets.only(top: 8, bottom: 8),
+                                  child: IconButton(
+                                    tooltip: 'Notifikacije i Pozivnice',
+                                    icon: Badge(
+                                      isLabelVisible: _unreadNotifications > 0,
+                                      label: Text('$_unreadNotifications'),
+                                      child: const Icon(Icons.notifications,
+                                          color: Colors.amberAccent),
+                                    ),
+                                    onPressed: _showNotificationsDialog,
+                                  ),
+                                ),
+                          destinations: const [
+                            NavigationRailDestination(
+                                icon: Icon(Icons.dashboard_outlined),
+                                selectedIcon: Icon(Icons.dashboard),
+                                label: Text('Početna')),
+                            NavigationRailDestination(
+                                icon: Icon(Icons.school_outlined),
+                                selectedIcon: Icon(Icons.school),
+                                label: Text('Časovi')),
+                            NavigationRailDestination(
+                                icon: Icon(Icons.library_books_outlined),
+                                selectedIcon: Icon(Icons.library_books),
+                                label: Text('Biblioteka')),
+                            NavigationRailDestination(
+                                icon: Icon(Icons.people_outline),
+                                selectedIcon: Icon(Icons.people),
+                                label: Text('Ljudi')),
+                          ],
+                        ),
+                      if (isWide || isLandscape)
+                        const VerticalDivider(width: 1, thickness: 1),
+                      Expanded(
+                        child: IndexedStack(
+                          index: _selectedIndex,
+                          children: pages,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+            bottomNavigationBar: (isWide || isLandscape)
+                ? null
+                : NavigationBar(
+                    selectedIndex: _selectedIndex,
+                    onDestinationSelected: _selectTab,
+                    destinations: const [
+                      NavigationDestination(
+                          icon: Icon(Icons.psychology_outlined),
+                          selectedIcon: Icon(Icons.psychology),
+                          label: 'Trening'),
+                      NavigationDestination(
+                          icon: Icon(Icons.school_outlined),
+                          selectedIcon: Icon(Icons.school),
+                          label: 'Časovi'),
+                      NavigationDestination(
+                          icon: Icon(Icons.library_books_outlined),
+                          selectedIcon: Icon(Icons.library_books),
+                          label: 'Biblioteka'),
+                      NavigationDestination(
+                          icon: Icon(Icons.people_outline),
+                          selectedIcon: Icon(Icons.people),
+                          label: 'Ljudi'),
+                    ],
+                  ),
+          ),
         ),
-        bottomNavigationBar: (isWide || isLandscape)
-            ? null
-            : NavigationBar(
-                selectedIndex: _selectedIndex,
-                onDestinationSelected: _selectTab,
-                destinations: const [
-                  NavigationDestination(
-                      icon: Icon(Icons.psychology_outlined),
-                      selectedIcon: Icon(Icons.psychology),
-                      label: 'Trening'),
-                  NavigationDestination(
-                      icon: Icon(Icons.school_outlined),
-                      selectedIcon: Icon(Icons.school),
-                      label: 'Časovi'),
-                  NavigationDestination(
-                      icon: Icon(Icons.library_books_outlined),
-                      selectedIcon: Icon(Icons.library_books),
-                      label: 'Biblioteka'),
-                  NavigationDestination(
-                      icon: Icon(Icons.people_outline),
-                      selectedIcon: Icon(Icons.people),
-                      label: 'Ljudi'),
-                ],
-              ),
-      ),
-    ),
       ),
     );
   }

@@ -124,7 +124,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
 
   void _startPlay() {
     if (_playbackOrder.isEmpty) return;
-    final startIdx = _playbackOrder.indexWhere((n) => n.id == widget.activeNode.id);
+    final startIdx =
+        _playbackOrder.indexWhere((n) => n.id == widget.activeNode.id);
     _playbackCursor = startIdx == -1 ? null : startIdx;
     setState(() {
       _playTimer = Timer.periodic(_playSpeed.interval, (_) => _advancePlay());
@@ -425,7 +426,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     // first move of the next, skipping past the branch point. Expanding it
     // to revisit that node first plays back naturally: finish a line, step
     // back to where it forked, then head down the next one.
-    _playbackOrder = _expandWithBranchReturns(positioned.map((pn) => pn.node).toList());
+    _playbackOrder =
+        _expandWithBranchReturns(positioned.map((pn) => pn.node).toList());
 
     double maxRight = 0.0;
     double maxBottom = 0.0;
@@ -570,7 +572,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                 color: context.colors.accent,
               ),
               const SizedBox(width: 6),
-              Text(s.label, style: TextStyle(color: context.colors.textPrimary)),
+              Text(s.label,
+                  style: TextStyle(color: context.colors.textPrimary)),
             ],
           ),
         );
@@ -579,7 +582,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
         message: 'Brzina prikazivanja: ${_playSpeed.label}',
         child: Padding(
           padding: const EdgeInsets.all(10.0),
-          child: Icon(Icons.speed, size: 16, color: context.colors.textSecondary),
+          child:
+              Icon(Icons.speed, size: 16, color: context.colors.textSecondary),
         ),
       ),
     );
@@ -611,7 +615,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                 value: _clampedDisplayCutoff,
                 min: 0.1,
                 max: _effectiveMaxCutoff,
-                divisions: (((_effectiveMaxCutoff - 0.1) * 10).round()).clamp(1, 200),
+                divisions:
+                    (((_effectiveMaxCutoff - 0.1) * 10).round()).clamp(1, 200),
                 activeColor: context.colors.warning,
                 onChanged: (v) => setState(() => _displayCutoff = v),
               ),
@@ -828,17 +833,17 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Ista pozicija dostignuta i preko:',
-                      style: AppText.captionBold.copyWith(color: ctx.colors.textMuted),
+                      style: AppText.captionBold
+                          .copyWith(color: ctx.colors.textMuted),
                     ),
                   ),
                 ),
                 for (final other in others)
                   ListTile(
-                    leading:
-                        Icon(Icons.call_split, color: ctx.colors.warning),
+                    leading: Icon(Icons.call_split, color: ctx.colors.warning),
                     title: Text(_movePathLabel(other),
-                        style:
-                            AppText.bodyLarge.copyWith(color: ctx.colors.textPrimary)),
+                        style: AppText.bodyLarge
+                            .copyWith(color: ctx.colors.textPrimary)),
                     onTap: () {
                       Navigator.pop(ctx);
                       widget.onSelectNode(other);

@@ -19,7 +19,8 @@ class ChessImportException implements Exception {
 /// PGN file already is — no separate parsing path needed.
 class ChessPlatformImportService {
   ChessPlatformImportService._();
-  static final ChessPlatformImportService instance = ChessPlatformImportService._();
+  static final ChessPlatformImportService instance =
+      ChessPlatformImportService._();
 
   static const _timeout = Duration(seconds: 15);
 
@@ -28,9 +29,10 @@ class ChessPlatformImportService {
   // them — a bot-filter on this endpoint specifically, discovered by testing
   // against the live API. Chess.com does not require this, but sending it
   // anyway matches both platforms' published API etiquette.
-  static const _userAgent = 'ChessMasterCoach/1.0';
+  static const _userAgent = 'ChessCoach/1.0';
 
-  Future<String> fetchRecentGames(ChessPlatform platform, String username, {int max = 20}) {
+  Future<String> fetchRecentGames(ChessPlatform platform, String username,
+      {int max = 20}) {
     final name = username.trim();
     if (name.isEmpty) {
       throw ChessImportException('Unesite korisničko ime.');
@@ -61,21 +63,26 @@ class ChessPlatformImportService {
       ).timeout(_timeout);
     } catch (e) {
       AppLogger.log('[ChessPlatformImport] Lichess fetch failed: $e');
-      throw ChessImportException('Nema veze sa Lichess-om. Proverite internet konekciju.');
+      throw ChessImportException(
+          'Nema veze sa Lichess-om. Proverite internet konekciju.');
     }
 
     if (res.statusCode == 404) {
-      throw ChessImportException('Korisnik "$username" ne postoji na Lichess-u.');
+      throw ChessImportException(
+          'Korisnik "$username" ne postoji na Lichess-u.');
     }
     if (res.statusCode == 429) {
-      throw ChessImportException('Lichess trenutno ograničava zahteve. Pokušajte ponovo za koji trenutak.');
+      throw ChessImportException(
+          'Lichess trenutno ograničava zahteve. Pokušajte ponovo za koji trenutak.');
     }
     if (res.statusCode != 200) {
-      throw ChessImportException('Lichess je vratio grešku (${res.statusCode}).');
+      throw ChessImportException(
+          'Lichess je vratio grešku (${res.statusCode}).');
     }
     final pgn = res.body.trim();
     if (pgn.isEmpty) {
-      throw ChessImportException('"$username" nema odigranih partija na Lichess-u.');
+      throw ChessImportException(
+          '"$username" nema odigranih partija na Lichess-u.');
     }
     return pgn;
   }
@@ -85,34 +92,40 @@ class ChessPlatformImportService {
   /// collecting games — usually the newest archive alone already has enough.
   Future<String> _fetchChessCom(String username, int max) async {
     final lower = username.toLowerCase();
-    final archivesUri = Uri.parse('https://api.chess.com/pub/player/$lower/games/archives');
+    final archivesUri =
+        Uri.parse('https://api.chess.com/pub/player/$lower/games/archives');
 
     http.Response archivesRes;
     try {
-      archivesRes = await http
-          .get(archivesUri, headers: const {'User-Agent': _userAgent})
-          .timeout(_timeout);
+      archivesRes = await http.get(archivesUri,
+          headers: const {'User-Agent': _userAgent}).timeout(_timeout);
     } catch (e) {
-      AppLogger.log('[ChessPlatformImport] Chess.com archives fetch failed: $e');
-      throw ChessImportException('Nema veze sa Chess.com-om. Proverite internet konekciju.');
+      AppLogger.log(
+          '[ChessPlatformImport] Chess.com archives fetch failed: $e');
+      throw ChessImportException(
+          'Nema veze sa Chess.com-om. Proverite internet konekciju.');
     }
 
     if (archivesRes.statusCode == 404) {
-      throw ChessImportException('Korisnik "$username" ne postoji na Chess.com-u.');
+      throw ChessImportException(
+          'Korisnik "$username" ne postoji na Chess.com-u.');
     }
     if (archivesRes.statusCode != 200) {
-      throw ChessImportException('Chess.com je vratio grešku (${archivesRes.statusCode}).');
+      throw ChessImportException(
+          'Chess.com je vratio grešku (${archivesRes.statusCode}).');
     }
 
     List<dynamic> archiveUrls;
     try {
-      archiveUrls = (jsonDecode(archivesRes.body) as Map<String, dynamic>)['archives'] as List<dynamic>;
+      archiveUrls = (jsonDecode(archivesRes.body)
+          as Map<String, dynamic>)['archives'] as List<dynamic>;
     } catch (e) {
       throw ChessImportException('Neočekivan odgovor sa Chess.com-a.');
     }
 
     if (archiveUrls.isEmpty) {
-      throw ChessImportException('"$username" nema odigranih partija na Chess.com-u.');
+      throw ChessImportException(
+          '"$username" nema odigranih partija na Chess.com-u.');
     }
 
     final pgns = <String>[];
@@ -121,9 +134,8 @@ class ChessPlatformImportService {
       final monthUri = Uri.parse(archiveUrls[i] as String);
       http.Response monthRes;
       try {
-        monthRes = await http
-            .get(monthUri, headers: const {'User-Agent': _userAgent})
-            .timeout(_timeout);
+        monthRes = await http.get(monthUri,
+            headers: const {'User-Agent': _userAgent}).timeout(_timeout);
       } catch (e) {
         AppLogger.log('[ChessPlatformImport] Chess.com month fetch failed: $e');
         continue; // one bad month should not fail the whole import
@@ -132,7 +144,8 @@ class ChessPlatformImportService {
 
       List<dynamic> games;
       try {
-        games = (jsonDecode(monthRes.body) as Map<String, dynamic>)['games'] as List<dynamic>;
+        games = (jsonDecode(monthRes.body) as Map<String, dynamic>)['games']
+            as List<dynamic>;
       } catch (e) {
         continue;
       }

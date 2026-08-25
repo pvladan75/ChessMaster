@@ -90,7 +90,8 @@ Future<void> showEngineSettingsDialog(
               errorMessage = null;
             });
             try {
-              final path = await EngineDownloadService.instance.downloadAndInstall(
+              final path =
+                  await EngineDownloadService.instance.downloadAndInstall(
                 onProgress: (status, p) {
                   setDialogState(() {
                     statusMessage = status;
@@ -143,7 +144,9 @@ Future<void> showEngineSettingsDialog(
                         ? 'Sopstveni lokalni engine:\n$currentPath'
                         : 'Podrazumevani (Online / FFI paket)',
                     style: AppText.body.copyWith(
-                      color: hasCustom ? context.colors.accent : context.colors.textMuted,
+                      color: hasCustom
+                          ? context.colors.accent
+                          : context.colors.textMuted,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -154,14 +157,16 @@ Future<void> showEngineSettingsDialog(
                   ] else ...[
                     Text(
                       'Preuzmite zvanični Stockfish engine sa interneta i automatski ga podesite, ili izaberite bilo koji UCI kompatibilan .exe sa svog računara.',
-                      style: AppText.caption.copyWith(color: context.colors.textMuted),
+                      style: AppText.caption
+                          .copyWith(color: context.colors.textMuted),
                     ),
                   ],
                   if (errorMessage != null) ...[
                     const SizedBox(height: 8),
                     Text(
                       errorMessage!,
-                      style: AppText.caption.copyWith(color: context.colors.danger),
+                      style: AppText.caption
+                          .copyWith(color: context.colors.danger),
                     ),
                   ],
                 ],
@@ -171,8 +176,10 @@ Future<void> showEngineSettingsDialog(
               if (hasCustom && !isBusy)
                 TextButton.icon(
                   onPressed: reset,
-                  icon: Icon(Icons.delete, color: context.colors.danger, size: 16),
-                  label: Text('Resetuj', style: TextStyle(color: context.colors.danger)),
+                  icon: Icon(Icons.delete,
+                      color: context.colors.danger, size: 16),
+                  label: Text('Resetuj',
+                      style: TextStyle(color: context.colors.danger)),
                 ),
               if (!isBusy) ...[
                 TextButton.icon(

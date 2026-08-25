@@ -10,6 +10,7 @@ import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/session_service.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:chess_app/widgets/app_feedback.dart';
 
 class LoginRegisterScreen extends StatefulWidget {
   /// The login-gated action (create/join a room, invite a student...) that
@@ -216,8 +217,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    AppFeedback.show(
+      context,
+      () => SnackBar(
         content: Text(message),
         backgroundColor: Colors.redAccent,
       ),
@@ -225,8 +227,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   }
 
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    AppFeedback.show(
+      context,
+      () => SnackBar(
         content: Text(message),
         backgroundColor: Colors.green.shade800,
       ),

@@ -4,7 +4,8 @@ import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/services/app_logger.dart';
-import 'package:chess_app/features/assignments/models/assignment.dart' show LessonStep;
+import 'package:chess_app/features/assignments/models/assignment.dart'
+    show LessonStep;
 
 /// How well the student recalled a position, on SM-2's 0–5 scale.
 ///
@@ -50,7 +51,8 @@ class ReviewItem {
         position: (json['position'] as num?)?.toInt() ?? 0,
         lessonTitle: json['lessonTitle']?.toString() ?? '',
         repetitions: (json['repetitions'] as num?)?.toInt() ?? 0,
-        step: LessonStep.fromJson(Map<String, dynamic>.from(json['step'] ?? const {})),
+        step: LessonStep.fromJson(
+            Map<String, dynamic>.from(json['step'] ?? const {})),
       );
 }
 
@@ -78,19 +80,23 @@ class ReviewApiService {
         if (authToken.isNotEmpty) 'Authorization': 'Bearer $authToken',
       };
 
-  Future<({List<ReviewItem> items, ReviewStats stats})> fetchDue({int limit = 30}) async {
+  Future<({List<ReviewItem> items, ReviewStats stats})> fetchDue(
+      {int limit = 30}) async {
     try {
       final res = await http
-          .get(Uri.parse('$backendUrl/reviews/due?limit=$limit'), headers: _headers)
+          .get(Uri.parse('$backendUrl/reviews/due?limit=$limit'),
+              headers: _headers)
           .timeout(const Duration(seconds: 12));
-      if (res.statusCode != 200) return (items: <ReviewItem>[], stats: const ReviewStats());
+      if (res.statusCode != 200)
+        return (items: <ReviewItem>[], stats: const ReviewStats());
 
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       return (
         items: ((data['items'] as List?) ?? const [])
             .map((e) => ReviewItem.fromJson(Map<String, dynamic>.from(e)))
             .toList(),
-        stats: ReviewStats.fromJson(Map<String, dynamic>.from(data['stats'] ?? const {})),
+        stats: ReviewStats.fromJson(
+            Map<String, dynamic>.from(data['stats'] ?? const {})),
       );
     } catch (e) {
       AppLogger.log('[Reviews] Ne mogu da učitam ponavljanja: $e');
@@ -131,7 +137,8 @@ class ReviewApiService {
           .timeout(const Duration(seconds: 12));
 
       if (res.statusCode != 200) return null;
-      return (jsonDecode(res.body) as Map<String, dynamic>)['description']?.toString();
+      return (jsonDecode(res.body) as Map<String, dynamic>)['description']
+          ?.toString();
     } catch (e) {
       AppLogger.log('[Reviews] Ocena nije zabeležena: $e');
       return null;

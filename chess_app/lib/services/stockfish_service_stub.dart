@@ -9,7 +9,8 @@ class StockfishService {
   factory StockfishService() => _instance;
   StockfishService._internal();
 
-  Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluationChanged;
+  Function(String evaluation, String bestMove, String continuation, int multipv,
+      int depth, bool isFinal, String analyzedFen)? onEvaluationChanged;
   Function(Map<int, AnalysisLine> lines)? onMultiPVUpdated;
   final Map<int, AnalysisLine> _engineLines = {};
 
@@ -38,13 +39,16 @@ class StockfishService {
 
   void attach(
     Object owner, {
-    Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation,
+    Function(String evaluation, String bestMove, String continuation,
+            int multipv, int depth, bool isFinal, String analyzedFen)?
+        onEvaluation,
     Function(Map<int, AnalysisLine> lines)? onMultiPV,
     String Function()? getFen,
     bool Function()? isEnabled,
   }) {
     _subscribers.removeWhere((s) => identical(s.owner, owner));
-    _subscribers.add(_EngineSubscriber(owner, onEvaluation, onMultiPV, getFen: getFen, isEnabled: isEnabled));
+    _subscribers.add(_EngineSubscriber(owner, onEvaluation, onMultiPV,
+        getFen: getFen, isEnabled: isEnabled));
     _activateTopSubscriber();
   }
 
@@ -76,15 +80,17 @@ class StockfishService {
     }
   }
 
-  Future<void> analyzePosition(String fen, {int depth = 10, bool isInfinite = false}) async {
+  Future<void> analyzePosition(String fen,
+      {int depth = 10, bool isInfinite = false}) async {
     _isActive = true;
 
     final reqId = ++_requestId;
-    
+
     final targetDepth = isInfinite ? 50 : depth.clamp(5, 50);
 
     try {
-      final url = 'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$targetDepth';
+      final url =
+          'https://stockfish.online/api/s/v2.php?fen=${Uri.encodeComponent(fen)}&depth=$targetDepth';
       final response = await http.get(Uri.parse(url));
 
       if (reqId != _requestId) return;
@@ -116,7 +122,8 @@ class StockfishService {
           }
 
           if (onEvaluationChanged != null) {
-            onEvaluationChanged!(eval, bestMove, continuation, 1, targetDepth, true, fen);
+            onEvaluationChanged!(
+                eval, bestMove, continuation, 1, targetDepth, true, fen);
           }
 
           _engineLines[1] = AnalysisLine.fromPv(
@@ -164,19 +171,22 @@ class StockfishService {
     // supersede this one's request (see the `reqId != _requestId` guard
     // above) and leave `_engineLines` holding that other call's result —
     // don't hand a caller an answer for a position it didn't ask about.
-    final lines = _engineLines.values.where((line) => line.startingFen.isEmpty || line.startingFen == fen).toList();
+    final lines = _engineLines.values
+        .where((line) => line.startingFen.isEmpty || line.startingFen == fen)
+        .toList();
     return lines;
   }
-
 }
 
 /// One screen's registration with the shared engine.
 class _EngineSubscriber {
   final Object owner;
-  final Function(String evaluation, String bestMove, String continuation, int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation;
+  final Function(String evaluation, String bestMove, String continuation,
+      int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation;
   final Function(Map<int, AnalysisLine> lines)? onMultiPV;
   final String Function()? getFen;
   final bool Function()? isEnabled;
 
-  _EngineSubscriber(this.owner, this.onEvaluation, this.onMultiPV, {this.getFen, this.isEnabled});
+  _EngineSubscriber(this.owner, this.onEvaluation, this.onMultiPV,
+      {this.getFen, this.isEnabled});
 }

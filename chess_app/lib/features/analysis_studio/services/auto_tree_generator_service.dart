@@ -20,7 +20,8 @@ class AutoAnalysisParams {
     this.candidateCount = 2,
     int? engineDepth,
     this.deltaCutoff = 1.5,
-  }) : engineDepth = engineDepth ?? AppSettingsService.instance.defaultEngineDepth;
+  }) : engineDepth =
+            engineDepth ?? AppSettingsService.instance.defaultEngineDepth;
 }
 
 /// How the generator asks for an evaluated position.
@@ -57,14 +58,16 @@ class AutoTreeGeneratorService {
   }) async {
     _isCancelled = false;
     int processedCount = 0;
-    final int estimatedTotal = calculateAnalyzedPositions(params.pliesDepth, params.candidateCount);
+    final int estimatedTotal =
+        calculateAnalyzedPositions(params.pliesDepth, params.candidateCount);
 
     // Wrapped in the shared cache so a position already evaluated by a game
     // review — or by an earlier run over the same branch — is not searched again.
     // An explicitly supplied analyzer is left alone: tests inject their own and
     // must see exactly the calls they make.
     final resolvedAnalyzer = analyzer ??
-        EvalCache.instance.wrap((stockfishService ?? StockfishService()).analyzePositionSync);
+        EvalCache.instance
+            .wrap((stockfishService ?? StockfishService()).analyzePositionSync);
 
     await _expandNodeRecursive(
       currentNode: startNode,
@@ -87,19 +90,24 @@ class AutoTreeGeneratorService {
   }) async {
     if (_isCancelled) return;
     if (currentPly >= params.pliesDepth) {
-      AppLogger.log('[AutoTree] 🏁 Dostignuta max dubina (ply=$currentPly) za FEN: ${currentNode.fen}');
+      AppLogger.log(
+          '[AutoTree] 🏁 Dostignuta max dubina (ply=$currentPly) za FEN: ${currentNode.fen}');
       return;
     }
 
     final game = chess.Chess.fromFEN(currentNode.fen);
     if (game.game_over) {
-      AppLogger.log('[AutoTree] 🛑 game_over=true za FEN: ${currentNode.fen} (in_checkmate=${game.in_checkmate}, in_stalemate=${game.in_stalemate}, in_draw=${game.in_draw}) — grananje se prekida ovde.');
+      AppLogger.log(
+          '[AutoTree] 🛑 game_over=true za FEN: ${currentNode.fen} (in_checkmate=${game.in_checkmate}, in_stalemate=${game.in_stalemate}, in_draw=${game.in_draw}) — grananje se prekida ovde.');
       return;
     }
 
-    AppLogger.log('[AutoTree] 🌳 Generišem n=${params.candidateCount} kandidata za čvor na dubini d=${params.engineDepth} | FEN: ${currentNode.fen}');
-    AppLogger.log('[AutoTree] ⏱️ Čekam Stockfish odgovor za depth ${params.engineDepth}...');
-    onProgress('Analiziram poziciju (Sloj ${currentPly + 1}/${params.pliesDepth})...');
+    AppLogger.log(
+        '[AutoTree] 🌳 Generišem n=${params.candidateCount} kandidata za čvor na dubini d=${params.engineDepth} | FEN: ${currentNode.fen}');
+    AppLogger.log(
+        '[AutoTree] ⏱️ Čekam Stockfish odgovor za depth ${params.engineDepth}...');
+    onProgress(
+        'Analiziram poziciju (Sloj ${currentPly + 1}/${params.pliesDepth})...');
 
     final lines = await analyzer(
       currentNode.fen,
@@ -111,7 +119,8 @@ class AutoTreeGeneratorService {
     if (_isCancelled) return;
 
     if (lines.isEmpty) {
-      AppLogger.log('[AutoTree WARNING] ⚠️ Stockfish nije vratio linije za FEN: ${currentNode.fen}. Preskačem grananje čvora.');
+      AppLogger.log(
+          '[AutoTree WARNING] ⚠️ Stockfish nije vratio linije za FEN: ${currentNode.fen}. Preskačem grananje čvora.');
       return;
     }
 
@@ -120,7 +129,8 @@ class AutoTreeGeneratorService {
     // Parse eval to numeric double score from White's perspective
     double parseEvalToNumeric(String evalStr) {
       if (evalStr.contains('M')) {
-        final mateNum = int.tryParse(evalStr.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+        final mateNum =
+            int.tryParse(evalStr.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
         return evalStr.contains('-') ? (-1000.0 + mateNum) : (1000.0 - mateNum);
       }
       return double.tryParse(evalStr.replaceAll('+', '')) ?? 0.0;
@@ -130,7 +140,9 @@ class AutoTreeGeneratorService {
     sortedLines.sort((a, b) {
       final scoreA = parseEvalToNumeric(a.evaluation);
       final scoreB = parseEvalToNumeric(b.evaluation);
-      return isWhiteToMove ? scoreB.compareTo(scoreA) : scoreA.compareTo(scoreB);
+      return isWhiteToMove
+          ? scoreB.compareTo(scoreA)
+          : scoreA.compareTo(scoreB);
     });
 
     final topScore = parseEvalToNumeric(sortedLines.first.evaluation);
@@ -143,11 +155,13 @@ class AutoTreeGeneratorService {
       if (moveUci.isEmpty && moveSanStr.isEmpty) continue;
 
       final lineScore = parseEvalToNumeric(line.evaluation);
-      final evalDelta = isWhiteToMove ? (topScore - lineScore) : (lineScore - topScore);
+      final evalDelta =
+          isWhiteToMove ? (topScore - lineScore) : (lineScore - topScore);
 
       // Check pruning delta
       if (evalDelta > params.deltaCutoff) {
-        AppLogger.log('[AutoTree] ✂️ Potez ${moveSanStr.isNotEmpty ? moveSanStr : moveUci} orezan (eval: ${line.evaluation}, delta > ${params.deltaCutoff})');
+        AppLogger.log(
+            '[AutoTree] ✂️ Potez ${moveSanStr.isNotEmpty ? moveSanStr : moveUci} orezan (eval: ${line.evaluation}, delta > ${params.deltaCutoff})');
         continue;
       }
 
@@ -168,7 +182,8 @@ class AutoTreeGeneratorService {
         final to = moveUci.substring(2, 4);
         final promo = moveUci.length > 4 ? moveUci.substring(4, 5) : null;
         try {
-          moveOk = tempGame.move({'from': from, 'to': to, if (promo != null) 'promotion': promo});
+          moveOk = tempGame.move(
+              {'from': from, 'to': to, if (promo != null) 'promotion': promo});
         } catch (_) {}
       }
 
@@ -185,14 +200,19 @@ class AutoTreeGeneratorService {
       }
 
       if (!moveOk) {
-        AppLogger.log('[AutoTree WARNING] ⚠️ Nevalidan potez ${moveSanStr.isNotEmpty ? moveSanStr : moveUci} za FEN: ${currentNode.fen}');
+        AppLogger.log(
+            '[AutoTree WARNING] ⚠️ Nevalidan potez ${moveSanStr.isNotEmpty ? moveSanStr : moveUci} za FEN: ${currentNode.fen}');
         continue;
       }
 
       final childFen = tempGame.fen;
       final moveObj = tempGame.history.last.move;
-      final san = moveSanStr.isNotEmpty ? moveSanStr : (moveObj.fromAlgebraic + moveObj.toAlgebraic);
-      final uci = moveObj.fromAlgebraic + moveObj.toAlgebraic + (moveObj.promotion?.name ?? '');
+      final san = moveSanStr.isNotEmpty
+          ? moveSanStr
+          : (moveObj.fromAlgebraic + moveObj.toAlgebraic);
+      final uci = moveObj.fromAlgebraic +
+          moveObj.toAlgebraic +
+          (moveObj.promotion?.name ?? '');
 
       final childNode = currentNode.addChild(
         childFen: childFen,
@@ -201,13 +221,15 @@ class AutoTreeGeneratorService {
       );
       childNode.eval = lineScore;
 
-      if (!AppSettingsService.instance.manualCommentMode && childNode.comment.isEmpty) {
+      if (!AppSettingsService.instance.manualCommentMode &&
+          childNode.comment.isEmpty) {
         final tacticalDiff = _tacticalDetector.explainMove(
           beforeFen: currentNode.fen,
           afterFen: childFen,
           lastMoveUci: uci,
         );
-        final positionalDiff = _positionalEvaluator.explainMove(beforeFen: currentNode.fen, afterFen: childFen);
+        final positionalDiff = _positionalEvaluator.explainMove(
+            beforeFen: currentNode.fen, afterFen: childFen);
         final autoComment = [
           _tacticalDetector.describeMoveDiff(tacticalDiff),
           _positionalEvaluator.describeMoveDiff(positionalDiff),

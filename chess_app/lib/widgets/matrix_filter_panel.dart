@@ -5,7 +5,8 @@ class MatrixFilterPanel extends StatefulWidget {
   final List<String> selectedIncludeTags;
   final List<String> selectedExcludeTags;
   final String filterMatchMode; // 'all' or 'any'
-  final Function(List<String> include, List<String> exclude, String mode) onFilterChanged;
+  final Function(List<String> include, List<String> exclude, String mode)
+      onFilterChanged;
 
   const MatrixFilterPanel({
     super.key,
@@ -55,7 +56,8 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final activeCount = widget.selectedIncludeTags.length + widget.selectedExcludeTags.length;
+    final activeCount =
+        widget.selectedIncludeTags.length + widget.selectedExcludeTags.length;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -83,7 +85,10 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                 ),
                 child: Text(
                   '$activeCount',
-                  style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -103,26 +108,34 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
         ),
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Text('Režim uslova: ', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    const Text('Režim uslova: ',
+                        style: TextStyle(fontSize: 11, color: Colors.grey)),
                     ChoiceChip(
-                      label: const Text('SVE (AND)', style: TextStyle(fontSize: 10)),
+                      label: const Text('SVE (AND)',
+                          style: TextStyle(fontSize: 10)),
                       selected: widget.filterMatchMode == 'all',
                       onSelected: (val) {
-                        if (val) widget.onFilterChanged(widget.selectedIncludeTags, widget.selectedExcludeTags, 'all');
+                        if (val)
+                          widget.onFilterChanged(widget.selectedIncludeTags,
+                              widget.selectedExcludeTags, 'all');
                       },
                     ),
                     const SizedBox(width: 6),
                     ChoiceChip(
-                      label: const Text('BILO KOJA (OR)', style: TextStyle(fontSize: 10)),
+                      label: const Text('BILO KOJA (OR)',
+                          style: TextStyle(fontSize: 10)),
                       selected: widget.filterMatchMode == 'any',
                       onSelected: (val) {
-                        if (val) widget.onFilterChanged(widget.selectedIncludeTags, widget.selectedExcludeTags, 'any');
+                        if (val)
+                          widget.onFilterChanged(widget.selectedIncludeTags,
+                              widget.selectedExcludeTags, 'any');
                       },
                     ),
                   ],
@@ -134,7 +147,8 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                 ),
                 const SizedBox(height: 6),
                 if (widget.availableUserLabels.isEmpty)
-                  const Text('Nema dostupnih labela u bazi.', style: TextStyle(fontSize: 11, color: Colors.grey))
+                  const Text('Nema dostupnih labela u bazi.',
+                      style: TextStyle(fontSize: 11, color: Colors.grey))
                 else
                   Wrap(
                     spacing: 6,
@@ -161,12 +175,15 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                         onTap: () => toggleIncludeTag(tag),
                         onLongPress: () => toggleExcludeTag(tag),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: chipBg,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isInc ? Colors.green : (isExc ? Colors.red : Colors.transparent),
+                              color: isInc
+                                  ? Colors.green
+                                  : (isExc ? Colors.red : Colors.transparent),
                               width: 1,
                             ),
                           ),
@@ -177,7 +194,9 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                                 Icon(chipIcon, size: 12, color: chipText),
                                 const SizedBox(width: 4),
                               ],
-                              Text(tag, style: TextStyle(fontSize: 11, color: chipText)),
+                              Text(tag,
+                                  style:
+                                      TextStyle(fontSize: 11, color: chipText)),
                             ],
                           ),
                         ),

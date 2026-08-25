@@ -10,6 +10,7 @@ import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/scanned_position.dart';
 import '../services/scanner_api_service.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// Reads positions out of a trainer's own book and lets them confirm each one.
 ///
@@ -129,8 +130,9 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     // Saying only "saved" leaves the trainer with no idea where the positions
     // went — the first live run stored 120 of them and the answer to "where are
     // they" was nowhere on screen. The message carries the way there.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    AppFeedback.show(
+      context,
+      () => SnackBar(
         content: Text('U „Moje pozicije": ${outcome.summary}.'),
         action: SnackBarAction(
           label: 'Pogledaj',
@@ -144,8 +146,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
 
   void _toast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    AppFeedback.show(context, () => SnackBar(content: Text(message)));
   }
 
   @override

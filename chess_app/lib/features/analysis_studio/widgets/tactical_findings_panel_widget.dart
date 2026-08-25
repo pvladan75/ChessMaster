@@ -55,7 +55,8 @@ class TacticalFindingsPanelWidget extends StatelessWidget {
             children: [
               const Icon(Icons.bolt, color: Colors.tealAccent, size: 16),
               const SizedBox(width: 6),
-              Text('Taktički motivi', style: AppText.bodyBold.copyWith(color: Colors.tealAccent)),
+              Text('Taktički motivi',
+                  style: AppText.bodyBold.copyWith(color: Colors.tealAccent)),
             ],
           ),
           const SizedBox(height: 8),
@@ -82,7 +83,8 @@ class TacticalFindingsPanelWidget extends StatelessWidget {
         ),
         child: Text(
           _motifLabel(finding.motifs.first),
-          style: AppText.caption.copyWith(color: color, fontWeight: FontWeight.w600),
+          style: AppText.caption
+              .copyWith(color: color, fontWeight: FontWeight.w600),
         ),
       ),
     );

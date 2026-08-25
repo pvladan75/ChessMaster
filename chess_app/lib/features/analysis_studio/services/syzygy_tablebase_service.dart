@@ -123,7 +123,8 @@ class SyzygyResult {
         .map(SyzygyMove.fromJson)
         .toList()
       ..sort((a, b) {
-        final rankDiff = _moveRankForMover(a.category).compareTo(_moveRankForMover(b.category));
+        final rankDiff = _moveRankForMover(a.category)
+            .compareTo(_moveRankForMover(b.category));
         if (rankDiff != 0) return rankDiff;
         return (a.dtz ?? 0).abs().compareTo((b.dtz ?? 0).abs());
       });
@@ -157,10 +158,12 @@ class SyzygyTablebaseService {
 
     try {
       final url = '$_baseUrl?fen=${Uri.encodeComponent(fen)}';
-      final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 6));
+      final res =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 6));
 
       if (res.statusCode != 200) {
-        AppLogger.log('[Syzygy] ⚠️ Tablebase HTTP ${res.statusCode} for FEN: $fen');
+        AppLogger.log(
+            '[Syzygy] ⚠️ Tablebase HTTP ${res.statusCode} for FEN: $fen');
         return null;
       }
 

@@ -9,6 +9,7 @@ import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart'
     show SelectedSquarePainter;
 import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// The live game board plus its arrow/drawing overlays.
 ///
@@ -179,8 +180,9 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
     final fen = widget.controller.getFen();
     await Clipboard.setData(ClipboardData(text: fen));
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+    AppFeedback.show(
+      context,
+      () => const SnackBar(
         content: Text('FEN je kopiran.'),
         duration: Duration(seconds: 2),
       ),

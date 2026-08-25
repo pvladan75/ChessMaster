@@ -16,6 +16,7 @@ import 'package:chess_app/widgets/action_key_shortcuts.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 class ReplayPlayerScreen extends StatefulWidget {
   final int recordingId;
@@ -597,8 +598,9 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
 
   void _showError(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+    AppFeedback.show(
+      context,
+      () => SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
     );
   }
 

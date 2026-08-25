@@ -20,6 +20,8 @@ class _FakeApi extends GroupApiService {
     this.groupMembers = const [],
     this.guests = const [],
     this.students = const [],
+    this.allowGuests = false,
+    this.guestAccessFails = false,
     this.failWith,
   }) : super(client: MockClient((_) async => http.Response('{}', 500)));
 
@@ -30,7 +32,14 @@ class _FakeApi extends GroupApiService {
   List<NamedPerson> groupMembers;
   List<RoomGuest> guests;
   final List<Map<String, dynamic>> students;
+
+  /// What the room says about guests, and — separately — a room that will not
+  /// answer at all, which is the state the switch must not paint as "off".
+  bool? allowGuests;
+  final bool guestAccessFails;
   final String? failWith;
+
+  final List<bool> guestSwitches = [];
 
   String? createdName;
   final List<int> added = [];
@@ -79,6 +88,24 @@ class _FakeApi extends GroupApiService {
 
   @override
   Future<List<RoomGuest>> roomGuests(String roomCode) async => guests;
+
+  @override
+  Future<({bool? allowGuests, String? error})> guestAccess(
+      String roomCode) async {
+    if (guestAccessFails) {
+      return (allowGuests: null, error: 'Server nije dostupan.');
+    }
+    return (allowGuests: allowGuests, error: null);
+  }
+
+  @override
+  Future<({bool? allowGuests, String? error})> setGuestAccess(
+      String roomCode, bool wanted) async {
+    guestSwitches.add(wanted);
+    if (failWith != null) return (allowGuests: null, error: failWith);
+    allowGuests = wanted;
+    return (allowGuests: wanted, error: null);
+  }
 
   @override
   Future<String?> invite(
@@ -249,6 +276,79 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(api.invitedUsers, [9]);
+  });
+
+  testWidgets('the guest switch shows what the room says, and flips it',
+      (tester) async {
+    // The column existed for a day with nothing in the app that could see it.
+    // Off is the default, and the default is what decides who is in the room
+    // nobody thought about — so it has to be visible to be relied on.
+    final api = _FakeApi();
+    await pumpGuests(tester, api);
+
+    expect(find.text('Soba prima goste'), findsOneWidget);
+    expect(find.textContaining('ulaze samo prijavljeni'), findsOneWidget);
+
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
+
+    expect(api.guestSwitches, [true]);
+    // Said in the words that matter: the code is all it takes, and a recorded
+    // lesson records whoever came in on it.
+    expect(find.textContaining('svako ko zna kod sobe'), findsOneWidget);
+    expect(find.textContaining('u snimku'), findsOneWidget);
+  });
+
+  testWidgets('a room that takes guests says the list does not stop them',
+      (tester) async {
+    // The two controls are independent on purpose, which is precisely why the
+    // dialog must not let "ulaze samo oni sa ovog spiska" stand alone while the
+    // guest door is open.
+    final api = _FakeApi(
+      allowGuests: true,
+      guests: const [RoomGuest(kind: 'group', id: 3, name: 'Utorak 18h')],
+    );
+    await pumpGuests(tester, api);
+
+    expect(find.text('Ulaze samo oni sa ovog spiska.'), findsOneWidget);
+    expect(find.textContaining('bez obzira na spisak'), findsOneWidget);
+  });
+
+  testWidgets('a setting that could not be read says so, instead of "off"',
+      (tester) async {
+    // The recurring bug in this codebase, in a switch: a step that fails
+    // quietly and reports the comfortable answer one layer up. Here the
+    // comfortable answer would be a room drawn as closed while it is open.
+    await pumpGuests(tester, _FakeApi(guestAccessFails: true));
+
+    expect(find.byType(SwitchListTile), findsNothing);
+    expect(
+        find.textContaining('Ne znam da li soba prima goste'), findsOneWidget);
+    expect(find.text('Pokušaj ponovo'), findsOneWidget);
+  });
+
+  testWidgets('the guest dialog fits a 360 dp phone', (tester) async {
+    // A release build paints no overflow stripes: a row wider than the screen
+    // is simply clipped, and the control past the edge is unreachable. In a
+    // *test* build it throws, which is the only cheap way to find it — and the
+    // row with "Pokušaj ponovo" in it is exactly the shape that has bitten
+    // three times already.
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    for (final api in [
+      _FakeApi(allowGuests: true, guests: const [
+        RoomGuest(kind: 'group', id: 3, name: 'Utorak 18h'),
+      ]),
+      _FakeApi(guestAccessFails: true),
+    ]) {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(body: RoomGuestsDialog(roomCode: '123456', api: api)),
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('a list with somebody on it says the room is now narrowed',

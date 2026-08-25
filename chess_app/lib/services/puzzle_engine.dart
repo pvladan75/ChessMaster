@@ -32,7 +32,8 @@ class PuzzleEngine {
   List<String> get visitedMovePath => List.unmodifiable(_visitedMovePath);
   int get completedVariations => _completedVariations;
   int get totalVariations => _totalVariations;
-  bool get isFullySolved => _completedVariations > 0 && _completedVariations >= _totalVariations;
+  bool get isFullySolved =>
+      _completedVariations > 0 && _completedVariations >= _totalVariations;
   List<BranchPoint> get branchPoints => List.unmodifiable(_branchPoints);
 
   void _calculateTotalVariations(dynamic node) {

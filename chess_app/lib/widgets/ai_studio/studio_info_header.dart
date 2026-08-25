@@ -36,7 +36,8 @@ class StudioInfoHeaderWidget extends StatelessWidget {
         Card(
           elevation: 3,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -50,9 +51,14 @@ class StudioInfoHeaderWidget extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           margin: const EdgeInsets.only(bottom: 10),
           decoration: BoxDecoration(
-            color: puzzleOrientation == PlayerColor.white ? Colors.blueGrey.shade900 : Colors.teal.shade900,
+            color: puzzleOrientation == PlayerColor.white
+                ? Colors.blueGrey.shade900
+                : Colors.teal.shade900,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: puzzleOrientation == PlayerColor.white ? Colors.white38 : Colors.tealAccent),
+            border: Border.all(
+                color: puzzleOrientation == PlayerColor.white
+                    ? Colors.white38
+                    : Colors.tealAccent),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -60,13 +66,18 @@ class StudioInfoHeaderWidget extends StatelessWidget {
               Icon(
                 Icons.flag,
                 size: 18,
-                color: puzzleOrientation == PlayerColor.white ? Colors.white : Colors.tealAccent,
+                color: puzzleOrientation == PlayerColor.white
+                    ? Colors.white
+                    : Colors.tealAccent,
               ),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
                   headerGoal,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.white),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),

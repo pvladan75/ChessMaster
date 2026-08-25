@@ -144,6 +144,32 @@ class GroupApiService {
         .toList();
   }
 
+  /// Whether the room takes guests — anybody who knows the code, signed in or
+  /// not, as a watcher.
+  ///
+  /// `null` for an answer that never came: the switch then says it could not be
+  /// read instead of drawing itself as "off", which would be a lie about who is
+  /// allowed into a room with children in it.
+  Future<({bool? allowGuests, String? error})> guestAccess(
+      String roomCode) async {
+    final res = await _send(
+        () => _get(Uri.parse('$backendUrl/rooms/$roomCode/guest-access')));
+    if (res.body == null) return (allowGuests: null, error: res.error);
+    return (allowGuests: res.body!['allowGuests'] == true, error: null);
+  }
+
+  /// Opens or closes that door, and answers with what the room says afterwards
+  /// rather than with what was asked for.
+  Future<({bool? allowGuests, String? error})> setGuestAccess(
+      String roomCode, bool allowGuests) async {
+    final res = await _send(() => _patch(
+          '$backendUrl/rooms/$roomCode/guest-access',
+          {'allowGuests': allowGuests},
+        ));
+    if (res.body == null) return (allowGuests: null, error: res.error);
+    return (allowGuests: res.body!['allowGuests'] == true, error: null);
+  }
+
   Future<List<RoomGuest>> roomGuests(String roomCode) async {
     final res = await _send(
         () => _get(Uri.parse('$backendUrl/groups/rooms/$roomCode/guests')));

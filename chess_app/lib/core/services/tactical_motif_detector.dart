@@ -137,7 +137,8 @@ _PieceNoun _pieceNoun(chess.PieceType type) {
   }
 }
 
-String _agree(_Gender gender, String masculine, String feminine) => gender == _Gender.feminine ? feminine : masculine;
+String _agree(_Gender gender, String masculine, String feminine) =>
+    gender == _Gender.feminine ? feminine : masculine;
 
 String _colorAdj(chess.Color color, _Gender gender) {
   final isWhite = color == chess.Color.WHITE;
@@ -155,11 +156,20 @@ String _pieceSubject(chess.Piece piece) {
 String _pieceObject(chess.Piece piece) {
   final noun = _pieceNoun(piece.type);
   final isWhite = piece.color == chess.Color.WHITE;
-  final adj = _agree(noun.gender, isWhite ? 'belog' : 'crnog', isWhite ? 'belu' : 'crnu');
+  final adj = _agree(
+      noun.gender, isWhite ? 'belog' : 'crnog', isWhite ? 'belu' : 'crnu');
   return '$adj ${noun.accusative}';
 }
 
-const _serbianCounts = {2: 'dve', 3: 'tri', 4: 'četiri', 5: 'pet', 6: 'šest', 7: 'sedam', 8: 'osam'};
+const _serbianCounts = {
+  2: 'dve',
+  3: 'tri',
+  4: 'četiri',
+  5: 'pet',
+  6: 'šest',
+  7: 'sedam',
+  8: 'osam'
+};
 
 /// "dve bele figure" (2-4) / "pet belih figura" (5+) — count + color + noun,
 /// all correctly declined for how many there are.
@@ -198,7 +208,9 @@ class TacticalMotifDetector {
       // Determine colors: defenderColor is the current side to move,
       // moverColor is the player who just moved.
       final defenderColor = game.turn;
-      final moverColor = defenderColor == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
+      final moverColor = defenderColor == chess.Color.WHITE
+          ? chess.Color.BLACK
+          : chess.Color.WHITE;
 
       final findings = _buildFindings(
         game,
@@ -238,7 +250,9 @@ class TacticalMotifDetector {
     try {
       final afterGame = chess.Chess.fromFEN(afterFen);
       final defenderColor = afterGame.turn;
-      final moverColor = defenderColor == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
+      final moverColor = defenderColor == chess.Color.WHITE
+          ? chess.Color.BLACK
+          : chess.Color.WHITE;
 
       final afterFindings = _buildFindings(
         afterGame,
@@ -262,8 +276,10 @@ class TacticalMotifDetector {
       final beforeKeys = beforeFindings.map((f) => f.diffKey).toSet();
       final afterKeys = afterFindings.map((f) => f.diffKey).toSet();
 
-      final created = afterFindings.where((f) => !beforeKeys.contains(f.diffKey)).toList();
-      final resolved = beforeFindings.where((f) => !afterKeys.contains(f.diffKey)).toList();
+      final created =
+          afterFindings.where((f) => !beforeKeys.contains(f.diffKey)).toList();
+      final resolved =
+          beforeFindings.where((f) => !afterKeys.contains(f.diffKey)).toList();
 
       return MoveMotifDiff(created: created, resolved: resolved);
     } catch (_) {
@@ -292,7 +308,9 @@ class TacticalMotifDetector {
   /// the move changed nothing tactically worth narrating.
   String describeMoveDiff(MoveMotifDiff diff) {
     final created = _mostNarratable(diff.created, _maxCreatedInComment);
-    final resolved = _mostNarratable(diff.resolved.where((f) => !f.favorsMover).toList(), _maxResolvedInComment);
+    final resolved = _mostNarratable(
+        diff.resolved.where((f) => !f.favorsMover).toList(),
+        _maxResolvedInComment);
 
     final parts = <String>[
       ...created.map(_formatFinding),
@@ -308,7 +326,9 @@ class TacticalMotifDetector {
   List<String> candidateCommentLines(MoveMotifDiff diff) {
     return [
       ...diff.created.map(_formatFinding),
-      ...diff.resolved.where((f) => !f.favorsMover).map((f) => _formatFinding(f, resolved: true)),
+      ...diff.resolved
+          .where((f) => !f.favorsMover)
+          .map((f) => _formatFinding(f, resolved: true)),
     ];
   }
 
@@ -325,8 +345,10 @@ class TacticalMotifDetector {
   List<MotifFinding> _mostNarratable(List<MotifFinding> findings, int max) {
     if (findings.isEmpty) return const [];
 
-    final sorted = [...findings]..sort((a, b) => b.significance.compareTo(a.significance));
-    final aboveBar = sorted.where((f) => f.significance >= _minSignificanceForComment);
+    final sorted = [...findings]
+      ..sort((a, b) => b.significance.compareTo(a.significance));
+    final aboveBar =
+        sorted.where((f) => f.significance >= _minSignificanceForComment);
     final pool = aboveBar.isNotEmpty ? aboveBar : sorted.take(1);
     return pool.take(max).toList();
   }
@@ -388,11 +410,18 @@ class TacticalMotifDetector {
     int? mateIn,
     double? evalScore,
   }) {
-    final hanging = _detectHangingPieces(game, targetColor: targetColor, attackerColor: attackerColor);
-    final fork = _detectFork(game, attackerColor: attackerColor, targetColor: targetColor, lastMoveUci: lastMoveUci);
-    final pinSkewer = _detectPinAndSkewer(game, attackerColor: attackerColor, targetColor: targetColor);
-    final overload = _detectOverloading(game, attackerColor: attackerColor, targetColor: targetColor);
-    final deflection = _detectDeflection(game, attackerColor: attackerColor, targetColor: targetColor);
+    final hanging = _detectHangingPieces(game,
+        targetColor: targetColor, attackerColor: attackerColor);
+    final fork = _detectFork(game,
+        attackerColor: attackerColor,
+        targetColor: targetColor,
+        lastMoveUci: lastMoveUci);
+    final pinSkewer = _detectPinAndSkewer(game,
+        attackerColor: attackerColor, targetColor: targetColor);
+    final overload = _detectOverloading(game,
+        attackerColor: attackerColor, targetColor: targetColor);
+    final deflection = _detectDeflection(game,
+        attackerColor: attackerColor, targetColor: targetColor);
 
     final mate = _detectMateThreat(
       game,
@@ -411,7 +440,10 @@ class TacticalMotifDetector {
     );
 
     if (includeDiscovered) {
-      discovered = _detectDiscoveredAttack(game, attackerColor: attackerColor, targetColor: targetColor, lastMoveUci: lastMoveUci);
+      discovered = _detectDiscoveredAttack(game,
+          attackerColor: attackerColor,
+          targetColor: targetColor,
+          lastMoveUci: lastMoveUci);
     }
 
     final findings = <MotifFinding>[];
@@ -425,8 +457,10 @@ class TacticalMotifDetector {
           TacticalMotif.mateThreat,
           TacticalMotif.hangingPiece,
         ],
-        description: 'Dvojni udar: ${hanging.description}, uz ${mate.description.substring(0, 1).toLowerCase()}${mate.description.substring(1)}',
-        affectedSquares: {...hanging.affectedSquares, ...mate.affectedSquares}.toList(),
+        description:
+            'Dvojni udar: ${hanging.description}, uz ${mate.description.substring(0, 1).toLowerCase()}${mate.description.substring(1)}',
+        affectedSquares:
+            {...hanging.affectedSquares, ...mate.affectedSquares}.toList(),
         favorsMover: favorsMover,
         significance: _pieceValue(chess.PieceType.KING),
       ));
@@ -524,7 +558,8 @@ class TacticalMotifDetector {
     chess.Color? targetColor,
     String? lastMoveUci,
   }) {
-    attackerColor ??= game.turn == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
+    attackerColor ??=
+        game.turn == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
     targetColor ??= game.turn;
 
     // Destination of last move is prime suspect for fork
@@ -533,7 +568,8 @@ class TacticalMotifDetector {
       moveDest = lastMoveUci.substring(2, 4);
     }
 
-    final forksByPiece = <String, List<String>>{}; // forker square -> target squares
+    final forksByPiece =
+        <String, List<String>>{}; // forker square -> target squares
 
     for (var f = 0; f < 8; f++) {
       for (var r = 0; r < 8; r++) {
@@ -554,7 +590,9 @@ class TacticalMotifDetector {
             if (tPiece != null) {
               if (tPiece.type == chess.PieceType.KING) {
                 hasKingCheck = true;
-              } else if (_pieceValue(tPiece.type) >= _pieceValue(p.type) || tPiece.type == chess.PieceType.ROOK || tPiece.type == chess.PieceType.QUEEN) {
+              } else if (_pieceValue(tPiece.type) >= _pieceValue(p.type) ||
+                  tPiece.type == chess.PieceType.ROOK ||
+                  tPiece.type == chess.PieceType.QUEEN) {
                 valuableTargets++;
               }
             }
@@ -568,7 +606,8 @@ class TacticalMotifDetector {
     }
 
     if (forksByPiece.isEmpty) {
-      return const _ForkResult(hasFork: false, affectedSquares: [], description: '');
+      return const _ForkResult(
+          hasFork: false, affectedSquares: [], description: '');
     }
 
     final allSquares = <String>{};
@@ -578,7 +617,9 @@ class TacticalMotifDetector {
       allSquares.addAll(targets);
 
       final forker = game.get(forkerSq)!;
-      final targetPhrases = targets.map((tSq) => '${_pieceObject(game.get(tSq)!)} na $tSq').toList();
+      final targetPhrases = targets
+          .map((tSq) => '${_pieceObject(game.get(tSq)!)} na $tSq')
+          .toList();
 
       sentences.add(
         '${_pieceSubject(forker)} sa $forkerSq napada ${_countedFigures(targets.length, targetColor!)}: '
@@ -619,7 +660,9 @@ class TacticalMotifDetector {
         if (p == null || p.color != attackerColor) continue;
 
         // Only sliders can pin or skewer
-        if (p.type != chess.PieceType.BISHOP && p.type != chess.PieceType.ROOK && p.type != chess.PieceType.QUEEN) {
+        if (p.type != chess.PieceType.BISHOP &&
+            p.type != chess.PieceType.ROOK &&
+            p.type != chess.PieceType.QUEEN) {
           continue;
         }
 
@@ -658,7 +701,10 @@ class TacticalMotifDetector {
           }
 
           // Both 1st and 2nd pieces must belong to targetColor
-          if (firstPiece != null && secondPiece != null && firstPiece.color == targetColor && secondPiece.color == targetColor) {
+          if (firstPiece != null &&
+              secondPiece != null &&
+              firstPiece.color == targetColor &&
+              secondPiece.color == targetColor) {
             final val1 = _pieceValue(firstPiece.type);
             final val2 = _pieceValue(secondPiece.type);
 
@@ -688,24 +734,31 @@ class TacticalMotifDetector {
       hasSkewer: skewerSquares.isNotEmpty,
       pinSquares: pinSquares.toList(),
       skewerSquares: skewerSquares.toList(),
-      pinDescription: pinSentences.isEmpty ? '' : 'Vezivanje: ${pinSentences.join(' | ')}',
-      skewerDescription: skewerSentences.isEmpty ? '' : 'Ražanj: ${skewerSentences.join(' | ')}',
+      pinDescription:
+          pinSentences.isEmpty ? '' : 'Vezivanje: ${pinSentences.join(' | ')}',
+      skewerDescription: skewerSentences.isEmpty
+          ? ''
+          : 'Ražanj: ${skewerSentences.join(' | ')}',
     );
   }
 
   List<String> detectPin(chess.Chess game) {
     final sideToMove = game.turn;
     final defenderColor = sideToMove;
-    final moverColor = sideToMove == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
-    final res = _detectPinAndSkewer(game, attackerColor: moverColor, targetColor: defenderColor);
+    final moverColor =
+        sideToMove == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
+    final res = _detectPinAndSkewer(game,
+        attackerColor: moverColor, targetColor: defenderColor);
     return res.pinSquares;
   }
 
   List<String> detectSkewer(chess.Chess game) {
     final sideToMove = game.turn;
     final defenderColor = sideToMove;
-    final moverColor = sideToMove == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
-    final res = _detectPinAndSkewer(game, attackerColor: moverColor, targetColor: defenderColor);
+    final moverColor =
+        sideToMove == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
+    final res = _detectPinAndSkewer(game,
+        attackerColor: moverColor, targetColor: defenderColor);
     return res.skewerSquares;
   }
 
@@ -719,7 +772,8 @@ class TacticalMotifDetector {
     chess.Color? targetColor,
     String? lastMoveUci,
   }) {
-    attackerColor ??= game.turn == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
+    attackerColor ??=
+        game.turn == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
     targetColor ??= game.turn;
 
     if (lastMoveUci == null || lastMoveUci.length < 4) {
@@ -745,11 +799,14 @@ class TacticalMotifDetector {
     for (var f = 0; f < 8; f++) {
       for (var r = 0; r < 8; r++) {
         final sliderSq = _coordsToSq(f, r);
-        if (sliderSq == toSq) continue; // The moved piece itself isn't the discovered slider
+        if (sliderSq == toSq)
+          continue; // The moved piece itself isn't the discovered slider
         final p = game.get(sliderSq);
         if (p == null || p.color != attackerColor) continue;
 
-        if (p.type != chess.PieceType.BISHOP && p.type != chess.PieceType.ROOK && p.type != chess.PieceType.QUEEN) {
+        if (p.type != chess.PieceType.BISHOP &&
+            p.type != chess.PieceType.ROOK &&
+            p.type != chess.PieceType.QUEEN) {
           continue;
         }
 
@@ -768,7 +825,8 @@ class TacticalMotifDetector {
         // Trace past fromSq to see what target is attacked
         final stepF = df.sign;
         final stepR = dr.sign;
-        final stepsToFromSq = isDiag ? df.abs() : (df == 0 ? dr.abs() : df.abs());
+        final stepsToFromSq =
+            isDiag ? df.abs() : (df == 0 ? dr.abs() : df.abs());
 
         var curF = f + stepF;
         var curR = r + stepR;
@@ -791,14 +849,18 @@ class TacticalMotifDetector {
 
         // The first piece found must lie at or beyond fromSq — otherwise it was
         // already blocked before this move and the attack isn't newly discovered.
-        if (hitPiece != null && stepCount > stepsToFromSq && hitPiece.color == targetColor) {
+        if (hitPiece != null &&
+            stepCount > stepsToFromSq &&
+            hitPiece.color == targetColor) {
           if (hitPiece.type == chess.PieceType.KING) {
             isCheck = true;
             discSquares.addAll([sliderSq, fromSq, hitSq!]);
-            sentences.add('${_pieceSubject(p)} sa $sliderSq sada napada ${_pieceObject(hitPiece)} na $hitSq (otkriveno pomeranjem figure sa $fromSq)');
+            sentences.add(
+                '${_pieceSubject(p)} sa $sliderSq sada napada ${_pieceObject(hitPiece)} na $hitSq (otkriveno pomeranjem figure sa $fromSq)');
           } else if (_pieceValue(hitPiece.type) >= 3) {
             discSquares.addAll([sliderSq, fromSq, hitSq!]);
-            sentences.add('${_pieceSubject(p)} sa $sliderSq sada napada ${_pieceObject(hitPiece)} na $hitSq (otkriveno pomeranjem figure sa $fromSq)');
+            sentences.add(
+                '${_pieceSubject(p)} sa $sliderSq sada napada ${_pieceObject(hitPiece)} na $hitSq (otkriveno pomeranjem figure sa $fromSq)');
           }
         }
       }
@@ -813,7 +875,9 @@ class TacticalMotifDetector {
       );
     }
 
-    final desc = isCheck ? 'Otkriveni šah: ${sentences.join(' | ')}' : 'Otkriveni napad: ${sentences.join(' | ')}';
+    final desc = isCheck
+        ? 'Otkriveni šah: ${sentences.join(' | ')}'
+        : 'Otkriveni napad: ${sentences.join(' | ')}';
 
     return _DiscoveredAttackResult(
       hasDiscoveredAttack: true,
@@ -832,10 +896,12 @@ class TacticalMotifDetector {
     chess.Color? attackerColor,
     chess.Color? targetColor,
   }) {
-    attackerColor ??= game.turn == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
+    attackerColor ??=
+        game.turn == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
     targetColor ??= game.turn;
 
-    final targetsBySoleDefender = _soleDefenderMap(game, attackerColor: attackerColor, targetColor: targetColor);
+    final targetsBySoleDefender = _soleDefenderMap(game,
+        attackerColor: attackerColor, targetColor: targetColor);
 
     final overloadedSquares = <String>{};
     final sentences = <String>[];
@@ -845,7 +911,9 @@ class TacticalMotifDetector {
       overloadedSquares.addAll(targets);
 
       final defender = game.get(defSq)!;
-      final targetPhrases = targets.map((tSq) => '${_pieceObject(game.get(tSq)!)} na $tSq').toList();
+      final targetPhrases = targets
+          .map((tSq) => '${_pieceObject(game.get(tSq)!)} na $tSq')
+          .toList();
       sentences.add(
         '${_pieceSubject(defender)} na $defSq brani ${_countedFigures(targets.length, defender.color)} istovremeno '
         '(${_joinSerbian(targetPhrases)}) — ne može da odbrani sve',
@@ -853,7 +921,8 @@ class TacticalMotifDetector {
     });
 
     if (overloadedSquares.isEmpty) {
-      return const _OverloadingResult(hasOverloading: false, affectedSquares: [], description: '');
+      return const _OverloadingResult(
+          hasOverloading: false, affectedSquares: [], description: '');
     }
 
     return _OverloadingResult(
@@ -872,12 +941,14 @@ class TacticalMotifDetector {
     chess.Color? attackerColor,
     chess.Color? targetColor,
   }) {
-    final chess.Color resolvedAttackerColor =
-        attackerColor ?? (game.turn == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE);
+    final chess.Color resolvedAttackerColor = attackerColor ??
+        (game.turn == chess.Color.WHITE
+            ? chess.Color.BLACK
+            : chess.Color.WHITE);
     final chess.Color resolvedTargetColor = targetColor ?? game.turn;
 
-    final targetsBySoleDefender =
-        _soleDefenderMap(game, attackerColor: resolvedAttackerColor, targetColor: resolvedTargetColor);
+    final targetsBySoleDefender = _soleDefenderMap(game,
+        attackerColor: resolvedAttackerColor, targetColor: resolvedTargetColor);
 
     // A defender with exactly one defensive duty (2+ is overloading, not
     // deflection) that is itself attacked can be forced/lured away from that
@@ -886,7 +957,8 @@ class TacticalMotifDetector {
     final sentences = <String>[];
     targetsBySoleDefender.forEach((defSq, targets) {
       if (targets.length != 1) return;
-      if (_legalCapturerSquares(game, defSq, resolvedAttackerColor).isEmpty) return;
+      if (_legalCapturerSquares(game, defSq, resolvedAttackerColor).isEmpty)
+        return;
 
       deflectionSquares.add(defSq);
       deflectionSquares.addAll(targets);
@@ -900,7 +972,8 @@ class TacticalMotifDetector {
     });
 
     if (deflectionSquares.isEmpty) {
-      return const _DeflectionResult(hasDeflection: false, affectedSquares: [], description: '');
+      return const _DeflectionResult(
+          hasDeflection: false, affectedSquares: [], description: '');
     }
 
     return _DeflectionResult(
@@ -928,10 +1001,11 @@ class TacticalMotifDetector {
         if (piece == null || piece.color != targetColor) continue;
         if (piece.type == chess.PieceType.KING) continue;
 
-        final attackerValues = _legalCapturerSquares(game, sqName, attackerColor)
-            .map((s) => _pieceValue(game.get(s)!.type))
-            .toList()
-          ..sort();
+        final attackerValues =
+            _legalCapturerSquares(game, sqName, attackerColor)
+                .map((s) => _pieceValue(game.get(s)!.type))
+                .toList()
+              ..sort();
         if (attackerValues.isEmpty) continue;
 
         final defenderValues = _legalCapturerSquares(game, sqName, targetColor)
@@ -941,7 +1015,9 @@ class TacticalMotifDetector {
 
         // Static exchange evaluation: does the attacking side come out ahead
         // if the exchange on this square is carried out optimally?
-        if (_seeGain(_pieceValue(piece.type), attackerValues, 0, defenderValues, 0) > 0) {
+        if (_seeGain(
+                _pieceValue(piece.type), attackerValues, 0, defenderValues, 0) >
+            0) {
           hangingSquares.add(sqName);
         }
       }
@@ -960,9 +1036,12 @@ class TacticalMotifDetector {
       final sq = hangingSquares.first;
       final piece = game.get(sq)!;
       final noun = _pieceNoun(piece.type);
-      pieceDesc = '${_pieceSubject(piece)} na $sq je ${_agree(noun.gender, 'nebranjen', 'nebranjena')}';
+      pieceDesc =
+          '${_pieceSubject(piece)} na $sq je ${_agree(noun.gender, 'nebranjen', 'nebranjena')}';
     } else {
-      final phrases = hangingSquares.map((sq) => '${_pieceSubject(game.get(sq)!)} na $sq').toList();
+      final phrases = hangingSquares
+          .map((sq) => '${_pieceSubject(game.get(sq)!)} na $sq')
+          .toList();
       pieceDesc = '${_joinSerbian(phrases)} su nebranjeni';
     }
 
@@ -989,8 +1068,11 @@ class TacticalMotifDetector {
     bool isMateThreat = false;
     String? namedMateMove;
 
-    final signal = _parseMateSignal(evalText: evalText, mateIn: mateIn, attackerColor: moverColor);
-    if (signal != null && signal.matingColor == moverColor && signal.plies <= _humanRelevantMatePlies) {
+    final signal = _parseMateSignal(
+        evalText: evalText, mateIn: mateIn, attackerColor: moverColor);
+    if (signal != null &&
+        signal.matingColor == moverColor &&
+        signal.plies <= _humanRelevantMatePlies) {
       isMateThreat = true;
       if (signal.plies == 1 && game.turn == moverColor) {
         namedMateMove = _findMateInOneMove(game);
@@ -1004,7 +1086,8 @@ class TacticalMotifDetector {
     }
 
     if (!isMateThreat) {
-      return const _MateDetectionResult(hasMate: false, affectedSquares: [], description: '');
+      return const _MateDetectionResult(
+          hasMate: false, affectedSquares: [], description: '');
     }
 
     final mateSquares = <String>[];
@@ -1013,7 +1096,9 @@ class TacticalMotifDetector {
       mateSquares.add(kingSq);
     }
 
-    final kingPhrase = kingSq != null ? '${_colorAdj(defenderColor, _Gender.masculine)} kralj na $kingSq' : 'Kralj';
+    final kingPhrase = kingSq != null
+        ? '${_colorAdj(defenderColor, _Gender.masculine)} kralj na $kingSq'
+        : 'Kralj';
     final desc = namedMateMove != null
         ? '$kingPhrase je pod pretnjom mata: $namedMateMove sledećim potezom'
         : '$kingPhrase je pod pretnjom mata';
@@ -1033,7 +1118,8 @@ class TacticalMotifDetector {
   /// move) — so a bare "M`n`" always means White mates, "-M`n`" Black mates,
   /// and the caller must compare [_MateSignal.matingColor] against whichever
   /// side it's actually asking about before trusting it.
-  _MateSignal? _parseMateSignal({String? evalText, int? mateIn, required chess.Color attackerColor}) {
+  _MateSignal? _parseMateSignal(
+      {String? evalText, int? mateIn, required chess.Color attackerColor}) {
     if (mateIn != null) {
       return mateIn > 0 ? _MateSignal(attackerColor, mateIn) : null;
     }
@@ -1042,7 +1128,8 @@ class TacticalMotifDetector {
     final match = RegExp(r'(-)?M(\d+)').firstMatch(evalText);
     if (match == null) return null;
 
-    final matingColor = match.group(1) != null ? chess.Color.BLACK : chess.Color.WHITE;
+    final matingColor =
+        match.group(1) != null ? chess.Color.BLACK : chess.Color.WHITE;
     return _MateSignal(matingColor, int.parse(match.group(2)!));
   }
 
@@ -1098,7 +1185,8 @@ class TacticalMotifDetector {
   /// actually take because the recapture opens a mate elsewhere on the
   /// board). Used for both attacker and defender counts so both sides of an
   /// exchange only count moves a rational player would actually make.
-  List<String> _legalCapturerSquares(chess.Chess game, String targetSq, chess.Color color) {
+  List<String> _legalCapturerSquares(
+      chess.Chess game, String targetSq, chess.Color color) {
     final squares = <String>[];
     final toFile = targetSq.codeUnitAt(0) - 97;
     final toRank = targetSq.codeUnitAt(1) - 49;
@@ -1200,8 +1288,10 @@ class TacticalMotifDetector {
       if (p != null) {
         if (p.color == color) return false;
         return isDiag
-            ? (p.type == chess.PieceType.BISHOP || p.type == chess.PieceType.QUEEN)
-            : (p.type == chess.PieceType.ROOK || p.type == chess.PieceType.QUEEN);
+            ? (p.type == chess.PieceType.BISHOP ||
+                p.type == chess.PieceType.QUEEN)
+            : (p.type == chess.PieceType.ROOK ||
+                p.type == chess.PieceType.QUEEN);
       }
       curF += stepF;
       curR += stepR;
@@ -1223,7 +1313,8 @@ class TacticalMotifDetector {
     if (capturingIdx >= capturingSideValues.length) return 0;
 
     final capturingValue = capturingSideValues[capturingIdx];
-    final continuation = _seeGain(capturingValue, otherSideValues, otherIdx, capturingSideValues, capturingIdx + 1);
+    final continuation = _seeGain(capturingValue, otherSideValues, otherIdx,
+        capturingSideValues, capturingIdx + 1);
     final gain = targetValue - continuation;
     return gain > 0 ? gain : 0;
   }
@@ -1259,7 +1350,8 @@ class TacticalMotifDetector {
         return _isRayClear(game, fromFile, fromRank, toFile, toRank);
 
       case chess.PieceType.QUEEN:
-        if (df != dr && (fromFile != toFile && fromRank != toRank)) return false;
+        if (df != dr && (fromFile != toFile && fromRank != toRank))
+          return false;
         return _isRayClear(game, fromFile, fromRank, toFile, toRank);
     }
     return false;

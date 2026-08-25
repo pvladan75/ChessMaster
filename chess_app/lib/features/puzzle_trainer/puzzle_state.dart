@@ -67,7 +67,8 @@ class PuzzleTrainerState {
       puzzleOrientation: puzzleOrientation ?? this.puzzleOrientation,
       selectedCategory: selectedCategory ?? this.selectedCategory,
       selectedMateDepth: selectedMateDepth ?? this.selectedMateDepth,
-      selectedBasicMateType: selectedBasicMateType ?? this.selectedBasicMateType,
+      selectedBasicMateType:
+          selectedBasicMateType ?? this.selectedBasicMateType,
       showEvalBar: showEvalBar ?? this.showEvalBar,
       showEvaluation: showEvaluation ?? this.showEvaluation,
       isBackendConnected: isBackendConnected ?? this.isBackendConnected,

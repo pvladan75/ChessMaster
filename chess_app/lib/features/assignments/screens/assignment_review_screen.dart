@@ -6,6 +6,7 @@ import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/assignment_review.dart';
 import '../services/assignment_api_service.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// What happened on one piece of homework, and a place to say something about
 /// it.
@@ -99,8 +100,9 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
     if (!mounted) return;
 
     if (result.note == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.error ?? 'Poruka nije poslata.')),
+      AppFeedback.show(
+        context,
+        () => SnackBar(content: Text(result.error ?? 'Poruka nije poslata.')),
       );
       return;
     }
@@ -129,8 +131,7 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
         assignmentId: widget.assignmentId, noteId: note.id);
     if (!mounted) return;
     if (error != null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error)));
+      AppFeedback.show(context, () => SnackBar(content: Text(error)));
       return;
     }
     setState(() => _review = _review?.withoutNote(note.id));

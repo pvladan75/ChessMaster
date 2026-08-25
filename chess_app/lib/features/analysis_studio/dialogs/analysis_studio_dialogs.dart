@@ -6,6 +6,7 @@ import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// Dialogs used by [AnalysisStudioScreen] that are pure UI: they read whatever
 /// they need from their parameters and report the result back through a
@@ -68,11 +69,20 @@ void showManualCommentDialog(
   List<String> positionalCandidates,
   ValueChanged<String> onSaved,
 ) {
-  final existingParts = initialComment.split(' | ').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-  final selectedTactical = <String>{...tacticalCandidates.where(existingParts.contains)};
-  final selectedPositional = <String>{...positionalCandidates.where(existingParts.contains)};
+  final existingParts = initialComment
+      .split(' | ')
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
+  final selectedTactical = <String>{
+    ...tacticalCandidates.where(existingParts.contains)
+  };
+  final selectedPositional = <String>{
+    ...positionalCandidates.where(existingParts.contains)
+  };
   final leftoverText = existingParts
-      .where((p) => !selectedTactical.contains(p) && !selectedPositional.contains(p))
+      .where((p) =>
+          !selectedTactical.contains(p) && !selectedPositional.contains(p))
       .join(' | ');
   final freeTextController = TextEditingController(text: leftoverText);
 
@@ -320,8 +330,9 @@ void showLogsDialog(BuildContext context) {
             await Clipboard.setData(
                 ClipboardData(text: AppLogger.formattedLogs));
             if (ctx.mounted) {
-              ScaffoldMessenger.of(ctx).showSnackBar(
-                const SnackBar(
+              AppFeedback.show(
+                ctx,
+                () => const SnackBar(
                     content: Text('✅ Logovi kopirani u klipbord!'),
                     backgroundColor: Colors.teal),
               );
@@ -458,8 +469,9 @@ Future<void> promptSaveAnalysisDialog(
   );
 
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
+  AppFeedback.show(
+    context,
+    () => SnackBar(
       content: Text(result != null
           ? '✅ Analiza "${result.title}" sačuvana.'
           : '⚠️ Čuvanje nije uspelo. Proverite konekciju.'),
@@ -482,8 +494,9 @@ void showSavedAnalysesDialog(
   required ValueChanged<SavedAnalysisSummary> onLoad,
 }) {
   if (userSession.isGuest) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+    AppFeedback.show(
+      context,
+      () => const SnackBar(
         content: Text('Čuvanje analize zahteva prijavljen nalog.'),
         backgroundColor: Colors.orange,
       ),

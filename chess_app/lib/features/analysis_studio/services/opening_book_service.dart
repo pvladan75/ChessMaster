@@ -76,7 +76,8 @@ class OpeningBookService {
       _entries = result.entries;
       _fenIndex.addAll(result.fenIndex);
       _loaded = true;
-      AppLogger.log('[OpeningBook] 📚 Loaded ${_entries.length} openings (${_fenIndex.length} indexed positions)');
+      AppLogger.log(
+          '[OpeningBook] 📚 Loaded ${_entries.length} openings (${_fenIndex.length} indexed positions)');
     } catch (e) {
       AppLogger.log('[OpeningBook] ❌ Failed to load ECO dataset: $e');
       _loaded = false;
@@ -95,12 +96,13 @@ class OpeningBookService {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return [];
 
-    final matches = _entries.where((e) => e.name.toLowerCase().contains(q)).toList()
-      ..sort((a, b) {
-        final lenDiff = a.pgn.length.compareTo(b.pgn.length);
-        if (lenDiff != 0) return lenDiff;
-        return a.name.compareTo(b.name);
-      });
+    final matches =
+        _entries.where((e) => e.name.toLowerCase().contains(q)).toList()
+          ..sort((a, b) {
+            final lenDiff = a.pgn.length.compareTo(b.pgn.length);
+            if (lenDiff != 0) return lenDiff;
+            return a.name.compareTo(b.name);
+          });
 
     return matches.take(limit).toList();
   }

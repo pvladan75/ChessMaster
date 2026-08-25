@@ -12,7 +12,8 @@ import 'package:chess_app/widgets/ai_studio/grouped_moves_dialog.dart';
 /// replay a puzzle's solution up to a node the user tapped in the graph,
 /// since grouped nodes need every ancestor's currently-selected branch
 /// applied in order to land on the right FEN.
-List<SolutionGraphNode> findPathToGraphNode(List<SolutionGraphNode> currentLevel, SolutionGraphNode target) {
+List<SolutionGraphNode> findPathToGraphNode(
+    List<SolutionGraphNode> currentLevel, SolutionGraphNode target) {
   for (var node in currentLevel) {
     if (node.id == target.id) {
       return [node];
@@ -62,7 +63,8 @@ class SolutionGraphWidget extends StatefulWidget {
   final Map<String, int> selectedGroupedMoveIndices;
   final ValueChanged<List<SolutionGraphNode>> onNodesBuilt;
   final ValueChanged<SolutionGraphNode> onNodeTap;
-  final void Function(SolutionGraphNode node, int selectedIndex) onGroupedMoveSelected;
+  final void Function(SolutionGraphNode node, int selectedIndex)
+      onGroupedMoveSelected;
 
   const SolutionGraphWidget({
     super.key,
@@ -140,7 +142,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
       return;
     }
     final activeBoard = widget.activeFen?.split(' ')[0];
-    final currentIdx = _playbackOrder.indexWhere((n) => n.fen.split(' ')[0] == activeBoard);
+    final currentIdx =
+        _playbackOrder.indexWhere((n) => n.fen.split(' ')[0] == activeBoard);
     final nextIdx = currentIdx + 1;
     if (nextIdx >= _playbackOrder.length) {
       _stopPlay();
@@ -151,7 +154,9 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.visible || widget.solutions.isEmpty || widget.initialFen == null) {
+    if (!widget.visible ||
+        widget.solutions.isEmpty ||
+        widget.initialFen == null) {
       return const SizedBox.shrink();
     }
 
@@ -198,7 +203,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
       if (pn.y + pn.height > maxBottom) maxBottom = pn.y + pn.height;
     }
 
-    final double canvasWidth = math.max(maxRight + 20.0, MediaQuery.of(context).size.width - 32.0);
+    final double canvasWidth =
+        math.max(maxRight + 20.0, MediaQuery.of(context).size.width - 32.0);
     final double canvasHeight = maxBottom + 20.0;
 
     return Container(
@@ -225,11 +231,15 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
             children: [
               Row(
                 children: const [
-                  Icon(Icons.account_tree_outlined, color: ui.Color(0xFF38BDF8), size: 20),
+                  Icon(Icons.account_tree_outlined,
+                      color: ui.Color(0xFF38BDF8), size: 20),
                   SizedBox(width: 8),
                   Text(
                     'Grafičko Stablo Poteza',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Colors.white),
                   ),
                 ],
               ),
@@ -241,7 +251,10 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
                 ),
                 child: Text(
                   widget.mateDepthLabel,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ui.Color(0xFF38BDF8)),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: ui.Color(0xFF38BDF8)),
                 ),
               ),
             ],
@@ -253,14 +266,18 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
                 onTap: _togglePlay,
                 borderRadius: BorderRadius.circular(16),
                 child: Icon(
-                  _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
+                  _isPlaying
+                      ? Icons.pause_circle_filled
+                      : Icons.play_circle_fill,
                   size: 26,
                   color: const ui.Color(0xFF38BDF8),
                 ),
               ),
               const SizedBox(width: 8),
               Text(
-                _isPlaying ? 'Reprodukcija rešenja...' : 'Pusti rešenje automatski',
+                _isPlaying
+                    ? 'Reprodukcija rešenja...'
+                    : 'Pusti rešenje automatski',
                 style: const TextStyle(fontSize: 11, color: Colors.white70),
               ),
               const Spacer(),
@@ -269,7 +286,12 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
           ),
           const SizedBox(height: 8),
           SizedBox(
-            height: math.min(canvasHeight + 20.0, MediaQuery.of(context).orientation == Orientation.landscape ? math.max(280.0, MediaQuery.of(context).size.height - 180.0) : 340.0),
+            height: math.min(
+                canvasHeight + 20.0,
+                MediaQuery.of(context).orientation == Orientation.landscape
+                    ? math.max(
+                        280.0, MediaQuery.of(context).size.height - 180.0)
+                    : 340.0),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Container(
@@ -287,9 +309,12 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
                       children: [
                         CustomPaint(
                           size: Size(canvasWidth, canvasHeight),
-                          painter: TreeEdgesPainter(positionedNodes: positionedNodes, activeFen: widget.activeFen),
+                          painter: TreeEdgesPainter(
+                              positionedNodes: positionedNodes,
+                              activeFen: widget.activeFen),
                         ),
-                        ...positionedNodes.map((pn) => _buildGraphNodeWidget(context, pn)),
+                        ...positionedNodes
+                            .map((pn) => _buildGraphNodeWidget(context, pn)),
                       ],
                     ),
                   ),
@@ -313,7 +338,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
           value: s,
           child: Row(
             children: [
-              Icon(s == _playSpeed ? Icons.check : null, size: 14, color: const ui.Color(0xFF38BDF8)),
+              Icon(s == _playSpeed ? Icons.check : null,
+                  size: 14, color: const ui.Color(0xFF38BDF8)),
               const SizedBox(width: 6),
               Text(s.label, style: const TextStyle(color: Colors.white)),
             ],
@@ -331,7 +357,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
           children: [
             const Icon(Icons.speed, size: 13, color: ui.Color(0xFF38BDF8)),
             const SizedBox(width: 4),
-            Text(_playSpeed.label, style: const TextStyle(fontSize: 11, color: Colors.white)),
+            Text(_playSpeed.label,
+                style: const TextStyle(fontSize: 11, color: Colors.white)),
           ],
         ),
       ),
@@ -340,7 +367,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
 
   Widget _buildGraphNodeWidget(BuildContext context, PositionedNode pn) {
     final node = pn.node;
-    final bool isActive = (widget.activeFen != null && widget.activeFen!.split(' ')[0] == node.fen.split(' ')[0]);
+    final bool isActive = (widget.activeFen != null &&
+        widget.activeFen!.split(' ')[0] == node.fen.split(' ')[0]);
 
     ui.Color bgColor;
     ui.Color borderColor;
@@ -399,7 +427,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
             decoration: BoxDecoration(
               color: bgColor,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: borderColor, width: isActive ? 2.5 : 1.5),
+              border:
+                  Border.all(color: borderColor, width: isActive ? 2.5 : 1.5),
               boxShadow: isActive
                   ? [
                       const BoxShadow(
@@ -424,7 +453,9 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: isActive || node.isCheckmate ? FontWeight.bold : FontWeight.w600,
+                      fontWeight: isActive || node.isCheckmate
+                          ? FontWeight.bold
+                          : FontWeight.w600,
                       color: textColor,
                     ),
                   ),
@@ -460,7 +491,9 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
         String san = '$from$to';
         for (var m in game.moves({'verbose': true})) {
           if (m['from'] == from && m['to'] == to) {
-            if (promo == null || m['promotion'] == promo || m['promotion'] == promo.toLowerCase()) {
+            if (promo == null ||
+                m['promotion'] == promo ||
+                m['promotion'] == promo.toLowerCase()) {
               san = m['san'] ?? san;
               break;
             }
@@ -508,7 +541,9 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
           sig = sub.toString();
         }
 
-        signatureToOpponentMoves.putIfAbsent(sig, () => []).add(oppMoveUci.toString());
+        signatureToOpponentMoves
+            .putIfAbsent(sig, () => [])
+            .add(oppMoveUci.toString());
         signatureToSubTree[sig] = sub;
       }
 
@@ -558,7 +593,9 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
             children: children,
           ));
         } else {
-          final int selectedIdx = (widget.selectedGroupedMoveIndices[nodeId] ?? 0).clamp(0, oppMovesList.length - 1);
+          final int selectedIdx =
+              (widget.selectedGroupedMoveIndices[nodeId] ?? 0)
+                  .clamp(0, oppMovesList.length - 1);
           final selectedOppMove = oppMovesList[selectedIdx];
           final game = chess.Chess.fromFEN(currentFen);
           final from = selectedOppMove.substring(0, 2);
@@ -589,7 +626,9 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
             String s = '$f$t';
             for (var vm in gTest.moves({'verbose': true})) {
               if (vm['from'] == f && vm['to'] == t) {
-                if (pr == null || vm['promotion'] == pr || vm['promotion'] == pr.toLowerCase()) {
+                if (pr == null ||
+                    vm['promotion'] == pr ||
+                    vm['promotion'] == pr.toLowerCase()) {
                   s = vm['san'] ?? s;
                   break;
                 }
@@ -619,14 +658,16 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
     return nodes;
   }
 
-  double _calculateSubtreeWidth(SolutionGraphNode node, double nodeWidth, double siblingSpacing) {
+  double _calculateSubtreeWidth(
+      SolutionGraphNode node, double nodeWidth, double siblingSpacing) {
     if (node.children.isEmpty) {
       return nodeWidth;
     }
     double sum = 0;
     for (int i = 0; i < node.children.length; i++) {
       if (i > 0) sum += siblingSpacing;
-      sum += _calculateSubtreeWidth(node.children[i], nodeWidth, siblingSpacing);
+      sum +=
+          _calculateSubtreeWidth(node.children[i], nodeWidth, siblingSpacing);
     }
     return math.max(nodeWidth, sum);
   }
@@ -642,7 +683,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
     PositionedNode? parentPosNode,
     List<PositionedNode> outNodes,
   ) {
-    final subtreeWidth = _calculateSubtreeWidth(node, nodeWidth, siblingSpacing);
+    final subtreeWidth =
+        _calculateSubtreeWidth(node, nodeWidth, siblingSpacing);
     final nodeX = leftX + (subtreeWidth - nodeWidth) / 2;
 
     final posNode = PositionedNode(
@@ -660,7 +702,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
 
     double currentLeft = leftX;
     for (var child in node.children) {
-      final childSubtreeWidth = _calculateSubtreeWidth(child, nodeWidth, siblingSpacing);
+      final childSubtreeWidth =
+          _calculateSubtreeWidth(child, nodeWidth, siblingSpacing);
       _layoutGraphNodes(
         child,
         currentLeft,

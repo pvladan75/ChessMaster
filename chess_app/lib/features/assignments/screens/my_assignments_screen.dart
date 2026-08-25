@@ -7,6 +7,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// What a student sees: the homework they have been set, and what is left.
 class MyAssignmentsScreen extends StatefulWidget {
@@ -61,16 +62,19 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
     if (!mounted) return;
 
     if (detail == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ne mogu da otvorim zadatak.')),
+      AppFeedback.show(
+        context,
+        () => const SnackBar(content: Text('Ne mogu da otvorim zadatak.')),
       );
       return;
     }
 
     if (assignment.kind == AssignmentKind.lesson) {
       if (detail.steps.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ova lekcija više nije dostupna.')),
+        AppFeedback.show(
+          context,
+          () =>
+              const SnackBar(content: Text('Ova lekcija više nije dostupna.')),
         );
         return;
       }
@@ -104,8 +108,9 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
 
     final pending = detail.pending;
     if (pending.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ovaj zadatak je već završen.')),
+      AppFeedback.show(
+        context,
+        () => const SnackBar(content: Text('Ovaj zadatak je već završen.')),
       );
       return;
     }

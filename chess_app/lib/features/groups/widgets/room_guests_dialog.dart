@@ -14,6 +14,15 @@ import 'package:chess_app/theme/app_typography.dart';
 /// The dialog says that out loud rather than leaving it to be discovered: a
 /// screen that quietly changes who can get in is the same class of surprise as
 /// a control that works while its button is hidden.
+///
+/// The guest switch is the second half of the same question, and it is here
+/// rather than in Settings because it belongs beside the list it is so easily
+/// confused with. They are independent on purpose: **the list decides who is a
+/// student in this room, the switch decides whether anybody at all may watch.**
+/// Turning it on lets in whoever knows the six digits — so the room says that
+/// in those words, while the switch is being flipped rather than afterwards.
+/// `rooms.allow_guests` had existed for a day with no way to see it: a rule
+/// nobody can look at is a rule nobody can rely on.
 class RoomGuestsDialog extends StatefulWidget {
   const RoomGuestsDialog({
     super.key,
@@ -45,6 +54,13 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
   bool _loading = true;
   String? _error;
 
+  /// Null means "not known": the answer never came. Drawn as a question rather
+  /// than as an "off" switch, because a room full of children is not a place to
+  /// guess about who may come in.
+  bool? _allowGuests;
+  String? _guestError;
+  bool _savingGuests = false;
+
   @override
   void initState() {
     super.initState();
@@ -55,12 +71,34 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
     final guests = await _api.roomGuests(widget.roomCode);
     final groups = await _api.list();
     final students = widget.students ?? await _api.myStudents();
+    final access = await _api.guestAccess(widget.roomCode);
     if (!mounted) return;
     setState(() {
       _guests = guests;
       _groups = groups;
       _students = students;
+      _allowGuests = access.allowGuests;
+      _guestError = access.error;
       _loading = false;
+    });
+  }
+
+  /// Flips the guest door, and keeps whatever the room says afterwards — not
+  /// what was asked for. A switch that snaps into the requested position and
+  /// leaves the server where it was is this project's recurring bug wearing a
+  /// different hat.
+  Future<void> _setGuests(bool wanted) async {
+    setState(() => _savingGuests = true);
+    final result = await _api.setGuestAccess(widget.roomCode, wanted);
+    // A write that failed leaves the question open, so it is asked again rather
+    // than assumed either way.
+    final settled =
+        result.error == null ? result : await _api.guestAccess(widget.roomCode);
+    if (!mounted) return;
+    setState(() {
+      _savingGuests = false;
+      _allowGuests = settled.allowGuests;
+      _guestError = result.error;
     });
   }
 
@@ -141,6 +179,15 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
                             : context.colors.accent,
                       ),
                     ),
+                    if (_allowGuests == true) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Uz to, soba prima goste: ulazi i svako ko zna kod, '
+                        'kao posmatrač, bez obzira na spisak.',
+                        style: AppText.caption
+                            .copyWith(color: context.colors.warning),
+                      ),
+                    ],
                     if (_error != null) ...[
                       const SizedBox(height: 8),
                       Text(_error!,
@@ -169,6 +216,8 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
                       ),
                     const Divider(height: 20),
                     _buildAdders(context),
+                    const Divider(height: 20),
+                    _buildGuestSwitch(context),
                   ],
                 ),
               ),
@@ -178,6 +227,70 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Gotovo'),
         ),
+      ],
+    );
+  }
+
+  /// The widest door in the room, drawn so it reads as one.
+  ///
+  /// Three states, and the third is the point: on, off, and *not known*. An
+  /// answer that never arrived must not be painted as "off" — that is the exact
+  /// shape of failure this project keeps paying for, a step that skips silently
+  /// and reports success one layer up.
+  Widget _buildGuestSwitch(BuildContext context) {
+    if (_allowGuests == null) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.help_outline, size: 18, color: context.colors.danger),
+          const SizedBox(width: 8),
+          Expanded(
+            // The sentence stands whatever the reason was, and the reason is
+            // added rather than substituted: "what is true of the room" and
+            // "why I could not find out" are two different things to know.
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ne znam da li soba prima goste — podešavanje nije moglo '
+                  'da se pročita.',
+                  style: AppText.caption.copyWith(color: context.colors.danger),
+                ),
+                if (_guestError != null)
+                  Text(_guestError!,
+                      style: AppText.micro
+                          .copyWith(color: context.colors.textMuted)),
+              ],
+            ),
+          ),
+          TextButton(onPressed: _load, child: const Text('Pokušaj ponovo')),
+        ],
+      );
+    }
+
+    final open = _allowGuests == true;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          value: open,
+          onChanged: _savingGuests ? null : _setGuests,
+          title: Text('Soba prima goste', style: AppText.bodyBold),
+          subtitle: Text(
+            open
+                ? 'Uključeno: ulazi svako ko zna kod sobe, i neprijavljen. Ako '
+                    'snimate čas, i on je u snimku.'
+                : 'Isključeno: ulaze samo prijavljeni koje ste pozvali.',
+            style: AppText.micro.copyWith(
+              color: open ? context.colors.warning : context.colors.textMuted,
+            ),
+          ),
+        ),
+        if (_guestError != null)
+          Text(_guestError!,
+              style: AppText.caption.copyWith(color: context.colors.danger)),
       ],
     );
   }

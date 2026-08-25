@@ -1,7 +1,8 @@
 import 'package:chess_app/core/models/game_moment.dart';
 import 'package:chess_app/core/services/game_analysis_walker_service.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
-import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart' show PositionAnalyzer;
+import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
+    show PositionAnalyzer;
 
 /// One blunder-derived exercise: the position right after the mistake (the
 /// side to move there is the puzzle solver), tagged with why it's winnable.
@@ -89,7 +90,8 @@ class LocalPuzzle {
 /// do we label them" layer on top.
 class LocalPuzzleExtractorService {
   final GameAnalysisWalkerService _walker = GameAnalysisWalkerService();
-  static const TacticalMotifDetector _tacticalDetector = TacticalMotifDetector();
+  static const TacticalMotifDetector _tacticalDetector =
+      TacticalMotifDetector();
 
   void cancel() => _walker.cancel();
 
@@ -113,7 +115,8 @@ class LocalPuzzleExtractorService {
       onProgress: onProgress,
     );
 
-    return buildPuzzlesFromMoments(moments, blunderThreshold: blunderThreshold, maxPuzzles: maxPuzzles);
+    return buildPuzzlesFromMoments(moments,
+        blunderThreshold: blunderThreshold, maxPuzzles: maxPuzzles);
   }
 
   /// Same blunder-selection logic as [extractPuzzles], but over an
@@ -125,9 +128,10 @@ class LocalPuzzleExtractorService {
     required double blunderThreshold,
     required int maxPuzzles,
   }) {
-    final blunders = moments.where((m) => m.isBlunderBeyond(blunderThreshold)).toList()
-      // Worst blunders (most negative swing) first.
-      ..sort((a, b) => a.swingForMover!.compareTo(b.swingForMover!));
+    final blunders =
+        moments.where((m) => m.isBlunderBeyond(blunderThreshold)).toList()
+          // Worst blunders (most negative swing) first.
+          ..sort((a, b) => a.swingForMover!.compareTo(b.swingForMover!));
 
     return blunders.take(maxPuzzles).map(_buildPuzzle).toList();
   }
@@ -136,7 +140,8 @@ class LocalPuzzleExtractorService {
     // `detect()` on the post-blunder position treats whoever just moved (the
     // blunderer) as "mover" — so a favorsMover=false finding is the thing
     // that now favors the opponent, i.e. the puzzle solver's winning idea.
-    final result = _tacticalDetector.detect(fen: moment.fenAfter, lastMoveUci: moment.moveUci);
+    final result = _tacticalDetector.detect(
+        fen: moment.fenAfter, lastMoveUci: moment.moveUci);
     final solverFindings = result.findings.where((f) => !f.favorsMover).toList()
       ..sort((a, b) => b.significance.compareTo(a.significance));
 
@@ -145,8 +150,10 @@ class LocalPuzzleExtractorService {
     return LocalPuzzle(
       id: 'local_${moment.plyIndex}_${DateTime.now().microsecondsSinceEpoch}',
       fen: moment.fenAfter,
-      themeLabel: best?.description ?? 'Protivnik je napravio grešku — pronađi najbolji nastavak',
-      themeKey: best?.motifs.isNotEmpty == true ? best!.motifs.first.name : null,
+      themeLabel: best?.description ??
+          'Protivnik je napravio grešku — pronađi najbolji nastavak',
+      themeKey:
+          best?.motifs.isNotEmpty == true ? best!.motifs.first.name : null,
       swing: moment.swingForMover ?? 0,
       sourceMoveSan: moment.moveSan,
       sourcePlyIndex: moment.plyIndex,

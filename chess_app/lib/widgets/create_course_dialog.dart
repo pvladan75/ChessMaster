@@ -8,6 +8,7 @@ import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/position_picker_dialog.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 class CreateCourseDialog extends StatefulWidget {
   final UserSession userSession;
@@ -53,14 +54,16 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+    AppFeedback.show(
+      context,
+      () => SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
     );
   }
 
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
+    AppFeedback.show(
+      context,
+      () => SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 

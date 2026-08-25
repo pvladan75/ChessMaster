@@ -22,8 +22,7 @@ class LessonRecording {
 /// belong to whoever drives it. That is what makes the arithmetic testable.
 class LessonRecorder {
   /// The clock is injectable so pause boundaries can be tested without waiting.
-  LessonRecorder({DateTime Function()? clock})
-      : _clock = clock ?? DateTime.now;
+  LessonRecorder({DateTime Function()? clock}) : _clock = clock ?? DateTime.now;
 
   final DateTime Function() _clock;
 

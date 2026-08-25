@@ -5,7 +5,8 @@ import 'package:chess_app/core/models/game_moment.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
 import 'package:chess_app/core/services/positional_evaluator_service.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
-import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart' show PositionAnalyzer;
+import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
+    show PositionAnalyzer;
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
 
@@ -56,14 +57,17 @@ class GameAnalysisWalkerService {
 
       String? san;
       for (final m in game.moves({'verbose': true})) {
-        if (m['from'] == from && m['to'] == to && (promo == null || m['promotion'] == promo)) {
+        if (m['from'] == from &&
+            m['to'] == to &&
+            (promo == null || m['promotion'] == promo)) {
           san = m['san'] as String?;
           break;
         }
       }
       if (san == null) break;
 
-      final applied = game.move({'from': from, 'to': to, if (promo != null) 'promotion': promo});
+      final applied = game.move(
+          {'from': from, 'to': to, if (promo != null) 'promotion': promo});
       if (!applied) break;
 
       sans.add(san);
@@ -81,7 +85,8 @@ class GameAnalysisWalkerService {
       String? eval;
       AnalysisLine? line;
       try {
-        final lines = await analyzer(fens[i], depth: depth, multiPV: 1, timeout: const Duration(seconds: 12));
+        final lines = await analyzer(fens[i],
+            depth: depth, multiPV: 1, timeout: const Duration(seconds: 12));
         line = lines.isNotEmpty ? lines.first : null;
         eval = line?.evaluation;
       } catch (_) {
@@ -101,14 +106,17 @@ class GameAnalysisWalkerService {
 
       final beforeForMover = _evalForMover(evalsRaw[i], moverColor);
       final afterForMover = _evalForMover(evalsRaw[i + 1], moverColor);
-      final swing = (beforeForMover != null && afterForMover != null) ? afterForMover - beforeForMover : null;
+      final swing = (beforeForMover != null && afterForMover != null)
+          ? afterForMover - beforeForMover
+          : null;
 
       final tacticalDiff = tacticalDetector.explainMove(
         beforeFen: fenBefore,
         afterFen: fenAfter,
         lastMoveUci: appliedUci[i],
       );
-      final positionalDiff = positionalEvaluator.explainMove(beforeFen: fenBefore, afterFen: fenAfter);
+      final positionalDiff = positionalEvaluator.explainMove(
+          beforeFen: fenBefore, afterFen: fenAfter);
 
       moments.add(GameMoment(
         plyIndex: i,
@@ -141,7 +149,8 @@ class GameAnalysisWalkerService {
   /// Returns the walked node chain alongside the raw [GameMoment]s so a
   /// caller can run further passes (e.g. [tagBlunders], puzzle extraction)
   /// over the same engine walk instead of re-analyzing the game.
-  Future<({List<AnalysisNode> chain, List<GameMoment> moments})> annotateNodeChain({
+  Future<({List<AnalysisNode> chain, List<GameMoment> moments})>
+      annotateNodeChain({
     required AnalysisNode startNode,
     required PositionAnalyzer analyzer,
     int depth = _defaultDepth,
@@ -215,11 +224,16 @@ class GameAnalysisWalkerService {
     for (var i = 0; i < moments.length && i < chain.length; i++) {
       final moment = moments[i];
 
-      final alreadyDecided = moment.evalBeforeForMover != null && moment.evalBeforeForMover!.abs() >= decidedEvalCutoff;
-      final effectiveThreshold = alreadyDecided ? math.max(threshold, decidedSwingThreshold) : threshold;
+      final alreadyDecided = moment.evalBeforeForMover != null &&
+          moment.evalBeforeForMover!.abs() >= decidedEvalCutoff;
+      final effectiveThreshold = alreadyDecided
+          ? math.max(threshold, decidedSwingThreshold)
+          : threshold;
       if (!moment.isBlunderBeyond(effectiveThreshold)) continue;
-      if (side == BlunderAlertSide.white && moment.moverColor != chess.Color.WHITE) continue;
-      if (side == BlunderAlertSide.black && moment.moverColor != chess.Color.BLACK) continue;
+      if (side == BlunderAlertSide.white &&
+          moment.moverColor != chess.Color.WHITE) continue;
+      if (side == BlunderAlertSide.black &&
+          moment.moverColor != chess.Color.BLACK) continue;
 
       final node = chain[i];
       node.nag = '??';
@@ -228,7 +242,9 @@ class GameAnalysisWalkerService {
       if (!insertAlternativeLine) continue;
       final betterLine = moment.engineLineBefore;
       final parent = node.parent;
-      if (betterLine == null || parent == null || betterLine.sanMoveList.isEmpty) continue;
+      if (betterLine == null ||
+          parent == null ||
+          betterLine.sanMoveList.isEmpty) continue;
       if (betterLine.bestMoveLan == moment.moveUci) continue;
 
       _insertAlternativeLine(parent, betterLine, alternativeLinePlies);
@@ -239,7 +255,8 @@ class GameAnalysisWalkerService {
   /// Replays up to [maxPlies] moves of [line]'s principal variation onto
   /// [parent] as a new branch (or reuses an existing one with the same first
   /// move), tagging the first move '!' with a "Bolji potez" comment.
-  void _insertAlternativeLine(AnalysisNode parent, AnalysisLine line, int maxPlies) {
+  void _insertAlternativeLine(
+      AnalysisNode parent, AnalysisLine line, int maxPlies) {
     final plies = line.sanMoveList.take(maxPlies).toList();
     if (plies.isEmpty) return;
 
@@ -249,7 +266,9 @@ class GameAnalysisWalkerService {
       final san = plies[i];
       if (!game.move(san)) break;
       final moveObj = game.history.last.move;
-      final uci = moveObj.fromAlgebraic + moveObj.toAlgebraic + (moveObj.promotion?.name ?? '');
+      final uci = moveObj.fromAlgebraic +
+          moveObj.toAlgebraic +
+          (moveObj.promotion?.name ?? '');
       final child = cur.addChild(childFen: game.fen, san: san, uci: uci);
       if (i == 0) {
         child.nag = '!';

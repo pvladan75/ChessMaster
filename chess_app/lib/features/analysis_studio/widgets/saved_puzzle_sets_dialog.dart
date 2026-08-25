@@ -9,7 +9,8 @@ import 'package:chess_app/theme/app_typography.dart';
 /// [LocalPuzzleSetStorageService] — lets the user reopen or discard a set
 /// without having to re-run analysis.
 class SavedPuzzleSetsDialog extends StatefulWidget {
-  final void Function(List<LocalPuzzle> puzzles, int startIndex) onPuzzleSetOpened;
+  final void Function(List<LocalPuzzle> puzzles, int startIndex)
+      onPuzzleSetOpened;
 
   const SavedPuzzleSetsDialog({super.key, required this.onPuzzleSetOpened});
 
@@ -58,7 +59,9 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
               children: [
                 Icon(Icons.extension, color: context.colors.accent, size: 22),
                 const SizedBox(width: 8),
-                Text('Sačuvane vežbe', style: AppText.title.copyWith(color: context.colors.textPrimary)),
+                Text('Sačuvane vežbe',
+                    style: AppText.title
+                        .copyWith(color: context.colors.textPrimary)),
               ],
             ),
             const SizedBox(height: 12),
@@ -83,7 +86,8 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
               )
             else
               ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+                constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.5),
                 child: SingleChildScrollView(
                   child: Column(
                     children: _sets.map((set) {
@@ -92,27 +96,35 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
                         color: Colors.black26,
                         child: ListTile(
                           dense: true,
-                          leading: Icon(Icons.folder_open, color: context.colors.info, size: 18),
-                          title: Text(set.title, style: AppText.caption.copyWith(color: context.colors.textPrimary)),
+                          leading: Icon(Icons.folder_open,
+                              color: context.colors.info, size: 18),
+                          title: Text(set.title,
+                              style: AppText.caption
+                                  .copyWith(color: context.colors.textPrimary)),
                           subtitle: Text(
                             '${set.puzzles.length} vežbi',
-                            style: AppText.micro.copyWith(color: context.colors.textMuted),
+                            style: AppText.micro
+                                .copyWith(color: context.colors.textMuted),
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: Icon(Icons.delete_outline, color: context.colors.danger, size: 20),
+                                icon: Icon(Icons.delete_outline,
+                                    color: context.colors.danger, size: 20),
                                 tooltip: 'Obriši',
                                 onPressed: () => _delete(set),
                               ),
                               ElevatedButton(
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.teal,
+                                    foregroundColor: Colors.white),
                                 onPressed: set.puzzles.isEmpty
                                     ? null
                                     : () {
                                         Navigator.pop(context);
-                                        widget.onPuzzleSetOpened(set.puzzles, 0);
+                                        widget.onPuzzleSetOpened(
+                                            set.puzzles, 0);
                                       },
                                 child: const Text('Otvori'),
                               ),

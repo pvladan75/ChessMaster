@@ -32,8 +32,11 @@ class PositionalEvaluatorService {
     try {
       final game = chess.Chess.fromFEN(fen);
       final defenderColor = game.turn;
-      final moverColor = defenderColor == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
-      return PositionalResult(findings: _buildFindings(game, moverColor: moverColor));
+      final moverColor = defenderColor == chess.Color.WHITE
+          ? chess.Color.BLACK
+          : chess.Color.WHITE;
+      return PositionalResult(
+          findings: _buildFindings(game, moverColor: moverColor));
     } catch (_) {
       return PositionalResult.empty();
     }
@@ -41,11 +44,14 @@ class PositionalEvaluatorService {
 
   /// Explains what a move changed positionally, by diffing the position
   /// before and after it — mirrors [TacticalMotifDetector.explainMove].
-  PositionalMoveDiff explainMove({required String beforeFen, required String afterFen}) {
+  PositionalMoveDiff explainMove(
+      {required String beforeFen, required String afterFen}) {
     try {
       final afterGame = chess.Chess.fromFEN(afterFen);
       final defenderColor = afterGame.turn;
-      final moverColor = defenderColor == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
+      final moverColor = defenderColor == chess.Color.WHITE
+          ? chess.Color.BLACK
+          : chess.Color.WHITE;
 
       final afterFindings = _buildFindings(afterGame, moverColor: moverColor);
       final beforeGame = chess.Chess.fromFEN(beforeFen);
@@ -54,8 +60,10 @@ class PositionalEvaluatorService {
       final beforeKeys = beforeFindings.map((f) => f.diffKey).toSet();
       final afterKeys = afterFindings.map((f) => f.diffKey).toSet();
 
-      final created = afterFindings.where((f) => !beforeKeys.contains(f.diffKey)).toList();
-      final resolved = beforeFindings.where((f) => !afterKeys.contains(f.diffKey)).toList();
+      final created =
+          afterFindings.where((f) => !beforeKeys.contains(f.diffKey)).toList();
+      final resolved =
+          beforeFindings.where((f) => !afterKeys.contains(f.diffKey)).toList();
 
       return PositionalMoveDiff(created: created, resolved: resolved);
     } catch (_) {
@@ -65,7 +73,9 @@ class PositionalEvaluatorService {
 
   String describeMoveDiff(PositionalMoveDiff diff) {
     final created = _mostNarratable(diff.created, _maxCreatedInComment);
-    final resolved = _mostNarratable(diff.resolved.where((f) => !f.favorsMover).toList(), _maxResolvedInComment);
+    final resolved = _mostNarratable(
+        diff.resolved.where((f) => !f.favorsMover).toList(),
+        _maxResolvedInComment);
 
     final parts = <String>[
       ...created.map(_formatFinding),
@@ -79,7 +89,9 @@ class PositionalEvaluatorService {
   List<String> candidateCommentLines(PositionalMoveDiff diff) {
     return [
       ...diff.created.map(_formatFinding),
-      ...diff.resolved.where((f) => !f.favorsMover).map((f) => _formatFinding(f, resolved: true)),
+      ...diff.resolved
+          .where((f) => !f.favorsMover)
+          .map((f) => _formatFinding(f, resolved: true)),
     ];
   }
 
@@ -88,10 +100,13 @@ class PositionalEvaluatorService {
     return f.favorsMover ? f.description : 'Pažnja — ${f.description}';
   }
 
-  List<PositionalFinding> _mostNarratable(List<PositionalFinding> findings, int max) {
+  List<PositionalFinding> _mostNarratable(
+      List<PositionalFinding> findings, int max) {
     if (findings.isEmpty) return const [];
-    final sorted = [...findings]..sort((a, b) => b.significance.compareTo(a.significance));
-    final aboveBar = sorted.where((f) => f.significance >= _minSignificanceForComment);
+    final sorted = [...findings]
+      ..sort((a, b) => b.significance.compareTo(a.significance));
+    final aboveBar =
+        sorted.where((f) => f.significance >= _minSignificanceForComment);
     final pool = aboveBar.isNotEmpty ? aboveBar : sorted.take(1);
     return pool.take(max).toList();
   }
@@ -100,7 +115,8 @@ class PositionalEvaluatorService {
   // ORCHESTRATION
   // =========================================================================
 
-  List<PositionalFinding> _buildFindings(chess.Chess game, {required chess.Color moverColor}) {
+  List<PositionalFinding> _buildFindings(chess.Chess game,
+      {required chess.Color moverColor}) {
     final findings = <PositionalFinding>[];
 
     findings.addAll(_pawnStructureFindings(game, moverColor: moverColor));
@@ -116,7 +132,8 @@ class PositionalEvaluatorService {
 
   /// [isStrength]=true means this is good for [color]; converts to the
   /// mover-relative polarity every finding is stored with.
-  bool _favorsMover(chess.Color color, bool isStrength, chess.Color moverColor) {
+  bool _favorsMover(
+      chess.Color color, bool isStrength, chess.Color moverColor) {
     final isMoverColor = color == moverColor;
     return isStrength == isMoverColor;
   }
@@ -139,7 +156,8 @@ class PositionalEvaluatorService {
     return pawns;
   }
 
-  List<PositionalFinding> _pawnStructureFindings(chess.Chess game, {required chess.Color moverColor}) {
+  List<PositionalFinding> _pawnStructureFindings(chess.Chess game,
+      {required chess.Color moverColor}) {
     final findings = <PositionalFinding>[];
 
     for (final color in [chess.Color.WHITE, chess.Color.BLACK]) {
@@ -167,12 +185,14 @@ class PositionalEvaluatorService {
 
       // Isolated pawns: no same-color pawn on an adjacent file, regardless of rank.
       byFile.forEach((file, filePawns) {
-        final hasNeighbor = byFile.containsKey(file - 1) || byFile.containsKey(file + 1);
+        final hasNeighbor =
+            byFile.containsKey(file - 1) || byFile.containsKey(file + 1);
         if (hasNeighbor) return;
         final squares = filePawns.map((p) => p.square).toList()..sort();
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.isolatedPawn],
-          description: 'Izolovani pešak: ${_colorAdj(color)} pešak na ${_fileLetter(file)}-liniji (${squares.join(', ')}) nema susede da ga brane',
+          description:
+              'Izolovani pešak: ${_colorAdj(color)} pešak na ${_fileLetter(file)}-liniji (${squares.join(', ')}) nema susede da ga brane',
           affectedSquares: squares,
           favorsMover: _favorsMover(color, false, moverColor),
           significance: 3,
@@ -184,7 +204,8 @@ class PositionalEvaluatorService {
         if (_isBackwardPawn(game, p)) {
           findings.add(PositionalFinding(
             factors: const [PositionalFactor.backwardPawn],
-            description: 'Zaostali pešak: ${_colorAdj(color)} pešak na ${p.square} je zaostao za susedima i ne sme bezbedno da napreduje',
+            description:
+                'Zaostali pešak: ${_colorAdj(color)} pešak na ${p.square} je zaostao za susedima i ne sme bezbedno da napreduje',
             affectedSquares: [p.square],
             favorsMover: _favorsMover(color, false, moverColor),
             significance: 3,
@@ -193,7 +214,8 @@ class PositionalEvaluatorService {
         if (_isPassedPawn(game, p)) {
           findings.add(PositionalFinding(
             factors: const [PositionalFactor.passedPawn],
-            description: 'Prolazni pešak: ${_colorAdj(color)} pešak na ${p.square} nema protivničke pešake na putu do promocije',
+            description:
+                'Prolazni pešak: ${_colorAdj(color)} pešak na ${p.square} nema protivničke pešake na putu do promocije',
             affectedSquares: [p.square],
             favorsMover: _favorsMover(color, true, moverColor),
             significance: 5,
@@ -210,7 +232,8 @@ class PositionalEvaluatorService {
       if (islands >= 3) {
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.pawnIslands],
-          description: '${_colorAdjCap(color)} pešačka struktura je razbijena u $islands ostrva',
+          description:
+              '${_colorAdjCap(color)} pešačka struktura je razbijena u $islands ostrva',
           affectedSquares: pawns.map((p) => p.square).toList(),
           favorsMover: _favorsMover(color, false, moverColor),
           significance: 2,
@@ -223,7 +246,8 @@ class PositionalEvaluatorService {
 
   bool _isBackwardPawn(chess.Chess game, _PawnFacts p) {
     final forward = p.color == chess.Color.WHITE ? 1 : -1;
-    final enemyColor = p.color == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
+    final enemyColor =
+        p.color == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
 
     var hasAdjacentPawn = false;
     var hasSupport = false;
@@ -232,9 +256,12 @@ class PositionalEvaluatorService {
       if (nf < 0 || nf > 7) continue;
       for (var nr = 0; nr < 8; nr++) {
         final piece = game.get(_coordsToSq(nf, nr));
-        if (piece == null || piece.type != chess.PieceType.PAWN || piece.color != p.color) continue;
+        if (piece == null ||
+            piece.type != chess.PieceType.PAWN ||
+            piece.color != p.color) continue;
         hasAdjacentPawn = true;
-        final atOrBehind = p.color == chess.Color.WHITE ? nr <= p.rank : nr >= p.rank;
+        final atOrBehind =
+            p.color == chess.Color.WHITE ? nr <= p.rank : nr >= p.rank;
         if (atOrBehind) hasSupport = true;
       }
     }
@@ -251,7 +278,9 @@ class PositionalEvaluatorService {
       final nf = p.file + df;
       if (nf < 0 || nf > 7) continue;
       final piece = game.get(_coordsToSq(nf, enemyRank));
-      if (piece != null && piece.type == chess.PieceType.PAWN && piece.color == enemyColor) {
+      if (piece != null &&
+          piece.type == chess.PieceType.PAWN &&
+          piece.color == enemyColor) {
         return true;
       }
     }
@@ -259,13 +288,17 @@ class PositionalEvaluatorService {
   }
 
   bool _isPassedPawn(chess.Chess game, _PawnFacts p) {
-    final enemyColor = p.color == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
+    final enemyColor =
+        p.color == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
     for (final nf in [p.file - 1, p.file, p.file + 1]) {
       if (nf < 0 || nf > 7) continue;
       for (var nr = 0; nr < 8; nr++) {
         final piece = game.get(_coordsToSq(nf, nr));
-        if (piece == null || piece.type != chess.PieceType.PAWN || piece.color != enemyColor) continue;
-        final blocksOrCanCapture = p.color == chess.Color.WHITE ? nr > p.rank : nr < p.rank;
+        if (piece == null ||
+            piece.type != chess.PieceType.PAWN ||
+            piece.color != enemyColor) continue;
+        final blocksOrCanCapture =
+            p.color == chess.Color.WHITE ? nr > p.rank : nr < p.rank;
         if (blocksOrCanCapture) return false;
       }
     }
@@ -276,7 +309,8 @@ class PositionalEvaluatorService {
   // 2. OPEN / SEMI-OPEN FILES
   // =========================================================================
 
-  List<PositionalFinding> _fileControlFindings(chess.Chess game, {required chess.Color moverColor}) {
+  List<PositionalFinding> _fileControlFindings(chess.Chess game,
+      {required chess.Color moverColor}) {
     final findings = <PositionalFinding>[];
 
     final whitePawnFiles = List.filled(8, 0);
@@ -295,24 +329,33 @@ class PositionalEvaluatorService {
 
     for (var f = 0; f < 8; f++) {
       final isOpen = whitePawnFiles[f] == 0 && blackPawnFiles[f] == 0;
-      final isSemiOpenForWhite = whitePawnFiles[f] == 0 && blackPawnFiles[f] > 0;
-      final isSemiOpenForBlack = blackPawnFiles[f] == 0 && whitePawnFiles[f] > 0;
+      final isSemiOpenForWhite =
+          whitePawnFiles[f] == 0 && blackPawnFiles[f] > 0;
+      final isSemiOpenForBlack =
+          blackPawnFiles[f] == 0 && whitePawnFiles[f] > 0;
       if (!isOpen && !isSemiOpenForWhite && !isSemiOpenForBlack) continue;
 
       for (var r = 0; r < 8; r++) {
         final sq = _coordsToSq(f, r);
         final piece = game.get(sq);
         if (piece == null) continue;
-        if (piece.type != chess.PieceType.ROOK && piece.type != chess.PieceType.QUEEN) continue;
+        if (piece.type != chess.PieceType.ROOK &&
+            piece.type != chess.PieceType.QUEEN) continue;
 
-        final relevantForThisColor = isOpen || (piece.color == chess.Color.WHITE ? isSemiOpenForWhite : isSemiOpenForBlack);
+        final relevantForThisColor = isOpen ||
+            (piece.color == chess.Color.WHITE
+                ? isSemiOpenForWhite
+                : isSemiOpenForBlack);
         if (!relevantForThisColor) continue;
 
         final noun = piece.type == chess.PieceType.ROOK ? 'top' : 'dama';
         final lineDesc = isOpen ? 'otvorenu' : 'poluotvorenu';
         findings.add(PositionalFinding(
-          factors: [isOpen ? PositionalFactor.openFile : PositionalFactor.semiOpenFile],
-          description: '${_colorAdjCap(piece.color)} $noun na $sq kontroliše $lineDesc ${_fileLetter(f)}-liniju',
+          factors: [
+            isOpen ? PositionalFactor.openFile : PositionalFactor.semiOpenFile
+          ],
+          description:
+              '${_colorAdjCap(piece.color)} $noun na $sq kontroliše $lineDesc ${_fileLetter(f)}-liniju',
           affectedSquares: [sq],
           favorsMover: _favorsMover(piece.color, true, moverColor),
           // Fluid/contested — file control shifts with nearly every trade or
@@ -329,7 +372,8 @@ class PositionalEvaluatorService {
   // 3. CENTER CONTROL (pawn occupation + pawn attacks on d4/e4/d5/e5)
   // =========================================================================
 
-  List<PositionalFinding> _centerControlFindings(chess.Chess game, {required chess.Color moverColor}) {
+  List<PositionalFinding> _centerControlFindings(chess.Chess game,
+      {required chess.Color moverColor}) {
     const centerSquares = ['d4', 'e4', 'd5', 'e5'];
 
     var whiteScore = 0;
@@ -351,29 +395,37 @@ class PositionalEvaluatorService {
         final nf = file + df;
         if (nf < 0 || nf > 7) continue;
         // A white pawn attacks `sq` from one rank below it; a black pawn from one rank above.
-        final whiteAttackerSq = rank - 1 >= 0 ? _coordsToSq(nf, rank - 1) : null;
-        final blackAttackerSq = rank + 1 <= 7 ? _coordsToSq(nf, rank + 1) : null;
+        final whiteAttackerSq =
+            rank - 1 >= 0 ? _coordsToSq(nf, rank - 1) : null;
+        final blackAttackerSq =
+            rank + 1 <= 7 ? _coordsToSq(nf, rank + 1) : null;
         if (whiteAttackerSq != null) {
           final p = game.get(whiteAttackerSq);
-          if (p != null && p.type == chess.PieceType.PAWN && p.color == chess.Color.WHITE) whiteScore++;
+          if (p != null &&
+              p.type == chess.PieceType.PAWN &&
+              p.color == chess.Color.WHITE) whiteScore++;
         }
         if (blackAttackerSq != null) {
           final p = game.get(blackAttackerSq);
-          if (p != null && p.type == chess.PieceType.PAWN && p.color == chess.Color.BLACK) blackScore++;
+          if (p != null &&
+              p.type == chess.PieceType.PAWN &&
+              p.color == chess.Color.BLACK) blackScore++;
         }
       }
     }
 
     if (whiteScore == blackScore) return const [];
 
-    final leadingColor = whiteScore > blackScore ? chess.Color.WHITE : chess.Color.BLACK;
+    final leadingColor =
+        whiteScore > blackScore ? chess.Color.WHITE : chess.Color.BLACK;
     final margin = (whiteScore - blackScore).abs();
     if (margin < 2) return const [];
 
     return [
       PositionalFinding(
         factors: const [PositionalFactor.centerControl],
-        description: '${_colorAdjCap(leadingColor)} ima veću kontrolu centra (d4/e4/d5/e5)',
+        description:
+            '${_colorAdjCap(leadingColor)} ima veću kontrolu centra (d4/e4/d5/e5)',
         affectedSquares: centerSquares,
         favorsMover: _favorsMover(leadingColor, true, moverColor),
         // Fluid — the margin shifts with nearly every pawn/piece move.
@@ -386,8 +438,12 @@ class PositionalEvaluatorService {
   // 4. BISHOP PAIR
   // =========================================================================
 
-  List<PositionalFinding> _bishopPairFindings(chess.Chess game, {required chess.Color moverColor}) {
-    final bishopSquares = {chess.Color.WHITE: <String>[], chess.Color.BLACK: <String>[]};
+  List<PositionalFinding> _bishopPairFindings(chess.Chess game,
+      {required chess.Color moverColor}) {
+    final bishopSquares = {
+      chess.Color.WHITE: <String>[],
+      chess.Color.BLACK: <String>[]
+    };
     for (var f = 0; f < 8; f++) {
       for (var r = 0; r < 8; r++) {
         final sq = _coordsToSq(f, r);
@@ -432,7 +488,8 @@ class PositionalEvaluatorService {
 
   bool _isLightSquare(int file, int rank) => (file + rank) % 2 == 1;
 
-  List<PositionalFinding> _colorComplexFindings(chess.Chess game, {required chess.Color moverColor}) {
+  List<PositionalFinding> _colorComplexFindings(chess.Chess game,
+      {required chess.Color moverColor}) {
     final findings = <PositionalFinding>[];
 
     for (final color in [chess.Color.WHITE, chess.Color.BLACK]) {
@@ -470,7 +527,8 @@ class PositionalEvaluatorService {
       if (!hasLightBishop && lightPawns >= 3 && lightPawns >= darkPawns) {
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.colorComplexWeakness],
-          description: '${_colorAdjCap(color)} nema svetlopoljnog lovca, a $lightPawns pešaka je fiksirano na svetlim poljima — slab kompleks',
+          description:
+              '${_colorAdjCap(color)} nema svetlopoljnog lovca, a $lightPawns pešaka je fiksirano na svetlim poljima — slab kompleks',
           affectedSquares: lightPawnSquares,
           favorsMover: _favorsMover(color, false, moverColor),
           significance: 4,
@@ -479,7 +537,8 @@ class PositionalEvaluatorService {
       if (!hasDarkBishop && darkPawns >= 3 && darkPawns >= lightPawns) {
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.colorComplexWeakness],
-          description: '${_colorAdjCap(color)} nema crnopoljnog lovca, a $darkPawns pešaka je fiksirano na tamnim poljima — slab kompleks',
+          description:
+              '${_colorAdjCap(color)} nema crnopoljnog lovca, a $darkPawns pešaka je fiksirano na tamnim poljima — slab kompleks',
           affectedSquares: darkPawnSquares,
           favorsMover: _favorsMover(color, false, moverColor),
           significance: 4,
@@ -494,7 +553,8 @@ class PositionalEvaluatorService {
   // 6. KNIGHT OUTPOST
   // =========================================================================
 
-  List<PositionalFinding> _knightOutpostFindings(chess.Chess game, {required chess.Color moverColor}) {
+  List<PositionalFinding> _knightOutpostFindings(chess.Chess game,
+      {required chess.Color moverColor}) {
     final findings = <PositionalFinding>[];
 
     for (var f = 0; f < 8; f++) {
@@ -506,7 +566,8 @@ class PositionalEvaluatorService {
 
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.knightOutpost],
-          description: '${_colorAdjCap(p.color)} skakač na $sq je na trajnom uporištu — protivnički pešaci ga ne mogu oterati',
+          description:
+              '${_colorAdjCap(p.color)} skakač na $sq je na trajnom uporištu — protivnički pešaci ga ne mogu oterati',
           affectedSquares: [sq],
           favorsMover: _favorsMover(p.color, true, moverColor),
           significance: 4,
@@ -528,17 +589,22 @@ class PositionalEvaluatorService {
       final nr = r - forward;
       if (nf < 0 || nf > 7 || nr < 0 || nr > 7) continue;
       final piece = game.get(_coordsToSq(nf, nr));
-      if (piece != null && piece.type == chess.PieceType.PAWN && piece.color == color) defended = true;
+      if (piece != null &&
+          piece.type == chess.PieceType.PAWN &&
+          piece.color == color) defended = true;
     }
     if (!defended) return false;
 
-    final enemyColor = color == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
+    final enemyColor =
+        color == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
     for (final df in [-1, 1]) {
       final nf = f + df;
       if (nf < 0 || nf > 7) continue;
       for (var nr = 0; nr < 8; nr++) {
         final piece = game.get(_coordsToSq(nf, nr));
-        if (piece == null || piece.type != chess.PieceType.PAWN || piece.color != enemyColor) continue;
+        if (piece == null ||
+            piece.type != chess.PieceType.PAWN ||
+            piece.color != enemyColor) continue;
         final stillAThreat = color == chess.Color.WHITE ? nr > r : nr < r;
         if (stillAThreat) return false;
       }
@@ -550,7 +616,8 @@ class PositionalEvaluatorService {
   // 7. KING SAFETY (simple binary signals — not a composite score)
   // =========================================================================
 
-  List<PositionalFinding> _kingSafetyFindings(chess.Chess game, {required chess.Color moverColor}) {
+  List<PositionalFinding> _kingSafetyFindings(chess.Chess game,
+      {required chess.Color moverColor}) {
     final findings = <PositionalFinding>[];
 
     for (final color in [chess.Color.WHITE, chess.Color.BLACK]) {
@@ -570,7 +637,9 @@ class PositionalEvaluatorService {
           var hasPawnOnFile = false;
           for (var r = 0; r < 8; r++) {
             final p = game.get(_coordsToSq(f, r));
-            if (p != null && p.type == chess.PieceType.PAWN && p.color == color) {
+            if (p != null &&
+                p.type == chess.PieceType.PAWN &&
+                p.color == color) {
               hasPawnOnFile = true;
               break;
             }
@@ -580,7 +649,8 @@ class PositionalEvaluatorService {
         if (missingShieldFiles >= 2) {
           findings.add(PositionalFinding(
             factors: const [PositionalFactor.kingShield],
-            description: '${_colorAdjCap(color)} kralj na $kingSq je ostao bez pešačkog štita',
+            description:
+                '${_colorAdjCap(color)} kralj na $kingSq je ostao bez pešačkog štita',
             affectedSquares: [kingSq],
             favorsMover: _favorsMover(color, false, moverColor),
             significance: 5,
@@ -603,7 +673,8 @@ class PositionalEvaluatorService {
 
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.kingShield],
-          description: '${_fileLetterCap(f)}-linija pored ${_colorAdjGen(color)} kralja na $kingSq je otvorena',
+          description:
+              '${_fileLetterCap(f)}-linija pored ${_colorAdjGen(color)} kralja na $kingSq je otvorena',
           affectedSquares: [kingSq],
           favorsMover: _favorsMover(color, false, moverColor),
           // Fluid — retriggers on almost every step while a king is running,
@@ -627,7 +698,8 @@ class PositionalEvaluatorService {
       for (var r = 0; r < 8; r++) {
         final sq = _coordsToSq(f, r);
         final p = game.get(sq);
-        if (p != null && p.type == chess.PieceType.KING && p.color == color) return sq;
+        if (p != null && p.type == chess.PieceType.KING && p.color == color)
+          return sq;
       }
     }
     return null;
@@ -643,9 +715,12 @@ class PositionalEvaluatorService {
 
   String _fileLetterCap(int file) => String.fromCharCode(65 + file);
 
-  String _colorAdj(chess.Color color) => color == chess.Color.WHITE ? 'beli' : 'crni';
+  String _colorAdj(chess.Color color) =>
+      color == chess.Color.WHITE ? 'beli' : 'crni';
 
-  String _colorAdjCap(chess.Color color) => color == chess.Color.WHITE ? 'Beli' : 'Crni';
+  String _colorAdjCap(chess.Color color) =>
+      color == chess.Color.WHITE ? 'Beli' : 'Crni';
 
-  String _colorAdjGen(chess.Color color) => color == chess.Color.WHITE ? 'belog' : 'crnog';
+  String _colorAdjGen(chess.Color color) =>
+      color == chess.Color.WHITE ? 'belog' : 'crnog';
 }

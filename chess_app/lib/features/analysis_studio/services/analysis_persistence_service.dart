@@ -21,7 +21,8 @@ class SavedAnalysisSummary {
       id: json['id'] as int,
       title: json['title'] as String,
       startingFen: json['starting_fen'] as String,
-      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime.now(),
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 }
@@ -29,7 +30,8 @@ class SavedAnalysisSummary {
 /// Saves and loads Analysis Studio variation trees to/from the backend, so a
 /// user's analysis is available across every device they log into.
 class AnalysisPersistenceService {
-  static final AnalysisPersistenceService instance = AnalysisPersistenceService._internal();
+  static final AnalysisPersistenceService instance =
+      AnalysisPersistenceService._internal();
 
   AnalysisPersistenceService._internal();
 
@@ -58,7 +60,8 @@ class AnalysisPersistenceService {
           .timeout(const Duration(seconds: 10));
 
       if (res.statusCode == 201) {
-        return SavedAnalysisSummary.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+        return SavedAnalysisSummary.fromJson(
+            jsonDecode(res.body) as Map<String, dynamic>);
       }
     } catch (e) {
       print('[AnalysisPersistenceService] Error saving analysis: $e');
@@ -67,7 +70,8 @@ class AnalysisPersistenceService {
   }
 
   /// Lists the current user's saved analyses (without the full tree), newest first.
-  Future<List<SavedAnalysisSummary>> listSavedAnalyses({required String userToken}) async {
+  Future<List<SavedAnalysisSummary>> listSavedAnalyses(
+      {required String userToken}) async {
     try {
       final res = await http
           .get(Uri.parse('$backendUrl/analysis'), headers: _headers(userToken))
@@ -77,7 +81,8 @@ class AnalysisPersistenceService {
         final data = jsonDecode(res.body) as List;
         return data
             .whereType<Map>()
-            .map((e) => SavedAnalysisSummary.fromJson(Map<String, dynamic>.from(e)))
+            .map((e) =>
+                SavedAnalysisSummary.fromJson(Map<String, dynamic>.from(e)))
             .toList();
       }
     } catch (e) {
@@ -87,10 +92,12 @@ class AnalysisPersistenceService {
   }
 
   /// Loads a saved analysis's full tree by [id]. Returns null on failure.
-  Future<AnalysisNode?> loadAnalysis({required int id, required String userToken}) async {
+  Future<AnalysisNode?> loadAnalysis(
+      {required int id, required String userToken}) async {
     try {
       final res = await http
-          .get(Uri.parse('$backendUrl/analysis/$id'), headers: _headers(userToken))
+          .get(Uri.parse('$backendUrl/analysis/$id'),
+              headers: _headers(userToken))
           .timeout(const Duration(seconds: 10));
 
       if (res.statusCode == 200) {
@@ -104,10 +111,12 @@ class AnalysisPersistenceService {
   }
 
   /// Deletes a saved analysis by [id]. Returns true on success.
-  Future<bool> deleteAnalysis({required int id, required String userToken}) async {
+  Future<bool> deleteAnalysis(
+      {required int id, required String userToken}) async {
     try {
       final res = await http
-          .delete(Uri.parse('$backendUrl/analysis/$id'), headers: _headers(userToken))
+          .delete(Uri.parse('$backendUrl/analysis/$id'),
+              headers: _headers(userToken))
           .timeout(const Duration(seconds: 10));
       return res.statusCode == 200;
     } catch (e) {

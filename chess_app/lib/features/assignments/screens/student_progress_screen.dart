@@ -10,6 +10,7 @@ import '../services/assignment_api_service.dart';
 import '../widgets/assign_lesson_dialog.dart';
 import '../widgets/create_assignment_dialog.dart';
 import '../widgets/parent_report_dialog.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// A trainer's view of one student: how they are doing, what has been set, and
 /// the shortest path to setting more.
@@ -75,8 +76,9 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     );
 
     if (created == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Zadatak je poslat učeniku.')),
+      AppFeedback.show(
+        context,
+        () => const SnackBar(content: Text('Zadatak je poslat učeniku.')),
       );
       _refresh();
     }
@@ -94,8 +96,9 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     );
 
     if (created == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lekcija je poslata učeniku.')),
+      AppFeedback.show(
+        context,
+        () => const SnackBar(content: Text('Lekcija je poslata učeniku.')),
       );
       _refresh();
     }
@@ -136,8 +139,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     if (!mounted) return;
 
     if (error != null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error)));
+      AppFeedback.show(context, () => SnackBar(content: Text(error)));
       return;
     }
     _refresh();

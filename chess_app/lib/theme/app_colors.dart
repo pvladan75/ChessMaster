@@ -131,5 +131,6 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
 
 /// `context.colors.accent` instead of `Theme.of(context).extension<AppColorTokens>()!.accent`.
 extension AppColorTokensX on BuildContext {
-  AppColorTokens get colors => Theme.of(this).extension<AppColorTokens>() ?? AppColorTokens.dark;
+  AppColorTokens get colors =>
+      Theme.of(this).extension<AppColorTokens>() ?? AppColorTokens.dark;
 }

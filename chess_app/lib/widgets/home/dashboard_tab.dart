@@ -332,7 +332,6 @@ class HomeDashboardTab extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-
               // Recordings Card
               Card(
                 elevation: 4,

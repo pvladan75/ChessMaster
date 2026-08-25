@@ -14,6 +14,7 @@ import 'package:chess/chess.dart' as chess;
 
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -66,6 +67,16 @@ class ChessGamePage extends StatefulWidget {
 class _ChessGamePageState extends State<ChessGamePage> {
   late String activeRole;
   bool isRecording = false;
+
+  /// Whether the room may be recorded, as the server last said.
+  ///
+  /// True until told otherwise: the app has never asked before, and the server
+  /// is the lock — this only decides whether the button is drawn as available.
+  /// A control that looks available and then fails is the same surprise as one
+  /// that works while its button is hidden, which is why the reason is kept
+  /// beside it and shown on the card.
+  bool _recordingAllowed = true;
+  String? _recordingBlockedReason;
   int? recordingStartTimeMs;
 
   /// Owns the recording clock and timeline. See [LessonRecorder] for why the
@@ -96,6 +107,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
   List<dynamic> audioUsers = [];
   Set<int> activeSpeakers = {};
   bool isAudioMuted = false;
+
+  /// Whether the server let this person be heard in this room at all.
+  ///
+  /// Not the same thing as [isAudioMuted]: muting is a choice made during a
+  /// lesson and can be undone, this is a right. While it is false the app holds
+  /// a subscriber token that cannot publish audio however the buttons are
+  /// pressed, so no screen may offer one that pretends otherwise.
+  bool mayUseMic = false;
   bool isAudioConnecting = true;
   String? audioError;
   bool isHandRaised = false;
@@ -338,11 +357,23 @@ class _ChessGamePageState extends State<ChessGamePage> {
       widget.userSession.id,
       userToken: widget.userSession.token,
     );
-    if (!success && mounted) {
+    if (mounted) {
       setState(() {
-        isAudioConnecting = false;
+        mayUseMic = _agoraService.maySpeak;
+        if (!success) isAudioConnecting = false;
       });
     }
+  }
+
+  /// Rejoins the voice channel, which is the only way a changed right takes
+  /// effect: the role lives in the token, and a token is issued once at join.
+  ///
+  /// Used when the trainer grants or takes back the microphone while the lesson
+  /// is running. Waiting for the next lesson would make "oduzmi mikrofon" mean
+  /// something other than what anybody pressing it expects.
+  Future<void> _rejoinVoice() async {
+    await _agoraService.leaveChannel();
+    await _initAudioChat();
   }
 
   void _toggleLocalMute() {
@@ -353,6 +384,73 @@ class _ChessGamePageState extends State<ChessGamePage> {
       'userId': widget.userSession.id,
       'isMuted': nextMute,
     });
+  }
+
+  /// The three ready answers, and nothing else.
+  ///
+  /// A fixed set rather than free text on purpose: it is everything a lesson
+  /// needs answered by voice — and it is the reason this app is not a place
+  /// where a child can be asked for their address.
+  static const Map<String, String> _quickAnswers = {
+    'da': 'Da',
+    'ne': 'Ne',
+    'nejasno': 'Nisam razumeo/la',
+  };
+
+  String? _quickAnswerText(String? key) => _quickAnswers[key ?? ''];
+
+  void _sendQuickAnswer(String key) {
+    socket.emit('quick_answer', {
+      'roomId': widget.roomCode,
+      'answer': key,
+    });
+  }
+
+  /// Grants or takes back a student's microphone, for good rather than for this
+  /// minute.
+  ///
+  /// Deliberately not the same control as „Utišaj učenika" a few lines below:
+  /// muting is a courtesy the client honours, this is the row the voice token is
+  /// minted from. The student's app rejoins the channel when it hears about it,
+  /// which is what makes taking it back mean anything at all.
+  Future<void> _setStudentVoice(int studentId, bool mayTalk) async {
+    try {
+      final res = await http.patch(
+        Uri.parse('$backendUrl/trainer/students/$studentId/voice'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.userSession.token}',
+        },
+        body: jsonEncode({'level': mayTalk ? 'talk' : 'listen'}),
+      );
+      if (!mounted) return;
+      if (res.statusCode != 200) {
+        final data = jsonDecode(res.body);
+        AppFeedback.show(
+            context,
+            () => SnackBar(
+                  content: Text(data['error']?.toString() ?? 'Nije uspelo.'),
+                  backgroundColor: Colors.redAccent,
+                ));
+        return;
+      }
+      AppFeedback.show(
+          context,
+          () => SnackBar(
+                content: Text(mayTalk
+                    ? 'Učenik je dobio mikrofon.'
+                    : 'Učeniku je oduzet mikrofon — i dalje sluša i odgovara na tabli.'),
+                backgroundColor: mayTalk ? Colors.green : Colors.orange,
+              ));
+    } catch (e) {
+      if (!mounted) return;
+      AppFeedback.show(
+          context,
+          () => const SnackBar(
+                content: Text('Server nije dostupan.'),
+                backgroundColor: Colors.redAccent,
+              ));
+    }
   }
 
   void _raiseHand() {
@@ -592,8 +690,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
       final reason = (data is Map && data['reason'] != null)
           ? data['reason'].toString()
           : 'Nemate ovlašćenje za ovu akciju.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(reason), backgroundColor: Colors.redAccent),
+      AppFeedback.show(
+        context,
+        () =>
+            SnackBar(content: Text(reason), backgroundColor: Colors.redAccent),
       );
     });
 
@@ -612,8 +712,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
         'not-invited': 'Niste na spisku za ovu sobu. Tražite poziv od trenera.',
       };
       final text = messages[reason] ?? 'Ulazak u sobu nije dozvoljen.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(text), backgroundColor: Colors.redAccent),
+      AppFeedback.show(
+        context,
+        () => SnackBar(content: Text(text), backgroundColor: Colors.redAccent),
       );
       // And out, rather than sitting in a room that never fills: the board
       // would stay empty and the reason would scroll away with the snackbar.
@@ -645,8 +746,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
         setState(() {
           boardControl = data['boardControl'];
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        AppFeedback.show(
+          context,
+          () => SnackBar(
             content: Text(
                 'Dozvole table promenjene: ${_getPermissionLabel(boardControl)}'),
             duration: const Duration(seconds: 2),
@@ -679,8 +781,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
               ? PlayerColor.white
               : PlayerColor.black;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        AppFeedback.show(
+          context,
+          () => SnackBar(
             content: Text(
                 'Trener je okrenuo vašu tablu na: ${data['orientation'] == 'white' ? 'Beli' : 'Crni'}'),
             duration: const Duration(seconds: 2),
@@ -794,8 +897,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
           setState(() {
             activeRole = newRole;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+          AppFeedback.show(
+            context,
+            () => SnackBar(
               content: Text(
                 newRole == 'trener'
                     ? 'Promovisani ste u ulogu Trenera! Sada imate punu kontrolu nad tablom i sesijom.'
@@ -806,6 +910,52 @@ class _ChessGamePageState extends State<ChessGamePage> {
             ),
           );
         }
+      }
+    });
+
+    // Whether this room may be recorded, sent whenever the roster changes —
+    // the only moment the answer can change.
+    socket.on('recording_consent', (data) {
+      if (data == null || !mounted) return;
+      setState(() {
+        _recordingAllowed = data['allowed'] != false;
+        _recordingBlockedReason = data['reason'] as String?;
+      });
+    });
+
+    // The lock answering: the recording was started without permission. The
+    // local recorder is stopped and thrown away rather than offered for saving
+    // — a refused recording that is still on the device waiting for a "Sačuvaj"
+    // is a refused recording that gets saved.
+    socket.on('recording_denied', (data) {
+      if (data == null || !mounted) return;
+      final reason = data['reason'] as String? ??
+          'Čas ne može da se snima bez saglasnosti roditelja.';
+      setState(() {
+        _recordingAllowed = false;
+        _recordingBlockedReason = reason;
+      });
+      _discardRecording(reason);
+    });
+
+    // Somebody walked into a lesson that was being recorded, and their parent
+    // has not agreed to that. What was recorded before they arrived is kept —
+    // they were not in it — so this stops the way the trainer would.
+    socket.on('recording_must_stop', (data) {
+      if (data == null || !mounted) return;
+      final reason = data['reason'] as String? ??
+          'Čas više ne može da se snima bez saglasnosti roditelja.';
+      setState(() {
+        _recordingAllowed = false;
+        _recordingBlockedReason = reason;
+      });
+      if (isRecording) {
+        // Stop first, tell afterwards. The other way round cost exactly this
+        // rule once already: `showSnackBar` threw "deactivated widget's
+        // ancestor", and the line below it — the one that actually stops
+        // recording a child whose parent refused — never ran.
+        unawaited(_stopRecording());
+        AppFeedback.warning(context, '$reason Snimanje je zaustavljeno.');
       }
     });
 
@@ -832,8 +982,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
           }
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        AppFeedback.show(
+          context,
+          () => SnackBar(
             content: Text(status == 'started'
                 ? '$updatedBy je započeo snimanje sesije.'
                 : (status == 'paused'
@@ -885,8 +1036,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+          AppFeedback.show(
+            context,
+            () => SnackBar(
               content:
                   Text('Učenik $studentName je podelio poziciju: "$title"'),
               backgroundColor: Colors.blueAccent,
@@ -912,6 +1064,45 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
     });
 
+    // The trainer granted or took back the microphone. The right lives in the
+    // voice token, and a token is issued once when the channel is joined — so
+    // the channel is joined again. Without this, "oduzmi mikrofon" would mean
+    // "from the next lesson", which is not what anybody pressing it expects.
+    socket.on('voice_level_changed', (data) async {
+      if (!mounted) return;
+      final mayTalk = data is Map && data['level'] == 'talk';
+      AppFeedback.show(
+        context,
+        () => SnackBar(
+          content: Text(mayTalk
+              ? 'Trener vam je dao reč. Mikrofon je uključen.'
+              : 'Trener je isključio vaš mikrofon. I dalje čujete čas i '
+                  'odgovarate na tabli.'),
+          backgroundColor: mayTalk ? Colors.green : Colors.orange,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      await _rejoinVoice();
+    });
+
+    // A ready answer from a student who is listening. It is the whole reason
+    // listening-only is a lesson rather than a broadcast: the trainer asks
+    // "jasno?" and gets an answer without anybody's voice being published.
+    socket.on('quick_answer', (data) {
+      if (!mounted || data is! Map) return;
+      final who = data['userName']?.toString() ?? 'Učenik';
+      final said = _quickAnswerText(data['answer']?.toString());
+      if (said == null) return;
+      AppFeedback.show(
+        context,
+        () => SnackBar(
+          content: Text('$who: $said'),
+          backgroundColor: Colors.blueGrey,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    });
+
     socket.on('audio_force_mute_student', (data) {
       final targetUserId = data['targetUserId'];
       if (targetUserId == 'all' || targetUserId == widget.userSession.id) {
@@ -922,8 +1113,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
             'userId': widget.userSession.id,
             'isMuted': true,
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+          AppFeedback.show(
+            context,
+            () => const SnackBar(
               content: Text(
                   'Trener vas je utišao. Možete podići ruku ako želite reč.'),
               backgroundColor: Colors.orange,
@@ -944,8 +1136,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
             'userId': widget.userSession.id,
             'isMuted': false,
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+          AppFeedback.show(
+            context,
+            () => const SnackBar(
               content: Text('Trener vam je dozvolio reč.'),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 4),
@@ -958,8 +1151,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.on('audio_hand_raised_alert', (data) {
       final userName = data['userName'];
       if (widget.userSession.role == 'trener') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        AppFeedback.show(
+          context,
+          () => SnackBar(
             content: Text('Učenik $userName želi reč.'),
             backgroundColor: Colors.orangeAccent,
             duration: const Duration(seconds: 4),
@@ -983,7 +1177,41 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   String? _currentAudioPath;
 
+  /// Throws away a recording that should never have started.
+  ///
+  /// Separate from `_stopRecording`, which offers to save: there is nothing
+  /// here to offer. The audio file is stopped and the buffered events dropped.
+  Future<void> _discardRecording(String reason) async {
+    try {
+      await _agoraService
+          .stopAudioRecording()
+          .timeout(const Duration(seconds: 3));
+    } catch (e) {
+      print('[RECORDING_LOG] Discard: audio stop failed: $e');
+    }
+    _recorder.reset();
+    if (!mounted) return;
+    setState(() {
+      isRecording = false;
+      isRecordingPaused = false;
+      recordingStartTimeMs = null;
+    });
+    AppFeedback.warning(context, '$reason Snimak nije sačuvan.');
+  }
+
   Future<void> _startRecording() async {
+    // Asked before anything is recorded, so a refused lesson never produces a
+    // file at all. The server refuses again on its own; this is what keeps a
+    // child's voice from being captured for the second it takes to be told so.
+    if (!_recordingAllowed) {
+      AppFeedback.warning(
+        context,
+        _recordingBlockedReason ??
+            'Čas ne može da se snima bez saglasnosti roditelja.',
+      );
+      return;
+    }
+
     try {
       _currentAudioPath =
           '${Directory.systemTemp.path}/session_audio_${DateTime.now().millisecondsSinceEpoch}.aac';
@@ -1017,14 +1245,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
       'fen': moveTree.current.fen
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-            'Snimanje časa i zvuka (glasa) je započeto! Svi potezi i govor se beleže.'),
-        backgroundColor: Colors.redAccent,
-        duration: Duration(seconds: 3),
-      ),
-    );
+    AppFeedback.warning(context,
+        'Snimanje časa i zvuka (glasa) je započeto! Svi potezi i govor se beleže.');
   }
 
   void _pauseRecording() {
@@ -1038,8 +1260,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
       'paused': true,
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+    AppFeedback.show(
+      context,
+      () => const SnackBar(
         content: Text('Snimanje je pauzirano. Akcije se privremeno ne beleže.'),
         backgroundColor: Colors.orange,
         duration: Duration(seconds: 2),
@@ -1058,8 +1281,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
       'paused': false,
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+    AppFeedback.show(
+      context,
+      () => const SnackBar(
         content: Text(
             'Snimanje je nastavljeno! Svi sledstveni potezi se beleže u kombinovani snimak.'),
         backgroundColor: Colors.green,
@@ -1165,8 +1389,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+      AppFeedback.show(
+        context,
+        () => const SnackBar(
           content: Text(
               'Snimak časa je sačuvan na vašem uređaju! Sinhronizacija sa serverom se vrši u pozadini.'),
           backgroundColor: Colors.teal,
@@ -1174,14 +1399,41 @@ class _ChessGamePageState extends State<ChessGamePage> {
         ),
       );
 
-      // Trigger background sync to server
-      unawaited(LocalRecordingService.syncPendingRecordings(
-          widget.userSession.token));
+      // Sync first, and only then say what came back — the same order the rest
+      // of this screen owes to `_stopRecording`. The server's answer is not
+      // decoration: it is where the trainer learns that the recording was cut
+      // short by a parent's refusal, or that the refusal could not be checked
+      // at all before they share it.
+      //
+      // In its own `try`, and after the local save has already been reported:
+      // the recording is on the device either way, and a sync that throws must
+      // not come out as "greška pri čuvanju lokalnog snimka" — that is the same
+      // lie in a smaller size.
+      List<String> notices = const [];
+      try {
+        notices = await LocalRecordingService.syncPendingRecordings(
+            widget.userSession.token);
+      } catch (e) {
+        print('[SYNC_RECORDING_ERROR] $e');
+      }
+      if (!mounted) return;
+      if (notices.isNotEmpty) {
+        // One sentence, not a queue of them: a device that was offline for a
+        // week comes back with several, and the rest are in the log.
+        AppFeedback.warning(
+          context,
+          notices.length == 1
+              ? notices.first
+              : '${notices.first} (još ${notices.length - 1} napomena servera '
+                  'je u dnevniku.)',
+        );
+      }
     } catch (e) {
       print('[RECORDING_LOG_ERROR] Exception in instant local save: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+      AppFeedback.show(
+        context,
+        () => SnackBar(
             content: Text('Greška pri čuvanju lokalnog snimka: $e'),
             backgroundColor: Colors.redAccent),
       );
@@ -1844,16 +2096,30 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   void _showInSessionInviteFriendsDialog() async {
     List<dynamic> friendsList = [];
+    String? loadError;
     try {
       final res = await http.get(
         Uri.parse('$backendUrl/friends'),
         headers: {'Authorization': 'Bearer ${widget.userSession.token}'},
       );
       if (res.statusCode == 200) {
-        friendsList = jsonDecode(res.body);
+        // The route answers `{ "friends": [...] }`. Decoding it straight into a
+        // list threw a TypeError on every call there has ever been, and the
+        // `catch` below swallowed it under a comment that said "quiet fail" —
+        // so this dialog told **everybody** they had no friends, a trainer with
+        // a full class included. Found live 25.8.2026, in a room with two
+        // accepted students in it.
+        final data = jsonDecode(res.body);
+        friendsList = (data is Map ? data['friends'] : data) as List? ?? [];
+      } else {
+        loadError = 'Spisak nije mogao da se učita (${res.statusCode}).';
       }
     } catch (e) {
-      // quiet fail
+      // Not quiet any more. "I could not ask" must never come out as "you have
+      // nobody" — the same three-answer rule the account guard and the
+      // recording consent both needed.
+      loadError = 'Spisak nije mogao da se učita.';
+      print('[INVITE] Neuspelo dobavljanje spiska prijatelja: $e');
     }
 
     if (!mounted) return;
@@ -1884,10 +2150,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
               const Text('Izaberite prijatelje koje želite da pozovete:',
                   style: TextStyle(fontSize: 12)),
               const SizedBox(height: 12),
-              if (friendsList.isEmpty)
+              if (loadError != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  child: Text(loadError,
+                      style: const TextStyle(
+                          fontSize: 11, color: Colors.orangeAccent)),
+                )
+              else if (friendsList.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12.0),
-                  child: Text('Nemate sačuvanih prijatelja.',
+                  child: Text(
+                      'Nemate nikoga na spisku. Na njemu su učenici i treneri '
+                      'sa prihvaćenom vezom.',
                       style: TextStyle(fontSize: 11, color: Colors.grey)),
                 )
               else
@@ -1961,8 +2236,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    AppFeedback.show(
+      context,
+      () => SnackBar(
         content: Text(message),
         backgroundColor: Colors.redAccent,
       ),
@@ -1970,8 +2246,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    AppFeedback.show(
+      context,
+      () => SnackBar(
         content: Text(message),
         backgroundColor: Colors.green,
       ),
@@ -2850,32 +3127,90 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             const SizedBox(height: 8),
                           ],
                           if (!isAudioConnecting && audioError == null) ...[
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: _toggleLocalMute,
-                                    icon: Icon(isAudioMuted
-                                        ? Icons.mic_off
-                                        : Icons.mic),
-                                    label: Text(isAudioMuted
-                                        ? 'Uključi mikrofon'
-                                        : 'Utišaj me'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: isAudioMuted
-                                          ? Colors.redAccent
-                                              .withValues(alpha: 0.2)
-                                          : Colors.green.withValues(alpha: 0.2),
-                                      foregroundColor: isAudioMuted
-                                          ? Colors.redAccent
-                                          : Colors.greenAccent,
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 8),
+                            // A button that cannot work must not be drawn. While
+                            // the server says this person only listens, the app
+                            // holds a subscriber token: "Uključi mikrofon" would
+                            // light up, the roster would say they are speaking,
+                            // and nobody would hear them.
+                            if (!mayUseMic)
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color:
+                                      Colors.blueGrey.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.headset,
+                                        size: 16, color: Colors.blueGrey),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Slušate čas. Odgovarate dugmadima ispod '
+                                        'i potezima na tabli.',
+                                        style: TextStyle(fontSize: 11),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _toggleLocalMute,
+                                      icon: Icon(isAudioMuted
+                                          ? Icons.mic_off
+                                          : Icons.mic),
+                                      label: Text(isAudioMuted
+                                          ? 'Uključi mikrofon'
+                                          : 'Utišaj me'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: isAudioMuted
+                                            ? Colors.redAccent
+                                                .withValues(alpha: 0.2)
+                                            : Colors.green
+                                                .withValues(alpha: 0.2),
+                                        foregroundColor: isAudioMuted
+                                            ? Colors.redAccent
+                                            : Colors.greenAccent,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 8),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
+                            const SizedBox(height: 10),
+                            // The ready answers. This is what makes a listening
+                            // seat a lesson rather than a broadcast: the trainer
+                            // asks whether it is clear and gets an answer,
+                            // without a child's voice being published — or
+                            // recorded. Wrap, not Row: three labels do not fit a
+                            // 360 dp phone, and in a release build the third one
+                            // would simply be cut off past the edge with no
+                            // warning drawn.
+                            if (!isTrener)
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: [
+                                  for (final entry in _quickAnswers.entries)
+                                    OutlinedButton(
+                                      onPressed: () =>
+                                          _sendQuickAnswer(entry.key),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 4),
+                                        foregroundColor: Colors.lightBlueAccent,
+                                      ),
+                                      child: Text(entry.value,
+                                          style: const TextStyle(fontSize: 11)),
+                                    ),
+                                ],
+                              ),
                             const SizedBox(height: 12),
                             const Text(
                               'Učesnici u audio razgovoru:',
@@ -2887,6 +3222,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             const SizedBox(height: 6),
                             ...audioUsers.map<Widget>((user) {
                               final isUserMuted = user['isMuted'] ?? false;
+                              // Told by the server, unlike the mute flag beside
+                              // it, which is whatever the client reported about
+                              // itself.
+                              final userMaySpeak = user['maySpeak'] == true;
                               final isUserTalking =
                                   activeSpeakers.contains(user['userId']);
                               final isUserTrainer = user['role'] == 'trener';
@@ -2899,13 +3238,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 child: Row(
                                   children: [
                                     Icon(
-                                      isUserMuted ? Icons.mic_off : Icons.mic,
+                                      !userMaySpeak
+                                          ? Icons.headset
+                                          : (isUserMuted
+                                              ? Icons.mic_off
+                                              : Icons.mic),
                                       size: 16,
                                       color: isUserTalking
                                           ? Colors.greenAccent
-                                          : (isUserMuted
-                                              ? Colors.redAccent
-                                              : Colors.grey),
+                                          : (!userMaySpeak
+                                              ? Colors.blueGrey
+                                              : (isUserMuted
+                                                  ? Colors.redAccent
+                                                  : Colors.grey)),
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
@@ -2922,7 +3267,29 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                         ),
                                       ),
                                     ),
-                                    if (isTrener && !isMe)
+                                    // Two different controls, deliberately kept
+                                    // apart: this one is the right, read again
+                                    // every time a voice token is minted, and
+                                    // the one beside it is a courtesy for the
+                                    // next few minutes.
+                                    if (isTrener && !isMe && !isUserTrainer)
+                                      IconButton(
+                                        icon: Icon(
+                                            userMaySpeak
+                                                ? Icons.mic
+                                                : Icons.mic_off,
+                                            size: 16,
+                                            color: userMaySpeak
+                                                ? Colors.greenAccent
+                                                : Colors.blueGrey),
+                                        onPressed: () => _setStudentVoice(
+                                            user['userId'] as int,
+                                            !userMaySpeak),
+                                        tooltip: userMaySpeak
+                                            ? 'Oduzmi mikrofon (ostaje da sluša)'
+                                            : 'Daj mikrofon',
+                                      ),
+                                    if (isTrener && !isMe && userMaySpeak)
                                       IconButton(
                                         icon: Icon(
                                             isUserMuted
@@ -3097,7 +3464,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             ),
                           ] else ...[
                             ElevatedButton.icon(
-                              onPressed: _startRecording,
+                              onPressed:
+                                  _recordingAllowed ? _startRecording : null,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.deepPurpleAccent,
                                 foregroundColor: Colors.white,
@@ -3106,6 +3474,29 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   color: Colors.white, size: 16),
                               label: const Text('Započni snimanje časa'),
                             ),
+                            // The reason stands under the button rather than
+                            // waiting for it to be pressed: a disabled control
+                            // with no explanation is a bug report.
+                            if (!_recordingAllowed &&
+                                _recordingBlockedReason != null) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(Icons.family_restroom,
+                                      color: Colors.orangeAccent, size: 16),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _recordingBlockedReason!,
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.orangeAccent),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ],
                       ),
