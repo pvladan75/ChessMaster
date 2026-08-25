@@ -1,11 +1,17 @@
 const logger = require('../services/logger');
+const crypto = require('crypto');
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
+/// Six digits, from the cryptographic source rather than from `Math.random()`.
+///
+/// The code stopped being what authorises anybody — `roomAccess.mayJoinRoom`
+/// does that now — but it is still what somebody types to name a room, and a
+/// predictable one invites the guessing it used to reward.
 function generateRoomCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return String(crypto.randomInt(100000, 1000000));
 }
 
 // POST /rooms/create

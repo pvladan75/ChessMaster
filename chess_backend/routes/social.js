@@ -280,7 +280,8 @@ router.post('/users/account-type', authenticateToken, requireRole('admin'), asyn
 router.get('/friends', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT u.id, u.name, u.email 
+      // Names, not addresses — see listStudents for why.
+      `SELECT u.id, u.name
        FROM users u
        JOIN friends f ON u.id = f.friend_id
        WHERE f.user_id = $1`,

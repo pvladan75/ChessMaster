@@ -85,6 +85,14 @@ async function initDB() {
       ALTER TABLE rooms 
       ADD COLUMN IF NOT EXISTS allow_student_engine BOOLEAN DEFAULT FALSE;
     `);
+    // Whether somebody who is not signed in may watch. FALSE by default, and
+    // that default is the point: until now a room admitted anybody who had the
+    // code, including a guest, and the room nobody thought about is exactly the
+    // one a stranger walks into.
+    await client.query(`
+      ALTER TABLE rooms 
+      ADD COLUMN IF NOT EXISTS allow_guests BOOLEAN DEFAULT FALSE;
+    `);
     // Create puzzles table
     await client.query(`
       CREATE TABLE IF NOT EXISTS puzzles (
@@ -891,6 +899,57 @@ async function initDB() {
         ON opening_replies(fen_key, min_rating);
     `);
     logger.info('Verified database table & indexes: opening_replies');
+
+
+    // Groups of students, so a trainer with forty of them does not go hunting
+    // down a list to invite the same eight people every Tuesday.
+    //
+    // A group belongs to a trainer and holds nothing but names; who may
+    // actually be in it is decided elsewhere, by the accepted relationship —
+    // membership here is a convenience, never a right.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS student_groups (
+        id SERIAL PRIMARY KEY,
+        trainer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(120) NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (trainer_id, name)
+      );
+      CREATE TABLE IF NOT EXISTS student_group_members (
+        group_id INTEGER NOT NULL REFERENCES student_groups(id) ON DELETE CASCADE,
+        student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        added_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (group_id, student_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_student_groups_trainer
+        ON student_groups(trainer_id);
+    `);
+    logger.info('Verified database tables: student_groups, student_group_members');
+
+    // The room's guest list: whole groups, single people, or both.
+    //
+    // Empty means what it has always meant — every accepted student of the
+    // creator may come. The moment one row exists the room narrows to it, which
+    // is the point of inviting a group: *these* eight, and nobody else.
+    //
+    // Exactly one of user_id and group_id is set. A row that is both, or
+    // neither, is a row nobody can read the same way twice.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS room_guests (
+        id SERIAL PRIMARY KEY,
+        room_code VARCHAR(6) NOT NULL REFERENCES rooms(room_code) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        group_id INTEGER REFERENCES student_groups(id) ON DELETE CASCADE,
+        added_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT room_guests_one_target
+          CHECK ((user_id IS NULL) <> (group_id IS NULL))
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_room_guests_user
+        ON room_guests(room_code, user_id) WHERE user_id IS NOT NULL;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_room_guests_group
+        ON room_guests(room_code, group_id) WHERE group_id IS NOT NULL;
+    `);
+    logger.info('Verified database table & indexes: room_guests');
 
   } catch (err) {
     logger.error('Database migration/connection error:', err);

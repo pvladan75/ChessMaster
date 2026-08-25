@@ -596,6 +596,31 @@ class _ChessGamePageState extends State<ChessGamePage> {
       );
     });
 
+    // The room has a guest list now, and a refusal has to arrive as a sentence.
+    // Left unhandled it would read as "connecting…" forever, which is the same
+    // silent failure this project keeps meeting — and here it would be worse,
+    // because the person refused is usually somebody who simply mistyped the
+    // code.
+    socket.on('join_refused', (data) {
+      if (!mounted) return;
+      final reason = (data is Map ? data['reason']?.toString() : null) ?? '';
+      const messages = {
+        'no-room': 'Ne postoji soba sa tim kodom.',
+        'guest-not-allowed':
+            'Ova soba ne prima goste — prijavite se ili tražite poziv.',
+        'not-invited': 'Niste na spisku za ovu sobu. Tražite poziv od trenera.',
+      };
+      final text = messages[reason] ?? 'Ulazak u sobu nije dozvoljen.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(text), backgroundColor: Colors.redAccent),
+      );
+      // And out, rather than sitting in a room that never fills: the board
+      // would stay empty and the reason would scroll away with the snackbar.
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        if (mounted) Navigator.of(context).maybePop();
+      });
+    });
+
     socket.on('gameState', (data) {
       if (data != null) {
         setState(() {

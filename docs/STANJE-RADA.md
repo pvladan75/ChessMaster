@@ -3159,6 +3159,51 @@ koristi — najstroža *primenljiva* je 16, uz spuštanje po državi.
 Ovo nije pravni savet i ne zamenjuje advokata; ovde je zapisano samo šta
 aplikacija stvarno jeste, da bi pitanje njemu moglo da bude precizno.
 
+### Soba je dobila spisak zvanica, i grupe
+
+Urađeno 25.8.2026, **nije viđeno uživo** (stavka 31 u
+[TODO-provera.md](TODO-provera.md)). Prva dva koraka iz odluke od istog dana.
+
+**Pravilo: soba je mesto sa spiskom zvanica, a ne niz koji otvara vrata.** Kod
+i dalje služi da učenik imenuje sobu u koju ulazi, ali više ne ovlašćuje nikoga.
+Odluka je izdvojena u `roomAccess.mayJoinRoom` i oba socket ulaza je zovu —
+`joinGame` i `audio_join`. Glas se pita zasebno, iako je već prošao proveru za
+tablu, jer je glas ono što završi u snimku dece i dva puta do iste sobe ne smeju
+da se raziđu.
+
+Redosled: tvorac sobe; pa **spisak zvanica ako postoji**; pa prihvaćena veza sa
+tvorcem; pa poziv na zakazani čas sa tim kodom; pa gost, i to samo ako soba
+prima goste (`rooms.allow_guests`, podrazumevano `FALSE` — podrazumevana
+vrednost je ono što odlučuje šta se dešava u sobi o kojoj niko nije mislio).
+
+**Grupe učenika**, tražene sa jasnim razlogom: sa četrdeset učenika, pozivanje
+istih osam svakog utorka znači svaki put ići niz spisak i tražiti ih. Grupa je
+taj spisak, imenovan jednom (`student_groups`, `student_group_members`). Na
+spisku zvanica sobe (`room_guests`) stoje **i grupe i pojedinci**, jer je
+traženo oboje, a nema razloga za dva mehanizma.
+
+Dve stvari koje spisak drži poštenim:
+
+* **Prazan spisak znači ono što je soba oduvek značila** — svi prihvaćeni
+  učenici tvorca. Prvi red ga sužava, jer „pozovi grupu" mora da znači *samo*
+  ta grupa.
+* **Članstvo u grupi nije pravo.** Uz spisak se svaki put proverava i prihvaćena
+  veza, pa red u grupi koji je ostao za nekim ko više nije učenik nije ključ.
+
+Uz to: kod sobe se sada pravi iz `crypto.randomInt` umesto iz `Math.random()`.
+Nije više brava — spisak jeste — ali brava koja to nije ne treba ni da izgleda
+tako.
+
+**Email je izašao iz spiskova.** `GET /friends`, spisak učenika i spisak trenera
+vraćaju ime i identifikator, ne adresu; u aplikaciji je ono što je stajalo pod
+imenom zamenjeno onim što red zaista jeste („Čeka potvrdu", „Vaš učenik").
+Polje za *pozivanje* po adresi ostaje — pozivaš nekoga čiju adresu već znaš —
+ali tuđa adresa više ne putuje kroz liste, a većina ljudi u tim listama su deca.
+
+Šta **nije** urađeno: ekrani za grupe i za spisak zvanica (backend i rute
+postoje), prekidač „soba prima goste" u sobi, i pravilo da maloletnik ima samo
+trenera. To je sledeći korak.
+
 ### Sledeće, po redu
 
 Stanje na kraju 24.8.2026. Sve iz prošlog spiska pod 2–6 je urađeno; ostaje

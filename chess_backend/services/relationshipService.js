@@ -31,6 +31,31 @@ function acceptedTrainersOf(param) {
             WHERE student_id = ${param} AND status = 'accepted'`;
 }
 
+/// Whether two people are in an accepted relationship, in either direction.
+///
+/// The third place rights are read from, and it exists for the same reason as
+/// the other two: the condition that matters is `status = 'accepted'`, and
+/// every hand-written copy of it so far has forgotten it. Direction is not
+/// asked about on purpose — a trainer and their student are related whichever
+/// way the request originally went, and callers that cared about direction
+/// already have `trainerOwnsStudent`.
+async function acceptedEdgeBetween(pool, a, b) {
+  if (a === null || a === undefined || b === null || b === undefined) {
+    return false;
+  }
+  if (Number(a) === Number(b)) return false;
+
+  const result = await pool.query(
+    `SELECT 1 FROM trainer_students
+      WHERE status = 'accepted'
+        AND ((trainer_id = $1 AND student_id = $2)
+          OR (trainer_id = $2 AND student_id = $1))
+      LIMIT 1`,
+    [a, b],
+  );
+  return result.rowCount > 0;
+}
+
 /// Creates a request and returns what happened, rather than throwing.
 ///
 /// `initiatorIsTrainer` decides only which column the initiator lands in; the
@@ -214,8 +239,12 @@ async function closeRequestNotification(pool, requestId) {
 /// Accepted students of a trainer, plus the ones still waiting, so the client
 /// can show "čeka potvrdu" instead of a name that silently does nothing.
 async function listStudents(pool, trainerId) {
+  // No email. A list of people is not the place for their addresses, and most
+  // of the people in this one are children: an address that travels through a
+  // list ends up on a screen it was never meant for. Whoever needs to write to
+  // a student already knows how — they invited them by that very address.
   const result = await pool.query(
-    `SELECT u.id, u.name, u.email, ts.status, (ts.initiated_by = $1) AS i_asked
+    `SELECT u.id, u.name, ts.status, (ts.initiated_by = $1) AS i_asked
        FROM users u
        JOIN trainer_students ts ON u.id = ts.student_id
       WHERE ts.trainer_id = $1
@@ -228,7 +257,7 @@ async function listStudents(pool, trainerId) {
 /// The same edge read from the other end.
 async function listTrainers(pool, studentId) {
   const result = await pool.query(
-    `SELECT u.id, u.name, u.email, ts.status, (ts.initiated_by = $1) AS i_asked
+    `SELECT u.id, u.name, ts.status, (ts.initiated_by = $1) AS i_asked
        FROM users u
        JOIN trainer_students ts ON u.id = ts.trainer_id
       WHERE ts.student_id = $1
@@ -314,6 +343,7 @@ async function notifyDecline(pool, { recipientId, declinerId, declinerName }) {
 
 module.exports = {
   acceptedTrainersOf,
+  acceptedEdgeBetween,
   notifyAccept,
   notifyDecline,
   requestRelationship,

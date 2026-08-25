@@ -25,9 +25,11 @@ const libraryRoutes = require('./routes/library');
 const openingExplorerRoutes = require('./routes/openingExplorer');
 const openingJudgeRoutes = require('./routes/openingJudge');
 const repertoireRoutes = require('./routes/repertoire');
+const groupRoutes = require('./routes/groups');
 const { authenticateToken, requireRole, verifySocketToken } = require('./middleware/auth');
 const entitlementService = require('./services/entitlementService');
 const realtime = require('./services/realtime');
+const { mayJoinRoom } = require('./services/roomAccess');
 const { cleanupOldExports } = require('./services/retentionService');
 
 const app = express();
@@ -127,6 +129,7 @@ app.use('/library', libraryRoutes);
 app.use('/opening-explorer', openingExplorerRoutes);
 app.use('/opening-judge', openingJudgeRoutes);
 app.use('/repertoire', repertoireRoutes);
+app.use('/groups', groupRoutes);
 app.use('/', socialRoutes);
 
 // SOCKET.IO REALTIME EVENTS
@@ -244,6 +247,25 @@ io.on('connection', (socket) => {
   });
 
   socket.on('joinGame', async ({ roomId, playerColor }) => {
+    // The guest list, before the door. This handler used to join first and ask
+    // nothing — not a relationship, not an invitation, not even a login — so a
+    // guessed six-digit code put a stranger in a live lesson, and in the
+    // recording when one was running.
+    const seat = await mayJoinRoom(pool, {
+      roomCode: roomId,
+      userId: authUser ? authUser.id : null,
+    });
+    if (!seat.allowed) {
+      logger.warn(
+        `[SOBA] Odbijen ulazak u ${roomId}: ${seat.reason} (korisnik ${authUser ? authUser.id : 'gost'})`
+      );
+      // Said out loud rather than left as a socket that never answers: a
+      // refusal that reads as "connecting…" forever is the same silent failure
+      // this codebase keeps meeting.
+      socket.emit('join_refused', { roomId, reason: seat.reason });
+      return;
+    }
+
     socket.join(roomId);
     socket.roomId = roomId;
     // Guests get a socket-scoped identity so they can watch without impersonating anyone.
@@ -254,11 +276,12 @@ io.on('connection', (socket) => {
       activeRoomMembers[roomId] = {};
     }
 
-    // The room's creator is the host. Everyone else starts as a student and can only
-    // be promoted by someone who already administers the room.
+    // The room's creator is the host. Everyone else keeps whatever seat they
+    // had, or the one the guest list gave them.
     const previousSeat = activeRoomMembers[roomId][socket.userId];
-    const creator = await isRoomCreator(roomId, authUser && authUser.id);
-    socket.userRole = creator ? 'trener' : (previousSeat ? previousSeat.role : 'ucenik');
+    socket.userRole = seat.role === 'trener'
+      ? 'trener'
+      : (previousSeat ? previousSeat.role : seat.role);
 
     activeRoomMembers[roomId][socket.userId] = {
       userId: socket.userId,
@@ -395,7 +418,22 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('pgn_loaded', { pgn });
   });
 
-  socket.on('audio_join', ({ roomId, isMuted }) => {
+  socket.on('audio_join', async ({ roomId, isMuted }) => {
+    // Asked again rather than trusted from the board join: voice is the part
+    // that ends up in a recording of children, and two paths into the same room
+    // must not be able to drift apart.
+    const seat = await mayJoinRoom(pool, {
+      roomCode: roomId,
+      userId: authUser ? authUser.id : null,
+    });
+    if (!seat.allowed) {
+      logger.warn(
+        `[AUDIO] Odbijen ulazak u glas ${roomId}: ${seat.reason} (korisnik ${authUser ? authUser.id : 'gost'})`
+      );
+      socket.emit('join_refused', { roomId, reason: seat.reason });
+      return;
+    }
+
     socket.join(roomId);
     const audioUserId = socket.userId || (authUser ? authUser.id : socket.id);
     socket.audioRoomId = roomId;

@@ -389,12 +389,11 @@ void showCreateRoomWithFriendsDialog(
                       final isSel = selectedFriendIds.contains(fId);
                       return CheckboxListTile(
                         dense: true,
+                        // Name only: the address stopped travelling in these
+                        // lists, and a picker never needed it.
                         title: Text(f['name'] ?? 'Prijatelj',
                             style: const TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.bold)),
-                        subtitle: Text(f['email'] ?? '',
-                            style: const TextStyle(
-                                fontSize: 10, color: Colors.grey)),
                         value: isSel,
                         onChanged: (val) {
                           setModalState(() {
@@ -540,9 +539,6 @@ void showScheduleSessionDialog(
                           dense: true,
                           title: Text(f['name'] ?? 'Prijatelj',
                               style: const TextStyle(fontSize: 12)),
-                          subtitle: Text(f['email'] ?? '',
-                              style: const TextStyle(
-                                  fontSize: 10, color: Colors.grey)),
                           value: isSel,
                           onChanged: (val) {
                             setModalState(() {

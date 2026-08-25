@@ -77,11 +77,15 @@ class HomeFriendsTab extends StatelessWidget {
         subtitle: Text(
           // Which of the two is being waited on decides what this row is for:
           // one is a reminder, the other is something to go and do.
+          //
+          // The address used to stand here and no longer arrives: a list of
+          // people, most of them children, is not the place for their emails.
+          // What is left is what the row is actually about.
           isPending
               ? (r['i_asked'] == true
-                  ? '${r['email'] ?? ''} — čeka potvrdu'
-                  : '${r['email'] ?? ''} — odgovorite u zvoncetu')
-              : (r['email'] ?? ''),
+                  ? 'Čeka potvrdu'
+                  : 'Odgovorite u zvoncetu')
+              : (iTeachThem ? 'Vaš učenik' : 'Vaš trener'),
         ),
         onTap: (isPending || !iTeachThem)
             ? null

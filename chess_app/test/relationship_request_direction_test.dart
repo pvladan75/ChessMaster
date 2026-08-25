@@ -139,7 +139,13 @@ void main() {
         onDeleteStudent: (_) => deleted++,
       )));
 
-      expect(find.textContaining('čeka potvrdu'), findsOneWidget);
+      expect(find.textContaining('Čeka potvrdu'), findsOneWidget);
+      // The address used to stand in this row. It does not travel any more:
+      // most of the people in these lists are children, and a list of people is
+      // not the place for their emails. The field for *inviting* somebody by
+      // address is a different thing and stays — hence the fixture's own
+      // address rather than any '@'.
+      expect(find.textContaining('v@example.com'), findsNothing);
 
       await tester.tap(find.byIcon(Icons.insights));
       await tester.tap(find.text('Vladan'));
@@ -252,7 +258,7 @@ void main() {
 
       expect(find.text('Moji treneri'), findsOneWidget);
       expect(find.text('pavle'), findsOneWidget);
-      expect(find.textContaining('odgovorite u zvoncetu'), findsOneWidget);
+      expect(find.textContaining('Odgovorite u zvoncetu'), findsOneWidget);
       // And no buttons: two places to answer one thing is what this removed.
       expect(find.byTooltip('Prihvati'), findsNothing);
     });
@@ -273,7 +279,7 @@ void main() {
         ],
       )));
 
-      expect(find.textContaining('čeka potvrdu'), findsOneWidget);
+      expect(find.textContaining('Čeka potvrdu'), findsOneWidget);
       expect(find.textContaining('zvoncetu'), findsNothing);
     });
 
@@ -294,7 +300,7 @@ void main() {
       )));
 
       expect(find.text('Moji treneri'), findsOneWidget);
-      expect(find.textContaining('čeka potvrdu'), findsOneWidget);
+      expect(find.textContaining('Čeka potvrdu'), findsOneWidget);
     });
 
     testWidgets('pulling down asks for fresh data', (tester) async {

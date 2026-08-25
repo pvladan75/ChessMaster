@@ -1330,3 +1330,28 @@ pa radi i kad je kvota potrošena — to je i deo provere.
 - [ ] Isključiti internet i vežbati dalje — pitanja i ocene rade, jer je sve
       naše; padne samo ako backend nije dostupan.
 - [ ] Na telefonu 360 dp: tabla, poruka i tri dugmeta staju bez sečenja.
+
+## 31. Soba sa spiskom zvanica i grupe — 25.8.2026, nije viđeno uživo
+
+Backend je napisan, ekrana za grupe još nema — proverava se ono što se vidi kroz
+postojeći tok. Treba dva naloga (trener i učenik) i pokrenut backend.
+
+- [ ] Trener napravi sobu, učenik sa **prihvaćenom vezom** uđe kodom — radi kao
+      i pre.
+- [ ] Nalog **bez veze** sa trenerom uđe istim kodom → poruka „Niste na spisku
+      za ovu sobu" i vraćanje nazad, a ne večno „povezivanje".
+- [ ] **Neprijavljen gost** sa kodom → „Ova soba ne prima goste". (Ranije je
+      ulazio i u tablu i u glas.)
+- [ ] Nepostojeći kod → „Ne postoji soba sa tim kodom".
+- [ ] U dnevniku backenda za svako odbijanje stoji `[SOBA] Odbijen ulazak` ili
+      `[AUDIO] Odbijen ulazak` sa razlogom.
+- [ ] Glas: odbijeni nalog ne može da uđe ni u glas ni kad pokuša direktno.
+
+Kad ekrani za grupe budu gotovi, ovde se dodaje i provera da „pozovi grupu"
+pušta unutra samo tu grupu.
+
+Uz to, sitno ali vidljivo:
+
+- [ ] U tabu „Ljudi" i u biračima učenika **više ne piše tuđ email** — stoji
+      ime i šta je taj red („Čeka potvrdu", „Vaš učenik"). Polje za pozivanje po
+      email-u i dalje postoji i radi.
