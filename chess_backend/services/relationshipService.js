@@ -13,6 +13,35 @@
 
 const logger = require('./logger');
 const { notify } = require('./notifications');
+// The one rule about age that this file has to obey, kept in one place so the
+// request and the acceptance cannot drift apart.
+const { mayRelate, startingVoiceLevel, ageStatus } = require('./ageService');
+// A minor's relationship does not begin when the two of them agree; it begins
+// when the parent says so. The step in between is `awaiting_parent`, which the
+// status column has allowed since it was written and nothing filled until now.
+const { openRequest } = require('./parentConsentService');
+
+/// Who to write to, and whose names go in the letter.
+///
+/// One query for all three because they are always wanted together, and one
+/// place because "no address on file" is a state the flow has to name rather
+/// than trip over: it is the difference between a parent who has not answered
+/// and a parent who was never asked.
+async function parentContactOf(pool, studentId, trainerId) {
+  const result = await pool.query(
+    `SELECT s.parent_email, s.name AS student_name, t.name AS trainer_name
+       FROM users s, users t
+      WHERE s.id = $1 AND t.id = $2`,
+    [studentId, trainerId],
+  );
+  const row = result.rows[0] ?? {};
+  const email = row.parent_email;
+  return {
+    parentEmail: email && String(email).trim() !== '' ? email : null,
+    studentName: row.student_name ?? null,
+    trainerName: row.trainer_name ?? null,
+  };
+}
 
 /// SQL fragment: the ids of the users who are `param`'s **accepted** trainers.
 ///
@@ -68,6 +97,7 @@ async function requestRelationship(pool, { initiatorId, otherId, initiatorIsTrai
   const trainerId = initiatorIsTrainer ? initiatorId : otherId;
   const studentId = initiatorIsTrainer ? otherId : initiatorId;
 
+
   // Both directions, not just the one being asked for. Looking only for
   // (trainer, student) let the reverse row through, because it is a different
   // row — which is how two people ended up teaching each other. Consent alone
@@ -114,11 +144,27 @@ async function requestRelationship(pool, { initiatorId, otherId, initiatorIsTrai
     };
   }
 
+  // A minor is somebody's student, never somebody's trainer. Asked at the last
+  // moment, once it is clear a row is actually going to be written: how old a
+  // child says they are is not a thing to look up in order to answer "that
+  // relationship already exists". Asked again when the request is answered — a
+  // request made before anybody had stated an age must not quietly become a
+  // relationship afterwards.
+  const age = await mayRelate(pool, { trainerId, studentId });
+  if (!age.allowed) {
+    return { ok: false, reason: age.message };
+  }
+
+  // The row says what it means rather than taking the column default. The
+  // default is `'talk'`, which exists to grandfather the relationships written
+  // before any of this — a new one starts where it should: a child listens.
+  const voiceLevel = await startingVoiceLevel(pool, studentId);
+
   const inserted = await pool.query(
-    `INSERT INTO trainer_students (trainer_id, student_id, status, initiated_by)
-     VALUES ($1, $2, 'pending', $3)
+    `INSERT INTO trainer_students (trainer_id, student_id, status, initiated_by, voice_level)
+     VALUES ($1, $2, 'pending', $3, $4)
      RETURNING id`,
-    [trainerId, studentId, initiatorId]
+    [trainerId, studentId, initiatorId, voiceLevel]
   );
 
   return { ok: true, id: inserted.rows[0].id, alreadyPending: false };
@@ -156,15 +202,48 @@ async function pendingForUser(pool, userId) {
 /// JavaScript first would leave a gap between the check and the write.
 async function respondToRequest(pool, { requestId, userId, accept }) {
   if (accept) {
+    // Asked before the write rather than woven into it. The UPDATE below still
+    // carries every rule about *who* may answer — a participant, not the
+    // sender, still pending — and that stays one statement. The age is a
+    // different kind of condition: it is read from the same service the request
+    // side reads it from, because a second hand-written copy of a rule about
+    // children is exactly what this codebase has paid for three times.
+    //
+    // It matters most here: every request that exists today was made while
+    // nobody had stated an age at all.
+    const pendingRow = await pool.query(
+      `SELECT trainer_id, student_id FROM trainer_students
+        WHERE id = $1 AND status = 'pending'`,
+      [requestId],
+    );
+    if (pendingRow.rows.length > 0) {
+      const age = await mayRelate(pool, {
+        trainerId: pendingRow.rows[0].trainer_id,
+        studentId: pendingRow.rows[0].student_id,
+      });
+      if (!age.allowed) {
+        return { ok: false, reason: age.message };
+      }
+    }
+
+    // Whether the parent has to be asked, decided **before** the write, so the
+    // row never spends a moment saying `accepted`. A relationship that is
+    // accepted for one statement and then corrected is a relationship that is
+    // accepted for whatever read happens in between.
+    const student = pendingRow.rows.length > 0
+      ? await ageStatus(pool, pendingRow.rows[0].student_id)
+      : { minor: false };
+    const nextStatus = student.minor ? 'awaiting_parent' : 'accepted';
+
     const updated = await pool.query(
       `UPDATE trainer_students
-          SET status = 'accepted', responded_at = CURRENT_TIMESTAMP
+          SET status = $3, responded_at = CURRENT_TIMESTAMP
         WHERE id = $1
           AND status = 'pending'
           AND initiated_by <> $2
           AND $2 IN (trainer_id, student_id)
         RETURNING trainer_id, student_id`,
-      [requestId, userId]
+      [requestId, userId, nextStatus]
     );
 
     if (updated.rows.length === 0) {
@@ -172,6 +251,37 @@ async function respondToRequest(pool, { requestId, userId, accept }) {
     }
 
     const { trainer_id: trainerId, student_id: studentId } = updated.rows[0];
+    // Reported the same way as on a decline, so the caller has one person to
+    // tell either way and does not work out "the other participant" itself.
+    const senderId = userId === trainerId ? studentId : trainerId;
+
+    if (student.minor) {
+      // Both people agreed; the relationship still does not exist. Nothing that
+      // an accepted edge unlocks — homework, reports, the room, the microphone —
+      // is reachable from `awaiting_parent`, and no row goes into `friends`.
+      await closeRequestNotification(pool, requestId);
+      const contact = await parentContactOf(pool, studentId, trainerId);
+      if (contact.parentEmail === null) {
+        // Said out loud rather than left as a row nobody is waiting on. The
+        // child has to add a parent's address before anybody can be asked, and
+        // silence here would look exactly like an email that got lost.
+        return {
+          ok: true, awaitingParent: true, missingParentEmail: true,
+          trainerId, studentId, senderId, ...contact,
+        };
+      }
+      const request = await openRequest(pool, {
+        relationshipId: requestId,
+        studentId,
+        trainerId,
+        parentEmail: contact.parentEmail,
+      });
+      return {
+        ok: true, awaitingParent: true, missingParentEmail: false,
+        consentLink: request.link,
+        trainerId, studentId, senderId, ...contact,
+      };
+    }
 
     // Friendship follows acceptance rather than the request. Creating it earlier
     // would put someone in your friend list without your ever agreeing.
@@ -182,10 +292,7 @@ async function respondToRequest(pool, { requestId, userId, accept }) {
     );
 
     await closeRequestNotification(pool, requestId);
-    // Reported the same way as on a decline, so the caller has one person to
-    // tell either way and does not work out "the other participant" itself.
-    const senderId = userId === trainerId ? studentId : trainerId;
-    return { ok: true, trainerId, studentId, senderId };
+    return { ok: true, awaitingParent: false, trainerId, studentId, senderId };
   }
 
   const deleted = await pool.query(
@@ -244,7 +351,8 @@ async function listStudents(pool, trainerId) {
   // list ends up on a screen it was never meant for. Whoever needs to write to
   // a student already knows how — they invited them by that very address.
   const result = await pool.query(
-    `SELECT u.id, u.name, ts.status, (ts.initiated_by = $1) AS i_asked
+    `SELECT u.id, u.name, ts.status, ts.voice_level,
+            (ts.initiated_by = $1) AS i_asked
        FROM users u
        JOIN trainer_students ts ON u.id = ts.student_id
       WHERE ts.trainer_id = $1
@@ -252,6 +360,33 @@ async function listStudents(pool, trainerId) {
     [trainerId]
   );
   return result.rows;
+}
+
+/// Grants or takes back the microphone for one student of this trainer.
+///
+/// A right rather than a request: it is read again when the voice token is
+/// issued, so taking it back holds even against a client that would rather not
+/// notice. The caller checks first that the student is theirs — through
+/// `trainerOwnsStudent`, the same place homework and reports are checked, since
+/// this is the same kind of decision about the same person.
+async function setVoiceLevel(pool, { trainerId, studentId, level }) {
+  if (level !== 'listen' && level !== 'talk') {
+    return { ok: false, reason: 'Glas može biti samo „listen" ili „talk".' };
+  }
+
+  const updated = await pool.query(
+    `UPDATE trainer_students
+        SET voice_level = $1
+      WHERE trainer_id = $2 AND student_id = $3 AND status = 'accepted'
+      RETURNING voice_level`,
+    [level, trainerId, studentId]
+  );
+  if (updated.rows.length === 0) {
+    return { ok: false, reason: 'Taj učenik nije vaš, ili veza još nije prihvaćena.' };
+  }
+  // Read back, not echoed: the value on the screen and the value in the row are
+  // two different things, and only one of them decides what the token says.
+  return { ok: true, level: updated.rows[0].voice_level };
 }
 
 /// The same edge read from the other end.
@@ -322,6 +457,30 @@ async function notifyAccept(pool, { recipientId, accepterId, accepterName }) {
   });
 }
 
+/// Tells the sender that the answer was yes and the relationship still has not
+/// started, because a parent has to say so.
+///
+/// Its own message rather than `notifyAccept` with different wording: "prihvaćen"
+/// and "čeka roditelja" are different states, and a trainer who reads the first
+/// one will go looking for a student who is not there yet.
+///
+/// It also carries whether the mail actually left. A parent who was never
+/// written to and a parent who has not replied look identical from the app, and
+/// only one of them is somebody's fault.
+async function notifyAwaitingParent(pool, { recipientId, accepterId, accepterName, delivered }) {
+  await notify(pool, {
+    recipientId,
+    senderId: accepterId,
+    title: 'Čeka se saglasnost roditelja',
+    message: delivered
+      ? `${accepterName} je prihvatio/la zahtev. Poslata je poruka roditelju — `
+        + 'veza počinje kad roditelj potvrdi.'
+      : `${accepterName} je prihvatio/la zahtev, ali poruka roditelju nije `
+        + 'poslata. Veza čeka saglasnost.',
+    kind: 'awaiting_parent',
+  });
+}
+
 /// Tells the sender that their request was answered with no.
 ///
 /// Without it a declined request simply vanishes: the row is deleted so that
@@ -345,11 +504,14 @@ module.exports = {
   acceptedTrainersOf,
   acceptedEdgeBetween,
   notifyAccept,
+  notifyAwaitingParent,
   notifyDecline,
   requestRelationship,
+  parentContactOf,
   pendingForUser,
   respondToRequest,
   listStudents,
+  setVoiceLevel,
   listTrainers,
   removeRelationship,
   notifyRequest,

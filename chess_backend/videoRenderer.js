@@ -111,7 +111,7 @@ async function renderFrameBuffer({
     ctx.font = `bold ${cfg.fontSizeTitle}px sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`♟ ${title || 'Snimak Časa - Chess Master'}`, offsetX, offsetY / 2);
+    ctx.fillText(`♟ ${title || 'Snimak časa'}`, offsetX, offsetY / 2);
   }
 
   // Timer & Status Badge

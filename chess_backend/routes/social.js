@@ -7,6 +7,8 @@ const { getUserStats } = require('../limitsService');
 const relationships = require('../services/relationshipService');
 const realtime = require('../services/realtime');
 const { notify } = require('../services/notifications');
+const { ownsRoom } = require('../services/roomAccess');
+const mailService = require('../services/mailService');
 
 /// Tells a user, if they are looking right now, that something about their
 /// relationships changed — so the bell and the list refresh themselves instead
@@ -138,6 +140,65 @@ router.post('/relationships/:id/accept', authenticateToken, async (req, res) => 
     });
     if (!result.ok) return res.status(403).json({ error: result.reason });
 
+    // A minor's relationship stops here: both sides agreed, and the parent has
+    // not. Saying "odnos je uspostavljen" would be the exact failure this
+    // codebase keeps paying for — a step that did not happen, reported as
+    // success one layer up — and here it would tell a trainer they may teach a
+    // child they may not.
+    if (result.awaitingParent) {
+      if (result.missingParentEmail) {
+        await relationships.notifyAwaitingParent(pool, {
+          recipientId: result.senderId,
+          accepterId: req.user.id,
+          accepterName: req.user.name || 'Korisnik',
+          delivered: false,
+        });
+        nudge(result.senderId);
+        return res.json({
+          status: 'awaiting_parent',
+          parentEmailMissing: true,
+          message: 'Potrebna je saglasnost roditelja, a na nalogu učenika nema '
+            + 'adrese roditelja. Učenik je treba uneti u Podešavanjima.',
+        });
+      }
+
+      let delivered = true;
+      let deliveryError = null;
+      try {
+        await mailService.sendParentConsentRequest(result.parentEmail, {
+          childName: result.studentName,
+          trainerName: result.trainerName,
+          link: result.consentLink,
+        });
+      } catch (mailErr) {
+        // Not fatal and not hidden. The request row stands, so the link can be
+        // sent again; what must not happen is the app reporting that a parent
+        // was asked when nothing left the server.
+        delivered = false;
+        deliveryError = mailErr.message;
+        logger.error('[SAGLASNOST] Poruka roditelju nije poslata:', mailErr);
+      }
+
+      await relationships.notifyAwaitingParent(pool, {
+        recipientId: result.senderId,
+        accepterId: req.user.id,
+        accepterName: req.user.name || 'Korisnik',
+        delivered,
+      });
+      nudge(result.senderId);
+
+      return res.json({
+        status: 'awaiting_parent',
+        parentEmailMissing: false,
+        mailDelivered: delivered,
+        deliveryError,
+        message: delivered
+          ? 'Poslata je poruka roditelju. Veza počinje kad roditelj potvrdi.'
+          : 'Veza čeka saglasnost roditelja, ali poruka nije mogla da se '
+            + 'pošalje. Pokušajte ponovo iz spiska učenika.',
+      });
+    }
+
     await relationships.notifyAccept(pool, {
       recipientId: result.senderId,
       accepterId: req.user.id,
@@ -145,7 +206,7 @@ router.post('/relationships/:id/accept', authenticateToken, async (req, res) => 
     });
     nudge(result.senderId);
 
-    res.json({ message: 'Odnos je uspostavljen.' });
+    res.json({ status: 'accepted', message: 'Odnos je uspostavljen.' });
   } catch (err) {
     logger.error('Error accepting relationship:', err);
     res.status(500).json({ error: 'Greška pri prihvatanju.' });
@@ -201,6 +262,44 @@ router.get('/students/trainers', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Error fetching trainers:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju liste.' });
+  }
+});
+
+// PATCH /trainer/students/:studentId/voice  { level: 'listen' | 'talk' }
+//
+// The trainer decides whether this student speaks in their room. It is not a
+// button on the student's screen and not a setting on the account: it is a row
+// the voice token is minted from, so it holds against any client.
+//
+// A student who is in a room right now is told, so their app rejoins the channel
+// with a token that matches — otherwise taking the microphone back would apply
+// only from the next lesson, which is not what anybody would expect it to mean.
+router.patch('/trainer/students/:studentId/voice', authenticateToken, async (req, res) => {
+  const studentId = Number.parseInt(req.params.studentId, 10);
+  if (!Number.isInteger(studentId)) {
+    return res.status(400).json({ error: 'Neispravan učenik.' });
+  }
+
+  try {
+    const result = await relationships.setVoiceLevel(pool, {
+      trainerId: req.user.id,
+      studentId,
+      level: req.body?.level,
+    });
+    if (!result.ok) return res.status(403).json({ error: result.reason });
+
+    realtime.emitToUser(studentId, 'voice_level_changed', {
+      level: result.level,
+      trainerId: req.user.id,
+    });
+
+    logger.info(
+      `[GLAS] Trener ${req.user.id} je učeniku ${studentId} postavio glas na ${result.level}`
+    );
+    res.json({ level: result.level });
+  } catch (err) {
+    logger.error('[GLAS] Nivo glasa nije mogao da se promeni:', err);
+    res.status(500).json({ error: 'Promena nije mogla da se sačuva.' });
   }
 });
 
@@ -294,49 +393,25 @@ router.get('/friends', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /friends/add
-router.post('/friends/add', authenticateToken, async (req, res) => {
-  const { friendEmail } = req.body;
-  const userId = req.user.id;
-
-  if (!friendEmail) {
-    return res.status(400).json({ error: 'Email prijatelja je obavezan.' });
-  }
-
-  try {
-    const friendRes = await pool.query('SELECT id, name, email FROM users WHERE email = $1', [friendEmail]);
-    if (friendRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Korisnik sa datim email-om nije pronađen.' });
-    }
-
-    const friend = friendRes.rows[0];
-    if (friend.id === userId) {
-      return res.status(400).json({ error: 'Ne možete dodati sami sebe.' });
-    }
-
-    await pool.query('INSERT INTO friends (user_id, friend_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, friend.id]);
-    await pool.query('INSERT INTO friends (user_id, friend_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [friend.id, userId]);
-
-    res.json({ message: 'Prijatelj uspešno dodat.', friend });
-  } catch (err) {
-    logger.error('Error adding friend:', err);
-    res.status(500).json({ error: 'Greška pri dodavanju prijatelja.' });
-  }
-});
-
-// DELETE /friends/:friendId
-router.delete('/friends/:friendId', authenticateToken, async (req, res) => {
-  const userId = req.user.id;
-  const { friendId } = req.params;
-
-  try {
-    await pool.query('DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)', [userId, friendId]);
-    res.json({ message: 'Prijatelj uspešno uklonjen.' });
-  } catch (err) {
-    logger.error('Error removing friend:', err);
-    res.status(500).json({ error: 'Greška pri uklanjanju prijatelja.' });
-  }
-});
+// There is deliberately no POST /friends/add, and no DELETE either.
+//
+// It existed until 25.8.2026: it took an **email**, found the user and wrote the
+// row **in both directions with nobody's consent**. Anyone who knew a child's
+// address could put themselves on that child's list, and `GET /friends` then
+// handed back the name and the address of everyone on it. It was the one hole
+// in a consent model that is honoured everywhere else in this app — and the
+// closest thing here to a social network.
+//
+// Removed rather than given a request flow, because there was nothing to keep:
+// no screen in the app ever called it. The dead client code went with it.
+//
+// So a `friends` row now has exactly one origin: an accepted trainer–student
+// relationship writes the pair, and ending that relationship deletes it. Every
+// connection in this app is therefore something both sides agreed to, and a
+// minor's only connection is an adult who teaches them. If friendship between
+// adults is ever wanted as a feature of its own, it gets the same
+// pending → accepted edge that `trainer_students` already has; what it does not
+// get is a second way in that skips the asking.
 
 // GET /notifications
 router.get('/notifications', authenticateToken, async (req, res) => {
@@ -402,13 +477,30 @@ router.post('/invitations/send', authenticateToken, async (req, res) => {
   }
 
   try {
+    // Only people this sender is actually in a relationship with. The list of
+    // ids arrives from the client, so without this anybody could push a
+    // notification naming themselves at any user id they cared to type — and
+    // most of the ids in this app belong to children. Being unable to reach
+    // somebody who never agreed to be taught by you is the whole model.
+    const allowed = [];
+    for (const targetId of targetIds) {
+      if (await relationships.acceptedEdgeBetween(pool, senderId, targetId)) {
+        allowed.push(targetId);
+      }
+    }
+    if (allowed.length === 0) {
+      return res.status(403).json({
+        error: 'Poziv se šalje samo učeniku ili treneru koji je prihvatio vezu.',
+      });
+    }
+
     const senderRes = await pool.query('SELECT name FROM users WHERE id = $1', [senderId]);
     const senderName = senderRes.rows[0]?.name || 'Trener/Prijatelj';
 
     const title = 'Poziv na čas šaha';
     const message = `${senderName} vas poziva da se pridružite šahovskom času u sobi: ${roomCode}`;
 
-    for (const targetId of targetIds) {
+    for (const targetId of allowed) {
       await notify(pool, {
         recipientId: targetId,
         senderId,
@@ -418,7 +510,16 @@ router.post('/invitations/send', authenticateToken, async (req, res) => {
       });
     }
 
-    res.json({ success: true, message: 'Pozivnica uspešno poslata.' });
+    // Said out loud when part of the list was dropped: a silent partial success
+    // is how somebody concludes the app is broken and sends it four more times.
+    res.json({
+      success: true,
+      message: allowed.length === targetIds.length
+        ? 'Pozivnica uspešno poslata.'
+        : `Pozivnica poslata: ${allowed.length} od ${targetIds.length}. `
+          + 'Ostali nisu u prihvaćenoj vezi sa vama.',
+      sent: allowed.length,
+    });
   } catch (err) {
     logger.error('Error sending invitation:', err);
     res.status(500).json({ error: 'Greška pri slanju pozivnice.' });
@@ -435,6 +536,18 @@ router.post('/sessions/schedule', authenticateToken, async (req, res) => {
   }
 
   try {
+    // The room has to be the caller's own. An invitation to a scheduled session
+    // is one of the ways into a room (`roomAccess.mayJoinRoom`), so scheduling
+    // one on a room code that belongs to somebody else is writing yourself a
+    // key. `mayJoinRoom` now also checks who the host was, so this is the second
+    // lock on the same door — deliberately, because the first one was missing
+    // for a day.
+    if (!(await ownsRoom(pool, { roomCode, userId: hostId }))) {
+      return res.status(403).json({
+        error: 'Čas se zakazuje u svojoj sobi. Napravite sobu pa je zakažite.',
+      });
+    }
+
     const sessionRes = await pool.query(
       `INSERT INTO scheduled_sessions (host_id, room_code, title, description, scheduled_at)
        VALUES ($1, $2, $3, $4, $5) RETURNING id`,
@@ -445,6 +558,12 @@ router.post('/sessions/schedule', authenticateToken, async (req, res) => {
 
     if (invites && Array.isArray(invites) && invites.length > 0) {
       for (const userId of invites) {
+        // Same rule as everywhere else: an invitation is not a way around
+        // consent. Somebody who never accepted you is not invited, quietly
+        // skipped rather than refusing the whole schedule.
+        if (!(await relationships.acceptedEdgeBetween(pool, hostId, userId))) {
+          continue;
+        }
         await pool.query(
           `INSERT INTO scheduled_session_invites (session_id, user_id)
            VALUES ($1, $2) ON CONFLICT DO NOTHING`,

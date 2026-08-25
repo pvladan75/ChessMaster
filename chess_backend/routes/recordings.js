@@ -10,6 +10,8 @@ const { requireEntitlement } = require('../middleware/entitlements');
 const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
 const videoRenderer = require('../videoRenderer');
 const { trimPauses } = require('../services/audioTrimmer');
+const realtime = require('../services/realtime');
+const { mayRecordRoom } = require('../services/recordingConsent');
 
 const uploadStorage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -49,6 +51,77 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
 
   if (!roomId || !title || !timelineJson) {
     return res.status(400).json({ error: 'Polja roomId, title i timelineJson su obavezna.' });
+  }
+
+  // The second lock on the same door. The socket refuses to *start* a recording
+  // that a parent has not agreed to, but a client that never announced one can
+  // still arrive here with a finished file — and this is the moment a child's
+  // voice would land in `uploads/`, which is the one thing in this project that
+  // cannot be reproduced or taken back.
+  //
+  // `null` is a third answer and not a pass: the roster lives in memory, so a
+  // backend restarted mid-lesson has forgotten who was there. The save then
+  // goes through — refusing would destroy a real lesson over the server's own
+  // restart — and says so, rather than reporting a check that never ran as one
+  // that passed.
+  // Multer has already written the file by the time any of this runs. Leaving
+  // it behind on a refusal would put exactly the voice these checks exist for
+  // into `uploads/`, refused or not.
+  const discardUpload = () => {
+    if (!req.file) return;
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (unlinkErr) {
+      logger.error('[SNIMANJE] Odbijen snimak nije mogao da se obriše:', unlinkErr);
+    }
+  };
+
+  // **Three answers, not two.** "The recording was stopped because a parent
+  // refused", "the server does not remember" and "everybody here may be
+  // recorded" are three different things, and on 25.8.2026 the first was being
+  // reported as the second: the join handler threw the roster away, so a save
+  // thirteen seconds after a stop the server itself ordered came back as
+  // *"restart usred časa?"*. Same shape as `accountGuard`, and for the same
+  // reason — a state nobody can name is a state nobody enforces.
+  const stopped = realtime.consentStop(roomId);
+  if (stopped && !stopped.obeyed) {
+    // The client was told to stop and never said it did. That is the client
+    // this rule exists to survive, and its file is the one that may contain a
+    // child whose parent refused.
+    discardUpload();
+    logger.warn(
+      `[SNIMANJE] Odbijen upis snimka za sobu ${roomId}: snimanje je zaustavljeno `
+      + 'zbog saglasnosti roditelja, a soba nikada nije javila da je stala.',
+    );
+    return res.status(403).json({
+      error: stopped.reason
+        || 'Snimanje je zaustavljeno jer roditelj nije dozvolio snimanje.',
+      blocked: stopped.blocked,
+    });
+  }
+
+  const roster = realtime.recordedRoster(roomId);
+  let consentUnverified = false;
+  if (roster === null) {
+    consentUnverified = true;
+    logger.warn(
+      `[SNIMANJE] Saglasnost nije mogla da se proveri za sobu ${roomId} — `
+      + 'server ne pamti ko je bio na času (restart usred časa?).',
+    );
+  } else {
+    const verdict = await mayRecordRoom(pool, { roomCode: roomId, userIds: roster });
+    if (!verdict.allowed) {
+      discardUpload();
+      logger.warn(`[SNIMANJE] Odbijen upis snimka za sobu ${roomId}: ${verdict.reason}`);
+      return res.status(403).json({ error: verdict.reason, blocked: verdict.blocked });
+    }
+    if (stopped) {
+      logger.info(
+        `[SNIMANJE] Upis za sobu ${roomId} je deo snimljen pre prekida zbog `
+        + 'saglasnosti roditelja; soba je javila prekid i taj deo se čuva.',
+      );
+    }
+    realtime.clearRecordedRoster(roomId);
   }
 
   let pauseIntervals = req.body.pauseIntervals;
@@ -100,12 +173,43 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
       } catch (e) {}
     }
 
+    // The client sends whoever was in the room when the trainer pressed save —
+    // which, after a stop for consent, includes the child who had just walked
+    // in and is not in the recording at all. Leaving them there would write a
+    // refused child into the roll of a recording they were never part of, and
+    // `participants` is also who may play it back (`$1 = ANY(sr.participants)`),
+    // so it would show up as *theirs*.
+    if (stopped && stopped.blocked.length > 0) {
+      const before = participantIds.length;
+      participantIds = participantIds
+        .filter((id) => !stopped.blocked.includes(Number(id)));
+      if (participantIds.length !== before) {
+        logger.info(
+          `[SNIMANJE] Iz spiska učesnika snimka uklonjen je onaj zbog koga je `
+          + `snimanje stalo (soba ${roomId}).`,
+        );
+      }
+    }
+
     const result = await pool.query(
       `INSERT INTO session_recordings (room_id, host_id, title, audio_url, timeline_json, participants)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, room_id, title, created_at`,
       [roomId, req.user.id, title, finalAudioUrl, JSON.stringify(timelineJson), participantIds]
     );
-    res.status(201).json({ message: 'Snimak časa je uspešno sačuvan.', recording: result.rows[0] });
+    let message = 'Snimak časa je uspešno sačuvan.';
+    if (consentUnverified) {
+      message = 'Snimak je sačuvan, ali server nije mogao da proveri saglasnost '
+        + 'za snimanje — proverite je pre nego što snimak podelite.';
+    } else if (stopped) {
+      message = 'Snimanje je zaustavljeno jer roditelj nije dozvolio snimanje. '
+        + 'Sačuvan je samo deo snimljen pre nego što je učenik ušao na čas.';
+    }
+    res.status(201).json({
+      message,
+      consentUnverified,
+      consentStopped: !!stopped,
+      recording: result.rows[0],
+    });
   } catch (err) {
     logger.error('Error saving recording:', err);
     res.status(500).json({ error: 'Greška pri čuvanju snimka časa: ' + err.message });

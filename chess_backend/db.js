@@ -197,6 +197,28 @@ async function initDB() {
       ALTER TABLE trainer_students ADD CONSTRAINT trainer_students_status_check
         CHECK (status IN ('pending', 'awaiting_parent', 'accepted'));
     `);
+
+    // Whether this student may **speak** in this trainer's room, or only listen
+    // and answer on the board.
+    //
+    // It sits on the relationship rather than on the account because that is
+    // where it is true: the same child can be listening-only with a trainer they
+    // met last week and talking with the one they have had for two years.
+    //
+    // `'talk'` is the default so that every relationship that already exists
+    // keeps working exactly as it did — the same grandfathering `status` uses
+    // above. New rows do **not** take the default: `requestRelationship` writes
+    // the value it means, and for a student known to be a minor that is
+    // `'listen'`. A default that silently muted forty existing students would
+    // be its own kind of failure.
+    await client.query(`
+      ALTER TABLE trainer_students
+        ADD COLUMN IF NOT EXISTS voice_level VARCHAR(10) NOT NULL DEFAULT 'talk';
+      ALTER TABLE trainer_students DROP CONSTRAINT IF EXISTS trainer_students_voice_check;
+      ALTER TABLE trainer_students ADD CONSTRAINT trainer_students_voice_check
+        CHECK (voice_level IN ('listen', 'talk'));
+    `);
+    logger.info('Verified database table: trainer_students (with voice_level)');
     logger.info('Verified database table: trainer_students (with consent columns)');
     
     // Add account_type column to users table if missing
@@ -205,6 +227,88 @@ async function initDB() {
       ADD COLUMN IF NOT EXISTS account_type VARCHAR(50) DEFAULT 'free';
     `);
     logger.info('Verified database table: users (with account_type)');
+
+    // The year the user says they were born, and when they said it.
+    //
+    // A year, not a date: it answers the only question asked of it — which side
+    // of the age of consent somebody is on — and it is one field less about a
+    // child. Within the year of a birthday it is ambiguous by one, and
+    // `ageService.statedAge` resolves that towards the *younger* reading.
+    //
+    // NULL is the honest state and today it is every row: nothing has ever
+    // asked. It must not read as "adult" anywhere, which is why the check lives
+    // in one service rather than in each caller.
+    await client.query(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS birth_year INTEGER,
+        ADD COLUMN IF NOT EXISTS birth_year_stated_at TIMESTAMPTZ;
+      ALTER TABLE users DROP CONSTRAINT IF EXISTS users_birth_year_check;
+      ALTER TABLE users ADD CONSTRAINT users_birth_year_check
+        CHECK (birth_year IS NULL OR (birth_year > 1900 AND birth_year < 2200));
+    `);
+    logger.info('Verified database table: users (with birth_year)');
+
+    // The consent that sits on the **account**: may this child use the
+    // interactive part of the app at all. It is not the same question as the
+    // one already on `trainer_students`, which asks whether *this* trainer may
+    // teach them, see their homework and record them — the first answers "may
+    // the child be here", the second "may it be him".
+    //
+    // `parent_consent_version` records **which text** was agreed to. The wording
+    // was confirmed by a lawyer on 25.8.2026 for Serbia only, so it will change
+    // when the country list does, and a consent record that cannot say what was
+    // consented to is not a record.
+    await client.query(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS parent_email VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS parent_consent_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS parent_consent_ip VARCHAR(64),
+        ADD COLUMN IF NOT EXISTS parent_consent_version VARCHAR(40);
+    `);
+    logger.info('Verified database table: users (with parent consent columns)');
+
+    // Whether the parent agreed to the **recording** — item 3 of the approved
+    // form, and the only one of the three that is optional: a child may attend
+    // lessons with it refused.
+    //
+    // Three states, not two. NULL means nobody has been asked, and it must not
+    // read as "no" any more than it reads as "yes": every relationship that
+    // exists today is NULL, and treating that as a refusal would turn recording
+    // off for forty running courses on the strength of a column that was empty
+    // an hour ago.
+    await client.query(`
+      ALTER TABLE trainer_students
+        ADD COLUMN IF NOT EXISTS parent_allows_recording BOOLEAN;
+    `);
+
+    // The request a parent is actually answering: one row per ask, addressed to
+    // one email, reachable by one link.
+    //
+    // The token is stored **hashed**. Nothing ever needs the original back — the
+    // parent has it in their mail — so keeping it would only mean that a leaked
+    // backup is a pile of working links into children's records.
+    //
+    // `text_version` is copied onto the request rather than read at answer time:
+    // the parent agrees to the text they were shown, and the text will change
+    // when the country list does.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS parent_consent_requests (
+        id SERIAL PRIMARY KEY,
+        relationship_id INTEGER NOT NULL REFERENCES trainer_students(id) ON DELETE CASCADE,
+        student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        trainer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        parent_email VARCHAR(255) NOT NULL,
+        token_hash VARCHAR(64) NOT NULL UNIQUE,
+        text_version VARCHAR(40) NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMPTZ NOT NULL,
+        answered_at TIMESTAMPTZ,
+        granted BOOLEAN
+      );
+      CREATE INDEX IF NOT EXISTS parent_consent_requests_relationship
+        ON parent_consent_requests (relationship_id);
+    `);
+    logger.info('Verified database table: parent_consent_requests');
 
     // Add created_at column to rooms table if missing
     await client.query(`

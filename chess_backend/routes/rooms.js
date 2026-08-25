@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { guestAccess, setGuestAccess } = require('../services/roomAccess');
 
 /// Six digits, from the cryptographic source rather than from `Math.random()`.
 ///
@@ -59,6 +60,57 @@ router.post('/join', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Room join error:', err);
     res.status(500).json({ error: 'Greška pri pridruživanju sobi' });
+  }
+});
+
+// GET /rooms/:roomCode/guest-access
+//
+// Only the room's creator, and a plain 403 for anybody else: whether a room is
+// open to strangers is not a thing to learn about somebody else's room.
+router.get('/:roomCode/guest-access', authenticateToken, async (req, res) => {
+  try {
+    const allowGuests = await guestAccess(pool, {
+      roomCode: req.params.roomCode,
+      userId: req.user.id,
+    });
+    if (allowGuests === null) {
+      return res.status(403).json({ error: 'Ta soba nije vaša.' });
+    }
+    res.json({ allowGuests });
+  } catch (err) {
+    logger.error('[SOBA] Prekidač za goste nije mogao da se pročita:', err);
+    res.status(500).json({ error: 'Podešavanje sobe nije moglo da se pročita.' });
+  }
+});
+
+// PATCH /rooms/:roomCode/guest-access  { allowGuests }
+//
+// The body has to say which way, in so many words. `undefined` used to be a
+// perfectly good `false` in JavaScript, and a switch that turns itself off
+// because a field was misspelt is the quiet failure this project keeps paying
+// for — here it would quietly *open* or *close* a room full of children.
+router.patch('/:roomCode/guest-access', authenticateToken, async (req, res) => {
+  const wanted = req.body?.allowGuests;
+  if (wanted !== true && wanted !== false) {
+    return res.status(400).json({ error: 'Nedostaje allowGuests (true ili false).' });
+  }
+
+  try {
+    const allowGuests = await setGuestAccess(pool, {
+      roomCode: req.params.roomCode,
+      userId: req.user.id,
+      allowGuests: wanted,
+    });
+    if (allowGuests === null) {
+      return res.status(403).json({ error: 'Ta soba nije vaša.' });
+    }
+    logger.info(
+      `[SOBA] ${req.params.roomCode}: gosti ${allowGuests ? 'dozvoljeni' : 'zabranjeni'} (korisnik ${req.user.id})`,
+    );
+    res.json({ allowGuests });
+  } catch (err) {
+    logger.error('[SOBA] Prekidač za goste nije mogao da se promeni:', err);
+    res.status(500).json({ error: 'Podešavanje sobe nije moglo da se sačuva.' });
   }
 });
 

@@ -26,11 +26,15 @@ const openingExplorerRoutes = require('./routes/openingExplorer');
 const openingJudgeRoutes = require('./routes/openingJudge');
 const repertoireRoutes = require('./routes/repertoire');
 const groupRoutes = require('./routes/groups');
-const { authenticateToken, requireRole, verifySocketToken } = require('./middleware/auth');
+const accountRoutes = require('./routes/account');
+const consentRoutes = require('./routes/consent');
+const { authenticateToken, requireRole, authenticateSocket } = require('./middleware/auth');
 const entitlementService = require('./services/entitlementService');
 const realtime = require('./services/realtime');
-const { mayJoinRoom } = require('./services/roomAccess');
+const { mayJoinRoom, maySpeakInRoom } = require('./services/roomAccess');
+const { mayRecordRoom } = require('./services/recordingConsent');
 const { cleanupOldExports } = require('./services/retentionService');
+const { corsVerdict, parseAllowedOrigins } = require('./services/corsPolicy');
 
 const app = express();
 const server = http.createServer(app);
@@ -46,11 +50,12 @@ app.set('trust proxy', 1);
 
 // Browser origins permitted to call the API, as a comma-separated ALLOWED_ORIGINS list.
 // Native Android/Windows clients send no Origin header and are always allowed.
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
+const ALLOWED_ORIGINS = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
 
+/// Kept for the socket handshake, which only needs a yes or no.
+///
+/// It has no request to look at, so it cannot recognise our own page — and it
+/// does not have to: the consent page opens no socket.
 function isOriginAllowed(origin) {
   if (!origin) return true; // native client, curl, or same-origin request
   return ALLOWED_ORIGINS.includes(origin);
@@ -86,11 +91,16 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // CORS headers middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin && isOriginAllowed(origin)) {
+  // `same-origin` is the answer that was missing until 25.8.2026: the parent's
+  // consent page is served by this server and posts back to it, so its form
+  // carried an Origin that was not on the list and was refused. The page opened
+  // (navigation sends no Origin) and only the button failed.
+  const verdict = corsVerdict(origin, req.headers.host, ALLOWED_ORIGINS);
+  if (verdict === 'allowed') {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-  } else if (origin) {
+  } else if (verdict === 'blocked') {
     logger.warn(`[CORS] Blocked request from disallowed origin: ${origin}`);
     return res.status(403).json({ error: 'Origin not allowed' });
   }
@@ -104,7 +114,7 @@ app.use((req, res, next) => {
 
 // Basic health check endpoints
 app.get(['/', '/health', '/api/health'], (req, res) => {
-  res.json({ status: 'ok', message: 'Chess Master backend is running', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', message: 'backend is running', timestamp: new Date().toISOString() });
 });
 
 // NOTE: the former POST /admin/reset-all-users route was removed. It ran
@@ -130,6 +140,10 @@ app.use('/opening-explorer', openingExplorerRoutes);
 app.use('/opening-judge', openingJudgeRoutes);
 app.use('/repertoire', repertoireRoutes);
 app.use('/groups', groupRoutes);
+app.use('/', accountRoutes);
+// The parent's page. Mounted at the root and deliberately unauthenticated:
+// the person it is for has no account here, and the link is the whole lock.
+app.use('/', consentRoutes);
 app.use('/', socialRoutes);
 
 // SOCKET.IO REALTIME EVENTS
@@ -141,6 +155,7 @@ const roomAudioUsers = {}; // roomId -> { userId -> { socketId, userId, userName
 // database until the recipient restarted the app.
 const onlineUsers = realtime.onlineUsers;
 const activeRoomMembers = {}; // roomId -> { userId -> { name, role } }
+
 
 /// Books the voice time a socket has been connected for.
 ///
@@ -169,10 +184,10 @@ async function flushAudioUsage(socket) {
 // Reject connections carrying a bad token; allow tokenless guests through read-only.
 // socket.data.user is the ONLY trusted identity — client-supplied userId/role in event
 // payloads is treated as a hint at best and never as authorization.
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   const token = socket.handshake.auth?.token || socket.handshake.query?.token;
   try {
-    socket.data.user = verifySocketToken(token);
+    socket.data.user = await authenticateSocket(token);
     next();
   } catch (err) {
     logger.warn(`[SOCKET AUTH] Rejected connection ${socket.id}: ${err.message}`);
@@ -200,6 +215,37 @@ async function canAdministerRoom(socket, roomId) {
   if (await isRoomCreator(roomId, user.id)) return true;
   const member = activeRoomMembers[roomId] && activeRoomMembers[roomId][user.id];
   return !!member && (member.role === 'host' || member.role === 'trener');
+}
+
+/// Tells the room whether it may be recorded right now, and why not.
+///
+/// Emitted whenever the roster changes rather than asked for: the answer
+/// depends entirely on who is in the room, so the moment it can change is the
+/// moment the roster does. That is also what lets the app draw a disabled
+/// record button with the reason on it instead of a button that fails when
+/// pressed — a control that looks available and is not is the same surprise as
+/// one that works while its button is hidden.
+///
+/// A hint, not the lock. The lock is in `recording_status_update`, because a
+/// client that never asks is exactly the case a rule about children has to
+/// survive.
+async function emitRecordingConsent(roomId) {
+  try {
+    const verdict = await mayRecordRoom(pool, {
+      roomCode: roomId,
+      userIds: Object.keys(activeRoomMembers[roomId] ?? {}),
+    });
+    io.to(roomId).emit('recording_consent', {
+      roomId,
+      allowed: verdict.allowed,
+      reason: verdict.reason,
+      blocked: verdict.blocked,
+    });
+  } catch (err) {
+    // Deliberately not silent, and deliberately not fatal: the button stays as
+    // it was and the lock still holds when it is pressed.
+    logger.error(`[SNIMANJE] Stanje saglasnosti za sobu ${roomId} nije poslato:`, err);
+  }
 }
 
 function denyPrivileged(socket, event, roomId) {
@@ -296,6 +342,39 @@ io.on('connection', (socket) => {
     socket.emit('role_changed', { newRole: socket.userRole });
     io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
 
+    // Somebody walked into a lesson that is being recorded. If their parent has
+    // not agreed to that, the recording stops — it does not refuse them the
+    // lesson. The approved consent text says the class must not be recorded,
+    // not that the child must not attend, and shutting a child out of their own
+    // lesson over their parent's paperwork would be the wrong half to give up.
+    //
+    // What was recorded before they arrived is theirs to keep: they were not in
+    // it.
+    await emitRecordingConsent(roomId);
+
+    if (realtime.noteRecordedParticipant(roomId, socket.userId)) {
+      const verdict = await mayRecordRoom(pool, {
+        roomCode: roomId,
+        userIds: [socket.userId],
+      });
+      if (!verdict.allowed) {
+        logger.warn(`[SNIMANJE] Zaustavljeno u sobi ${roomId}: ${verdict.reason}`);
+        // Recorded rather than forgotten. The roster survives without the
+        // newcomer — the part already recorded does not contain them — and the
+        // save can tell this apart from a server that was restarted and knows
+        // nothing, which is the difference the log was lying about.
+        realtime.stopRecordingForConsent(roomId, {
+          reason: verdict.reason,
+          blocked: [socket.userId],
+        });
+        io.to(roomId).emit('recording_must_stop', {
+          roomId,
+          reason: verdict.reason,
+          blocked: verdict.blocked,
+        });
+      }
+    }
+
     try {
       const roomRes = await pool.query('SELECT * FROM rooms WHERE room_code = $1', [roomId]);
       if (roomRes.rows.length > 0) {
@@ -344,6 +423,53 @@ io.on('connection', (socket) => {
     if (!(await canAdministerRoom(socket, roomId))) {
       return denyPrivileged(socket, 'recording_status_update', roomId);
     }
+
+    const starting = status === 'started' || status === 'resumed';
+    if (starting) {
+      const members = Object.keys(activeRoomMembers[roomId] ?? {});
+
+      // Who was here when recording was *attempted*, recorded before the
+      // verdict rather than after it.
+      //
+      // It used to be written only when the attempt succeeded, and that left
+      // the second lock holding nothing: a refused start created no roster, so
+      // the upload that followed found none and fell into "the check could not
+      // run", which lets the save through. A client that ignores
+      // `recording_denied` and uploads anyway — which is exactly the client
+      // this rule has to survive — walked straight past it.
+      if (status === 'started') {
+        realtime.beginRecordingRoster(roomId, members);
+      } else {
+        // Resuming adds to the record rather than replacing it: a pause does
+        // not unhear the first half, and a roster restarted here would leave
+        // whoever was recorded before the pause out of the check at save time.
+        for (const id of members) realtime.noteRecordedParticipant(roomId, id);
+      }
+
+      // The lock, as opposed to the request. The app asks before it starts and
+      // draws a disabled button, but a client that does not ask is exactly the
+      // case a rule about children has to survive — so the answer is decided
+      // here, where the server knows who is in the room.
+      const verdict = await mayRecordRoom(pool, { roomCode: roomId, userIds: members });
+      if (!verdict.allowed) {
+        logger.warn(`[SNIMANJE] Odbijeno u sobi ${roomId}: ${verdict.reason}`);
+        socket.emit('recording_denied', {
+          roomId,
+          reason: verdict.reason,
+          blocked: verdict.blocked,
+        });
+        return;
+      }
+    }
+
+    if (status === 'stopped') {
+      // The room answering a stop this server ordered. Kept as a fact, because
+      // the alternative is assuming it: a client that ignores
+      // `recording_must_stop` never sends this, and its upload is the one the
+      // save has to refuse.
+      realtime.noteRecordingStopped(roomId);
+    }
+
     socket.to(roomId).emit('recording_status_changed', {
       status,
       recordingStartTimeMs,
@@ -422,7 +548,12 @@ io.on('connection', (socket) => {
     // Asked again rather than trusted from the board join: voice is the part
     // that ends up in a recording of children, and two paths into the same room
     // must not be able to drift apart.
-    const seat = await mayJoinRoom(pool, {
+    //
+    // The same question also answers **who may be heard**, so the roster can say
+    // it. The right itself is enforced where it cannot be argued with — the role
+    // in the Agora token — and this is the same answer, read once so the screen
+    // and the token cannot disagree.
+    const seat = await maySpeakInRoom(pool, {
       roomCode: roomId,
       userId: authUser ? authUser.id : null,
     });
@@ -444,12 +575,19 @@ io.on('connection', (socket) => {
       roomAudioUsers[roomId] = {};
     }
 
-    const seat = activeRoomMembers[roomId] && activeRoomMembers[roomId][audioUserId];
+    // Named apart from the `seat` above, which is the access decision for this
+    // very join. Two `const seat` in one block is a SyntaxError, and it stopped
+    // the whole file from loading — see the test that compiles server.js.
+    const member = activeRoomMembers[roomId] && activeRoomMembers[roomId][audioUserId];
     roomAudioUsers[roomId][audioUserId] = {
       socketId: socket.id,
       userId: audioUserId,
       userName: socket.userName || (authUser ? authUser.name : 'Gost'),
-      role: seat ? seat.role : 'ucenik',
+      role: member ? member.role : 'ucenik',
+      // What the server decided, not what the client says about itself. The mute
+      // flag below is the opposite kind of thing — a choice, reported by whoever
+      // made it — and the two are kept apart on purpose.
+      maySpeak: seat.maySpeak === true,
       isMuted: isMuted !== undefined ? isMuted : false,
       handRaised: false
     };
@@ -501,6 +639,33 @@ io.on('connection', (socket) => {
     }
   });
 
+  /// A ready answer from somebody who is listening rather than speaking.
+  ///
+  /// This is what makes a listening-only seat a lesson instead of a broadcast:
+  /// the trainer asks "jasno?" and gets an answer, without a child's voice being
+  /// published into the channel — or into the recording.
+  ///
+  /// Three values and nothing else. Free text would be a message field between a
+  /// child and whoever else is in the room, which is the thing this app has
+  /// spent two days deciding not to be. The **name comes from the socket**, not
+  /// from the message: a sender who names themselves is a sender who can name
+  /// somebody else.
+  const QUICK_ANSWERS = ['da', 'ne', 'nejasno'];
+  socket.on('quick_answer', ({ roomId, answer }) => {
+    if (!socket.roomId || socket.roomId !== roomId) {
+      return denyPrivileged(socket, 'quick_answer', roomId);
+    }
+    if (!QUICK_ANSWERS.includes(answer)) {
+      logger.warn(`[SOBA] Odbačen nepoznat brzi odgovor u ${roomId}`);
+      return;
+    }
+    io.to(roomId).emit('quick_answer', {
+      userId: socket.userId,
+      userName: socket.userName || 'Učenik',
+      answer,
+    });
+  });
+
   // Raising a hand only ever applies to the socket that sent it.
   socket.on('audio_hand_raise_toggle', ({ roomId, handRaised }) => {
     const userId = socket.audioUserId;
@@ -527,6 +692,10 @@ io.on('connection', (socket) => {
         delete activeRoomMembers[socket.roomId];
       } else {
         io.to(socket.roomId).emit('room_members_list', Object.values(activeRoomMembers[socket.roomId]));
+        // A child leaving can make a refused room recordable again, and the
+        // button has to notice: a control that stays disabled after the reason
+        // is gone is as wrong as one that stays enabled after it appears.
+        emitRecordingConsent(socket.roomId);
       }
     }
 

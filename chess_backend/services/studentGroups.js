@@ -19,6 +19,9 @@
 //   the trainer asked for both and there is no reason for two mechanisms.
 
 const { acceptedEdgeBetween } = require('./relationshipService');
+// Whose room this is lives in `roomAccess`, next to the rule it feeds. A
+// second copy here is exactly the shape of bug CLAUDE.md warns about.
+const { ownsRoom } = require('./roomAccess');
 
 /// Loud rather than convenient: a caller that asks about somebody else's group
 /// has a bug, and answering "no members" would hide it.
@@ -140,21 +143,13 @@ async function removeMember(pool, trainerId, groupId, studentId) {
   return { removed: result.rowCount > 0 };
 }
 
-async function ownsRoom(pool, trainerId, roomCode) {
-  const result = await pool.query(
-    'SELECT 1 FROM rooms WHERE room_code = $1 AND creator_id = $2',
-    [roomCode, trainerId],
-  );
-  return result.rowCount > 0;
-}
-
 /// Puts people on a room's guest list: whole groups, single students, or both.
 ///
 /// The first row narrows the room. That is the behaviour the trainer asked for
 /// — "invite the group" has to mean *only* the group — and it is why an empty
 /// list is left meaning "all my students" rather than "nobody".
 async function inviteToRoom(pool, trainerId, roomCode, { groupIds = [], userIds = [] } = {}) {
-  if (!(await ownsRoom(pool, trainerId, roomCode))) {
+  if (!(await ownsRoom(pool, { roomCode, userId: trainerId }))) {
     throw new NotYours('Ta soba nije vaša.');
   }
 
@@ -184,7 +179,7 @@ async function inviteToRoom(pool, trainerId, roomCode, { groupIds = [], userIds 
 }
 
 async function uninviteFromRoom(pool, trainerId, roomCode, { groupId = null, userId = null } = {}) {
-  if (!(await ownsRoom(pool, trainerId, roomCode))) {
+  if (!(await ownsRoom(pool, { roomCode, userId: trainerId }))) {
     throw new NotYours('Ta soba nije vaša.');
   }
   if ((groupId === null) === (userId === null)) {
@@ -204,7 +199,7 @@ async function uninviteFromRoom(pool, trainerId, roomCode, { groupId = null, use
 /// What the room's guest list holds, for the screen that manages it. Names, not
 /// addresses.
 async function roomGuests(pool, trainerId, roomCode) {
-  if (!(await ownsRoom(pool, trainerId, roomCode))) {
+  if (!(await ownsRoom(pool, { roomCode, userId: trainerId }))) {
     throw new NotYours('Ta soba nije vaša.');
   }
   const result = await pool.query(

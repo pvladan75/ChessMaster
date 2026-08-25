@@ -16,6 +16,7 @@ const realtime = require('../services/realtime');
 const { trainerOwnsStudent } = require('../services/assignmentService');
 const {
   acceptedTrainersOf,
+  setVoiceLevel,
   requestRelationship,
   respondToRequest,
   pendingForUser,
@@ -29,18 +30,41 @@ const {
 realtime.init({ to: () => ({ emit: () => {} }) });
 
 /// Captures queries and replays canned rows, one result per call in order.
-function stubPool(results = [[]]) {
+///
+/// One question is answered by *who is being asked about* rather than by its
+/// place in the queue: how old somebody says they are. It is asked from a
+/// different service, at a point that moves as the flow changes, and threading
+/// it through the positional queue would mean every test here carrying a row
+/// about a rule it is not testing. `ages` is empty by default, which is the
+/// state every account is in today — nobody has ever been asked.
+function stubPool(results = [[]], { ages = {} } = {}) {
   const calls = [];
   let index = 0;
   return {
     calls,
     async query(text, params) {
       calls.push({ text, params });
+      if (/birth_year/.test(text)) {
+        const year = ages[params[0]];
+        return {
+          rows: [{ birth_year: year === undefined ? null : year }],
+          rowCount: 1,
+        };
+      }
       const rows = results[Math.min(index, results.length - 1)];
       index++;
-      return { rows };
+      return { rows, rowCount: rows.length };
     },
   };
+}
+
+/// The statement a test is about, found by what it says rather than by how many
+/// came before it. Counting queries makes a test fail the day a rule is added
+/// next to the one it pins, which is a fail for the wrong reason.
+function stmt(pool, pattern) {
+  const found = pool.calls.find((call) => pattern.test(call.text));
+  assert.ok(found, `nema upita koji odgovara ${pattern}`);
+  return found;
 }
 
 test('an edge only counts once it has been accepted', async () => {
@@ -67,9 +91,10 @@ test('a request starts pending and remembers who started it', async () => {
 
   assert.equal(result.ok, true);
   assert.equal(result.id, 7);
-  const insert = pool.calls[1];
+  const insert = stmt(pool, /INSERT INTO trainer_students/);
   assert.match(insert.text, /'pending'/);
-  assert.deepEqual(insert.params, [1, 2, 1], 'trainer, student, initiator');
+  assert.deepEqual(insert.params, [1, 2, 1, 'talk'],
+    'trainer, student, initiator, glas');
 });
 
 test('a student asking a trainer lands in the other column', async () => {
@@ -78,7 +103,8 @@ test('a student asking a trainer lands in the other column', async () => {
 
   // trainer_id is the other party, student_id is the initiator, and the
   // initiator is still recorded as the one who started it.
-  assert.deepEqual(pool.calls[1].params, [9, 5, 5]);
+  assert.deepEqual(
+    stmt(pool, /INSERT INTO trainer_students/).params, [9, 5, 5, 'talk']);
 });
 
 test('nobody may become their own trainer', async () => {
@@ -104,7 +130,8 @@ test('an existing accepted relationship is not requested again', async () => {
   });
 
   assert.equal(result.ok, false);
-  assert.equal(pool.calls.length, 1, 'no second insert');
+  assert.equal(pool.calls.filter((c) => /INSERT/.test(c.text)).length, 0,
+    'no second insert');
 });
 
 test('the existing-relationship check looks both ways', () => {
@@ -182,7 +209,8 @@ test('the reverse row does not block once it is gone', async () => {
   });
 
   assert.equal(result.ok, true);
-  assert.deepEqual(pool.calls[1].params, [2, 1, 2], 'trainer, student, initiator');
+  assert.deepEqual(stmt(pool, /INSERT INTO trainer_students/).params,
+    [2, 1, 2, 'talk'], 'trainer, student, initiator, glas');
 });
 
 test('repeating a request is not an error, the invitation still stands', async () => {
@@ -199,29 +227,104 @@ test('repeating a request is not an error, the invitation still stands', async (
   assert.equal(result.alreadyPending, true);
 });
 
+const thisYear = new Date().getFullYear();
+const bornAgo = (years) => thisYear - years - 1;
+
+test('a minor cannot be enrolled as anybody’s trainer', async () => {
+  // The rule that keeps this from being a place where children connect to each
+  // other. It is refused where the row would have been written, so nothing is
+  // created and the person who asked is told why.
+  const pool = stubPool([[], [{ id: 7 }]], { ages: { 1: bornAgo(12) } });
+
+  const result = await requestRelationship(pool, {
+    initiatorId: 1,
+    otherId: 2,
+    initiatorIsTrainer: true,
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /Maloletnik/);
+  assert.ok(!pool.calls.some((c) => /INSERT INTO trainer_students/.test(c.text)),
+    'nijedan red nije upisan');
+});
+
+test('a child asking an adult to teach them is the ordinary case', async () => {
+  const pool = stubPool([[], [{ id: 7 }]], { ages: { 1: bornAgo(9) } });
+
+  const result = await requestRelationship(pool, {
+    initiatorId: 1,
+    otherId: 2,
+    initiatorIsTrainer: false,
+  });
+
+  assert.equal(result.ok, true);
+  // And the child starts by listening: they hear the trainer and answer on the
+  // board, and their voice is never published — so it is never in the recording
+  // either. Talking is granted afterwards, by the trainer, when there is a
+  // reason to.
+  assert.deepEqual(stmt(pool, /INSERT INTO trainer_students/).params,
+    [2, 1, 1, 'listen'], 'trainer, student, initiator, glas');
+});
+
+test('a request from before the age was known is checked again on the answer',
+  async () => {
+    // Every request that exists today was made while nobody had stated an age
+    // at all. Asking only at the sending end would let all of those become
+    // relationships the moment the other side tapped "prihvati".
+    const pool = stubPool([
+      [{ trainer_id: 1, student_id: 2 }],
+      [{ trainer_id: 1, student_id: 2 }],
+      [],
+    ], { ages: { 1: bornAgo(13) } });
+
+    const result = await respondToRequest(pool,
+      { requestId: 7, userId: 2, accept: true });
+
+    assert.equal(result.ok, false);
+    assert.match(result.reason, /Maloletnik/);
+    assert.ok(!pool.calls.some((c) => /UPDATE trainer_students/.test(c.text)),
+      'veza nije prihvaćena');
+    assert.ok(!pool.calls.some((c) => /INSERT INTO friends/.test(c.text)));
+  });
+
 test('accepting requires being the side that did not ask', async () => {
-  const pool = stubPool([[{ trainer_id: 1, student_id: 2 }], []]);
+  // Two answers now: the row is read first (to ask how old the trainer says
+  // they are), and then written under the guard that is the point of this test.
+  const pool = stubPool([
+    [{ trainer_id: 1, student_id: 2 }],
+    [{ trainer_id: 1, student_id: 2 }],
+    [],
+  ]);
   const result = await respondToRequest(pool, { requestId: 7, userId: 2, accept: true });
 
   assert.equal(result.ok, true);
-  const update = pool.calls[0];
+  const update = stmt(pool, /UPDATE trainer_students/);
   assert.match(update.text, /initiated_by <> \$2/);
   assert.match(update.text, /status = 'pending'/);
   assert.match(update.text, /\$2 IN \(trainer_id, student_id\)/);
 });
 
 test('friendship is created only after a request is actually accepted', async () => {
-  const pool = stubPool([[{ trainer_id: 1, student_id: 2 }], []]);
+  const pool = stubPool([
+    [{ trainer_id: 1, student_id: 2 }],
+    [{ trainer_id: 1, student_id: 2 }],
+    [],
+  ]);
   await respondToRequest(pool, { requestId: 7, userId: 2, accept: true });
 
-  assert.match(pool.calls[1].text, /INSERT INTO friends/);
+  assert.ok(stmt(pool, /INSERT INTO friends/));
 });
 
 test('answering a request stops its notification from nagging', async () => {
   // The card on screen is drawn from trainer_students and disappears by itself,
   // but the notification is a separate row: left unread, the bell keeps a
   // permanent count for something already dealt with.
-  const pool = stubPool([[{ trainer_id: 1, student_id: 2 }], [], []]);
+  const pool = stubPool([
+    [{ trainer_id: 1, student_id: 2 }],
+    [{ trainer_id: 1, student_id: 2 }],
+    [],
+    [],
+  ]);
   await respondToRequest(pool, { requestId: 7, userId: 2, accept: true });
 
   const closing = pool.calls.at(-1);
@@ -252,7 +355,12 @@ test('the sender is found from whichever column they sit in', async () => {
 test('accepting names the sender too, so they can be told', async () => {
   // Acceptance used to be the one answer that told nobody: the row changed
   // status and the person waiting was never informed.
-  const pool = stubPool([[{ trainer_id: 2, student_id: 1 }], [], []]);
+  const pool = stubPool([
+    [{ trainer_id: 2, student_id: 1 }],
+    [{ trainer_id: 2, student_id: 1 }],
+    [],
+    [],
+  ]);
   const result = await respondToRequest(pool, { requestId: 7, userId: 1, accept: true });
 
   assert.equal(result.ok, true);
@@ -316,7 +424,7 @@ test('a refused answer leaves the notification alone', async () => {
   const pool = stubPool([[]]);
   await respondToRequest(pool, { requestId: 7, userId: 99, accept: true });
 
-  assert.equal(pool.calls.length, 1);
+  assert.ok(!pool.calls.some((c) => /UPDATE user_notifications/.test(c.text)));
 });
 
 test('a refused acceptance creates no friendship', async () => {
@@ -326,7 +434,8 @@ test('a refused acceptance creates no friendship', async () => {
   const result = await respondToRequest(pool, { requestId: 7, userId: 99, accept: true });
 
   assert.equal(result.ok, false);
-  assert.equal(pool.calls.length, 1, 'stopped before touching friends');
+  assert.ok(!pool.calls.some((c) => /INSERT INTO friends/.test(c.text)),
+    'stopped before touching friends');
 });
 
 test('declining deletes the request under the same guard', async () => {
@@ -404,3 +513,73 @@ test('the badge counts a waiting request even after it has been read about', () 
   assert.match(body, /user_id = \$1/, 'only the caller own rows');
   assert.doesNotMatch(body, /trainer_students/, 'it must not touch requests');
 });
+
+test('a friendship has exactly one origin, and it is consent', () => {
+  // `POST /friends/add` took an email and wrote the connection **both ways with
+  // nobody's consent**, so whoever knew a child's address could put themselves
+  // on that child's list. It was removed on 25.8.2026 rather than given a
+  // request flow, because no screen in the app had ever called it.
+  //
+  // Asserted on the source because the failure is invisible in behaviour: every
+  // screen keeps working, and the only difference is that there is a second way
+  // into a child's list of people, one that skips the asking. That is the same
+  // reason `acceptedTrainersOf` is pinned this way.
+  const root = path.join(__dirname, '..');
+  const written = [];
+
+  for (const dir of ['routes', 'services']) {
+    for (const name of fs.readdirSync(path.join(root, dir))) {
+      if (!name.endsWith('.js')) continue;
+      const source = fs.readFileSync(path.join(root, dir, name), 'utf8')
+        // Comments first: the note explaining why the route is gone names the
+        // very thing it says no longer happens.
+        .replace(/^\s*\/\/.*$/gm, '');
+      if (/INSERT\s+INTO\s+friends/i.test(source)) written.push(`${dir}/${name}`);
+      if (/friends\/add/.test(source)) written.push(`${dir}/${name} (ruta)`);
+    }
+  }
+
+  // Two files, because there are now two doors into `accepted` and both of them
+  // are consent: an adult student answering for themselves, and a parent
+  // answering for a child. `parentConsentService` writes it inside the same
+  // transaction that records the consent, which is the point — a friendship
+  // that appeared before the parent answered, or an accepted relationship with
+  // no friendship behind it, would both be halves of a record.
+  //
+  // A third file is still a failure, and that is what this test is for.
+  assert.deepEqual(written, [
+    'services/parentConsentService.js',
+    'services/relationshipService.js',
+  ], 'prijateljstvo se pravi negde osim iz prihvaćene veze');
+});
+
+test('the microphone is granted by the trainer, and only to their own student',
+  async () => {
+    // A right, not a request: the same row is read again every time a voice
+    // token is minted, so taking it back holds even against a client that would
+    // rather not notice.
+    const granted = stubPool([[{ voice_level: 'talk' }]]);
+    const ok = await setVoiceLevel(granted,
+      { trainerId: 1, studentId: 2, level: 'talk' });
+
+    assert.deepEqual(ok, { ok: true, level: 'talk' });
+    const update = stmt(granted, /UPDATE trainer_students/);
+    assert.match(update.text, /status = 'accepted'/,
+      'glas se daje samo u prihvaćenoj vezi');
+    assert.match(update.text, /RETURNING voice_level/,
+      'odgovor se čita iz reda, ne iz zahteva');
+
+    // Somebody else's student, or a request nobody has answered yet.
+    const notMine = stubPool([[]]);
+    const refused = await setVoiceLevel(notMine,
+      { trainerId: 1, studentId: 99, level: 'talk' });
+    assert.equal(refused.ok, false);
+
+    // And nothing else is a level. An unknown value must not fall through to
+    // the permissive one.
+    const nonsense = stubPool([[{ voice_level: 'talk' }]]);
+    assert.equal(
+      (await setVoiceLevel(nonsense, { trainerId: 1, studentId: 2, level: 'sve' })).ok,
+      false);
+    assert.equal(nonsense.calls.length, 0, 'baza se ne dira zbog besmislice');
+  });
