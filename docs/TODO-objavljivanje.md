@@ -56,27 +56,55 @@ Publika ID tokena se ne menja preimenovanjem paketa.
 - [ ] **Odlučiti gde se aplikacija nudi.** Play podrazumevano deli svuda; dok
       pravna provera pokriva jednu državu, spisak zemalja u Play Console-u
       treba suziti na nju. Proširenje je onda odluka, a ne previd.
-- [ ] **Uzrast ne sme da bude zakucan u kodu.** Granica ispod koje je saglasnost
-      roditelja obavezna razlikuje se po državama (u EU je između 13 i 16, po
-      članici; u SAD postoji COPPA ispod 13). Za Srbiju tražiti od advokata i
-      sam broj, da uđe u podešavanje umesto u `if`.
+- [x] **Uzrast nije zakucan u kodu — ✅ urađeno 25.8.2026.** Prag je
+      `AGE_OF_CONSENT` u `.env` (podrazumevano 16, najstroža primenljiva
+      granica). Van 13–18 server **ne startuje** umesto da se vrati na
+      podrazumevano. Ostaje da se od advokata traži sam broj za Srbiju.
 - [ ] Popuniti označena polja (`[IME I PREZIME / NAZIV]`, `[ADRESA]`,
       `[EMAIL ZA PRIVATNOST]`, `[DATUM]`, `[URL]`) — **ali ne u ovom
       repozitorijumu.** On je javan, a to su lično ime, adresa i email.
       Popunjena verzija ide na sajt; u `docs/` ostaje nacrt sa praznim poljima,
       jer je on ono što opisuje šta aplikacija radi.
-- [ ] Datirati verziju teksta (npr. `2026-08-25`) i tu oznaku upisivati u
-      `parent_consent_version` pri svakoj saglasnosti — kolona već postoji. Bez
-      nje se posle prve izmene teksta ne zna na šta je ko pristao.
-- [ ] **Soba: spisak zvanica.** Danas `joinGame` i `audio_join` u `server.js`
-      ne proveravaju ništa — ni vezu, ni poziv, ni prijavu — a kod sobe je šest
-      cifara iz `Math.random()` bez ograničenja pokušaja. Dok to stoji, stranac
-      sa pogođenim kodom može da bude u živom glasu sa detetom i u snimku.
-      **Ovo ide pre svega ostalog.**
-- [ ] **Email van spiskova** (`GET /friends`, učenici, treneri): ime i javni
-      identifikator, ne email.
-- [ ] **Maloletnik samo sa prihvaćenim trenerom;** prijatelji za odrasle uz
-      obavezan pristanak druge strane. Odlučeno 25.8.2026.
+- [x] **Verzija teksta se upisuje — ✅ urađeno 25.8.2026.**
+      `PARENT_CONSENT_VERSION` u `.env`, podrazumevano `rs-2026-08-25`; država
+      je deo oznake, jer je advokat potvrdio za Srbiju i to izričito rekao.
+      Prepisuje se **na zahtev** kad se zahtev napravi, pa roditelj pristaje na
+      tekst koji mu je pokazan, a ne na onaj koji je na serveru danas.
+- [x] **Tok roditeljske saglasnosti — ✅ urađeno 25.8.2026**, nije viđeno uživo
+      (stavka 36 u `TODO-provera.md`). Roditelj potvrđuje preko **linka u
+      mejlu**, na stranici koju servira backend — jedino što pošteno popunjava
+      `parent_consent_at/ip/version`. Veza sa maloletnikom stoji na
+      `awaiting_parent` i ne otključava ništa dok roditelj ne odgovori.
+- [x] **Saglasnost za snimanje se sprovodi — ✅ urađeno 25.8.2026**, nije
+      viđeno uživo (stavka 37 u `TODO-provera.md`). Kolonu je do tada punila
+      roditeljska stranica i čitao je niko. Sad čas ne može da se snima dok je
+      u sobi dete čiji roditelj to nije dozvolio, a odbijen snimak ne ulazi u
+      `uploads/`.
+- [ ] **Podesiti `PUBLIC_BASE_URL` na serveru** pre nego što ijedno dete
+      dobije trenera. Prazan znači da pismo ne odlazi (i to se prijavljuje, ne
+      preskače tiho), a pogrešan znači link koji nađe tek roditelj koji je već
+      odustao. Na droplet-u je to `https://api.chesstrainers.app`, dok se ne
+      odluči domen.
+- [ ] **Age gate — ✅ napisan 25.8.2026**, ali proveriti uživo (stavka 35) da
+      pita i **postojeće** naloge, ne samo nove. Bez toga `birth_year` ostaje
+      prazan i sva pravila o maloletnicima ne odbijaju nikoga.
+- [x] **Soba: spisak zvanica — ✅ urađeno 25.8.2026**, nije viđeno uživo
+      (stavke 31, 32 i 34 u `TODO-provera.md`). `mayJoinRoom` čuva `joinGame` i
+      `audio_join`, kod se pravi iz `crypto.randomInt`, prekidač „soba prima
+      goste" je u sobi, a `POST /agora/token` — koji je izdavao token za bilo
+      koji kanal i time zaobilazio ceo spisak — pita isto pitanje i nosi ulogu
+      `SUBSCRIBER` za onoga ko samo sluša.
+- [x] **Email van spiskova — ✅ urađeno 25.8.2026.** `GET /friends`, spisak
+      učenika i spisak trenera vraćaju ime i identifikator. Polje za pozivanje
+      po adresi ostaje — pozivaš nekoga čiju adresu već znaš.
+- [x] **Maloletnik samo sa prihvaćenim trenerom — ✅ urađeno 25.8.2026**, nije
+      viđeno uživo (stavka 33 u `TODO-provera.md`). `ageService.mayRelate`:
+      maloletnik je nečiji učenik, nikad nečiji trener. Prijatelji nisu dobili
+      pristanak nego su **ukinuti kao mehanizam** — `POST /friends/add` je
+      obrisan, jer ga nijedan ekran nikad nije ni zvao, pa red u `friends` sada
+      nastaje isključivo iz prihvaćene veze.
+      **Zubi tek sa age gate-om:** dok nijedan nalog nema upisanu godinu, ovo
+      pravilo ne odbija nikoga.
 - [ ] **Probati prijavu Family Link nalogom** (nalog deteta pod roditeljskim
       nadzorom) pre objave. Google ume da traži odobrenje na roditeljskom
       uređaju pre nego što izda token; taj tok niko nije video, a on je prvi
@@ -87,11 +115,11 @@ Publika ID tokena se ne menja preimenovanjem paketa.
       sužena; pri širenju se postavlja prvo.
 - [ ] **Pitati advokata o obliku, ne samo o tekstu.** Neke države ograničavaju
       maloletnike na *društvenim mrežama*, a to se meri vezama korisnik–korisnik
-      i direktnom komunikacijom, ne temom aplikacije. Kod nas je sve zatvoreno
-      pristankom osim `POST /friends/add`, koje upisuje vezu u oba smera bez
-      pristanka druge strane i vraća email. Odluka o tome (pristanak /
-      samo trener za maloletnike / izbaciti) je u `STANJE-RADA.md`, odeljak
-      „Rizik koji nije u tekstu saglasnosti nego u obliku aplikacije".
+      i direktnom komunikacijom, ne temom aplikacije. Od 25.8.2026. je **svaka**
+      veza u aplikaciji obostrano pristanak (`POST /friends/add` je obrisan), a
+      maloletnik može biti samo nečiji učenik. Pitanje advokatu je time uže:
+      da li aplikacija u kojoj dete ima vezu isključivo sa punoletnim trenerom
+      i govori tek kad trener odobri i dalje pada pod ta ograničenja.
 - [ ] U Play Console-u popuniti **Target audience & content** i deo o
       korisnički generisanom sadržaju iskreno: soba ima glas, a „Ljudi" ima
       veze među korisnicima. Šta se tamo prijavi mora da odgovara onome što
@@ -150,10 +178,32 @@ desktop verzija uopšte podeli — nju Play ne raznosi.
 
 **Šta sajt mora da nosi:**
 
-- [ ] Politika privatnosti i saglasnost roditelja — iz `docs/`, na stalnim
-      URL-ovima koji se ne menjaju (Play ih pamti).
-- [ ] **Kontakt podrške.** Play traži adresu; za početak je dovoljna jedna
+- [x] Politika privatnosti i saglasnost roditelja — na stalnim URL-ovima koji se
+      ne menjaju (Play ih pamti). **Napisano 26.8.2026** u `site/`, i objavljuje
+      se sa `deploy/site-setup.sh`. Adrese su
+      `/politika-privatnosti`, `/saglasnost-roditelja`, `/kontakt`.
+
+      **Dva primerka, po odluci iznad:** `docs/*.md` ostaje nacrt sa praznim
+      poljima, jer je to ono što opisuje šta aplikacija radi i što je advokat
+      čitao; `site/*.html` je objavljena verzija sa popunjenim vrednostima. Kad
+      se jedan menja, mora i drugi — na sajtu je i **snimanje opisano kao
+      sprovedeno pravilo** (server odbija i zaustavlja snimanje), što je urađeno
+      posle pravne provere.
+      Stranica `/saglasnost-roditelja` namerno **nije obrazac**: obavezujući
+      tekst generiše `routes/consent.js` i nosi `PARENT_CONSENT_VERSION`, pa
+      treći primerak nije smeo da nastane.
+- [x] **Kontakt podrške.** Play traži adresu; za početak je dovoljna jedna
       stranica i email. Sistem za tikete je preterivanje dok nema korisnika.
+- [ ] **Popuniti vrednosti u `.env` na dropletu i pokrenuti skriptu.** Stranice
+      nose `{{PLACEHOLDER}}`-e koje `site-setup.sh` puni iz `.env`
+      (`OPERATOR_NAME`, `OPERATOR_ADDRESS`, `PRIVACY_EMAIL`, `SUPPORT_EMAIL`,
+      `HOSTING_PROVIDER`, `HOSTING_REGION`, `SMTP_PROVIDER`,
+      `SITE_LAST_UPDATED`). Skripta **odbija da objavi** stranicu u kojoj je
+      ijedan ostao — politika koja ne imenuje rukovaoca gora je od nikakve.
+      Ime i adresa su fizičkog lica i zato ne smeju u repozitorijum.
+- [ ] `chesstrainers.net` još pokazuje na parkiranu stranicu, ne na droplet.
+      Dok se A zapis ne prebaci, `site-setup.sh` preskače preusmerenje i to
+      **kaže naglas** umesto da ćuti.
 - [ ] Opis i spisak mogućnosti. Piše se **jednom** i koristi i kao tekst u Play
       listingu. Pri tom: ime „Chess Master" / „Chessmaster" se **ne koristi** —
       to je Ubisoft-ov brend (vidi „Odvojeno: ime aplikacije" niže).
@@ -243,11 +293,47 @@ granicu veličine preuzimanja. Ovo se ne rešava podešavanjem nego odlukom:
 
 Ništa od toga nije hitno dok se deli APK za probu. Postaje blokada na koraku 8.
 
+## 7b. Agora App Certificate — bez njega glas nije zaključan
+
+Nađeno 25.8.2026, dok se pravo na mikrofon prebacivalo u token.
+
+`AGORA_APP_ID` i `AGORA_APP_CERTIFICATE` se čitaju u `routes/agora.js`. Bez
+sertifikata server izdaje **prazan token** i sam upozori u dnevniku: kanal je
+tada otvoren svakome ko ima App ID, a App ID je po prirodi javan i stoji u
+aplikaciji.
+
+To znači da sve što je urađeno oko glasa — spisak zvanica, uloga `SUBSCRIBER`
+za onoga ko sluša, dete koje ne dobija mikrofon dok trener ne odobri — **važi
+tek kad je sertifikat uključen**. Do tada je uloga u tokenu savet, a ne brava.
+Server to i kaže u odgovoru (`warning`), da razlika ne bude nevidljiva.
+
+- [ ] U Agora konzoli uključiti **App Certificate** za ovaj projekat.
+- [ ] Upisati `AGORA_APP_CERTIFICATE` u `.env` na mašini i restartovati servis.
+- [ ] Provera: `POST /agora/token` vraća `tokenRequired: true` i token koji nije
+      prazan, a u dnevniku stoji `Issued PUBLISHER token` ili
+      `Issued SUBSCRIBER token`.
+- [ ] Provera da brava stvarno drži: nalog bez veze sa trenerom traži token za
+      tuđ kod sobe → **403** (to važi i bez sertifikata), a učenik koji sluša
+      dobija `SUBSCRIBER` — i sa izmenjenim klijentom ne može da objavi zvuk.
+
 ## 8. Tek na kraju
 
 - [ ] `ENABLE_LIMITS=true` u backend `.env`.
       **Ne ranije.** Dok kupovina ne radi, ovo zaključava besplatne naloge na 5
       sesija mesečno bez ijednog načina da se otključa.
+- [ ] **Pre toga: priključiti ograničenja uopšte.** Nalaz 26.8.2026 —
+      `checkUserLimits` u `limitsService.js` **nema nijednog pozivaoca**, ni u
+      jednom testu. Model postoji (besplatno = 5 soba mesečno, brojano po
+      `rooms.creator_id`, 20 lekcija), ali ga ne sprovodi niko, pa prekidač
+      iznad danas ne menja ništa. Dok se ne priključi, besplatan nalog je
+      neograničen bez obzira na `.env`.
+- [ ] **Neposlušan klijent** — proba druge brave na upisu snimka
+      (`POST /recordings/save` → 403 i obrisan fajl) traži skript koji emituje
+      `recording_status_update {status:'started'}` mimo ekrana, jer aplikacija
+      to dugme tada gasi. Nije hitno dok je jedini klijent naš i poslušan; **na
+      dan kad APK bude javan prestaje da važi** — fajl koji svako može da
+      izmeni je tačno klijent zbog koga ta brava postoji. Vidi
+      `PITANJA-ZA-ODLUKU.md`, „Druga brava na upisu snimka".
 
 ---
 

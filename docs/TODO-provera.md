@@ -1331,6 +1331,58 @@ pa radi i kad je kvota potrošena — to je i deo provere.
       naše; padne samo ako backend nije dostupan.
 - [ ] Na telefonu 360 dp: tabla, poruka i tri dugmeta staju bez sečenja.
 
+## Baza ispražnjena 25.8.2026 — pre stavki 31–37
+
+Svi nalozi i sve što su napravili obrisani su namerno, da se stavke 31–37
+proveravaju nad onim što će stvarno postojati kad aplikacija izađe. Uvezene
+zagonetke i završnice su ostale.
+
+**Postavka dogovorena 25.8.2026** — tri sopstvene adrese, po jedna na nalog.
+Koje su tačno ne piše ovde: repozitorijum je javan, a adresa je lični podatak i
+kad je tvoja.
+
+| uređaj | nalog | godište | uloga |
+|---|---|---|---|
+| Windows | adresa A | *punoletno* | trener |
+| telefon | adresa B | 2014 → **11** | učenik, maloletan |
+| telefon | adresa V | 2002 → **23** | učenik, punoletan |
+
+Punoletan učenik je najvažniji nalog na spisku: on je kontrola koja pokazuje da
+saglasnost i zabrana snimanja **ne** pogađaju sve. Bez njega stavke 36 i 37
+pokazuju samo da nešto blokira.
+
+Treneru pri prvom pokretanju takođe stiže pitanje za godinu — **unese
+punoletno godište**, jer ga inače `ageService.mayRelate` odbija kao trenera.
+
+Ono što ova postavka **ne** pokriva, i kako se zaobilazi:
+
+* **Dva maloletnika** (stavka 33, „u oba smera odbijeno") — nema drugog deteta.
+  Privremeno prebaciti punoletnog učenika na 2014 kroz Podešavanja → Godina
+  rođenja, uraditi proveru, pa vratiti na 2002. Time se usput proverava i da
+  ispravka godine radi (stavka 35).
+* **Dva učenika istovremeno u sobi** — oba su na istom telefonu. Nijedna stavka
+  to ne traži: snimanje u stavci 37 kreće dok je trener sam, pa dete ulazi.
+  Ostalo ide u dva prolaza, sa odjavom između.
+* **Gost** (stavke 31 i 32) ne traži nalog — odjavljena aplikacija *jeste* gost.
+
+Pre prve provere:
+
+- [ ] Registrovati nalog **trenera** i nalog **deteta** (SMTP radi lokalno, pa
+      kodovi za verifikaciju stvarno stižu).
+- [ ] **Odjaviti se na svakom uređaju pre registracije**, ili obrisati podatke
+      aplikacije. Zapamćen token starog naloga i dalje stoji u telefonu, a
+      `RESTART IDENTITY` znači da će peti novi nalog dobiti ID 5 — server ga
+      sada odbija (`account-gone`), ali aplikacija bi do prve provere izgledala
+      prijavljeno.
+- [ ] Ako treba admin: `UPDATE users SET role = 'admin' WHERE email = ...`.
+      Bootstrap-a nema, i to je jedini put. Uloga se od 25.8.2026 čita **iz
+      reda**, ne iz tokena, pa važi odmah — bez ponovne prijave.
+- [ ] Za stavku 36 podesiti `PUBLIC_BASE_URL` u `chess_backend/.env`.
+
+Ono što je već potvrđeno uživo pre pražnjenja (stavka 34 u celini, i deo stavki
+33 i 35) **ostaje potvrđeno** — kod se od tada nije menjao osim popravke fokusa u
+age gate-u. Nove naloge treba iskoristiti za ono što još nije viđeno.
+
 ## 31. Soba sa spiskom zvanica i grupe — 25.8.2026, nije viđeno uživo
 
 Backend je napisan, ekrana za grupe još nema — proverava se ono što se vidi kroz
@@ -1363,3 +1415,406 @@ Uz to, sitno ali vidljivo:
 - [ ] U tabu „Ljudi" i u biračima učenika **više ne piše tuđ email** — stoji
       ime i šta je taj red („Čeka potvrdu", „Vaš učenik"). Polje za pozivanje po
       email-u i dalje postoji i radi.
+
+## 32. Prekidač „soba prima goste" — 25.8.2026, nije viđeno uživo
+
+Kolona `rooms.allow_guests` je postojala od prvog dana spiska zvanica, ali je
+nije bilo nigde u aplikaciji — pravilo koje niko ne vidi je pravilo na koje niko
+ne može da se osloni. Sad je u dijalogu „Ko sme u sobu", ispod spiska.
+
+Treba trener, jedan nalog **bez veze** sa njim i jedan neprijavljen uređaj
+(dovoljno je odjaviti se).
+
+- [ ] Trener → „Ko sme u sobu": pri dnu stoji prekidač **Soba prima goste**,
+      **isključen**, uz rečenicu „ulaze samo prijavljeni koje ste pozvali".
+- [ ] Uključiti ga: tekst se menja u onaj koji kaže da ulazi **svako ko zna kod**
+      i da je i to u snimku, a pri vrhu dijaloga se pojavi upozorenje.
+- [ ] Zatvoriti i ponovo otvoriti dijalog — prekidač je i dalje uključen (dakle
+      sačuvan u bazi, a ne samo na ekranu).
+- [ ] Dok je uključen: **neprijavljen** gost sa kodom ulazi i vidi tablu; u
+      dnevniku backenda stoji `[SOBA] … gosti dozvoljeni`.
+- [ ] Dok je uključen: **prijavljen nalog bez veze** sa trenerom takođe ulazi —
+      i to kao *gost*, ne kao učenik (ne pomera figure). Ranije je bio odbijen,
+      dok je neprijavljeni stranac ulazio; to je bilo naopako.
+- [ ] Isključiti ga: oba ta naloga se odbijaju, sa porukom, bez večnog
+      „povezivanje…".
+- [ ] Sa **spiskom zvanica** i uključenim prekidačem: učenik van spiska ulazi kao
+      gost, a ne kao učenik. Dijalog to i kaže („bez obzira na spisak") — spisak
+      bira ko je *učenik* u sobi, prekidač da li iko sme da gleda.
+- [ ] Ugasiti backend i otvoriti dijalog: umesto isključenog prekidača stoji
+      „Ne znam da li soba prima goste" i dugme *Pokušaj ponovo*. (Isključen
+      prekidač bi ovde bio laž o tome ko sme unutra.)
+
+## 33. Maloletnik ima samo trenera — pravilo o godinama ✅ provereno uživo 25.8.2026
+
+**Potvrđeno 25.8.2026, nad ispražnjenom bazom i nalozima napravljenim iznova.**
+Pravilo drži na **oba** mesta u kodu — i pri slanju i pri prihvatanju — i oba su
+proverena zasebno, jer su to dve različite funkcije. Ostaje deo o zakazivanju i
+pozivima, niže.
+
+Usput nađeno: prva tri pokušaja slanja nisu ni stigla do pravila o godinama —
+zaustavile su ih ranije ograde („zahtev u suprotnom smeru već čeka", „zahtev
+već stoji"). Da bi se pravilo uopšte dotaklo, par mora da bude bez ijednog
+zatečenog reda.
+
+**Pažnja pri proveri:** dok se ne napravi age gate, nijedan nalog nema upisanu
+godinu rođenja, pa pravilo ne odbija nikoga. Da bi se videlo kako radi, godina
+se za sada upisuje ručno u bazi:
+
+```sql
+UPDATE users SET birth_year = 2014 WHERE email = 'dete@primer.rs';
+```
+
+- [x] Nalog sa `birth_year` koji ga čini maloletnim pošalje zahtev kao **trener**
+      → odbijeno, uz poruku „Maloletnik ne može da bude trener".
+      **Potvrđeno uživo 25.8.2026**, sa godinom unetom kroz age gate umesto
+      ručno u bazi. Posle odbijanja: `trainer_students` i `friends` **prazni**.
+- [ ] Isti taj nalog pošalje zahtev kao **učenik** punoletnom treneru → prolazi
+      normalno.
+- [x] Zahtev poslat **pre** upisa godine, pa tek onda upisana godina maloletnika
+      na stranu trenera: prihvatanje se odbija istom porukom. (Ovo je stvarni
+      slučaj — svi postojeći zahtevi su poslati dok se za godine nije ni
+      pitalo.) **Potvrđeno 25.8.2026 sa obe strane** — i kod deteta na telefonu
+      i kod punoletnog trenera na Windows-u; zahtev je posle odbijanja ostao
+      `pending`, nije ni nestao ni postao veza.
+- [x] Dva maloletna naloga, u oba smera → oba puta odbijeno. **Potvrđeno
+      25.8.2026.** Drugi smer je onaj koji nešto dokazuje: dete koje šalje
+      „ja sam učenik" drugom detetu je odbijeno zato što bi **primalac** bio
+      trener — pravilo gleda ko predaje, ne ko je poslao.
+- [ ] `AGE_OF_CONSENT=20` u `.env` → **server ne startuje**, uz jasnu poruku u
+      dnevniku. (Tiho vraćanje na 16 bi bilo pravilo o deci koje ćutke prestane
+      da važi.) Vratiti na 16 posle provere.
+
+Prijatelji i pozivi:
+
+- [x] `POST /friends/add` više ne postoji — provera se radi ručno (curl ili
+      Postman): odgovor je **404**, ne 200. Isto i `DELETE /friends/:id`.
+      **Provereno 25.8.2026:** obe rute 404, a `GET /friends` i dalje 200 —
+      čitanje je ostalo, pisanje bez pristanka nije.
+- [ ] U aplikaciji se ništa nije promenilo: tab „Ljudi" radi kao pre, jer tu
+      rutu nikad nije ni zvao.
+- [ ] Zakazivanje časa u **tuđoj** sobi (curl, sa kodom sobe drugog trenera) →
+      **403**, i taj nalog i dalje ne može da uđe u tu sobu.
+- [ ] Poziv (`POST /invitations/send`) nekome ko nije u prihvaćenoj vezi →
+      **403**, i toj osobi ne stiže zvonce.
+
+## 34. Glas ima nivo — ✅ provereno uživo 25.8.2026
+
+Treba trener, jedan učenik i (za prvu stavku) curl ili Postman.
+
+**Korisnik je 25.8.2026. potvrdio sve stavke.**
+
+- [x] **Rupa koja je zatvorena:** nalog **bez veze** sa trenerom pozove
+      `POST /agora/token` sa tuđim kodom sobe kao `channelName` → **403**.
+      (Ranije: `PUBLISHER` token i ulazak u glas mimo spiska zvanica, bez
+      pojavljivanja na spisku učesnika.)
+- [x] Trener uđe u svoju sobu → ima dugme za mikrofon i čuje se.
+- [x] Učeniku se u bazi postavi `voice_level = 'listen'`
+      (`UPDATE trainer_students SET voice_level = 'listen' WHERE ...`), pa uđe u
+      sobu: **ne traži mu se dozvola za mikrofon**, umesto dugmeta stoji
+      „Slušate čas", a na spisku učesnika je slušalica.
+- [x] Taj učenik čuje trenera i vuče poteze po tabli.
+- [x] Klikne **Da**, **Ne**, **Nisam razumeo/la** → treneru se pojavi poruka sa
+      njegovim imenom. (Ime dolazi sa servera — provera da nije ono što je
+      klijent poslao.)
+- [x] Trener na spisku učesnika klikne **Daj mikrofon** → učeniku stigne poruka,
+      aplikacija se sama ponovo priključi kanalu, dozvola za mikrofon se traži
+      **tek sad**, i od tog trenutka se čuje.
+- [x] Trener klikne **Oduzmi mikrofon** → učenik se više ne čuje, a i dalje je u
+      času. Provera da nije samo utišan: neka učenik pokuša „Uključi mikrofon" —
+      tog dugmeta nema.
+- [x] Nova veza sa učenikom kome je upisana godina maloletnika kreće od
+      `listen` (`SELECT voice_level FROM trainer_students` posle prihvatanja).
+- [x] Snimanje časa na nivou „sluša": u snimku se čuje trener, a ne i dete.
+- [x] `node server.js` se uopšte pokreće. (Na `master`-u pre ovoga nije —
+      `SyntaxError` u `audio_join`.)
+
+## 35. Age gate — pitanje za godinu rođenja, 25.8.2026, nije viđeno uživo
+
+Ovo je ono što stavkama 33 i 34 daje zube: dok nijedan nalog nema `birth_year`,
+pravilo „maloletnik nije trener" i početni nivo glasa ne odbijaju nikoga.
+
+Pre provere obrisati upisano, da se vidi stanje u kom je danas svaki nalog:
+
+```sql
+UPDATE users SET birth_year = NULL, birth_year_stated_at = NULL WHERE id = ...;
+```
+
+- [x] **Postojeći nalog**, prijavljen zapamćenim tokenom, pri pokretanju
+      aplikacije dobija pitanje za godinu. **Potvrđeno 25.8.2026.** (Ovo je cela
+      poenta: pitanje postavljeno samo pri registraciji ne bi videla većina
+      naloga, jer kroz registraciju nisu ni prošli.)
+- [ ] Isto i posle prijave kroz **Google** — nalog koji nikad nije video formu
+      za registraciju.
+- [x] Pitanje **prekriva ceo ekran** i ispod njega se ne može ništa dodirnuti.
+      **Potvrđeno 25.8.2026.**
+- [x] **Uneta godina može da se ispravi pre potvrde.** Nađeno pokvareno
+      25.8.2026 i popravljeno istog dana: prva otkucana vrednost je ostajala
+      zauvek, jer je fokus vratio ekran ispod. Vidi „Pitanje je pokrivalo ekran,
+      ali ne i tastaturu" u `STANJE-RADA.md`. **Ponovo proveriti.**
+- [ ] **Gost** (bez prijave) ne dobija pitanje.
+- [x] **Backend ugašen**, pa pokrenuta aplikacija sa zapamćenim tokenom →
+      pitanja **nema** i aplikacija radi kao i pre. („Server nije odgovorio" nije
+      isto što i „niko nije pitan"; da su ta dva stanja spojena, pao backend bi
+      zaključao sve.)
+- [x] Uneta godina koja daje maloletnika (npr. 2014) → pitanje se zatvara,
+      a `SELECT birth_year, birth_year_stated_at FROM users WHERE id = ...`
+      pokazuje upisano i vreme upisa.
+- [x] Odmah zatim: taj nalog ne može da pošalje zahtev **kao trener** (stavka
+      33), a nova veza u kojoj je on učenik kreće od `listen` (stavka 34).
+      **Potvrđeno 25.8.2026** — u sobi samo sluša, bez mogućnosti da uključi
+      mikrofon.
+- [ ] Nemoguća godina (`2999`, `1899`, prazno) → poruka, i **ništa se ne šalje
+      na server**.
+- [ ] Ugašen backend pa pokušaj čuvanja → pitanje **ostaje**, uz poruku da server
+      nije dostupan. (Zatvaranje pitanja posle neuspelog upisa izgledalo bi
+      identično uspehu i ostavilo nalog tačno u stanju zbog kog gate postoji.)
+- [ ] **Odjavi se** na tom ekranu radi — nalog na koji se greškom ušlo nije
+      ćorsokak.
+- [ ] Podešavanja → **NALOG → Godina rođenja** pokazuje upisanu godinu; otvara
+      isti ekran, ovaj put sa **Odustani**; ispravka se vidi i u bazi i u redu u
+      Podešavanjima.
+- [ ] Prag iz `.env` se vidi na ekranu: `AGE_OF_CONSENT=13` → tekst kaže
+      „mlađe od 13". (Vratiti na 16.)
+
+## 36. Roditeljska saglasnost — glavni tok ✅ provereno uživo 25.8.2026
+
+**Ceo srećni put je prošao 25.8.2026**, sa nalozima napravljenim iznova nad
+ispražnjenom bazom. Nađena je i popravljena jedna prava greška — vidi
+„Stranica se otvarala, a dugme nije radilo" u `STANJE-RADA.md`: forma je slala
+`Origin` koji nije bio na spisku dozvoljenih, pa se stranica otvarala a dugme
+vraćalo `{"error":"Origin not allowed"}`. Nijedan test to nije mogao da uhvati.
+
+Ostaje odbijanje, rubovi linka i podešavanja — niže.
+
+**Pre probe treba podesiti dve stvari u `chess_backend/.env`:**
+
+```
+PUBLIC_BASE_URL=http://192.168.0.19:3000
+PARENT_CONSENT_VERSION=rs-2026-08-25
+```
+
+Prva je adresa **sa koje je server dostupan sa telefona** — LAN adresa radi dok
+su telefon i računar na istom wi-fi-ju, i to je jedini način da se ovo isproba
+pre prebacivanja na server. Kao „roditelja" uzeti svoju drugu adresu; SMTP je
+lokalno podešen, pa poruka stvarno odlazi.
+
+Treba nalog trenera i nalog deteta sa upisanom godinom maloletnika (stavka 35).
+
+- [ ] `PUBLIC_BASE_URL` sa smećem umesto adrese (`primer.rs`, bez šeme) →
+      **server ne startuje**, uz jasnu poruku. Isto i `PARENT_CONSENT_VERSION`
+      sa razmakom u sebi. (Vratiti ispravne vrednosti.)
+- [ ] `PUBLIC_BASE_URL` **prazan** → server radi, ali prihvatanje veze sa
+      maloletnikom kaže da poruka nije poslata. Veza ipak stoji na
+      „čeka roditelja". (Tiho prelaženje u „prihvaćeno" je ono što ovde ne sme.)
+
+Glavni tok:
+
+- [x] Dete pošalje zahtev, trener prihvati → poruka **ne** kaže da je odnos
+      uspostavljen. **Potvrđeno 25.8.2026**; pošto adrese roditelja nije bilo,
+      poruka je rekla baš to.
+- [x] `SELECT status FROM trainer_students WHERE ...` → `awaiting_parent`. ✅
+- [x] `SELECT * FROM friends WHERE ...` → **nema reda**. ✅ Red se pojavio tek
+      posle roditeljevog „da" — dva reda, oba smera.
+- [x] Kod deteta red piše „Čeka saglasnost roditelja — **dodirnite**", sivo, sa
+      ikonom porodice. ✅ Trenerova strana istog reda još nije pogledana.
+- [ ] Trener ne može da zada domaći tom detetu i ne vidi mu napredak.
+- [ ] Dete ne može da uđe u trenerovu sobu (spisak zvanica traži
+      **prihvaćenu** vezu).
+- [x] Mejl je stigao i link je otvoren **sa drugog uređaja** (Windows, isti
+      wi-fi) — dokaz da `PUBLIC_BASE_URL` pokazuje na dostupnu adresu. ✅
+- [x] Stranica se vidi bez prijave, imena tačna, verzija `rs-2026-08-25` na
+      dnu, tamna tema poštovana. ✅
+- [x] **Bez** kvačice → „Dajem saglasnost": veza `accepted`,
+      `parent_consent_at/ip/version` popunjeni (IP je stvarna adresa uređaja
+      sa kog je otvoreno), `friends` dobio dva reda, `parent_allows_recording`
+      **false**, `voice_level` ostao `listen`. **Svih jedanaest polja tačno.** ✅
+- [x] `users.parent_consent_at` i `parent_consent_version` na nalogu deteta
+      popunjeni **u istoj transakciji** — nema stanja u kom je jedno tu a drugo
+      nije. ✅
+- [x] Isti link ponovo → **„Već ste odgovorili"**, i `answered_at` je ostao na
+      istoj sekundi. ✅ Poruka je prava od tri, ne opšte „link nije ispravan" —
+      roditelj koji je već potvrdio ne sme da pomisli da nije prošlo.
+- [x] Aplikacija kod oba korisnika sad pokazuje običnu vezu („Vaš učenik" /
+      „Vaš trener"), dugme za napredak je upaljeno, a treneru se pojavilo i
+      **Grupe učenika**. ✅
+- [x] **Kontrola, i najvažnija provera stavke: punoletan učenik.** Trener
+      pozvao nalog sa 2002, učenik prihvatio → veza ide **pravo u `accepted`**,
+      bez `awaiting_parent`; **nijedno pismo nije poslato** (broj zahteva za
+      saglasnost ostao 1, onaj za dete); `voice_level = talk`; red u `friends`
+      odmah; treneru stiglo obično „Zahtev je prihvaćen". **Potvrđeno
+      25.8.2026.** Bez ovoga stavka dokazuje samo da nešto blokira; sa njom
+      dokazuje da blokira one koje treba.
+
+Odbijanje i rubovi:
+
+- [ ] Druga veza, pa na stranici „Ne dajem saglasnost" → veza ostaje
+      `awaiting_parent`, `granted = false` upisan sa vremenom, i nema reda u
+      `friends`.
+- [ ] Izmišljen token u URL-u → „Link nije prepoznat", bez ijednog traga u bazi.
+- [ ] Istekao link: `UPDATE parent_consent_requests SET expires_at = NOW() -
+      INTERVAL '1 day' WHERE ...` → „Link je istekao", drugačija poruka od
+      prethodne.
+- [ ] Ime deteta postavljeno na nešto sa `<b>` u sebi → na stranici se vidi kao
+      tekst, ne kao podebljano. (Ime je ono što je neko ukucao u registraciju.)
+- [ ] Stranica se čita i na uskom telefonu i u tamnoj temi.
+
+Adresa roditelja:
+
+- [ ] Dete **bez** upisane adrese roditelja prihvati poziv → poruka kaže da
+      adrese nema, veza stoji na `awaiting_parent`, i **nijedan mejl ne odlazi**.
+- [ ] Dete dodirne taj red → otvara se pitanje za email roditelja. Unese
+      adresu → **poruka odlazi odmah**, bez ijedne dodatne radnje.
+- [ ] Ista adresa se vidi i u Podešavanjima → NALOG → **Email roditelja**, i
+      taj red se punoletnom nalogu **ne prikazuje**.
+- [ ] Neispravna adresa (`roditelj`, prazno) → poruka, ništa se ne šalje.
+
+Zatečene veze (odluka „javi, ne menjaj"):
+
+- [ ] Nalog sa **već prihvaćenom** vezom upiše godinu maloletnika → treneru
+      stigne zvonce („mikrofon je od sada vaša odluka"), a `status` i
+      `voice_level` te veze ostaju **nepromenjeni**.
+- [ ] Punoletan nalog upiše godinu → **nikakvo** obaveštenje ne odlazi.
+
+## 37. Snimanje poštuje saglasnost roditelja — 25.8.2026, nije viđeno uživo
+
+Ovo daje smisao stavki 36: do ove izmene je `parent_allows_recording` punila
+roditeljska stranica, a čitao je niko. Treba trener, dete sa upisanom godinom
+maloletnika, i prošla stavka 36.
+
+Ekran i dugme:
+
+- [x] Dete kome **roditelj nije dao saglasnost za snimanje** uđe u sobu →
+      kod trenera je dugme „Započni snimanje časa" **ugašeno**, a ispod njega
+      piše razlog **sa imenom deteta**. Provereno uživo 25.8.2026: dok je dete
+      u sobi, čas ne može ponovo da se pokrene.
+- [x] Dete izađe iz sobe → dugme se **samo** vraća u normalu, bez osvežavanja
+      ekrana. (Kontrola koja ostane ugašena kad razlog nestane je isto pogrešna
+      kao ona koja ostane upaljena kad se razlog pojavi.) Provereno uživo
+      25.8.2026.
+- [ ] Roditelj koji je saglasnost dao **sa** kvačicom na snimanju → dugme radi
+      normalno.
+- [x] Punoletan učenik, ili učenik bez upisane godine → dugme radi kao i pre.
+      (Ovo je najvažnija stavka na spisku: da popravka nije ugasila snimanje
+      svima.) **Provereno uživo 25.8.2026** sa učenikom 2.
+
+Brava, a ne samo dugme:
+
+- [x] Trener pokrene snimanje **pa** dete uđe u sobu → snimanje se
+      **zaustavlja samo**, uz poruku sa razlogom, a dete **ostaje na času**.
+      Ponuđeno je čuvanje onoga što je snimljeno pre nego što je dete ušlo.
+      **Provereno uživo 25.8.2026** (soba 104362, posle popravke poruke koja
+      obara radnju): poruka glasi „Čas ne može da se snima — roditelj nije
+      dozvolio snimanje za: učenik 1. Snimanje je zaustavljeno.", dete stoji u
+      spisku prisutnih, a dijalog „Završetak i sačuvanje snimka časa" je otvoren.
+- [x] Dete i dalje **govori** — mikrofon mu radi dok se ne snima. Provereno
+      uživo 25.8.2026. To je i bila odluka: roditelj je odbio *snimanje*, ne
+      prisustvo, pa se odustaje od snimka, a ne od deteta.
+- [ ] Snimak sačuvan pre dolaska deteta se normalno sinhronizuje na server.
+- [x] Isto probati i sa pauzom: pokreni, pauziraj, pusti dete unutra, nastavi →
+      snimanje ne kreće ponovo. Provereno uživo 25.8.2026 — to je i jedini put
+      kroz granu `resumed` na serveru.
+
+Upis (druga brava — traži curl ili Postman):
+
+- [ ] `POST /recordings/save` sa `roomId` sobe u kojoj je bilo blokirano dete →
+      **403**, i u `chess_backend/uploads/` **nema novog fajla**. (Multer ga
+      zapiše pre provere; brisanje je deo popravke.)
+- [ ] Isti pokušaj iz aplikacije: snimak ostaje na uređaju, u dnevniku piše
+      `Odbijen snimak`, i **ne pokušava ponovo** pri svakoj sinhronizaciji.
+- [ ] Restart backend-a usred časa, pa čuvanje snimka → snimak **prolazi**, a
+      poruka kaže da saglasnost nije mogla da se proveri. (Odbijanje bi uništilo
+      pravi čas zbog tuđeg restarta; tiho prolaženje bi bilo laž.) **Do
+      25.8.2026 ovo nije moglo da prođe** — aplikacija tu poruku nije čitala
+      uopšte; sada je prikazuje posle sinhronizacije.
+- [x] **Snimak posle prekida zbog saglasnosti** (ponoviti scenario odozgo, pa
+      „Sačuvaj snimak") → u logu **više nema** „restart usred časa?", nego
+      `[SNIMANJE] Upis za sobu … je deo snimljen pre prekida zbog saglasnosti`,
+      a treneru se prikaže rečenica *„Snimanje je zaustavljeno jer roditelj nije
+      dozvolio snimanje. Sačuvan je samo deo snimljen pre nego što je učenik ušao
+      na čas."* **Provereno uživo 25.8.2026**, soba 104362: server je upisao
+      tačan red, klijent je javio prekid u istoj sekundi
+      (`stopAudioRecording` u 23:52:05.076, ulazak u 23:52:05), a poruka je
+      stigla i u dnevnik (`[SYNC_RECORDING] Napomena servera: …`) i na ekran.
+- [x] U bazi, za taj snimak: `SELECT participants FROM session_recordings ORDER
+      BY id DESC LIMIT 1;` → **deteta nema u spisku**. (Pre popravke je stajalo,
+      pa mu se snimak i prikazivao kao njegov.) **Provereno 25.8.2026**, i
+      razlika se vidi u tri reda jedne iste sobe: snimak od 21:30 (pre
+      popravke) ima `{1,2}`, oni od 21:52 i 21:58 imaju `{1}`.
+
+Gost:
+
+- [ ] Gost (bez naloga) u sobi koja prima goste ne blokira snimanje. Da li gost
+      uopšte sme unutra je pitanje prekidača iz stavke 32, ne ovog.
+
+## 38. Obrisan nalog gubi prijavu — 25.8.2026, delimično provereno
+
+Popravka nađena pri pražnjenju baze: token je važio 7 dana i posle brisanja
+naloga. **Provereno protiv živog servera istog dana** — ostaje ono što traži
+aplikaciju.
+
+- [x] Potpisan token za nepostojeći nalog → **401** i `reason: account-gone`.
+      Provereno 25.8.2026 (`curl` na `/me/standing`).
+- [x] Bez tokena → 401; izmišljen potpis → 403. Provereno istog dana.
+- [x] Socket sa tokenom nepostojećeg naloga → `connect_error`; gost prolazi;
+      izmišljen potpis pada. Provereno istog dana.
+- [ ] **U aplikaciji:** uređaj sa zapamćenim tokenom obrisanog naloga, pa
+      pokretanje → sam se odjavljuje i vodi na prijavu, uz poruku „Ovaj nalog
+      više ne postoji na serveru". (Ovo je jedino što `curl` ne pokriva.)
+- [ ] **Backend ugašen** sa istim uređajem → **ne** odjavljuje se, nego kaže da
+      nema veze sa serverom. („Nisam mogao da pitam" ne sme da se čita kao
+      „nalog je obrisan" — inače jedan ispad odjavi sve.)
+- [ ] Oduzimanje admin uloge (`UPDATE users SET role = 'korisnik' ...`) važi
+      **odmah**, bez ponovne prijave: admin rute odbijaju na sledeći zahtev.
+
+## Gde je provera stala — 25.8.2026, 23:00
+
+Nastavlja se odavde. Nalozi i veze **stoje u bazi**, ne treba ih praviti iznova.
+
+**Zatečeno stanje:**
+
+| | |
+|---|---|
+| nalozi | trener (1975), učenik 1 (2014, maloletan), učenik 2 (2002) |
+| veza sa detetom | `accepted`, saglasnost roditelja data, **snimanje odbijeno** (`parent_allows_recording = false`), glas `listen` |
+| veza sa punoletnim | `accepted`, glas `talk`, roditelj nije ni pitan |
+| soba | `961671`, tvorac trener, spisak zvanica prazan, `allow_guests = false` |
+| `.env` | `PUBLIC_BASE_URL` i `PARENT_CONSENT_VERSION` podešeni |
+
+**Gotovo:** stavka 33 u celini (pravilo o godinama, oba smera, i slanje i
+prihvatanje), stavka 36 glavni tok (uključujući kontrolu sa punoletnim
+učenikom), stavka 34 sa učenikove strane, stavka 31 dijalog „Ko sme u sobu",
+stavka 38 preko `curl`-a.
+
+**Prvo sledeće — ponoviti stavku 37 od početka**, jer je popravljena greška zbog
+koje snimanje nije stajalo (vidi „Poruka koja obori radnju" u `STANJE-RADA.md`).
+Windows aplikacija traži **hot restart (`R`)** ili nov `flutter run`; server je
+nodemon već pokupio.
+
+- [ ] Trener sam u sobi → dugme za snimanje **upaljeno**
+- [ ] Pokreni snimanje, pa neka **učenik 1 uđe** → snimanje se **samo
+      zaustavlja**, uz poruku sa imenom deteta, a dete **ostaje na času**
+- [ ] Dete izađe → dugme se samo vraća
+- [x] Sa **učenikom 2** (punoletan) snimanje radi normalno i snimak se sačuva
+      — provereno uživo 25.8.2026
+- [ ] `POST /recordings/save` za sobu u kojoj je bilo blokirano dete → **403**, i
+      u `uploads/` nema fajla
+
+**Zatim, po redu:** ostatak stavke 34 (daj/oduzmi mikrofon, brzi odgovori kod
+trenera), stavka 31 sa grupama, stavka 32 prekidač za goste, ostatak 35 i 36
+(odbijanje roditelja, rubovi linka, `.env` provere), stavka 38 u aplikaciji.
+
+**Poznate sitnice, zapisane a nepopravljene:**
+
+- zvonce radi iz snimka — zahtev rešen drugde i dalje nudi dugmad dok se dijalog
+  ne otvori ponovo
+- odgovor na zahtev drži spinner dok se ne osveže tri liste; treba vratiti
+  odgovor odmah i osvežiti posle
+- ponovljen zahtev za par koji već ima red kaže „Zahtev je poslat" iako ništa
+  nije poslato
+- ~~**87 poziva `ScaffoldMessenger.of(context)`** bez ograde u `lib/`~~ —
+  urađeno 25.8.2026: svih 82 (u 23 fajla) idu kroz `AppFeedback`, a
+  `test/app_feedback_guard_test.dart` pada ako se ijedan vrati. Usput se
+  pokazalo da je i sama ograda pucala na zatvorenom ekranu — vidi „Poruka koja
+  obori radnju" u `STANJE-RADA.md`. **Zato aplikacija mora da se pokrene ispočetka
+  pre stavke 37** (`R` u `flutter run`, ili nov build): izmena dira `lib/` široko

@@ -19,9 +19,9 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 323 tests
+cd chess_app && flutter test          # 643 tests
 cd chess_app && flutter analyze       # must be clean
-cd chess_backend && npm test          # node --test, 242 tests
+cd chess_backend && npm test          # node --test, 504 tests
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -60,10 +60,41 @@ commit messages are English. Follow whichever register the file already uses.
 ## The recurring bug in this codebase
 
 Steps that skip silently, report success, and fail one layer or one run later.
-It has appeared four times: `zlib.zstd*` missing on old Node, a `certbot` guard
+It has appeared five times: `zlib.zstd*` missing on old Node, a `certbot` guard
 that skipped reinstalling TLS and dropped the host to port 80, `sed s/^KEY=.*/`
-doing nothing when the key is absent, and an unverified database certificate
-that looked exactly like a verified one.
+doing nothing when the key is absent, an unverified database certificate that
+looked exactly like a verified one, and a `server.js` that did not parse — two
+`const seat` in one block — while `npm test` stayed green, because the two tests
+that look at that file read it as **text** and search it for a function name.
+`test/sources_compile.test.js` now compiles every server source, and a second
+test asserts `server.js` is actually in the walk.
+
+Two more, both on 25.8.2026. A token outlived the account it named: `jwt.verify`
+proves this server issued the slip and nothing else, so a deleted account kept a
+working login for the rest of its seven days — and after a `RESTART IDENTITY`
+the same slip was a credential for whoever inherited the id. Every gate now asks
+whether the row is still there (`services/accountGuard.js`), with **three**
+answers, since "the database did not answer" must not read as "you were
+deleted".
+
+A message must never be able to take down the action it reports on. Twice now:
+playback that never started because a failing audio call sat in front of the
+timer, and a recording that would not stop for a child whose parent had refused
+it, because `showSnackBar` threw first. **Do the thing, then say it** — and say
+it through `AppFeedback`, which cannot throw. All 82 raw
+`ScaffoldMessenger` calls in `lib/` were moved onto it on 25.8.2026, and
+`test/app_feedback_guard_test.dart` fails if one comes back. That sweep found
+the guard itself still throwing: the helpers built their `SnackBar` — and with
+it `context.colors`, which is `Theme.of(context)` — *before* the mounted check
+and the `try`, so an ancestor lookup ran in front of the guard against ancestor
+lookups. `_show` now takes a builder and builds inside. Same lesson as the one
+below: prove a guard by mutation before believing it.
+
+And the guard written for it did not guard: it read a fixed 1600 characters from
+the start of each function, which ran into the next one, so removing the check
+still matched — in a different function. **Read a function body by matching
+braces, never by slicing, and prove any source-reading test by mutation before
+believing it.**
 
 When adding a guard or a fallback, prefer a loud failure. `DB_CA_PATH` pointing
 at a missing file deliberately kills the process rather than downgrading to an
@@ -152,10 +183,25 @@ Three hand-written copies of that second subquery all forgot the status, so an
 unanswered request already unlocked the sender's lessons. A test reads the source
 and fails if a fourth copy appears.
 
-Still open: **the parent half**. The `parent_consent_*` columns exist and are
-empty — no flow writes them. The consent text is no longer the blocker: a lawyer
-confirmed it on 25.8.2026, **for Serbia only, and said so explicitly**. So the
-age threshold and the text version belong in configuration rather than in the
-code, and the country list in Play Console is a decision somebody has to make
-rather than a default to accept. Parent observation of a lesson is designed
-(`docs/STANJE-RADA.md`, "Dogovoren model uloga i nadzora") and not built.
+**The parent half is built** (25.8.2026, not yet watched running). A minor's
+relationship stops at `awaiting_parent`, the parent confirms through a link to a
+page this backend serves, and `parent_consent_at/ip/version` are written from
+that page — not from a code read out to a child, which proves a mail arrived and
+nothing more. The age threshold (`AGE_OF_CONSENT`) and the text version
+(`PARENT_CONSENT_VERSION`) are configuration, because a lawyer confirmed the
+wording on 25.8.2026 **for Serbia only, and said so explicitly**; the country
+list in Play Console is a decision somebody has to make rather than a default to
+accept. Two rules that came out of it and hold generally: an age is read when an
+edge is created and never applied backwards over edges that exist — **tell the
+trainer, do not rewrite their lesson** — and `parent_allows_recording` is
+three-valued, because NULL means nobody was asked and must read as neither yes
+nor no. That column is **enforced** as well as recorded (`services/
+recordingConsent.js`): it spent its first hours written by the parent's page and
+read by nobody, which is this repository's recurring bug aimed at the one answer
+a parent actually gave. A test reads the source and fails if the read disappears
+again.
+
+Still open: the account-level lock (a minor with no trainer uses the app as
+before, since the approved text is per-trainer), and parent observation of a
+lesson, which is designed (`docs/STANJE-RADA.md`, "Dogovoren model uloga i
+nadzora") and not built.

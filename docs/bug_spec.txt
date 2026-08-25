@@ -1,0 +1,24 @@
+bug 1: Kad sam bio u modulu Vežbajte osnovno matiranje, probao sam da odigram potez dok je engine razmišljao, nastupio je problem, 
+engine je odigrao još neki potez, ali se posle zamrzao, više nije hteo da igra. Na backendu sam dobio sledeće logove: 
+[TRAINING_LOG] 1) MOD: Ve┼żbajte osnovno matiranje (medium)
+[TRAINING_LOG] 3) FEN POZICIJA KOJU ANALIZIRA ENGINE: 8/8/8/8/8/4K3/7Q/4k3 b - - 4 15
+[TRAINING_LOG] 5) POTEZ ENGINE-A: e1d1
+[TRAINING_LOG] 5) OSNOV ODABIRA: Stockfish kalkulacija najbolje linije
+[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): 28
+[TRAINING_LOG] 5) EVALUACIJA POZICIJE: M1 (Best: e1d1)
+--------------------------------------------------
+
+FEN string must contain six space-delimited fields.
+[IGNORED EVENT] Discarding stale MultiPV lines from old FEN:  (Current Board FEN: 8/8/8/8/8/4K3/7Q/4k3)
+[19:30:19] [App] [Stockfish STDOUT] ÔČů´ŞĆ info depth 28 seldepth 3 multipv 2 score mate -1 nodes 167 nps 2226 hashfull 0 tbhits 0 time 75 pv e1f1 h2f2
+[ENGINE STREAM] Received eval for FEN:  | Depth: 28 | Best Move: e1f1
+[IGNORED EVENT] Discarding stale evaluation from old FEN:  (Current Board FEN: 8/8/8/8/8/4K3/7Q/4k3)
+FEN string must contain six space-delimited fields.
+[IGNORED EVENT] Discarding stale MultiPV lines from old FEN:  (Current Board FEN: 8/8/8/8/8/4K3/7Q/4k3)
+[19:30:19] [App] [Stockfish STDOUT] ÔČů´ŞĆ bestmove e1d1 ponder h2d2
+[ENGINE STREAM] Received eval for FEN:  | Depth: 0 | Best Move: e1d1
+[IGNORED EVENT] Discarding stale evaluation from old FEN:  (Current Board FEN: 8/8/8/8/8/4K3/7Q/4k3)
+[BACKEND_LOG_ERROR] ClientException with SocketException: The remote computer refused the network connection (OS Error: The remote computer refused the network connection, errno = 1225), address = 192.168.0.19, port = 64141, uri=http://192.168.0.19:3000/api/puzzles/log
+[HEALTH_CHECK_LOG] ÔŁî Server connection error: ClientException with SocketException: The remote computer refused the network connection (OS Error: The remote computer refused the network connection, errno = 1225), address = 192.168.0.19, port = 64145, uri=http://192.168.0.19:3000/api/health (Consecutive failures: 2)
+[BACKEND_LOG_ERROR] ClientException with SocketException: The remote computer refused the network connection (OS Error: The remote computer refused the network connection, errno = 1225), address = 192.168.0.19, port = 64146, uri=http://192.168.0.19:3000/api/puzzles/log
+[BACKEND_LOG_ERROR] ClientException with SocketException: The remote computer refused the network connection (OS Error: The remote computer refused the network connection, errno = 1225), address = 192.168.0.19, port = 64147, uri=http://192.168.0.19:3000/api/puzzles/log

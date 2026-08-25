@@ -4,7 +4,7 @@ Namena: da neko ko dolazi bez istorije razgovora za pet minuta zna gde smo stali
 i zašto je nešto urađeno baš tako. Nije prepis dijaloga — prepis troši prostor,
 a odluke su ono što se ne može rekonstruisati iz koda.
 
-Poslednje ažuriranje: 23.8.2026.
+Poslednje ažuriranje: 25.8.2026. (uveče, usred provera 31–38)
 
 ---
 
@@ -3148,7 +3148,9 @@ razgovoru sa detetom. Zato ide **prvo**, pre svega ostalog oko saglasnosti.
    prijatelje, ali uz obavezan pristanak druge strane (`pending → accepted`,
    isti obrazac koji veza trener–učenik već ima). Time aplikacija prestaje da
    bude mesto gde se deca povezuju međusobno, a odrasli ne gube ništa.
-4. **Tok roditeljske saglasnosti**, sad kad je tekst potvrđen.
+4. ~~**Tok roditeljske saglasnosti**~~ — urađeno 25.8.2026, zajedno sa age
+   gate-om koji ga uslovljava. Odeljci „Age gate: aplikacija sada pita za
+   godinu" i „Roditeljska saglasnost: tok je napisan".
 5. **Play Console deklaracije poslednje** — ono što se tamo prijavi mora da
    opisuje aplikaciju kakva jeste tog dana, a ne kakva će biti.
 
@@ -3217,8 +3219,189 @@ dijalog još animira, pa se polje jedan kadar kasnije crta nad mrtvim
 kontrolerom. Isti obrazac je bio napisan istog dana i u repertoaru („Nalepi
 FEN"); oba dijaloga sada drže svoj kontroler koliko i sami traju.
 
-Šta **nije** urađeno: prekidač „soba prima goste" u sobi, i pravilo da
-maloletnik ima samo trenera. To je sledeći korak.
+Šta **nije** urađeno: age gate i tok roditeljske saglasnosti.
+
+### Prekidač „soba prima goste"
+
+Urađeno 25.8.2026, **nije viđeno uživo** (stavka 32 u
+[TODO-provera.md](TODO-provera.md)).
+
+`rooms.allow_guests` je postojala od prvog dana spiska zvanica i odlučivala je
+ko ulazi, ali je u aplikaciji nije bilo nigde. Pravilo koje niko ne vidi je
+pravilo na koje niko ne može da se osloni — pa je prekidač sad u dijalogu „Ko
+sme u sobu", ispod spiska, sa rutama `GET`/`PATCH /rooms/:kod/guest-access`
+koje pripadaju samo tvorcu sobe.
+
+Uz to je ispravljena jedna nesimetrija koja se videla tek kad se prekidač
+izvuče na ekran: `allow_guests` se pitalo **samo za neprijavljenog** posetioca.
+Naopako — stranac koji se odjavi je mogao da gleda sobu koja prima goste, a
+roditelj sa nalogom nije. Sad su vrata za goste **poslednja** i za sve isto:
+ko ne prođe ni kao tvorac, ni sa spiska, ni preko prihvaćene veze, ni preko
+poziva na čas — ulazi kao gost ako soba prima goste, i nikako drugačije.
+
+Zbog toga su spisak i prekidač **namerno nezavisni**: spisak bira ko je u sobi
+*učenik*, prekidač da li iko sme da *gleda*. Dijalog to kaže naglas dok je
+prekidač uključen („ulazi i svako ko zna kod, bez obzira na spisak"), jer bi
+prekidač koji ćutke prestane da važi čim se pozove jedna grupa bio ista vrsta
+iznenađenja kao kontrola koja radi dok joj je dugme sakriveno.
+
+Tri stanja, ne dva: uključeno, isključeno i **ne zna se**. Odgovor koji nije
+stigao se ne crta kao „isključeno" — to je tačno onaj oblik greške koji ovaj
+projekat stalno plaća, korak koji tiho preskoči i jedan sloj iznad prijavi
+uspeh, a ovde bi lagao o tome ko sme u sobu sa decom. Isto i pri upisu: posle
+neuspelog `PATCH`-a se stanje **ponovo pita**, a odgovor se čita iz
+`RETURNING`, ne iz onoga što je poslato.
+
+Usput: `ownsRoom` je bio napisan u `studentGroups.js`, a trebao je i ovde —
+sad stoji na jednom mestu (`roomAccess.js`), po istom pravilu zbog kojeg
+`acceptedTrainersOf` postoji: tri prepisana primerka istog uslova su sva tri
+zaboravila `status`.
+
+### Maloletnik ima samo trenera
+
+Urađeno 25.8.2026, **nije viđeno uživo** (stavka 33 u
+[TODO-provera.md](TODO-provera.md)). Treća stavka iz odluke od istog dana.
+
+**Pravilo je jedno i staje u rečenicu: maloletnik je nečiji učenik, nikad
+nečiji trener.** Odatle sledi i ono što je traženo — dvoje dece ne mogu da se
+povežu, jer bi jedno od njih moralo da bude trener. Živi u
+`ageService.mayRelate`, a pitaju ga oba mesta koja prave vezu:
+`requestRelationship` (pred sam upis reda) i `respondToRequest` (pred
+prihvatanje). Drugo mesto nije višak: **svaki zahtev koji danas postoji je
+poslat dok niko nije rekao koliko ima godina.**
+
+**Godine su izjava, ne dokaz**, i zato ništa što stvarno štiti dete ne sme da
+zavisi od tog broja — kod nas i ne zavisi: spisak zvanica i saglasnost po
+treneru drže bez obzira na to šta je upisano. Uzrast bira kojim tokom neko ide,
+ne koliko je bezbedan.
+
+Nova kolona je `users.birth_year` (uz `birth_year_stated_at`) — **godina, ne
+datum**: odgovara na jedino pitanje koje joj se postavlja, a jedno je polje
+manje o detetu. Unutar godine rođendana je dvosmislena za jednu, pa
+`statedAge` uzima **mlađe** čitanje: ko je rođen 2010. računa se kao 15 kroz
+celu 2026, i posle rođendana. Greši u pravcu pitanja roditelja, a to je pravac
+u kom treba grešiti.
+
+Prag je konfiguracija (`AGE_OF_CONSENT`, podrazumevano 16), jer je broj odluka
+po državi. Van 13–18 server **ne startuje** umesto da se vrati na podrazumevano:
+prag koji tiho preskoči je pravilo o deci koje tiho prestane da važi.
+
+**Pošteno ograničenje, zapisano unapred:** dok niko nije rekao godine, ovo
+pravilo ne odbija nikoga. Zubi stižu sa age gate-om koji puni `birth_year` — a
+taj gate mora da pita i **postojeće** naloge, ne samo nove, inače pravilo ostaje
+komentar. To je tačno oblik greške koji ovaj projekat stalno plaća.
+
+**Prijatelji su ukinuti kao mehanizam.** `POST /friends/add` je primao email,
+nalazio korisnika i upisivao vezu **u oba smera, bez ijednog pristanka**; `GET
+/friends` je onda vraćao spisak. Bila je to jedina rupa u modelu pristanka koji
+je svuda drugde poštovan. Nije mu dodat tok saglasnosti nego je izbačen, jer se
+pokazalo da **nijedan ekran u aplikaciji nikad nije ni zvao tu rutu** — tab
+„Ljudi" crta trenere i učenike, a `_addFriend`/`_removeFriend` u
+`home_screen.dart` su bili mrtav kod. Otišli su zajedno sa rutama (i sa `DELETE
+/friends/:id`).
+
+Red u `friends` sada ima tačno jedno poreklo: prihvaćenu vezu trener–učenik,
+koja ga i briše kad se raskine. Time je svaka veza u aplikaciji nešto na šta su
+obe strane pristale. Test čita izvor i pada ako se `INSERT INTO friends` pojavi
+igde osim u `relationshipService.js` — isti obrazac kao za `acceptedTrainersOf`,
+jer je i ovde otkaz nevidljiv u ponašanju.
+
+**Usput nađena i zatvorena rupa u sobi, veća od prijatelja.** Spisak zvanica
+propušta i onoga ko je pozvan na *zakazan čas* sa tim kodom sobe — poziv jeste
+pristanak. Ali `POST /sessions/schedule` je primao **bilo koji kod sobe** i
+**bilo koje id-jeve**, pa je stranac mogao da zakaže čas na tuđem kodu, pozove
+sam sebe i uđe u sobu držeći pozivnicu koju je sam sebi izdao. Sad se pita i
+`s.host_id`: pozivnica je pristanak samo ako dolazi od onoga čija je soba. Uz
+to, ruta odbija zakazivanje u tuđoj sobi i preskače pozivanje onoga ko nije
+prihvatio vezu — dve brave na istim vratima, namerno.
+
+Isto i `POST /invitations/send`: primao je spisak id-jeva i slao obaveštenje
+kome god, a većina id-jeva u ovoj aplikaciji su deca. Sad ide samo prihvaćenoj
+vezi, i kaže naglas kad deo spiska nije prošao.
+
+### Glas ima nivo, i nivo je u tokenu
+
+Urađeno 25.8.2026, **nije viđeno uživo** (stavka 34 u
+[TODO-provera.md](TODO-provera.md)). Nije bilo u planu tog dana; ušlo je zato
+što je predloženo *postepeno poverenje* — dete sluša trenera i odgovara
+dugmadima, a mikrofon dobija kasnije — a provera je pokazala da mesto na kom bi
+se to sprovodilo stoji otvoreno.
+
+**Šta je zatečeno.** `POST /agora/token` je izdavao `PUBLISHER` token **svakom
+prijavljenom korisniku za bilo koje ime kanala**, bez ijedne provere — a ime
+kanala je kod sobe. Spisak zvanica je čuvao `joinGame` i `audio_join`; glas je
+išao pored njih. Ko ima nalog i kod sobe: uzme token, uđe u Agora kanal, čuje se
+na času i **ne pojavi se na spisku učesnika**. Ako trener snima, taj glas je u
+snimku. To je bila rupa veća od one zbog koje je spisak zvanica i pravljen.
+
+Uz to, „trener je utišao učenike" nije bila kontrola nego molba: `isMuted` je
+polje u mapi na serveru, a stvarno utišavanje je `muteLocalAudioStream` —
+odluka klijenta. Klijent koji ne posluša, ne posluša.
+
+**Šta je sada.** Pravo se odlučuje na serveru i **postaje uloga u tokenu**:
+
+* `maySpeakInRoom` odgovara na dva pitanja odjednom — sme li unutra (isti
+  `mayJoinRoom` kao i do sad) i sme li da se čuje. Tvorac sobe: da. Gost: ne —
+  gost je došao da gleda, a njegov glas bi završio u `uploads/` pored dečjih.
+  Učenik: prema `trainer_students.voice_level`.
+* Token je `SUBSCRIBER` za onoga ko sluša. Mikrofon isključen zato što se
+  aplikacija sama utišala je isključen dok neko ne zameni aplikaciju;
+  pretplatnički token ne može da objavi zvuk bez obzira na to ko ga drži.
+* Aplikacija **ne traži dozvolu za mikrofon** onome ko sluša. Dete koje samo
+  sluša nikad ne vidi taj dijalog.
+* Dugme „Uključi mikrofon" se slušaocu **ne crta**. Zasvetlelo bi, spisak bi
+  rekao da govori, i niko ga ne bi čuo.
+
+**Nivo stoji na vezi, ne na nalogu**, jer je tamo istinit: isto dete može da
+sluša kod novog trenera i govori kod onog kod koga je dve godine. Podrazumevano
+je `'talk'` — da nijedna postojeća veza ne bi ućutala od migracije — ali novi
+red se **upisuje izričito**: za učenika za koga se zna da je maloletan to je
+`'listen'`. Isti obrazac kao `status`, iz istog razloga.
+
+Trener daje i oduzima mikrofon (`PATCH /trainer/students/:id/voice`), a učeniku
+koji je u sobi se javi da se ponovo priključi kanalu — jer uloga živi u tokenu,
+a token se izdaje pri ulasku. Da toga nema, „oduzmi mikrofon" bi značilo „od
+sledećeg časa".
+
+**Brzi odgovori.** Da / Ne / Nisam razumeo, i potezi na tabli. To je ono što
+čini da slušanje bude čas a ne prenos: trener pita da li je jasno i dobija
+odgovor, a da nijedan dečji glas nije objavljen ni snimljen. Tri vrednosti i
+ništa više — slobodan tekst bi bio polje za poruke između deteta i svih u sobi,
+tačno ono što ova aplikacija dva dana odlučuje da ne bude. **Ime pošiljaoca
+uzima se sa socket-a, ne iz poruke**: ko sebe imenuje, može da imenuje i
+drugoga.
+
+**Šta ovo ne rešava.** Bez uključenog Agora App Certificate-a uloga u tokenu je
+savet, jer svako sa App ID-jem ulazi u kanal kako hoće. Server to i kaže u
+odgovoru. Uključivanje sertifikata nije bilo nigde u
+[TODO-objavljivanje.md](TODO-objavljivanje.md) — sad jeste.
+
+### Backend na `master` nije mogao da se pokrene
+
+Nađeno 25.8.2026, popravljeno istog dana.
+
+U `audio_join` su stajala **dva `const seat` u istom bloku** — jedno iz provere
+spiska zvanica, drugo za red u spisku učesnika. To je `SyntaxError` pre nego što
+ijedna linija krene: `node server.js` je odmah padao. Stanje je bilo
+komitovano.
+
+Zašto niko nije primetio: `npm test` nikad ne učitava `server.js`, a dva testa
+koja ga *gledaju* čitaju ga **kao tekst** i traže ime funkcije u njemu. Oba su
+prolazila nad fajlom koji se ne može ni raščlaniti. To je isti oblik greške koji
+CLAUDE.md već nabraja četiri puta, samo pomeren jedan sloj naviše: provera koja
+preskoči baš ono što izgleda da proverava.
+
+Sad postoji `test/sources_compile.test.js`: svaki `.js` fajl servera se
+kompajlira (`vm.Script`, bez izvršavanja — jer bi `require` otvorio bazu i
+zauzeo port). Uz njega ide i test koji proverava da je `server.js` uopšte u
+obilasku, pošto bi obilazak koji ga tiho ne nađe padao na potpuno isti način.
+
+Vredi zapisati i kako je zamalo otišlo naopako: prva provera da nova zaštita
+radi vratila je staru grešku u **pogrešnu funkciju**, test je prošao, i zaključak
+je bio „`vm.Script` ne hvata grešku u telu funkcije, treba `node --check` po
+fajlu". Netačno — `vm.Script` je hvata; proba je bila loša. Da se zaključak
+zadržao, u kodu bi stajao komentar koji objašnjava pogrešnu stvar i test tri
+sekunde sporiji od potrebnog.
 
 ### Uzrast i saglasnost: šta znamo o korisniku (ništa) i kako to popraviti
 
@@ -3262,6 +3445,596 @@ drugim korisnicima je ionako odlučeno: maloletnik ima samo trenera.
 
 Redosled ostaje: ekrani za grupe i zvanice → maloletnik samo sa trenerom → age
 gate i tok saglasnosti → Play deklaracije.
+
+### Age gate: aplikacija sada pita za godinu
+
+Urađeno 25.8.2026, **nije viđeno uživo** (stavka 35 u
+[TODO-provera.md](TODO-provera.md)). Ovim dva pravila napisana istog dana
+prestaju da budu komentar: „maloletnik nije trener" i „dete kreće od slušanja"
+oba čitaju `users.birth_year`, koji je do sada bio prazan u **svakom** redu.
+
+**Pitanje stoji iznad cele aplikacije, ne na kraju registracije.** To je jedina
+odluka u ovom delu koja je mogla da se pogreši tiho, i pogrešila bi se upravo
+onako kako ovaj projekat stalno greši: kroz formu za registraciju ne prolazi
+skoro niko od postojećih naloga, a Google prijava pravi nalog ne prolazeći kroz
+nju uopšte. Pravilo bi izgledalo napisano i važilo bi ni za koga. Zato `AgeGate`
+umotava `MaterialApp.builder`, a pita ga jedno mesto — promena u
+`SessionService`, kroz koju prolaze i forma, i Google, i zapamćen token pri
+pokretanju.
+
+**Tri stanja, opet, i to je isti oblik kao kod prekidača za goste:** upisana
+godina, nalog koji **niko nikad nije pitao**, i **odgovor koji nije stigao**.
+Poslednje nije nijedno od prva dva. Da su spojeni, ugašen backend bi zaključao
+sve naloge (ako se ćutanje čita kao „nije pitan"), ili bi propustio tačno one
+zbog kojih gate postoji (ako se čita kao „punoletan"). Klijent zato ne postavlja
+pitanje dok server ne kaže `ageKnown: false`, a sve što stvarno štiti dete
+sprovodi se ionako na serveru.
+
+**Godina, ne datum**, iz istog razloga kao u koloni: jedno polje manje o detetu,
+a odgovara na jedino pitanje koje joj se postavlja. Prag koji ekran ispisuje
+dolazi **sa servera** (`ageOfConsent`), jer bi broj prepisan u Dart bio drugi
+broj koji sme da se ne slaže sa prvim.
+
+**Neuspeo upis ne zatvara pitanje.** Zatvaranje bi izgledalo identično uspehu i
+ostavilo nalog tačno u stanju zbog kog gate postoji. Provera godine je izvučena
+u `ageService.parseStatedYear` i testirana bez baze — ruta je samo poziva —
+pošto je to jedino mesto koje je moglo da propusti vrednost koju `statedAge`
+kasnije čita kao **nikakvu godinu**: nalog se tiho vraća u stanje „niko ga nije
+pitao", a ekran je rekao da je sačuvano. Test prolazi kroz sve godine 1900–2026
+i traži da se dve polovine slažu.
+
+**Dva izlaza, oba obavezna.** Na samom pitanju stoji *Odjavi se*, jer nalog na
+koji se greškom ušlo ne sme da bude ćorsokak; a u Podešavanjima je red **NALOG →
+Godina rođenja**, jer ko otkuca 2017 umesto 1997 ne sme da ostane zaključan u
+polju do kog više ne može. Ispravka ide kroz isti ekran, sa *Odustani* umesto
+*Odjavi se*.
+
+**Šta ovo namerno ne radi, i zašto je pitanje za korisnika.** Godina se čita
+**pri sklapanju veze** i **pri prihvatanju**, a ne unazad. Nalog koji danas ima
+tri prihvaćene veze i `voice_level = 'talk'`, pa tek sad kaže da ima jedanaest
+godina, ostaje tamo gde jeste. Isto i veza u kojoj je „trener" maloletan.
+Retroaktivno prevođenje bi utišalo decu usred kursa bez reči treneru, a
+neprevođenje ostavlja rupu koju je gate baš otkrio. Odluka je zapisana u
+[PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md) umesto da bude odabrana usput.
+
+Šta i dalje **nije** urađeno: sam tok roditeljske saglasnosti. `GET /me/standing`
+već prijavljuje `parentConsent.given: false`, jer je to iskren odgovor i
+aplikacija mora da ume da ga izgovori — ali kolone `parent_consent_*` i dalje
+puni niko.
+
+### Roditeljska saglasnost: tok je napisan
+
+Urađeno 25.8.2026, **nije viđeno uživo** (stavka 36 u
+[TODO-provera.md](TODO-provera.md)). Četvrta stavka iz odluke od istog dana, i
+prva koja je čekala **odluku korisnika**, a ne kod.
+
+**Odlučeno 25.8.2026: roditelj potvrđuje preko linka u mejlu, na stranici koju
+servira backend.** Razlog je zapis: `parent_consent_at`, `parent_consent_ip` i
+`parent_consent_version` su tri kolone koje pošteno može da popuni samo stranica
+koju je roditelj stvarno otvorio. Kod pročitan detetu dokazuje da je mejl
+stigao, ne da je iko pročitao tekst — a saglasnost koja ne ume da kaže **na šta**
+je data nije zapis.
+
+**Pravilo je jedna rečenica: veza maloletnika sa trenerom ne počinje kad se njih
+dvoje dogovore, nego kad roditelj kaže.** Kad obe strane prihvate, red ide u
+`awaiting_parent` — stanje koje kolona `status` dopušta otkad je napisana i koje
+do danas nije popunio niko. Ništa što prihvaćena veza otključava (domaći,
+izveštaji, soba, mikrofon) nije dostupno iz tog stanja, i **red u `friends` se
+ne pravi**. Zato `respondToRequest` godinu čita **pre** upisa: red koji je jednu
+naredbu bio `accepted` pa ispravljen jeste `accepted` za svako čitanje koje se
+desi u međuvremenu.
+
+**Tekst na stranici je onaj potvrđen 25.8.2026**, sa tri stavke iz
+[saglasnost-roditelja.md](saglasnost-roditelja.md); treća, snimanje, je opciona i
+živi u novoj koloni `trainer_students.parent_allows_recording`. I tamo su **tri
+stanja, ne dva**: `NULL` znači da niko nije pitan, i ne sme da se čita kao „ne"
+ništa više nego kao „da" — svaka veza koja danas postoji je `NULL`, a čitanje
+kao odbijanje bi ugasilo snimanje na četrdeset kurseva u toku.
+
+**Verzija teksta je konfiguracija** (`PARENT_CONSENT_VERSION`, podrazumevano
+`rs-2026-08-25`) i **prepisuje se na zahtev** kad se zahtev napravi, a ne čita
+ponovo kad roditelj odgovori: roditelj pristaje na tekst koji mu je pokazan.
+Država je deo oznake namerno — advokat je potvrdio za Srbiju i to izričito
+rekao, pa bi `2026-08-25` samo po sebi ne bi umelo da kaže **koji** je tekst
+pročitan.
+
+**Token je token, a ne ime.** 32 bajta iz `crypto.randomBytes`, čuva se
+**heširan**, jednokratan je i ističe za 14 dana. Original nikom ne treba nazad —
+roditelj ga ima u mejlu — pa bi čuvanje značilo samo da je procureo backup gomila
+radnih linkova u dosijee dece. Jednokratnost sprovodi **upis**, ne provera: dva
+klika na isti link pola sekunde razmaka oba prođu proveru, a računa se jedan.
+
+**Adresa roditelja se traži od deteta, ne od trenera**, jer je to detetov nalog:
+pismo poslato na adresu koju je trener zapamtio sa telefona je jedini otkaz u
+ovom toku koji izgleda identično uspehu. Kad se adresa unese, server **odmah
+šalje sve što je na nju čekalo** — inače bi veza zaglavljena na
+`awaiting_parent` ostala tamo zauvek sa popunjenom adresom i nikim upitanim.
+
+**Stranica je jedina u projektu koja nije za aplikaciju.** Otvara je roditelj
+bez naloga, na bilo kom uređaju. Zato: nema prijave i token je cela brava; sve
+je ugrađeno u jednu stranicu (bez stilova, skripti i fontova sa mreže, jer
+nepoznat mail klijent na nepoznatoj mreži ume da prikaže praznu stranu); i svako
+ime se ekranizuje, pošto su i ime deteta i ime trenera ono što je neko ukucao u
+formu za registraciju. Tri odbijanja se ne stapaju u „link nije ispravan": ne
+postoji, istekao je i već je odgovoreno traže tri različita poteza od onoga ko
+čita.
+
+**Odbijanje se upisuje** (`granted = false`, sa vremenom) i ne briše ništa.
+Zahtev koji bi se obrisao sam izgledao bi identično onom koji nikad nije ni
+poslat.
+
+**Šta ovo namerno nije.** Nalog maloletnika **nije zaključan** dok roditelj ne
+potvrdi. Potvrđen tekst je po obliku obrazac **po treneru** — u njemu stoji
+„Podaci o treneru" — pa saglasnost visi o vezi, a prva data saglasnost usput
+popunjava i kolone na nalogu (`users.parent_consent_*`, kroz `COALESCE`, dakle
+jednom). Dete bez ijednog trenera koristi aplikaciju kao i do sada. Ako se
+odluči da i to treba zaključati, to je zaseban posao i zaseban tekst.
+
+**Zatečene veze se ne diraju — odlučeno 25.8.2026.** Kad dete upiše godinu po
+kojoj je maloletno, `POST /me/age` **javi svakom njegovom treneru** i ne menja
+ništa: ni status veze, ni `voice_level`. Mehanizam koji bi ćutke prepisao tuđa
+prava na osnovu broja koji je dete upravo otkucalo bio bi gori od rupe koju
+zatvara, a ćutanje bi značilo da trener i dalje snima dete čija je godina tek
+izgovorena. Zato treći put isto pravilo: **javi, ne menjaj.**
+
+**Novo u `.env`:** `PUBLIC_BASE_URL` (odakle je server dostupan spolja, bez
+kose crte na kraju) i `PARENT_CONSENT_VERSION`. Prvi sme da bude prazan i tad
+veza i dalje stane na `awaiting_parent`, a API kaže da pismo nije poslato;
+**polovična vrednost obara server**, jer bi pokvaren link našao tek roditelj
+koji je već zaključio da aplikacija ne radi.
+
+### Saglasnost za snimanje se sada i sprovodi
+
+Urađeno 25.8.2026, **nije viđeno uživo** (stavka 37 u
+[TODO-provera.md](TODO-provera.md)). Ovo je popravka rupe iz istog dana, ne nova
+mogućnost.
+
+**Šta je bilo.** `parent_allows_recording` je od prvog sata pošteno punila
+roditeljska stranica — i **niko je nije čitao**. `grep` je nalazio tačno dva
+mesta: migraciju koja kolonu pravi i upis koji je postavlja. Roditelj je mogao
+da odbije snimanje, a snimanje bi radilo. To je peti put isti oblik: pravilo
+zapisano, pravilo koje se ne sprovodi — i sam
+[saglasnost-roditelja.md](saglasnost-roditelja.md) to kaže naglas („Druga
+stavka je važnija od prve — ona pretvara pravilo iz obećanja u nešto što sistem
+stvarno sprovodi").
+
+**Pravilo: čas se ne snima dok je u sobi dete čiji roditelj to nije dozvolio.**
+Ne „ne bi trebalo" — `uploads/` je jedina stvar u projektu koja se ne može
+reprodukovati ni anonimizovati.
+
+Tri odluke koje ga oblikuju:
+
+* **Blokira samo *izjavljen* maloletnik.** Nalog za čiju godinu niko nije pitao
+  ne blokira ništa — isto grandfathering-ovanje koje su dobili `status` i
+  `voice_level`. Odbijanje na praznoj koloni bi ugasilo snimanje u celoj
+  aplikaciji na osnovu polja koje je sat vremena ranije bilo prazno.
+* **`NULL` i `false` oba blokiraju, i razlikuju se.** Kad se zna da je dete
+  dete, „roditelj je rekao ne" i „roditelja niko nije pitao" su isti odgovor na
+  „smem li da snimam" i različiti odgovori na „šta sad" — prvo je odluka koju
+  poštuješ, drugo pismo koje nije poslato. Poruka treneru ih zato razdvaja i
+  **imenuje decu**: „ne" bez imena je nešto sa čim trener ne može ništa.
+* **Zabraniti novo snimanje nije isto što i prepisati zatečeno.** Odluka od
+  25.8.2026 je bila *javi, ne menjaj* — godina koja stigne kasnije ne ućutkuje
+  dete i ne raskida vezu. To je pravilo o stanju na koje se neko već oslanja.
+  Ovo je radnja koja se **još nije desila**, i odbiti je ne oduzima nikome
+  ništa.
+
+**Dve brave na istim vratima, namerno.** `recording_status_update` odbija
+**pokretanje** (server pita svoj spisak članova sobe, ne klijentov), a
+`POST /recordings/save` odbija **upis** — jer klijent koji nikad ništa ne javi
+i dalje može da stigne sa gotovim fajlom, a to je trenutak kad glas deteta ulazi
+u `uploads/`. Odbijen fajl se briše sa diska: multer ga je već zapisao, pa bi
+ostavljanje značilo tačno ono što se sprečava.
+
+**Ko je bio na času pamti server**, ne klijent (`realtime.recordedRoster`) —
+upis stiže davno pošto su svi otišli, kad je spisak članova prazan, pa bi
+provera bila provera nad nikim. Pauza dodaje u spisak umesto da ga počne iznova.
+**Iskrena granica, zapisana a ne prećutana:** spisak živi u memoriji, pa backend
+restartovan usred časa zaboravi — tada upis **prolazi** (odbijanje bi uništilo
+pravi čas zbog tuđeg restarta) i **kaže da provera nije mogla da se izvrši**.
+„Nije provereno" i „prošlo je" su dva stanja koja ovaj projekat stalno spaja u
+jedno.
+
+**Dete se ne izbacuje sa časa.** Kad uđe u sobu u kojoj snimanje traje, snimanje
+se **zaustavlja**, a dete ostaje — potvrđen tekst kaže da se čas ne sme snimati,
+ne da dete ne sme da prisustvuje. Ono što je snimljeno pre njegovog dolaska
+ostaje, jer njega u tome nema.
+
+**Dugme kaže zašto je ugašeno.** Server šalje `recording_consent` svaki put kad
+se promeni spisak članova — jedini trenutak kad odgovor može da se promeni — pa
+aplikacija crta ugašeno dugme sa razlogom ispod njega, umesto dugmeta koje
+pukne kad se pritisne. To je savet; brava je i dalje na serveru.
+
+**Odbijen snimak prestaje da se nudi.** Snimci se prvo čuvaju lokalno pa
+sinhronizuju u pozadini; posle 403 se red označava (`syncRefused`) i više se ne
+šalje. Ostaje na trenerovom uređaju — njegov je — ali na server ne ide, i razlog
+je zapisan uz njega.
+
+**Test čita izvor i pada ako kolona ponovo postane samo zapis.** Isti obrazac
+kao za `INSERT INTO friends` i `acceptedTrainersOf`, iz istog razloga: otkaz je
+nevidljiv u ponašanju — sve i dalje radi, samo odgovor roditelja prestane da
+znači išta. Provereno mutacijom: kad se čitanje ukloni, tri testa padaju.
+
+**Šta ovde nema testa:** ekran sobe. `chess_game_screen.dart` je tri hiljade
+linija vođenih socket-om i dugme se ne da izolovati bez posla većeg od same
+popravke — pa je to jedino što pokriva samo živa proba.
+
+### Pitanje je pokrivalo ekran, ali ne i tastaturu
+
+Nađeno uživo 25.8.2026, popravljeno istog dana. Prva otkucana godina je ostajala
+u polju zauvek — koliko god se kucalo, vrednost se nije menjala.
+
+**Pokriti ekran i izvaditi ga iz fokusnog stabla su dve različite stvari, a
+samo prva je besplatna.** Neprozirni sloj na vrhu `Stack`-a zaustavlja dodire;
+prelazak fokusa mirno stiže do brata u istom `Stack`-u koga niko ne vidi. Ispod
+gate-a stoji **cela živa aplikacija**, sa svojim poljima i svojim `autofocus`-om
+— pa je kadar posle pojave pitanja uzela fokus nazad, i svaki sledeći taster je
+odlazio ekranu koji se ne vidi. Polje je izgledalo zamrznuto na onome što je
+ukucano do tog trenutka.
+
+Popravka: `ExcludeFocus` oko onoga što je ispod (i `FocusScope` oko samog
+pitanja), pa dok gate stoji ništa ispod ne može da drži tastaturu ni kad
+izričito traži. Test pita baš tako — `requestFocus()` na čvoru ispod pa provera
+da ga nije dobio — i provereno mutacijom: bez `ExcludeFocus`-a pada.
+
+Uz to: polje se pri dobijanju fokusa **selektuje celo**. Četiri cifre iza
+ograničenja dužine su polje koje, kad se napuni, tiho ignoriše kucanje — a to se
+čita kao polje koje ne može da se promeni, što je tačno ono što je i prijavljeno.
+
+Pouka koja važi šire, jer će se ovaj oblik ponoviti: **sve što se crta preko
+aplikacije umesto kroz `Navigator` mora samo da preuzme i dodire i fokus.**
+Dijalozi to dobiju besplatno, jer idu kroz `Overlay`; ručno naslagan sloj ne.
+
+### Baza je ispražnjena pred proveru — 25.8.2026
+
+Odluka korisnika, i dobra: provere 31–37 su o pravilima koja važe **od trenutka
+kad se veza napravi**, a sve što je u bazi stajalo napravljeno je pre nego što su
+ta pravila postojala. Provera nad zatečenim redovima bi merila grandfathering, ne
+pravilo. Zato se nalozi prave iznova i proverava se ono što će stvarno postojati
+kad aplikacija izađe.
+
+**Obrisano je tačno ono što su nalozi napravili** — `TRUNCATE users RESTART
+IDENTITY CASCADE` dohvata 28 tabela, i pre brisanja je izračunato zatvaranje
+stranih ključeva da se vidi šta tačno pada. Zatečeno: 5 naloga, 2 prihvaćene
+veze, 16 snimaka, 93 sobe, 198 sopstvenih zagonetki, 10 lekcija, 8 zadataka.
+
+**Uvezeni skupovi su ostali netaknuti**, jer nijedan nema strani ključ ka
+`users`: `lichess_puzzles` (50.000), `endgame_puzzles` (15.100), `blunder_games`
+(9.581), `opening_replies` (271), `puzzles`. To je i bio uslov — uvoz se meri
+satima, nalozi minutima.
+
+**Snimci su obrisani i sa diska**, uz izričitu potvrdu. `uploads/` je jedino
+mesto u projektu koje se ne može reprodukovati, pa je postupak bio: prvo
+premestiti van repozitorijuma, pa obrisati tek kad je potvrđeno — a nikako
+brisati iz koda. Pravilo iz `CLAUDE.md` ostaje netaknuto: **nijedan kod ovog
+projekta ne briše `uploads/`**; ovo je bila ručna radnja nad sopstvenim probnim
+časovima.
+
+Pre brisanja je uzet `pg_dump` cele baze. Stoji van repozitorijuma i **ne ide u
+njega** — sadrži naloge i heševe lozinki.
+
+**Dve stvari koje posle ovoga treba znati:**
+
+* **Admin se dodeljuje ručno.** Nema `ADMIN_EMAIL` niti bilo kakvog bootstrap-a:
+  jedini put je `UPDATE users SET role = 'admin' WHERE email = ...` nad novim
+  nalogom. Bez toga rute koje traže admina (dodela paketa, merenje troška) nemaju
+  ko da pozove.
+* **Identifikatori kreću od 1**, jer je `RESTART IDENTITY`. Sve što je negde
+  zapisano sa starim `id`-jem — a to su samo beleške u ovim dokumentima — više ne
+  pokazuje ni na šta.
+
+### Token je nadživeo nalog — nađeno i popravljeno 25.8.2026
+
+Nađeno slučajno, čim je baza ispražnjena: aplikacija se povezala i prijavila
+prisustvo kao `pavle (ID: 5)` — nalog koji je minut ranije obrisan.
+
+**Token je potpisana ceduljica, ne red u bazi.** `jwt.verify` dokazuje da je
+ovaj server izdao token i da nije istekao; o nalogu koji token *imenuje* ne
+kaže ništa, a niko drugi nije pitao. Rok tokena je **7 dana**, pa je obrisan
+nalog zadržavao radnu prijavu nedelju dana.
+
+Dva razloga zbog kojih to nije bila samo neobičnost tog popodneva:
+
+* **Politika privatnosti obećava brisanje.** Roditelj sme da traži da nalog
+  nestane, i tekst kaže da nestaje. Prijava koja posle toga radi još nedelju
+  dana je to obećanje neispunjeno — isti oblik kao kolona saglasnosti koja se
+  upisuje a ne čita.
+* **Identifikatori se ponovo dodeljuju.** `RESTART IDENTITY` vraća brojač na 1,
+  pa je peti nalog napravljen posle pražnjenja **stvarno** ID 5 — i stara
+  ceduljica postaje ispravna prijava za drugu osobu. To nije zastarela sesija
+  nego tuđ nalog.
+
+**Popravka:** `services/accountGuard.js` odgovara na jedno pitanje —
+postoji li još red iza ovog tokena — i **tri odgovora, ne dva**: postoji,
+obrisan je (`401 account-gone`), i **nije moglo da se pita** (`503
+unverifiable`). Treće nije drugo: baza koja načas ne odgovara ne sme da se čita
+kao „vaš nalog je obrisan", jer je odgovor klijenta na to da baci sesiju. Sva
+tri ulaza to zovu: `authenticateToken`, `optionalAuth` i nov
+`authenticateSocket`.
+
+**Usput, besplatno:** uloga se od sada čita **iz reda**, ne iz tokena. Uloga je
+tvrdnja zamrznuta pri prijavi, pa je oduzet admin važio do isteka tokena — ista
+greška, jedno polje dalje. Red se ionako čita.
+
+**Cena:** jedan pogodak po primarnom ključu na svaki prijavljen zahtev. Keš bi
+je vratio tako što bi ponovo otvorio baš ovaj prozor, samo kraći.
+
+**Klijent, usko:** `account-gone` je dobio svoje stanje (`ServerStatus.gone`) i
+briše zapamćenu sesiju. Istek tokena **namerno ne radi to isto** — to je širi
+posao (svaki zahtev u aplikaciji bi morao negde da usmeri svoj 401) i vodi se
+kao zasebna otvorena stavka („Istekao token ne odjavljuje korisnika"). Uraditi
+pola toga ovde, pod tuđim imenom, tačno je način da popravka izgleda gotova.
+
+**Provereno protiv živog servera, ne samo testom:** potpisan token za nepostojeći
+nalog → `401 account-gone`; bez tokena → 401; izmišljen potpis → 403; a na
+socket-u redom `connect_error`, gost prolazi, izmišljen potpis pada.
+
+### Test koji nije proveravao ono što piše — isti dan, isti oblik
+
+Vredi zapisati odvojeno, jer je greška bila **u testu**, ne u kodu, i prošla bi
+neprimećeno.
+
+Prva verzija zaštite je čitala izvor `middleware/auth.js` i tražila poziv
+`tokenHolderStanding` u **fiksnih 1600 znakova** od početka svake funkcije. Kod
+kratkih funkcija taj odsečak iscuri u susednu — pa kad se provera ukloni iz
+`authenticateToken`, poklopi se ona u `optionalAuth` i test i dalje prolazi.
+Zaštita je zelena nad kodom u kom je rupa ponovo otvorena.
+
+Otkriveno **mutacijom**: provera je uklonjena namerno, test je i dalje prolazio.
+Sada se telo funkcije vadi brojanjem vitičastih zagrada, obe mutacije obaraju
+test, a uz njega stoji i test **te funkcije** — dve funkcije, marker u drugoj,
+i čitanje prve ne sme da ga nađe.
+
+Pouka za svaki sledeći test koji čita izvor: **odsečak po broju znakova nije
+granica funkcije**, i svaka takva zaštita mora da se proba mutacijom pre nego
+što se poveruje da radi. `CLAUDE.md` već nabraja dva testa koji su čitali
+`server.js` kao tekst i prolazili nad fajlom koji se ne može ni raščlaniti; ovo
+je treći iz iste porodice.
+
+### Stranica se otvarala, a dugme nije radilo — nađeno uživo 25.8.2026
+
+Prva prava proba roditeljske saglasnosti: pismo je stiglo, stranica se otvorila
+besprekorno, a „Dajem saglasnost" je vratilo `{"error":"Origin not allowed"}`.
+
+**Uzrok.** CORS ograda u `server.js` je pisana kad je backend služio **samo JSON
+API nativnim klijentima**. Android i Windows ne šalju `Origin`, pa je svaki
+zahtev koji ga nosi po definiciji bio tuđa stranica — i odbijanje svega van
+`ALLOWED_ORIGINS` bilo je tačno. Onda je stigla roditeljska stranica: jedna HTML
+strana koju servira **ovaj isti server** i čija forma šalje **samoj sebi**. Njen
+`Origin` nije bio na spisku.
+
+**Zašto se nije videlo ranije.** Pregledač na običnu navigaciju **ne šalje**
+`Origin`, a na slanje forme ga **šalje**. Zato je otvaranje stranice prolazilo, a
+padalo je samo dugme — i to jedino dugme zbog kog stranica postoji. Roditelj bi
+video obrazac za saglasnost koji odbija da zabeleži saglasnost.
+
+**Pravilo koje je nedostajalo:** *zahtev sa sopstvenog porekla nije unakrsni
+zahtev.* Spisak dozvoljenih porekala postoji da drži **druge** napolju;
+same-origin je slučaj o kom nikad nije ni trebalo da presuđuje. Odluka je
+izdvojena u `services/corsPolicy.js` i ima **četiri** odgovora umesto tačno/
+netačno — `no-origin`, `allowed`, `same-origin`, `blocked` — jer je spajanje ta
+četiri u dva i bilo ono što je pojelo srednji slučaj.
+
+Poređenje ide po `Host` zaglavlju samog zahteva, ne po nečemu iz konfiguracije:
+to je ono što je pregledač stvarno tražio, pa ostaje tačno iza proksija, na LAN
+adresi i posle promene domena. Test pokriva i klasičan promašaj u ovakvoj
+proveri — `api.example.com.evil.rs` ne sme da prođe kao „isti host".
+
+**Provereno protiv živog servera**, sa izmišljenim tokenom da se pravi zahtev ne
+potroši: slanje sa same stranice → 200, slanje sa tuđeg porekla → i dalje 403.
+
+Zapaziti i **kako je ovo nađeno**: nijedan test nije mogao. Ovo je greška na
+spoju servera i pregledača, u kodu koji je do juče bio tačan, i vidi se tek kad
+neko pritisne dugme na pravom uređaju. Isto važi za sve iz `TODO-provera.md`.
+
+### Poruka koja obori radnju — nađeno uživo 25.8.2026
+
+Prijava je bila: *„kad učenik 1 uđe, snimanje se ne prekida"*. Uzrok je bio moj,
+i to najstariji obrazac u ovom projektu.
+
+```dart
+if (isRecording) {
+  ScaffoldMessenger.of(context).showSnackBar(...);   // pukne ovde
+  unawaited(_stopRecording());                        // nikad se ne izvrši
+}
+```
+
+`showSnackBar` baci *„Looking up a deactivated widget's ancestor is unsafe"* kad
+je `ScaffoldMessenger` koji nađe i sam deaktiviran — a to se u sobi dešava stalno,
+jer socket poruka stigne dok se ekran zatvara. Izuzetak obori ceo rukovalac, i
+snimanje deteta čiji je roditelj snimanje **odbio** nastavi da radi.
+
+**Isti oblik kao prva greška u ovom dokumentu:** „Pozivi ka audio plejeru stajali
+su ispred kreiranja tajmera reprodukcije, pa bi greška zvuka oborila ceo
+`_play()`." Pravilo je bilo zapisano i svejedno prekršeno.
+
+**Pravilo, sada i u kodu:** *radnja pre poruke, i poruka ne sme da može da obori
+radnju.* `AppFeedback` je dobio `_show` koji hvata izuzetak i loguje ga —
+`context.mounted` nije dovoljno, jer nije kontekst taj koji je mrtav nego
+messenger. Sva četiri mesta u lancu snimanja idu kroz njega, a `_stopRecording`
+je pomeren **ispred** poruke.
+
+**Šire — urađeno 25.8.2026:** svih **82** poziva `ScaffoldMessenger.of(...)` u
+`lib/`, u 23 fajla, prebačeno je na `AppFeedback`. Prevod je namerno doslovan
+(`AppFeedback.show`, ista boja, isto trajanje, isto dugme): poenta je da poziv
+ne može da obori ono što javlja, a ne da sve poruke odjednom izgledaju drugačije
+— najmanje usred provere uživo. U `lib/` više nema nijednog `ScaffoldMessenger`
+ni `showSnackBar` van `AppFeedback`.
+
+**I sama ograda je imala istu rupu.** `AppFeedback.error(context, ...)` je
+pravio `SnackBar` **pre** nego što uđe u `_show`, a u tom `SnackBar`-u stoji
+`context.colors` — što je `Theme.of(context)`, dakle **isto ono traženje pretka**
+koje puca na zatvorenom ekranu. Ograda je proveravala `mounted` i hvatala
+izuzetak tek posle mesta na kome se puca. Ista rečenica koju ovaj dokument već
+nosi na drugom mestu: *ograda napisana za grešku nije čuvala*. Sad `_show` prima
+**graditelja** (`SnackBar Function()`) i gradi ga unutra, iza provere i iza
+`try`-a.
+
+**Dokazano mutacijom**, jer se izvorno-čitajućem testu ovde ne veruje na reč.
+Tri mutacije, sve tri uhvaćene:
+
+| mutacija | test koji padne |
+|---|---|
+| ručni `ScaffoldMessenger.of(context)` vraćen u jedan ekran | *no file reaches for ScaffoldMessenger itself* |
+| messenger uhvaćen u lokalnu promenljivu, pa `messenger.showSnackBar(...)` | *no file calls showSnackBar directly* |
+| `_show` ponovo gradi `SnackBar` pre provere (stari kod) | *a popped screen does not throw* — baci baš „Looking up a deactivated widget's ancestor is unsafe" |
+
+Test je `test/app_feedback_guard_test.dart` (7 testova): tri čitaju izvor `lib/`,
+četiri puštaju `AppFeedback` kroz kontekste koje soba stvarno pravi — ekran koji
+je zatvoren, drvo bez messenger-a, i jedan sa messenger-om, da provera ne bi
+prošla zato što se poruka nikad ne prikazuje.
+
+**Ostaje kao sitnica, ne kao rupa:** tih 82 mesta i dalje sama sastavljaju
+`SnackBar` sa svojom bojom. Prelazak na `error` / `success` / `info` / `warning`
+je posao za dan kad se boje budu ujednačavale, i menja izgled — zato nije urađen
+sada.
+
+**Usput popravljeno na serveru:** odbijen početak snimanja nije ostavljao nikakav
+trag, pa je upis snimka kasnije nalazio prazan spisak učesnika i prolazio kao
+„nije moglo da se proveri". Sad se spisak upisuje **pre** presude — ko je bio u
+sobi kad je snimanje *pokušano* — pa klijent koji ignoriše `recording_denied` i
+svejedno pošalje snimak biva odbijen i na upisu.
+
+### Prekid zbog saglasnosti više nije „restart usred časa" — ✅ 25.8.2026
+
+**Provereno uživo istog dana**, soba 104362: log kaže pravi razlog, klijent javi
+prekid u istoj sekundi u kojoj dete uđe, a rečenica stigne do trenera. Ostaje
+samo provera `participants` u bazi (stavka 37 u `TODO-provera.md`).
+
+Nađeno u logu prave provere, dvanaest minuta posle prethodnog odeljka:
+
+```
+21:30:05 WARN  [SNIMANJE] Zaustavljeno u sobi 104362: … roditelj nije dozvolio snimanje za: učenik 1.
+21:30:05 INFO  [RECORDING STATUS] Room 104362 -> status: stopped
+21:30:18 WARN  [SNIMANJE] Saglasnost nije mogla da se proveri … (restart usred časa?)
+21:30:18 INFO  [RECORDING] Multipart audio saved: …recording_1787693418307_397535871.aac
+```
+
+Nije bilo nikakvog restarta. Rukovalac ulaska je **brisao spisak učesnika**
+(`clearRecordedRoster`) pre nego što pošalje `recording_must_stop`, pa je upis
+trinaest sekundi kasnije pao u granu pisanu za tuđi kvar. Tri posledice, sve tri
+merene a ne pretpostavljene:
+
+1. **Prekid zbog saglasnosti i restart servera bili su isto stanje.** Server je
+   znao tačan razlog, sam ga obrisao, pa o istoj sobi rekao da ne pamti ništa.
+2. **Druga brava od tog trenutka nije držala ništa.** Komentar dvadesetak redova
+   iznad opisuje baš tu rupu i zatvara je za odbijen *početak* — a ulazak ju je
+   otvarao ponovo: klijent koji ignoriše `recording_must_stop` i nastavi da
+   snima dete mogao je posle da upiše šta hoće.
+3. **Dete je ostajalo u `participants` snimka u kome ga nema.** Klijent šalje ko
+   je u sobi u trenutku čuvanja, a to je i spisak onih kojima se snimak
+   prikazuje (`$1 = ANY(sr.participants)`) — pa bi odbijenom detetu tuđi snimak
+   stajao kao njegov.
+
+**Sada su tri odgovora**, isti oblik koji je `accountGuard` već tražio:
+*zaustavljeno zbog saglasnosti*, *ništa nije zaustavljeno*, *server ne pamti*.
+Samo srednji prolazi bez napomene.
+
+- `stopRecordingForConsent` **pamti** prekid umesto da ga zaboravi, i iz spiska
+  vadi samo onoga zbog koga je stao — ono što je snimljeno pre njegovog ulaska
+  ostaje trenerovo, jer njega u tome nema.
+- Prolaz zavisi od toga da li je soba **javila da je stala**. To nije novo
+  polje: `recording_status_update {status:'stopped'}` je već postojao i pošten
+  klijent ga šalje u istoj sekundi (0s u logu gore). Rok je 30 s — širok za lošu
+  vezu, preuzak za klijenta koji je nastavio da snima. Ako nije javio: **403** i
+  fajl se briše.
+- Poruka govori šta se stvarno desilo, i **stiže do trenera**:
+  `syncPendingRecordings` sada vraća napomene servera, a soba ih prikazuje kroz
+  `AppFeedback` — posle sinhronizacije, ne pre nje. Do danas je server tu
+  rečenicu sastavljao na svaki upis, a `lib/` je nije čitao nigde: `consentUnverified`
+  i `message` su se odbacivali. Ista greška kao `parent_allows_recording` —
+  upisano, i ne čita ga niko — uperena u ono što je roditelj odgovorio.
+
+**Dokazano mutacijom**, `test/recording_stop.test.js` (13 testova):
+
+| mutacija | test koji padne |
+|---|---|
+| upis prestane da pita `realtime.consentStop(...)` | *the save asks whether this room was stopped for consent* + *… refuses the room that never said it stopped* |
+| ulazak vrati `clearRecordedRoster` | *the join handler records the stop instead of forgetting the room* |
+| niko ne beleži javljeni prekid | *the stop reported by the room reaches the record* |
+| aplikacija prestane da čita odgovor | *the answer the server composes is read by the app, not only written* |
+
+Poslednja je zaslužila i belešku u samom testu: **prva verzija tog testa nije
+pala.** Tražila je reč `consentStopped` bilo gde, a ta reč je i posle mutacije
+stajala u komentaru i u ključu pod kojim se čuva. Sad se komentari prvo brišu i
+traži se `data['consentStopped']`, dakle čitanje. Ograda vredi tačno onoliko
+koliko kaže njena mutacija.
+
+### „Nemate sačuvanih prijatelja" je bila greška u čitanju — ✅ 25.8.2026
+
+Prijava uživo: *„zašto dok sam u sesiji ne mogu nikog da pozovem?"* — dijalog
+*Pozovi prijatelje u sesiju* je pisao **Nemate sačuvanih prijatelja** treneru
+koji u toj sobi ima dva prihvaćena učenika.
+
+```dart
+friendsList = jsonDecode(res.body);   // ruta vraća { "friends": [...] }
+} catch (e) {
+  // quiet fail
+}
+```
+
+`GET /friends` vraća objekat. Dekodiranje pravo u `List<dynamic>` bacalo je
+`TypeError` **na svakom pozivu koji je ikada bio**, a `catch` ispod ga je gutao
+pod komentarom „quiet fail" — pa je nemogućnost da se spisak *pročita* izlazila
+kao spisak koji je *prazan*. Isti oblik kao sve ostalo u ovom dokumentu: „nisam
+mogao da pitam" pročitano kao „nema nikoga". `home_screen.dart` čita istu rutu
+ispravno (`jsonDecode(res.body)['friends']`), četiri stotine redova dalje.
+
+Popravljeno oboje: odgovor se raspakuje, a neuspeh se sada **vidi** — dijalog
+kaže da spisak nije mogao da se učita, umesto da tvrdi da je prazan. Prazan
+spisak je usput dobio i tačniju rečenicu, jer `friends` red od 25.8.2026 nastaje
+samo iz prihvaćene veze trener–učenik.
+
+Provereno ostatkom koda: `/lessons/labels` i `GET /recordings` vraćaju čiste
+nizove, pa su ta dva čitanja ispravna — ovo je bilo jedino mesto tog oblika.
+
+`test/invite_friends_dialog_test.dart` čita telo dijaloga po zagradama i pada na
+obe mutacije: povratak na dekodiranje pravo u listu, i povratak na tiho gutanje.
+
+**Potvrđeno uživo istog dana:** poziv iz sobe radi.
+
+### Sajt: pravni deo je napisan i čeka jedno pokretanje — 26.8.2026
+
+Odluke su bile donete ranije (domen 16.8, isti droplet 17.8); nedostajale su
+stranice. Sada postoje, u `site/`, sa `deploy/site-setup.sh` koji ih objavljuje.
+
+**Zašto baš ovaj deo prvi:** politika privatnosti i kontakt su ono što **blokira
+Play**, ne traže odluku o imenu, i ne dodiruju backend — koji je namerno ugašen,
+pa objavljivanje statičnih stranica ne otvara priču o dva servera nad jednom
+bazom. Naslovna sa opisom mogućnosti i preuzimanjem čeka ime i odluku o nivoima
+pretplate, jer se taj tekst piše jednom i koristi i u Play listingu.
+
+**Zatečeno stanje koje niko nije primetio:** `chesstrainers.app`, `www` i `api`
+**već pokazuju na isti droplet**. Pošto je ceo `.app` na HSTS preload listi, ko
+danas ukuca adresu ne dobije upozorenje nego stranicu koja izgleda pokvareno —
+nginx nema server blok za to ime. `chesstrainers.net` još pokazuje na parkiranu
+stranicu registrara.
+
+Tri stvari koje skripta radi drugačije nego što bi bilo očigledno, i sve tri su
+iz grešaka koje ovaj projekat već ima zapisane:
+
+- **Zaseban sertifikat za `@` i `www`**, nikad `--expand` na onaj za `api`. Ako
+  se sajt ikad preseli, certbot bi nastavio da obnavlja imena koja ta mašina ne
+  servira, obnova **celog** sertifikata bi pukla i sa njom `api` — tri meseca
+  kasnije i bez poruke.
+- **Stranica sa neispunjenim `{{PLACEHOLDER}}`-om se ne objavljuje.** Zamena se
+  radi u privremenom folderu, proverava se tamo, i tek onda menja ono što je
+  živo. Politika privatnosti koja ne imenuje rukovaoca gora je od nikakve, a
+  ime i adresa su fizičkog lica i ne smeju u javan repozitorijum — pune se iz
+  `.env`.
+- **Preusmerenje sa `.net` se preskače naglas** dok njegov A zapis ne pokazuje
+  ovde, umesto da se od certbot-a traži ime koje se ne razrešava na ovaj host.
+
+**Šta je namerno ostalo van sajta:** obrazac saglasnosti. Obavezujući tekst
+generiše `routes/consent.js` i nosi `PARENT_CONSENT_VERSION`; stranica na sajtu
+opisuje postupak i to izričito kaže. Treći primerak pravnog teksta nije smeo da
+nastane — dva već postoje (nacrt u `docs/` koji je advokat čitao, i objavljena
+verzija).
+
+Provereno lokalno pre predaje: sve četiri stranice se iscrtavaju, nemaju
+nijedan neispunjen `{{...}}`, nemaju vodoravno prelivanje na širini telefona, i
+konzola je prazna. Ostaje da se u `.env` na dropletu upišu vrednosti i pokrene
+skripta — to je jedina radnja koja traži server.
 
 ### Sledeće, po redu
 
@@ -3424,8 +4197,8 @@ ovo.
 
 ### Brojke, da se vidi da li je nešto puklo
 
-`cd chess_app && flutter test` → **533**, `flutter analyze` čist.
-`cd chess_backend && npm test` → **337**.
+`cd chess_app && flutter test` → **653**, `flutter analyze` čist.
+`cd chess_backend && npm test` → **517**.
 
 ## Sledeće na redu
 
