@@ -3204,6 +3204,49 @@ ali tuđa adresa više ne putuje kroz liste, a većina ljudi u tim listama su de
 postoje), prekidač „soba prima goste" u sobi, i pravilo da maloletnik ima samo
 trenera. To je sledeći korak.
 
+### Uzrast i saglasnost: šta znamo o korisniku (ništa) i kako to popraviti
+
+Zapisano 25.8.2026, pre nego što se počne. Polazna činjenica: **aplikacija danas
+ne zna koliko korisnik ima godina.** `users` ima email, ime, lozinku,
+`is_verified` i `account_type` — ni datum rođenja, ni roditelja. Google prijava
+tu ne pomaže: vraća email, ime i `sub`, a **ne vraća godine niti email
+roditelja**, ni za naloge pod Family Link nadzorom. Prijava dokazuje da je
+sanduče njegovo; sve ostalo je na nama.
+
+**Dve saglasnosti, ne jedna.** Ovo je jedino mesto gde se opšti savet („nalog
+stoji zaključan dok roditelj ne potvrdi") sudara sa onim što ovde već postoji, i
+odgovor je da su potrebne obe:
+
+* **Na nalogu** — sme li ovo dete uopšte da koristi interaktivni deo aplikacije.
+  Za to trebaju nove kolone na `users`: datum rođenja (ili godina), `parent_email`,
+  `parent_consent_at/ip/version`, i status naloga.
+* **Na vezi** — sme li *ovaj* trener da uči moje dete, da mu vidi domaći i da ga
+  snima. Za to kolone već postoje, na `trainer_students`, zajedno sa statusom
+  `awaiting_parent`. To nije duplikat: prva odgovara na „sme li dete ovde", druga
+  na „sme li baš on".
+
+**Gde se to sprovodi — tri mesta, sva tri već postoje.** `mayJoinRoom` je jedina
+vrata u sobu i u glas, pa maloletnik bez saglasnosti tamo dobija isto odbijanje
+kao i stranac. Prihvatanje veze ide kroz `respondToRequest`. Povezivanje sa
+drugim korisnicima je ionako odlučeno: maloletnik ima samo trenera.
+
+**Tri stvari koje savet ne kaže, a važne su:**
+
+1. **Uzrast je izjava, ne dokaz.** Dete može da upiše bilo šta. Zato ništa što
+   štiti dete ne sme da *zavisi* od tačnosti tog broja — a kod nas i ne zavisi:
+   spisak zvanica i saglasnost po treneru drže bez obzira na to šta je upisano.
+   Age gate određuje koji tok ide, ne koliko je neko bezbedan.
+2. **Potvrda mejlom je slaba potvrda.** Za mlađe od 13 u SAD (COPPA) „email
+   plus" se prihvata samo za internu upotrebu, a ovde postoji snimanje glasa
+   koje trener dobija — to je otkrivanje. Dok je distribucija sužena na jednu
+   državu, pitanje je odloženo; pri širenju se postavlja advokatu izričito.
+3. **Family Link nalog treba probati uživo pre objave.** Google ume da traži
+   odobrenje roditelja na roditeljskom uređaju pre nego što uopšte izda token,
+   i to je tok koji niko od nas nije video.
+
+Redosled ostaje: ekrani za grupe i zvanice → maloletnik samo sa trenerom → age
+gate i tok saglasnosti → Play deklaracije.
+
 ### Sledeće, po redu
 
 Stanje na kraju 24.8.2026. Sve iz prošlog spiska pod 2–6 je urađeno; ostaje

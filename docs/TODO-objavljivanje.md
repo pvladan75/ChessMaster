@@ -77,6 +77,14 @@ Publika ID tokena se ne menja preimenovanjem paketa.
       identifikator, ne email.
 - [ ] **Maloletnik samo sa prihvaćenim trenerom;** prijatelji za odrasle uz
       obavezan pristanak druge strane. Odlučeno 25.8.2026.
+- [ ] **Probati prijavu Family Link nalogom** (nalog deteta pod roditeljskim
+      nadzorom) pre objave. Google ume da traži odobrenje na roditeljskom
+      uređaju pre nego što izda token; taj tok niko nije video, a on je prvi
+      koji dete sretne.
+- [ ] **Pitati advokata izričito o potvrdi mejlom.** Za mlađe od 13 u SAD
+      (COPPA) potvrda mejlom se prihvata samo za internu upotrebu, a ovde
+      trener dobija snimak dečjeg glasa. Pitanje je odloženo dok je distribucija
+      sužena; pri širenju se postavlja prvo.
 - [ ] **Pitati advokata o obliku, ne samo o tekstu.** Neke države ograničavaju
       maloletnike na *društvenim mrežama*, a to se meri vezama korisnik–korisnik
       i direktnom komunikacijom, ne temom aplikacije. Kod nas je sve zatvoreno
