@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Politika privatnosti</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><a href="/">← Početna</a></header>
+
+<h1>Politika privatnosti</h1>
+<p class="updated">Poslednja izmena: {{LAST_UPDATED}}</p>
+
+<h2>1. Ko obrađuje vaše podatke</h2>
+<p>Rukovalac podacima je {{OPERATOR_NAME}}, {{OPERATOR_ADDRESS}}, Republika Srbija.</p>
+<p>Kontakt za sva pitanja o privatnosti i za ostvarivanje prava iz ove politike:
+<a href="mailto:{{PRIVACY_EMAIL}}">{{PRIVACY_EMAIL}}</a>.</p>
+
+<h2>2. Na koga se ova politika odnosi</h2>
+<p>Ovo je aplikacija za šahovsku obuku. Koriste je <strong>treneri</strong> i
+<strong>učenici</strong>, a značajan deo učenika su <strong>deca</strong>. Ako
+imate manje od 15 godina, nalog sme da bude otvoren samo uz saglasnost roditelja
+ili staratelja — vidi odeljak 8.</p>
+
+<h2>3. Koje podatke prikupljamo</h2>
+
+<h3>3.1 Podaci koje unosite sami</h3>
+<div class="table-scroll">
+<table>
+<tr><th>Podatak</th><th>Zašto ga imamo</th></tr>
+<tr><td>Email adresa</td><td>Prijava na nalog, verifikacioni kod, obaveštenja o časovima</td></tr>
+<tr><td>Ime</td><td>Prikaz drugim učesnicima časa i vašem treneru</td></tr>
+<tr><td>Lozinka</td><td>Čuva se isključivo kao bcrypt heš — originalnu lozinku ne možemo pročitati</td></tr>
+<tr><td>Naslovi i opisi lekcija, komentari uz poteze</td><td>Sadržaj koji sami kreirate</td></tr>
+</table>
+</div>
+<p>Ako se prijavljujete preko Google naloga, od Google-a dobijamo samo
+<strong>email adresu i ime</strong>. Ne dobijamo vašu Google lozinku niti pristup
+ostalim Google uslugama.</p>
+
+<h3>3.2 Podaci koji nastaju korišćenjem</h3>
+<div class="table-scroll">
+<table>
+<tr><th>Podatak</th><th>Zašto ga imamo</th></tr>
+<tr><td>Odigrani potezi, pozicije, strelice i oznake na tabli</td><td>Rad na času i kasniji pregled</td></tr>
+<tr><td>Rejting po taktičkim temama, broj rešenih i promašenih zagonetki, vreme rešavanja</td><td>Prilagođavanje težine i izveštaj o napretku</td></tr>
+<tr><td>Zadaci koje vam je trener zadao i rezultati po zadatku</td><td>Praćenje domaćih zadataka</td></tr>
+<tr><td>Potez koji ste odigrali na svakoj poziciji iz zadatka</td><td>Da trener vidi <em>šta</em> ste probali, a ne samo da li je tačno</td></tr>
+<tr><td>Poruke koje vi i vaš trener pišete uz zadatak ili uz poziciju</td><td>Povratna informacija o domaćem zadatku</td></tr>
+<tr><td>Veze trener–učenik</td><td>Pozivanje na časove i deljenje lekcija</td></tr>
+<tr><td>Zakazani termini i obaveštenja</td><td>Podsetnici na čas</td></tr>
+</table>
+</div>
+
+<h3>3.3 Snimci časova</h3>
+<p>Ako trener uključi snimanje, čuvamo zvučni zapis časa uključujući glasove svih
+učesnika, vremenski tok poteza i oznaka na tabli, listu učesnika, i izrenderovani
+video zapis ako ga trener napravi.</p>
+<p><strong>Snimanje uvek pokreće trener i o njemu morate biti obavešteni pre
+početka.</strong> Kada je učesnik dete, snimanje nije moguće bez prethodne
+saglasnosti roditelja — server ga odbija i zaustavlja ako dete uđe na čas koji se
+snima. Snimak je vidljiv treneru koji ga je napravio i učesnicima tog časa.</p>
+
+<h3>3.4 Podaci o plaćanju</h3>
+<p>Pretplate se naplaćuju preko <strong>Google Play-a</strong>. Google je
+prodavac i on obrađuje vaše podatke o plaćanju — <strong>mi ne vidimo i ne
+čuvamo broj kartice niti bilo koji platni podatak</strong>. Od Google-a dobijamo
+samo identifikator kupovine, naziv proizvoda, status pretplate i datum isteka.</p>
+
+<h3>3.5 Podaci o potrošnji resursa</h3>
+<p>Beležimo zbirno, po nalogu i po mesecu: broj sekundi glasovne komunikacije,
+broj izrenderovanih video zapisa, broj zatraženih AI komentara i broj skeniranih
+strana. Ovo koristimo isključivo da bismo znali koliko nas usluga košta i da
+bismo sprečili zloupotrebu.</p>
+
+<h2>4. Šta <em>ne</em> radimo</h2>
+<ul>
+<li>Ne prodajemo vaše podatke.</li>
+<li>Ne koristimo ih za reklamiranje niti ih ustupamo oglašivačima.</li>
+<li>Ne pravimo profile za marketinške svrhe.</li>
+<li>Ne šaljemo vaše ime, email niti bilo koji lični podatak servisu veštačke
+inteligencije (vidi 5.2).</li>
+</ul>
+
+<h2>5. Kome se podaci prosleđuju</h2>
+<p>Koristimo sledeće pružaoce usluga. Svaki dobija samo ono što mu je neophodno.</p>
+
+<h3>5.1 Agora (glasovna komunikacija)</h3>
+<p>Prenosi zvuk uživo tokom časa. Agora obrađuje audio tok i tehničke podatke o
+vezi. Prenos se odvija van Srbije.</p>
+
+<h3>5.2 Google Gemini (AI objašnjenja poteza)</h3>
+<p>Kada zatražite AI komentar, šaljemo <strong>samo šahovske podatke</strong>:
+poziciju (FEN), evaluaciju motora, oznaku poteza i unapred izračunate taktičke i
+pozicione nalaze. <strong>Ne šaljemo vaše ime, email, identifikator naloga niti
+bilo koji drugi lični podatak</strong> — Google iz tog zahteva ne može da
+zaključi ko ste.</p>
+
+<h3>5.3 Google Play (naplata) i Google prijava</h3>
+<p>Vidi 3.4. Google prijava koristi se samo za potvrdu identiteta.</p>
+
+<h3>5.4 Lichess i servisi za šahovsku evaluaciju</h3>
+<p>Radi analize pozicije šaljemo <strong>samo poziciju (FEN)</strong>, bez
+ikakvog podatka o korisniku.</p>
+
+<h3>5.5 Hosting i email</h3>
+<p>Podaci se čuvaju na serverima {{HOSTING_PROVIDER}} u {{HOSTING_REGION}}.
+Verifikacione poruke i poruke roditeljima šalju se preko {{SMTP_PROVIDER}}.</p>
+
+<h2>6. Koliko dugo čuvamo podatke</h2>
+<div class="table-scroll">
+<table>
+<tr><th>Podatak</th><th>Rok</th></tr>
+<tr><td>Podaci o nalogu</td><td>Dok nalog postoji</td></tr>
+<tr><td>Zvučni snimci časova</td><td>Dok ih trener ili vlasnik naloga ne obriše, ili do brisanja naloga</td></tr>
+<tr><td>Izrenderovani video zapisi (MP4)</td><td>{{EXPORT_RETENTION_DAYS}} dana od nastanka — mogu se napraviti ponovo iz snimka</td></tr>
+<tr><td>Rezultati zagonetki i zadataka</td><td>Dok nalog postoji — čine istoriju napretka</td></tr>
+<tr><td>Poruke uz zadatke</td><td>Dok zadatak postoji; brisanjem zadatka nestaju i one</td></tr>
+<tr><td>Podaci o pretplati</td><td>Koliko nalažu poreski propisi</td></tr>
+<tr><td>Zbirni podaci o potrošnji resursa</td><td>Dok nalog postoji</td></tr>
+</table>
+</div>
+<p><strong>Brisanjem naloga trajno se brišu i svi vezani podaci</strong> —
+lekcije, snimci, rezultati i zadaci. Ova radnja se ne može poništiti.</p>
+
+<h2>7. Vaša prava</h2>
+<p>Imate pravo da pristupite svojim podacima, tražite ispravku netačnih podataka,
+tražite brisanje, ograničite obradu, prigovorite obradi i prenesete podatke
+drugom rukovaocu.</p>
+<p>Zahtev šaljete na <a href="mailto:{{PRIVACY_EMAIL}}">{{PRIVACY_EMAIL}}</a>.
+Odgovaramo u roku od 30 dana.</p>
+<p>Ako smatrate da su vam prava povređena, možete se obratiti
+<strong>Povereniku za informacije od javnog značaja i zaštitu podataka o
+ličnosti</strong> Republike Srbije.</p>
+
+<h2>8. Deca</h2>
+<p>Značajan deo naših korisnika su deca. Zato:</p>
+<ul>
+<li>Nalog za dete mlađe od 15 godina sme se otvoriti <strong>samo uz saglasnost
+roditelja ili staratelja</strong>.</li>
+<li><strong>Snimanje časa na kome učestvuje dete zahteva prethodnu saglasnost
+roditelja.</strong> Saglasnost se daje na posebnoj stranici, preko linka koji
+roditelj dobija emailom — ne preko koda koji se saopštava detetu.</li>
+<li>Roditelj u svakom trenutku može da traži uvid u podatke deteta, njihovo
+brisanje ili brisanje pojedinačnog snimka, pisanjem na
+<a href="mailto:{{PRIVACY_EMAIL}}">{{PRIVACY_EMAIL}}</a>.</li>
+<li>Ne prikazujemo deci reklame i ne koristimo njihove podatke ni za šta osim za
+obuku i izveštaj njihovom treneru i roditelju.</li>
+</ul>
+<p>Kako saglasnost izgleda i šta obuhvata, opisano je na stranici
+<a href="/saglasnost-roditelja">Saglasnost roditelja</a>.</p>
+
+<h2>9. Bezbednost</h2>
+<p>Lozinke se čuvaju kao bcrypt heš. Komunikacija sa serverom ide preko HTTPS-a.
+Pristup podacima učenika ima <strong>samo trener sa kojim je učenik
+povezan</strong> — nijedan drugi trener ne može da vidi tuđe učenike.</p>
+<p>Nijedna mera nije apsolutna. U slučaju povrede podataka koja može da ugrozi
+vaša prava, obavestićemo vas i Poverenika u skladu sa zakonom.</p>
+
+<h2>10. Izmene</h2>
+<p>Ako izmenimo ovu politiku, novu verziju objavljujemo na ovoj istoj adresi i
+menjamo datum na vrhu. O značajnim izmenama obaveštavamo vas emailom.</p>
+
+<h2>11. Kontakt</h2>
+<p>{{OPERATOR_NAME}}<br>
+{{OPERATOR_ADDRESS}}<br>
+<a href="mailto:{{PRIVACY_EMAIL}}">{{PRIVACY_EMAIL}}</a></p>
+
+<footer class="bottom">
+<a href="/">Početna</a> · <a href="/saglasnost-roditelja">Saglasnost roditelja</a> · <a href="/kontakt">Kontakt</a>
+</footer>
+</div>
+</body>
+</html>

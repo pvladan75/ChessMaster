@@ -1,0 +1,103 @@
+/* One stylesheet for every page on the site.
+ *
+ * Deliberately small and dependency-free: these pages are legal text and a
+ * contact address, they are served by nginx as static files, and the only thing
+ * that must never happen to them is that they stop rendering. No fonts from
+ * other hosts, no scripts, nothing to load.
+ */
+
+:root {
+  color-scheme: light dark;
+  --paper: #ffffff;
+  --ink: #16181d;
+  --ink-soft: #4a5058;
+  --rule: #dfe3e8;
+  --accent: #1f6f4a;
+  --surface: #f5f7f5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #14171a;
+    --ink: #e7eaec;
+    --ink-soft: #a7b0b6;
+    --rule: #2b3136;
+    --accent: #6fbf90;
+    --surface: #1b2024;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 20px 80px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 17px/1.65 Georgia, "Times New Roman", serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+.wrap { max-width: 720px; margin: 0 auto; }
+
+header.top {
+  padding: 28px 0;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 40px;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+header.top a { color: var(--ink-soft); text-decoration: none; font-size: 15px; }
+header.top a:hover { color: var(--accent); }
+
+h1, h2, h3 {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.25;
+  margin: 2em 0 0.6em;
+}
+
+h1 { font-size: clamp(28px, 5vw, 38px); letter-spacing: -0.02em; margin-top: 0; }
+h2 { font-size: 21px; padding-top: 0.4em; border-top: 1px solid var(--rule); }
+h3 { font-size: 17px; }
+
+p, ul, ol { margin: 0 0 1em; }
+li { margin-bottom: 0.35em; }
+
+a { color: var(--accent); }
+
+code {
+  font: 0.92em ui-monospace, Consolas, monospace;
+  background: var(--surface);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+
+/* Tables carry the retention periods and the data inventory, and a phone must
+ * be able to read them: they scroll inside their own box rather than pushing
+ * the page sideways. */
+.table-scroll { overflow-x: auto; margin: 0 0 1.4em; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 14px; }
+
+.lead { font-size: 19px; color: var(--ink-soft); }
+.updated { font-size: 14px; color: var(--ink-soft); font-family: system-ui, sans-serif; }
+
+.note {
+  background: var(--surface);
+  border-left: 3px solid var(--accent);
+  padding: 14px 18px;
+  margin: 0 0 1.4em;
+  font-size: 16px;
+}
+
+footer.bottom {
+  margin-top: 64px;
+  padding-top: 20px;
+  border-top: 1px solid var(--rule);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+footer.bottom a { color: var(--ink-soft); }
