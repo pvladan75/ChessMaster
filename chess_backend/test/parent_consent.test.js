@@ -20,6 +20,8 @@ process.env.PARENT_CONSENT_VERSION = 'rs-2026-08-25';
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
 
 const {
   DEFAULT_TEXT_VERSION,
@@ -194,7 +196,7 @@ test('consent fills the relationship, the account and the friendship at once', a
   });
 
   const result = await recordAnswer(pool, {
-    token: 't', ip: '198.51.100.7', granted: true, allowsRecording: true,
+    token: 't', ip: '198.51.100.7', granted: true,
   });
 
   assert.equal(result.ok, true);
@@ -205,7 +207,6 @@ test('consent fills the relationship, the account and the friendship at once', a
   assert.match(relationship.sql, /parent_consent_at = CURRENT_TIMESTAMP/);
   assert.ok(relationship.params.includes('198.51.100.7'));
   assert.ok(relationship.params.includes('rs-2026-08-25'));
-  assert.ok(relationship.params.includes(true), 'saglasnost za snimanje');
 
   assert.ok(pool.find('INSERT INTO friends'), 'prijateljstvo prati prihvatanje');
   assert.ok(pool.find('UPDATE users'), 'saglasnost na nalogu');
@@ -248,28 +249,38 @@ test('a refusal is recorded, and it accepts nothing', async () => {
   assert.ok(claim.params.includes(false), 'odbijanje se ne upisuje');
 });
 
-test('recording is refused unless it was ticked, and never on a refusal', async () => {
-  // Item 3 of the form is the optional one: a child may attend with it refused.
-  // What must not happen is a parent recorded as agreeing to a recording while
-  // they refused the whole thing.
-  for (const [granted, ticked, expected] of [
-    [true, true, true], [true, false, false], [false, true, false],
-  ]) {
-    const pool = stubPool((sql) => {
-      if (sql.includes('FROM parent_consent_requests r')) return liveRequest();
-      if (sql.includes('UPDATE parent_consent_requests')) return [{ id: 9 }];
-      return null;
-    });
-    await recordAnswer(pool, {
-      token: 't', ip: '::1', granted, allowsRecording: granted && ticked,
-    });
-    const relationship = pool.find("SET status = 'accepted'");
-    if (!granted) {
-      assert.equal(relationship, undefined);
-    } else {
-      assert.equal(relationship.params.includes(true), expected);
-    }
-  }
+test('the parent is not asked about recording, and cannot be recorded as having agreed', async () => {
+  // The third item of the form is gone. Since 26.8.2026 a lesson is not
+  // recorded at all — audio belongs to somebody alone in a room — so there is
+  // no question left for a parent to answer about it.
+  //
+  // This test is the guard against it drifting back in the quiet way: a caller
+  // that still passes `allowsRecording` must change nothing, and the write must
+  // not name the column. A parameter that is accepted and ignored, or a column
+  // written and never read, is the exact failure this area has already had once.
+  const pool = stubPool((sql) => {
+    if (sql.includes('FROM parent_consent_requests r')) return liveRequest();
+    if (sql.includes('UPDATE parent_consent_requests')) return [{ id: 9 }];
+    return null;
+  });
+
+  await recordAnswer(pool, {
+    token: 't', ip: '::1', granted: true, allowsRecording: true,
+  });
+
+  const relationship = pool.find("SET status = 'accepted'");
+  assert.ok(relationship, 'veza nije prešla u accepted');
+  assert.doesNotMatch(relationship.sql, /parent_allows_recording/,
+    'upis i dalje pominje kolonu o snimanju, koja više nema šta da znači');
+  assert.equal(relationship.params.includes(true), false,
+    'saglasnost za snimanje je stigla u upis iako se više ne pita');
+
+  // And the page itself no longer carries the question.
+  const consentRoute = fs.readFileSync(
+    path.join(__dirname, '..', 'routes', 'consent.js'), 'utf8',
+  );
+  assert.doesNotMatch(consentRoute, /name="recording"/,
+    'obrazac za roditelja i dalje nudi polje o snimanju');
 });
 
 test('two clicks on the same link count once', async () => {

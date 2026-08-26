@@ -930,7 +930,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.on('recording_denied', (data) {
       if (data == null || !mounted) return;
       final reason = data['reason'] as String? ??
-          'Čas ne može da se snima bez saglasnosti roditelja.';
+          'Zvuk se snima samo dok ste sami u sobi.';
       setState(() {
         _recordingAllowed = false;
         _recordingBlockedReason = reason;
@@ -944,7 +944,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.on('recording_must_stop', (data) {
       if (data == null || !mounted) return;
       final reason = data['reason'] as String? ??
-          'Čas više ne može da se snima bez saglasnosti roditelja.';
+          'Snimanje je zaustavljeno — u sobu je ušao još neko.';
       setState(() {
         _recordingAllowed = false;
         _recordingBlockedReason = reason;
@@ -1200,14 +1200,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   Future<void> _startRecording() async {
-    // Asked before anything is recorded, so a refused lesson never produces a
-    // file at all. The server refuses again on its own; this is what keeps a
-    // child's voice from being captured for the second it takes to be told so.
+    // Asked before anything is recorded, so a refused room never produces a
+    // file at all. The server refuses again on its own; this is what keeps
+    // somebody else's voice from being captured for the second it takes to be
+    // told so. Since 26.8.2026 the rule is not consent but solitude: audio is
+    // recorded by an adult alone in the room, and a lesson is never recorded.
     if (!_recordingAllowed) {
       AppFeedback.warning(
         context,
-        _recordingBlockedReason ??
-            'Čas ne može da se snima bez saglasnosti roditelja.',
+        _recordingBlockedReason ?? 'Zvuk se snima samo dok ste sami u sobi.',
       );
       return;
     }
@@ -3472,7 +3473,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               ),
                               icon: const Icon(Icons.fiber_manual_record,
                                   color: Colors.white, size: 16),
-                              label: const Text('Započni snimanje časa'),
+                              label: const Text('Započni snimanje'),
                             ),
                             // The reason stands under the button rather than
                             // waiting for it to be pressed: a disabled control

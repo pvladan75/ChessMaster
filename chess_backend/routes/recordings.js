@@ -83,46 +83,59 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
   // thirteen seconds after a stop the server itself ordered came back as
   // *"restart usred časa?"*. Same shape as `accountGuard`, and for the same
   // reason — a state nobody can name is a state nobody enforces.
+  // **The audio is refused, never the lesson.** Since 26.8.2026 a recording is
+  // a `timeline_json` first and a sound file only sometimes: moves, arrows and
+  // marks are what the replay is made of, and `audio_url` has always been
+  // nullable. So a save that may not carry a voice is not an error to send back
+  // — it is a silent replay, which is what a lesson replay now is.
+  //
+  // This used to answer 403 and throw the whole upload away, which lost the
+  // board timeline of a real lesson over a rule about sound. That was the wrong
+  // half to give up, the same way refusing a child the lesson was.
+  let audioRefusal = null;
+
   const stopped = realtime.consentStop(roomId);
   if (stopped && !stopped.obeyed) {
     // The client was told to stop and never said it did. That is the client
-    // this rule exists to survive, and its file is the one that may contain a
-    // child whose parent refused.
-    discardUpload();
+    // this rule exists to survive, and its file is the one that may contain
+    // somebody who never agreed to be in it.
+    audioRefusal = stopped.reason
+      || 'Snimanje je zaustavljeno jer u sobi ima još nekoga.';
     logger.warn(
-      `[SNIMANJE] Odbijen upis snimka za sobu ${roomId}: snimanje je zaustavljeno `
-      + 'zbog saglasnosti roditelja, a soba nikada nije javila da je stala.',
+      `[SNIMANJE] Zvuk odbijen za sobu ${roomId}: snimanje je zaustavljeno, `
+      + 'a soba nikada nije javila da je stala.',
     );
-    return res.status(403).json({
-      error: stopped.reason
-        || 'Snimanje je zaustavljeno jer roditelj nije dozvolio snimanje.',
-      blocked: stopped.blocked,
-    });
   }
 
   const roster = realtime.recordedRoster(roomId);
   let consentUnverified = false;
   if (roster === null) {
+    // A backend restarted mid-lesson has forgotten who was in the room. Under
+    // the old rule that let the save through with its audio, because the check
+    // "could not run". It cannot run here either — but the thing it guards is
+    // the one artefact that cannot be taken back, and "I do not know who was
+    // there" is not "you were alone". The lesson is still saved; the sound is
+    // not.
     consentUnverified = true;
+    audioRefusal = audioRefusal
+      || 'Server ne pamti ko je bio u sobi (restart usred časa?), pa zvuk nije sačuvan.';
     logger.warn(
-      `[SNIMANJE] Saglasnost nije mogla da se proveri za sobu ${roomId} — `
-      + 'server ne pamti ko je bio na času (restart usred časa?).',
+      `[SNIMANJE] Zvuk odbijen za sobu ${roomId} — server ne pamti ko je bio `
+      + 'u sobi (restart usred časa?).',
     );
   } else {
     const verdict = await mayRecordRoom(pool, { roomCode: roomId, userIds: roster });
     if (!verdict.allowed) {
-      discardUpload();
-      logger.warn(`[SNIMANJE] Odbijen upis snimka za sobu ${roomId}: ${verdict.reason}`);
-      return res.status(403).json({ error: verdict.reason, blocked: verdict.blocked });
-    }
-    if (stopped) {
-      logger.info(
-        `[SNIMANJE] Upis za sobu ${roomId} je deo snimljen pre prekida zbog `
-        + 'saglasnosti roditelja; soba je javila prekid i taj deo se čuva.',
-      );
+      audioRefusal = audioRefusal || verdict.reason;
+      logger.warn(`[SNIMANJE] Zvuk odbijen za sobu ${roomId}: ${verdict.reason}`);
     }
     realtime.clearRecordedRoster(roomId);
   }
+
+  // Multer has already written the file by the time any of this runs. Leaving
+  // it behind would put exactly the voice these checks exist for into
+  // `uploads/`, refused or not.
+  if (audioRefusal) discardUpload();
 
   let pauseIntervals = req.body.pauseIntervals;
   if (typeof pauseIntervals === 'string') {
@@ -145,7 +158,13 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
     // the protocol would come out as http on an HTTPS-only domain. A path
     // survives moving the server, changing the domain, and TLS; the client
     // joins it with whatever backend it is talking to.
-    if (req.file) {
+    if (audioRefusal) {
+      // Not "no file was sent" but "this file may not exist here", and the two
+      // must not collapse into one: `audioUrl` in the body is a path the client
+      // asks us to keep, and keeping it would restore by name what was just
+      // deleted from disk.
+      finalAudioUrl = null;
+    } else if (req.file) {
       savedAudioPath = req.file.path;
       finalAudioUrl = `/uploads/${req.file.filename}`;
       logger.info(`[RECORDING] Multipart audio saved: ${req.file.path}, path: ${finalAudioUrl}`);
@@ -181,8 +200,11 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
     // so it would show up as *theirs*.
     if (stopped && stopped.blocked.length > 0) {
       const before = participantIds.length;
+      // Compared as strings: the roster and the stop record both hold strings
+      // since guests started counting, and `includes(Number(id))` against them
+      // matches nothing and says nothing about it.
       participantIds = participantIds
-        .filter((id) => !stopped.blocked.includes(Number(id)));
+        .filter((id) => !stopped.blocked.includes(String(id)));
       if (participantIds.length !== before) {
         logger.info(
           `[SNIMANJE] Iz spiska učesnika snimka uklonjen je onaj zbog koga je `
@@ -197,15 +219,13 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
       [roomId, req.user.id, title, finalAudioUrl, JSON.stringify(timelineJson), participantIds]
     );
     let message = 'Snimak časa je uspešno sačuvan.';
-    if (consentUnverified) {
-      message = 'Snimak je sačuvan, ali server nije mogao da proveri saglasnost '
-        + 'za snimanje — proverite je pre nego što snimak podelite.';
-    } else if (stopped) {
-      message = 'Snimanje je zaustavljeno jer roditelj nije dozvolio snimanje. '
-        + 'Sačuvan je samo deo snimljen pre nego što je učenik ušao na čas.';
+    if (audioRefusal) {
+      message = `Čas je sačuvan bez zvuka i može se pregledati nemo. ${audioRefusal}`;
     }
     res.status(201).json({
       message,
+      audioSaved: finalAudioUrl !== null,
+      audioRefusal,
       consentUnverified,
       consentStopped: !!stopped,
       recording: result.rows[0],

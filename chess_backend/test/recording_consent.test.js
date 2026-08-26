@@ -1,199 +1,182 @@
 // recording_consent.test.js
-// Whether a lesson may be recorded, and who says no.
+// Who may put a voice into `uploads/`, and why almost nobody may.
 //
-// This exists because of a hole rather than a feature. `parent_allows_recording`
-// was filled honestly by the parent's page from the day it was written, and
-// **nothing read it**: the column was touched by exactly two places, the
-// migration that created it and the write that set it. A rule that is recorded
-// and never enforced is the failure this codebase has paid for five times, and
-// `docs/saglasnost-roditelja.md` names it outright — the enforcement is the half
-// that turns the promise into something the system actually does.
+// The rule this file guards changed on 26.8.2026, and it got smaller rather
+// than more careful. It used to be "a lesson may be recorded once the parent
+// has agreed", enforced against `parent_allows_recording`. It is now: **audio
+// is recorded only by an adult who is alone in the room.** A trainer records
+// teaching material for themselves; the interaction between a trainer and a
+// student is not recorded at all, by anybody, under any consent.
 //
-// The last test in this file is the guard against it coming back.
+// What that buys is written down in `services/recordingConsent.js`. What it
+// costs is nothing the replay needs: a recording is a `timeline_json` and
+// `audio_url` was always nullable, so the lesson is still replayed — silently.
+//
+// Three of the tests below are the places this could quietly stop meaning
+// anything: a guest who counts for nothing because they have no account, an
+// unstated age read as an adult, and the roster losing the very people it now
+// exists to notice.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('fs');
-const path = require('path');
 
 const {
+  ADULT_AGE,
   blockedForRecording,
   mayRecordRoom,
-  refusalSentence,
+  othersInRoom,
 } = require('../services/recordingConsent');
+const realtime = require('../services/realtime');
 
 const thisYear = new Date().getFullYear();
-const CHILD_YEAR = thisYear - 10; // eleven at most, minor under any threshold
 const ADULT_YEAR = thisYear - 40;
+const CHILD_YEAR = thisYear - 10;
+// `statedAge` takes the younger reading, so this is seventeen all year.
+const ALMOST_ADULT_YEAR = thisYear - ADULT_AGE;
 
-function stubPool(answer = () => null) {
-  const calls = [];
+const OWNER = 1;
+
+/// A pool that answers by the shape of the query rather than by call order, so
+/// a test does not break when the service asks its questions in a different
+/// sequence.
+function stubPool({ owner = OWNER, names = {}, years = {} } = {}) {
   return {
-    calls,
     async query(text, params) {
       const sql = String(text).replace(/\s+/g, ' ').trim();
-      calls.push({ sql, params });
-      const rows = answer(sql, params);
-      return { rows: rows ?? [], rowCount: (rows ?? []).length };
+      if (sql.startsWith('SELECT creator_id FROM rooms')) {
+        return owner === null
+          ? { rows: [], rowCount: 0 }
+          : { rows: [{ creator_id: owner }], rowCount: 1 };
+      }
+      if (sql.startsWith('SELECT id, name FROM users')) {
+        const rows = (params[0] ?? [])
+          .filter((id) => names[id] !== undefined)
+          .map((id) => ({ id, name: names[id] }));
+        return { rows, rowCount: rows.length };
+      }
+      if (sql.startsWith('SELECT birth_year FROM users')) {
+        const year = years[params[0]];
+        return year === undefined
+          ? { rows: [], rowCount: 0 }
+          : { rows: [{ birth_year: year }], rowCount: 1 };
+      }
+      throw new Error('neočekivan upit: ' + sql);
     },
   };
 }
 
-const person = (over) => ({
-  id: 2,
-  name: 'Dete',
-  birth_year: CHILD_YEAR,
-  parent_allows_recording: null,
-  ...over,
-});
-
-test('an age nobody has stated blocks nothing', async () => {
-  // The same grandfathering `status` and `voice_level` got. Refusing on an empty
-  // column would have switched recording off for every lesson in the app on the
-  // strength of a field that was empty an hour ago — and every account in the
-  // app is this one until the age gate has been round.
-  const pool = stubPool(() => [person({ birth_year: null })]);
-  assert.deepEqual(
-    await blockedForRecording(pool, { ownerId: 1, userIds: [2] }),
-    [],
-  );
-});
-
-test('an adult student blocks nothing, whatever the column says', async () => {
-  for (const value of [null, false, true]) {
-    const pool = stubPool(() => [
-      person({ birth_year: ADULT_YEAR, parent_allows_recording: value }),
-    ]);
-    assert.deepEqual(
-      await blockedForRecording(pool, { ownerId: 1, userIds: [2] }),
-      [],
-      `parent_allows_recording=${value}`,
-    );
-  }
-});
-
-test('a child whose parent agreed is recordable', async () => {
-  const pool = stubPool(() => [person({ parent_allows_recording: true })]);
-  assert.deepEqual(
-    await blockedForRecording(pool, { ownerId: 1, userIds: [2] }),
-    [],
-  );
-});
-
-test('a refusal and a question never asked both block, and are told apart',
-  async () => {
-    // The same answer to "may I record" and different answers to "what do I do
-    // about it": one is a decision to respect, the other a letter to send.
-    const refused = stubPool(() => [person({ parent_allows_recording: false })]);
-    assert.deepEqual(
-      await blockedForRecording(refused, { ownerId: 1, userIds: [2] }),
-      [{ id: 2, name: 'Dete', reason: 'refused' }],
-    );
-
-    const unasked = stubPool(() => [person({ parent_allows_recording: null })]);
-    assert.deepEqual(
-      await blockedForRecording(unasked, { ownerId: 1, userIds: [2] }),
-      [{ id: 2, name: 'Dete', reason: 'not-asked' }],
-    );
-  });
-
-test('a stated child with no relationship at all is the least consented case',
-  async () => {
-    // The LEFT JOIN is why this is even asked: somebody in the room with no row
-    // to this trainer still has an age, and nobody has agreed to anything.
-    const pool = stubPool((sql) => {
-      assert.match(sql, /LEFT JOIN trainer_students/);
-      return [person({ parent_allows_recording: null })];
-    });
-    const blocked = await blockedForRecording(pool, { ownerId: 1, userIds: [2] });
-    assert.equal(blocked.length, 1);
-    assert.equal(blocked[0].reason, 'not-asked');
-  });
-
-test('the room owner is never blocked by their own room', async () => {
-  const pool = stubPool(() => {
-    throw new Error('nije trebalo ništa da se pita');
-  });
-  assert.deepEqual(
-    await blockedForRecording(pool, { ownerId: 1, userIds: [1, 1] }),
-    [],
-  );
-});
-
-test('guests are not asked about, because they have no account', async () => {
-  // A guest joins under a socket id rather than a user id. Whether they may be
-  // in the room at all is the guest switch's question, not this one.
-  const pool = stubPool(() => {
-    throw new Error('nije trebalo ništa da se pita');
-  });
-  assert.deepEqual(
-    await blockedForRecording(pool, { ownerId: 1, userIds: ['abc123socket'] }),
-    [],
-  );
-});
-
-test('a room that does not exist is not a room that may be recorded', async () => {
-  const pool = stubPool(() => []);
-  const verdict = await mayRecordRoom(pool, { roomCode: '000000', userIds: [2] });
-  assert.equal(verdict.allowed, false);
+test('an adult alone in the room may record', async () => {
+  const pool = stubPool({ years: { [OWNER]: ADULT_YEAR } });
+  const verdict = await mayRecordRoom(pool, { roomCode: 'r', userIds: [OWNER] });
+  assert.equal(verdict.allowed, true);
   assert.deepEqual(verdict.blocked, []);
 });
 
-test('a refusal names the children, because a trainer cannot act on "no"',
-  async () => {
-    const pool = stubPool((sql) => {
-      if (sql.includes('FROM rooms')) return [{ creator_id: 1 }];
-      return [
-        person({ id: 2, name: 'Mila', parent_allows_recording: false }),
-        person({ id: 3, name: 'Petar', parent_allows_recording: null }),
-      ];
-    });
-
-    const verdict = await mayRecordRoom(pool, {
-      roomCode: '123456', userIds: [2, 3],
-    });
-
-    assert.equal(verdict.allowed, false);
-    assert.equal(verdict.blocked.length, 2);
-    // The two halves are separated in the sentence as well, for the same reason
-    // they are separated in the data.
-    assert.match(verdict.reason, /nije dozvolio snimanje za: Mila/);
-    assert.match(verdict.reason, /još nije data za: Petar/);
-  });
-
-test('the sentence stays readable when only one half applies', () => {
-  const only = refusalSentence([{ id: 2, name: 'Mila', reason: 'refused' }]);
-  assert.match(only, /Mila/);
-  assert.doesNotMatch(only, /još nije data/);
+test('the owner never blocks themselves', async () => {
+  // They are the one recording, and they arrive in their own roster.
+  const pool = stubPool({ years: { [OWNER]: ADULT_YEAR } });
+  assert.deepEqual(
+    await blockedForRecording(pool, { ownerId: OWNER, userIds: [OWNER, OWNER] }),
+    [],
+  );
 });
 
-test('the recording consent column is read, not only written', () => {
-  // The regression this whole file exists for. `parent_allows_recording` spent
-  // its first hours being written by the parent's page and read by nobody, so a
-  // parent could refuse a recording and the recording would run.
-  //
-  // Asserted on the source because the failure is invisible in behaviour:
-  // everything keeps working, and the only difference is that the answer does
-  // not matter. Same shape as the test that pins `INSERT INTO friends`.
-  const root = path.join(__dirname, '..');
-  const readers = [];
+test('anybody else in the room blocks it, and is named', async () => {
+  const pool = stubPool({ names: { 2: 'Mila' }, years: { [OWNER]: ADULT_YEAR } });
+  const verdict = await mayRecordRoom(pool, { roomCode: 'r', userIds: [OWNER, 2] });
 
-  for (const dir of ['routes', 'services']) {
-    for (const name of fs.readdirSync(path.join(root, dir))) {
-      if (!name.endsWith('.js')) continue;
-      const source = fs.readFileSync(path.join(root, dir, name), 'utf8')
-        // Comments first: several of them name the column while explaining it.
-        .replace(/^\s*\/\/.*$/gm, '');
-      if (!/parent_allows_recording/.test(source)) continue;
-      // A file that only ever writes it is not a file that reads it.
-      const writesOnly = /parent_allows_recording\s*=\s*\$/.test(source)
-        && !/row\.parent_allows_recording|\.parent_allows_recording\s*===/.test(source);
-      readers.push(`${dir}/${name}${writesOnly ? ' (samo upis)' : ''}`);
-    }
-  }
+  assert.equal(verdict.allowed, false);
+  assert.deepEqual(verdict.blocked.map((b) => b.id), [2]);
+  assert.match(verdict.reason, /Mila/,
+    'odbijanje mora da imenuje onoga zbog koga se ne snima');
+  assert.match(verdict.reason, /sami u sobi/,
+    'odbijanje mora da kaže pravilo, ne samo činjenicu');
+});
 
-  assert.ok(
-    readers.includes('services/recordingConsent.js'),
-    'saglasnost za snimanje se nigde ne čita — kolona je opet samo zapis',
-  );
+test('an adult student blocks it just as a child does', async () => {
+  // The age of the other person is not asked any more. This is the shape of the
+  // change: it is not a stricter consent check, it is a different question.
+  const pool = stubPool({
+    names: { 2: 'Petar' },
+    years: { [OWNER]: ADULT_YEAR, 2: ADULT_YEAR },
+  });
+  const verdict = await mayRecordRoom(pool, { roomCode: 'r', userIds: [OWNER, 2] });
+  assert.equal(verdict.allowed, false);
+});
+
+test('a guest blocks it, though they have no account', async () => {
+  // The hole the old rule had by design. A guest joins with a socket id, has no
+  // account, no stated age and no relationship, so every question the old check
+  // asked came back empty and they were skipped. Under this rule they need no
+  // account to matter: they are somebody else in the room.
+  const pool = stubPool({ years: { [OWNER]: ADULT_YEAR } });
+  const verdict = await mayRecordRoom(pool, {
+    roomCode: 'r',
+    userIds: [OWNER, 'socket-Ab3xY'],
+  });
+
+  assert.equal(verdict.allowed, false);
+  assert.equal(verdict.blocked.length, 1);
+  assert.match(verdict.reason, /Gost/,
+    'gost mora da bude imenovan kao gost, jer drugo ime nema');
+});
+
+test('an age nobody has stated is a refusal, not a pass', async () => {
+  // The one place in this codebase where an unstated age is *not* grandfathered,
+  // and deliberately so: everywhere else refusing on an empty column would
+  // switch off a working feature for accounts nobody has asked yet. Here the
+  // permission is to create the one artefact that cannot be taken back, so
+  // "we never asked" must not read as "yes".
+  const pool = stubPool({ years: {} });
+  const verdict = await mayRecordRoom(pool, { roomCode: 'r', userIds: [OWNER] });
+
+  assert.equal(verdict.allowed, false);
+  assert.deepEqual(verdict.blocked, [], 'nema koga da imenuje — pitanje je o vlasniku');
+  assert.match(verdict.reason, /godinu rođenja/,
+    'odbijanje mora da kaže šta korisnik treba da uradi');
+});
+
+test('a minor alone in the room may not record either', async () => {
+  const pool = stubPool({ years: { [OWNER]: CHILD_YEAR } });
+  const verdict = await mayRecordRoom(pool, { roomCode: 'r', userIds: [OWNER] });
+  assert.equal(verdict.allowed, false);
+  assert.match(verdict.reason, /punoletn/);
+});
+
+test('seventeen is not eighteen', async () => {
+  // The threshold is majority rather than `AGE_OF_CONSENT`, which runs 13–18 by
+  // country and answers a different question. A year is read at its younger
+  // end, so this account is seventeen for the whole year.
+  const pool = stubPool({ years: { [OWNER]: ALMOST_ADULT_YEAR } });
+  const verdict = await mayRecordRoom(pool, { roomCode: 'r', userIds: [OWNER] });
+  assert.equal(verdict.allowed, false);
+});
+
+test('a room that does not exist records nothing', async () => {
+  const pool = stubPool({ owner: null });
+  const verdict = await mayRecordRoom(pool, { roomCode: 'nema', userIds: [OWNER] });
+  assert.equal(verdict.allowed, false);
+});
+
+test('ids of different types are one person', async () => {
+  // The owner arrives as a number from the database and as a string from the
+  // roster. Compared loosely they are one person; compared strictly the trainer
+  // blocks their own recording and the reason names them.
+  assert.deepEqual(othersInRoom(['1', 1, ''], 1), []);
+  assert.deepEqual(othersInRoom([1, '2'], 1), ['2']);
+});
+
+test('the roster keeps guests, which is the whole point of it now', async () => {
+  // The specific hole that would reopen silently. `noteRecordedParticipant`
+  // used to drop anybody without a numeric id — correct while the question was
+  // "has this child's parent agreed", and fatal now that it is "are you alone".
+  const room = 'test-room-guests';
+  realtime.clearRecordedRoster(room);
+  realtime.beginRecordingRoster(room, [OWNER]);
+
+  assert.equal(realtime.noteRecordedParticipant(room, 'socket-Zz9'), true,
+    'gost mora da uđe u spisak učesnika');
+  assert.deepEqual(realtime.recordedRoster(room).sort(), ['1', 'socket-Zz9']);
+
+  realtime.clearRecordedRoster(room);
 });

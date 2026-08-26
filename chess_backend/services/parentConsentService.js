@@ -243,7 +243,12 @@ async function findRequest(pool, token) {
 /// Refusal is recorded too, and it deletes nothing: `granted = false` with a
 /// time on it is the answer. A refused request that erased itself would look
 /// identical to one that was never sent.
-async function recordAnswer(pool, { token, ip, granted, allowsRecording }) {
+/// `allowsRecording` is gone from this signature on purpose rather than kept and
+/// ignored. Since 26.8.2026 a lesson is not recorded at all, so there is no
+/// third question for a parent to answer — and a parameter that is accepted and
+/// dropped is how a rule ends up looking implemented while doing nothing, which
+/// is the failure `parent_allows_recording` itself was the example of.
+async function recordAnswer(pool, { token, ip, granted }) {
   const found = await findRequest(pool, token);
   if (found.reason !== null) return { ok: false, reason: found.reason };
 
@@ -274,11 +279,9 @@ async function recordAnswer(pool, { token, ip, granted, allowsRecording }) {
                 responded_at = CURRENT_TIMESTAMP,
                 parent_consent_at = CURRENT_TIMESTAMP,
                 parent_consent_ip = $2,
-                parent_consent_version = $3,
-                parent_allows_recording = $4
+                parent_consent_version = $3
           WHERE id = $1`,
-        [row.relationship_id, ip ?? null, row.text_version,
-          allowsRecording === true],
+        [row.relationship_id, ip ?? null, row.text_version],
       );
       // Friendship follows an accepted relationship everywhere else in this
       // codebase, and a row in `friends` has exactly one origin. This is now one

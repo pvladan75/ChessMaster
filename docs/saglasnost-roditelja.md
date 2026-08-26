@@ -1,16 +1,25 @@
 # Saglasnost roditelja — Chess Master
 
-> **NACRT ZA PRAVNU PROVERU.** Sastavljen prema onome što aplikacija stvarno
-> radi. Nije pravni savet. Advokat treba da proveri formulacije pre upotrebe,
-> posebno odeljak o snimanju.
+> **PREVAZIĐENO 26.8.2026.** Obavezujući tekst je stranica koju server prikazuje
+> roditelju (`routes/consent.js`), a objašnjenje uz nju je
+> `site/saglasnost-roditelja.html`. Ovaj fajl je ostao kao nacrt iz kog su oni
+> nastali i **ne sme se koristiti kao obrazac** — dva teksta o istoj stvari se
+> razilaze, a ovaj nema verziju koja se beleži uz saglasnost.
+>
+> Zadržan je zbog obrazloženja u drugoj polovini. Sadržaj je usklađen sa novim
+> pravilom da se čas ne snima.
 >
 > Popunite: `[IME I PREZIME / NAZIV]`, `[EMAIL ZA PRIVATNOST]`, `[URL]`.
 
 ## Zašto je ovo potrebno
 
-Chess Master beleži rad na času i, ako trener uključi snimanje, **snima glas svih
-učesnika**. Kada je učesnik dete, za to je potrebna saglasnost roditelja ili
-staratelja — i po zakonu i zato što je to ispravno.
+Dete ima nalog u aplikaciji, a trener vidi njegov napredak — rezultate zadataka,
+tačnost i teme na kojima greši. To su lični podaci maloletnika, pa je za njih
+potrebna saglasnost roditelja ili staratelja.
+
+**Čas se ne snima.** Glas deteta se ne beleži ni u jednom slučaju — takva
+mogućnost u aplikaciji ne postoji, pa ni saglasnost za nju nema šta da pokrije.
+Zvuk može da snimi samo punoletan korisnik koji je **sam u sobi**.
 
 Ovaj obrazac popunjava roditelj jednom, pre prvog časa.
 
@@ -51,11 +60,6 @@ dete i dalje pohađa časove.
       mog deteta — rezultate zadataka, tačnost i teme na kojima dete greši — i da
       mu na osnovu toga zadaje vežbe.
 
-- [ ] **3. Snimanje časova _(opciono)_.** Saglasan/na sam da se časovi na kojima
-      učestvuje moje dete mogu snimati, uključujući **zvučni zapis glasa deteta**,
-      i da trener taj snimak čuva i koristi za pregled časa sa mnom i sa detetom.
-      Snimak nije javan i vidljiv je samo treneru i učesnicima tog časa.
-
 ---
 
 ### Šta se **ne** radi
@@ -74,8 +78,7 @@ U svakom trenutku možete, pisanjem na `[EMAIL ZA PRIVATNOST]`:
 
 - tražiti uvid u sve podatke koji se čuvaju o vašem detetu,
 - tražiti ispravku netačnih podataka,
-- tražiti **brisanje pojedinačnog snimka** ili svih snimaka,
-- **povući ovu saglasnost** — u celini ili samo za snimanje,
+- **povući ovu saglasnost**, čime prestaje i veza sa trenerom,
 - tražiti **brisanje celog naloga** i svih vezanih podataka.
 
 Povlačenje saglasnosti ne utiče na zakonitost obrade obavljene do tog trenutka.
@@ -105,8 +108,11 @@ to usko grlo, sledeći korak je da se saglasnost unese u samu aplikaciju:
 
 - polje `parental_consent` na nalogu učenika, sa datumom i identifikatorom
   roditelja koji je potvrdio,
-- provera pri pokretanju snimanja: ako makar jedan učesnik nema saglasnost za
-  snimanje, dugme za snimanje je onemogućeno uz jasno objašnjenje.
+- provera pri pokretanju snimanja: zvuk se snima samo dok je korisnik **sam u
+  sobi** i punoletan, a server ga odbija i zaustavlja čim uđe još neko.
 
 Druga stavka je važnija od prve — ona pretvara pravilo iz obećanja u nešto što
-sistem stvarno sprovodi.
+sistem stvarno sprovodi. Ta rečenica je 25.8.2026. bila tačna i neispunjena:
+kolona `parent_allows_recording` je bila upisivana i nikad čitana. Ishod
+26.8.2026. nije bio da se pravilo bolje sprovede, nego da nestane ono što je
+trebalo sprovoditi — čas se više ne snima uopšte.

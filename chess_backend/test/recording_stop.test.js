@@ -40,7 +40,9 @@ function freshRoom(room = ROOM) {
 test('a room nobody stopped has no consent stop on it', () => {
   const room = freshRoom('test-room-quiet');
   assert.equal(realtime.consentStop(room), null);
-  assert.deepEqual(realtime.recordedRoster(room).sort(), [TRAINER, CHILD]);
+  // Strings, because the roster holds guests too and a guest has a socket id
+  // rather than a number.
+  assert.deepEqual(realtime.recordedRoster(room).sort(), [String(TRAINER), String(CHILD)]);
   realtime.clearRecordedRoster(room);
 });
 
@@ -51,7 +53,7 @@ test('stopping for consent keeps the roster, minus whoever it stopped for', () =
   // The part recorded before they walked in is still the trainer's, so the
   // roster survives — that is the difference from `clearRecordedRoster`, which
   // left the save with nothing to check against.
-  assert.deepEqual(realtime.recordedRoster(room), [TRAINER]);
+  assert.deepEqual(realtime.recordedRoster(room), [String(TRAINER)]);
   realtime.clearRecordedRoster(room);
 });
 
@@ -61,7 +63,7 @@ test('a stop for consent is not the same state as a forgotten room', () => {
 
   const stop = realtime.consentStop(room);
   assert.equal(stop.reason, 'razlog');
-  assert.deepEqual(stop.blocked, [CHILD]);
+  assert.deepEqual(stop.blocked, [String(CHILD)]);
 
   // And the forgotten room, which is what a restart leaves behind.
   assert.equal(realtime.consentStop('test-room-never-seen'), null);
@@ -156,14 +158,20 @@ test('the save asks whether this room was stopped for consent', () => {
     + 'prolazi');
 });
 
-test('the save refuses the room that never said it stopped', () => {
+test('the save drops the audio of a room that never said it stopped', () => {
+  // The answer changed on 26.8.2026 and the test with it: a refusal used to be
+  // a 403 that threw the whole upload away, board timeline included. Now the
+  // sound is refused and the lesson is kept, so what this guards is that the
+  // refusal still *reaches* the audio — not that the request fails.
   const save = bodyOf(recordingsRoute, "router.post('/save'");
   const fromCheck = save.slice(save.indexOf('consentStop('));
   const beforeRoster = fromCheck.slice(0, fromCheck.indexOf('const roster'));
-  assert.match(beforeRoster, /403/,
-    'prekid bez javljenog zaustavljanja mora da bude odbijen');
-  assert.match(beforeRoster, /discardUpload\(\)/,
-    'odbijen snimak mora i da se obriše — multer ga je već zapisao');
+  assert.match(beforeRoster, /audioRefusal\s*=/,
+    'prekid bez javljenog zaustavljanja mora da obori zvuk');
+  assert.match(save, /if \(audioRefusal\) discardUpload\(\)/,
+    'odbijen zvuk mora i da se obriše sa diska — multer ga je već zapisao');
+  assert.match(save, /if \(audioRefusal\) \{[\s\S]{0,400}finalAudioUrl = null/,
+    'odbijen zvuk mora i da se odveže od reda u bazi, ne samo da se obriše');
 });
 
 test('the join handler records the stop instead of forgetting the room', () => {

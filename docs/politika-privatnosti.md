@@ -51,14 +51,19 @@ uslugama.
 | Lista prijatelja i veza trener–učenik | Pozivanje na časove i deljenje lekcija |
 | Zakazani termini i obaveštenja | Podsetnici na čas |
 
-### 3.3 Snimci časova
+### 3.3 Zapis časa i snimci
 
-Ako trener uključi snimanje, čuvamo:
+Od časa čuvamo:
 
-- **zvučni zapis časa**, uključujući glasove svih učesnika,
 - vremenski tok poteza, pozicija i oznaka na tabli,
-- listu učesnika,
-- izrenderovani video zapis, ako ga trener napravi.
+- listu učesnika.
+
+**Interakcija trenera i učenika se ne snima.** Glas nijednog učesnika časa se ne
+beleži i ne čuva — ni uz čiju saglasnost. Ponovni pregled časa je nem.
+
+Zvučni zapis postoji u jednom jedinom slučaju: **punoletan korisnik koji je sam u
+sobi** može da snimi sopstveni materijal, preuzme ga i objavi gde želi. Server
+odbija zvuk čim je u sobi još neko, i zaustavlja snimanje ako neko uđe.
 
 **Snimanje uvek pokreće trener i o njemu morate biti obavešteni pre početka.**
 Snimak je vidljiv treneru koji ga je napravio i učesnicima tog časa.
@@ -145,10 +150,10 @@ Značajan deo naših korisnika su deca. Zato:
 
 - Nalog za dete mlađe od 15 godina sme se otvoriti **samo uz saglasnost
   roditelja ili staratelja**.
-- **Snimanje časa na kome učestvuje dete zahteva prethodnu saglasnost roditelja.**
-  Trener je dužan da tu saglasnost pribavi pre snimanja.
-- Roditelj u svakom trenutku može da traži uvid u podatke deteta, njihovo
-  brisanje ili brisanje pojedinačnog snimka, pisanjem na `[EMAIL ZA PRIVATNOST]`.
+- **Čas se ne snima.** Glas deteta se ne beleži ni u jednom slučaju, pa ni uz
+  saglasnost roditelja — takva mogućnost ne postoji.
+- Roditelj u svakom trenutku može da traži uvid u podatke deteta i njihovo
+  brisanje, pisanjem na `[EMAIL ZA PRIVATNOST]`.
 - Ne prikazujemo deci reklame i ne koristimo njihove podatke ni za šta osim za
   obuku i izveštaj njihovom treneru i roditelju.
 

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy policy</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><a href="/">← Home</a> · <a href="/politika-privatnosti">Srpski</a></header>
+
+<h1>Privacy policy</h1>
+<p class="updated">Last changed: {{LAST_UPDATED}}</p>
+
+<div class="note">
+<strong>This English text is a translation provided for convenience.</strong>
+The legally binding version is the Serbian original at
+<a href="/politika-privatnosti">Politika privatnosti</a>. Where the two differ,
+the Serbian text prevails.
+</div>
+
+<h2>1. Who processes your data</h2>
+<p>The data controller is {{OPERATOR_NAME}}, {{OPERATOR_ADDRESS}}, Republic of Serbia.</p>
+<p>Contact for any question about privacy and for exercising the rights in this
+policy: <a href="mailto:{{PRIVACY_EMAIL}}">{{PRIVACY_EMAIL}}</a>.</p>
+
+<h2>2. Who this policy applies to</h2>
+<p>This is a chess coaching app. It is used by <strong>trainers</strong> and
+<strong>students</strong>, and a significant share of the students are
+<strong>children</strong>. If you are under 15, an account may be opened only
+with the consent of a parent or guardian — see section 8.</p>
+
+<h2>3. What data we collect</h2>
+
+<h3>3.1 Data you enter yourself</h3>
+<div class="table-scroll">
+<table>
+<tr><th>Data</th><th>Why we have it</th></tr>
+<tr><td>Email address</td><td>Signing in, verification code, lesson notifications</td></tr>
+<tr><td>Name</td><td>Shown to the other participants of a lesson and to your trainer</td></tr>
+<tr><td>Password</td><td>Stored only as a bcrypt hash — we cannot read the original password</td></tr>
+<tr><td>Lesson titles and descriptions, comments on moves</td><td>Content you create yourself</td></tr>
+</table>
+</div>
+<p>If you sign in through a Google account, we receive from Google only your
+<strong>email address and name</strong>. We do not receive your Google password
+and we have no access to your other Google services.</p>
+
+<h3>3.2 Data created by using the app</h3>
+<div class="table-scroll">
+<table>
+<tr><th>Data</th><th>Why we have it</th></tr>
+<tr><td>Moves played, positions, arrows and marks on the board</td><td>The work of the lesson and reviewing it later</td></tr>
+<tr><td>Rating per tactical theme, number of puzzles solved and missed, solving time</td><td>Adjusting difficulty and reporting progress</td></tr>
+<tr><td>Assignments your trainer set and results per assignment</td><td>Tracking homework</td></tr>
+<tr><td>The move you played in each position of an assignment</td><td>So the trainer sees <em>what</em> you tried, not only whether it was right</td></tr>
+<tr><td>Messages you and your trainer write on an assignment or a position</td><td>Feedback on homework</td></tr>
+<tr><td>Trainer–student relationships</td><td>Inviting to lessons and sharing lessons</td></tr>
+<tr><td>Scheduled sessions and notifications</td><td>Lesson reminders</td></tr>
+</table>
+</div>
+
+<h3>3.3 The record of a lesson, and recordings</h3>
+<p>A lesson is kept as a <strong>timeline of moves, arrows and marks on the
+board</strong>, together with the list of participants. That record can be
+replayed later.</p>
+<p><strong>The interaction between a trainer and a student is not recorded.</strong>
+No participant's voice is captured or kept — under anybody's consent. Replaying
+a lesson is silent.</p>
+<p>Audio exists in one case only: <strong>an adult user who is alone in the
+room</strong> may record their own material, for example a video lesson, then
+download it and publish it wherever they like. The server refuses audio as soon
+as anybody else is in the room, and stops the recording if somebody joins.</p>
+
+<h3>3.4 Payment data</h3>
+<p>Subscriptions are charged through <strong>Google Play</strong>. Google is the
+seller and processes your payment data — <strong>we never see and never store a
+card number or any payment detail</strong>. From Google we receive only the
+purchase identifier, the product name, the subscription status and the expiry
+date.</p>
+
+<h3>3.5 Resource usage data</h3>
+<p>We record, in aggregate per account and per month: seconds of voice
+communication, number of rendered video files, number of AI comments requested
+and number of pages scanned. We use this only to know what the service costs us
+and to prevent abuse.</p>
+
+<h2>4. What we do <em>not</em> do</h2>
+<ul>
+<li>We do not sell your data.</li>
+<li>We do not use it for advertising and do not pass it to advertisers.</li>
+<li>We do not build profiles for marketing purposes.</li>
+<li>We do not send your name, email or any personal data to an artificial
+intelligence service (see 5.2).</li>
+</ul>
+
+<h2>5. Who the data is passed to</h2>
+<p>We use the following service providers. Each receives only what it needs.</p>
+
+<h3>5.1 Agora (voice communication)</h3>
+<p>Carries live audio during a lesson. Agora processes the audio stream and
+technical connection data. The transfer takes place outside Serbia.</p>
+
+<h3>5.2 Google Gemini (AI explanations of moves)</h3>
+<p>When you request an AI comment, we send <strong>chess data only</strong>: the
+position (FEN), the engine evaluation, the move classification and
+pre-calculated tactical and positional findings. <strong>We do not send your
+name, email, account identifier or any other personal data</strong> — Google
+cannot tell from that request who you are.</p>
+
+<h3>5.3 Google Play (billing) and Google sign-in</h3>
+<p>See 3.4. Google sign-in is used only to confirm identity.</p>
+
+<h3>5.4 Lichess and chess evaluation services</h3>
+<p>For position analysis we send <strong>the position (FEN) only</strong>,
+without any data about the user.</p>
+
+<h3>5.5 Hosting and email</h3>
+<p>Data is kept on {{HOSTING_PROVIDER}} servers in {{HOSTING_REGION}}.
+Verification messages and messages to parents are sent through
+{{SMTP_PROVIDER}}.</p>
+
+<h2>6. How long we keep data</h2>
+<div class="table-scroll">
+<table>
+<tr><th>Data</th><th>Period</th></tr>
+<tr><td>Account data</td><td>As long as the account exists</td></tr>
+<tr><td>Audio a user records alone in a room</td><td>Until the account owner deletes them, or until the account is deleted</td></tr>
+<tr><td>Rendered video files (MP4)</td><td>{{EXPORT_RETENTION_DAYS}} days from creation — they can be produced again from the recording</td></tr>
+<tr><td>Puzzle and assignment results</td><td>As long as the account exists — they form the history of progress</td></tr>
+<tr><td>Messages on assignments</td><td>As long as the assignment exists; deleting the assignment deletes them too</td></tr>
+<tr><td>Subscription data</td><td>As long as tax rules require</td></tr>
+<tr><td>Aggregate resource usage data</td><td>As long as the account exists</td></tr>
+</table>
+</div>
+<p><strong>Deleting an account permanently deletes all related data</strong> —
+lessons, recordings, results and assignments. This action cannot be undone.</p>
+
+<h2>7. Your rights</h2>
+<p>You have the right to access your data, to ask for correction of inaccurate
+data, to ask for deletion, to restrict processing, to object to processing and
+to transfer your data to another controller.</p>
+<p>Send a request to <a href="mailto:{{PRIVACY_EMAIL}}">{{PRIVACY_EMAIL}}</a>.
+We answer within 30 days.</p>
+<p>If you believe your rights have been infringed, you may address the
+<strong>Commissioner for Information of Public Importance and Personal Data
+Protection</strong> of the Republic of Serbia.</p>
+
+<h2>8. Children</h2>
+<p>A significant share of our users are children. Therefore:</p>
+<ul>
+<li>An account for a child under 15 may be opened <strong>only with the consent
+of a parent or guardian</strong>.</li>
+<li><strong>A lesson is not recorded.</strong> A child's voice is never
+captured, not even with a parent's consent — no such option exists. Audio can
+be recorded only by an adult user who is alone in the room.</li>
+<li>A parent may at any time ask to see the data kept about the child and to
+have it deleted, by writing to
+<a href="mailto:{{PRIVACY_EMAIL}}">{{PRIVACY_EMAIL}}</a>.</li>
+<li>We show no advertising to children and use their data for nothing except the
+coaching itself and the report to their trainer and parent.</li>
+</ul>
+<p>What consent looks like and what it covers is described on the
+<a href="/parent-consent">Parent consent</a> page.</p>
+
+<h2>9. Security</h2>
+<p>Passwords are stored as a bcrypt hash. Communication with the server goes
+over HTTPS. Access to a student's data is held by <strong>only the trainer the
+student is connected to</strong> — no other trainer can see another trainer's
+students.</p>
+<p>No measure is absolute. In the event of a data breach that may put your
+rights at risk, we will inform you and the Commissioner as the law requires.</p>
+
+<h2>10. Changes</h2>
+<p>If we change this policy, we publish the new version at this same address and
+change the date at the top. We inform you by email of significant changes.</p>
+
+<h2>11. Contact</h2>
+<p>{{OPERATOR_NAME}}<br>
+{{OPERATOR_ADDRESS}}<br>
+<a href="mailto:{{PRIVACY_EMAIL}}">{{PRIVACY_EMAIL}}</a></p>
+
+<footer class="bottom">
+<a href="/">Home</a> · <a href="/parent-consent">Parent consent</a> · <a href="/contact">Contact</a> · <a href="/politika-privatnosti">Srpski</a>
+</footer>
+</div>
+</body>
+</html>

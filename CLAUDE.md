@@ -2,8 +2,9 @@
 
 Chess coaching platform: a Flutter client (`chess_app/`) and a Node backend
 (`chess_backend/`). A trainer runs a live lesson in a room — board, voice, and a
-recording that can be replayed or exported to MP4 — plus puzzles, homework,
-spaced repetition and parent reports. Most users are children, which decides
+silent replay of the lesson's move timeline — plus puzzles, homework, spaced
+repetition and parent reports. Audio is recorded only by an adult alone in a
+room, making their own teaching material. Most users are children, which decides
 several rules below.
 
 ## Layout
@@ -37,10 +38,15 @@ values belong in `.env` on the machine that needs them. `.env.example` is the
 authoritative list of environment variables — add new ones there, and the
 deploy script picks them up automatically.
 
-**`chess_backend/uploads/` is the only copy of recorded lessons** — children's
-voices. It is gitignored, it is never deleted by cleanup code, and it must never
-be committed. Rendered MP4 exports are different: they are reproducible, so they
-age out on a retention timer.
+**`chess_backend/uploads/` is the only copy of every recording made.** It is
+gitignored, it is never deleted by cleanup code, and it must never be committed.
+Rendered MP4 exports are different: they are reproducible, so they age out on a
+retention timer.
+
+Since 26.8.2026 it can no longer hold a child's voice: audio is accepted only
+from a room whose sole occupant is its adult owner (`services/
+recordingConsent.js`). That is the reason the rule exists — `uploads/` is the
+one thing here that cannot be reproduced, anonymised or taken back.
 
 **The backend requires Node >= 22.15.** The Lichess puzzle import uses
 `zlib.zstd*`, which does not exist before that. This already cost one silently
@@ -193,13 +199,22 @@ wording on 25.8.2026 **for Serbia only, and said so explicitly**; the country
 list in Play Console is a decision somebody has to make rather than a default to
 accept. Two rules that came out of it and hold generally: an age is read when an
 edge is created and never applied backwards over edges that exist — **tell the
-trainer, do not rewrite their lesson** — and `parent_allows_recording` is
-three-valued, because NULL means nobody was asked and must read as neither yes
-nor no. That column is **enforced** as well as recorded (`services/
-recordingConsent.js`): it spent its first hours written by the parent's page and
-read by nobody, which is this repository's recurring bug aimed at the one answer
-a parent actually gave. A test reads the source and fails if the read disappears
-again.
+trainer, do not rewrite their lesson** — and the parent is asked **two**
+questions rather than three.
+
+The third question — recording the lesson — was removed on 26.8.2026, one day
+after it was built. `parent_allows_recording` had spent its first hours written
+by the parent's page and read by nobody; the enforcement written for it worked,
+and then the feature it enforced was deleted. **A lesson is not recorded at all
+any more, by anybody, under any consent.** The replay survives, silently: a
+recording is a `timeline_json` and `audio_url` was always nullable.
+
+The reasoning, because it generalises: the feature bought a replay with sound
+and cost a per-market legal text about children's voices plus the worst breach
+this project could have had. Removing it barely shrank the consent machinery —
+that is driven by minors *having accounts*, not by recording — but it removed
+the one artefact that could not be taken back. **Exposure falls by holding less,
+not by getting an opinion that holding it is allowed.**
 
 Still open: the account-level lock (a minor with no trainer uses the app as
 before, since the approved text is per-trainer), and parent observation of a

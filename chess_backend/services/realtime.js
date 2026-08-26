@@ -29,9 +29,14 @@ const onlineUsers = {}; // userId -> { socketId, userId, name, email, role }
 const recordedRoomParticipants = {}; // roomCode -> Set(userId)
 
 /// Starts the record for a room, with everybody who is in it now.
+///
+/// Ids are kept as strings and guests are kept with them. Under the rule of
+/// 26.8.2026 audio is recorded only by somebody alone in the room, so a guest —
+/// who has no account, no age and no relationship — is no longer invisible to
+/// the check. They are somebody else in the room, which is the whole question.
 function beginRecordingRoster(roomCode, userIds) {
   recordedRoomParticipants[roomCode] = new Set(
-    [...userIds].map(Number).filter(Number.isInteger),
+    [...userIds].map(String).filter((id) => id !== '' && id !== 'undefined' && id !== 'null'),
   );
 }
 
@@ -40,8 +45,11 @@ function beginRecordingRoster(roomCode, userIds) {
 function noteRecordedParticipant(roomCode, userId) {
   const roster = recordedRoomParticipants[roomCode];
   if (!roster) return false;
-  const id = Number(userId);
-  if (!Number.isInteger(id)) return false; // a guest, who has no account
+  const id = String(userId);
+  if (id === '' || id === 'undefined' || id === 'null') return false;
+  // A guest counts. This used to return `false` for them — correct while the
+  // question was "has this child's parent agreed", wrong now that it is "are
+  // you alone", because a guest is exactly somebody who is not you.
   roster.add(id);
   return true;
 }
@@ -77,7 +85,12 @@ const consentStops = {}; // roomCode -> { at, reason, blocked:Set, stoppedAt }
 const CONSENT_STOP_GRACE_MS = 30_000;
 
 function stopRecordingForConsent(roomCode, { reason = null, blocked = [] } = {}) {
-  const blockedIds = new Set([...blocked].map(Number).filter(Number.isInteger));
+  // Kept as strings, because that is what the roster holds since guests joined
+  // it: deleting a number out of a set of strings removes nothing and does it
+  // silently, which is this codebase's whole catalogue of bugs in one line.
+  const blockedIds = new Set(
+    [...blocked].map(String).filter((id) => id !== '' && id !== 'undefined' && id !== 'null'),
+  );
   // What was recorded before they walked in stays the trainer's, because they
   // are not in it — so the newcomer comes out of the roster, rather than the
   // roster being thrown away with them.

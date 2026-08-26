@@ -150,8 +150,8 @@ router.get('/consent/:token', async (req, res) => {
 </div>
 
 <h2>Na šta dajete saglasnost</h2>
-<p>Prve dve stavke su neophodne da bi dete moglo da pohađa časove. Treća je
-opciona — možete je odbiti, a da dete i dalje pohađa časove.</p>
+<p>Obe stavke su neophodne da bi dete moglo da pohađa časove kod navedenog
+trenera.</p>
 <ol>
   <li><strong>Nalog.</strong> Da dete ima nalog u aplikaciji i da se u njemu
       čuvaju: email adresa, ime, odigrani potezi, rezultati zagonetki i
@@ -159,34 +159,26 @@ opciona — možete je odbiti, a da dete i dalje pohađa časove.</p>
   <li><strong>Uvid trenera.</strong> Da navedeni trener vidi napredak deteta —
       rezultate zadataka, tačnost i teme na kojima dete greši — i da mu na
       osnovu toga zadaje vežbe.</li>
-  <li><strong>Snimanje časova (opciono).</strong> Da se časovi na kojima
-      učestvuje dete mogu snimati, uključujući zvučni zapis glasa deteta, i da
-      trener taj snimak čuva i koristi za pregled časa sa vama i sa detetom.
-      Snimak nije javan i vidljiv je samo treneru i učesnicima tog časa.</li>
 </ol>
 
 <h2>Šta se ne radi</h2>
 <ul>
   <li>Podaci deteta se <strong>ne prodaju</strong> i ne ustupaju oglašivačima.</li>
   <li>Detetu se <strong>ne prikazuju reklame</strong>.</li>
-  <li>Snimci se <strong>ne objavljuju</strong> niti dele van kruga učesnika časa.</li>
+  <li>Čas se <strong>ne snima</strong>. Glas deteta se ne beleži i ne čuva —
+      ni uz čiju saglasnost. Čas se kasnije može pregledati samo nemo, kao tok
+      poteza i oznaka na tabli.</li>
   <li>Servisu veštačke inteligencije <strong>ne šalje se nijedan lični podatak
       deteta</strong> — samo šahovske pozicije.</li>
 </ul>
 
 <h2>Vaša prava</h2>
 <p>U svakom trenutku možete tražiti uvid u podatke koji se čuvaju o vašem
-detetu, ispravku netačnih podataka, brisanje pojedinačnog snimka ili svih
-snimaka, brisanje celog naloga, i <strong>povlačenje ove saglasnosti</strong> —
-u celini ili samo za snimanje. Povlačenje ne utiče na zakonitost obrade
-obavljene do tog trenutka.</p>
+detetu, ispravku netačnih podataka, brisanje celog naloga, i
+<strong>povlačenje ove saglasnosti</strong>, čime prestaje i veza sa trenerom.
+Povlačenje ne utiče na zakonitost obrade obavljene do tog trenutka.</p>
 
 <form method="POST" action="/consent/${esc(req.params.token)}">
-  <label class="check">
-    <input type="checkbox" name="recording" value="da">
-    <span>Saglasan/na sam i sa <strong>snimanjem časova</strong> (stavka 3).
-      Ovo polje možete ostaviti prazno.</span>
-  </label>
   <div class="actions">
     <button class="yes" type="submit" name="odgovor" value="da">
       Dajem saglasnost
@@ -211,10 +203,6 @@ obavljene do tog trenutka.</p>
 
 router.post('/consent/:token', async (req, res) => {
   const granted = req.body?.odgovor === 'da';
-  // Recording is agreed to only when the box was ticked **and** consent was
-  // given at all. A refusal that carried a ticked box through would record a
-  // parent as agreeing to a recording they refused outright.
-  const allowsRecording = granted && req.body?.recording === 'da';
 
   try {
     const result = await recordAnswer(pool, {
@@ -224,7 +212,6 @@ router.post('/consent/:token', async (req, res) => {
       // say where the answer came from, and nowhere else.
       ip: req.ip,
       granted,
-      allowsRecording,
     });
 
     if (!result.ok) {
@@ -234,8 +221,7 @@ router.post('/consent/:token', async (req, res) => {
 
     logger.info(
       `[SAGLASNOST] Roditelj je odgovorio na vezu ${result.relationshipId}: `
-      + `${granted ? 'saglasan' : 'nije saglasan'}`
-      + `${granted ? `, snimanje: ${allowsRecording ? 'da' : 'ne'}` : ''}`,
+      + `${granted ? 'saglasan' : 'nije saglasan'}`,
     );
 
     if (!granted) {
@@ -252,8 +238,8 @@ router.post('/consent/:token', async (req, res) => {
 <div class="card">
   <div><strong>Dete:</strong> ${esc(result.studentName)}</div>
   <div><strong>Trener:</strong> ${esc(result.trainerName)}</div>
-  <div><strong>Snimanje časova:</strong>
-    ${allowsRecording ? 'dozvoljeno' : '<strong>nije dozvoljeno</strong>'}</div>
+  <div><strong>Snimanje časova:</strong> <strong>ne postoji</strong> — čas se
+    ne snima ni uz čiju saglasnost</div>
 </div>
 <p>Ovu stranicu možete zatvoriti. Saglasnost možete povući u svakom trenutku —
 javite se treneru ili nam pišite.</p>

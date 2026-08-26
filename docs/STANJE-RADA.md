@@ -4349,3 +4349,91 @@ cd chess_app; flutter run -d windows 2>&1 | Tee-Object -FilePath run.log
 - Uz popravku ide test koji pada bez nje; to je provereno `git stash`-om.
 - Kad se nešto ne može proveriti uživo, upisati u `TODO-provera.md`, ne
   prećutati.
+
+
+## Snimanje časa je uklonjeno — odluka od 26.8.2026
+
+**Čas se više ne snima.** Zvuk se prima samo iz sobe u kojoj je **jedan jedini
+učesnik — punoletan vlasnik sobe**, koji tako pravi sopstveni materijal, skida ga
+i objavljuje gde hoće. Interakcija trenera i učenika nema zvučni zapis ni uz čiju
+saglasnost.
+
+### Zašto, kad je bilo napravljeno i provereno uživo
+
+Pitanje je postavljeno kao „koliko bi se smanjio pravni posao bez snimanja", i
+merenje je dalo suprotan odgovor od očekivanog:
+
+- **vezano samo za snimanje:** `recordingConsent.js`, kolona
+  `parent_allows_recording`, treće polje na roditeljskoj stranici, jedan test;
+- **ostaje bez obzira na snimanje:** `parentConsentService`, `ageService`,
+  `relationshipService`, `accountGuard`, `routes/consent.js`, `awaiting_parent`,
+  `parent_consent_at/ip/version`, `AGE_OF_CONSENT` — 52 mesta u 10 fajlova.
+
+Ta mašinerija ne postoji zbog snimanja nego zato što **dete ima nalog, a trener
+vidi njegove podatke**. Papirologija se, dakle, jedva smanjuje.
+
+Ono što se smanjuje je izloženost. `uploads/` je bio jedina kopija dečjih
+glasova — jedini podatak ovde koji se ne može reprodukovati, anonimizovati ni
+povući. Uz to nestaje „audio" iz Play prijave podataka i ceo odeljak koji bi
+advokat morao da odobrava **po svakom tržištu posebno**, dok je advokat 25.8.2026.
+pokrio samo Srbiju.
+
+Oštriji deo, koji je i presudio: izbacivanje gađa deo koji je **već plaćen i
+završen** (Srbija, uključujući snimanje), a deo koji se razlikuje od zemlje do
+zemlje — uzrast za saglasnost, 13 do 16 — ostaje i posle njega. Jedino što bi
+zaista srušilo pravni posao je da deca nemaju naloge, a to je proizvod.
+
+### Šta je dobijeno, a ne samo uklonjeno
+
+Trener sam u sobi pravi video lekcije i objavljuje ih. To je funkcija sa uzlaznom
+stranom — kanal kojim ljudi dolaze do aplikacije — dok snimanje časa sa detetom
+nema nijedna šahovska aplikacija, i verovatno ne slučajno.
+
+### Kako je izvedeno
+
+Pravilo je zamenjeno **unutar `mayRecordRoom`**, a mehanika oko njega je ostala:
+sva četiri pozivna mesta, zaustavljanje snimanja, spisak učesnika i drugi katanac
+pri upisu rade kao pre, samo odgovaraju na drugo pitanje.
+
+Tri odluke u tom pravilu, svaka je mesto gde bi tiho prestalo da znači nešto:
+
+- **Gost obara snimanje.** Nema nalog, pa nema ni godine ni vezu — pod starim
+  pravilom bio je nevidljiv. Pod ovim mu nalog ne treba: on je neko drugi u sobi,
+  a to je celo pitanje. Zato spisak učesnika sada čuva i njegov socket id.
+- **Nepoznata godina je odbijanje, ne prolaz.** Svuda drugde u ovoj bazi
+  neizjašnjen uzrast je namerno propušten; ovde je obrnuto, jer je reč o dozvoli
+  da nastane jedini artefakt koji se ne može povući.
+- **Osamnaest, ne `AGE_OF_CONSENT`.** Taj prag je 13–18 po zemlji i odgovara na
+  drugo pitanje. Ovo je objavljivanje sopstvenog glasa, dakle punoletstvo.
+
+**Odbija se zvuk, a ne čas.** Ranije je upis vraćao 403 i bacao ceo snimak, čime
+se zbog pravila o zvuku gubio i tok table stvarnog časa. Sada se čas uvek čuva i
+pregleda nemo, a izostane samo zvuk — ista pouka kao ranija odluka da se detetu
+ne oduzima čas nego snimanje.
+
+### Usput nađeno i popravljeno
+
+Spisak učesnika je prešao na niske da bi primio goste, a `stopRecordingForConsent`
+je i dalje brisao **brojeve** iz skupa niski — dakle ništa, i ćutke. Uhvatio ga je
+postojeći test. Isti oblik greške koji ovaj dokument nabraja od početka.
+
+### Stanje
+
+`npm test` 517 prolazi, `flutter test` 653 prolaze, `flutter analyze` bez ijedne
+primedbe u dirnutim fajlovima. Čuvar upisa je dokazan mutacijom: bez brisanja
+odbijenog fajla test pada.
+
+`PARENT_CONSENT_VERSION` je podignut na `rs-2026-08-26`, jer se tekst promenio —
+bez toga bi već date saglasnosti pokazivale na formulaciju koja više ne postoji.
+**Mora se podići i u `.env` na dropletu.**
+
+### Otvoreno
+
+- `docs/politika-privatnosti.md` i `docs/saglasnost-roditelja.md` su druga kopija
+  pravnog teksta koji stvarno izlazi iz `site/` i `routes/consent.js`. Usklađeni
+  su sa ovom izmenom, ali dve kopije istog pravnog teksta se pre ili kasnije
+  raziđu. Odlučiti da li se brišu ili ostaju samo kao obrazloženje.
+- Isti fajlovi još nose ime „Chess Master" u naslovu, koje je odbačeno.
+- Kolona `parent_allows_recording` je ostavljena u bazi i više se ne piše ni ne
+  čita. Nije obrisana namerno — rušenje kolone je nepovratno, a šteta od nje je
+  nula.
