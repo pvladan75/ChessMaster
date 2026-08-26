@@ -245,17 +245,23 @@ fi
 
 log "Summary"
 cat <<EOF
-Site:     https://${SITE_HOST}/
+Site:     https://${SITE_HOST}/            (all three apps)
 
-English — the store listing is in English, so these are the ones it gets:
-Policy:   https://${SITE_HOST}/privacy-policy            <- this is the URL Play remembers
-Consent:  https://${SITE_HOST}/parent-consent
-Contact:  https://${SITE_HOST}/contact
+One policy per app, because they handle different data. These are the URLs each
+Play listing gets, and Play keeps whatever it is first given:
 
-Serbian — the legally binding versions, linked from every English page:
-Policy:   https://${SITE_HOST}/politika-privatnosti
-Consent:  https://${SITE_HOST}/saglasnost-roditelja
-Contact:  https://${SITE_HOST}/kontakt
+Mislisha           https://${SITE_HOST}/mislisha/privacy-policy
+Chess Brain Trainer  https://${SITE_HOST}/brain-trainer/privacy-policy
+Blindfold Trainer    https://${SITE_HOST}/blindfold-trainer/privacy-policy
+
+Mislisha also has a parent consent page, and its Serbian versions are the
+legally binding ones:
+
+Consent (en)  https://${SITE_HOST}/mislisha/parent-consent
+Policy (sr)   https://${SITE_HOST}/mislisha/politika-privatnosti
+Consent (sr)  https://${SITE_HOST}/mislisha/saglasnost-roditelja
+
+Contact:  https://${SITE_HOST}/contact  ·  https://${SITE_HOST}/kontakt
 
 Certificates are separate: '${SITE_HOST}' for the site, and whatever the API
 already had. Never join them with --expand; see the header of this file.
