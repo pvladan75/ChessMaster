@@ -101,3 +101,26 @@ footer.bottom {
 }
 
 footer.bottom a { color: var(--ink-soft); }
+
+/* Slike. Stranica je široka najviše 720px, pa svaka slika mora da se skuplja s
+   njom — bez ovoga snimka ekrana od 720px razvali raspored na telefonu. */
+img { max-width: 100%; height: auto; display: block; }
+
+/* Snimka ekrana telefona: visoka je i uska, pa je držimo na razumnoj širini
+   umesto da zauzme ceo stubac. */
+.shot {
+  max-width: 320px;
+  margin: 28px auto;
+  border-radius: 10px;
+}
+.shot-caption {
+  text-align: center;
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin: -14px 0 32px;
+}
+
+/* Ikonica aplikacije uz naslov. */
+.app-head { display: flex; align-items: center; gap: 16px; margin-bottom: 6px; }
+.app-head img { width: 64px; height: 64px; border-radius: 14px; flex: none; }
+.app-head h1 { margin: 0; }
