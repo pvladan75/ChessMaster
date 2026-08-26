@@ -235,7 +235,14 @@ fi
 log "Summary"
 cat <<EOF
 Site:     https://${SITE_HOST}/
-Policy:   https://${SITE_HOST}/politika-privatnosti     <- this is the URL Play remembers
+
+English — the store listing is in English, so these are the ones it gets:
+Policy:   https://${SITE_HOST}/privacy-policy            <- this is the URL Play remembers
+Consent:  https://${SITE_HOST}/parent-consent
+Contact:  https://${SITE_HOST}/contact
+
+Serbian — the legally binding versions, linked from every English page:
+Policy:   https://${SITE_HOST}/politika-privatnosti
 Consent:  https://${SITE_HOST}/saglasnost-roditelja
 Contact:  https://${SITE_HOST}/kontakt
 
