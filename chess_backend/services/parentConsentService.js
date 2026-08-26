@@ -44,7 +44,7 @@ const EXPIRY_DAYS = 14;
 /// The country is part of the identifier on purpose: the same product will need
 /// different text elsewhere, and `2026-08-25` alone would not say which of them
 /// a parent read.
-const DEFAULT_TEXT_VERSION = 'rs-2026-08-25';
+const DEFAULT_TEXT_VERSION = 'rs-2026-08-26';
 
 /// Parses `PARENT_CONSENT_VERSION`, or says why it cannot.
 ///

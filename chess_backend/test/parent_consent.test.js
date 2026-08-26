@@ -396,3 +396,26 @@ test('an adult accepting is unchanged, and still becomes a friendship', async ()
     'accepted');
   assert.ok(pool.find('INSERT INTO friends'));
 });
+
+test('the built-in text version matches the one .env.example ships', () => {
+  // The guard for a mistake made on 26.8.2026 and caught by a question rather
+  // than by a test. `PARENT_CONSENT_VERSION` was raised in `.env.example` when
+  // the consent text changed, and `DEFAULT_TEXT_VERSION` was not — so any
+  // install without the variable set would have stamped a legal record with the
+  // version of a text that no longer exists, quietly, which is the failure this
+  // repository keeps paying for.
+  //
+  // The default exists on purpose: a development machine with no `.env` should
+  // run. What must not happen is for it to run *and be wrong*.
+  const example = fs.readFileSync(
+    path.join(__dirname, '..', '.env.example'), 'utf8',
+  );
+  const shipped = /^PARENT_CONSENT_VERSION=(.+)$/m.exec(example);
+  assert.ok(shipped, '.env.example više ne nosi PARENT_CONSENT_VERSION');
+
+  assert.equal(
+    parseTextVersion(undefined), shipped[1].trim(),
+    'ugrađena podrazumevana verzija teksta se razlikuje od one u .env.example — '
+    + 'instalacija bez te promenljive bi saglasnost žigosala pogrešnom oznakom',
+  );
+});
