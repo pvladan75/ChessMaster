@@ -186,9 +186,20 @@ systemctl reload nginx
 log "Redirect from ${REDIRECT_HOST}"
 site_ip="$(getent ahostsv4 "$SITE_HOST" | awk 'NR==1{print $1}')"
 redirect_ip="$(getent ahostsv4 "$REDIRECT_HOST" 2>/dev/null | awk 'NR==1{print $1}' || true)"
+# `www` is checked as well as the apex, because certbot is asked for both names
+# two lines below. Checking only the apex let a half-repointed domain through
+# the guard and into certbot, which then failed the HTTP-01 challenge for the
+# name nobody had checked — a guard that verifies less than what follows it.
+redirect_www_ip="$(getent ahostsv4 "www.${REDIRECT_HOST}" 2>/dev/null | awk 'NR==1{print $1}' || true)"
 
 if [[ -z "$redirect_ip" ]]; then
   echo "SKIPPED: ${REDIRECT_HOST} does not resolve."
+elif [[ -z "$redirect_www_ip" ]]; then
+  echo "SKIPPED: www.${REDIRECT_HOST} does not resolve, and the certificate covers it too."
+  echo "Add its A record alongside the apex, then re-run this script."
+elif [[ "$redirect_www_ip" != "$site_ip" ]]; then
+  echo "SKIPPED: www.${REDIRECT_HOST} points somewhere else than ${SITE_HOST}."
+  echo "Repoint it at this host, then re-run this script."
 elif [[ "$redirect_ip" != "$site_ip" ]]; then
   # Said out loud, with the reason. A silent skip here would leave the operator
   # believing the redirect works, and asking certbot for a name that resolves
