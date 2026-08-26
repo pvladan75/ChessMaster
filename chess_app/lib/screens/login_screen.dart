@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
@@ -285,16 +286,24 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     Text(
                       _isAwaitingVerification
                           ? 'Unesite Verifikacioni Kod'
-                          : (_isLogin
-                              ? 'Šahovski trener'
-                              : 'Registracija Naloga'),
+                          : (_isLogin ? 'Mislisha' : 'Registracija Naloga'),
                       style: const TextStyle(
                           fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 24),
                     if (_isAwaitingVerification) ...[
                       Text(
-                        'Poslat je verifikacioni kod na ${_emailController.text}.\n(U dev okruženju kod se ispisuje u backend logovima).',
+                        // The spam line is not a nicety. The domain started sending on
+                        // 26.8.2026 and has no reputation yet, so Gmail files these under
+                        // junk - and a verification code nobody sees is a registration
+                        // nobody finishes. It comes out when the reputation is built.
+                        //
+                        // The developer note used to be shown to everybody, including a
+                        // parent registering a child.
+                        'Poslat je verifikacioni kod na ${_emailController.text}.'
+                        '\nAko ga nema u prijemnom sandučetu, pogledajte i '
+                        'neželjenu poštu (spam).'
+                        '${kDebugMode ? '\n(U dev okruženju kod se ispisuje u backend logovima.)' : ''}',
                         textAlign: TextAlign.center,
                         style:
                             const TextStyle(fontSize: 14, color: Colors.grey),
