@@ -490,9 +490,27 @@ potvrda je jedino kod registrara.
 
 ### Ostalo da se uradi
 
-- [ ] EUIPO klase 9 i 41 za „Mislisha" — advokatu. Kovanica, pa je pitanje samo
-      o ranijim pravima, ne o opisnosti.
-- [ ] ZIS i USPTO provera.
+- **Zaštita žiga je odložena do prve zarade — odluka korisnika 26.8.2026.**
+      Obrazloženje: ne troši se na zaštitu proizvoda čija vrednost još nije
+      dokazana, a rizik da neko preko javnog repozitorijuma prepozna vrednost
+      imena pre samog autora je prihvaćen svesno.
+
+      **Okidač:** prvi plaćeni korisnik. Ne „kad krene", jer to nije datum.
+
+      Šta se tada radi, da se ne prepričava ponovo: **ZIS za Srbiju posebno**,
+      jer žig EU ne pokriva Srbiju; **EUIPO** klase 9 i 41, po potrebi 42;
+      **USPTO** ako se cilja i SAD. Pošto je Mislisha kovanica, opisnost ne
+      dolazi u obzir ni na jednom jeziku EU i pitanje je samo o ranijim pravima.
+
+      Šta se rizikuje čekanjem: nosilac kasnijeg žiga listing skida preko
+      Play-ovog postupka za prijavu žiga, brzo i bez rasprave. Odbrane postoje
+      — ranije korišćenje i zla namera — ali ih dokazuje onaj ko nema
+      registraciju. Uz to, posle objave svako ima tri meseca da uloži prigovor
+      na tvoju prijavu, čega pre objave nema.
+
+      Što ide u prilog čekanju, a ništa ne košta: **javna git istorija je
+      datirani dokaz korišćenja od 26.8.2026.** Ne treba je praviti, već
+      postoji.
 - [ ] Registrovati `mislisha.app` / `.com` / `.io`. **Odloženo do objave
       aplikacije, odlukom korisnika 26.8.2026.** Rizik koji se time prihvata:
       ime je od tog dana javno u commit porukama ovog repozitorijuma, a
