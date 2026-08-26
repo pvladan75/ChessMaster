@@ -493,7 +493,11 @@ potvrda je jedino kod registrara.
 - [ ] EUIPO klase 9 i 41 za „Mislisha" — advokatu. Kovanica, pa je pitanje samo
       o ranijim pravima, ne o opisnosti.
 - [ ] ZIS i USPTO provera.
-- [ ] Registrovati `mislisha.app` / `.com` / `.io` dok su slobodni.
+- [ ] Registrovati `mislisha.app` / `.com` / `.io`. **Odloženo do objave
+      aplikacije, odlukom korisnika 26.8.2026.** Rizik koji se time prihvata:
+      ime je od tog dana javno u commit porukama ovog repozitorijuma, a
+      preprodavci domena prate nova imena — pa je prozor izloženosti dug koliko
+      i put do objave. Ako se odluka menja, `.com` je onaj koji vredi uzeti prvi.
 - [ ] Prikazno ime u `chess_app` postaviti na „Mislisha" (samo labela —
       `applicationId` se ne dira).
 - [ ] Play naslov `Mislisha`, ključne reči u kratkom opisu, ne u imenu.
