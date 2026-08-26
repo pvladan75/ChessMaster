@@ -35,15 +35,25 @@ ranks, achievements and settings — is stored <strong>only on your device</stro
 It never leaves it, we never see it, and it is deleted when you uninstall the
 app.</p>
 
-<h2>4. Crash reports</h2>
-<p>The app uses <strong>Firebase Crashlytics</strong> (Google) to report crashes
-and errors. A report contains the device model, the Android and app version, the
-technical details of the crash, and a randomly generated installation
-identifier — which is how two crashes can be recognised as coming from the same
-installation. It does <strong>not</strong> contain your name, email address or
-anything you typed.</p>
-<p>Reports are sent over an encrypted connection, are used only to find and fix
-faults, and are deleted automatically after 90 days.</p>
+<h2>4. Crash reports and diagnostics</h2>
+<p>The app uses <strong>Firebase Crashlytics</strong> (Google). What it sends:</p>
+<ul>
+<li><strong>Crash logs</strong> — the technical details of a crash or error.</li>
+<li><strong>Diagnostics</strong> — how the app behaved around it: device model,
+    Android and app version, and performance information.</li>
+<li><strong>A randomly generated installation identifier</strong>, which is how
+    two reports can be recognised as coming from the same installation.</li>
+</ul>
+<p>It does <strong>not</strong> contain your name, email address or anything you
+typed. Reports are sent over an encrypted connection and are deleted
+automatically after 90 days.</p>
+<p>They are used to find and fix faults, and — in aggregate, across all
+installations — to see how the app performs and where it fails most often. That
+second use is why <em>Analytics</em> appears as a purpose in the Data safety
+section of the Play listing.</p>
+<p>This reporting is <strong>active in every released version</strong> and there
+is currently no switch in the app to turn it off. It is off in development
+builds only.</p>
 
 <h2>5. Purchases</h2>
 <p>The optional Premium purchase is processed by <strong>Google Play</strong>.
@@ -61,11 +71,12 @@ never store a card number or any payment detail</strong>.</p>
 <h2>7. Your rights</h2>
 <p>You can delete everything the app has recorded about you at any time by
 uninstalling it — that data is on your device and nowhere else.</p>
-<p>For crash reports, which are the only data that leaves your device, you may
-ask what is held, ask for it to be deleted, or object to the processing, by
-writing to <a href="mailto:{{PRIVACY_EMAIL}}">{{PRIVACY_EMAIL}}</a>. We answer
-within 30 days. Please say roughly when the crash happened and on which device,
-because a report carries no name to search by.</p>
+<p>For crash reports and diagnostics, which are the only data that leaves your
+device, you may ask what is held, ask for it to be deleted, or object to the
+processing, by writing to
+<a href="mailto:{{PRIVACY_EMAIL}}">{{PRIVACY_EMAIL}}</a>. We answer within 30
+days. Please say roughly when the crash happened and on which device, because a
+report carries no name to search by.</p>
 <p>If you believe your rights have been infringed, you may address the
 <strong>Commissioner for Information of Public Importance and Personal Data
 Protection</strong> of the Republic of Serbia.</p>
