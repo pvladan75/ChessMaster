@@ -124,3 +124,22 @@ img { max-width: 100%; height: auto; display: block; }
 .app-head { display: flex; align-items: center; gap: 16px; margin-bottom: 6px; }
 .app-head img { width: 64px; height: 64px; border-radius: 14px; flex: none; }
 .app-head h1 { margin: 0; }
+
+/* Red snimaka ekrana. Na širokom se slažu jedan do drugog, na telefonu jedan
+   ispod drugog — bez media upita, jer flex-wrap to već radi. */
+.shots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  justify-content: center;
+  margin: 28px 0 8px;
+}
+.shots figure { margin: 0; flex: 1 1 200px; max-width: 220px; }
+.shots img { border-radius: 8px; width: 100%; }
+.shots figcaption {
+  font-size: 13px;
+  color: var(--ink-soft);
+  text-align: center;
+  margin-top: 8px;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
