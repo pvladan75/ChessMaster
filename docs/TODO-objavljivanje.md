@@ -353,16 +353,102 @@ Server to i kaže u odgovoru (`warning`), da razlika ne bude nevidljiva.
 ## Odvojeno: ime aplikacije
 
 `applicationId` je namerno **odvojen od brenda** — `rs.pejovic.chesscoach` je
-vezan za vas, ne za ime, pa se ime može menjati koliko god puta zatreba.
+vezan za vas, ne za ime, pa se ime može menjati koliko god puta zatreba. Menja
+se **samo** prikazno ime; `applicationId` posle prvog objavljivanja ne može
+nikada.
 
-- [ ] Odlučiti prikazno ime aplikacije.
-- **Ne koristiti „Chess Master" / „Chessmaster"** — to je Ubisoft-ov brend, serija
-  od 20+ izdanja od 1986., i to u **istoj kategoriji** (softver za učenje šaha).
-  Isto ime + ista vrsta robe je najgori mogući slučaj kod žigova.
-- „Pawn to King" je pravno znatno bezbednije, ali pešak po pravilima **ne može da
-  postane kralj** — publika su treneri i primetiće.
-- Pre nego što se odlučite, proverite redom: pretraga u Play Store-u,
-  [ZIS baza žigova](https://www.zis.gov.rs), EUIPO eSearch, slobodan domen.
+### Odluka, 26.8.2026: kućni brend odvojen od proizvoda
+
+Tri aplikacije dele izlog na `chesstrainers.app`:
+
+| Aplikacija | applicationId | Prikazno ime | Stanje |
+|---|---|---|---|
+| BrainTrainer | `com.program.braintrainer` | Chess Brain Trainer | objavljena, v7.0 |
+| BlindfoldTrainer | `com.program.blindfoldtrainer` | Blindfold Trainer | neobjavljena, v0.1 |
+| ova | `rs.pejovic.chesscoach` | **Potez** | neobjavljena |
+
+**Dve vežbalice zadržavaju opisna imena, platforma dobija brend.** To nije
+nedoslednost nego podela posla. Vežbalicu čovek nađe tako što u Play-u ukuca
+šta mu treba, pa opisno ime radi posao pretrage. Do platforme se ne dolazi
+pretragom — niko ne kuca „snimanje časa sa saglasnošću roditelja" — nego
+preporukom trenera roditelju, a preporuka traži ime koje se izgovori i zapamti.
+Dva imena služe pretrazi, treće služi pamćenju. `chesstrainers.app` je kućni
+brend nad sva tri i za tu ulogu je opisnost prednost.
+
+Posledica: Potez **nema svoj domen** i ne treba mu. Živi pod izlogom.
+
+Prefiks `rs.pejovic.*` razbija `com.program.*` druga dva. Ostaje kako jeste:
+Play ne grupiše po prefiksu, korist bi bila nula. Zabeleženo da odluka bude
+svesna, a ne propuštena — ovo je bio poslednji trenutak kad se mogla promeniti.
+
+### Zašto Potez
+
+- Znači tačno ono što aplikacija radi, a napolju ne znači ništa. To je
+  *arbitraran* žig, najjača kategorija koja postoji (Kodak, Xerox). Opisno ime
+  je najslabija. Presedan istog oblika: **Anki** — japanski za „učenje
+  napamet", globalni proizvod za učenje.
+- Pet slova, dva sloga, bez suglasničkih grupa. Ukuca se čim se čuje.
+- **Ne prevoditi ga.** „The Move" je generično u kategoriji, neregistrljivo i
+  nepretraživo; prevod ubija jedini razlog zbog kog ime radi.
+- Jedini nosilac imena je Potez Aéronautique (francuska avio-industrija,
+  `potez.com`) — druga klasa robe, bez dodira sa softverom za obuku.
+
+**Otvoreno, za advokata:** EUIPO odbija žig koji je opisan na **bilo kom**
+zvaničnom jeziku EU, a hrvatski je zvaničan i *potez* na njemu znači isto.
+Rizik postoji, nije presudan — reč je sugestivna pre nego opisna za softver, a
+figurativni žig (reč + logotip kao celina) redovno prolazi tamo gde gola reč ne
+prođe. Van EU (SAD, UK) pitanje ne postoji. Isti advokat koji je 25.8.2026.
+potvrdio tekst saglasnosti.
+
+### Odbačena imena i razlog
+
+Da se ne predlažu ponovo. Sva su pala na proveri, ne na ukusu.
+
+| Ime | Zašto je palo |
+|---|---|
+| Chess Master / Chessmaster | Ubisoft, 20+ izdanja od 1986, **ista kategorija**. Najgori mogući slučaj kod žigova. |
+| Pawn to King | Pešak po pravilima ne može da postane kralj. Publika su treneri. |
+| Knight School | The Knight School — postojeća firma za časove šaha deci po školama, sa trenerima i robom. Ista roba, isti uzrast. |
+| Caissa | Zauzeto višestruko u istoj kategoriji: Caissa School of Chess sa svojom aplikacijom, caissa-chess.org sa treningom i analizom, Caissa Chess Academy. |
+| Knightly | `knightlychess.com` je „AI-powered nightly chess trainer" — doslovan opis ovog proizvoda. Uz to još tri odvojene aplikacije istog imena. |
+| Outpost | Outpost Chess, „AI chess coach", 100.000+ igrača, Play + App Store. |
+| Chesscraft | ChessCraft, Play i iOS, izdavač MWM. |
+| Chess Forge | Dvaput: FOSS Windows alat za studije, repertoar i PGN — skoro isti spisak funkcija — i aplikacija na Play-u. |
+| Tesuji | Tesuji Games Inc sa žigom, i žig Tesuji Corp iz 1995. za **softver za obrazovne namene**. Naša klasa. |
+| Move by Move | Vodeća edukativna serija izdavača Everyman Chess, čiji je koncept izričito da oponaša čas sa trenerom. Isti proizvod u drugom mediju. |
+| The Move | Generično u kategoriji — šah se sastoji od poteza. Neregistrljivo, nepretraživo, domeni zauzeti, plus poznat bend iz šezdesetih. |
+| Chess Studio / Chess Study / Chess Trainer Studio | Opisna imena. „Studio" je uz to već zauzet **unutar same aplikacije** (`features/analysis_studio/`), a „study" je naziv centralne funkcije na Lichess-u. |
+| Zwischenzug / Međupotez | Bez sukoba, ali 11 slova i grupa suglasnika koju stranac ne ume da napiše po sluhu — najgora osobina za ime koje se prenosi usmeno. Semantika je uz to pogrešna: zwischenzug je smicalica, ne učenje. „Međupotez" pada i na slovu đ. |
+| Mislilac | Nije palo — čisto je i `mislilac.app`/`.com` su slobodni. Izgubilo od Poteza na dužini i izgovoru: osam slova, tri sloga, grupa „sl", a značenje je napolju svejedno izgubljeno. Prva rezerva. |
+
+### Metod, jer je ovde koštao najviše vremena
+
+**Ime se prvo proveri, pa onda predloži.** Tri jezička modela su nezavisno
+predložila Knight School, Caissa, Knightly i Outpost kao favorite — sva četiri
+su zauzeta postojećim šahovskim proizvodima. Registar „šahovski pojam +
+engleska reč" je iscrpen, najvećim delom talasom „AI chess coach" proizvoda iz
+poslednje dve godine. Ime koje ti model predloži je po pravilu već uzeto, jer
+isti model isto ime predlaže svima, a oni su krenuli ranije.
+
+Provera ide redom: Play i App Store pretraga → postojeći proizvodi na webu →
+[ZIS](https://www.zis.gov.rs) → EUIPO eSearch → domen.
+
+I jedna zamka iz iste porodice kao sve u „Ono što grize": prva provera domena
+preko `nslookup` je **za svaki domen javljala da je slobodan**, jer je obrazac
+za pretragu promašivao format ispisa. Uhvaćeno samo zato što su u spisak
+namerno ubačena dva domena za koja se pouzdano zna da postoje. **Svaka provera
+mora da sadrži kontrolni slučaj za koji se unapred zna da mora da padne** —
+inače merite ćutanje.
+
+Odsustvo NS zapisa je jak nagoveštaj da je domen slobodan, ali nije dokaz;
+potvrda je jedino kod registrara.
+
+### Ostalo da se uradi
+
+- [ ] EUIPO klase 9 i 41 za „Potez", i pitanje o figurativnom žigu — advokatu.
+- [ ] ZIS provera.
+- [ ] Prikazno ime u `chess_app` postaviti na „Potez" (samo labela).
+- [ ] Play naslov `Potez`, ključne reči u kratkom opisu, ne u imenu.
 
 ## Posle preimenovanja paketa — sitnica
 
@@ -370,6 +456,95 @@ Windows verzija sada koristi `AppData\Roaming\rs.pejovic\chess_app` umesto
 `AppData\Roaming\com.example\chess_app`. Preuzeti Stockfish i podešavanja su
 ostali na staroj putanji. Prekopirati folder ili pustiti aplikaciju da ponovo
 preuzme motor.
+
+## Pošta na domenu — ✅ postavljeno 26.8.2026
+
+Sanduče kod Namecheap Private Email (Launch, jedno sanduče, plaćeno godišnje,
+automatska obnova uključena). Sanduče je `support`, a `privacy`, `no-reply`,
+`info`, `podrska` i `privatnost` su **aliasi** na njemu — pet od deset. Aliasi,
+ne zasebna sanduka: dodatna sanduka trebaju tek kad poštu čita drugi čovek.
+
+Zašto sanduče a ne besplatno preusmeravanje, koje je do tada stajalo: preusmeravanje
+rešava samo **primanje**. Slanje je ostajalo sa lične Gmail adrese, a poruka koja
+traži saglasnost za snimanje glasa deteta, a stiže sa privatne adrese, je tačno
+ono što bi oprezan roditelj trebalo da prijavi kao phishing.
+
+Sva četiri zapisa su **provereni spolja**, ne po statusu u panelu:
+
+| Zapis | Vrednost |
+|---|---|
+| MX | `mx1/mx2.privateemail.com` |
+| SPF | `v=spf1 include:spf.privateemail.com ~all` |
+| DKIM | selektor `privateemail._domainkey` (ne `default`) |
+| DMARC | `p=none` sa `rua`, dodat ručno — Namecheap ga ne pravi sam |
+
+DMARC je namerno `p=none`: prvo posmatranje, pa `quarantine`, pa `reject`.
+Obrnut redosled je uobičajen način da se pošta tiho poobara. Razlog zbog kog
+DMARC ovde nije kozmetika: bez njega neko može da pošalje lažni zahtev za
+saglasnost roditelja sa ovog domena, što je phishing uperen u najosetljiviju
+radnju u aplikaciji.
+
+`MAIL_FROM` nosi ime proizvoda (roditelj mora da prepozna aplikaciju koju dete
+koristi), a ljudski odgovori iz Thunderbird-a idu pod kućnim imenom, jer isto
+sanduče opslužuje sva tri proizvoda.
+
+**Zamka pri promeni:** SPF sada ovlašćuje samo Private Email da šalje sa ovog
+domena. Dok `MAIL_FROM` pokazuje na Gmail, važi Gmail-ov SPF i sve radi; čim
+`MAIL_FROM` pređe na naš domen a `SMTP_*` ostanu na Gmail-u, poruke kreću sa
+servera koji SPF ne priznaje i tiho odlaze u spam. **`MAIL_FROM` i `SMTP_*` se
+menjaju istim potezom.**
+
+**Slanje provereno uživo 26.8.2026** (korisnik): obe poruke koje aplikacija
+šalje — verifikacioni kod i zahtev roditelju — poslate sa radne stanice kroz
+`services/mailService.js`, dakle kroz isti kod koji se izvršava u radu, a ne
+kroz zasebnu probu sa strane.
+
+Do te potvrde otišlo je nekoliko krugova, i uzrok je vredan pamćenja: SMTP je
+odbijao tačnu lozinku sa `535`, dok su webmail i IMAP prolazili. Fajl je bio
+besprekoran po svakoj proveri oblika — bez navodnika, belina, `CR`-a i BOM-a —
+a vrednost je ipak bila pogrešna. Stara i nova lozinka su bile **iste dužine**
+(15 znakova) i razlikovale se samo sadržajem, pa ih ni provera dužine ne bi
+razdvojila — razlikovao ih je tek skraćeni `sha256` otisak vrednosti koju
+`dotenv` stvarno učita. **Provera oblika ne dokazuje sadržaj, a provera dužine
+ne dokazuje jednakost.** Ono što je razrešilo slučaj bilo je
+poređenje dva puta koja koriste isti nalog: Thunderbird je slao preko istog
+porta sa istim korisničkim imenom, čime je provajder bio oslobođen sumnje i
+ostala je samo naša vrednost. Ispravna lozinka je zatim pročitana iz
+Thunderbird-ovog spiska sačuvanih lozinki.
+
+## Odlazni SMTP je blokiran na dropletu — prepreka pred prelazak
+
+Nađeno 26.8.2026, pri prvoj pravoj probi slanja sa servera.
+
+Skripta je stala bez greške i bez poruke — samo tišina do isteka veze. Mereno:
+
+```
+25   blokiran      ufw Default: allow (outgoing)
+465  blokiran
+587  blokiran
+443  otvoren   ← kontrolni slučaj
+```
+
+`ufw` propušta odlazni saobraćaj, a kontrolni port prolazi, pa blokada nije
+naša i nije opšta — **ciljana je na SMTP i dolazi od DigitalOcean-a**, koji ga
+na novijim nalozima drži zatvorenim dok se ne zatraži otvaranje.
+
+- [ ] **Otvoriti tiket kod DigitalOcean-a** za skidanje blokade odlaznog SMTP-a.
+
+Ovo **mora biti rešeno pre nego što aplikacija pređe na droplet**. Bez odlazne
+pošte nema ni verifikacionih kodova ni saglasnosti roditelja — a oboje su
+preduslov za rad, ne pogodnost. Sajt time nije pogođen: `site-setup.sh` ne šalje
+poštu, a lokalni backend šalje normalno, jer je sa radne stanice 465 otvoren.
+
+Ako DigitalOcean odbije — što se novijim nalozima dešava — rezervni put je
+provajder sa HTTP API-jem preko porta 443 umesto SMTP-a. Tada se menja i
+`SMTP_PROVIDER`, a ta vrednost se upisuje u politiku privatnosti, pa promena
+povlači i izmenu objavljenog pravnog teksta.
+
+**Pouka za sledeći put, ista kao ceo ovaj dokument:** prvo merenje je pokazalo
+samo „465 blokiran". Tek kontrolni port i provera `ufw`-a razdvojili su tuđu
+blokadu od naše sopstvene greške. Bez njih bi tiket otišao na osnovu jednog
+merenja koje meri tišinu.
 
 ## Infrastruktura — pre nego što aplikacija izađe iz testiranja
 
