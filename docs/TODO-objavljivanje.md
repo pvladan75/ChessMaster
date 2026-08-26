@@ -21,6 +21,38 @@ već jednom prošao. Ostaje samo:
 - [ ] Novu aplikaciju napraviti kao **zaseban unos** pod istim nalogom, paket
       `rs.pejovic.chesscoach`.
 
+### Polja u Play Console-u — gde se šta upisuje, urađeno 26.8.2026
+
+Raspored menija se menja češće nego uputstva, pa je pretraga na vrhu konzole
+pouzdanija od putanje. Ovako je bilo:
+
+| Polje | Gde | Vrednost |
+|---|---|---|
+| Website | aplikacija → **Store settings** → *Store listing contact details* | `https://chesstrainers.app/brain-trainer` |
+| Email | isto tamo | `support@chesstrainers.app` |
+| Privacy policy | aplikacija → **App content** | `https://chesstrainers.app/brain-trainer/privacy-policy` |
+| Promo video | **Main store listing** → *Graphics* | YouTube adresa |
+| Promotional text | **Developer account** → *Developer profile* | do 140 znakova, en i sr |
+
+Za preostale dve isto, samo `/mislisha` i `/blindfold-trainer`.
+
+**Kratak opis je odbijen 26.8.2026** jer je sadržao „No ads" — Play to čita kao
+podatak o ceni i promociji, u istoj klasi sa „Discount" i „Sale". Prihvaćena
+zamena: `Three puzzle modes that train how chess pieces move, attack, and stay
+safe`. Dva pravila iz tog odeljka koja se lako previde: **tačka na kraju samo ako
+opis ima više rečenica**, i **nikakvi ukrasni znakovi ni emodži**. Isti obrazac
+verovatno ograničava promociju i preko punog opisa, koji sadrži „🎯 Download now"
+— poziv na radnju i emodži.
+
+**Stranica programera je odložena.** Traži ikonicu 512×512 i zaglavlje
+4096×2304, dakle grafički posao, a nije obavezna: bez nje Google i dalje nabraja
+aplikacije, samo bez opisa autora. `Developer website` i `Featured app` čekaju
+zajedno sa njom.
+
+**Stari sajt sa politikom privatnosti** (`vp-mobile-apps.web.app`) ne gasiti
+odmah — stara adresa može biti keširana ili zapisana negde. Ostaviti ga nekoliko
+meseci, ili mu dodati preusmeravanje.
+
 Uz to, postojeća aplikacija je i **kanal**: publika koja već rešava šahovske
 zagonetke je tačno publika ove aplikacije. Unakrsna promocija između dva unosa
 pod istim nalogom je najjeftinije sticanje korisnika koje imate — vredi razmotriti
