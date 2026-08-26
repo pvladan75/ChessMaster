@@ -41,7 +41,7 @@ class ChessApp extends StatelessWidget {
       animation: AppSettingsService.instance,
       builder: (context, _) {
         return MaterialApp.router(
-          title: 'Šahovski trener',
+          title: 'Mislisha',
           routerConfig: appRouter,
           // Wrapped around every screen the router builds, so Escape and the
           // settings chord work wherever the reader is - including on screens

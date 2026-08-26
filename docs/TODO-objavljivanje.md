@@ -365,7 +365,7 @@ Tri aplikacije dele izlog na `chesstrainers.app`:
 |---|---|---|---|
 | BrainTrainer | `com.program.braintrainer` | Chess Brain Trainer | objavljena, v7.0 |
 | BlindfoldTrainer | `com.program.blindfoldtrainer` | Blindfold Trainer | neobjavljena, v0.1 |
-| ova | `rs.pejovic.chesscoach` | **Potez** | neobjavljena |
+| ova | `rs.pejovic.chesscoach` | **Mislisha** | neobjavljena |
 
 **Dve vežbalice zadržavaju opisna imena, platforma dobija brend.** To nije
 nedoslednost nego podela posla. Vežbalicu čovek nađe tako što u Play-u ukuca
@@ -381,30 +381,75 @@ Prefiks `rs.pejovic.*` razbija `com.program.*` druga dva. Ostaje kako jeste:
 Play ne grupiše po prefiksu, korist bi bila nula. Zabeleženo da odluka bude
 svesna, a ne propuštena — ovo je bio poslednji trenutak kad se mogla promeniti.
 
-### Zašto Potez
+### Zašto Mislisha
 
-- Znači tačno ono što aplikacija radi, a napolju ne znači ništa. To je
-  *arbitraran* žig, najjača kategorija koja postoji (Kodak, Xerox). Opisno ime
-  je najslabija. Presedan istog oblika: **Anki** — japanski za „učenje
-  napamet", globalni proizvod za učenje.
-- Pet slova, dva sloga, bez suglasničkih grupa. Ukuca se čim se čuje.
-- **Ne prevoditi ga.** „The Move" je generično u kategoriji, neregistrljivo i
-  nepretraživo; prevod ubija jedini razlog zbog kog ime radi.
-- Jedini nosilac imena je Potez Aéronautique (francuska avio-industrija,
-  `potez.com`) — druga klasa robe, bez dodira sa softverom za obuku.
+Izabrano 26.8.2026, posle četiri kruga provere kroz TMview (engleska imena,
+slovenske reči, latinske reči, borbene kovanice).
 
-**Otvoreno, za advokata:** EUIPO odbija žig koji je opisan na **bilo kom**
-zvaničnom jeziku EU, a hrvatski je zvaničan i *potez* na njemu znači isto.
-Rizik postoji, nije presudan — reč je sugestivna pre nego opisna za softver, a
-figurativni žig (reč + logotip kao celina) redovno prolazi tamo gde gola reč ne
-prođe. Van EU (SAD, UK) pitanje ne postoji. Isti advokat koji je 25.8.2026.
-potvrdio tekst saglasnosti.
+- **Kovanica je** — ne postoji ni u jednom jeziku. To je jedina kategorija kod
+  koje prigovor na opisnost ne može ni da se postavi, ni na jednom zvaničnom
+  jeziku EU. Upravo taj prigovor je oborio prethodni izbor.
+- **Nijedan pogodak** u svim registrima koje TMview pokriva, uz kontrolni upit
+  koji potvrđuje da pretraga radi.
+- **`mislisha.app`, `.com` i `.io` — sva tri slobodna.**
+- **Izgovara se svuda.** Završava se samoglasnikom, bez suglasničkih grupa, „sh"
+  je u engleskom nedvosmislen. Ime ovog proizvoda putuje usmeno, od trenera
+  roditelju, pa mora da se napiše pošto se jednom čuje.
+- Nosi „misli" onome ko razume, a ostalima je prijatna izmišljena reč — isti
+  odnos kao **Anki** prema japanskom.
+
+**Otvoreno, za advokata:** ZIS i USPTO nisu proveravani odavde, i konačna reč o
+klasama 9 i 41 je njegova.
+
+### Zašto NE Potez — i pravilo koje iz toga sledi
+
+Potez je bio izabran 26.8.2026. ujutru i **oboren isti dan** proverom registara:
+
+| | |
+|---|---|
+| EUIPO **015081342** | **verbalni** žig „POTEZ", registrovan, klase 6, 9, 12, 35, 37, 41, 42 |
+| EUIPO 015081541 | figurativni „POTEZ", iste klase, obnovljen 12.12.2025 |
+| Vlasnik | POTEZ AERONAUTIQUE |
+| Klasa 9, spisak robe | uključuje golo `logiciels`, `ordinateurs`, `programmes pour ordinateurs` |
+
+Identična reč, ranije pravo, naše klase, i spisak robe koji **nije** ograničen
+na avioniku — što je bila pretpostavka na osnovu koje je ime uopšte predloženo.
+
+Dve pouke, obe generalne:
+
+**Figurativni žig ne pomaže protiv tuđeg ranijeg prava.** Logotip rešava
+*apsolutne* razloge (opisnost). Ranije pravo je *relativan* razlog, i tu ukras
+ne čini znak različitim. Ova zamena pojmova je u ovom dokumentu jednom već
+napisana kao savet, pogrešno.
+
+**Cela porodica reči pada s njom.** „Poteza", „Potezo" i slično sudarili bi se
+sa istim žigom po sličnosti, ne po istovetnosti. Nema zaobilaženja varijantom.
+
+**Slovenska i romanska reč su izložene na EUIPO-u.** Opisnost se ceni na *svim*
+zvaničnim jezicima EU, a među njima je šest slovenskih (hrvatski, bugarski,
+slovenački, češki, poljski, slovački) i tri romanska. Zato *potez* (hrvatski),
+*umna* (bugarski „pametna"), *mente*, *ratio*, *ingenio* i *claro* svi nose isti
+rizik. Kovanica ga nema.
 
 ### Odbačena imena i razlog
 
 Da se ne predlažu ponovo. Sva su pala na proveri, ne na ukusu.
 
+Brojevi u zagradi su pogoci u TMview pretrazi „sadrži", uz kontrolni upit koji
+potvrđuje da pretraga radi. Nula znači stvarno nula.
+
 | Ime | Zašto je palo |
+| **Potez** | EUIPO verbalni žig 015081342, POTEZ AERONAUTIQUE, klase 9/41/42. Vidi odeljak iznad. |
+| Umoboj (0) | Čist i sa slobodnim domenima, ali fonetski dodiruje „umobolan". Prva rezerva. |
+| Mislilac (0) | Čist i slobodan, ali je živa hrvatska reč — slaba izloženost — i „-lac" se čita kao „-lack". Druga rezerva. |
+| Domisao (0), Zamisao (0) | Čisti, ali „-sao" ne prolazi napolju; `zamisao.com` zauzet. |
+| Tirocinium (0) | Čist, ali deset slova i pet slogova — niko ga ne napiše pošto ga čuje. |
+| Umna | U EU čisto, ali bugarski *умна* = „pametna" — laudativno, jači razlog za odbijanje. |
+| Qd5, Nf3, Be4 | Notacija poteza se ne povrati iz sećanja i ne prenosi usmeno. Dobra kao ikona, ne kao ime. |
+| Mente, Ratio, Claro, Ingenio, Memoria | Žive reči u romanskim jezicima EU — ista izloženost kao slovenske. |
+| Perspicax (1), Perspicio (2), Calliditas (12), Exerco (14) | Skoro čisti, ali nečitljivi ili bez značenja ikome. |
+| Megdan (8), Megda (21), Umboj (62), Gonet (792), Sudar (855) | Nijedan nije čist, a nijedan nije bolji od kandidata sa nulom. |
+| Bistri (224), Tok (262), Sagax (41), Eruditio (81), Speculo (115), Claritas (170) | Zauzeti ili prekratki da bi se odbranili. |
 |---|---|
 | Chess Master / Chessmaster | Ubisoft, 20+ izdanja od 1986, **ista kategorija**. Najgori mogući slučaj kod žigova. |
 | Pawn to King | Pešak po pravilima ne može da postane kralj. Publika su treneri. |
@@ -445,10 +490,13 @@ potvrda je jedino kod registrara.
 
 ### Ostalo da se uradi
 
-- [ ] EUIPO klase 9 i 41 za „Potez", i pitanje o figurativnom žigu — advokatu.
-- [ ] ZIS provera.
-- [ ] Prikazno ime u `chess_app` postaviti na „Potez" (samo labela).
-- [ ] Play naslov `Potez`, ključne reči u kratkom opisu, ne u imenu.
+- [ ] EUIPO klase 9 i 41 za „Mislisha" — advokatu. Kovanica, pa je pitanje samo
+      o ranijim pravima, ne o opisnosti.
+- [ ] ZIS i USPTO provera.
+- [ ] Registrovati `mislisha.app` / `.com` / `.io` dok su slobodni.
+- [ ] Prikazno ime u `chess_app` postaviti na „Mislisha" (samo labela —
+      `applicationId` se ne dira).
+- [ ] Play naslov `Mislisha`, ključne reči u kratkom opisu, ne u imenu.
 
 ## Posle preimenovanja paketa — sitnica
 
