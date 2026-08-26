@@ -512,6 +512,20 @@ porta sa istim korisničkim imenom, čime je provajder bio oslobođen sumnje i
 ostala je samo naša vrednost. Ispravna lozinka je zatim pročitana iz
 Thunderbird-ovog spiska sačuvanih lozinki.
 
+**Isporuka i autentifikacija potvrđene kod primaoca 26.8.2026** (korisnik):
+poruka je stigla u Gmail sa `mailed-by: chesstrainers.app` i
+`signed-by: chesstrainers.app`, dakle SPF i DKIM prolaze i poravnati su sa
+domenom u `From`, iz čega sledi i DMARC. Pošiljalac se prikazuje kao ime
+proizvoda, kako je i postavljeno.
+
+Prve dve poruke nisu stigle odmah i to je skoro izazvalo tiket provajderu bez
+potrebe. Predaja je bila uredna — `250 Ok: queued` sa brojem u redu čekanja —
+a kašnjenje je bilo na strani primaoca: **Gmail odlaže prvi kontakt sa domenom
+koji još nema reputaciju.** Za nov domen to je očekivano i prolazi samo od
+sebe. Pouka: `250 queued` znači da je poruka primljena, ne da je isporučena, a
+odsustvo poruke u fascikli „Sent" ne dokazuje ništa — kopiju tamo upisuje
+program koji šalje, a `nodemailer` to ne radi.
+
 ## Odlazni SMTP je blokiran na dropletu — prepreka pred prelazak
 
 Nađeno 26.8.2026, pri prvoj pravoj probi slanja sa servera.
