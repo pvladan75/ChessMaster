@@ -596,9 +596,9 @@ sebe. Pouka: `250 queued` znači da je poruka primljena, ne da je isporučena, a
 odsustvo poruke u fascikli „Sent" ne dokazuje ništa — kopiju tamo upisuje
 program koji šalje, a `nodemailer` to ne radi.
 
-## Odlazni SMTP je blokiran na dropletu — prepreka pred prelazak
+## Odlazni SMTP na dropletu — ✅ odblokiran 26.8.2026
 
-Nađeno 26.8.2026, pri prvoj pravoj probi slanja sa servera.
+Nađeno 26.8.2026, pri prvoj pravoj probi slanja sa servera, i rešeno istog dana.
 
 Skripta je stala bez greške i bez poruke — samo tišina do isteka veze. Mereno:
 
@@ -613,7 +613,27 @@ Skripta je stala bez greške i bez poruke — samo tišina do isteka veze. Meren
 naša i nije opšta — **ciljana je na SMTP i dolazi od DigitalOcean-a**, koji ga
 na novijim nalozima drži zatvorenim dok se ne zatraži otvaranje.
 
-- [ ] **Otvoriti tiket kod DigitalOcean-a** za skidanje blokade odlaznog SMTP-a.
+- [x] **Tiket kod DigitalOcean-a — ✅ rešen istog dana, 26.8.2026.** Odgovor:
+      *„removed the SMTP restriction on the account"*. Od zahteva do skidanja
+      prošlo je nekoliko sati.
+
+**Provereno posle skidanja**, sa iste mašine i sa kontrolnim portom:
+
+```
+mail.privateemail.com:465   otvoren
+mail.privateemail.com:587   otvoren
+aspmx.l.google.com:25       otvoren
+1.1.1.1:443                 otvoren   <- kontrola
+```
+
+I, što je jedino što stvarno dokazuje, **obe poruke koje aplikacija šalje —
+verifikacioni kod i zahtev roditelju — poslate su sa droplet-a kroz
+`services/mailService.js`**, dakle kroz kod koji se izvršava u radu, a ne kroz
+probu sa strane. Pošiljalac je `Mislisha <support@…>`.
+
+**Šta ovo ne znači.** Servis je i dalje namerno ugašen. Prepreka je pala, ali
+prelazak aplikacije na server je i dalje odluka koja se donosi jednom i svesno —
+dva backend-a nad istom bazom razdvajaju `uploads/` i živo stanje soba.
 
 Ovo **mora biti rešeno pre nego što aplikacija pređe na droplet**. Bez odlazne
 pošte nema ni verifikacionih kodova ni saglasnosti roditelja — a oboje su
