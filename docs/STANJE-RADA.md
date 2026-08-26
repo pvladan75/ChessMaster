@@ -4069,7 +4069,9 @@ refspec `+refs/heads/master:refs/remotes/origin/master` — kako i piše u
 pretplate (`CENA-I-PRETPLATA.md`, odeljak 7); `checkUserLimits` bez pozivaoca;
 slanje pošte sa domena (SPF/DKIM) umesto sa lične Gmail adrese;
 `PUBLIC_BASE_URL` prazan na dropletu; i kanvas sa predlozima za panel trenera,
-koji čeka izbor varijante.
+koji čeka izbor varijante. **Kanvas je napravljen 26.8.2026** — vidi odeljak na
+kraju dokumenta; sada zaista čeka izbor, jer do tada varijante nisu ni
+postojale.
 
 ### Sledeće, po redu
 
@@ -4437,3 +4439,37 @@ bez toga bi već date saglasnosti pokazivale na formulaciju koja više ne postoj
 - Kolona `parent_allows_recording` je ostavljena u bazi i više se ne piše ni ne
   čita. Nije obrisana namerno — rušenje kolone je nepovratno, a šteta od nje je
   nula.
+
+
+## Panel trenera — kanvas sa tri varijante, 26.8.2026
+
+Stavka „kanvas sa predlozima za panel trenera, koji čeka izbor varijante" stajala
+je otvorena od 24.8.2026, ali **varijante nigde nisu bile zapisane** — čekao se
+izbor između predloga koji ne postoje. Sada postoje.
+
+Radni fajlovi: `design/panel-trenera/`. Objavljeni kanvas:
+https://claude.ai/code/artifact/dca9d784-3e96-4c50-84ed-9b69e117a07c
+
+Tri varijante se ne razlikuju po izgledu nego po **pitanju na koje odgovaraju**,
+jer to odlučuje šta stoji na vrhu ekrana:
+
+| | Pitanje | Jaka strana | Cena |
+|---|---|---|---|
+| **A — Danas** | šta mi je sad posao | otvoriš i znaš šta radiš | učenik koji tone mesecima, a nema ništa danas, nigde se ne pojavi |
+| **B — Po učeniku** | kako stoji svako | jedina pokazuje trend | ne kaže šta da uradiš; sa dvadeset učenika je zid brojeva |
+| **C — Čeka tebe** | gde sam ja usko grlo | broj na tabu je iskren i prazni se do nule | vidi samo ono što je neko drugi pokrenuo; ćutljiv učenik ne stvara stavku |
+
+**Predlog: A kao ekran, C kao broj.** Trener otvara aplikaciju pred čas, ne radi
+pregleda. Ono što iz C-a stvarno vredi je značka sa brojem na tabu Ljudi; red
+posla može da bude odeljak unutar A umesto zasebnog ekrana. B ne bi bio panel
+nego postojeći ekran napretka, do kog se stiže klikom na učenika — trend je
+važan jednom mesečno, ne svakog dana.
+
+Makete su statične i u tamnoj temi aplikacije; boje i razmaci su preuzeti iz
+`chess_app/lib/theme/app_colors.dart`, a polja su stvarna (Rejting, Tačnost,
+Rešeno, Aktivnih dana, period 7/30/90). Imena i brojevi su izmišljeni, jer je
+repozitorijum javan.
+
+Ono što maketa **ne** rešava: prelivanje na uskom telefonu. To i dalje traži
+proveru na uređaju, iz razloga opisanog u `CLAUDE.md` — u release build-u nema
+žuto-crnih traka.

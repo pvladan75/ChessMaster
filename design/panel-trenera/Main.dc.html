@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: Roboto, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: #64FFDA; } a:hover { color: #A7FFEB; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+
+<div style="width: 560px; height: 844px; background: #000000; color: #FFFFFF; padding: 32px 30px; display: flex; flex-direction: column; gap: 20px; overflow: hidden">
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div style="font-size: 26px; font-weight: 500; letter-spacing: -0.01em">Panel trenera &mdash; tri varijante</div>
+    <div style="font-size: 14px; color: rgba(255,255,255,0.70); line-height: 1.5">
+      Trenerov posao je danas razbacan po tabovima Trening, Časovi, Biblioteka i Ljudi.
+      Panel ga sabira na jedno mesto. Tri varijante se ne razlikuju po izgledu nego po
+      tome <span style="color: #FFFFFF">na koje pitanje odgovaraju</span> &mdash; a to odlučuje šta stoji na vrhu.
+    </div>
+  </div>
+
+  <div style="height: 1px; background: rgba(255,255,255,0.24)"></div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px">
+
+    <div style="display: flex; gap: 14px">
+      <div style="width: 4px; border-radius: 2px; background: #7C4DFF; flex: none"></div>
+      <div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1">
+        <div style="font-size: 17px; font-weight: 500">A &mdash; Danas</div>
+        <div style="font-size: 14px; color: rgba(255,255,255,0.70); line-height: 1.5">
+          <span style="color: #FFFFFF">Pitanje: šta mi je sad posao?</span>
+          Hronološki: časovi danas, domaći koji ističe, ko nije vežbao.
+        </div>
+        <div style="font-size: 13px; color: rgba(255,255,255,0.54); line-height: 1.5">
+          Jaka strana: otvoriš i odmah znaš šta radiš. Slaba: ne vidiš celinu &mdash;
+          učenik koji tone mesecima, a nema ništa danas, nigde se ne pojavi.
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 14px">
+      <div style="width: 4px; border-radius: 2px; background: #64FFDA; flex: none"></div>
+      <div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1">
+        <div style="font-size: 17px; font-weight: 500">B &mdash; Po učeniku</div>
+        <div style="font-size: 14px; color: rgba(255,255,255,0.70); line-height: 1.5">
+          <span style="color: #FFFFFF">Pitanje: kako stoji svako?</span>
+          Spisak učenika sa rejtingom, tačnošću, rešenim i aktivnim danima, uz period 7/30/90.
+        </div>
+        <div style="font-size: 13px; color: rgba(255,255,255,0.54); line-height: 1.5">
+          Jaka strana: jedina varijanta u kojoj se vidi trend. Slaba: ne kaže šta da uradiš
+          &mdash; to ostaje na treneru, a sa dvadeset učenika spisak postaje zid brojeva.
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 14px">
+      <div style="width: 4px; border-radius: 2px; background: #FFD740; flex: none"></div>
+      <div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1">
+        <div style="font-size: 17px; font-weight: 500">C &mdash; Čeka tebe</div>
+        <div style="font-size: 14px; color: rgba(255,255,255,0.70); line-height: 1.5">
+          <span style="color: #FFFFFF">Pitanje: gde sam ja usko grlo?</span>
+          Red posla: zadaci za pregled, zahtevi za vezu, izveštaji koji nisu poslati.
+        </div>
+        <div style="font-size: 13px; color: rgba(255,255,255,0.54); line-height: 1.5">
+          Jaka strana: broj na tabu je iskren i prazni se do nule. Slaba: pokazuje samo ono
+          što je neko drugi pokrenuo &mdash; učenik koji ćuti ne stvara nijednu stavku.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="height: 1px; background: rgba(255,255,255,0.24)"></div>
+
+  <div style="background: #1E293B; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+    <div style="font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #64FFDA">Preporuka</div>
+    <div style="font-size: 14px; color: rgba(255,255,255,0.70); line-height: 1.55">
+      <span style="color: #FFFFFF">A kao ekran, C kao broj.</span>
+      Trener otvara aplikaciju pred čas, ne radi pregleda &mdash; pa neka ga dočeka „danas".
+      Ono što iz C-a stvarno vredi je značka sa brojem na tabu Ljudi; sam red posla može
+      da bude odeljak unutar A, a ne zaseban ekran.
+    </div>
+    <div style="font-size: 14px; color: rgba(255,255,255,0.70); line-height: 1.55">
+      B ne bih pravio kao panel nego kao <span style="color: #FFFFFF">postojeći ekran napretka</span>,
+      do kog se stiže klikom na učenika. Trend je važan jednom mesečno, ne svakog dana.
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 6px; margin-top: auto">
+    <div style="font-size: 12px; color: rgba(255,255,255,0.54); line-height: 1.5">
+      Boje, razmaci i kontrole su preuzeti iz <span style="color: rgba(255,255,255,0.70)">lib/theme/app_colors.dart</span>
+      (tamna tema aplikacije). Imena učenika i brojevi su izmišljeni.
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

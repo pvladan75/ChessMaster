@@ -30,3 +30,7 @@ puzzles/*.json
 # Python bytecode from the puzzle tooling
 __pycache__/
 *.pyc
+
+# Sastavljeni dizajn kanvas — 2,2 MB, regeneriše se iz .dc.html radnih fajlova
+design/*/*.html
+!design/*/*.dc.html

@@ -1,0 +1,12 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 560, "h": 844, "title": "Odluka" },
+    { "file": "VarijantaA.dc.html", "x": 680, "y": 0, "w": 390, "h": 844, "title": "A — Danas" },
+    { "file": "VarijantaB.dc.html", "x": 1150, "y": 0, "w": 390, "h": 844, "title": "B — Po učeniku" },
+    { "file": "VarijantaC.dc.html", "x": 1620, "y": 0, "w": 390, "h": 844, "title": "C — Čeka tebe" }
+  ],
+  "annotations": [
+    { "id": "napomena-podaci", "x": 680, "y": -140, "w": 800, "text": "Sve tri koriste stvarna polja iz aplikacije: Rejting, Tačnost, Rešeno, Aktivnih dana, Po temama, period 7/30/90, i radnje Zadaj vežbu / Zadaj lekciju / Povuci zadatak / Izveštaj za roditelja.\nImena i brojevi su izmišljeni — nijedno pravo dete nije na maketi." }
+  ],
+  "launch": { "view": "canvas" }
+}
