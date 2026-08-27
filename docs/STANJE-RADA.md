@@ -321,25 +321,25 @@ Redosled kad zatreba:
 Sajt ne učestvuje ni u jednom koraku: statičke stranice nginx servira bez CPU
 troška, pa ostaje gde jeste i u slučaju da se izvoz odseli.
 
-## Dve greške nađene 22.8.2026, nisu popravljene
+## Dve greške nađene 22.8.2026 — obe zatvorene 27.8.2026
 
 Obe je korisnik primetio u Windows verziji dok je proveravao trener završnica,
-i obe su van onoga što je tada rađeno. Zapisane su namerno neurađene.
+i obe su bile van onoga što je tada rađeno. Zapisane su namerno neurađene.
 
-**Zašto čekaju — odlučeno 23.8.2026.** Projekat je još u izgradnji i korisnik je
-zasad **jedini koji ga koristi**: nema deteta kome se mikrofon otvara i nema
+**Zašto su čekale — odlučeno 23.8.2026.** Projekat je još u izgradnji i korisnik
+je zasad **jedini koji ga koristi**: nema deteta kome se mikrofon otvara i nema
 tuđeg naloga koji ostaje zaglavljen u poluprijavljenom stanju, pa je stvarna
-cena obe greške danas nula. Obe ipak moraju biti zatvorene pre nego što
+cena obe greške tada bila nula. Obe ipak moraju biti zatvorene pre nego što
 aplikaciju dotakne iko osim vlasnika — glas zato što otvara mikrofon detetu i
 troši novac, istek tokena zato što tuđi korisnik nema odakle da zna da treba
-ručno da se odjavi.
+ručno da se odjavi. Obe su zatvorene 27.8.2026, u istom prolazu.
 
-### Glas se uključuje sam i naplaćuje se
+### Glas se uključivao sam i naplaćivao se — zatvoreno 27.8.2026
 
-`_initAudioChat()` se poziva **bezuslovno iz `initState`** u
-[chess_game_screen.dart](../chess_app/lib/screens/chess_game_screen.dart) —
-čim se uđe u sobu, traži se Agora token, otvara se glasovni kanal i backend
-počne da meri. Iz korisnikovog loga:
+`_initAudioChat()` se pozivao **bezuslovno iz `initState`** u
+[chess_game_screen.dart](../chess_app/lib/screens/chess_game_screen.dart) — čim
+se uđe u sobu, tražio se Agora token, otvarao se glasovni kanal i backend je
+počinjao da meri. Iz korisnikovog loga:
 
 ```
 19:58:50  [AUDIO] User pavle joined audio in room STUDIO
@@ -348,31 +348,130 @@ počne da meri. Iz korisnikovog loga:
 ```
 
 Osamnaest sekundi glasa naplaćeno za sesiju u kojoj niko nije nameravao da
-priča; minut ranije još četiri. Agora se plaća po minutu i `usage_counters` to
-broji kao potrošnju.
+priča; minut ranije još četiri. Agora se plaća po minutu **prisustva u kanalu**,
+ne po minutu govora, i `usage_counters` to broji kao potrošnju.
 
-Nije samo trošak. **Mikrofon se otvara pre nego što je iko rekao da hoće
-razgovor**, a većina korisnika su deca. Ulazak u kanal treba da bude na dugme.
+Nije bio samo trošak. **Mikrofon se otvarao pre nego što je iko rekao da hoće
+razgovor**, a većina korisnika su deca.
 
-Ograda pre popravke: trener verovatno očekuje da ga se čuje odmah po ulasku, pa
-podrazumevano ponašanje možda treba da zavisi od uloge u sobi, a ne da bude
-isto za sve.
+**Kako je rešeno.** Ulazak u kanal je sada na dugme, za sve — korisnikova odluka
+od 27.8.2026, čime pada i ograda koja je ovde stajala („trener možda očekuje da
+ga se čuje odmah"): trener pritisne isto dugme kad počne čas. Kanal se otvara
+samo kroz `_joinVoice()`, i zatvara kroz `_leaveVoice()` bez izlaska iz sobe.
 
-### Istekao token ne odjavljuje korisnika
+Ono što ovo drži da ne postane tišina: `audio_users_list` se emituje **celoj
+sobi**, ne samo onima u kanalu, pa onaj ko nije uključio glas vidi da se
+razgovara i dobija dugme **„Priključi se razgovoru"** umesto „Uključi glas". Bez
+tog reda učenik bi sedeo u tišini ne znajući da ima šta da se čuje.
+
+Tri sitnice koje su izašle usput, sve tri iste vrste:
+
+- `voice_level_changed` (trener daje ili oduzima reč) je zvao `_rejoinVoice()`
+  bezuslovno — kod nekoga ko nikad nije ušao u glas to bi **otvorilo kanal na
+  trenerov pritisak, na učenikovom uređaju**. Sada se odbija ako je glas
+  isključen, a poruka to i kaže: „Važi čim uključite glas."
+- Neuspeo ulazak vraća panel na dugme, sa razlogom iznad njega; inače bi nudio
+  „Isključi glas" za kanal u kome niko nije.
+- Studio nema glas uopšte (vidi popravku studija niže).
+
+`test/voice_on_request_test.dart` čuva pravilo: `initState` ne sme da pomene
+nijedan ulazak u glas, `_initAudioChat` sme da ima **tačno dva** pozivna mesta
+(dugme i ponovni ulazak), a `_rejoinVoice` mora da ima ogradu. Dokazano
+mutacijom — vraćen poziv u `initState` i uklonjena ograda obore tri testa.
+Funkcije se čitaju **poklapanjem zagrada**, i komentari se skidaju pre provere,
+jer komentar koji pominje poziv nije poziv.
+
+Ostaje provera uživo: dva naloga u istoj sobi, jedan uključi glas i drugi vidi
+„Priključi se razgovoru"; i pogled u log da posle ulaska u sobu nema
+`[AUDIO] joined` dok se dugme ne pritisne.
+
+### Istekao Agora token je gasio glas usred časa — popravljeno 27.8.2026
+
+Nađeno čitajući isti kod. Token se izdavao **jednom, pri ulasku**, i trajao
+`AGORA_TOKEN_TTL_SECONDS` (podrazumevano 3600). U celom `lib/` nije bilo ni
+`renewToken` ni `onTokenPrivilegeWillExpire`, pa je čas duži od sat vremena
+ostajao bez zvuka — bez poruke, bez reda u logu, sat vremena posle greške. Isti
+oblik kao sve ostalo u toj sekciji CLAUDE.md-a.
+
+Agora javlja **30 sekundi ranije** (`onTokenPrivilegeWillExpire`), i još jednom
+kad je već kasno (`onRequestToken`). Oba sada vode u jedno mesto koje ponovo
+pita server — a `/agora/token` svaki put iznova pita `maySpeakInRoom`, pa
+osvežavanje nije samo produžetak nego i ponovna provera prava.
+
+Odluka je izdvojena iz radnje (`AgoraService.refreshAction`) da bi mogla da se
+testira bez engine-a, časa i sat vremena čekanja. Četiri odgovora, jer „uzmi nov
+token" je tačno samo ako se ništa drugo nije promenilo:
+
+- **soba odbija** (izbačen sa spiska usred časa) → izlazak iz kanala i poruka, a
+  ne tiho ostajanje dok Agora ne preseče;
+- **nema odgovora, ili server nema sertifikat** (prazan token) → pita se ponovo,
+  jer bi `renewToken('')` prekinuo baš vezu koju poziv čuva. Tri pokušaja na osam
+  sekundi, sve unutar prozora od 30 s; kad se potroše, kanal se **ostavlja na
+  miru** — server koji se ne javlja nije soba koja je odbila;
+- **pravo se promenilo** (dobio ili izgubio mikrofon) → pun ponovni ulazak, jer
+  `renewToken` menja token a ne ulogu: učenik kome je mikrofon upravo dat držao
+  bi publisher token kao `audience`;
+- **ista stolica, nov token** → zamena u mestu, niko ne čuje prekid.
+
+`test/voice_seat_test.dart` drži sva četiri, dokazano mutacijom (uklonjene grane
+`refused` i `token.isEmpty` — oba testa padaju). Ostaje provera uživo: čas duži
+od TTL-a, ili privremeno smanjen `AGORA_TOKEN_TTL_SECONDS` da se ne čeka sat.
+
+### Istekao token nije odjavljivao korisnika — zatvoreno 27.8.2026
 
 ```
 19:56:25  [SOCKET AUTH] Rejected connection: jwt expired
 ```
 
-Socket je odbijen, ali klijent to ne tumači kao kraj sesije. `401` se hvata
+Socket je bio odbijen, a klijent to nije tumačio kao kraj sesije. `401` se hvatao
 jedino u
-[server_status_service.dart](../chess_app/lib/services/server_status_service.dart);
-nema centralnog mesta koje istek pretvara u odjavu.
+[server_status_service.dart](../chess_app/lib/services/server_status_service.dart),
+i to samo da bi se ispisala traka na kontrolnoj tabli. Posledica koju je korisnik
+prijavio: aplikacija kaže da treba da se prijavi ponovo, i dalje ga smatra
+prijavljenim, pa **mora prvo ručno da se odjavi** iz sesije koju je server već
+odbacio.
 
-Posledica koju je korisnik prijavio: aplikacija kaže da se treba prijaviti
-ponovo, ali i dalje smatra korisnika prijavljenim, pa **mora prvo ručno da se
-odjavi**. Taj međukorak ne bi trebalo da postoji — kad backend kaže da je token
-istekao, sesija se čisti sama i vodi na ekran za prijavu.
+Sada postoji jedno mesto koje „server ne prima ovaj uređaj" pretvara u odlazak
+sa ekrana: `SessionService.expire(reason)` postavlja razlog, ruter ga sluša
+(`refreshListenable` + `expiredSessionRedirect`) i vodi na prijavu **odakle god
+korisnik bio**, a ekran za prijavu pročita razlog i kaže ga. Dva razloga, ne
+jedan, jer traže suprotne stvari od čoveka: `expired` čeka istu osobu da se
+prijavi ponovo, `account-gone` nema koga da prijavi.
+
+Četiri ulaza vode u to jedno mesto, po redu koliko rano hvataju:
+
+1. **Sam token, pri pokretanju.** `SessionService.init()` ne obnavlja zapamćenu
+   sesiju čiji je `exp` prošao — inače aplikacija pozdravi po imenu, a svaki
+   zahtev iza tog pozdrava bude odbijen. Čita se iz tokena, bez mreže, jer
+   odluka pada pre prvog ekrana, a to što nema veze nije razlog da se veruje
+   mrtvom papiru.
+2. **Povratak u prvi plan** (`SessionWatch` u `main.dart`) — telefon ostavljen
+   preko noći sa otvorenom aplikacijom. Poređenje, ne upit.
+3. **Soket**, koji je i najbrži signal: server odbija rukovanje pre nego što
+   ijedan ekran bilo šta zatraži. `looksLikeRefusedToken` razlikuje tu rečenicu
+   (`Invalid or expired authentication token`) od običnog `websocket error` —
+   odjaviti nekoga zato što je pao vaj-faj bilo bi gore od greške koja se ovde
+   popravlja.
+4. **`_checkServerAndSession`** na kontrolnoj tabli sada dela i na `expired`, ne
+   samo na `gone`. `offline` i dalje ne radi ništa, iz istog razloga.
+
+Isto pravilo kao na serveru (`services/accountGuard.js`): **„ne znam" ne sme da
+stigne kao „napolje si"**. Token koji ovaj parser ne ume da pročita, `exp` koji
+ne postoji, server koji ćuti — ništa od toga nije odbijanje.
+
+`test/session_expiry_test.dart` (16 provera) drži i jedno i drugo lice pravila,
+dokazano mutacijom: uklonjena provera `exp`-a u `init()` i `looksLikeRefusedToken`
+koji uvek kaže „da" — oba obore po jedan test.
+
+**Šta nije urađeno:** 53 mesta u `lib/` (25 fajlova) i dalje šalju
+`Authorization: Bearer` ručno i ne rade ništa posebno sa `401`. Prolaz kroz sva
+nije napravljen; praktično se ne oseti, jer soket na istom ekranu dobije isto
+odbijanje u istoj sekundi i sesija se završi pre nego što taj `401` išta znači.
+Kad se bude radilo, ide kroz jedan `http.Client` omotač, ne kroz 53 izmene.
+
+Ostaje provera uživo: prijaviti se, ručno skratiti `JWT_EXPIRES_IN` na serveru
+(ili izmeniti sat), sačekati istek i videti da aplikacija sama završi na ekranu
+za prijavu sa porukom „Prijava je istekla".
 
 ## Roditeljska saglasnost: tekst je potvrđen, tok nije napisan
 
@@ -1106,3 +1205,38 @@ Usput: panel i značka se sada osvežavaju i preko soketa
 (`notifications_changed`), pa predat domaći stiže na ekran bez izlaska iz taba.
 Promena prisutnosti više ne pokreće upite panela — to je najbučniji događaj koji
 panel ne prikazuje.
+
+## Šahovski studio nije mogao da se otvori — 27.8.2026
+
+Iz korisnikovog loga:
+
+```
+[SOBA]  Odbijen ulazak u STUDIO: no-room (korisnik 1)
+[AGORA] Odbijen token za kanal STUDIO: no-room (korisnik 1)
+```
+
+Studio je **lokalna tabla, a ne soba**: reda `rooms.room_code = 'STUDIO'` nema
+i ne treba da ga bude — `canMoveInRoom` u `server.js` to i kaže naglas. Ali
+`chess_game_screen` je isti ekran za oba slučaja, pa je iz `initState` slao
+`joinGame` sa `roomId: 'STUDIO'`. Otkad postoji spisak zvanica (`roomAccess.js`),
+na to pitanje postoji samo jedan odgovor — `no-room` — a ekran radi ono što
+odbijanje nalaže: poruka „Ne postoji soba sa tim kodom" i izlazak nazad. Studio
+se time zatvorio sam.
+
+Nije regresija u `roomAccess.js` nego rupa koju je on otkrio: dok je `joinGame`
+puštao svakoga, **svi studiji na svetu su bili jedna soba po imenu STUDIO**, pa
+su se potezi jednog čoveka emitovali u tuđu analizu.
+
+Popravka je na klijentu, jer je odluka klijentova: kad je `roomCode == 'STUDIO'`,
+ne šalje se `joinGame`, a glas se ne dira uopšte — `_joinVoice()` ga odbija
+za studio, i sam panel „Audio Učionica" stoji pod `if (!isStudio)`. Soket
+ostaje otvoren (ekran ga koristi na 34 mesta i emitovanja padaju u praznu
+sobu), a naslov u `AppBar`-u je sada „Šahovski studio" umesto „Soba: STUDIO".
+
+Ostaje sitnica, namerno neurađena: studio i dalje emituje `move` i `pgn_loaded`,
+pa server po potezu radi `UPDATE rooms ... WHERE room_code = 'STUDIO'` koji ne
+pogađa nijedan red. Bezopasno, ali je jedan upit u bazu po potezu za tablu koja
+je sama svoja.
+
+Provera uživo: ući u Šahovski studio i videti da se otvara, da u logu nema
+`[SOBA]`/`[AGORA]` odbijanja i da tabla radi bez servera.
