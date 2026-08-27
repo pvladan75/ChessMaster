@@ -79,6 +79,16 @@ U **Google Cloud Console → Credentials**:
 (`425483567970-jgkipp2df...`), koji je ujedno `serverClientId` u aplikaciji.
 Publika ID tokena se ne menja preimenovanjem paketa.
 
+- [ ] **Desktop klijent u `GOOGLE_CLIENT_IDS` na dropletu.** Windows prijava od
+      27.8.2026 ide preko sopstvenog OAuth klijenta tipa „Desktop app" (plugin
+      ne podržava Windows), a taj klijent izdaje tokene sa svojim `aud`. Lokalni
+      `.env` ga već ima; **droplet ga nema**, pa treba dodati isti ID, zarezom,
+      pre prebacivanja aplikacije na taj backend. Bez toga svaka Windows Google
+      prijava padne sa „Google token nije izdat za ovu aplikaciju", i to tek
+      posle prebacivanja — kad se traži drugde.
+      **Secret ne ide na server**: njega koristi samo aplikacija pri razmeni
+      kôda, i stoji u `chess_app/dart_defines.json`, van repozitorijuma.
+
 ## 3. Pravni dokumenti
 
 - [x] **Advokat potvrdio 25.8.2026** da su `docs/politika-privatnosti.md` i

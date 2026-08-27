@@ -1,3 +1,7 @@
 {
-  "BACKEND_URL": "https://api.example.com"
+  "BACKEND_URL": "https://api.example.com",
+
+  "//": "Google prijava na Windows-u i Linux-u. Plugin google_sign_in ne podrzava te platforme, pa tamo ide OAuth tok za instalirane aplikacije, koji trazi svoj klijent tipa 'Desktop app'. Prazno ili izostavljeno znaci da se Google dugme tamo ne prikazuje - email prijava radi normalno. Isti client ID mora biti i u GOOGLE_CLIENT_IDS na serveru, inace server odbija token. Secret kod desktop klijenata nije prava tajna (putuje u svakoj kopiji aplikacije, zato tok koristi PKCE), ali ne ide u repozitorijum, koji je javan.",
+  "GOOGLE_DESKTOP_CLIENT_ID": "",
+  "GOOGLE_DESKTOP_CLIENT_SECRET": ""
 }
