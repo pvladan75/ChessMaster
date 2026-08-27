@@ -96,4 +96,88 @@ void main() {
     expect(seat.token, '');
     expect(asked, isFalse, reason: 'gost se ne pita za token');
   });
+
+  group('token koji ističe usred časa', _tokenRefreshTests);
+}
+
+/// What happens to a voice channel an hour into a lesson.
+///
+/// The token is issued once, at join, and Agora stops accepting it when it
+/// expires — so until 27.8.2026 a lesson longer than `AGORA_TOKEN_TTL_SECONDS`
+/// simply lost its sound, with nothing in the log and nothing on the screen.
+/// The decision is pinned here rather than the doing, because the doing needs an
+/// engine, a lesson and an hour of waiting, and this is precisely the kind of
+/// bug that survives a five-minute check.
+void _tokenRefreshTests() {
+  test('a room that refuses mid-lesson ends the call, it does not renew it',
+      () {
+    // Removed from the guest list while the lesson runs. Staying in the channel
+    // until Agora happens to cut it would be a voice in a room that said no.
+    expect(
+      AgoraService.refreshAction(
+        token: '',
+        maySpeak: false,
+        refused: 'Niste na spisku za ovu sobu.',
+        currentMaySpeak: true,
+      ),
+      TokenRefresh.leave,
+    );
+  });
+
+  test('no answer is asked again, never renewed with an empty token', () {
+    // `renewToken('')` would drop the connection this call exists to keep.
+    expect(
+      AgoraService.refreshAction(
+        token: '',
+        maySpeak: true,
+        refused: null,
+        currentMaySpeak: true,
+      ),
+      TokenRefresh.retry,
+    );
+  });
+
+  test('a right that changed is a rejoin, because the role is set at join', () {
+    // `renewToken` swaps the token and nothing else: a student granted the
+    // microphone would hold a publisher token as an audience member.
+    expect(
+      AgoraService.refreshAction(
+        token: 'novi',
+        maySpeak: true,
+        refused: null,
+        currentMaySpeak: false,
+      ),
+      TokenRefresh.rejoin,
+    );
+    expect(
+      AgoraService.refreshAction(
+        token: 'novi',
+        maySpeak: false,
+        refused: null,
+        currentMaySpeak: true,
+      ),
+      TokenRefresh.rejoin,
+    );
+  });
+
+  test('same seat, new token: renewed in place and nobody hears a gap', () {
+    expect(
+      AgoraService.refreshAction(
+        token: 'novi',
+        maySpeak: false,
+        refused: null,
+        currentMaySpeak: false,
+      ),
+      TokenRefresh.renew,
+    );
+    expect(
+      AgoraService.refreshAction(
+        token: 'novi',
+        maySpeak: true,
+        refused: null,
+        currentMaySpeak: true,
+      ),
+      TokenRefresh.renew,
+    );
+  });
 }

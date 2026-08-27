@@ -6,6 +6,14 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:chess_app/constants.dart';
 
+/// What an expiring Agora token turns into once the server has been asked again.
+///
+/// Four answers rather than one, because "get a new token" is only correct when
+/// nothing else changed: the room can refuse in the middle of a lesson, the
+/// right to speak can be granted or taken back while it runs, and the server can
+/// fail to answer at all — and none of those is a token swap.
+enum TokenRefresh { renew, rejoin, leave, retry }
+
 class AgoraService {
   static final AgoraService _instance = AgoraService._internal();
   factory AgoraService() => _instance;
@@ -30,6 +38,28 @@ class AgoraService {
   /// be undone. This one is a right, and while it is false the app holds a
   /// subscriber token that cannot publish audio however the buttons are pressed.
   bool _maySpeak = false;
+
+  /// The join this service is currently holding, kept so an expiring token can
+  /// be replaced without the screen having to remember anything.
+  ///
+  /// A token is issued once, at join, and lives `AGORA_TOKEN_TTL_SECONDS`
+  /// (an hour by default). Nothing renewed it until 27.8.2026, so a lesson
+  /// longer than the TTL lost its voice in the middle — quietly, an hour after
+  /// the mistake, which is the shape of failure this project keeps paying for.
+  String? _channelId;
+  int? _uid;
+  String _userToken = '';
+
+  /// Set while a refresh is waiting to be tried again. Cancelled on leave, so a
+  /// timer cannot wake up and renew a channel nobody is in.
+  Timer? _renewRetry;
+  int _renewAttempts = 0;
+
+  /// How many times a refresh that got no answer is retried, and how long it
+  /// waits. Agora warns 30 s ahead, so three tries eight seconds apart all fall
+  /// inside the window the warning opens.
+  static const int _maxRenewAttempts = 3;
+  static const Duration _renewRetryDelay = Duration(seconds: 8);
 
   // uids of active speakers (volume > 0)
   final Set<int> _activeSpeakers = {};
@@ -61,6 +91,20 @@ class AgoraService {
           },
           onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
             // A remote user joined
+          },
+          // Thirty seconds' notice, which is the whole reason this can be done
+          // without anyone noticing. Not awaited: the callback returns at the
+          // first await inside anyway, and blocking an SDK callback on an HTTP
+          // round trip is its own bug.
+          onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
+            unawaited(_refreshVoiceToken());
+          },
+          // The token is already gone — the notice above was missed or its
+          // refresh never landed. Attempts start over, because this is a new
+          // occasion and not a continuation of the failed one.
+          onRequestToken: (RtcConnection connection) {
+            _renewAttempts = 0;
+            unawaited(_refreshVoiceToken());
           },
           onUserOffline: (RtcConnection connection, int remoteUid,
               UserOfflineReasonType reason) {
@@ -219,6 +263,13 @@ class AgoraService {
       }
       _maySpeak = seat.maySpeak;
 
+      // Remembered here rather than at the top: a refused join holds nothing to
+      // refresh later.
+      _channelId = channelId;
+      _uid = uid;
+      _userToken = userToken;
+      _renewAttempts = 0;
+
       // Asked for only where it will be used. A listener joins without ever
       // seeing the microphone dialog.
       if (seat.maySpeak && !kIsWeb) {
@@ -264,6 +315,89 @@ class AgoraService {
     }
   }
 
+  /// What to do with a seat fetched to replace an expiring token.
+  ///
+  /// Kept apart from the doing so it can be tested without an Agora engine, a
+  /// lesson and an hour of waiting — the bug this exists for only shows itself
+  /// after the TTL runs out, which is exactly the kind of thing nobody notices
+  /// in a five-minute check.
+  @visibleForTesting
+  static TokenRefresh refreshAction({
+    required String token,
+    required bool maySpeak,
+    required String? refused,
+    required bool currentMaySpeak,
+  }) {
+    // The room said no while the lesson was running — removed from the guest
+    // list, relationship ended. The honest answer is out of the channel, said
+    // out loud, rather than a voice that stays until Agora happens to cut it.
+    if (refused != null) return TokenRefresh.leave;
+
+    // No answer, or a server with no App Certificate. Handing Agora an empty
+    // token would drop the connection this call exists to keep, so the only
+    // thing left is to ask again.
+    if (token.isEmpty) return TokenRefresh.retry;
+
+    // The right itself changed. `renewToken` swaps the token and nothing else —
+    // the client role is set at join, so a student who was granted the
+    // microphone would hold a publisher token as an audience member, and a
+    // student who lost it would keep publishing until the channel ends.
+    if (maySpeak != currentMaySpeak) return TokenRefresh.rejoin;
+
+    return TokenRefresh.renew;
+  }
+
+  /// Replaces the token this join is holding, before Agora stops accepting it.
+  Future<void> _refreshVoiceToken() async {
+    final channelId = _channelId;
+    final uid = _uid;
+    if (_engine == null || channelId == null || uid == null) return;
+
+    final seat = await _fetchVoiceSeat(channelId, uid, _userToken);
+    switch (refreshAction(
+      token: seat.token,
+      maySpeak: seat.maySpeak,
+      refused: seat.refused,
+      currentMaySpeak: _maySpeak,
+    )) {
+      case TokenRefresh.leave:
+        await leaveChannel();
+        onJoinStateChanged?.call(false, seat.refused);
+        return;
+      case TokenRefresh.rejoin:
+        await joinChannel(channelId, uid, userToken: _userToken);
+        return;
+      case TokenRefresh.renew:
+        try {
+          await _engine!.renewToken(seat.token);
+          _renewAttempts = 0;
+        } catch (e) {
+          print('[AGORA] renewToken failed: $e');
+          _scheduleRenewRetry();
+        }
+        return;
+      case TokenRefresh.retry:
+        _scheduleRenewRetry();
+        return;
+    }
+  }
+
+  /// Asks again, a bounded number of times.
+  ///
+  /// When the tries run out the channel is **left alone**: a server that cannot
+  /// be reached is not a room that refused, and the voice keeps working until
+  /// Agora itself ends it — at which point `onRequestToken` starts this over.
+  void _scheduleRenewRetry() {
+    _renewRetry?.cancel();
+    if (_renewAttempts >= _maxRenewAttempts) {
+      print('[AGORA] Token refresh gave up after $_renewAttempts attempts.');
+      return;
+    }
+    _renewAttempts++;
+    _renewRetry =
+        Timer(_renewRetryDelay, () => unawaited(_refreshVoiceToken()));
+  }
+
   Future<void> toggleMute(bool mute) async {
     if (_engine == null) return;
     // Un-muting somebody who holds a subscriber token would do nothing at the
@@ -283,6 +417,14 @@ class AgoraService {
   }
 
   Future<void> leaveChannel() async {
+    // Before the engine check, and unconditionally: a timer that outlives the
+    // channel would wake up and renew a seat nobody is sitting in.
+    _renewRetry?.cancel();
+    _renewRetry = null;
+    _renewAttempts = 0;
+    _channelId = null;
+    _uid = null;
+
     if (_engine == null) return;
     try {
       if (_isJoined) {
