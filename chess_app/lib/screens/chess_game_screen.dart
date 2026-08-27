@@ -1446,22 +1446,22 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     final titleController = TextEditingController(
         text:
-            'Čas ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}');
+            'Materijal ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}');
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Završetak i sačuvanje snimka časa'),
+        title: const Text('Završetak i čuvanje snimka'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Unesite naziv snimljenog časa:'),
+            const Text('Unesite naziv materijala:'),
             const SizedBox(height: 8),
             TextField(
               controller: titleController,
               decoration: const InputDecoration(
-                labelText: 'Naziv časa',
+                labelText: 'Naziv materijala',
                 border: OutlineInputBorder(),
               ),
             ),

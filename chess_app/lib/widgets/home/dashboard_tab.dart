@@ -332,7 +332,12 @@ class HomeDashboardTab extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Recordings Card
+              // The material card.
+              //
+              // Not 'Snimljeni časovi' any more: a lesson has not been recorded
+              // since 26.8.2026, and what a recording is now is material an
+              // adult made alone in a room. A label that still said 'čas' named
+              // a thing this app can no longer produce.
               Card(
                 elevation: 4,
                 child: Padding(
@@ -348,7 +353,7 @@ class HomeDashboardTab extends StatelessWidget {
                               Icon(Icons.video_library,
                                   color: Colors.deepPurpleAccent),
                               SizedBox(width: 8),
-                              Text('Snimljeni časovi (Replay)',
+                              Text('Snimljeni materijal',
                                   style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold)),
@@ -367,7 +372,7 @@ class HomeDashboardTab extends StatelessWidget {
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 16.0),
                           child: Center(
-                              child: Text('Nemate sačuvanih snimaka.',
+                              child: Text('Nemate sačuvanog materijala.',
                                   style: TextStyle(color: Colors.grey))),
                         )
                       else
@@ -379,7 +384,7 @@ class HomeDashboardTab extends StatelessWidget {
                               const Divider(height: 1),
                           itemBuilder: (ctx, idx) {
                             final rec = recordings[idx];
-                            final title = rec['title'] ?? 'Snimljena sesija';
+                            final title = rec['title'] ?? 'Snimljeni materijal';
                             final dateStr = DateTime.parse(rec['created_at'])
                                 .toLocal()
                                 .toString()

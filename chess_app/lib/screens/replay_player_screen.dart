@@ -424,7 +424,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 CheckboxListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Prikazi Naslov Časa na vrhu',
+                  title: const Text('Prikazi Naslov na vrhu',
                       style: TextStyle(fontSize: 11)),
                   value: showTitle,
                   onChanged: (v) => setDialogState(() => showTitle = v ?? true),
@@ -651,7 +651,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
               icon: const Icon(Icons.download_for_offline,
                   color: Colors.tealAccent),
               onPressed: () => _showVideoReadyDialog(
-                  'Sačuvani MP4 video za ovaj čas je spreman za preuzimanje:',
+                  'Sačuvani MP4 video je spreman za preuzimanje:',
                   resolveMediaUrl(rec.videoUrl!)),
             ),
           IconButton(

@@ -1480,3 +1480,33 @@ izvoz), objavi na YouTube ili gde hoće, i nalepi link u lekciju. Jedna kolona i
 jedno tekstualno polje: bez skladišta, bez Agore, bez novog puta za saglasnost,
 radi i na webu, i zadržava akvizicionu stranu. To je ujedno i način da se sazna
 da li treneri uopšte prave materijal, pre nego što se za to gradi cev.
+
+### Naziv je ispravljen 27.8.2026, funkcija nije dirana
+
+Kartica na početnom ekranu zvala se **„Snimljeni časovi (Replay)"**, a dijalog za
+čuvanje nudio naziv **„Čas 27.8.2026"** — imena za nešto što aplikacija od
+26.8.2026. više ne pravi. Sada je „Snimljeni materijal", odnosno „Materijal
+27.8.2026"; isto i u dijalogu za čuvanje i u MP4 izvozu. Plejer, izvoz i
+rekorder ostaju kakvi jesu, jer je zastareo bio **naziv, a ne funkcija** —
+trener sam u sobi i dalje pravi materijal, i to je jedini snimak koji je
+preživeo odluku iznad.
+
+Test u `home_tabs_test.dart` pada ako se stara reč vrati, i proveren je
+mutacijom.
+
+### Polje „Unesite kod sobe" — razmotreno i namerno ostavljeno
+
+Predloženo je 27.8.2026. da se izbaci sa početnog ekrana. **Ostaje za sada**, jer
+na njemu vise dve stvari koje sa ekrana ne mogu da se vide:
+
+- **Neprijavljen gost nema drugi ulaz.** `room_guests_dialog.dart` obećava
+  „ulazi svako ko zna kod sobe, i neprijavljen", a to polje su ta vrata. Brisanje
+  polja pretvara guest-access prekidač u obećanje koje se ne može ispuniti.
+- **Poruka o zakazanom času sama deli kod.** `routes/social.js` upisuje
+  obaveštenje čiji tekst glasi „Kod sobe: …", pa bi posle brisanja učenik dobijao
+  broj koji nema gde da otkuca.
+
+Prijavljeni učenik ionako ne zavisi od polja: postoje trenerov poziv uživo
+(`lesson_invite_received`), obaveštenje o zakazanom času sa sopstvenim dugmetom
+„Pridruži se", i traka za nastavak započetog časa. **Odluka o polju je, dakle,
+odluka o gostima** — i tek kad se ona donese, briše se i ostalo što uz nju ide.

@@ -230,4 +230,39 @@ void main() {
     expect(find.byType(HomeDashboardTab), findsOneWidget,
         reason: 'Ctrl+2 mora da otvori drugi tab');
   });
+
+  testWidgets('the recordings card does not call the material a lesson',
+      (tester) async {
+    // A lesson has not been recorded since 26.8.2026 - what this list holds is
+    // material an adult made alone in a room. The card still said "Snimljeni
+    // casovi", naming a thing the app can no longer produce, and nothing
+    // guarded the wording, so this does.
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: HomeDashboardTab(
+          userName: 'Trener',
+          codeController: TextEditingController(),
+          recordings: const [],
+          isLoadingRecordings: false,
+          onCreateSessionTap: () {},
+          onOpenStudio: () {},
+          onOpenAssignments: () {},
+          onOpenReviews: () {},
+          onJoinRoom: (_) {},
+          onRefreshRecordings: () {},
+          onOpenReplay: (_) {},
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Snimljeni materijal'), findsOneWidget);
+    expect(find.text('Nemate sačuvanog materijala.'), findsOneWidget);
+    expect(find.textContaining('Snimljeni časovi'), findsNothing,
+        reason: 'kartica opet zove materijal snimljenim časom');
+  });
 }
