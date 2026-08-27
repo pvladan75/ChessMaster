@@ -19,11 +19,24 @@ class SessionService extends ChangeNotifier {
   UserSession get current => _current;
   bool get isSignedIn => !_current.isGuest;
 
+  /// The address the last remembered sign-in used, for prefilling the form.
+  ///
+  /// Kept when the session is dropped, unlike the token beside it: signing out
+  /// says "not right now", not "forget who I am", and the alternative is
+  /// retyping an address the device already knows. **The password is not kept
+  /// here and must not be** — that belongs to the platform's password manager,
+  /// which is what the autofill hints on the login form are for. This file
+  /// writes to `SharedPreferences`, which on Windows is a plain XML file in the
+  /// user's profile.
+  String? _lastEmail;
+  String? get lastEmail => _lastEmail;
+
   /// Restores a remembered session at startup. Call before building the app.
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final rememberMe = prefs.getBool('remember_me') ?? false;
     final token = prefs.getString('user_token');
+    _lastEmail = prefs.getString('last_email');
 
     if (rememberMe && token != null && token.isNotEmpty) {
       _current = UserSession(
@@ -46,6 +59,8 @@ class SessionService extends ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     if (rememberMe) {
+      _lastEmail = session.email;
+      await prefs.setString('last_email', session.email);
       await prefs.setBool('remember_me', true);
       await prefs.setString('user_token', session.token);
       await prefs.setInt('user_id', session.id);

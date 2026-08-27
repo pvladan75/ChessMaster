@@ -1121,7 +1121,7 @@ Ostaje odbijanje, rubovi linka i podešavanja — niže.
 **Pre probe treba podesiti dve stvari u `chess_backend/.env`:**
 
 ```
-PUBLIC_BASE_URL=http://192.168.0.19:3000
+PUBLIC_BASE_URL=http://<adresa-ovog-racunara>:3000
 PARENT_CONSENT_VERSION=rs-2026-08-25
 ```
 
@@ -1363,6 +1363,64 @@ Redom, jer svaki korak pravi ulaz za sledeći:
 ističe" stajalo dugme „Podseti", a kod nas piše „Otvori" — poruka učeniku nije
 napisana. I odeljak „Izveštaji roditeljima" iz varijante C ne postoji, jer
 `student_reports` nema stanje „sastavljen, nije poslat".
+
+## 40. Ekran za prijavu — 27.8.2026, nije viđeno uživo
+
+Izmene su iz prve prolaznosti korisnika kroz aplikaciju (bagovi 2–6). Zašto je
+lozinka namerno ostala nesačuvana i kako je razdvojen ekran — vidi „Ekran za
+prijavu — pet nalaza" u [STANJE-RADA.md](STANJE-RADA.md).
+
+1. **Razdvojena dva puta unutra.** Na ekranu za prijavu: prvo Google blok sa
+   tekstom „Prijava / Registracija preko Google-a" i napomenom „Ako još nemate
+   nalog, napraviće se sam.", pa linija „ili", pa email forma. Dugme dole piše
+   „Prijavi se email adresom", a ispod njega „Nemate nalog? Registrujte se
+   email adresom".
+2. **Registracija ima isti Google blok.** Kucnuti na „Registrujte se email
+   adresom": Google dugme je i dalje tu (ranije ga u tom režimu nije bilo),
+   pojavi se polje „Ime i Prezime", a glavno dugme piše „Registruj se email
+   adresom".
+3. **Ništa ne izgleda označeno dok se kuca.** Kliknuti u polje za adresu i
+   kucati: Google dugme ostaje neutralno (siva ivica), a naglašeno je samo
+   „Prijavi se email adresom".
+4. **Adresa se pamti, lozinka ne.** Prijaviti se sa „Zapamti me", pa se
+   **odjaviti**. Na ekranu za prijavu adresa je već upisana, polje za lozinku je
+   prazno, a kursor stoji **u lozinki**. Bez zapamćene adrese kursor je u polju
+   za adresu.
+5. **Menadžer lozinki.** Na Androidu, pri prvoj prijavi, sistem nudi „Sačuvaj
+   lozinku?" — to je `finishAutofillContext()`. Sledeći put nudi da je popuni.
+   Na Windows-u isto radi ako je nalog u menadžeru pretraživača/sistema.
+   Aplikacija sama lozinku nikad ne prikazuje ni ne čuva.
+6. **„Zapamti me" bez čekiranja.** Odčekirati, prijaviti se, ugasiti i upaliti
+   aplikaciju: traži prijavu iznova, i adresa **nije** upisana.
+7. **Windows bez Google klijenta.** U trenutnom Windows build-u Google blok se
+   uopšte ne prikazuje (ni dugme ni „ili"), a email prijava radi normalno.
+
+**8. Google prijava na Windows-u — tek kad postoji klijent.** Redom:
+
+   a. Google Cloud konzola → APIs & Services → Credentials → *Create
+      credentials* → *OAuth client ID* → tip **Desktop app**. Ne „Web
+      application": za desktop tip Google sam dozvoljava `http://localhost` sa
+      bilo kojim portom, pa se ne upisuju redirect URI-jevi.
+   b. Zabeležiti *Client ID* i *Client secret*. Kod desktop klijenata secret
+      nije stvarna tajna (putuje u svakoj kopiji aplikacije) — zato tok i koristi
+      PKCE — ali **ne sme u repozitorijum**, koji je javan.
+   c. Na serveru u `.env`: dodati taj ID u `GOOGLE_CLIENT_IDS`, **zarezom** na
+      postojeći. Bez toga svaka desktop prijava pada sa „Google token nije izdat
+      za ovu aplikaciju".
+   d. Graditi Windows sa:
+      `flutter build windows --dart-define=GOOGLE_DESKTOP_CLIENT_ID=... --dart-define=GOOGLE_DESKTOP_CLIENT_SECRET=...`
+   e. Proba: Google blok se sada vidi. Klik otvara **sistemski pretraživač** na
+      Google prijavi, traži izbor naloga (uvek, i kad je nalog već prijavljen),
+      a posle potvrde stranica kaže „Prijava je gotova." i aplikacija je
+      prijavljena.
+   f. Rubovi: zatvoriti karticu bez prijave (aplikacija se ne zaglavi, dugme se
+      vrati); odbiti pristup (poruka „Prijava preko Google-a je otkazana.");
+      prijaviti se Google nalogom koji **već ima** email nalog u aplikaciji —
+      mora da uđe u isti nalog, a ne da napravi drugi.
+
+**Poznato:** `oauth_pkce.dart` je pokriven testovima (uključujući primer iz RFC
+7636), ali soket i pretraživač nisu i ne mogu biti — ovo je zato ceo tok koji
+niko nije video da radi.
 
 ## Gde je provera stala — 26.8.2026
 

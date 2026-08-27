@@ -919,6 +919,63 @@ ne postoji — dugme vodi u zadatak), i sekcija „Izveštaji roditeljima" iz C
 (`student_reports` nema stanje „sastavljen, nije poslat", pa bi broj bio
 izmišljen).
 
+## Ekran za prijavu — pet nalaza sa prve prolaznosti, 27.8.2026
+
+Korisnik prolazi kroz aplikaciju ekran po ekran. Prvi je ekran za prijavu; pet
+stvari, sve stvarne.
+
+**Dva puta unutra, sada razdvojena.** Ranije su tri dugmeta stajala jedno ispod
+drugog i jedno od njih je radilo nešto drugo. Sada je prvo Google blok, pa linija
+„ili", pa email forma. Google dugme je izgubilo ivicu u primarnoj boji — ta ivica
+je i bila razlog što je izgledalo kao označen izbor dok korisnik kuca adresu — i
+piše **„Prijava / Registracija preko Google-a"**, jer to dugme i registruje.
+Prikazuje se i u režimu registracije, gde ga uopšte nije bilo: to je jedini ekran
+na kom neko sigurno traži način da napravi nalog.
+
+**„Zapamti me" je radilo, ali ne ono što je pisalo.** Kutijica čuva token i
+`SessionService.init()` ga vraća pri pokretanju. Sesiju prekidaju tri stvari, sve
+tri ispravne: token traje **7 dana**, odjava, i nestao nalog (baza je pražnjena
+25.8.2026, pa je stari token pokazivao na nalog koga više nema). Sada:
+
+- adresa iz poslednje prijave se pamti i upisuje sama (preživljava odjavu, token
+  ne),
+- polja su u `AutofillGroup` sa `autofillHints`, a uspešna prijava zove
+  `finishAutofillContext()` — **to** je ono što natera Android i Windows da
+  ponude čuvanje i kasnije popunjavanje lozinke,
+- kursor počinje u lozinki kad je adresa već poznata, inače u adresi,
+- ispod kutijice piše šta ona radi: „Ostajete prijavljeni na ovom uređaju."
+
+**Lozinka se namerno ne čuva u aplikaciji.** Predlog je bio da se pamti i
+prikaže pod zvezdicama. `SharedPreferences` je na Windows-u običan XML fajl u
+profilu korisnika — čita ga svaki program koji radi kao taj korisnik — a većina
+ovih naloga pripada deci. Isti efekat daje menadžer lozinki operativnog sistema,
+kome se pristupa preko `autofillHints`, i tada je aplikacija nikad ne vidi.
+
+**Google prijava na Windows-u — napisana, nije isprobana.** `google_sign_in` ne
+podržava Windows (ni Linux): `supportsAuthenticate()` vraća false i dugme je bilo
+slepa ulica. Umesto njega ide tok za instalirane aplikacije (RFC 8252):
+sistemski pretraživač, `redirect_uri` na `http://localhost:<slobodan port>`, PKCE
+(S256), pa razmena kôda za `id_token`, koji ide na postojeću rutu `/auth/google`.
+
+Backend se **ne dira** — `GOOGLE_CLIENT_IDS` je oduvek lista, baš zato što svaka
+platforma ima svoj klijent.
+
+| | |
+|---|---|
+| `services/oauth_pkce.dart` | čist deo: PKCE, sastavljanje URL-a, čitanje odgovora — jedino što se može testirati, i jedino što tiho pukne |
+| `services/desktop_google_sign_in_io.dart` | soket, pretraživač, razmena kôda |
+| `services/desktop_google_sign_in.dart` | uslovni izvoz, da web build ne vidi `dart:io` (isti oblik kao `stockfish_service.dart`) |
+
+Provera `state` nije ukras: bez nje bilo koja stranica u bilo kom pretraživaču
+na toj mašini može da pogodi loopback port svojim kôdom i natera aplikaciju da
+ga iskoristi — prijava na tuđi nalog. Test to drži.
+
+**Šta preostaje tebi**, jer bez toga ovo ne može da se isproba (koraci su u
+stavci 40 u [TODO-provera.md](TODO-provera.md)): napraviti OAuth klijent tipa
+„Desktop app" u Google Cloud konzoli, dodati njegov ID u `GOOGLE_CLIENT_IDS` na
+serveru, i graditi Windows sa `--dart-define`. Dok toga nema, dugme se na
+Windows-u **ne prikazuje** — bolje nego dugme koje javi grešku posle klika.
+
 ## Šta je prva proba panela pokazala — 27.8.2026
 
 Korisnik je panel video na Windows-u i na Androidu; prikazuje se samo onome ko
