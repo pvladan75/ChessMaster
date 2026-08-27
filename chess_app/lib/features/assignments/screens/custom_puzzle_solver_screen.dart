@@ -114,10 +114,19 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
   /// "odigraj potez" with the piece already moved and nothing else happening:
   /// the worst possible failure, because it is indistinguishable from the app
   /// simply ignoring the child.
-  static String? _sanFor(String fen, String from, String to) {
+  static String? _sanFor(String fen, String from, String to, String promotion) {
     try {
       final game = chess.Chess.fromFEN(fen);
-      if (!game.move({'from': from, 'to': to, 'promotion': 'q'})) return null;
+      // The piece the reader chose, not a queen by default: the answer to a
+      // puzzle is sometimes a knight, and it is sent as SAN — `d8=N` and
+      // `d8=Q` are different answers.
+      if (!game.move({
+        'from': from,
+        'to': to,
+        'promotion': promotion.isEmpty ? 'q' : promotion,
+      })) {
+        return null;
+      }
       final made = game.history.last.move;
       game.undo_move();
       return game.move_to_san(made);
@@ -127,10 +136,10 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
     }
   }
 
-  Future<void> _onMove(String from, String to) async {
+  Future<void> _onMove(String from, String to, String promotion) async {
     if (_sending || _verdict != null) return;
 
-    final san = _sanFor(_current.fen, from, to);
+    final san = _sanFor(_current.fen, from, to, promotion);
     if (san == null) {
       // Not a legal move here, or we could not read it. Either way the board
       // goes back so the student is never left looking at a position that no

@@ -187,16 +187,19 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   ///
   /// Judged automatically rather than on a button, because in this mode that is
   /// the point of playing the move at all. The counter above says what it cost.
-  Future<void> _onMove(String from, String to) async {
+  Future<void> _onMove(String from, String to, String promotion) async {
     final fen = _current;
     if (fen == null || _busy || _proposalUci != null) return;
 
     final board = chess.Chess.fromFEN(fen);
     final isPromotion = _isPromotion(board, from, to);
+    // The piece the reader picked on the board. A repertoire line is stored as
+    // UCI, and 'e8q' and 'e8n' are different lines.
+    final piece = promotion.isEmpty ? 'q' : promotion;
     final ok = board.move({
       'from': from,
       'to': to,
-      if (isPromotion) 'promotion': 'q',
+      if (isPromotion) 'promotion': piece,
     });
     if (ok == false) {
       // An illegal drag must never leave the board showing a position nobody
@@ -205,7 +208,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       return;
     }
     final san = board.getHistory().last.toString();
-    final uci = isPromotion ? '$from${to}q' : '$from$to';
+    final uci = isPromotion ? '$from$to$piece' : '$from$to';
 
     setState(() {
       _busy = true;
@@ -382,7 +385,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// suggestion is not a decision.
   void _playLine(AnalysisLine line) {
     if (line.fromSquare.isEmpty || line.toSquare.isEmpty) return;
-    _onMove(line.fromSquare, line.toSquare);
+    // The engine's LAN carries the promotion as a fifth character when there is
+    // one — `d7d8q`. Read from there rather than defaulted, because an engine
+    // that says `d8n` means it.
+    final lan = line.bestMoveLan;
+    final promotion = lan.length > 4 ? lan[4].toLowerCase() : '';
+    _onMove(line.fromSquare, line.toSquare, promotion);
   }
 
   /// Opens the opponent's side of every move kept here, then moves on.

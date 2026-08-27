@@ -92,7 +92,7 @@ void main() {
   Future<void> move(WidgetTester tester, String from, String to) async {
     final board = tester.widget<ChessBoardWithOverlay>(boardFinder());
     board.controller.makeMove(from: from, to: to);
-    board.onMove(from, to);
+    board.onMove(from, to, '');
     await tester.pumpAndSettle();
   }
 

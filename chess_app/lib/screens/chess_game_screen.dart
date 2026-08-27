@@ -1980,11 +1980,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   // Handle local moves played by user (branching/promoting or direct adding)
-  void _handleLocalMoveMade(String from, String to) {
+  void _handleLocalMoveMade(String from, String to, String promotion) {
     // Compute SAN representation of the move
     final tempGame = chess.Chess();
     tempGame.load(currentNode.fen);
-    final success = tempGame.move({'from': from, 'to': to});
+    // The promotion has to be named or the move is not found at all, and the
+    // lesson's move list would show "e7➔e8" where the board shows a queen.
+    // The position itself travels to the room as a FEN, so this is about what
+    // the move is *called* — which is what everybody reads afterwards.
+    final success = tempGame.move({
+      'from': from,
+      'to': to,
+      if (promotion.isNotEmpty) 'promotion': promotion,
+    });
     String san = '$from➔$to';
     if (success) {
       final moveObj = tempGame.history.last.move;

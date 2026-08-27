@@ -20,7 +20,7 @@ class _Harness extends StatefulWidget {
   });
 
   final ChessBoardController controller;
-  final void Function(String from, String to) onMove;
+  final void Function(String from, String to, String promotion) onMove;
   final ValueChanged<String>? onSquareTapForDrawing;
   final bool isAllowedToMove;
   final bool isDrawingMode;
@@ -72,16 +72,18 @@ class _HarnessState extends State<_Harness> {
 
 /// Board-local centre of [square], which is also its global position here
 /// because the harness pins the board to the top-left corner.
-Offset _centreOf(String square) => getSquareCenter(square, _boardSize, PlayerColor.white);
+Offset _centreOf(String square) =>
+    getSquareCenter(square, _boardSize, PlayerColor.white);
 
 void main() {
-  testWidgets('tap the piece, then the destination, and the move is made', (tester) async {
+  testWidgets('tap the piece, then the destination, and the move is made',
+      (tester) async {
     final controller = ChessBoardController();
     final moves = <String>[];
 
     await tester.pumpWidget(_Harness(
       controller: controller,
-      onMove: (from, to) => moves.add('$from$to'),
+      onMove: (from, to, promotion) => moves.add('$from$to$promotion'),
     ));
 
     await tester.tapAt(_centreOf('e2'));
@@ -89,7 +91,8 @@ void main() {
     await tester.tapAt(_centreOf('e4'));
     await tester.pump();
 
-    expect(moves, ['e2e4'], reason: 'tap-to-move is the whole point of the setting');
+    expect(moves, ['e2e4'],
+        reason: 'tap-to-move is the whole point of the setting');
     expect(controller.game.get('e4')?.type, PieceType.PAWN);
   });
 
@@ -99,7 +102,7 @@ void main() {
 
     await tester.pumpWidget(_Harness(
       controller: controller,
-      onMove: (from, to) => moves.add('$from$to'),
+      onMove: (from, to, promotion) => moves.add('$from$to$promotion'),
     ));
 
     await tester.tapAt(_centreOf('e4'));
@@ -108,13 +111,15 @@ void main() {
     expect(moves, isEmpty);
   });
 
-  testWidgets('still works with the board inside a scroll view, as the room has it', (tester) async {
+  testWidgets(
+      'still works with the board inside a scroll view, as the room has it',
+      (tester) async {
     final controller = ChessBoardController();
     final moves = <String>[];
 
     await tester.pumpWidget(_Harness(
       controller: controller,
-      onMove: (from, to) => moves.add('$from$to'),
+      onMove: (from, to, promotion) => moves.add('$from$to$promotion'),
       scrollable: true,
     ));
 
@@ -131,12 +136,13 @@ void main() {
   // off, so if the tap overlay is inactive too there is no way left to move a
   // piece. Worth pinning down, because "nothing happens" gives the user no clue
   // which of these it is.
-  testWidgets('nothing moves when the user is not allowed to move', (tester) async {
+  testWidgets('nothing moves when the user is not allowed to move',
+      (tester) async {
     final moves = <String>[];
 
     await tester.pumpWidget(_Harness(
       controller: ChessBoardController(),
-      onMove: (from, to) => moves.add('$from$to'),
+      onMove: (from, to, promotion) => moves.add('$from$to$promotion'),
       isAllowedToMove: false,
     ));
 
@@ -148,13 +154,14 @@ void main() {
     expect(moves, isEmpty);
   });
 
-  testWidgets('drawing mode takes the taps, so no move is made', (tester) async {
+  testWidgets('drawing mode takes the taps, so no move is made',
+      (tester) async {
     final moves = <String>[];
     final drawn = <String>[];
 
     await tester.pumpWidget(_Harness(
       controller: ChessBoardController(),
-      onMove: (from, to) => moves.add('$from$to'),
+      onMove: (from, to, promotion) => moves.add('$from$to$promotion'),
       onSquareTapForDrawing: drawn.add,
       isDrawingMode: true,
     ));
@@ -163,16 +170,18 @@ void main() {
     await tester.pump();
 
     expect(moves, isEmpty);
-    expect(drawn, ['e2'], reason: 'the tap belongs to the arrow tool while it is on');
+    expect(drawn, ['e2'],
+        reason: 'the tap belongs to the arrow tool while it is on');
   });
 
-  testWidgets('dragging works too — the two input styles coexist', (tester) async {
+  testWidgets('dragging works too — the two input styles coexist',
+      (tester) async {
     final controller = ChessBoardController();
     final moves = <String>[];
 
     await tester.pumpWidget(_Harness(
       controller: controller,
-      onMove: (from, to) => moves.add('$from$to'),
+      onMove: (from, to, promotion) => moves.add('$from$to$promotion'),
     ));
 
     await tester.dragFrom(_centreOf('e2'), _centreOf('e4') - _centreOf('e2'));
@@ -188,7 +197,7 @@ void main() {
 
     await tester.pumpWidget(_Harness(
       controller: controller,
-      onMove: (_, __) {},
+      onMove: (_, __, ___) {},
     ));
 
     await tester.dragFrom(_centreOf('e2'), _centreOf('e4') - _centreOf('e2'));
@@ -204,7 +213,7 @@ void main() {
 
     await tester.pumpWidget(_Harness(
       controller: controller,
-      onMove: (_, __) {},
+      onMove: (_, __, ___) {},
     ));
 
     await tester.tapAt(_centreOf('e2'));
@@ -224,7 +233,7 @@ void main() {
 
     await tester.pumpWidget(_Harness(
       controller: controller,
-      onMove: (from, to) => moves.add('$from$to'),
+      onMove: (from, to, promotion) => moves.add('$from$to$promotion'),
     ));
 
     await tester.tapAt(_centreOf('e2'));
@@ -236,5 +245,85 @@ void main() {
     await tester.pump();
 
     expect(moves, isEmpty);
+  });
+
+  /// A pawn on d7 with d8 free, white to move — the position the reader was
+  /// sitting in when they reported that promotion did not work.
+  ChessBoardController promotionBoard() {
+    final controller = ChessBoardController();
+    controller.loadFen('8/3P2P1/1R6/P3n2K/4k2P/1P6/8/8 w - - 5 23');
+    return controller;
+  }
+
+  testWidgets('a pawn reaching the last rank asks what it becomes',
+      (tester) async {
+    final controller = promotionBoard();
+    final moves = <String>[];
+
+    await tester.pumpWidget(_Harness(
+      controller: controller,
+      onMove: (from, to, promotion) => moves.add('$from$to$promotion'),
+    ));
+
+    await tester.tapAt(_centreOf('d7'));
+    await tester.pump();
+    await tester.tapAt(_centreOf('d8'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('U šta se pretvara pešak?'), findsOneWidget,
+        reason: 'tap-move je ranije ćutke pravio damu');
+    expect(moves, isEmpty, reason: 'ništa se ne igra dok se ne odgovori');
+
+    await tester.tap(find.text('Skakač'));
+    await tester.pumpAndSettle();
+
+    expect(controller.game.get('d8')?.type, PieceType.KNIGHT);
+    expect(moves, ['d7d8n'],
+        reason: 'izabrana figura mora da stigne i do ekrana koji vodi partiju');
+  });
+
+  testWidgets('backing out of the question leaves the pawn where it was',
+      (tester) async {
+    // A move nobody finished choosing is not a move. Playing it as a queen
+    // would be the app answering its own question.
+    final controller = promotionBoard();
+    final moves = <String>[];
+
+    await tester.pumpWidget(_Harness(
+      controller: controller,
+      onMove: (from, to, promotion) => moves.add('$from$to$promotion'),
+    ));
+
+    await tester.tapAt(_centreOf('d7'));
+    await tester.pump();
+    await tester.tapAt(_centreOf('d8'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Odustani'));
+    await tester.pumpAndSettle();
+
+    expect(moves, isEmpty);
+    expect(controller.game.get('d8'), isNull);
+    expect(controller.game.get('d7')?.type, PieceType.PAWN);
+  });
+
+  testWidgets('an ordinary move is not interrupted by the question',
+      (tester) async {
+    final controller = promotionBoard();
+    final moves = <String>[];
+
+    await tester.pumpWidget(_Harness(
+      controller: controller,
+      onMove: (from, to, promotion) => moves.add('$from$to$promotion'),
+    ));
+
+    // The rook to the eighth rank: the destination looks like a promotion
+    // square and is not one.
+    await tester.tapAt(_centreOf('b6'));
+    await tester.pump();
+    await tester.tapAt(_centreOf('b8'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('U šta se pretvara pešak?'), findsNothing);
+    expect(moves, ['b6b8']);
   });
 }

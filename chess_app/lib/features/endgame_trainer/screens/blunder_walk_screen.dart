@@ -8,6 +8,7 @@ import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
@@ -436,7 +437,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   }
 
   /// A move from the reader, which answers whatever was being said.
-  Future<void> _onMove(String from, String to) async {
+  Future<void> _onMove(String from, String to, String promotion) async {
     SpeechService.instance.stop();
     final walk = _walk;
     final blunder = walk?.pending;
@@ -445,16 +446,15 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     if (walk.cursor != blunder.ply) return;
 
     final board = chess.Chess.fromFEN(blunder.fen);
-    final piece = board.get(from);
-    final isPromotion = piece != null &&
-        piece.type == chess.PieceType.PAWN &&
-        (to.endsWith('8') || to.endsWith('1'));
-    const promotion = 'q';
-    if (board.move({'from': from, 'to': to, 'promotion': promotion}) == false) {
+    // Asked of the position rather than of the destination square: a rook
+    // reaching the eighth rank is not a promotion, and a pawn taking on it is.
+    final isPromotion = isPromotionMove(board, from, to);
+    final piece = promotion.isEmpty ? 'q' : promotion;
+    if (board.move({'from': from, 'to': to, 'promotion': piece}) == false) {
       return;
     }
     final san = board.getHistory().last.toString();
-    final uci = isPromotion ? '$from$to$promotion' : '$from$to';
+    final uci = isPromotion ? '$from$to$piece' : '$from$to';
 
     final verdict = walk.submit(uci, san: san);
     if (!verdict.correct) {

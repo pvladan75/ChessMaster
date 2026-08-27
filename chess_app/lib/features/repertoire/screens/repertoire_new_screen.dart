@@ -10,6 +10,7 @@ import 'package:chess_app/features/repertoire/services/repertoire_api_service.da
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 const kStartFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -143,15 +144,15 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
     return null;
   }
 
-  void _onMove(String from, String to) {
-    final piece = _game.get(from);
-    final promotion = piece != null &&
-        piece.type == chess.PieceType.PAWN &&
-        (to.endsWith('8') || to.endsWith('1'));
+  void _onMove(String from, String to, String promotion) {
+    // Asked of the position, not of the destination rank: a piece other than a
+    // pawn reaching the eighth is not a promotion, and a pawn capturing onto it
+    // is one without ever standing there.
+    final isPromotion = isPromotionMove(_game, from, to);
     final ok = _game.move({
       'from': from,
       'to': to,
-      if (promotion) 'promotion': 'q',
+      if (isPromotion) 'promotion': promotion.isEmpty ? 'q' : promotion,
     });
     if (ok == false) {
       _boardController.loadFen(_game.fen);

@@ -58,7 +58,7 @@ void main() {
                 drawingStartSquare: null,
                 arrows: const [],
                 engineArrows: const [],
-                onMove: (_, __) {},
+                onMove: (_, __, ___) {},
                 onSquareTapForDrawing: (_) {},
               ),
             ],

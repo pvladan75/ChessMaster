@@ -130,23 +130,24 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     _boardController.loadFen(fen);
   }
 
-  Future<void> _onMove(String from, String to) async {
+  Future<void> _onMove(String from, String to, String promotion) async {
     final fen = _fen;
     if (fen == null || _busy || _answer != null) return;
 
     final board = chess.Chess.fromFEN(fen);
-    final promotion = _isPromotion(board, from, to);
+    final isPromotion = _isPromotion(board, from, to);
+    final piece = promotion.isEmpty ? 'q' : promotion;
     final ok = board.move({
       'from': from,
       'to': to,
-      if (promotion) 'promotion': 'q',
+      if (isPromotion) 'promotion': piece,
     });
     if (ok == false) {
       _boardController.loadFen(fen);
       return;
     }
     final san = board.getHistory().last.toString();
-    final uci = promotion ? '$from${to}q' : '$from$to';
+    final uci = isPromotion ? '$from$to$piece' : '$from$to';
 
     setState(() {
       _busy = true;

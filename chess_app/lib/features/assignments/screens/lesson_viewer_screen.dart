@@ -246,7 +246,7 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
                           drawingStartSquare: null,
                           arrows: const [],
                           engineArrows: const [],
-                          onMove: (_, __) {
+                          onMove: (_, __, ___) {
                             if (!_explored) setState(() => _explored = true);
                           },
                           onSquareTapForDrawing: (_) {},

@@ -218,29 +218,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   /// The board only reports from/to, so without this every promotion would
   /// silently become a queen — and any puzzle whose answer is an under-promotion
   /// (Lichess tags a whole theme of them) would be impossible to solve.
-  Future<String?> _askPromotionPiece() {
-    const options = {'q': 'Dama', 'r': 'Top', 'b': 'Lovac', 'n': 'Skakač'};
-
-    return showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('U šta promovišete?'),
-        content: Wrap(
-          spacing: 8,
-          children: [
-            for (final entry in options.entries)
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, entry.key),
-                child: Text(entry.value),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _onMove(String from, String to) async {
+  Future<void> _onMove(String from, String to, String promotion) async {
     final session = _session;
     final game = _game;
     if (session == null || game == null || _boardLocked || session.isComplete) {
@@ -255,37 +233,29 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     }
 
     final isPromotion = _isPromotion(game, from, to);
-
-    String promotion = 'q';
-    if (isPromotion) {
-      setState(() => _boardLocked = true);
-      final chosen = await _askPromotionPiece();
-      if (!mounted) return;
-      setState(() => _boardLocked = false);
-      if (chosen == null) {
-        _boardController.loadFen(game.fen);
-        return;
-      }
-      promotion = chosen;
-    }
+    // The board asks now — one dialog for every board in the app, in the moving
+    // side's colour (widgets/promotion_picker.dart). This screen used to ask on
+    // its own, after the piece had already been moved, which is why the same
+    // question looked different here than everywhere else.
+    final piece = promotion.isEmpty ? 'q' : promotion;
 
     // Trial move on a copy: an illegal or non-solution move must never disturb
     // the real position.
     final probe = chess.Chess.fromFEN(game.fen);
-    final moved = probe.move({'from': from, 'to': to, 'promotion': promotion});
+    final moved = probe.move({'from': from, 'to': to, 'promotion': piece});
     if (moved == false) {
       _boardController.loadFen(game.fen);
       return;
     }
 
     // The suffix belongs on the move only when a promotion actually happened.
-    final uci = isPromotion ? '$from$to$promotion' : '$from$to';
+    final uci = isPromotion ? '$from$to$piece' : '$from$to';
     final verdict = session.submit(
       uci,
       givesCheckmate: probe.in_checkmate,
       // Passed for the sake of the first wrong try, which is the only thing a
       // trainer can read afterwards: `e2e4` says nothing to anyone.
-      san: _sanFor(game.fen, from, to, promotion),
+      san: _sanFor(game.fen, from, to, piece),
     );
 
     if (!verdict.correct) {
@@ -317,7 +287,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       return;
     }
 
-    game.move({'from': from, 'to': to, 'promotion': promotion});
+    game.move({'from': from, 'to': to, 'promotion': piece});
     _boardController.loadFen(game.fen);
 
     setState(() {

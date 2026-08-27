@@ -8,7 +8,9 @@ import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart'
     show SelectedSquarePainter;
 import 'package:chess_app/move_tree.dart' show ChessArrow;
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/widgets/promotion_picker.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 /// The live game board plus its arrow/drawing overlays.
@@ -38,7 +40,14 @@ class ChessBoardWithOverlay extends StatefulWidget {
   final String? drawingStartSquare;
   final List<ChessArrow> arrows;
   final List<EngineArrow> engineArrows;
-  final void Function(String from, String to) onMove;
+
+  /// The move that was just played, with what a promoting pawn became.
+  ///
+  /// `promotion` is `''` for an ordinary move, and one of `q r b n` otherwise.
+  /// It used to not exist, so every screen played its own `'promotion': 'q'`
+  /// into its own game object — which meant an underpromotion chosen on the
+  /// board became a queen in the position the screen was actually keeping.
+  final void Function(String from, String to, String promotion) onMove;
   final ValueChanged<String> onSquareTapForDrawing;
 
   const ChessBoardWithOverlay({
@@ -66,10 +75,18 @@ class ChessBoardWithOverlay extends StatefulWidget {
   /// mate-in-one exercise: the child's correct move was the one move the board
   /// never told anybody about. In a live lesson the mating move went
   /// unbroadcast for the same reason.
-  static ({String from, String to})? lastMoveSquares(chess.Chess game) {
+  static ({String from, String to, String promotion})? lastMoveSquares(
+      chess.Chess game) {
     if (game.history.isEmpty) return null;
     final move = game.history.last.move;
-    return (from: move.fromAlgebraic, to: move.toAlgebraic);
+    return (
+      from: move.fromAlgebraic,
+      to: move.toAlgebraic,
+      // Read back rather than assumed: a piece dragged to the last rank is
+      // promoted by the board package's own dialog, and whatever the reader
+      // picked there has to reach the screen keeping the position.
+      promotion: move.promotion?.name ?? '',
+    );
   }
 }
 
@@ -127,7 +144,7 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
     }
   }
 
-  void _handleSquareTapForMove(String square) {
+  Future<void> _handleSquareTapForMove(String square) async {
     final game = widget.controller.game;
     final piece = game.get(square);
     final isOwnPiece = piece != null && piece.color == game.turn;
@@ -144,11 +161,28 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
     final pieceBeforeMove = game.get(from);
     setState(() => _selectedSquare = null);
     final moveColor = game.turn;
-    // Promotion is always queried as 'q'; the chess package ignores it for
-    // non-promoting moves, so this is safe to pass unconditionally (see
-    // ai_studio_screen's puzzle autoplay, which does the same).
-    widget.controller
-        .makeMoveWithPromotion(from: from, to: square, pieceToPromoteTo: 'q');
+
+    // A tap-move used to promote to a queen without asking, which is why an
+    // exercise whose answer is a knight could not be played by tapping at all.
+    // Dragging has always asked — through the board package's own dialog — so
+    // the same move gave two different answers depending on how the piece was
+    // moved.
+    var promotion = '';
+    if (isPromotionMove(game, from, square)) {
+      final chosen = await askPromotionPiece(
+        context,
+        isWhite: moveColor == chess.Color.WHITE,
+      );
+      // Backing out means the move is not played, rather than played as
+      // something nobody chose.
+      if (chosen == null || !mounted) return;
+      promotion = chosen;
+    }
+
+    widget.controller.makeMoveWithPromotion(
+        from: from,
+        to: square,
+        pieceToPromoteTo: promotion.isEmpty ? 'q' : promotion);
     if (game.turn != moveColor) {
       // Read the piece back from its destination (post-move) rather than
       // using pieceBeforeMove directly: on a promotion, the piece sitting on
@@ -159,7 +193,7 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
       if (animatedPiece != null) {
         _triggerMoveAnimation(from, square, animatedPiece);
       }
-      widget.onMove(from, square);
+      widget.onMove(from, square, promotion);
     }
   }
 
@@ -215,7 +249,7 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
                 final played = ChessBoardWithOverlay.lastMoveSquares(
                     widget.controller.game);
                 if (played != null) {
-                  widget.onMove(played.from, played.to);
+                  widget.onMove(played.from, played.to, played.promotion);
                 }
               },
             ),

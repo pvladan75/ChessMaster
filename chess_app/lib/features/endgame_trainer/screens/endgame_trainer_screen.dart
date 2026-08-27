@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -255,14 +256,6 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     _boardController.loadFen(puzzle.fen);
   }
 
-  bool _isPromotion(chess.Chess game, String from, String to) {
-    final piece = game.get(from);
-    if (piece == null || piece.type != chess.PieceType.PAWN) return false;
-    final rank = to.substring(1);
-    return (piece.color == chess.Color.WHITE && rank == '8') ||
-        (piece.color == chess.Color.BLACK && rank == '1');
-  }
-
   String? _sanFor(String fen, String from, String to, String promotion) {
     final probe = chess.Chess.fromFEN(fen);
     final made = probe.move({'from': from, 'to': to, 'promotion': promotion});
@@ -271,11 +264,11 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     return history.isEmpty ? null : history.last.toString();
   }
 
-  Future<void> _onMove(String from, String to) async {
+  Future<void> _onMove(String from, String to, String promotion) async {
     // A move is an answer, and an answer ends whatever was still being said.
     SpeechService.instance.stop();
     if (_exploring) {
-      _playExploringMove(from, to);
+      _playExploringMove(from, to, promotion);
       return;
     }
     final solve = _solve;
@@ -289,7 +282,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       return;
     }
     if (_drilling) {
-      await _onDrillMove(from, to);
+      await _onDrillMove(from, to, promotion);
       return;
     }
     // A solved position stops taking moves; a drill does not, because there the
@@ -299,21 +292,24 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       return;
     }
 
-    final isPromotion = _isPromotion(game, from, to);
-    const promotion = 'q';
+    final isPromotion = isPromotionMove(game, from, to);
+    // What the reader chose on the board. Falls back to a queen only when the
+    // move is a promotion and nothing was passed — an older caller, never the
+    // board itself.
+    final piece = promotion.isEmpty ? 'q' : promotion;
 
     // Trial move on a copy: a move that does not hold the result must never
     // disturb the position the user still has to solve.
     final probe = chess.Chess.fromFEN(game.fen);
-    if (probe.move({'from': from, 'to': to, 'promotion': promotion}) == false) {
+    if (probe.move({'from': from, 'to': to, 'promotion': piece}) == false) {
       _boardController.loadFen(game.fen);
       return;
     }
 
-    final uci = isPromotion ? '$from$to$promotion' : '$from$to';
+    final uci = isPromotion ? '$from$to$piece' : '$from$to';
     final verdict = solve.submit(
       uci,
-      san: _sanFor(game.fen, from, to, promotion),
+      san: _sanFor(game.fen, from, to, piece),
     );
 
     if (verdict.alreadyFound) {
@@ -342,7 +338,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       return;
     }
 
-    game.move({'from': from, 'to': to, 'promotion': promotion});
+    game.move({'from': from, 'to': to, 'promotion': piece});
     final reply = verdict.opponentReply;
     if (reply != null && reply.length >= 4) {
       game.move({
@@ -492,22 +488,22 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// puzzle's own rating does — a result that arrives from a client is one the
   /// server cannot check — and asking costs nothing extra, since the tables
   /// have to be consulted to answer the child at all.
-  Future<void> _onDrillMove(String from, String to) async {
+  Future<void> _onDrillMove(String from, String to, String promotion) async {
     // Answering is an answer to the sentence too.
     SpeechService.instance.stop();
     final game = _game;
     if (game == null || _drillEnd != null) return;
 
-    final isPromotion = _isPromotion(game, from, to);
-    const promotion = 'q';
+    final isPromotion = isPromotionMove(game, from, to);
+    final piece = promotion.isEmpty ? 'q' : promotion;
 
     // Trial move on a copy first, so an illegal drag never leaves the board
     // showing a position the server was never asked about.
     final probe = chess.Chess.fromFEN(game.fen);
-    if (probe.move({'from': from, 'to': to, 'promotion': promotion}) == false) {
+    if (probe.move({'from': from, 'to': to, 'promotion': piece}) == false) {
       return;
     }
-    final uci = isPromotion ? '$from$to$promotion' : '$from$to';
+    final uci = isPromotion ? '$from$to$piece' : '$from$to';
     final fenBefore = game.fen;
 
     setState(() {
@@ -651,11 +647,14 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   }
 
   /// One move played by hand on the board while exploring.
-  void _playExploringMove(String from, String to) {
+  void _playExploringMove(String from, String to, String promotion) {
     final game = _game;
     if (game == null) return;
     final board = chess.Chess.fromFEN(game.fen);
-    if (board.move({'from': from, 'to': to, 'promotion': 'q'}) == false) return;
+    final piece = promotion.isEmpty ? 'q' : promotion;
+    if (board.move({'from': from, 'to': to, 'promotion': piece}) == false) {
+      return;
+    }
     setState(() {
       _game = board;
       _feedbackIsGood = false;
