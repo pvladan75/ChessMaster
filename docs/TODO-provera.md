@@ -1518,3 +1518,40 @@ iste ove naloge i vezu, pa se lako nadovezuje.
   pre stavke 37** (`R` u `flutter run`, ili nov build): izmena dira `lib/` široko
   i hot reload je ne prenosi celu. (Rečenica je do 27.8.2026. stajala
   nedovršena — ovako je i mišljena.)
+
+---
+
+## 42. Skripta pita debug ili release, aplikacija kaže koji je build — 28.8.2026, nije viđeno uživo
+
+Nastalo iz jednog prolaza kroz `build_and_deploy.ps1` 27.8.2026: instalacija je
+uspela, a skripta je prijavila pad i stala **pre** provere stare instalacije —
+one koja postoji zato što je zamena stare i nove aplikacije već jednom pojela
+vreme. Uzrok je PowerShell 5.1: uz `$ErrorActionPreference = "Stop"` svaki red
+koji izvorna komanda napiše na stderr postaje terminirajuća greška čim se stderr
+preusmerava, a `monkey` uvek piše `args: [...]`.
+
+**Šta je dokazano bez telefona:** greška je reprodukovana pod Windows PowerShell
+5.1 (`NativeCommandError`), a novi obrazac — `Invoke-Adb`, koji oko poziva
+spušta preference na `Continue` — proveren je u istom obliku u kom stoji u
+skripti: stderr ne obara poziv ni pri uspehu ni pri padu, `$LASTEXITCODE` se
+čuva, sukob potpisa se prepoznaje, i `Stop` se vraća posle poziva. Skripta
+prolazi i parser (`Parser::ParseFile`, bez grešaka).
+
+**Šta niko nije video:** ceo prolaz sa telefonom.
+
+- [ ] `.\build_and_deploy.ps1` bez parametra pita „R ili D"; prazan Enter daje
+      release, `D` debug. `-Mode debug` preskače pitanje.
+- [ ] Debug build se zaista napravi i nađe — putanja je
+      `app-arm64-v8a-debug.apk`, a provera „svež APK, ne zaostao" važi i za nju.
+- [ ] Instalacija debug-a preko release-a (ili obrnuto) → skripta prepozna sukob
+      potpisa i ispiše **komandu za brisanje sa upozorenjem da odnosi prijavu i
+      podešavanja**, umesto golog „Instalacija nije uspela".
+- [ ] Posle uspešne instalacije skripta stigne do `[4/4]` i **izvrši proveru
+      stare instalacije** `com.example.chess_app`. To je ono što je 27.8.2026.
+      izostalo.
+- [ ] Na dnu Podešavanja piše `Mislisha 1.1.0+2 • <commit> • <režim> • <vreme>`,
+      i **dodir kopira** taj red (poruka „Kopirano: …").
+- [ ] Build iz prljavog radnog stabla ima `+` na kraju commita.
+- [ ] `flutter run` ili APK iz CI-ja → piše „build nije označen". Verzija se
+      **ne** prikazuje sama, jer `1.1.0+2` je isti niz na svim gradnjama ove
+      nedelje i izgledao bi kao odgovor.

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:chess_app/core/build_info.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
@@ -62,6 +64,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     }
+  }
+
+  /// Puts the build line on the clipboard, so it can be pasted into a bug
+  /// report without being copied off the screen by hand.
+  Future<void> _copyBuildLabel() async {
+    final label = buildLabel();
+    await Clipboard.setData(ClipboardData(text: label));
+    if (!mounted) return;
+    // Do the thing, then say it.
+    AppFeedback.show(
+      context,
+      () => SnackBar(content: Text('Kopirano: $label')),
+    );
   }
 
   Future<void> _saveLichessToken() async {
@@ -856,10 +871,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 32),
+
+              // Which build this is, and a tap to carry it into a report.
+              //
+              // It used to read "Šahovski trener v2.0 • Pro Edition" - a name
+              // the app has not carried since the brand was chosen, and a
+              // version that was never in pubspec. During a testing campaign
+              // the one thing this line is good for is saying which build the
+              // tester is looking at, so that is what it says.
               Center(
-                child: Text(
-                  'Šahovski trener v2.0 • Pro Edition',
-                  style: AppText.body.copyWith(color: context.colors.textMuted),
+                child: InkWell(
+                  onTap: _copyBuildLabel,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Text(
+                      buildLabel(),
+                      textAlign: TextAlign.center,
+                      style: AppText.body
+                          .copyWith(color: context.colors.textMuted),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
