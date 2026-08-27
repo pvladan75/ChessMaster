@@ -95,6 +95,16 @@ class TrainerPanelView extends StatelessWidget {
                   for (final a in panel.dueSoon) _dueRow(context, a),
                 ],
               ),
+            if (panel.stalled.isNotEmpty)
+              _section(
+                context,
+                title: 'Domaći stoji',
+                color: colors.info,
+                count: panel.stalled.length,
+                children: [
+                  for (final a in panel.stalled) _stalledRow(context, a),
+                ],
+              ),
             if (panel.idle.isNotEmpty)
               _section(
                 context,
@@ -279,13 +289,37 @@ class TrainerPanelView extends StatelessWidget {
     );
   }
 
+  /// Homework nobody has moved for days, deadline or no deadline.
+  ///
+  /// The note says which of the two it is, because the trainer's next move
+  /// differs: work with no date was never given one, and work with a distant
+  /// date is simply being left for later.
+  Widget _stalledRow(BuildContext context, PanelAssignment a) {
+    final never = a.attemptedItems == 0;
+
+    return _card(
+      context,
+      title: '${a.studentName} · ${a.title}',
+      subtitle: never
+          ? 'nije ni otvoren · ${a.totalItems} zadataka'
+          : 'stao na ${a.attemptedItems} od ${a.totalItems}',
+      note: a.dueAt == null
+          ? 'bez roka · ${_ago(a.lastMoveAt)}'
+          : 'rok ${_due(a.dueAt)} · ${_ago(a.lastMoveAt)}',
+      action: 'Otvori',
+      onAction: () => onOpenAssignment(a),
+    );
+  }
+
   Widget _idleRow(BuildContext context, PanelIdleStudent s) {
     return _card(
       context,
       title: s.name,
+      // No open homework, by construction: a student with work outstanding is
+      // in "Domaći stoji" instead, where the sentence about them is useful.
       subtitle: s.lastActiveAt == null
-          ? 'još nije rešio nijedan zadatak'
-          : 'poslednji put ${_ago(s.lastActiveAt)}',
+          ? 'nema zadatog domaćeg · još nije rešio nijedan zadatak'
+          : 'nema zadatog domaćeg · poslednji put ${_ago(s.lastActiveAt)}',
       action: 'Otvori',
       onAction: () => onOpenStudent(s.id, s.name),
     );

@@ -1,12 +1,19 @@
 /// The trainer's day, as the server answers it.
 ///
-/// One model for one endpoint: the four sections are drawn together and go
-/// stale together, so they are parsed together rather than as four lists that
-/// could disagree about which minute they describe.
+/// One model for one endpoint: the sections are drawn together and go stale
+/// together, so they are parsed together rather than as five lists that could
+/// disagree about which minute they describe.
 class TrainerPanel {
   final List<PanelLesson> today;
   final List<PanelAssignment> dueSoon;
   final List<PanelAssignment> awaitingReview;
+
+  /// Homework that has stopped moving — with a deadline still far off, or with
+  /// none at all. Without this section an assignment nobody set a date for was
+  /// invisible everywhere, and one that stalled halfway vanished from [idle]
+  /// the moment the student solved their first puzzle.
+  final List<PanelAssignment> stalled;
+
   final List<PanelIdleStudent> idle;
 
   /// What the tab badge shows: work the trainer can clear by acting.
@@ -16,6 +23,7 @@ class TrainerPanel {
     this.today = const [],
     this.dueSoon = const [],
     this.awaitingReview = const [],
+    this.stalled = const [],
     this.idle = const [],
     this.waiting = 0,
   });
@@ -26,13 +34,14 @@ class TrainerPanel {
 
   /// Whether the panel has anything to draw at all.
   ///
-  /// A trainer with students but a quiet day gets no panel rather than four
-  /// empty headings: a heading over nothing reads as a screen that failed to
+  /// A trainer with students but a quiet day gets no panel rather than a stack
+  /// of empty headings: a heading over nothing reads as a screen that failed to
   /// load.
   bool get isEmpty =>
       today.isEmpty &&
       dueSoon.isEmpty &&
       awaitingReview.isEmpty &&
+      stalled.isEmpty &&
       idle.isEmpty;
 
   factory TrainerPanel.fromJson(Map<String, dynamic> json) {
@@ -48,6 +57,7 @@ class TrainerPanel {
       today: list('today', PanelLesson.fromJson),
       dueSoon: list('dueSoon', PanelAssignment.fromJson),
       awaitingReview: list('awaitingReview', PanelAssignment.fromJson),
+      stalled: list('stalled', PanelAssignment.fromJson),
       idle: list('idle', PanelIdleStudent.fromJson),
       waiting: (counts['waiting'] as num?)?.toInt() ?? 0,
     );
@@ -101,6 +111,11 @@ class PanelAssignment {
   final DateTime? dueAt;
   final DateTime? completedAt;
 
+  /// The last time anything happened to this homework — the student's most
+  /// recent answer, or when it was set if there has never been one. Only the
+  /// stalled section fills it in.
+  final DateTime? lastMoveAt;
+
   const PanelAssignment({
     required this.id,
     required this.title,
@@ -111,6 +126,7 @@ class PanelAssignment {
     this.solvedItems = 0,
     this.dueAt,
     this.completedAt,
+    this.lastMoveAt,
   });
 
   factory PanelAssignment.fromJson(Map<String, dynamic> json) =>
@@ -124,6 +140,7 @@ class PanelAssignment {
         solvedItems: (json['solved_items'] as num?)?.toInt() ?? 0,
         dueAt: _parseDate(json['due_at']),
         completedAt: _parseDate(json['completed_at']),
+        lastMoveAt: _parseDate(json['last_move_at']),
       );
 }
 

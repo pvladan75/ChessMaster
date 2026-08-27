@@ -282,7 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     _socket.on('user_presence_changed', (data) {
       if (mounted) {
-        _fetchStudents();
+        _fetchStudents(withPanel: false);
       }
     });
 
@@ -293,6 +293,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _socket.on('notifications_changed', (_) {
       if (!mounted) return;
       _fetchNotifications();
+      // The same events move the trainer's panel: homework handed in raises a
+      // notification and belongs in "Za pregled" at the same moment. Without
+      // this the badge only caught up when the tab was left and opened again.
+      _fetchPanel();
     });
 
     // A relationship in particular also changes the Prijatelji lists, which the
@@ -343,7 +347,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _fetchStudents() async {
+  /// [withPanel] is false where the trigger cannot have changed the panel.
+  /// Presence is the one such trigger and it is also the noisiest: every
+  /// student going online or offline would otherwise re-run the panel's five
+  /// queries for a fact the panel does not show.
+  Future<void> _fetchStudents({bool withPanel = true}) async {
     setState(() => _isLoadingStudents = true);
     try {
       final response = await http.get(
@@ -364,7 +372,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     await _fetchTrainers();
     await _fetchPendingRequests();
-    await _fetchPanel();
+    if (withPanel) await _fetchPanel();
   }
 
   /// The same relationships read from the other end.

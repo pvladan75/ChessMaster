@@ -19,6 +19,13 @@ const IDLE_DAYS = 7;
 /// How far ahead homework counts as "running out".
 const DUE_SOON_HOURS = 48;
 
+/// How long homework may sit without a single move before it is standing still.
+///
+/// Shorter than [IDLE_DAYS] on purpose: a student who was given something and
+/// has not touched it is a smaller silence than a student nobody has heard from
+/// at all, and it is answerable sooner.
+const STALLED_DAYS = 3;
+
 /// How many rows any one section may return.
 ///
 /// A trainer with forty students would otherwise get forty cards in a section
@@ -121,11 +128,65 @@ async function awaitingReview(pool, trainerId, { limit = SECTION_LIMIT } = {}) {
   return result.rows;
 }
 
+/// Homework that has stopped moving.
+///
+/// The section exists because of a hole the first version left: an assignment
+/// with **no deadline** appeared nowhere at all, and one that stalled halfway
+/// disappeared from "Nije vežbao" the moment the student solved their first
+/// puzzle. Both are the same fact — work was set and it is not progressing —
+/// and neither is visible from a deadline.
+///
+/// Deliberately not filtered to untouched work: 8 of 10, four days ago, is
+/// exactly the shape a trainer needs to see, and "not started" is only its
+/// first case. `GREATEST` ignores nulls, so an assignment nobody has opened
+/// dates from when it was set.
+///
+/// Assignments already in [dueSoon] are excluded by the complement of that
+/// window, so no assignment can appear in both sections and no student is
+/// counted twice on one screen.
+async function stalled(
+  pool,
+  trainerId,
+  { days = STALLED_DAYS, dueHours = DUE_SOON_HOURS, limit = SECTION_LIMIT } = {}
+) {
+  const result = await pool.query(
+    `SELECT a.id,
+            a.title,
+            a.kind,
+            a.due_at,
+            a.created_at,
+            u.id   AS student_id,
+            u.name AS student_name,
+            COUNT(ai.id)::int             AS total_items,
+            COUNT(ai.attempted_at)::int   AS attempted_items,
+            GREATEST(a.created_at, MAX(ai.attempted_at)) AS last_move_at
+       FROM assignments a
+       JOIN users u ON u.id = a.student_id
+       LEFT JOIN assignment_items ai ON ai.assignment_id = a.id
+      WHERE a.trainer_id = $1
+        AND a.completed_at IS NULL
+        AND (a.due_at IS NULL OR a.due_at >= now() + make_interval(hours => $2))
+      GROUP BY a.id, u.id, u.name
+     HAVING GREATEST(a.created_at, MAX(ai.attempted_at))
+              < now() - make_interval(days => $3)
+      ORDER BY GREATEST(a.created_at, MAX(ai.attempted_at)) ASC
+      LIMIT $4`,
+    [trainerId, dueHours, days, limit]
+  );
+  return result.rows;
+}
+
 /// Students who have not solved anything for a while.
 ///
 /// A student who has never attempted a puzzle sorts first, not last: they are
 /// the ones nothing else on this screen would ever mention, since every other
 /// section is driven by something they did.
+///
+/// A student with homework still open is left out: the useful sentence about
+/// them is which assignment is standing still, not that they are quiet, and
+/// they are already in [stalled] or [dueSoon]. One person, one row, one thing
+/// to do about it — the alternative is a trainer reading the same name three
+/// times and choosing between three buttons that mean the same thing.
 async function idleStudents(pool, trainerId, { days = IDLE_DAYS, limit = SECTION_LIMIT } = {}) {
   const result = await pool.query(
     `SELECT u.id,
@@ -134,6 +195,12 @@ async function idleStudents(pool, trainerId, { days = IDLE_DAYS, limit = SECTION
        FROM users u
        LEFT JOIN user_puzzle_attempts p ON p.user_id = u.id
       WHERE u.id IN (${acceptedStudentsOf('$1')})
+        AND NOT EXISTS (
+          SELECT 1 FROM assignments a
+           WHERE a.student_id = u.id
+             AND a.trainer_id = $1
+             AND a.completed_at IS NULL
+        )
       GROUP BY u.id, u.name
      HAVING MAX(p.created_at) IS NULL
          OR MAX(p.created_at) < now() - make_interval(days => $2)
@@ -174,10 +241,11 @@ async function pendingRequestCount(pool, userId) {
 /// screen but not in the number: neither is cleared by the trainer doing
 /// anything, so counting them would leave a badge that never reaches zero.
 async function trainerPanel(pool, userId) {
-  const [today, due, review, idle, requests] = await Promise.all([
+  const [today, due, review, standing, idle, requests] = await Promise.all([
     todaysLessons(pool, userId),
     dueSoon(pool, userId),
     awaitingReview(pool, userId),
+    stalled(pool, userId),
     idleStudents(pool, userId),
     pendingRequestCount(pool, userId),
   ]);
@@ -186,6 +254,7 @@ async function trainerPanel(pool, userId) {
     today,
     dueSoon: due,
     awaitingReview: review,
+    stalled: standing,
     idle,
     counts: {
       awaitingReview: review.length,
@@ -221,10 +290,12 @@ async function markReviewed(pool, { assignmentId, trainerId }) {
 module.exports = {
   IDLE_DAYS,
   DUE_SOON_HOURS,
+  STALLED_DAYS,
   SECTION_LIMIT,
   todaysLessons,
   dueSoon,
   awaitingReview,
+  stalled,
   idleStudents,
   pendingRequestCount,
   trainerPanel,

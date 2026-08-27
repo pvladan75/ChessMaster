@@ -67,6 +67,17 @@ void main() {
         completedAt: DateTime.now().subtract(const Duration(days: 3)),
       ),
     ],
+    stalled: [
+      PanelAssignment(
+        id: 5,
+        title: 'Završnice',
+        studentId: 15,
+        studentName: 'Jelena Popović',
+        totalItems: 10,
+        attemptedItems: 8,
+        lastMoveAt: DateTime.now().subtract(const Duration(days: 4)),
+      ),
+    ],
     idle: [
       PanelIdleStudent(
         id: 13,
@@ -86,14 +97,21 @@ void main() {
     expect(find.byType(Card), findsNothing);
   });
 
-  testWidgets('the four sections say what the job is', (tester) async {
+  testWidgets('every section says what the job is', (tester) async {
     await tester.pumpWidget(wrap(view(full)));
     await tester.pumpAndSettle();
 
     expect(find.text('DANAS'), findsOneWidget);
     expect(find.text('ZA PREGLED'), findsOneWidget);
     expect(find.text('DOMAĆI ISTIČE'), findsOneWidget);
+    expect(find.text('DOMAĆI STOJI'), findsOneWidget);
     expect(find.text('NIJE VEŽBAO'), findsOneWidget);
+
+    // The two holes found live on 27.8.2026: homework with no deadline was
+    // invisible everywhere, and homework that stalled halfway disappeared the
+    // moment the student solved their first puzzle.
+    expect(find.textContaining('stao na 8 od 10'), findsOneWidget);
+    expect(find.textContaining('bez roka'), findsOneWidget);
 
     // Each row names the person it is about, because the trainer's next move
     // depends on which student it is.
@@ -111,6 +129,7 @@ void main() {
     expect(find.text('NIJE VEŽBAO'), findsOneWidget);
     expect(find.text('DANAS'), findsNothing);
     expect(find.text('ZA PREGLED'), findsNothing);
+    expect(find.text('DOMAĆI STOJI'), findsNothing);
   });
 
   testWidgets('the panel fits a 360 px phone', (tester) async {
@@ -134,6 +153,7 @@ void main() {
         ),
       ],
       awaitingReview: full.awaitingReview,
+      stalled: full.stalled,
       idle: full.idle,
     ))));
     await tester.pumpAndSettle();
@@ -156,14 +176,29 @@ void main() {
     )));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Uđi'));
+    // Scrolled into view first: with every section filled the panel is taller
+    // than the window, and a button below the fold cannot be tapped — which is
+    // also true of the trainer's phone.
+    Future<void> press(Finder finder) async {
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    await press(find.text('Uđi'));
     expect(entered, 'ABC123');
 
-    await tester.tap(find.text('Pregledaj'));
+    await press(find.text('Pregledaj'));
     expect(opened, 3, reason: 'the finished assignment, not the one still due');
 
-    await tester.tap(find.text('Otvori').last);
+    await press(find.text('Otvori').last);
     expect(student, 13);
+
+    // The stalled row opens the homework, not the student: the thing standing
+    // still is the assignment, and that is what the trainer needs to see.
+    await press(find.text('Otvori').at(1));
+    expect(opened, 5);
   });
 
   test('an empty answer parses into an empty panel', () {

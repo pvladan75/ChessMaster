@@ -918,3 +918,48 @@ Ostalo namerno nenapisano: „Podseti" iz makete (traži poruku učeniku, a ta r
 ne postoji — dugme vodi u zadatak), i sekcija „Izveštaji roditeljima" iz C
 (`student_reports` nema stanje „sastavljen, nije poslat", pa bi broj bio
 izmišljen).
+
+## Šta je prva proba panela pokazala — 27.8.2026
+
+Korisnik je panel video na Windows-u i na Androidu; prikazuje se samo onome ko
+ima učenike, i „Otvori" radi. Iz same probe su ispala **tri** nalaza, i sva tri
+su bila stvarna rupa, ne greška u prikazu.
+
+**1. Domaći bez roka nije se video nigde.** Prva verzija je gledala samo rok, a
+zadatak bez roka nema šta da istekne. Isto tako, zadatak koji je stao na pola
+nestajao je iz „Nije vežbao" čim učenik reši prvu zagonetku — nije više ćutao,
+a nije ni završio.
+
+Dodat je odeljak **„Domaći stoji"**: nezavršen zadatak bez pomaka 3+ dana, sa
+rokom koji je još daleko ili bez roka. Poslednji pomak je
+`GREATEST(created_at, MAX(attempted_at))`, pa zadatak koji niko nije ni otvorio
+računa od dana kad je zadat. Dva prozora su komplementarna — šta je u naredna
+48 sata ide u „Domaći ističe", sve ostalo sme u „Domaći stoji" — tako da isti
+zadatak ne može da bude u oba.
+
+**2. „Nije vežbao" je prijavljivalo učenika kome ništa nije ni zadato.** Odeljak
+sada izostavlja svakog ko ima otvoren zadatak: o njemu govori red o domaćem, a
+ne rečenica da ćuti. Jedan čovek, jedan red, jedna stvar koja se s njim radi.
+Odeljak **nije** vezan za domaći, jer bi se time izgubio slučaj zbog kog i
+postoji — dete koje tone mesecima a niko mu ništa nije zadao. Zato red sada i
+piše „nema zadatog domaćeg".
+
+**3. Obaveštenje treneru radi, ali učenik nije znao da nije predao.** Korisnik
+je preskočio dve zagonetke i mislio da je predao domaći. `assignment_done`
+obaveštenje **postoji odranije** i stiglo je čim je kasnije uradio i te dve —
+provereno u bazi. Problem je bio na učenikovoj strani: na kraju prolaza je
+pisalo **„Zadatak je završen. Vaš trener vidi rezultat."** bez obzira na to
+koliko je preskočeno.
+
+Sada, kad je nešto preskočeno, piše **„Domaći još nije predat"**, koliko je
+preskočeno, i da trener ne dobija obaveštenje dok se i te zagonetke ne pokušaju
+— uz dugme „Uradi preskočene", koje vraća **samo** njih, ne ceo zadatak.
+
+Sitnica koja se lako previdi: broj u toj rečenici ide kroz `puzzleCountLabel`,
+jer srpski ima tri oblika (1 zagonetku / 2 zagonetke / 5 zagonetaka), a 11–14
+idu uz peti oblik. Tekst čitaju deca.
+
+Usput: panel i značka se sada osvežavaju i preko soketa
+(`notifications_changed`), pa predat domaći stiže na ekran bez izlaska iz taba.
+Promena prisutnosti više ne pokreće upite panela — to je najbučniji događaj koji
+panel ne prikazuje.

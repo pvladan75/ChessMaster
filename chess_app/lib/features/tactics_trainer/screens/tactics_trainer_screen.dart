@@ -69,6 +69,20 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   int _assignmentIndex = 0;
   bool _assignmentFinished = false;
 
+  /// What is still being served. Starts as everything the assignment has left
+  /// and is replaced by the skipped ones when the student goes back for them,
+  /// so a second pass does not walk over work they have already answered.
+  List<String>? _queue;
+
+  /// Puzzles walked past without an answer, in the order they were skipped.
+  ///
+  /// Kept because "Zadatak je završen" was shown at the end of the run whether
+  /// or not anything had been answered — a student who pressed "Preskoči"
+  /// twice was told they were done, while the homework stayed unfinished and
+  /// the trainer was never told. Reported live on 27.8.2026 by exactly that
+  /// route.
+  final List<String> _skipped = [];
+
   @override
   void initState() {
     super.initState();
@@ -83,6 +97,17 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   }
 
   Future<void> _loadNext() async {
+    // Leaving a puzzle that was never answered is a skip. Recorded here rather
+    // than in the button, because every way out of a puzzle comes through this
+    // one method.
+    final leaving = _puzzle;
+    if (widget.isAssignment &&
+        leaving != null &&
+        !(_session?.isComplete ?? false) &&
+        !_skipped.contains(leaving.id)) {
+      _skipped.add(leaving.id);
+    }
+
     final token = ++_puzzleToken;
     setState(() {
       _loading = true;
@@ -116,7 +141,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
   /// Serves the assignment's puzzles in the order the trainer set them.
   Future<void> _loadAssignmentPuzzle(int token) async {
-    final ids = widget.puzzleIds!;
+    final ids = _queue ??= List<String>.from(widget.puzzleIds!);
     if (_assignmentIndex >= ids.length) {
       setState(() {
         _loading = false;
@@ -461,29 +486,76 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     );
   }
 
+  /// Goes back for the puzzles that were walked past.
+  ///
+  /// Only those: the queue is replaced rather than restarted, so a student who
+  /// answered eight and skipped two is asked the two, not the ten.
+  void _retrySkipped() {
+    setState(() {
+      _queue = List<String>.from(_skipped);
+      _skipped.clear();
+      _assignmentIndex = 0;
+      _assignmentFinished = false;
+    });
+    _loadNext();
+  }
+
   Widget _buildAssignmentDone() {
+    // Reaching the end of the list is not the same as finishing the homework,
+    // and saying so was the whole bug: skipped puzzles stay unanswered, the
+    // assignment is not marked complete, and the trainer is never told - while
+    // the student had been shown "Zadatak je završen" and reasonably went away.
+    final skipped = _skipped.length;
+    final unfinished = skipped > 0;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.task_alt, size: 56, color: context.colors.success),
+            Icon(
+              unfinished ? Icons.pending_actions : Icons.task_alt,
+              size: 56,
+              color:
+                  unfinished ? context.colors.warning : context.colors.success,
+            ),
             const SizedBox(height: 14),
-            const Text(
-              'Zadatak je završen.',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              unfinished ? 'Domaći još nije predat.' : 'Zadatak je završen.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             Text(
-              'Vaš trener vidi rezultat.',
+              unfinished
+                  ? 'Preskočili ste ${puzzleCountLabel(skipped)}. Domaći se '
+                      'predaje tek kad ih pokušate — do tada trener ne dobija '
+                      'obaveštenje da ste završili.'
+                  : 'Vaš trener vidi rezultat.',
+              textAlign: TextAlign.center,
               style: TextStyle(color: context.colors.textSecondary),
             ),
             const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Nazad na zadatke'),
+            // Wrap, not Row: two buttons side by side are wider than a 360 px
+            // phone, and a release build clips the second one in silence.
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                if (unfinished)
+                  ElevatedButton.icon(
+                    onPressed: _retrySkipped,
+                    icon: const Icon(Icons.playlist_add_check),
+                    label: const Text('Uradi preskočene'),
+                  ),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Nazad na zadatke'),
+                ),
+              ],
             ),
           ],
         ),
@@ -659,4 +731,22 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       ],
     );
   }
+}
+
+/// "1 zagonetku", "2 zagonetke", "5 zagonetaka" — the accusative the sentence
+/// above needs, in the three forms Serbian actually uses.
+///
+/// Written out rather than fudged with "zagonetki(e)": this string is read by
+/// children, and the app is theirs before it is anybody's. The 11-14 exception
+/// is the one that catches every naive implementation - 11 takes the same form
+/// as 5, not the same as 1.
+String puzzleCountLabel(int count) {
+  final last = count % 10;
+  final lastTwo = count % 100;
+
+  if (last == 1 && lastTwo != 11) return '$count zagonetku';
+  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) {
+    return '$count zagonetke';
+  }
+  return '$count zagonetaka';
 }

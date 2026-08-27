@@ -19,6 +19,7 @@ const {
   todaysLessons,
   dueSoon,
   awaitingReview,
+  stalled,
   idleStudents,
   pendingRequestCount,
   trainerPanel,
@@ -89,6 +90,55 @@ test('handed-in work leaves the queue only once it has been opened', async () =>
   assert.match(sql, /a\.reviewed_at IS NULL/, 'without this the queue only grows');
 });
 
+test('homework that has stopped moving is visible without a deadline', async () => {
+  // The hole this closes, found live on 27.8.2026: an assignment with no
+  // deadline appeared nowhere at all, and one that stalled at 8 of 10 dropped
+  // out of "Nije vežbao" the moment the student solved their first puzzle. A
+  // deadline is not the only reason to look at homework.
+  const pool = stubPool();
+  await stalled(pool, 7);
+
+  const sql = stmt(pool, /GREATEST/).text;
+  assert.match(sql, /a\.trainer_id = \$1/);
+  assert.match(sql, /a\.completed_at IS NULL/);
+  // Work that has never been opened dates from when it was set, not from a
+  // null nobody can compare against.
+  assert.match(sql, /GREATEST\(a\.created_at, MAX\(ai\.attempted_at\)\)/);
+  assert.doesNotMatch(sql, /attempted_items = 0|COUNT\(ai\.attempted_at\) = 0/,
+    'partly finished homework stalls too');
+});
+
+test('no assignment can be in both homework sections at once', async () => {
+  // The two windows are complements: what is due inside DUE_SOON_HOURS belongs
+  // to one section, everything else may belong to the other. Overlapping them
+  // would put the same student on the same screen twice, under two headings
+  // whose buttons do the same thing.
+  const due = stubPool();
+  await dueSoon(due, 7);
+  const stall = stubPool();
+  await stalled(stall, 7);
+
+  const dueSql = stmt(due, /FROM assignments/).text;
+  assert.match(dueSql, /a\.due_at IS NOT NULL/);
+  assert.match(dueSql, /a\.due_at < now\(\) \+ make_interval\(hours => \$2\)/);
+
+  const stallSql = stmt(stall, /GREATEST/).text;
+  assert.match(stallSql, /a\.due_at IS NULL OR a\.due_at >= now\(\) \+ make_interval\(hours => \$2\)/);
+  assert.doesNotMatch(stallSql, /a\.due_at < now\(\)/, 'the two windows must not overlap');
+});
+
+test('a student with open homework is not also called quiet', async () => {
+  const pool = stubPool();
+  await idleStudents(pool, 7);
+
+  const sql = stmt(pool, /user_puzzle_attempts/).text;
+  assert.match(sql, /NOT EXISTS/);
+  assert.match(sql, /a\.completed_at IS NULL/,
+    'only *open* homework moves them to the other section');
+  assert.match(sql, /a\.trainer_id = \$1/,
+    'somebody else’s homework is not my row to show');
+});
+
 test('the quiet-student list reads the edge through the accepted fragment', async () => {
   // The bug this defends against is invisible: the section keeps working, and
   // the only difference is that somebody who never accepted appears in a list
@@ -121,6 +171,7 @@ test('the badge counts only what the trainer can clear', async () => {
     [/COUNT\(\*\)::int AS count/, [{ count: 1 }]],
     [/a\.due_at IS NOT NULL/, [{ id: 3 }, { id: 4 }, { id: 5 }]],
     [/user_puzzle_attempts/, [{ id: 6 }]],
+    [/GREATEST/, [{ id: 7 }, { id: 8 }]],
   ]);
 
   const panel = await trainerPanel(pool, 7);
@@ -132,6 +183,7 @@ test('the badge counts only what the trainer can clear', async () => {
   // reach zero stops being read.
   assert.equal(panel.dueSoon.length, 3);
   assert.equal(panel.idle.length, 1);
+  assert.equal(panel.stalled.length, 2);
   assert.equal(panel.counts.waiting, 3);
 });
 
@@ -140,6 +192,7 @@ test('an empty panel is a panel, not an error', async () => {
 
   assert.deepEqual(panel.today, []);
   assert.deepEqual(panel.idle, []);
+  assert.deepEqual(panel.stalled, []);
   assert.equal(panel.counts.waiting, 0);
 });
 

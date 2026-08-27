@@ -1288,7 +1288,20 @@ aplikaciju.
 - [ ] Oduzimanje admin uloge (`UPDATE users SET role = 'korisnik' ...`) važi
       **odmah**, bez ponovne prijave: admin rute odbijaju na sledeći zahtev.
 
-## 39. Panel trenera u tabu „Ljudi" — 27.8.2026, nije viđeno uživo
+## 39. Panel trenera u tabu „Ljudi" — 27.8.2026, delimično provereno
+
+**Provereno uživo 27.8.2026 (korisnik):** panel se vidi na Windows-u i na
+Androidu, prikazuje se **samo onome ko ima učenike**, „Nije vežbao" i dugme
+„Otvori" rade. Iz te probe su ispale tri izmene — „Domaći stoji", izbacivanje
+učenika sa otvorenim domaćim iz „Nije vežbao", i poruka učeniku o preskočenim
+zagonetkama (vidi „Šta je prva proba panela pokazala" u
+[STANJE-RADA.md](STANJE-RADA.md)). **Te tri izmene nisu viđene uživo** — spisak
+ispod je prepravljen prema njima, koraci 3, 6, 10 i 11 su novi.
+
+Napomena za sledeću probu: zadaci koji već stoje u bazi su od 27.8.2026, pa se
+u „Domaći stoji" pojavljuju **tek 30.8.2026** (prag je 3 dana bez pomaka). Ranije
+se to vidi samo tako što se pragu privremeno spusti vrednost `STALLED_DAYS` u
+`services/trainerPanelService.js`.
 
 Izabrana varijanta A („Danas") kao odeljak, plus značka iz varijante C. Zašto
 odeljak a ne peti tab — vidi „Panel trenera — izabrano i napisano" u
@@ -1318,10 +1331,12 @@ Redom, jer svaki korak pravi ulaz za sledeći:
    (svoj pregled) pre nego što ga trener pogleda, pa proveriti da je kod
    trenera i dalje u „Za pregled". Ovo je razlog zašto je obeležavanje zasebna
    ruta, i jedina stvar na spisku koja se ne vidi na trenerovom ekranu.
-6. **Nije vežbao.** Učenik koji sedam dana nije rešio ništa stoji pod „Nije
-   vežbao"; onaj koji nikad ništa nije rešio stoji **prvi** i piše „još nije
-   rešio nijedan zadatak". „Otvori" vodi na njegov napredak, gde su i dugmad
-   „Zadaj lekciju" / „Zadaj vežbu".
+6. **Nije vežbao — samo bez zadatog domaćeg.** Učenik koji sedam dana nije
+   rešio ništa stoji pod „Nije vežbao" i red piše „nema zadatog domaćeg";
+   onaj koji nikad ništa nije rešio stoji **prvi**. Čim mu se zada domaći,
+   **nestaje odatle** i pojavljuje se u redu o domaćem — nikad na oba mesta.
+   „Otvori" vodi na njegov napredak, gde su i dugmad „Zadaj lekciju" / „Zadaj
+   vežbu".
 7. **Zahtevi u broju.** Poslati zahtev sa trećeg naloga ka treneru: broj na
    znački poraste i bez ijednog domaćeg. Odgovoriti na zahtev — broj padne.
 8. **Telefon, 360 dp.** Ovo je jedini deo koji test ne može da zameni:
@@ -1331,6 +1346,18 @@ Redom, jer svaki korak pravi ulaz za sledeći:
    ivicu, sa dugim imenom učenika i dugim naslovom zadatka.
 9. **Rail na Windows-u.** Prvi tab se u bočnoj traci sada zove „Trening", isto
    kao u donjoj traci na telefonu (ranije je pisalo „Početna").
+10. **Domaći stoji.** Zadati domaći **bez roka** i ne dirati ga tri dana (ili
+    privremeno spustiti `STALLED_DAYS`). Red se pojavljuje pod „Domaći stoji",
+    piše „nije ni otvoren · N zadataka" i „bez roka". Isto proveriti i za
+    zadatak koji je stao na pola: tekst je „stao na 8 od 10". Zadatak kome rok
+    ističe u naredna 48 sata **ne sme** biti u oba odeljka.
+11. **Učenik zna da nije predao.** Kao učenik krenuti u domaći i **preskočiti**
+    bar jednu zagonetku, pa odraditi ostale. Na kraju piše **„Domaći još nije
+    predat"** sa brojem preskočenih i objašnjenjem da trener ne dobija
+    obaveštenje — a ne „Zadatak je završen". Dugme „Uradi preskočene" vraća
+    **samo** preskočene, ne ceo zadatak. Kad se i one urade: kod trenera stiže
+    obaveštenje i red pod „Za pregled", **bez izlaska iz taba** (osvežava se
+    preko soketa). Preskočena jedna → „1 zagonetku", dve → „2 zagonetke".
 
 **Poznato unapred, da se ne prijavljuje kao greška:** u maketi je kod „Domaći
 ističe" stajalo dugme „Podseti", a kod nas piše „Otvori" — poruka učeniku nije
