@@ -1240,3 +1240,79 @@ je sama svoja.
 
 Provera uživo: ući u Šahovski studio i videti da se otvara, da u logu nema
 `[SOBA]`/`[AGORA]` odbijanja i da tabla radi bez servera.
+
+## Pešak nije mogao da postane figura — 27.8.2026
+
+Prijavljeno uživo iz „Pronađite dobitni put", sa logom koji je odmah pokazao
+gde da se gleda:
+
+```
+[MOVE_MADE_DEBUG] Could not match move in chess.js legal moves!
+```
+
+Uzrok je jedan nedostajući ključ u paketu. `chess.dart` u `make_pretty` pravi
+mapu poteza od `san`, `to`, `from`, `captured` i `flags` — **i ničeg više** — a
+dokumentacija dva reda iznad te funkcije kaže da u mapi stoje i `piece` i
+`promotion`. Ceo ovaj kod je verovao dokumentaciji. Znači: `m['promotion']` je
+**uvek `null`**, za svaki potez, u svakoj poziciji.
+
+Dva različita kvara iz istog uzroka:
+
+- mapa vraćena u `game.move(m)` **biva odbijena** kad je potez promocija, jer
+  `move()` poredi `move['promotion'] == moves[i].promotion!.name`, a ključa
+  nema. Potez se ne odigra, `move()` to i kaže — i svaki pozivalac je nastavio
+  kao da jeste;
+- `where((m) => m['promotion'] != null)` ne izabere ništa, pa kod koji traži
+  promociju među legalnim potezima zaključi da je nema.
+
+**Popravka je na jednom mestu**: `core/services/legal_moves.dart` čita figuru iz
+SAN-a (`d8=Q+`) i vraća iste mape sa popunjenim `promotion` (`''` kad nije
+promocija), plus `playMove` koji potez odigra sa imenom figure i `isPromotionMove`
+koji pita **poziciju**, a ne odredišno polje — pešak koji uzima na osmom redu
+jeste promocija, a top koji dođe na osmi red nije. Namerno se ne generiše lista
+poteza drugi put „kao objekti" pa uparuje po indeksu: to bi bile dve liste za
+koje se veruje da su istog redosleda, a takve tihe pretpostavke su ono što ovaj
+projekat stalno plaća.
+
+Zamenjeno je svih 14 mesta koja su zvala `moves({'verbose': true})`. Šta je sve
+usput bilo pokvareno, a niko nije znao:
+
+- **AI studio** (prijavljeni slučaj) — potez se nije odigrao ni preko tapa ni
+  prevlačenjem;
+- **`game_analysis_walker_service`** — šetnja kroz partiju **prekidala se na
+  prvoj promociji**, tiho, na sredini tuđe analize;
+- **`tactical_motif_detector`** — mat u jedan **promocijom** (najčešći od svih:
+  `d8=Q#`) nikad nije bio pronađen;
+- **`auto_tree_generator_service`** — rezervno uparivanje poteza padalo je baš
+  na linijama u kojima pešak prolazi;
+- **analiza, otvaranja, stablo rešenja, graf rešenja** — SAN promocije ispisivan
+  kao `d7d8` umesto `d8=Q`.
+
+**Drugi deo: izabrana figura mora da putuje sa potezom.** `ChessBoardWithOverlay.onMove`
+sada nosi i `promotion`, a deset ekrana koji ga koriste igraju tu figuru umesto
+svog `'promotion': 'q'`. Ranije je prevlačenje otvaralo dijalog paketa, čovek bi
+izabrao skakača — a ekran bi u svoju poziciju upisao damu i tablu prepisao
+preko izbora.
+
+**Treći deo: pita se.** Tap-potez je ćutke pravio damu, pa se vežba čije je
+rešenje skakač nije mogla ni odigrati tapkanjem. Sada postoji jedan dijalog za
+sve table (`widgets/promotion_picker.dart`), na srpskom, u boji strane koja
+igra, sa imenima figura ispod slika — „lovac" i „top" su tačno one dve koje deca
+mešaju. Odustajanje znači da se potez **ne igra**, umesto da se odigra ono što
+niko nije izabrao. Taktika je imala svoj dijalog i sada koristi ovaj; AI studio
+je imao gore od toga — čitao je stablo rešenja i tiho promovisao u figuru koju
+rešenje traži, pa je zadatak koji uči da samo skakač radi bio „rešen" damom.
+
+`test/legal_moves_test.dart` (9 provera, uključujući onu koja reprodukuje sam
+bag) i tri nove u `test/tap_to_move_test.dart`. Dokazano mutacijom: kad
+`promotionOf` uvek vrati prazno, pada sedam testova; kad se ukloni pitanje u
+tabli, pada test koji traži dijalog.
+
+Ostaje, sitno i zapisano: **prevlačenje i dalje otvara dijalog paketa** („Choose
+promotion", uvek bele figure). Radi ispravno i izbor sada stiže do ekrana, ali
+je na engleskom u aplikaciji za srpsku decu. Zameniti se može samo ako se widget
+table preuzme u repo — nije vredno danas.
+
+Provera uživo: u „Pronađite dobitni put" dovesti pešaka do poslednjeg reda i
+tapnuti — mora da pita, i izabrana figura mora da se pojavi na tabli; isto
+prevlačenjem; pa isto u završnicama, taktici i repertoaru.

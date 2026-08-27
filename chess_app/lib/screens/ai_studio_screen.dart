@@ -21,7 +21,9 @@ import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/services/stockfish_service.dart';
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/widgets/promotion_picker.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 
 import 'package:chess_app/models/analysis_models.dart';
@@ -647,16 +649,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   void _playOpponentMove(String bestMove, String evaluation) {
     String validMove = bestMove;
     if (_puzzleGame != null) {
-      final legalMoves = _puzzleGame!.moves({'verbose': true});
-      final isLegal = legalMoves.any((m) {
+      final moves = legalMoves(_puzzleGame!);
+      final isLegal = moves.any((m) {
         final from = m['from'] ?? '';
         final to = m['to'] ?? '';
         final promo = m['promotion'] ?? '';
         final lan = '$from$to$promo';
         return lan.startsWith(validMove.substring(0, 4));
       });
-      if (!isLegal && legalMoves.isNotEmpty) {
-        final fallbackObj = legalMoves.first;
+      if (!isLegal && moves.isNotEmpty) {
+        final fallbackObj = moves.first;
         final from = fallbackObj['from'] ?? '';
         final to = fallbackObj['to'] ?? '';
         final promo = fallbackObj['promotion'] ?? '';
@@ -702,8 +704,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       // - which is exactly how a queued reply used to be played into a
       // position it did not belong to, leaving the drill unable to continue.
       if (_puzzleGame != null) {
-        final stillLegal = _puzzleGame!.moves({'verbose': true}).any((m) =>
-            '${m['from']}${m['to']}${m['promotion'] ?? ''}'
+        final stillLegal = legalMoves(_puzzleGame!).any((m) =>
+            '${m['from']}${m['to']}${m['promotion']}'
                 .startsWith(validMove.substring(0, 4)));
         if (!stillLegal) {
           print(
@@ -1149,7 +1151,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _showSnackBar('🔄 Pozicija je vraćena na početno stanje.');
   }
 
-  void _handleSquareTap(String square) {
+  Future<void> _handleSquareTap(String square) async {
     if (_isOpponentTurn || _puzzleSolved || _puzzleGame == null) return;
 
     final piece = _puzzleGame!.get(square);
@@ -1188,27 +1190,18 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         // unconditionally here made every non-promotion tap-move silently
         // fail to match (no candidate has 'q' when none is a promotion).
         String? promoPiece;
-        final promoMoves = _puzzleGame!.moves({'verbose': true}).where(
-          (m) =>
-              m['from'] == from &&
-              m['to'] == to &&
-              m['promotion'] != null &&
-              m['promotion'].toString().isNotEmpty,
-        );
 
-        if (promoMoves.isNotEmpty) {
-          promoPiece = 'q';
-          _currentSolutionsNode ??=
-              Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
-          if (_currentSolutionsNode != null) {
-            for (var pm in promoMoves) {
-              final candUci = '$from$to${pm['promotion']}';
-              if (_currentSolutionsNode!.containsKey(candUci)) {
-                promoPiece = pm['promotion'].toString();
-                break;
-              }
-            }
-          }
+        if (isPromotionMove(_puzzleGame!, from, to)) {
+          // The reader picks. This used to read the solution tree and quietly
+          // promote to whatever the answer needed — so a puzzle whose point is
+          // that only a knight works was solved by playing a queen, and the
+          // one thing it was teaching never came up.
+          final chosen = await askPromotionPiece(
+            context,
+            isWhite: _puzzleGame!.turn == chess.Color.WHITE,
+          );
+          if (chosen == null || !mounted) return;
+          promoPiece = chosen;
         }
 
         final movingPiece = _puzzleGame!.get(from);
@@ -1236,9 +1229,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _isProgrammaticMove = true;
     try {
       if (_puzzleGame != null) {
+        // The opponent's own promotion, named: without the piece the SAN would
+        // come out as "d7d8" and the move list would not say what appeared on
+        // the board.
+        final promo = lanMove.length > 4 ? lanMove[4].toLowerCase() : '';
         String san = '$fromStr$toStr';
-        for (var m in _puzzleGame!.moves({'verbose': true})) {
-          if (m['from'] == fromStr && m['to'] == toStr) {
+        for (var m in legalMoves(_puzzleGame!)) {
+          if (m['from'] == fromStr &&
+              m['to'] == toStr &&
+              (promo.isEmpty || m['promotion'] == promo)) {
             san = m['san'] ?? san;
             break;
           }
@@ -1246,7 +1245,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         _puzzleGame!.move({
           'from': fromStr,
           'to': toStr,
-          'promotion': lanMove.length > 4 ? lanMove[4] : 'q'
+          'promotion': promo.isEmpty ? 'q' : promo,
         });
         final animatedPiece = _puzzleGame!.get(toStr);
         if (animatedPiece != null)
@@ -1285,7 +1284,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     final currentFen = _puzzleBoardController.getFen();
     final String startingFen = _puzzleGame!.fen;
-    final allLegalMoves = _puzzleGame!.moves({'verbose': true});
+    // Repaired list: the package's own verbose maps carry no promotion at all,
+    // so every promotion below would be matched as an ordinary move and then
+    // refused by `move()` — which is precisely how a pawn on the seventh rank
+    // stopped being able to promote. See core/services/legal_moves.dart.
+    final allLegalMoves = legalMoves(_puzzleGame!);
 
     String? userLan;
     dynamic matchedMove;
@@ -1321,7 +1324,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
       for (var m in allLegalMoves) {
         final testGame = chess.Chess.fromFEN(_puzzleGame!.fen);
-        testGame.move(m);
+        playMove(testGame, m);
         final testBoardFen = testGame.fen.split(' ')[0];
 
         if (currentBoardFen == testBoardFen) {
@@ -1334,33 +1337,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         }
       }
 
-      // Promotion handling refinement:
-      if (matchedMove != null &&
-          matchedMove['promotion'] != null &&
-          matchedMove['promotion'].toString().isNotEmpty) {
-        final from = matchedMove['from'] ?? '';
-        final to = matchedMove['to'] ?? '';
-        _currentSolutionsNode ??=
-            Map<String, dynamic>.from(_currentPuzzle?['solutions'] ?? {});
-
-        if (_currentSolutionsNode != null) {
-          for (var candidate in allLegalMoves) {
-            final cFrom = candidate['from'] ?? '';
-            final cTo = candidate['to'] ?? '';
-            final cPromo = candidate['promotion'] ?? '';
-            if (cFrom == from && cTo == to && cPromo.toString().isNotEmpty) {
-              final candUci = '$cFrom$cTo$cPromo';
-              if (_currentSolutionsNode!.containsKey(candUci)) {
-                matchedMove = candidate;
-                userLan = candUci;
-                print(
-                    '[MOVE_MADE_DEBUG] 🎯 Solution tree expects promotion move: $userLan');
-                break;
-              }
-            }
-          }
-        }
-      }
+      // What used to be here: a "promotion handling refinement" that looked the
+      // move up in the solution tree and swapped the reader's piece for the one
+      // the answer wanted. It existed because the promotion could not be read
+      // off the move at all; now that it can, the piece on the board is the
+      // piece the reader chose, and a queen where the answer is a knight is a
+      // wrong answer rather than a silently corrected one.
     }
 
     if (matchedMove == null || userLan == null) {
@@ -1370,7 +1352,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       return;
     }
 
-    _puzzleGame!.move(matchedMove);
+    playMove(_puzzleGame!, matchedMove);
     _activeFen = _puzzleGame!.fen;
     _puzzleBoardController.loadFen(_puzzleGame!.fen);
 
