@@ -1537,20 +1537,28 @@ skripti: stderr ne obara poziv ni pri uspehu ni pri padu, `$LASTEXITCODE` se
 čuva, sukob potpisa se prepoznaje, i `Stop` se vraća posle poziva. Skripta
 prolazi i parser (`Parser::ParseFile`, bez grešaka).
 
-**Šta niko nije video:** ceo prolaz sa telefonom.
+**Prolaz sa telefonom, release grana — proverio korisnik 28.8.2026:**
 
-- [ ] `.\build_and_deploy.ps1` bez parametra pita „R ili D"; prazan Enter daje
-      release, `D` debug. `-Mode debug` preskače pitanje.
+- [x] Skripta pita, i release grana radi od pitanja do kraja.
+- [x] Stiže do `[4/4]` i ispisuje `(rs.pejovic.chesscoach, release 6849caf)` —
+      dakle i režim i commit stoje u ispisu. **To je tačno ono što je 27.8.2026.
+      izostalo**, jer je skripta dotad padala na `monkey`-jevom stderr-u.
+- [x] **Provera stare instalacije se izvršila** i nije ništa javila, dakle
+      `com.example.chess_app` na tom telefonu više nema. Do 27.8.2026. se do te
+      provere nikad nije ni stizalo.
+- [x] Ispis `adb install` je uvučen, dakle `Invoke-Adb -Prikazi` radi.
+- [x] Na dnu Podešavanja piše `Mislisha 1.1.0+2 • 6849caf • release •
+      2026-08-28T00:04`, bez `+` jer je stablo bilo čisto — i **dodir ga
+      kopira**, provereno lepljenjem.
+
+**Ostalo neprovereno — pretežno debug grana:**
+
+- [ ] `-Mode debug` preskače pitanje, a `D` na pitanju bira debug.
 - [ ] Debug build se zaista napravi i nađe — putanja je
       `app-arm64-v8a-debug.apk`, a provera „svež APK, ne zaostao" važi i za nju.
 - [ ] Instalacija debug-a preko release-a (ili obrnuto) → skripta prepozna sukob
       potpisa i ispiše **komandu za brisanje sa upozorenjem da odnosi prijavu i
       podešavanja**, umesto golog „Instalacija nije uspela".
-- [ ] Posle uspešne instalacije skripta stigne do `[4/4]` i **izvrši proveru
-      stare instalacije** `com.example.chess_app`. To je ono što je 27.8.2026.
-      izostalo.
-- [ ] Na dnu Podešavanja piše `Mislisha 1.1.0+2 • <commit> • <režim> • <vreme>`,
-      i **dodir kopira** taj red (poruka „Kopirano: …").
 - [ ] Build iz prljavog radnog stabla ima `+` na kraju commita.
 - [ ] `flutter run` ili APK iz CI-ja → piše „build nije označen". Verzija se
       **ne** prikazuje sama, jer `1.1.0+2` je isti niz na svim gradnjama ove
