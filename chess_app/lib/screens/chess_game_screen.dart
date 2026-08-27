@@ -22,6 +22,7 @@ import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/local_recording_service.dart';
 import 'package:chess_app/services/lesson_recorder.dart';
 import 'package:chess_app/services/game_session_service.dart';
+import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/core/services/board_control_rules.dart' as rules;
 import 'package:chess_app/models/pending_session_intent.dart';
 
@@ -115,7 +116,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// a subscriber token that cannot publish audio however the buttons are
   /// pressed, so no screen may offer one that pretends otherwise.
   bool mayUseMic = false;
-  bool isAudioConnecting = true;
+
+  /// Whether this client is in the voice channel at all.
+  ///
+  /// Nothing joins it on entering the room any more (27.8.2026). Two reasons,
+  /// and the second is the one that decides it: Agora bills every minute a
+  /// person is *in* a channel, spoken in or not — and the microphone was being
+  /// opened before anybody said they wanted to talk, in an app whose users are
+  /// mostly children. **The channel is entered by whoever wants the
+  /// conversation, on a button.**
+  ///
+  /// Everyone in the room still receives `audio_users_list`, so somebody who is
+  /// not in the voice can see that a conversation is going on and join it. That
+  /// is what keeps this from turning a lesson into silence.
+  bool isVoiceOn = false;
+  bool isAudioConnecting = false;
   String? audioError;
   bool isHandRaised = false;
   List<dynamic> roomMembers = [];
@@ -280,7 +295,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
       onMultiPV: _stockfishService.onMultiPVUpdated,
     );
 
-    _initAudioChat();
+    // No `_initAudioChat()` here. Entering a room is not asking for a
+    // conversation — see [isVoiceOn]. The studio has no voice at all: there is
+    // nobody to talk to, and its token request was refused (`no-room`) anyway.
   }
 
   void _onAppSettingsChanged() {
@@ -309,6 +326,51 @@ class _ChessGamePageState extends State<ChessGamePage> {
     pgnPasteController.dispose();
     searchController.dispose();
     super.dispose();
+  }
+
+  /// Who is in the voice right now, other than me.
+  ///
+  /// The roster is broadcast to the whole room, not only to the people in the
+  /// channel, which is what lets somebody who has not turned their voice on see
+  /// that the lesson is being spoken. Without that, "glas je na dugme" would
+  /// mean a student sitting in silence not knowing there is anything to hear.
+  List<String> get _voiceUsersOther => audioUsers
+      .where((u) => u is Map && u['userId'] != widget.userSession.id)
+      .map<String>((u) => (u['userName'] ?? 'Učesnik').toString())
+      .toList();
+
+  /// Enters the voice channel because somebody asked for it.
+  ///
+  /// The one door in: no screen and no socket event may open the voice on a
+  /// person's behalf. A right that changes while the voice is off is remembered
+  /// by the server and applies the next time this is pressed — see
+  /// [_rejoinVoice].
+  Future<void> _joinVoice() async {
+    if (isVoiceOn || widget.roomCode == 'STUDIO') return;
+    setState(() => isVoiceOn = true);
+    await _initAudioChat();
+  }
+
+  /// Leaves the voice channel without leaving the lesson.
+  ///
+  /// `audio_leave` is what stops the meter on the server, so it is sent even
+  /// though the channel is already left — the two are different things and the
+  /// server only learns about the first one from us.
+  Future<void> _leaveVoice() async {
+    await _agoraService.leaveChannel();
+    socket.emit('audio_leave', {
+      'roomId': widget.roomCode,
+      'userId': widget.userSession.id,
+    });
+    if (!mounted) return;
+    setState(() {
+      isVoiceOn = false;
+      isAudioConnecting = false;
+      audioError = null;
+      isAudioMuted = false;
+      mayUseMic = false;
+      isHandRaised = false;
+    });
   }
 
   Future<void> _initAudioChat() async {
@@ -360,7 +422,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
     if (mounted) {
       setState(() {
         mayUseMic = _agoraService.maySpeak;
-        if (!success) isAudioConnecting = false;
+        if (!success) {
+          isAudioConnecting = false;
+          // Back to the button, with the reason above it. Leaving the panel in
+          // the "voice is on" shape after a join that never happened would offer
+          // "Isključi glas" for a channel nobody is in, and hide the one control
+          // that would let them try again.
+          isVoiceOn = false;
+        }
       });
     }
   }
@@ -372,6 +441,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// is running. Waiting for the next lesson would make "oduzmi mikrofon" mean
   /// something other than what anybody pressing it expects.
   Future<void> _rejoinVoice() async {
+    // Nothing to rejoin, and joining here would open a channel the person never
+    // asked for — which is the whole thing [isVoiceOn] exists to prevent. The
+    // right itself is not lost: the server is asked again at the next join.
+    if (!isVoiceOn) return;
     await _agoraService.leaveChannel();
     await _initAudioChat();
   }
@@ -660,10 +733,20 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.connect();
 
     socket.onConnect((_) {
+      final isStudio = widget.roomCode == 'STUDIO';
       setState(() {
         isConnected = true;
-        gameStatus = "Soba: ${widget.roomCode}";
+        gameStatus = isStudio ? 'Šahovski studio' : "Soba: ${widget.roomCode}";
       });
+
+      // The studio is a local board, not a room: there is no `rooms` row named
+      // STUDIO and there must not be one. Asking to join it made the guest list
+      // answer the only way it can — `no-room` — and the screen did what a
+      // refusal says to do: a snackbar reading "Ne postoji soba sa tim kodom"
+      // and straight back out. Joining also put every studio in the world into
+      // one socket room called STUDIO, so one person's moves were broadcast
+      // into somebody else's analysis.
+      if (isStudio) return;
 
       // Join room passing role and roomCode
       socket.emit('joinGame', {
@@ -673,6 +756,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
         'userName': widget.userSession.name,
         'role': widget.userSession.role,
       });
+    });
+
+    // A room reached with a token the server will not take any more. The
+    // handshake is refused before anything on this screen asks for anything, so
+    // this is the earliest and clearest place it can be heard — and ending the
+    // session here is what takes the user to the login screen instead of
+    // leaving them in front of a board that never fills.
+    socket.onConnectError((err) {
+      if (!looksLikeRefusedToken(err)) return;
+      unawaited(SessionService.instance.expire());
     });
 
     socket.onDisconnect((_) {
@@ -1071,13 +1164,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.on('voice_level_changed', (data) async {
       if (!mounted) return;
       final mayTalk = data is Map && data['level'] == 'talk';
+      // Said differently while the voice is off, because "mikrofon je uključen"
+      // would be a sentence about something that is not happening: nothing is
+      // open until this person opens it.
+      final voiceOn = isVoiceOn;
       AppFeedback.show(
         context,
         () => SnackBar(
           content: Text(mayTalk
-              ? 'Trener vam je dao reč. Mikrofon je uključen.'
-              : 'Trener je isključio vaš mikrofon. I dalje čujete čas i '
-                  'odgovarate na tabli.'),
+              ? (voiceOn
+                  ? 'Trener vam je dao reč. Mikrofon je uključen.'
+                  : 'Trener vam je dao reč. Važi čim uključite glas.')
+              : (voiceOn
+                  ? 'Trener je isključio vaš mikrofon. I dalje čujete čas i '
+                      'odgovarate na tabli.'
+                  : 'Trener je isključio vaš mikrofon.')),
           backgroundColor: mayTalk ? Colors.green : Colors.orange,
           duration: const Duration(seconds: 4),
         ),
@@ -3103,7 +3204,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   ),
                                 ],
                               ),
-                              if (isAudioConnecting)
+                              if (!isVoiceOn)
+                                const Icon(Icons.mic_off,
+                                    color: Colors.blueGrey, size: 16)
+                              else if (isAudioConnecting)
                                 const SizedBox(
                                   width: 14,
                                   height: 14,
@@ -3119,6 +3223,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             ],
                           ),
                           const SizedBox(height: 8),
+                          // Above the switch, and shown whether the voice is on
+                          // or off: a join that was refused turns the panel back
+                          // off, and the reason has to survive that.
                           if (audioError != null) ...[
                             Text(
                               audioError!,
@@ -3127,7 +3234,64 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             ),
                             const SizedBox(height: 8),
                           ],
-                          if (!isAudioConnecting && audioError == null) ...[
+                          // The voice is off until somebody asks for it. What
+                          // this offers depends on whether a conversation is
+                          // already going on, because those are two different
+                          // questions: "do I want to start talking" and "the
+                          // lesson is being spoken and I am not hearing it".
+                          if (!isVoiceOn) ...[
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: _voiceUsersOther.isEmpty
+                                    ? Colors.blueGrey.withValues(alpha: 0.15)
+                                    : Colors.green.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _voiceUsersOther.isEmpty
+                                        ? Icons.mic_off
+                                        : Icons.record_voice_over,
+                                    size: 16,
+                                    color: _voiceUsersOther.isEmpty
+                                        ? Colors.blueGrey
+                                        : Colors.greenAccent,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _voiceUsersOther.isEmpty
+                                          ? 'Glas je isključen. Mikrofon se ne '
+                                              'otvara dok ga sami ne uključite.'
+                                          : 'U razgovoru: '
+                                              '${_voiceUsersOther.join(', ')}.',
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            ElevatedButton.icon(
+                              onPressed: _joinVoice,
+                              icon: const Icon(Icons.headset_mic, size: 16),
+                              label: Text(_voiceUsersOther.isEmpty
+                                  ? 'Uključi glas'
+                                  : 'Priključi se razgovoru'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Colors.green.withValues(alpha: 0.2),
+                                foregroundColor: Colors.greenAccent,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                            ),
+                          ],
+                          if (isVoiceOn &&
+                              !isAudioConnecting &&
+                              audioError == null) ...[
                             // A button that cannot work must not be drawn. While
                             // the server says this person only listens, the app
                             // holds a subscriber token: "Uključi mikrofon" would
@@ -3365,6 +3529,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 ),
                               ),
                             ],
+                          ],
+                          // Outside the block above on purpose: a voice that
+                          // came up with an error is exactly the one somebody
+                          // needs to be able to switch off.
+                          if (isVoiceOn) ...[
+                            const SizedBox(height: 10),
+                            TextButton.icon(
+                              onPressed: _leaveVoice,
+                              icon: const Icon(Icons.call_end, size: 16),
+                              label: const Text('Isključi glas'),
+                              style: TextButton.styleFrom(
+                                  foregroundColor: Colors.redAccent),
+                            ),
                           ],
                         ],
                       ),
