@@ -8,6 +8,7 @@ const { pool } = require('../db');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
 const mailService = require('../services/mailService');
 const { GOOGLE_PLACEHOLDER_HASH, isPasswordlessHash } = require('../services/googleAccount');
+const { OUTCOME, verificationOutcome } = require('../services/emailVerification');
 
 // Credential endpoints are the prime target for brute force and enumeration,
 // so they get a tighter budget than the rest of the API.
@@ -105,19 +106,25 @@ router.post(['/verify-email', '/auth/verify-email'], async (req, res) => {
 
     const user = result.rows[0];
 
-    if (user.is_verified) {
-      const token = jwt.sign(
-        { id: user.id, email: user.email, name: user.name, role: user.role },
-        JWT_SECRET,
-        { expiresIn: '7d' }
-      );
-      return res.json({
-        token,
-        user: { id: user.id, email: user.email, name: user.name, role: user.role }
+    const outcome = verificationOutcome({
+      isVerified: user.is_verified,
+      storedCode: user.verification_code,
+      providedCode: code,
+    });
+
+    // An already-verified account gets an answer, never a session. This branch
+    // used to sign a token here without looking at the code at all, so anybody
+    // who knew a registered address could take that account over. See
+    // `services/emailVerification.js` for the whole reasoning.
+    if (outcome === OUTCOME.ALREADY_VERIFIED) {
+      logger.warn({ email }, 'Verification attempted on an already-verified account');
+      return res.status(400).json({
+        error: 'Ovaj nalog je već verifikovan. Prijavite se lozinkom ili preko Google-a.',
+        alreadyVerified: true,
       });
     }
 
-    if (!user.verification_code || user.verification_code.toString().trim() !== code.toString().trim()) {
+    if (outcome !== OUTCOME.OK) {
       return res.status(400).json({ error: 'Netačan verifikacioni kod.' });
     }
 
@@ -294,7 +301,35 @@ router.post(['/google', '/auth/google'], async (req, res) => {
       logger.info('[GOOGLE_AUTH] Created new Google user:', user.email);
     } else {
       user = userResult.rows[0];
-      await pool.query('UPDATE users SET is_verified = TRUE WHERE id = $1', [user.id]);
+
+      // Signing in with Google adopts the account that already holds this
+      // address, which is the behaviour that keeps one person from ending up
+      // with two accounts — and here two accounts would silently split a
+      // trainer's lessons from their student's.
+      //
+      // With one exception. If that account was **never verified**, nobody ever
+      // proved they owned the address: anyone can register any address, and the
+      // code that would prove it was never entered. Adopting such an account as
+      // is would leave whoever created it holding a working password to the
+      // account of the person who actually owns the address. So the password
+      // goes, and the account becomes a Google account.
+      if (!user.is_verified) {
+        logger.warn(
+          { email: user.email },
+          '[GOOGLE_AUTH] Adopting an unverified account: password cleared, nobody had proven this address'
+        );
+        await pool.query(
+          `UPDATE users
+              SET is_verified = TRUE, verification_code = NULL, password_hash = $2
+            WHERE id = $1`,
+          [user.id, GOOGLE_PLACEHOLDER_HASH]
+        );
+      } else {
+        await pool.query(
+          'UPDATE users SET verification_code = NULL WHERE id = $1',
+          [user.id]
+        );
+      }
       logger.info('[GOOGLE_AUTH] Found existing Google user:', user.email);
     }
 

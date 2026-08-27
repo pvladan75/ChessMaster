@@ -1422,6 +1422,19 @@ prijavu — pet nalaza" u [STANJE-RADA.md](STANJE-RADA.md).
 7636), ali soket i pretraživač nisu i ne mogu biti — ovo je zato ceo tok koji
 niko nije video da radi.
 
+**✅ Provereno uživo 27.8.2026 (korisnik):** ceo tok na Windows-u iz prve —
+sistemski pretraživač, ekran „Sign in to Mislisha", stranica „Prijava je
+gotova.", i aplikacija prijavljena. Google nalog čija adresa **već ima** nalog u
+aplikaciji ulazi u **taj isti** nalog, ne pravi drugi. Ostaje da se probaju
+rubovi iz tačke 8f (zatvorena kartica, odbijen pristup).
+
+9. **Verifikovan nalog ne prolazi kroz `/verify-email`.** Popravljena rupa,
+   27.8.2026 — ranije je ta ruta izdavala token bez provere kôda. Proba:
+   registrovati se, verifikovati kôd, pa **ponovo** poslati isti kôd sa ekrana
+   za verifikaciju (ili `curl`-om). Odgovor mora biti odbijanje sa porukom
+   „Ovaj nalog je već verifikovan…", a aplikacija se vraća na formu za prijavu.
+   **Ni u jednom slučaju se ne sme dobiti token.**
+
 ## Gde je provera stala — 26.8.2026
 
 Nastavlja se odavde. Nalozi i veze **stoje u bazi**, ne treba ih praviti iznova.

@@ -185,6 +185,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         try {
           final data = jsonDecode(response.body);
           _showError(data['error'] ?? 'Verifikacija nije uspela.');
+          // Nothing left to do on this screen: the account is verified and the
+          // way in is a password or Google. Leaving the user in front of a code
+          // field that can never work again is how a person concludes the app
+          // is broken rather than that they are already done.
+          if (data['alreadyVerified'] == true) {
+            setState(() => _isAwaitingVerification = false);
+          }
         } catch (_) {
           _showError(
               'Greška pri verifikaciji (Status ${response.statusCode}).');

@@ -919,6 +919,41 @@ ne postoji — dugme vodi u zadatak), i sekcija „Izveštaji roditeljima" iz C
 (`student_reports` nema stanje „sastavljen, nije poslat", pa bi broj bio
 izmišljen).
 
+## Rupa u prijavi, nađena usput 27.8.2026
+
+**`POST /verify-email` je izdavao token bez ijedne provere.** Ruta je nalazila
+nalog po adresi i, ako je već verifikovan, **potpisivala JWT i vraćala ga** —
+bez poređenja kôda, bez lozinke. Ko zna bilo koju registrovanu adresu, pošalje
+je sa šest proizvoljnih znakova i dobije sedmodnevnu sesiju za taj nalog. Za
+svaki nalog na serveru, uključujući dečje.
+
+Nije izgledalo kao rupa nego kao ljubaznost: „ako je korisnik već verifikovan,
+nemoj da mu javljaš da je kôd pogrešan". I stajalo je tačno iznad poređenja koje
+je preskakalo. Nađeno čitanjem rute zbog sasvim drugog pitanja.
+
+Pravilo je sada u `services/emailVerification.js`, kao jedna čista funkcija sa
+tri ishoda, i **verifikovan nalog ne dobija sesiju nikada** — dobija poruku da
+se prijavi lozinkom ili preko Google-a. Verifikacija dokazuje da je adresa
+jednom bila dostupna; to nije dokaz o *sada*, a ova ruta drugog dokaza nema.
+Aplikacija na `alreadyVerified` vraća korisnika na formu za prijavu, umesto da
+ga ostavi pred poljem za kôd koje više ne može da radi.
+
+**Uz to, druga polovina istog pitanja: Google prijava i postojeći nalog.**
+Prijava preko Google-a preuzima nalog koji već drži tu adresu — i to treba tako
+da ostane. Adresu je potvrdio Google (`email_verified` se proverava), isti dokaz
+koji daje i naš kôd; odbijanje bi ostavilo čoveka bez ulaza, a drugi nalog bi
+tiho razdvojio trenera od učenika, jer veza visi o `users.id`.
+
+Jedan izuzetak je dodat. Ako zatečeni nalog **nije verifikovan**, niko nikad
+nije dokazao da je adresa njegova — bilo ko može da registruje bilo čiju adresu,
+a kôd koji bi to dokazao nije unet. Preuzimanje takvog naloga sa zatečenom
+lozinkom ostavilo bi onome ko ga je napravio radnu lozinku za nalog čoveka koji
+adresu stvarno poseduje. Zato lozinka u tom slučaju pada na
+`GOOGLE_PLACEHOLDER_HASH` i nalog postaje Google nalog.
+
+Oba pravila drži `test/email_verification.test.js`, a čitač izvora u njemu je
+dokazan mutacijom — vraćanjem stare grane, koja test obara.
+
 ## Ekran za prijavu — pet nalaza sa prve prolaznosti, 27.8.2026
 
 Korisnik prolazi kroz aplikaciju ekran po ekran. Prvi je ekran za prijavu; pet
