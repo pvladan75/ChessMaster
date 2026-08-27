@@ -34,3 +34,9 @@ __pycache__/
 # Sastavljeni dizajn kanvas — 2,2 MB, regeneriše se iz .dc.html radnih fajlova
 design/*/*.html
 !design/*/*.dc.html
+
+# Scratch list of bugs found while walking through the app. It carries pasted
+# logs, and a log carries whatever the machine was talking to at the time —
+# LAN addresses, ports, sometimes an address book. The repository is public, so
+# this one stays on the machine that writes it.
+docs/bug_spec.txt

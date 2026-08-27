@@ -618,7 +618,7 @@ Nađeno pri pripremi prebacivanja, i zaustavilo bi ga na sam dan.
 `${req.protocol}://${req.get('host')}/uploads/...`. Posledice su bile dve, i
 druga je bila gora od prve:
 
-- svih **16 postojećih snimaka** nosi `http://192.168.0.19:3000/...`, dakle kućnu
+- svih **16 postojećih snimaka** nosi `http://<kucna-adresa>:3000/...`, dakle kućnu
   mrežu — prekopiranje fajlova to ne bi rešilo;
 - `trust proxy` nije bio podešen, pa bi iza nginx-a `req.protocol` vratio `http`,
   i svaki **nov** snimak dobio bi `http://api.chesstrainers.app/...` — nešifrovanu
