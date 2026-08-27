@@ -49,12 +49,18 @@ void main() {
     // The whole map in one place, so the split has something to be checked
     // against rather than a memory of what used to happen.
     const promises = <String, String>{
+      'Otvori repertoar': 'repertoar',
       'Započni trening': 'taktika',
+      'Dobij': 'zavrsnice:dobitak',
       'Održi remi': 'zavrsnice:remi',
       'Greške iz partija': 'greske',
       'Mat u 1': 'mat:1',
       'Mat u 2': 'mat:2',
       'Mat u 3': 'mat:3',
+      'Lako': 'osnovno:easy',
+      'Srednje': 'osnovno:medium',
+      'Teško': 'osnovno:hard',
+      'Započni vežbanje dobitnih pozicija': 'dobijena',
     };
 
     for (final entry in promises.entries) {
@@ -99,5 +105,80 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(calls, isEmpty);
+  });
+
+  testWidgets('the repertoire is its own section, not an endgame button',
+      (tester) async {
+    // It sat as a fourth button on the endgame card, where it read as one more
+    // ending to solve. It is neither an ending nor an exercise set, so what
+    // this guards is the grouping itself: if it is ever folded back under
+    // another card, this fails.
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: CategorySelectionHubWidget(
+          onSelectMatePuzzle: (_) {},
+          onSelectBasicMate: (_) {},
+          onSelectWinningPosition: () {},
+          onSelectTactics: () {},
+          onSelectEndgameWin: () {},
+          onSelectEndgameDraw: () {},
+          onSelectBlunderGames: () {},
+          onSelectRepertoire: () {},
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final endgameCard = find
+        .ancestor(
+          of: find.text('Završnice iz majstorskih partija'),
+          matching: find.byType(Card),
+        )
+        .first;
+    expect(
+      find.descendant(of: endgameCard, matching: find.text('Otvori repertoar')),
+      findsNothing,
+      reason: 'repertoar je opet završio u kartici završnica',
+    );
+
+    // And the three groups the cards are ordered by are actually labelled.
+    for (final label in const [
+      'OTVARANJE',
+      'TAKTIKA',
+      'ZAVRŠNICA I TEHNIKA',
+    ]) {
+      expect(find.text(label), findsOneWidget,
+          reason: 'nema naslova sekcije „$label”');
+    }
+  });
+
+  testWidgets('the hub fits a 360 dp phone', (tester) async {
+    // A release build paints no overflow warning - it just clips, and a button
+    // past the edge cannot be pressed. In a test build the overflow throws,
+    // which is the only cheap place to catch it.
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: CategorySelectionHubWidget(
+          onSelectMatePuzzle: (_) {},
+          onSelectBasicMate: (_) {},
+          onSelectWinningPosition: () {},
+          onSelectTactics: () {},
+          onSelectEndgameWin: () {},
+          onSelectEndgameDraw: () {},
+          onSelectBlunderGames: () {},
+          onSelectRepertoire: () {},
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 }

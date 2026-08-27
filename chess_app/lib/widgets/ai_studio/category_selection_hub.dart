@@ -22,6 +22,26 @@ class CategorySelectionHubWidget extends StatelessWidget {
     required this.onSelectRepertoire,
   });
 
+  /// The label above a group of cards.
+  ///
+  /// The hub is ordered by phase of the game rather than by where the material
+  /// comes from, because that is the order a lesson is taught in and the only
+  /// grouping a child already has a name for.
+  Widget _section(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+          color: Colors.grey,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -64,7 +84,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'Izaberite modul za vežbanje taktičkih zagonetki ili matnih završnica.',
+                              'Vežbe su poređane po fazi partije: otvaranje, taktika, pa završnica i tehnika.',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey,
@@ -78,10 +98,76 @@ class CategorySelectionHubWidget extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-              // CARD 0: Adaptive tactics — listed first because it is the mode
-              // that adjusts to the solver, while the ones below are fixed sets.
+              // SECTION: Otvaranje.
+              //
+              // The repertoire used to be a fourth button on the endgame card,
+              // where it was the one thing in the hub that is neither an
+              // endgame nor a set of exercises: it is a thing the student
+              // builds and comes back to. It stands alone, and it stands first,
+              // because it is the phase a game starts in.
+              _section('Otvaranje'),
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.indigo.shade300, width: 1.5),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.menu_book_outlined,
+                              color: Colors.indigo.shade200, size: 28),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Repertoar otvaranja',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Nije skup zadataka nego nešto što gradite: birate šta biste '
+                        'odigrali, poziciju po poziciju, i odmah dobijate procenu '
+                        'izbora. Repertoar ostaje sačuvan i dopunjuje se vremenom.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('Otvori repertoar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                        ),
+                        onPressed: onSelectRepertoire,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // SECTION: Taktika.
+              //
+              // Both cards below ask the same thing of the solver - one
+              // position, find the move - and differ only in where the position
+              // comes from and whether the answer ends in mate.
+              _section('Taktika'),
+
+              // Adaptive tactics first: it is the mode that adjusts to the
+              // solver, while the one under it is a fixed set.
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(
@@ -133,15 +219,94 @@ class CategorySelectionHubWidget extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // CARD: Zavrsnice.
+              // Zagonetke: Mat u 1, 2 ili 3 poteza.
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Colors.teal, width: 1.5),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(
+                            Icons.sports_esports,
+                            color: Colors.tealAccent,
+                            size: 28,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Zagonetke: Mat u 1, 2 ili 3 poteza',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Rešavajte forsiranu matnu sekvencu u traženom broju poteza.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.looks_one),
+                            label: const Text('Mat u 1'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal.shade800,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () => onSelectMatePuzzle('1'),
+                          ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.looks_two),
+                            label: const Text('Mat u 2'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal.shade800,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () => onSelectMatePuzzle('2'),
+                          ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.looks_3),
+                            label: const Text('Mat u 3'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal.shade800,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () => onSelectMatePuzzle('3'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // SECTION: Završnica i tehnika.
               //
-              // Placed next to tactics because it is the same kind of thing to a
-              // user - a position to solve - even though the material behind it
-              // is mined here rather than taken from Lichess. Two buttons, not
-              // one: converting a won position and holding a drawn one are
-              // different skills, and a child asked to "find the move" without
-              // being told which of the two it is has been asked the wrong
-              // question.
+              // Everything here is a position played out to the end rather than
+              // a single move found: master endings, the classical mates, and a
+              // won game that still has to be converted.
+              _section('Završnica i tehnika'),
+
+              // Two buttons for the master endings, not one: converting a won
+              // position and holding a drawn one are different skills, and a
+              // child asked to "find the move" without being told which of the
+              // two it is has been asked the wrong question.
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(
@@ -219,20 +384,6 @@ class CategorySelectionHubWidget extends StatelessWidget {
                             ),
                             onPressed: onSelectBlunderGames,
                           ),
-                          // Not a set of exercises but a thing the student
-                          // builds: what they would play, position by
-                          // position, judged as they go.
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.menu_book_outlined),
-                            label: const Text('Repertoar otvaranja'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.indigo.shade700,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 12),
-                            ),
-                            onPressed: onSelectRepertoire,
-                          ),
                         ],
                       ),
                     ],
@@ -242,84 +393,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // CARD 1: Zagonetke: Mat u 1, 2 ili 3 poteza
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Colors.teal, width: 1.5),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(18.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: const [
-                          Icon(
-                            Icons.sports_esports,
-                            color: Colors.tealAccent,
-                            size: 28,
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Zagonetke: Mat u 1, 2 ili 3 poteza',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Rešavajte forsiranu matnu sekvencu u traženom broju poteza.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.looks_one),
-                            label: const Text('Mat u 1'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal.shade800,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () => onSelectMatePuzzle('1'),
-                          ),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.looks_two),
-                            label: const Text('Mat u 2'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal.shade800,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () => onSelectMatePuzzle('2'),
-                          ),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.looks_3),
-                            label: const Text('Mat u 3'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal.shade800,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () => onSelectMatePuzzle('3'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // CARD 2: Vežbajte osnovno matiranje
+              // Vežbajte osnovno matiranje.
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(
@@ -408,12 +482,12 @@ class CategorySelectionHubWidget extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // CARD 3: Pronađite dobitni put
+              // Pronađite dobitni put.
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Colors.amber, width: 1.5),
+                  side: BorderSide(color: Colors.green.shade400, width: 1.5),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(18.0),
@@ -421,14 +495,14 @@ class CategorySelectionHubWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        children: const [
+                        children: [
                           Icon(
                             Icons.emoji_events,
-                            color: Colors.amberAccent,
+                            color: Colors.green.shade300,
                             size: 28,
                           ),
-                          SizedBox(width: 12),
-                          Expanded(
+                          const SizedBox(width: 12),
+                          const Expanded(
                             child: Text(
                               'Pronađite dobitni put',
                               style: TextStyle(
@@ -449,7 +523,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
                         icon: const Icon(Icons.play_arrow),
                         label: const Text('Započni vežbanje dobitnih pozicija'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber.shade800,
+                          backgroundColor: Colors.green.shade800,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,
