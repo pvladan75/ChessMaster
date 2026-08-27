@@ -13,7 +13,9 @@ import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/engine_analysis_dials.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 /// Building a repertoire by being asked, not by being told.
@@ -337,10 +339,54 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
   /// What the engine makes of this position, at the reader's depth and with as
   /// many lines as they asked for.
+  /// This board's analysis dials — see [EngineAnalysisDials]. Up to 50 plies
+  /// here: on a repertoire position it is worth waiting for, and the old
+  /// ceiling of 28 was a leftover from when this number also decided how long
+  /// the engine thought before playing a move.
+  int _analysisDepth = AppSettingsService.instance.analysisDepth;
+  int _analysisLines = AppSettingsService.instance.analysisLines;
+
+  /// One arrow per engine line, carrying that line's evaluation.
+  ///
+  /// Only for the position on the board: lines from the previous one would
+  /// point at pieces that have moved.
+  List<EngineArrow> _engineArrows() {
+    if (_linesFen != _current) return const [];
+    final arrows = <EngineArrow>[];
+    for (var i = 0; i < _lines.length && i < _analysisLines; i++) {
+      final line = _lines[i];
+      if (line.fromSquare.isEmpty || line.toSquare.isEmpty) continue;
+      arrows.add(EngineArrow(
+        from: line.fromSquare,
+        to: line.toSquare,
+        evalText: line.evaluation,
+        rank: i + 1,
+      ));
+    }
+    return arrows;
+  }
+
+  /// A dial moved: remember it and ask again about this position.
+  Future<void> _applyAnalysisDials({int? depth, int? lines}) async {
+    setState(() {
+      if (depth != null) _analysisDepth = depth;
+      if (lines != null) _analysisLines = lines;
+    });
+    if (depth != null) {
+      await AppSettingsService.instance.setAnalysisDepth(depth);
+    }
+    if (lines != null) {
+      await AppSettingsService.instance.setAnalysisLines(lines);
+    }
+    if (!mounted) return;
+    // Asked again at once. Leaving the old lines up under a new depth reads as
+    // an engine that stopped working — which is exactly how it was reported.
+    await _askEngine();
+  }
+
   Future<void> _askEngine() async {
     final fen = _current;
     if (fen == null || _thinking) return;
-    final settings = AppSettingsService.instance;
 
     setState(() {
       _thinking = true;
@@ -352,16 +398,28 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         (String f, int depth, int multiPV) async {
           final engine = StockfishService();
           await engine.initEngine();
-          return engine.analyzePositionSync(f, depth: depth, multiPV: multiPV);
+          return engine.analyzePositionSync(
+            f,
+            depth: depth,
+            multiPV: multiPV,
+            // A deep search takes a while, and a panel that says nothing until
+            // it finishes is indistinguishable from an engine that is not
+            // answering. The lines are shown as they come and simply get
+            // better; the depth beside each one says how much to trust it.
+            timeout: Duration(seconds: 5 + depth),
+            onProgress: (partial) {
+              if (!mounted || _current != f) return;
+              setState(() {
+                _lines = partial;
+                _linesFen = f;
+              });
+            },
+          );
         };
 
     List<AnalysisLine> lines;
     try {
-      lines = await run(
-        fen,
-        settings.defaultEngineDepth,
-        settings.defaultMultiPV,
-      );
+      lines = await run(fen, _analysisDepth, _analysisLines);
     } catch (e) {
       lines = const [];
     }
@@ -516,7 +574,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                     isDrawingMode: false,
                     drawingStartSquare: null,
                     arrows: const [],
-                    engineArrows: const [],
+                    // The engine's answer, on the board rather than only in a
+                    // list underneath it: one arrow per line, its evaluation
+                    // written beside it. Reading a move as "Nxd4" and finding
+                    // it on the board is work a beginner should not have to do
+                    // to see what the engine means.
+                    engineArrows: _engineArrows(),
                     onMove: _onMove,
                     onSquareTapForDrawing: (_) {},
                   ),
@@ -845,42 +908,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             style: AppText.micro.copyWith(color: context.colors.textMuted),
           ),
           const SizedBox(height: 6),
-          Wrap(
-            spacing: 12,
-            runSpacing: 6,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _engineDial(
-                context,
-                label: 'dubina',
-                value: settings.defaultEngineDepth,
-                values: const [12, 16, 18, 20, 22, 24, 28],
-                onChanged: (value) async {
-                  await settings.setEngineDepth(value);
-                  if (!mounted) return;
-                  // Asked again at once. Leaving the old lines up under a new
-                  // depth reads as an engine that stopped working — which is
-                  // exactly how it was reported.
-                  await _askEngine();
-                },
-              ),
-              _engineDial(
-                context,
-                label: 'linija',
-                value: settings.defaultMultiPV,
-                values: const [1, 2, 3, 4, 5],
-                onChanged: (value) async {
-                  await settings.setMultiPV(value);
-                  if (!mounted) return;
-                  await _askEngine();
-                },
-              ),
-              TextButton.icon(
-                onPressed: _thinking ? null : _askEngine,
-                icon: const Icon(Icons.refresh, size: 14),
-                label: const Text('Ponovo'),
-              ),
-            ],
+          EngineAnalysisDials(
+            depth: _analysisDepth,
+            lines: _analysisLines,
+            enabled: !_thinking,
+            onRestart: _askEngine,
+            onDepthChanged: (value) => _applyAnalysisDials(depth: value),
+            onLinesChanged: (value) => _applyAnalysisDials(lines: value),
           ),
           const SizedBox(height: 4),
           for (final line in (_linesFen == _current ? _lines : const []))

@@ -371,12 +371,32 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _pgnResult = null;
   }
 
+  /// This board's analysis dials — see [EngineAnalysisDials]. Started from what
+  /// was last chosen and changed here, on the board being looked at, rather
+  /// than in Settings where the number also decided how strongly the engine
+  /// plays.
+  int _analysisDepth = AppSettingsService.instance.analysisDepth;
+  int _analysisLines = AppSettingsService.instance.analysisLines;
+
+  /// Re-asks the engine after a dial moves. Leaving the old lines up under a
+  /// new depth reads as an engine that stopped working.
+  void _applyAnalysisDials({int? depth, int? lines}) {
+    setState(() {
+      if (depth != null) _analysisDepth = depth;
+      if (lines != null) _analysisLines = lines;
+    });
+    if (depth != null) AppSettingsService.instance.setAnalysisDepth(depth);
+    if (lines != null) AppSettingsService.instance.setAnalysisLines(lines);
+    _stockfishService.setMultiPV(_analysisLines);
+    _triggerEngineAnalysis();
+  }
+
   Future<void> _initEngine() async {
     await _stockfishService.initEngine();
     // Set before attach() so the auto-triggered first analysis (fired
     // synchronously inside attach(), see below) already uses the configured
     // MultiPV count instead of whatever the previous screen left behind.
-    _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
+    _stockfishService.setMultiPV(_analysisLines);
     _stockfishService.attach(
       this,
       getFen: () => _currentNode.fen,
@@ -615,10 +635,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             '[AnalysisStudio ERROR] ❌ Invalid FEN string: ${_currentNode.fen} | Error: $e');
       }
 
-      final depth = AppSettingsService.instance.defaultEngineDepth;
       _stockfishService.stopAnalysis();
-      _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
-      _stockfishService.analyzePosition(_currentNode.fen, depth: depth);
+      _stockfishService.setMultiPV(_analysisLines);
+      _stockfishService.analyzePosition(_currentNode.fen,
+          depth: _analysisDepth);
     } else {
       AppLogger.log(
           '[AnalysisStudio] ⏸️ Engine evaluation disabled by user switch. Stopping analysis.');
@@ -1772,6 +1792,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           StockfishAnalysisWidget(
             isEngineEnabled: _showEvaluation,
             isAllowedToUseEngine: true,
+            analysisDepth: _analysisDepth,
+            analysisLines: _analysisLines,
+            onAnalysisDepthChanged: (value) =>
+                _applyAnalysisDials(depth: value),
+            onAnalysisLinesChanged: (value) =>
+                _applyAnalysisDials(lines: value),
             isOnline: _stockfishService.isOnline,
             isCustomEngineActive: _stockfishService.isCustomEngineActive,
             onOpenSettings:

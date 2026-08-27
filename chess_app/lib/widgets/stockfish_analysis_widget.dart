@@ -1,5 +1,7 @@
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:flutter/material.dart';
+
+import 'package:chess_app/widgets/engine_analysis_dials.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/engine_line_dialog.dart';
@@ -18,6 +20,13 @@ class StockfishAnalysisWidget extends StatelessWidget {
   final VoidCallback? onForceRestart;
   final Function(String fen)? onLoadFenToMainBoard;
 
+  /// This board's own analysis dials. Null on a screen that has no say over
+  /// them — a small preview, or a board somebody else is driving.
+  final int? analysisDepth;
+  final int? analysisLines;
+  final ValueChanged<int>? onAnalysisDepthChanged;
+  final ValueChanged<int>? onAnalysisLinesChanged;
+
   const StockfishAnalysisWidget({
     super.key,
     required this.isEngineEnabled,
@@ -32,6 +41,10 @@ class StockfishAnalysisWidget extends StatelessWidget {
     this.onOpenSettings,
     this.onForceRestart,
     this.onLoadFenToMainBoard,
+    this.analysisDepth,
+    this.analysisLines,
+    this.onAnalysisDepthChanged,
+    this.onAnalysisLinesChanged,
   });
 
   void _openLineDialog(BuildContext context, AnalysisLine line) {
@@ -58,19 +71,28 @@ class StockfishAnalysisWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Top Bar: Title, Engine Status & Switch
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // The two switches side by side, and this board's own dials under
+            // them. A Wrap rather than a Row: the panel is narrow on a phone,
+            // and a Row that does not fit is clipped in a release build with no
+            // stripes painted to say so.
+            Wrap(
+              spacing: 16,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
+                // Show the evaluation at all.
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.psychology,
                         color: Colors.tealAccent, size: 20),
                     const SizedBox(width: 8),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             const Text(
                               'Prikaži evaluaciju',
@@ -122,42 +144,53 @@ class StockfishAnalysisWidget extends StatelessWidget {
                         ),
                       ],
                     ),
+                    Switch(
+                      value: isEngineEnabled,
+                      activeThumbColor: Colors.tealAccent,
+                      onChanged:
+                          isAllowedToUseEngine ? (_) => onToggleEngine() : null,
+                    ),
                   ],
                 ),
-                Switch(
-                  value: isEngineEnabled,
-                  activeThumbColor: Colors.tealAccent,
-                  onChanged:
-                      isAllowedToUseEngine ? (_) => onToggleEngine() : null,
-                ),
-              ],
-            ),
-
-            if (onToggleShowEvalBar != null) ...[
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                // And the bar under the board, which is a different question:
+                // one is "do I want a number", the other "do I want to see it
+                // on the board".
+                if (onToggleShowEvalBar != null)
                   Row(
-                    children: const [
-                      Icon(Icons.bar_chart,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.bar_chart,
                           size: 18, color: Colors.amberAccent),
-                      SizedBox(width: 8),
-                      Text(
+                      const SizedBox(width: 8),
+                      const Text(
                         'Prikaži evaluacionu liniju',
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: Colors.white),
                       ),
+                      Switch(
+                        value: isShowEvalBarEnabled,
+                        activeThumbColor: Colors.amberAccent,
+                        onChanged: (_) => onToggleShowEvalBar?.call(),
+                      ),
                     ],
                   ),
-                  Switch(
-                    value: isShowEvalBarEnabled,
-                    activeThumbColor: Colors.amberAccent,
-                    onChanged: (_) => onToggleShowEvalBar?.call(),
-                  ),
-                ],
+              ],
+            ),
+
+            // How deep, and how many lines — for this board, not for the
+            // engine's playing strength. Shown even while the evaluation is
+            // switched off, so it can be set before it is turned on.
+            if (analysisDepth != null &&
+                analysisLines != null &&
+                isAllowedToUseEngine) ...[
+              const SizedBox(height: 2),
+              EngineAnalysisDials(
+                depth: analysisDepth!,
+                lines: analysisLines!,
+                onDepthChanged: onAnalysisDepthChanged ?? (_) {},
+                onLinesChanged: onAnalysisLinesChanged ?? (_) {},
               ),
             ],
 
@@ -212,7 +245,8 @@ class StockfishAnalysisWidget extends StatelessWidget {
 
               // Top 3 Lines List (Compact 1 line per row with '...' inspector button)
               Text(
-                'Top ${AppSettingsService.instance.defaultMultiPV} Linije (Klik na liniju za kompletan pregled):',
+                'Top ${analysisLines ?? AppSettingsService.instance.analysisLines} '
+                'Linije (Klik na liniju za kompletan pregled):',
                 style: const TextStyle(
                     fontSize: 11,
                     color: Colors.grey,
@@ -232,8 +266,11 @@ class StockfishAnalysisWidget extends StatelessWidget {
                   ),
                 )
               else
+                // As many as this board asked for, not as many as some global
+                // setting says.
                 ...lines
-                    .take(AppSettingsService.instance.defaultMultiPV)
+                    .take(analysisLines ??
+                        AppSettingsService.instance.analysisLines)
                     .map((line) {
                   return InkWell(
                     onTap: () => _openLineDialog(context, line),

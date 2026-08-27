@@ -7,9 +7,28 @@ class AppSettingsService extends ChangeNotifier {
   AppSettingsService._internal();
 
   ThemeMode _themeMode = ThemeMode.dark;
-  int _defaultEngineDepth = 18;
+
+  /// How hard the engine plays **when it is the one making the move**.
+  ///
+  /// Three levels rather than a depth in plies, because that is the question a
+  /// person actually has: "how strong an opponent do I want". The depths behind
+  /// them are [kEnginePlayDepths]. Until 27.8.2026 this one number was also the
+  /// depth every board analysed at, so making the opponent easier quietly made
+  /// every evaluation in the app shallower — two unrelated questions answered
+  /// by one slider. Analysis now asks the board it is on.
+  String _enginePlayLevel = 'srednje';
+
+  /// How long the engine may think before it has to move anyway, when the
+  /// depth above has not been reached in time.
   int _defaultEngineMoveTimeSeconds = 2;
-  int _defaultMultiPV = 3;
+
+  /// Where a board's own depth/line dials start, and where they are remembered.
+  ///
+  /// Not the same as the play level and deliberately kept apart from it: a
+  /// person who wants an easy opponent still wants to see what the engine
+  /// really thinks of the position.
+  int _analysisDepth = 20;
+  int _analysisLines = 3;
   String _customEnginePath = '';
   double _boardSizeScale = 1.0;
   Set<String> _hiddenPanels = {};
@@ -57,9 +76,30 @@ class AppSettingsService extends ChangeNotifier {
   String _openingDbSource = 'lichess';
 
   ThemeMode get themeMode => _themeMode;
-  int get defaultEngineDepth => _defaultEngineDepth;
+
+  /// The three levels, and what each one is worth in plies.
+  static const Map<String, int> kEnginePlayDepths = {
+    'lako': 18,
+    'srednje': 24,
+    'tesko': 30,
+  };
+
+  /// The reader-facing name of each level, in the order they are offered.
+  static const Map<String, String> kEnginePlayLevelNames = {
+    'lako': 'Lako',
+    'srednje': 'Srednje',
+    'tesko': 'Teško',
+  };
+
+  String get enginePlayLevel => _enginePlayLevel;
+
+  /// The depth the engine plays to. Reading a level rather than a number
+  /// everywhere means the three levels can be retuned in one place.
+  int get enginePlayDepth => kEnginePlayDepths[_enginePlayLevel] ?? 24;
+
   int get defaultEngineMoveTimeSeconds => _defaultEngineMoveTimeSeconds;
-  int get defaultMultiPV => _defaultMultiPV;
+  int get analysisDepth => _analysisDepth;
+  int get analysisLines => _analysisLines;
   String get customEnginePath => _customEnginePath;
   double get boardSizeScale => _boardSizeScale;
   String get lichessApiToken => _lichessApiToken;
@@ -91,10 +131,27 @@ class AppSettingsService extends ChangeNotifier {
       await prefs.setString('app_theme_mode', 'dark');
     }
 
-    _defaultEngineDepth = (prefs.getInt('app_engine_depth') ?? 18).clamp(5, 50);
     _defaultEngineMoveTimeSeconds =
         (prefs.getInt('app_engine_movetime') ?? 2).clamp(1, 60);
-    _defaultMultiPV = (prefs.getInt('app_multi_pv') ?? 3).clamp(1, 5);
+
+    // Migration, once: the old single depth was both the opponent's strength
+    // and the analysis depth. It becomes the nearest level for play, and the
+    // analysis depth keeps the number the reader had actually chosen.
+    final storedLevel = prefs.getString('app_engine_play_level');
+    final legacyDepth = prefs.getInt('app_engine_depth');
+    if (kEnginePlayDepths.containsKey(storedLevel)) {
+      _enginePlayLevel = storedLevel!;
+    } else if (legacyDepth != null) {
+      _enginePlayLevel = _levelNearest(legacyDepth);
+      await prefs.setString('app_engine_play_level', _enginePlayLevel);
+    }
+
+    _analysisDepth =
+        (prefs.getInt('app_analysis_depth') ?? legacyDepth ?? 20).clamp(6, 50);
+    _analysisLines = (prefs.getInt('app_analysis_lines') ??
+            prefs.getInt('app_multi_pv') ??
+            3)
+        .clamp(1, 5);
     _customEnginePath = prefs.getString('custom_engine_path') ?? '';
     _boardSizeScale =
         (prefs.getDouble('app_board_scale') ?? 1.0).clamp(0.6, 1.0);
@@ -122,11 +179,45 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setEngineDepth(int depth) async {
-    _defaultEngineDepth = depth.clamp(5, 50);
+  /// Which of the three levels is closest to a depth somebody had set by hand.
+  static String _levelNearest(int depth) {
+    var best = 'srednje';
+    var bestGap = 1 << 30;
+    kEnginePlayDepths.forEach((level, plies) {
+      final gap = (plies - depth).abs();
+      if (gap < bestGap) {
+        bestGap = gap;
+        best = level;
+      }
+    });
+    return best;
+  }
+
+  Future<void> setEnginePlayLevel(String level) async {
+    if (!kEnginePlayDepths.containsKey(level)) return;
+    _enginePlayLevel = level;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('app_engine_depth', _defaultEngineDepth);
+    await prefs.setString('app_engine_play_level', level);
+  }
+
+  /// Remembers what a board's dials were last set to.
+  ///
+  /// Saved rather than kept per screen so the next board opens where the last
+  /// one was left — the dial is still the board's, but nobody has to set it
+  /// again on every screen they visit.
+  Future<void> setAnalysisDepth(int depth) async {
+    _analysisDepth = depth.clamp(6, 50);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('app_analysis_depth', _analysisDepth);
+  }
+
+  Future<void> setAnalysisLines(int count) async {
+    _analysisLines = count.clamp(1, 5);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('app_analysis_lines', _analysisLines);
   }
 
   Future<void> setEngineMoveTimeSeconds(int seconds) async {
@@ -134,13 +225,6 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('app_engine_movetime', _defaultEngineMoveTimeSeconds);
-  }
-
-  Future<void> setMultiPV(int count) async {
-    _defaultMultiPV = count.clamp(1, 5);
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('app_multi_pv', _defaultMultiPV);
   }
 
   Future<void> setBoardSizeScale(double scale) async {

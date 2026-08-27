@@ -41,7 +41,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
   @override
   void initState() {
     super.initState();
-    _engineDepth = AppSettingsService.instance.defaultEngineDepth;
+    _engineDepth = AppSettingsService.instance.analysisDepth;
   }
 
   bool _isAnalyzing = false;

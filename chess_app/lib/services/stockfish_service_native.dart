@@ -63,6 +63,16 @@ class StockfishService {
 
   /// Starts the Stockfish engine (or sets up online mode).
   /// Safe to call multiple times — if engine is already ready, returns immediately.
+  /// The last evaluation the engine actually reported for the main line.
+  ///
+  /// A finished search ends with `bestmove`, which carries no score at all, so
+  /// without this the end of a search looked like "0.00 at depth 0" to every
+  /// listener — and the eval bar drew a won position as equal at the exact
+  /// moment the answer became final. Reported live on 27.8.2026.
+  String _lastEvalString = '0.00';
+  int _lastEvalDepth = 0;
+  String _lastContinuation = '';
+
   Future<void> initEngine() async {
     _isActive = true;
 
@@ -372,6 +382,10 @@ class StockfishService {
   Future<void> _runAnalyzePosition(String fen,
       {int depth = 18, bool isInfinite = false}) async {
     _currentFen = fen;
+    // A new position knows nothing about the old one's score.
+    _lastEvalString = '0.00';
+    _lastEvalDepth = 0;
+    _lastContinuation = '';
     _engineLines.clear();
     _isActive = true;
 
@@ -672,11 +686,20 @@ class StockfishService {
   ///    stray result meant for whatever the live screen is showing gets
   ///    silently accepted as this position's eval (this was observed to
   ///    falsely tag a game's opening move as a blunder).
+  /// [onProgress] is called with the lines so far, every time the engine
+  /// improves them.
+  ///
+  /// Without it a screen that waits for this call has nothing to show until
+  /// the target depth is reached — which at depth 40 is a blank panel for the
+  /// better part of a minute, indistinguishable from an engine that is not
+  /// answering. The lines arrive from ply 1 onwards; showing them as they come
+  /// is what makes a deep search bearable to sit through.
   Future<List<AnalysisLine>> analyzePositionSync(
     String fen, {
     required int depth,
     required int multiPV,
     Duration timeout = const Duration(seconds: 10),
+    void Function(List<AnalysisLine> partial)? onProgress,
   }) async {
     final completer = Completer<List<AnalysisLine>>();
     final Map<int, AnalysisLine> capturedLines = {};
@@ -706,6 +729,11 @@ class StockfishService {
           .every((line) => line.startingFen.isEmpty || line.startingFen == fen);
       if (!forThisFen) return;
       capturedLines.addAll(linesMap);
+      if (onProgress != null && !completer.isCompleted) {
+        final partial = capturedLines.values.toList()
+          ..sort((a, b) => a.multipv.compareTo(b.multipv));
+        onProgress(partial);
+      }
       bool allReachedDepth = linesMap.length >= multiPV &&
           linesMap.values.every((line) => line.depth >= depth);
       if (allReachedDepth) {
@@ -853,7 +881,16 @@ class StockfishService {
       final parts = line.split(' ');
       final bestMove = parts.length > 1 ? parts[1] : '';
       if (onEvaluationChanged != null) {
-        onEvaluationChanged!('', bestMove, '', 1, 0, true, _currentFen);
+        // The last thing a finished search says used to be an **empty**
+        // evaluation at depth 0, and every screen wrote that straight into its
+        // eval bar: the moment the engine reached the depth it had been asked
+        // for, the bar snapped to 0.00 and drew the position as equal. Which is
+        // exactly when the number is worth most — it is the finished answer.
+        //
+        // So the last real evaluation is repeated here instead. Nothing else
+        // knows it: `bestmove` carries no score of its own.
+        onEvaluationChanged!(_lastEvalString, bestMove, _lastContinuation, 1,
+            _lastEvalDepth, true, _currentFen);
       }
       return;
     }
@@ -916,6 +953,15 @@ class StockfishService {
       String bestMove = '';
       if (continuation.isNotEmpty) {
         bestMove = continuation.split(' ').first;
+      }
+
+      // Kept so the final `bestmove` can repeat it rather than reporting
+      // nothing — see the comment there. Only the first line: that is the one
+      // the eval bar draws.
+      if (multipv == 1) {
+        _lastEvalString = eval;
+        _lastEvalDepth = currentDepth;
+        _lastContinuation = continuation;
       }
 
       if (onEvaluationChanged != null) {

@@ -479,35 +479,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                              'Dubina analize Stockfish engine-a (max 50):',
-                              style: TextStyle(fontWeight: FontWeight.w500)),
-                          Text(
-                            'Dubina ${_settings.defaultEngineDepth}',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: context.colors.accent),
-                          ),
+                      // What is left in Settings is the *opponent*: how
+                      // strongly the engine plays and how long it may think.
+                      // How deep a board analyses, and how many lines it shows,
+                      // moved onto the boards themselves on 27.8.2026 — one
+                      // number used to answer both questions, so turning the
+                      // opponent down to help a beginner also made every
+                      // evaluation in the app shallower.
+                      const Text('Jačina motora kada igra protiv vas:',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 8),
+                      SegmentedButton<String>(
+                        segments: [
+                          for (final entry in AppSettingsService
+                              .kEnginePlayLevelNames.entries)
+                            ButtonSegment<String>(
+                              value: entry.key,
+                              label: Text(entry.value),
+                            ),
                         ],
-                      ),
-                      Slider(
-                        value: _settings.defaultEngineDepth
-                            .toDouble()
-                            .clamp(5.0, 50.0),
-                        min: 5,
-                        max: 50,
-                        divisions: 45,
-                        label: '${_settings.defaultEngineDepth}',
-                        activeColor: context.colors.accent,
-                        onChanged: (val) {
-                          _settings.setEngineDepth(val.round());
+                        selected: {_settings.enginePlayLevel},
+                        showSelectedIcon: false,
+                        onSelectionChanged: (picked) {
+                          if (picked.isEmpty) return;
+                          _settings.setEnginePlayLevel(picked.first);
                         },
                       ),
+                      const SizedBox(height: 6),
                       Text(
-                        'Veća dubina daje precizniju analizu (do max 50).',
+                        'Motor odigra potez čim dostigne dubinu svog nivoa — '
+                        'Lako ${AppSettingsService.kEnginePlayDepths['lako']}, '
+                        'Srednje ${AppSettingsService.kEnginePlayDepths['srednje']}, '
+                        'Teško ${AppSettingsService.kEnginePlayDepths['tesko']} '
+                        'poteza unapred.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
@@ -539,42 +543,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         },
                       ),
                       Text(
-                        'Engine igra potez čim dostigne ciljanu dubinu ILI čim istekne podešeno vreme (šta se pre dostigne).',
+                        'Motor igra potez čim dostigne dubinu svog nivoa ILI čim '
+                        'istekne ovo vreme — šta se pre desi.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                              'Broj linija i strelica na tabli (Multi-PV):',
-                              style: TextStyle(fontWeight: FontWeight.w500)),
-                          Text(
-                            '${_settings.defaultMultiPV} ${_settings.defaultMultiPV == 1 ? "linija" : "linije"}',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: context.colors.warning),
-                          ),
-                        ],
-                      ),
-                      Slider(
-                        value:
-                            _settings.defaultMultiPV.toDouble().clamp(1.0, 5.0),
-                        min: 1,
-                        max: 5,
-                        divisions: 4,
-                        label: '${_settings.defaultMultiPV}',
-                        activeColor: context.colors.warning,
-                        onChanged: (val) {
-                          _settings.setMultiPV(val.round());
-                        },
-                      ),
                       Text(
-                        'Prikazuje od 1 do 5 najboljih alternativnih linija i strelica u poziciji.',
+                        'Dubina analize i broj linija se podešavaju na samoj '
+                        'tabli, ispod prekidača „Prikaži evaluaciju" — na '
+                        'svakom ekranu gde se evaluacija prikazuje. Poslednje '
+                        'izabrano važi i za sledeću tablu koju otvorite.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
+                      const SizedBox(height: 8),
                       if (isCustomEngineSupported) ...[
                         const Divider(height: 24),
                         const Text('Lokalni engine (.exe):',

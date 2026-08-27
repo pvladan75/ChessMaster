@@ -133,10 +133,23 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   /// Interrupts whatever the engine is doing and restarts a fresh evaluation
   /// of the current board position using the configured depth/MultiPV.
+  /// A dial moved: remember it, tell the engine, and ask again about the
+  /// position now on the board. Leaving the old lines up under a new depth
+  /// reads as an engine that stopped working.
+  void _applyAnalysisDials({int? depth, int? lines}) {
+    setState(() {
+      if (depth != null) _analysisDepth = depth;
+      if (lines != null) _analysisLines = lines;
+    });
+    if (depth != null) AppSettingsService.instance.setAnalysisDepth(depth);
+    if (lines != null) AppSettingsService.instance.setAnalysisLines(lines);
+    _restartEngineEvaluation();
+  }
+
   void _restartEngineEvaluation() {
     _stockfishService.stopAnalysis();
-    _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
-    final targetDepth = AppSettingsService.instance.defaultEngineDepth;
+    _stockfishService.setMultiPV(_analysisLines);
+    final targetDepth = _analysisDepth;
     setState(() {
       _engineLinesMap.clear();
       _engineArrows.clear();
@@ -161,9 +174,21 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   String? _activeFen;
   bool _showEvaluation = false;
   bool _showEvalBar = false; // Default OFF
+
+  /// This board's own analysis dials.
+  ///
+  /// Started from what was last chosen anywhere (AppSettingsService) and
+  /// changed on the board itself, because "how deep do I want to see" is a
+  /// question about the position in front of you. It is **not** the engine's
+  /// playing strength: that is the level in Settings, and until 27.8.2026 both
+  /// were the same number, so an easier opponent also meant a shallower
+  /// evaluation everywhere in the app.
+  int _analysisDepth = AppSettingsService.instance.analysisDepth;
+  int _analysisLines = AppSettingsService.instance.analysisLines;
+
   double _currentRawEval = 0.0;
   String _currentEvalString = '0.00';
-  int _currentEvalDepth = AppSettingsService.instance.defaultEngineDepth;
+  int _currentEvalDepth = 0;
   double? _lastPosEval;
   double? _lastUserAdvantage;
 
@@ -330,7 +355,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     // 3. RESET visual evaluation values
     _currentRawEval = 0.0;
     _currentEvalString = '0.00';
-    _currentEvalDepth = AppSettingsService.instance.defaultEngineDepth;
+    _currentEvalDepth = 0;
 
     // 4. RESET Flags
     _isOpponentTurn = false;
@@ -353,7 +378,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _isReplayingSolution = false;
       _showSolutionTree = false;
       _selectedGroupedMoveIndices.clear();
-      _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
+      _stockfishService.setMultiPV(_analysisLines);
     }
   }
 
@@ -442,7 +467,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
       // Build top 1-5 engine arrows for display matching user MultiPV setting
       final List<ChessArrow> newArrows = [];
-      final maxArrows = AppSettingsService.instance.defaultMultiPV;
+      final maxArrows = _analysisLines;
       final colors = ['G', 'B', 'O', 'P', 'R'];
       int colorIdx = 0;
       for (var line in _engineLinesMap.values) {
@@ -458,7 +483,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       }
 
       // ONLY update main evaluation score & depth when multipv == 1 (top #1 best move)!
-      if (multipv == 1) {
+      // An empty evaluation is not a score of zero: it is a search saying
+      // nothing, and writing it in drew a won position as equal.
+      if (multipv == 1 && evaluation.isNotEmpty) {
         setState(() {
           _currentRawEval = parsedEval;
           _currentEvalString = evaluation;
@@ -551,7 +578,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             bestMove.length >= 4) {
           _latestEngineBestMove = bestMove;
           _latestEngineEval = evaluation;
-          final targetDepth = AppSettingsService.instance.defaultEngineDepth;
+          // The opponent's strength, from Settings — not the depth this
+          // board happens to be showing its evaluation at.
+          final targetDepth = AppSettingsService.instance.enginePlayDepth;
           if (depth >= targetDepth || isFinal) {
             _executeOpponentEngineMoveDueToTimeoutOrDepth(
                 'Zadata dubina dostignuta ($depth >= $targetDepth)');
@@ -669,7 +698,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       }
     }
 
-    final targetDepth = AppSettingsService.instance.defaultEngineDepth;
+    final targetDepth = AppSettingsService.instance.enginePlayDepth;
 
     print('\n--------------------------------------------------');
     print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
@@ -734,10 +763,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           if (_selectedCategory != 'mate_puzzle' &&
               (_showEvaluation || _showEvalBar)) {
             _selectedGroupedMoveIndices.clear();
-            _stockfishService
-                .setMultiPV(AppSettingsService.instance.defaultMultiPV);
+            _stockfishService.setMultiPV(_analysisLines);
             _stockfishService.analyzePosition(_puzzleGame!.fen,
-                depth: AppSettingsService.instance.defaultEngineDepth);
+                depth: _analysisDepth);
           }
         }
       }
@@ -783,8 +811,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     });
 
     await _stockfishService.initEngine();
-    _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
-    final targetDepth = AppSettingsService.instance.defaultEngineDepth;
+    _stockfishService.setMultiPV(_analysisLines);
+    // The engine is *playing* here, so how deep it thinks is the opponent's
+    // strength and not the depth this board shows its evaluation at. One
+    // number used to answer both, so an easier opponent quietly made every
+    // evaluation in the app shallower.
+    final targetDepth = AppSettingsService.instance.enginePlayDepth;
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
   }
 
@@ -846,7 +878,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       return engineArrowsList;
     }
 
-    for (int i = 0; i < lines.length && i < 3; i++) {
+    // As many arrows as this board asked for lines. It was three, fixed, so
+    // asking for five lines drew four of them and left the fifth in the list
+    // underneath with nothing on the board.
+    for (int i = 0; i < lines.length && i < _analysisLines; i++) {
       final line = lines[i];
       final moveStr = line.bestMoveLan;
       if (moveStr.length >= 4) {
@@ -877,7 +912,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       return arrows;
     }
 
-    final maxArrows = AppSettingsService.instance.defaultMultiPV;
+    final maxArrows = _analysisLines;
     final colors = ['G', 'B', 'O', 'P', 'R'];
     for (int i = 0; i < lines.length && i < maxArrows; i++) {
       final moveStr = lines[i].bestMoveLan;
@@ -999,8 +1034,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           }
         });
 
-        _stockfishService.analyzePosition(fen,
-            depth: AppSettingsService.instance.defaultEngineDepth);
+        _stockfishService.analyzePosition(fen, depth: _analysisDepth);
       }
     } catch (e) {
       print('Error loading basic mate preset $difficulty: $e');
@@ -1082,8 +1116,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
         if (_selectedCategory != 'mate_puzzle' &&
             (_showEvaluation || _showEvalBar)) {
-          _stockfishService.analyzePosition(fen,
-              depth: AppSettingsService.instance.defaultEngineDepth);
+          _stockfishService.analyzePosition(fen, depth: _analysisDepth);
         }
       } else {
         _showSnackBar('Nije moguće učitati poziciju.');
@@ -1138,9 +1171,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     if (_selectedCategory != 'mate_puzzle' &&
         (_showEvaluation || _showEvalBar)) {
       _selectedGroupedMoveIndices.clear();
-      _stockfishService.setMultiPV(AppSettingsService.instance.defaultMultiPV);
+      _stockfishService.setMultiPV(_analysisLines);
       _stockfishService.analyzePosition(_initialPuzzleFen!,
-          depth: AppSettingsService.instance.defaultEngineDepth);
+          depth: _analysisDepth);
     }
 
     _sendBackendLog({
@@ -2079,8 +2112,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _puzzleBoardController.loadFen(fen);
     if (_selectedCategory != 'mate_puzzle' &&
         (_showEvaluation || _showEvalBar)) {
-      _stockfishService.analyzePosition(fen,
-          depth: AppSettingsService.instance.defaultEngineDepth);
+      _stockfishService.analyzePosition(fen, depth: _analysisDepth);
     }
   }
 
@@ -2630,6 +2662,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           const SizedBox(height: 8),
                           if (_selectedCategory != 'mate_puzzle')
                             StockfishAnalysisWidget(
+                              analysisDepth: _analysisDepth,
+                              analysisLines: _analysisLines,
+                              onAnalysisDepthChanged: (value) =>
+                                  _applyAnalysisDials(depth: value),
+                              onAnalysisLinesChanged: (value) =>
+                                  _applyAnalysisDials(lines: value),
                               isEngineEnabled: _showEvaluation,
                               isAllowedToUseEngine: true,
                               isOnline: _stockfishService.isOnline,
@@ -2652,14 +2690,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                                   _showEvaluation = !_showEvaluation;
                                   if (_showEvaluation) {
                                     _selectedGroupedMoveIndices.clear();
-                                    _stockfishService.setMultiPV(
-                                        AppSettingsService
-                                            .instance.defaultMultiPV);
-                                    final targetDepth = AppSettingsService
-                                        .instance.defaultEngineDepth;
+                                    _stockfishService
+                                        .setMultiPV(_analysisLines);
                                     _stockfishService.analyzePosition(
                                         _puzzleBoardController.getFen(),
-                                        depth: targetDepth);
+                                        depth: _analysisDepth);
                                   } else {
                                     _engineLinesMap.clear();
                                     _engineArrows.clear();
@@ -2739,6 +2774,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     const SizedBox(height: 12),
                     if (_selectedCategory != 'mate_puzzle')
                       StockfishAnalysisWidget(
+                        analysisDepth: _analysisDepth,
+                        analysisLines: _analysisLines,
+                        onAnalysisDepthChanged: (value) =>
+                            _applyAnalysisDials(depth: value),
+                        onAnalysisLinesChanged: (value) =>
+                            _applyAnalysisDials(lines: value),
                         isEngineEnabled: _showEvaluation,
                         isAllowedToUseEngine: true,
                         isOnline: _stockfishService.isOnline,
@@ -2761,13 +2802,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                             _showEvaluation = !_showEvaluation;
                             if (_showEvaluation) {
                               _selectedGroupedMoveIndices.clear();
-                              _stockfishService.setMultiPV(
-                                  AppSettingsService.instance.defaultMultiPV);
-                              final targetDepth = AppSettingsService
-                                  .instance.defaultEngineDepth;
+                              _stockfishService.setMultiPV(_analysisLines);
                               _stockfishService.analyzePosition(
                                   _puzzleBoardController.getFen(),
-                                  depth: targetDepth);
+                                  depth: _analysisDepth);
                             } else {
                               _engineLinesMap.clear();
                               _engineArrows.clear();
@@ -2925,8 +2963,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _puzzleFailed = false;
     });
     if (_showEvaluation) {
-      _stockfishService.analyzePosition(node.fen,
-          depth: AppSettingsService.instance.defaultEngineDepth);
+      _stockfishService.analyzePosition(node.fen, depth: _analysisDepth);
     }
   }
 

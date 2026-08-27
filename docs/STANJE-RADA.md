@@ -1360,3 +1360,57 @@ soba za čas ima tablu u skrolu oduvek, i za to postoji test.
 Provera uživo: ugasiti i upaliti koordinate na jednom ekranu i videti da su
 promenjene i na ostalima; suziti prozor Table za analizu dok se ne pojavi
 preklapanje (ne sme).
+
+## Motor: jačina protivnika i dubina analize razdvojeni — 27.8.2026
+
+Do sada je u Podešavanjima stajao **jedan broj** („dubina analize"), koji je bio
+i to koliko duboko motor misli kad **igra protiv vas**, i to koliko duboko svaka
+tabla u aplikaciji računa evaluaciju. Spustiti protivnika da bi detetu bilo
+lakše značilo je i plići prikaz u celoj aplikaciji; tražiti pet linija na jednoj
+poziciji značilo je promeniti kako motor igra svuda. Dva pitanja, jedan broj.
+
+**Podešavanja sada drže samo protivnika:**
+
+- **Jačina motora kada igra protiv vas** — Lako / Srednje / Teško, što je
+  redom 18 / 24 / 30 poteza unapred (`AppSettingsService.kEnginePlayDepths`,
+  pa se sva tri mogu naštelovati na jednom mestu). Stara ručno podešena dubina
+  se **jednom** preslikava na najbliži nivo, a sam broj ostaje kao početna
+  dubina analize — ko je izabrao 29 nije hteo da bude vraćen na podrazumevano.
+- **Maksimalno vreme razmišljanja** ostaje kakvo je bilo: motor igra čim
+  dostigne dubinu svog nivoa ili čim istekne vreme, šta pre.
+
+**Dubina i broj linija su sada na samoj tabli** (`widgets/engine_analysis_dials.dart`),
+ispod prekidača „Prikaži evaluaciju", na svakom ekranu gde se evaluacija
+prikazuje: vežbe u AI studiju, Tabla za analizu, soba za čas i građenje
+repertoara. Dubina ide **do 50** (bilo je 28 — ostatak iz vremena kad je taj
+broj određivao i koliko protivnik razmišlja pre poteza). Poslednje izabrano se
+pamti, pa sledeća tabla počinje tamo gde je prethodna stala.
+
+Usput, u istom panelu: **„Prikaži evaluaciju" i „Prikaži evaluacionu liniju"
+stoje jedno pored drugog**, u `Wrap`-u — na telefonu se prelamaju u dva reda
+umesto da budu isečeni bez upozorenja u release buildu.
+
+**Evaluacija se sada vidi sve vreme.** Ekran za građenje repertoara je čekao da
+pretraga stigne do zadate dubine pa tek onda išta prikazivao: na dubini 40 to je
+prazan panel po pola minuta, što spolja izgleda isto kao motor koji se ne javlja.
+`analyzePositionSync` dobija `onProgress`, pa linije stižu od prve dubine i samo
+postaju bolje — a dubina pored svake kaže koliko joj se veruje.
+
+**Strelice sa evaluacijom.** Prvi potez svake linije se crta na tabli, sa
+ocenom pored strelice (`EngineArrow`, isto što drugi ekrani već koriste).
+Uz to je u AI studiju uklonjeno ograničenje od tri strelice — ko traži pet
+linija dobijao je četiri strelice i petu liniju samo u spisku ispod.
+
+**I bag koji je sve to otkrilo:** kad pretraga dostigne zadatu dubinu, poslednje
+što motor pošalje je `bestmove`, koji **nema ocenu u sebi**. Servis je taj
+događaj prosleđivao kao praznu evaluaciju na dubini 0, a svaki ekran ju je
+upisivao u traku — pa je grafička evaluaciona linija u trenutku kad odgovor
+postane konačan skakala na 0.00 i crtala dobijenu poziciju kao **egal**. Servis
+sada ponavlja poslednju stvarnu ocenu, a ekrani ignorišu praznu evaluaciju:
+„nemam šta da kažem" nije „nula".
+
+Provera uživo: promeniti dubinu na tabli i videti da se linije odmah traže
+ponovo; pustiti da pretraga stigne do kraja i videti da traka ostaje na pravoj
+oceni; u repertoaru gledati kako linije pristižu tokom računanja i kako strelice
+sa ocenama stoje na tabli; u Podešavanjima prebaciti nivo i videti da se menja
+samo protivnik, a ne i dubina prikaza.

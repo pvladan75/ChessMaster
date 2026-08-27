@@ -165,6 +165,7 @@ class StockfishService {
     required int depth,
     required int multiPV,
     Duration timeout = const Duration(seconds: 10),
+    void Function(List<AnalysisLine> partial)? onProgress,
   }) async {
     await analyzePosition(fen, depth: depth);
     // A concurrent call to analyzePosition() for a different fen can
@@ -174,6 +175,9 @@ class StockfishService {
     final lines = _engineLines.values
         .where((line) => line.startingFen.isEmpty || line.startingFen == fen)
         .toList();
+    // The web/stub engine has no intermediate output to report, so the only
+    // progress there is to report is the answer itself.
+    if (onProgress != null && lines.isNotEmpty) onProgress(lines);
     return lines;
   }
 }

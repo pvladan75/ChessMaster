@@ -85,7 +85,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
   @override
   void initState() {
     super.initState();
-    _engineDepth = AppSettingsService.instance.defaultEngineDepth;
+    _engineDepth = AppSettingsService.instance.analysisDepth;
   }
 
   @override

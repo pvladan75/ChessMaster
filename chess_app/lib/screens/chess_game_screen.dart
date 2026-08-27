@@ -106,6 +106,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
   Map<int, AnalysisLine> engineLines = {};
   String engineThinkingMode = 'fast'; // 'fast', 'deep', 'infinite'
 
+  /// This board's analysis dials — see [EngineAnalysisDials].
+  int _analysisDepth = AppSettingsService.instance.analysisDepth;
+  int _analysisLines = AppSettingsService.instance.analysisLines;
+
   final AgoraService _agoraService = AgoraService();
   List<dynamic> audioUsers = [];
   Set<int> activeSpeakers = {};
@@ -241,6 +245,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
             [analyzedFen = '']) {
       if (!mounted) return;
       if (!isEngineEnabled) return;
+      // Nothing to say about the position. It is not a score of zero, and
+      // writing it into the bar would draw a won game as equal.
+      if (evaluation.isEmpty) return;
 
       double parsedEval = 0.0;
       final numVal = double.tryParse(evaluation);
@@ -538,6 +545,17 @@ class _ChessGamePageState extends State<ChessGamePage> {
     });
   }
 
+  /// A dial moved: remember it and ask the engine again about this position.
+  void _applyAnalysisDials({int? depth, int? lines}) {
+    setState(() {
+      if (depth != null) _analysisDepth = depth;
+      if (lines != null) _analysisLines = lines;
+    });
+    if (depth != null) AppSettingsService.instance.setAnalysisDepth(depth);
+    if (lines != null) AppSettingsService.instance.setAnalysisLines(lines);
+    _triggerEngineAnalysis();
+  }
+
   void _triggerEngineAnalysis() {
     if (isEngineEnabled) {
       setState(() {
@@ -547,12 +565,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
         _currentRawEval = 0.0;
         _currentEvalDepth = 0;
       });
-      final depth = engineThinkingMode == 'fast' ? 10 : 16;
+      // The board's own dials, not two numbers written into this line. They
+      // used to be 10 or 16 plies and three lines, fixed, with no way to ask
+      // this board for more.
       final isInfinite = engineThinkingMode == 'infinite';
-      _stockfishService.setMultiPV(3);
+      _stockfishService.setMultiPV(_analysisLines);
       _stockfishService.analyzePosition(
         controller.getFen(),
-        depth: depth,
+        depth: _analysisDepth,
         isInfinite: isInfinite,
       );
     }
@@ -569,6 +589,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
     return StockfishAnalysisWidget(
       isEngineEnabled: isEngineEnabled,
       isAllowedToUseEngine: isAllowedToUseEngine,
+      analysisDepth: _analysisDepth,
+      analysisLines: _analysisLines,
+      onAnalysisDepthChanged: (value) => _applyAnalysisDials(depth: value),
+      onAnalysisLinesChanged: (value) => _applyAnalysisDials(lines: value),
       isOnline: _stockfishService.isOnline,
       isCustomEngineActive: _stockfishService.isCustomEngineActive,
       lines: linesList,

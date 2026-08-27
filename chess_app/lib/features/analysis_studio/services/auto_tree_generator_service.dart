@@ -22,7 +22,7 @@ class AutoAnalysisParams {
     int? engineDepth,
     this.deltaCutoff = 1.5,
   }) : engineDepth =
-            engineDepth ?? AppSettingsService.instance.defaultEngineDepth;
+            engineDepth ?? AppSettingsService.instance.analysisDepth;
 }
 
 /// How the generator asks for an evaluated position.
