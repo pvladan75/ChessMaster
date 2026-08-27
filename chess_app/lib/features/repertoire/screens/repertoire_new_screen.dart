@@ -9,6 +9,7 @@ import 'package:chess_app/features/analysis_studio/widgets/opening_picker.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
@@ -317,7 +318,11 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.canvas,
-      appBar: AppBar(title: const Text('Novi repertoar'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('Novi repertoar'),
+        elevation: 0,
+        actions: const [BoardCoordinatesButton()],
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

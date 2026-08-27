@@ -1316,3 +1316,47 @@ table preuzme u repo — nije vredno danas.
 Provera uživo: u „Pronađite dobitni put" dovesti pešaka do poslednjeg reda i
 tapnuti — mora da pita, i izabrana figura mora da se pojavi na tabli; isto
 prevlačenjem; pa isto u završnicama, taktici i repertoaru.
+
+## Koordinate na tabli, i jedno dugme koje je smetalo — 27.8.2026
+
+Tri stvari, sve prijavljene sa slika ekrana.
+
+**Dugme za okretanje table izbačeno iz vežbi.** U „Mat u 1, 2 ili 3 poteza",
+„Vežbanje osnovnog matiranja" i „Pronađite dobitni put" — to je jedan te isti
+ekran (`_buildActiveBoardScreen` u `ai_studio_screen.dart`), pa je izmena na
+jednom mestu pokrila sva tri — tabla se okreće prema onome ko rešava, a iznad
+nje piše „Crni na potezu". Ko je okrene, gleda tablu koja protivreči rečenici sa
+njegovom bojom. `_toggleOrientation` je obrisan jer više nema ko da ga zove.
+
+**Prekidač za koordinate, na svakom ekranu sa tablom.** `BoardWithCoordinates`
+je postojao od ranije, ali samo na pet ekrana i bez načina da se ugasi. Sada:
+
+- `AppSettingsService.showBoardCoordinates` (podrazumevano **uključeno**, jer
+  deca uče da čitaju tablu), zapamćeno na uređaju;
+- `BoardWithCoordinates` sluša podešavanje i, kad je isključeno, **vraća tabli
+  ceo prostor** — zato prekidač stoji u njemu, a ne u pozivaocima: ekran koji je
+  sam oduzeo pojas ostavio bi prazan okvir;
+- `BoardCoordinatesButton` — jedno dugme (`grid_on`/`grid_off`), koje samo crta
+  svoje stanje, na: vežbama iz AI studija, Tabli za analizu, sobi za čas (u
+  traci ispod table, pored dugmeta za okretanje — u gornjoj traci već stoji pet
+  radnji i šesta bi na telefonu od 360 dp izašla van ekrana bez ijednog
+  upozorenja u release buildu), taktici, završnicama, greškama iz partija, sva
+  tri repertoara, rešavaču zadataka, pregledu lekcije, ponavljanju i plejeru
+  snimaka;
+- isti prekidač i u Podešavanjima, jer podešavanje treba da postoji i tamo gde
+  se traži kad se ne zna gde je dugme.
+
+Tablama koje ranije nisu imale koordinate sada su dodate: AI studio, Tabla za
+analizu, soba za čas, taktika, rešavač zadataka, pregled lekcije, ponavljanje,
+plejer snimaka.
+
+**Preklapanje ispod table u Tabli za analizu** („BOTTOM OVERFLOWED BY 12
+PIXELS"). Leva kolona u pejzažnom rasporedu drži tablu, evaluacionu traku,
+navigaciju i panel komentara, a u računicu visine table ulazi samo prvo od toga.
+Kolona sada **skroluje**, kao i panel desno od nje. Prevlačenje figure i dalje
+pobeđuje skrol: `Draggable` uzima gest odmah, a skrol mora prvo da pređe prag —
+soba za čas ima tablu u skrolu oduvek, i za to postoji test.
+
+Provera uživo: ugasiti i upaliti koordinate na jednom ekranu i videti da su
+promenjene i na ostalima; suziti prozor Table za analizu dok se ne pojavi
+preklapanje (ne sme).

@@ -13,6 +13,8 @@ import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/recording_models.dart';
 import 'package:chess_app/widgets/action_key_shortcuts.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -657,6 +659,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             icon: const Icon(Icons.video_call, color: Colors.deepPurpleAccent),
             onPressed: _showExportMp4Dialog,
           ),
+          const BoardCoordinatesButton(),
           BoardFlipButton(
             onPressed: () {
               setState(() {
@@ -690,25 +693,28 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                       aspectRatio: 1.0,
                       child: LayoutBuilder(
                         builder: (ctx, constraints) {
-                          final boardSize = constraints.maxWidth;
-                          return Stack(
-                            children: [
-                              ChessBoard(
-                                controller: _boardController,
-                                boardOrientation: boardOrientation,
-                                enableUserMoves: false,
-                              ),
-                              Positioned.fill(
-                                child: CustomPaint(
-                                  painter: ChessBoardPainter(
-                                    arrows: currentArrows,
-                                    engineArrows: currentEngineArrows,
-                                    boardSize: boardSize,
-                                    orientation: boardOrientation,
+                          return BoardWithCoordinates(
+                            size: constraints.maxWidth,
+                            orientation: boardOrientation,
+                            builder: (boardSize) => Stack(
+                              children: [
+                                ChessBoard(
+                                  controller: _boardController,
+                                  boardOrientation: boardOrientation,
+                                  enableUserMoves: false,
+                                ),
+                                Positioned.fill(
+                                  child: CustomPaint(
+                                    painter: ChessBoardPainter(
+                                      arrows: currentArrows,
+                                      engineArrows: currentEngineArrows,
+                                      boardSize: boardSize,
+                                      orientation: boardOrientation,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           );
                         },
                       ),

@@ -1,6 +1,5 @@
 import 'package:chess_app/services/puzzle_api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/ai_studio/category_selection_hub.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/ai_studio/solution_tree_models.dart';
@@ -23,6 +22,8 @@ import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 
@@ -2170,19 +2171,6 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     AppFeedback.show(context, () => SnackBar(content: Text(msg)));
   }
 
-  /// The board defaults to the solver's side each time a new puzzle loads
-  /// (see the `_puzzleOrientation = turnIsWhite ? ... ` assignments), but
-  /// the user should still be able to flip it manually — e.g. to study the
-  /// position from the opponent's perspective — without that being undone
-  /// until the next puzzle.
-  void _toggleOrientation() {
-    setState(() {
-      _puzzleOrientation = _puzzleOrientation == PlayerColor.white
-          ? PlayerColor.black
-          : PlayerColor.white;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool isLandscape =
@@ -2351,7 +2339,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 });
               },
             ),
-            BoardFlipButton(size: 20, onPressed: _toggleOrientation),
+            // No flip button here. The board is turned toward whoever has to
+            // solve the position, and the banner above it says whose move it
+            // is — a reader who turns it around is then looking at a board
+            // that contradicts the sentence naming their colour.
+            const BoardCoordinatesButton(size: 20),
           ],
         ),
       ),
@@ -2487,8 +2479,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            BoardFlipButton(
-                size: 18, color: Colors.white70, onPressed: _toggleOrientation),
+            const BoardCoordinatesButton(size: 18, color: Colors.white70),
             const SizedBox(width: 8),
             IconButton(
               icon: const Icon(Icons.biotech,
@@ -2543,10 +2534,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        SizedBox(
-                          width: boardSize,
-                          height: boardSize,
-                          child: _buildBoardWithTapAndHighlights(boardSize),
+                        BoardWithCoordinates(
+                          size: boardSize,
+                          orientation: _puzzleOrientation,
+                          builder: _buildBoardWithTapAndHighlights,
                         ),
                         if (_showEvalBar) ...[
                           const SizedBox(height: 4),
@@ -2714,7 +2705,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   padding: const EdgeInsets.all(8.0),
                   child: _isLoadingPuzzle
                       ? const Center(child: CircularProgressIndicator())
-                      : _buildBoardWithTapAndHighlights(boardSize - 16.0),
+                      : BoardWithCoordinates(
+                          size: boardSize - 16.0,
+                          orientation: _puzzleOrientation,
+                          builder: _buildBoardWithTapAndHighlights,
+                        ),
                 ),
               ),
             ),

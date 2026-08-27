@@ -12,6 +12,7 @@ import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
@@ -469,6 +470,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         title: Text(widget.name),
         elevation: 0,
         actions: [
+          const BoardCoordinatesButton(),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Center(

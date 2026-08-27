@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 
 Widget wrap(PlayerColor orientation, {double size = 320}) => MaterialApp(
@@ -11,6 +15,7 @@ Widget wrap(PlayerColor orientation, {double size = 320}) => MaterialApp(
             size: size,
             orientation: orientation,
             builder: (inner) => SizedBox(
+              key: const ValueKey('tabla'),
               width: inner,
               height: inner,
               child: const ColoredBox(color: Colors.brown),
@@ -66,5 +71,59 @@ void main() {
     for (var rank = 1; rank <= 8; rank++) {
       expect(find.text('$rank'), findsOneWidget, reason: 'red $rank');
     }
+  });
+
+  /// The switch, which is app-wide: turning the labels off in a lesson leaves
+  /// them off in the endgame trainer, because a person who finds them cluttered
+  /// means all of them. Added 27.8.2026 after the user asked for it on every
+  /// screen a board appears on.
+  group('showing them is a setting', () {
+    // The setting writes itself to disk, and without this the write never
+    // answers: `SharedPreferences.getInstance()` waits on a platform channel
+    // that no test binding is listening to, so the await simply never returns
+    // and the test hangs rather than fails. Cost twenty minutes to see.
+    setUp(() => SharedPreferences.setMockInitialValues({}));
+    tearDown(() => AppSettingsService.instance.setShowBoardCoordinates(true));
+
+    testWidgets('off means no labels, and the board keeps the whole size',
+        (tester) async {
+      await AppSettingsService.instance.setShowBoardCoordinates(false);
+      await tester.pumpWidget(wrap(PlayerColor.white, size: 320));
+
+      expect(find.text('a'), findsNothing);
+      expect(find.text('1'), findsNothing);
+      // The point of switching it here rather than in every caller: with the
+      // labels gone the board takes the gutter back, instead of leaving a
+      // strip of empty floor where they used to be.
+      expect(tester.getSize(find.byKey(const ValueKey('tabla'))).width, 320);
+    });
+
+    testWidgets('back on, and the labels are back', (tester) async {
+      await AppSettingsService.instance.setShowBoardCoordinates(false);
+      await tester.pumpWidget(wrap(PlayerColor.white));
+      expect(find.text('a'), findsNothing);
+
+      await AppSettingsService.instance.setShowBoardCoordinates(true);
+      await tester.pump();
+
+      expect(find.text('a'), findsOneWidget,
+          reason: 'tabla sluša podešavanje, ne svoj prvi build');
+    });
+
+    testWidgets('the button flips it, and says which way it goes',
+        (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(body: BoardCoordinatesButton()),
+      ));
+
+      expect(find.byIcon(Icons.grid_on), findsOneWidget);
+      await tester.tap(find.byType(IconButton));
+      await tester.pump();
+
+      expect(AppSettingsService.instance.showBoardCoordinates, isFalse);
+      expect(find.byIcon(Icons.grid_off), findsOneWidget,
+          reason: 'dugme koje ne pokazuje stanje je dugme koje se pritiska '
+              'dvaput da bi se videlo šta radi');
+    });
   });
 }

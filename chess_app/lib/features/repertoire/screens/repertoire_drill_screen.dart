@@ -9,6 +9,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
@@ -242,6 +243,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         title: Text('Vežbanje — ${widget.name}'),
         elevation: 0,
         actions: [
+          const BoardCoordinatesButton(),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Center(

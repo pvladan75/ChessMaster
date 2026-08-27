@@ -6,6 +6,8 @@ import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
@@ -186,6 +188,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
         title: const Text('Ponavljanje'),
+        actions: const [BoardCoordinatesButton()],
         bottom: _queue.isEmpty
             ? null
             : PreferredSize(
@@ -227,13 +230,13 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
               _buildPrompt(),
               const SizedBox(height: 10),
               Center(
-                child: SizedBox(
-                  width: boardSize,
-                  height: boardSize,
-                  child: ChessBoardWithOverlay(
+                child: BoardWithCoordinates(
+                  size: boardSize,
+                  orientation: _orientation,
+                  builder: (size) => ChessBoardWithOverlay(
                     controller: _board,
                     boardOrientation: _orientation,
-                    boardSize: boardSize,
+                    boardSize: size,
                     isAllowedToMove: false,
                     isDrawingMode: false,
                     drawingStartSquare: null,

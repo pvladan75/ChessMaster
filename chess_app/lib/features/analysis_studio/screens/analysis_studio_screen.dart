@@ -15,6 +15,8 @@ import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.da
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
@@ -270,14 +272,20 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         tooltip: a.tooltip,
         onPressed: a.onPressed);
 
+    // Kept out of the list and never folded into the overflow menu: it is the
+    // one control here that changes what the board *looks* like, and it draws
+    // its own state, which a `_ToolAction` cannot.
+    const coordinates = BoardCoordinatesButton();
+
     if (Breakpoints.isWide(context)) {
-      return actions.map(asIcon).toList();
+      return [coordinates, ...actions.map(asIcon)];
     }
 
     // The two that start a piece of work stay on the bar; the rest are one tap
     // further away but reachable, which is the whole point.
     const visible = 2;
     return [
+      coordinates,
       ...actions.take(visible).map(asIcon),
       PopupMenuButton<int>(
         icon: const Icon(Icons.more_vert),
@@ -1513,7 +1521,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 margin: EdgeInsets.zero,
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: _buildBoardWidget(boardSize - 16.0),
+                  child: BoardWithCoordinates(
+                    size: boardSize - 16.0,
+                    orientation: _orientation,
+                    builder: _buildBoardWidget,
+                  ),
                 ),
               ),
             ),
@@ -1557,51 +1569,66 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Left Side: Board & Eval Bar
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_activePuzzleSet != null)
+          //
+          // Scrolls, like the panel column beside it. What sits under the board
+          // — the eval bar, the move strip, the comment panel — is not in the
+          // board's height budget, so on a short window the column ran past the
+          // bottom of the screen and painted the overflow stripes (reported
+          // live on 27.8.2026: "BOTTOM OVERFLOWED BY 12 PIXELS"). Dragging a
+          // piece still wins over the scroll: a Draggable claims the gesture
+          // immediately, while a scroll has to pass the touch slop first — the
+          // room screen has had its board in a scroll view all along.
+          SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_activePuzzleSet != null)
+                  SizedBox(
+                    width: boardSize,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0),
+                      child: _buildPuzzleSetBar(),
+                    ),
+                  ),
                 SizedBox(
                   width: boardSize,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 4.0),
-                    child: _buildPuzzleSetBar(),
+                  height: boardSize,
+                  child: Card(
+                    elevation: 4,
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6.0),
+                      child: BoardWithCoordinates(
+                        size: boardSize - 12.0,
+                        orientation: _orientation,
+                        builder: _buildBoardWidget,
+                      ),
+                    ),
                   ),
                 ),
-              SizedBox(
-                width: boardSize,
-                height: boardSize,
-                child: Card(
-                  elevation: 4,
-                  margin: EdgeInsets.zero,
-                  child: Padding(
-                    padding: const EdgeInsets.all(6.0),
-                    child: _buildBoardWidget(boardSize - 12.0),
+                const SizedBox(height: 4),
+                if (_showEvalBar) ...[
+                  SizedBox(
+                    width: boardSize,
+                    child: HorizontalEvalBarWidget(
+                      eval: _currentRawEval,
+                      evalString: _currentEvalString,
+                      depth: _currentEvalDepth,
+                      orientation: _orientation,
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              if (_showEvalBar) ...[
+                ],
+                const SizedBox(height: 4),
                 SizedBox(
                   width: boardSize,
-                  child: HorizontalEvalBarWidget(
-                    eval: _currentRawEval,
-                    evalString: _currentEvalString,
-                    depth: _currentEvalDepth,
-                    orientation: _orientation,
-                  ),
+                  child: _buildNavigationToolbar(),
+                ),
+                SizedBox(
+                  width: boardSize,
+                  child: _buildCurrentCommentPanel(),
                 ),
               ],
-              const SizedBox(height: 4),
-              SizedBox(
-                width: boardSize,
-                child: _buildNavigationToolbar(),
-              ),
-              SizedBox(
-                width: boardSize,
-                child: _buildCurrentCommentPanel(),
-              ),
-            ],
+            ),
           ),
           const SizedBox(width: 12),
 

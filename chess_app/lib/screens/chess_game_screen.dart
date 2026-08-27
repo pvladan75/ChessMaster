@@ -23,6 +23,8 @@ import 'package:chess_app/services/local_recording_service.dart';
 import 'package:chess_app/services/lesson_recorder.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/services/session_service.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/core/services/board_control_rules.dart' as rules;
 import 'package:chess_app/models/pending_session_intent.dart';
 
@@ -628,43 +630,50 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 .toList()
             : [];
 
-    return ChessBoardWithOverlay(
-      controller: controller,
-      boardOrientation: boardOrientation,
-      boardSize: boardSize,
-      isAllowedToMove: isAllowedToMove,
-      isDrawingMode: isDrawingMode,
-      drawingStartSquare: drawingStartSquare,
-      arrows: moveTree.current.arrows,
-      engineArrows: engineArrows,
-      onMove: _handleLocalMoveMade,
-      onSquareTapForDrawing: (square) {
-        setState(() {
-          if (drawingStartSquare == null) {
-            drawingStartSquare = square;
-          } else {
-            final start = drawingStartSquare!;
-            drawingStartSquare = null;
-            if (start != square) {
-              moveTree.current.arrows.add(ChessArrow(
-                from: start,
-                to: square,
-                colorCode: selectedArrowColorCode,
-              ));
-              _recordEvent('arrow_drawn', {
-                'arrows': moveTree.current.arrows
-                    .map((a) =>
-                        {'from': a.from, 'to': a.to, 'colorCode': a.colorCode})
-                    .toList()
-              });
-              socket.emit('pgn_loaded', {
-                'roomId': widget.roomCode,
-                'pgn': moveTree.exportToPgn(),
-              });
+    return BoardWithCoordinates(
+      size: boardSize,
+      orientation: boardOrientation,
+      builder: (size) => ChessBoardWithOverlay(
+        controller: controller,
+        boardOrientation: boardOrientation,
+        boardSize: size,
+        isAllowedToMove: isAllowedToMove,
+        isDrawingMode: isDrawingMode,
+        drawingStartSquare: drawingStartSquare,
+        arrows: moveTree.current.arrows,
+        engineArrows: engineArrows,
+        onMove: _handleLocalMoveMade,
+        onSquareTapForDrawing: (square) {
+          setState(() {
+            if (drawingStartSquare == null) {
+              drawingStartSquare = square;
+            } else {
+              final start = drawingStartSquare!;
+              drawingStartSquare = null;
+              if (start != square) {
+                moveTree.current.arrows.add(ChessArrow(
+                  from: start,
+                  to: square,
+                  colorCode: selectedArrowColorCode,
+                ));
+                _recordEvent('arrow_drawn', {
+                  'arrows': moveTree.current.arrows
+                      .map((a) => {
+                            'from': a.from,
+                            'to': a.to,
+                            'colorCode': a.colorCode
+                          })
+                      .toList()
+                });
+                socket.emit('pgn_loaded', {
+                  'roomId': widget.roomCode,
+                  'pgn': moveTree.exportToPgn(),
+                });
+              }
             }
-          }
-        });
-      },
+          });
+        },
+      ),
     );
   }
 
@@ -2379,6 +2388,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
       cursor: _moveCursor(),
       canNavigate: canDriveSharedBoard,
       onFlipBoard: _toggleLocalOrientation,
+      // Beside the flip button, which is the other control here that changes
+      // how the board is read rather than what is on it. Not in the app bar:
+      // that bar already carries five actions and a status icon, and a sixth
+      // is how a row runs past the edge of a 360 dp phone with no warning
+      // painted in a release build.
+      trailing: const [BoardCoordinatesButton()],
     );
   }
 

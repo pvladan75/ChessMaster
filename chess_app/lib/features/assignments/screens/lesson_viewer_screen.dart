@@ -6,6 +6,8 @@ import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
@@ -197,6 +199,7 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
         title: Text(widget.detail.assignment.title),
+        actions: const [BoardCoordinatesButton()],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
           child: LinearProgressIndicator(
@@ -229,13 +232,13 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
                     _buildHeader(done),
                     const SizedBox(height: 10),
                     Center(
-                      child: SizedBox(
-                        width: boardSize,
-                        height: boardSize,
-                        child: ChessBoardWithOverlay(
+                      child: BoardWithCoordinates(
+                        size: boardSize,
+                        orientation: _orientation,
+                        builder: (size) => ChessBoardWithOverlay(
                           controller: _board,
                           boardOrientation: _orientation,
-                          boardSize: boardSize,
+                          boardSize: size,
                           // Playable, but only for trying things: the move is
                           // not sent anywhere and nothing about the lesson
                           // changes. A step that asks for a mate and refuses to

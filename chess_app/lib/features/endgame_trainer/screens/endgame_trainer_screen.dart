@@ -9,6 +9,7 @@ import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/action_key_shortcuts.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -980,6 +981,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
               : (kEndgameTypeNames[widget.type] ?? 'Završnice'),
         ),
         actions: [
+          const BoardCoordinatesButton(),
           BoardFlipButton(
             onPressed: () => setState(() {
               _orientation = _orientation == PlayerColor.white

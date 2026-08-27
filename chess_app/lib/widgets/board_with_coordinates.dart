@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/services/app_settings_service.dart';
+
 /// Frames a board with file letters and rank numbers.
 ///
 /// The board package draws none, and without them a flipped board is a guess.
@@ -15,7 +17,14 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 ///
 /// [size] is the whole thing, gutter included, so a caller that already worked
 /// out how much room it has can pass the same number it would have given the
-/// board and nothing overflows.
+/// board and nothing overflows. **That is also why the labels are switched off
+/// here rather than by each caller**: with them off the board takes the whole
+/// [size] back, and a screen that had subtracted the gutter itself would leave
+/// a strip of empty floor behind.
+///
+/// Listens to [AppSettingsService] so the switch takes effect on every board
+/// at once, including the ones underneath a settings page opened on top of
+/// them.
 class BoardWithCoordinates extends StatelessWidget {
   const BoardWithCoordinates({
     super.key,
@@ -34,6 +43,15 @@ class BoardWithCoordinates extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: AppSettingsService.instance,
+      builder: (context, _) => AppSettingsService.instance.showBoardCoordinates
+          ? _framed(context)
+          : SizedBox(width: size, height: size, child: builder(size)),
+    );
+  }
+
+  Widget _framed(BuildContext context) {
     // Enough for a digit at any board size, and capped so a large board does
     // not grow a wide margin it has no use for.
     final gutter = (size * 0.05).clamp(12.0, 20.0);

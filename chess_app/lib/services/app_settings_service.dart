@@ -41,6 +41,16 @@ class AppSettingsService extends ChangeNotifier {
   /// rating of whoever got the position wrong.
   bool _endgameIncludeOnline = false;
 
+  /// Whether boards are framed with file letters and rank numbers.
+  ///
+  /// On by default. The people this app is for are learning to read a board,
+  /// and half the screens turn it around on their own — the endgame trainer
+  /// orients every position toward whoever has to solve it — so "which way is
+  /// this" stops being answerable from the pieces alone. It is a setting
+  /// because a trainer who already reads coordinates wants the extra room the
+  /// gutter takes, especially on a phone.
+  bool _showBoardCoordinates = true;
+
   /// Which opening database the Analysis Studio Opening Explorer panel
   /// queries: 'lichess' (real-game move popularity, needs an API token) or
   /// 'chessdb' (ChessDB.cn's shared engine analysis, no token needed).
@@ -55,6 +65,7 @@ class AppSettingsService extends ChangeNotifier {
   String get lichessApiToken => _lichessApiToken;
   String get openingDbSource => _openingDbSource;
   bool get endgameIncludeOnline => _endgameIncludeOnline;
+  bool get showBoardCoordinates => _showBoardCoordinates;
   bool get speechEnabled => _speechEnabled;
   double get speechRate => _speechRate;
   String get speechLanguage => _speechLanguage;
@@ -94,6 +105,7 @@ class AppSettingsService extends ChangeNotifier {
         (prefs.getInt('app_move_animation_ms') ?? 200).clamp(0, 500);
     _endgameIncludeOnline =
         prefs.getBool('app_endgame_include_online') ?? false;
+    _showBoardCoordinates = prefs.getBool('app_board_coordinates') ?? true;
     _speechEnabled = prefs.getBool('app_speech_enabled') ?? false;
     _speechRate = (prefs.getDouble('app_speech_rate') ?? 0.5).clamp(0.2, 1.0);
     _speechLanguage = prefs.getString('app_speech_language') ?? '';
@@ -175,6 +187,13 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('app_endgame_include_online', _endgameIncludeOnline);
+  }
+
+  Future<void> setShowBoardCoordinates(bool show) async {
+    _showBoardCoordinates = show;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('app_board_coordinates', show);
   }
 
   Future<void> setSpeechEnabled(bool enabled) async {

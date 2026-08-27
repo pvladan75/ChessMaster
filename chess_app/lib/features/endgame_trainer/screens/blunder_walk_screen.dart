@@ -13,6 +13,7 @@ import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/endgame_info_panel.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
@@ -532,7 +533,10 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.canvas,
-      appBar: AppBar(title: const Text('Greške iz partija')),
+      appBar: AppBar(
+        title: const Text('Greške iz partija'),
+        actions: const [BoardCoordinatesButton()],
+      ),
       body: SafeArea(child: _buildBody()),
     );
   }

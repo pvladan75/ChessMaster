@@ -649,6 +649,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Koordinate oko table',
+                            style: TextStyle(fontWeight: FontWeight.w500)),
+                        subtitle: Text(
+                          'Slova i brojevi uz ivicu table, na svim ekranima. '
+                          'Isti prekidač stoji i na samim ekranima sa tablom.',
+                          style: AppText.caption
+                              .copyWith(color: context.colors.textMuted),
+                        ),
+                        value: _settings.showBoardCoordinates,
+                        onChanged: (val) =>
+                            _settings.setShowBoardCoordinates(val),
+                      ),
+                      const Divider(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [

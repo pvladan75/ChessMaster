@@ -5,6 +5,8 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import '../models/assignment.dart';
@@ -231,6 +233,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
       appBar: AppBar(
         title: Text(widget.detail.assignment.title),
         actions: [
+          const BoardCoordinatesButton(),
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.grid_view),
@@ -264,13 +267,13 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
                   _header(),
                   const SizedBox(height: 10),
                   Center(
-                    child: SizedBox(
-                      width: boardSize,
-                      height: boardSize,
-                      child: ChessBoardWithOverlay(
+                    child: BoardWithCoordinates(
+                      size: boardSize,
+                      orientation: _orientation,
+                      builder: (size) => ChessBoardWithOverlay(
                         controller: _board,
                         boardOrientation: _orientation,
-                        boardSize: boardSize,
+                        boardSize: size,
                         // Locked once answered — in this sitting or an
                         // earlier one. Only the first attempt is recorded, so a
                         // board that still accepted moves would promise a
