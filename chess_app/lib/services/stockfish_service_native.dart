@@ -825,6 +825,21 @@ class StockfishService {
       return;
     }
 
+    // Analysis has been stopped, and `_currentFen` was cleared with it. What
+    // the engine is still emitting belongs to a search nobody is waiting for
+    // any more: UCI keeps sending until it has finished stopping, which is
+    // several lines and a `bestmove` later.
+    //
+    // These used to be dispatched anyway, with an empty FEN attached. Every
+    // listener then discarded them as stale - after `AnalysisLine.fromPv` had
+    // already tried to build a board from `''` and thrown "FEN string must
+    // contain six space-delimited fields" into the log, once per line. That
+    // noise is what a real freeze was buried in.
+    if (_currentFen.isEmpty && !_awaitingStopDrain) {
+      if (line.startsWith('bestmove')) _searchInFlight = false;
+      return;
+    }
+
     if (line.startsWith('bestmove')) {
       _searchInFlight = false;
       if (_awaitingStopDrain) {

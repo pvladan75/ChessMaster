@@ -588,10 +588,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     );
   }
 
+  /// How many times the engine has been asked again for this same reply.
+  ///
+  /// One retry, then the board is handed back. Without a limit, a position the
+  /// engine will not answer for becomes an endless loop of asking.
+  int _opponentMoveRetries = 0;
+
   void _executeOpponentEngineMoveDueToTimeoutOrDepth(String reason) {
     if (!_isOpponentTurn) return;
     _opponentMoveTimer?.cancel();
-    _isOpponentTurn = false;
 
     final move = _latestEngineBestMove ??
         (_engineLinesMap.isNotEmpty
@@ -604,10 +609,39 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     if (move.isNotEmpty && move != '-' && move.length >= 4) {
       print(
-          '\n[ENGINE_MOVE_TRIGGER] ⚡ Odigravanje poteza engine-a: $reason! Odabran potez: $move (Eval: $eval)\n');
+          '\n[ENGINE_MOVE_TRIGGER] Odigravanje poteza engine-a: $reason! Odabran potez: $move (Eval: $eval)\n');
+      // `_isOpponentTurn` deliberately stays true here. It used to be cleared
+      // on this line, a full second before the move it announces is actually
+      // played - and the board is only inert while it is set. In that second
+      // the reader could move a piece of the side the engine was about to move
+      // with; the queued move then landed on a position it no longer belonged
+      // to, and the drill stopped answering. `resetBoardState` clears the flag
+      // once the move is on the board, which is the moment it stops being the
+      // opponent's turn.
+      _opponentMoveRetries = 0;
       _stockfishService.stopAnalysis();
       _playOpponentMove(move, eval);
+      return;
     }
+
+    // Nothing to play. This is what happens when every evaluation that came
+    // back was for a position no longer on the board: all of it was discarded
+    // as stale, and nothing was ever recorded to play.
+    if (_opponentMoveRetries < 1 && _puzzleGame != null && mounted) {
+      _opponentMoveRetries++;
+      // Ask again, for the position that is on the board now. The flag stays
+      // set: it is still the engine's turn, and the board stays inert until it
+      // has answered.
+      _triggerOpponentBotResponse();
+      return;
+    }
+
+    // Give the board back rather than leaving it locked. A drill that will not
+    // move is bad; one that will not move *and* will not let the reader touch
+    // anything is worse, and the two look identical from the outside.
+    _opponentMoveRetries = 0;
+    setState(() => _isOpponentTurn = false);
+    _showSnackBar('Engine nije odgovorio. Odigrajte potez ponovo.');
   }
 
   void _playOpponentMove(String bestMove, String evaluation) {
@@ -661,6 +695,24 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _engineMoveDelay?.cancel();
     _engineMoveDelay = Timer(const Duration(milliseconds: 1000), () {
       if (!mounted) return;
+
+      // Checked again here, against the board this move is about to land on
+      // rather than the one it was chosen for. The check above runs a second
+      // earlier, and a second is long enough for the position to have moved on
+      // - which is exactly how a queued reply used to be played into a
+      // position it did not belong to, leaving the drill unable to continue.
+      if (_puzzleGame != null) {
+        final stillLegal = _puzzleGame!.moves({'verbose': true}).any((m) =>
+            '${m['from']}${m['to']}${m['promotion'] ?? ''}'
+                .startsWith(validMove.substring(0, 4)));
+        if (!stillLegal) {
+          print(
+              '[ENGINE_MOVE_TRIGGER] Potez $validMove više nije legalan - pozicija se promenila. Tražim nov odgovor.');
+          _triggerOpponentBotResponse();
+          return;
+        }
+      }
+
       _playPuzzleMove(validMove);
       if (_puzzleGame != null) {
         _activeFen = _puzzleGame!.fen;
@@ -706,7 +758,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       print(
           '\n[OPPONENT_BOT_DEBUG] 🎯 Pronađen spreman odgovor u JSON rešenju: $jsonResponseMove\n');
       _stockfishService.stopAnalysis();
-      _isOpponentTurn = false;
+      // Not `_isOpponentTurn = false` here: the move below is played a
+      // second later, and the board is inert only while this is set. See
+      // _executeOpponentEngineMoveDueToTimeoutOrDepth for what slipped
+      // through that second. `resetBoardState` clears it once the move is
+      // actually on the board.
       _playOpponentMove(jsonResponseMove, 'JSON');
       return;
     }
