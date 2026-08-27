@@ -417,7 +417,7 @@ preporukom trenera roditelju, a preporuka traži ime koje se izgovori i zapamti.
 Dva imena služe pretrazi, treće služi pamćenju. `chesstrainers.app` je kućni
 brend nad sva tri i za tu ulogu je opisnost prednost.
 
-Posledica: Potez **nema svoj domen** i ne treba mu. Živi pod izlogom.
+Posledica: Mislisha **nema svoj domen** i ne treba mu. Živi pod izlogom.
 
 Prefiks `rs.pejovic.*` razbija `com.program.*` druga dva. Ostaje kako jeste:
 Play ne grupiše po prefiksu, korist bi bila nula. Zabeleženo da odluka bude
