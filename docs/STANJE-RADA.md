@@ -1414,3 +1414,69 @@ ponovo; pustiti da pretraga stigne do kraja i videti da traka ostaje na pravoj
 oceni; u repertoaru gledati kako linije pristižu tokom računanja i kako strelice
 sa ocenama stoje na tabli; u Podešavanjima prebaciti nivo i videti da se menja
 samo protivnik, a ne i dubina prikaza.
+
+## Snimak table sa glasom u studiju — odbijeno 27.8.2026
+
+**Predlog:** trener u Šahovskom studiju priča dok izvodi poteze, iz toga nastaje
+snimak (tabla se pomera uz glas, plejer a ne renderovan video), i taj snimak se
+ubaci u lekciju da ga učenici odslušaju.
+
+**Odluka: ne gradi se.** Ni sada, ni u ovom obliku. Razlozi, po težini.
+
+**Plejer je danas lošiji od videa, ne bolji.** Ceo argument za „plejer umesto
+videa" je da format ume nešto što video ne ume. `replay_player_screen.dart` drži
+`enableUserMoves: false` — učenik gleda. Ostaje slajder i izbor brzine, dakle
+video plejer sa manje funkcija nego YouTube: bez CDN-a, bez titlova, bez
+puštanja u pozadini na telefonu, i bez weba, jer Agora tamo nema snimanje. Ono
+što bi format opravdalo — da učenik zaustavi, odigra potez sam, pita motor,
+skrene u varijantu — ne postoji. Dok toga nema, premisa predloga ne stoji.
+
+**Ono što je opisano već postoji i već je provereno uživo.** Trener sam u sobi →
+snimi → izvezi MP4 → objavi gde hoće; tako i piše u odeljku „Snimanje časa je
+uklonjeno". Razlika je samo u tome što bi snimak stajao *unutar* aplikacije i
+bio zakačen za lekciju. To je udobnost, a ne nova mogućnost. I gore: dobitak od
+snimljenog materijala je u tom odeljku opisan kao **kanal kojim ljudi dolaze do
+aplikacije**, što važi za javni materijal. Materijal zaključan iza naloga tu
+stranu nema uopšte — predlog uzima jedinu jasnu korist od snimanja i sklanja je.
+
+**`uploads/` nije tog oblika.** `retentionService.js` izričito ostavlja taj
+direktorijum na miru: jedina kopija, nikad se ne briše. Pravilo je pisano za
+šačicu nezamenljivih snimaka časa. Materijal za učenje je proizvodna traka —
+trener koji pravi kurs napravi desetine fajlova, namerno i zauvek, na jednom
+dropletu koji drži i API. Vidi „Ako droplet postane tesan, kojim redom"; ovo je
+najbrži put dotle. Apsurd je što je to materijal koji trener *hoće* da objavi,
+pa baš on ne mora da bude nešto čemu je ova aplikacija jedina kopija.
+
+**Studio deo ima nedokazanu tehničku premisu.** Zvuk ide kroz
+`agora_rtc_engine.startAudioRecording`, motor napravljen za kanal, a u studiju
+nema ni sobe ni kanala ni tokena. Možda radi bez `joinChannel`, možda traži drugi
+audio put — ne zna se dok se ne proba. A vrednost studija (stablo varijanti,
+evaluacija, eksplorer) je tačno ono što `TimelineEvent` ne beleži, pa bi format
+morao da se proširi na kretanje kroz stablo. To je skupi deo funkcije čiji jeftini
+delovi već premašuju dobitak.
+
+**I peti razlog, koji je presudio.** 280 neoznačenih provera u 44 stavke,
+53 koraka do objave, a poslednja nedelja su ispravke iz prvog prolaska kroz
+aplikaciju: studio nije mogao da se otvori, pešak nije mogao da promoviše, pet
+nalaza na ekranu za prijavu. Aplikaciju još nije koristio niko osim vlasnika.
+Funkcija za deljenje materijala učenicima pretpostavlja učenike, a trenera koji
+je ovo tražio još nema.
+
+### Šta mora da putuje uz ovo ako se ikad bude gradilo
+
+- **`ADULT_AGE = 18`, i nepoznata godina znači odbijanje.** Pravilo iz
+  `recordingConsent.js` ne sme da ostane iza u sobi: bez njega glas
+  petnaestogodišnjaka završi u `uploads/`.
+- **`/uploads` se servira statički i bez provere** (`server.js`). Danas je to
+  bezopasno, jer URL ima samo vlasnik snimka — ali se naoruža istog trenutka kad
+  se bilo šta podeli, jer je onda reč o trajnim linkovima bez provere. Obrazac za
+  popravku već postoji: `signDownloadToken` / `authenticateDownloadToken`, kako
+  MP4 izvoz već radi.
+
+### Jeftina varijanta, kad se pojavi prvi trener koji pravi materijal
+
+**Polje za link na lekciji.** Trener snimi postojećim putem (sam u sobi, MP4
+izvoz), objavi na YouTube ili gde hoće, i nalepi link u lekciju. Jedna kolona i
+jedno tekstualno polje: bez skladišta, bez Agore, bez novog puta za saglasnost,
+radi i na webu, i zadržava akvizicionu stranu. To je ujedno i način da se sazna
+da li treneri uopšte prave materijal, pre nego što se za to gradi cev.
