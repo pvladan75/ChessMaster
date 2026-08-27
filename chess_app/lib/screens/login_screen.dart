@@ -73,7 +73,29 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       _emailController.text = remembered;
       _emailIsKnown = true;
     }
+
+    // Why they are looking at this screen, when the app decided it rather than
+    // they did. Without it the trip here is unexplained: the previous screen is
+    // gone and nothing says the session ran out.
+    final reason = SessionService.instance.expiryReason;
+    if (reason != null) {
+      _expiryNotice = reason == 'account-gone'
+          ? 'Ovaj nalog više ne postoji na serveru. Prijavite se drugim '
+              'nalogom.'
+          : 'Prijava je istekla. Prijavite se ponovo.';
+      // After the frame, not during it: acknowledging notifies, the router
+      // listens, and a router rebuilt in the middle of this build is how one
+      // message becomes a loop.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SessionService.instance.acknowledgeExpiry();
+      });
+    }
   }
+
+  /// The sentence explaining an arrival nobody asked for. Held in the screen
+  /// rather than read from the service at build time, because the service is
+  /// told to forget the reason as soon as this screen has shown it.
+  String? _expiryNotice;
 
   /// Whether the address came back from the last sign-in, which decides where
   /// the caret starts: in the password when there is nothing to type above it,
@@ -363,6 +385,30 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                         style: const TextStyle(
                             fontSize: 24, fontWeight: FontWeight.bold),
                       ),
+                      if (_expiryNotice != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.lock_clock,
+                                  size: 18, color: Colors.orangeAccent),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _expiryNotice!,
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.orangeAccent),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       if (_isAwaitingVerification) ...[
                         Text(

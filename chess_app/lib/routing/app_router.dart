@@ -41,7 +41,34 @@ final GoRouter appRouter = GoRouter(
   restorationScopeId: 'chess_app_router',
   routes: appRouteTable,
   errorBuilder: appRouteErrorBuilder,
+  refreshListenable: SessionService.instance,
+  redirect: expiredSessionRedirect,
 );
+
+/// Where somebody goes when their session ended without them asking.
+///
+/// The one place that turns "the server no longer accepts this device" into
+/// leaving the screen they are on. Before this, a token that had run out was
+/// noticed in pieces — a banner on the dashboard, a socket that would not
+/// connect, a request that came back empty — and the app went on considering
+/// the user signed in, so the way back in was to find "Odjava" and sign out of
+/// something that was already gone. Reported live on 22.8.2026.
+///
+/// Only [SessionService.sessionExpired] sends anybody anywhere. A guest is not
+/// redirected: signing in is optional in this app, and a rule that reads "not
+/// signed in → login" would lock the door on the people it was never about.
+String? expiredSessionRedirect(BuildContext context, GoRouterState state) {
+  if (!SessionService.instance.sessionExpired) return null;
+  // The destination itself is exempt. go_router stops on its own when a
+  // redirect names the location it is already going to, so this is belt and
+  // braces rather than the thing that prevents a loop — it is kept because the
+  // sentence it makes is the true one: the login screen is where an expired
+  // session is *supposed* to be, and it clears the flag once it has said why.
+  // Deliberately not covered by a test: removing it changes nothing that can be
+  // observed, and a test that passes with the guard gone is worse than none.
+  if (state.matchedLocation == AppRoutes.login) return null;
+  return AppRoutes.login;
+}
 
 /// What a link to nowhere lands on. Exposed beside [appRouteTable] and for the
 /// same reason: a test that builds its own router should get the app's answer

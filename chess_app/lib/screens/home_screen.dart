@@ -280,6 +280,15 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     });
 
+    // The socket is the first thing that hears about a token the server will
+    // not take any more — it is refused at the handshake, before any screen
+    // makes a request. Left unread it reconnected forever behind a UI that
+    // still believed it was signed in.
+    _socket.onConnectError((err) {
+      if (!looksLikeRefusedToken(err)) return;
+      unawaited(SessionService.instance.expire());
+    });
+
     _socket.on('user_presence_changed', (data) {
       if (mounted) {
         _fetchStudents(withPanel: false);
@@ -476,35 +485,38 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Asks whether being signed in still means anything, and acts on one answer.
+  /// Asks whether being signed in still means anything, and acts on the answer.
   ///
-  /// Only one: `gone` — the server says this account no longer exists. There is
-  /// nobody to sign back in as, and the id it names can be handed to somebody
-  /// else, so the stored session goes rather than sitting there looking valid.
+  /// Two answers do something, and they are kept apart all the way to the
+  /// screen the user lands on:
   ///
-  /// An **expired** token deliberately does not do this yet. It is the same
-  /// shape and a wider change — every request in the app would have to route
-  /// its 401 somewhere — and it is written down as its own open item. Doing
-  /// half of it here under the other one's name is how a fix ends up looking
-  /// finished.
+  ///   * `gone` — the account behind the token no longer exists. There is
+  ///     nobody to sign back in as, and the id it names can be handed to
+  ///     somebody else, so the stored session goes rather than sitting there
+  ///     looking valid.
+  ///   * `expired` — the token ran out. Since 27.8.2026 this ends the session
+  ///     too. It used to be left open on purpose, on the grounds that doing it
+  ///     properly meant routing every 401 in the app somewhere; what the user
+  ///     actually met was a banner saying *"Prijava je istekla"* over an app
+  ///     that still considered them signed in, so the way back in was to sign
+  ///     out of a session the server had already dropped.
+  ///
+  /// `offline` deliberately does nothing. A server that cannot be reached has
+  /// not refused anybody, and signing somebody out over a dropped connection
+  /// would be the mistake the server's own account guard exists to avoid.
   Future<void> _checkServerAndSession() async {
     final status =
         await ServerStatusService.instance.check(widget.session.token);
-    if (!mounted || status != ServerStatus.gone) return;
-
-    await SessionService.instance.signOut();
-    AccountStandingService.instance.forget();
     if (!mounted) return;
-    AppFeedback.show(
-      context,
-      () => const SnackBar(
-        content: Text('Ovaj nalog više ne postoji na serveru. '
-            'Prijavite se ponovo.'),
-        backgroundColor: Colors.redAccent,
-        duration: Duration(seconds: 6),
-      ),
+    if (status != ServerStatus.gone && status != ServerStatus.expired) return;
+
+    AccountStandingService.instance.forget();
+    // The router is listening: this is what takes them to the login screen,
+    // from here or from wherever else they have got to since. The reason
+    // travels with it, so that screen can say which of the two happened.
+    await SessionService.instance.expire(
+      reason: status == ServerStatus.gone ? 'account-gone' : 'expired',
     );
-    context.go(AppRoutes.login);
   }
 
   /// Opens the parent-address dialog, and refreshes afterwards.
