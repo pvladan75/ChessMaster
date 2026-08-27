@@ -11,6 +11,11 @@ je obrazloženje ono što se ne može rekonstruisati iz koda.
 
 ---
 
+> Kad neki odeljak upućuje na `STANJE-RADA.md` po imenu („vidi *…*") a
+> tamo ga nema: zatvorena istorija je 27.8.2026. izdvojena u
+> [arhiva/STANJE-RADA-do-26.8.2026.md](arhiva/STANJE-RADA-do-26.8.2026.md).
+> `grep` po naslovu nađe odeljak u jednom od ta dva fajla.
+
 ## Prvo: ono što se gubilo svakog dana — ✅ zatvoreno 20.8.2026
 
 Pitanja 4 i 5 traže podatak koji se **do 20.8.2026. bacao**. Kad učenik odigra

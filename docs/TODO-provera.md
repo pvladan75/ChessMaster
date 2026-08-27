@@ -8,6 +8,11 @@ Poređano od najbržeg za proveru ka najsporijem.
 
 ---
 
+> Kad neki odeljak upućuje na `STANJE-RADA.md` po imenu („vidi *…*") a
+> tamo ga nema: zatvorena istorija je 27.8.2026. izdvojena u
+> [arhiva/STANJE-RADA-do-26.8.2026.md](arhiva/STANJE-RADA-do-26.8.2026.md).
+> `grep` po naslovu nađe odeljak u jednom od ta dva fajla.
+
 ## 0. Trener završnica — ✅ provereno uživo 22.8.2026
 
 Korisnik je prošao tok u Windows verziji: AI Studio → kartica „Završnice iz
@@ -359,84 +364,6 @@ kanal za istu stvar — kad se čuje da li je potez prošao, ne mora ni da se gl
 
 ---
 
-## 0. Pristanak na odnos trener–učenik — ✅ provereno uživo 17.8.2026
-
-Korisnik je prošao ceo tok na telefonu: poziv sa naloga trenera → red „čeka
-potvrdu" posivljen kod pozivaoca → kartica „Čeka vaš odgovor (1)" sa tekstom
-„želi da vas upiše kao učenika" kod pozvanog → prihvatanje → zadata lekcija.
-Potvrđeno i u bazi: veza je prešla u `accepted` sa upisanim `responded_at`,
-prijateljstvo je nastalo tek tada, a zadatak je napravljen dva minuta posle
-prihvatanja.
-
-**Nađeno pri toj probi, popravljeno istog dana:** kod trenera se prihvatanje
-nije videlo dok se aplikacija ne ugasi i ponovo pokrene — lista se dohvatala
-samo pri pokretanju. Sad se osvežava pri ulasku u tab i na povlačenje nadole.
-Uz to je notifikacija koja nosi zahtev ostajala **nepročitana zauvek**, pa je
-zvonce trajno pokazivalo broj za nešto već rešeno.
-
-**Uzajaman par raskinut 17.8.2026.** Korisnik ga je obrisao iz aplikacije, sa
-jedne strane; nestala su **oba** reda odjednom (`removeRelationship` briše u oba
-smera) i oba reda u `friends`. U bazi više nema nijednog uzajamnog para, a jedina
-preostala veza je nastala kroz pristanak i nosi `initiated_by`. Time je zatečenih
-podataka iz vremena pre pristanka nestalo.
-
-**Drugi smer i odbijanje — ✅ provereno uživo 17.8.2026.** Korisnik je poslao
-zahtev sa naloga trenera birajući **„Ja sam učenik"**; druga strana je dobila
-tačan tekst za taj smer („želi da mu budete trener", ne obrnuto), pa ga je
-odbila. Red je nestao iz `trainer_students`, a notifikacija koja ga je nosila
-prešla je u `is_read = true` — dakle i sinoćna popravka radi na živim podacima.
-
-**Odbijanje zabrane uzajamnog para — ✅ provereno uživo 17.8.2026.** Pokušaj da
-se zasnuje odnos u suprotnom smeru od postojećeg vraća poruku i ne pravi red.
-
-Ostaje da se proveri uživo:
-
-- Ponovno slanje posle odbijanja. Tabela je posle probe prazna, pa ništa ne
-  stoji na putu, ali sam potez nije ponovljen.
-
-**Obaveštenje o odbijanju — napisano 17.8.2026, nije viđeno uživo.** Nađeno pri
-gornjoj probi: pošiljalac odbijenog zahteva nije dobijao **nikakav** trag, pa sa
-njegove strane „odbijen sam" i „nikad nisam ni poslao" izgleda isto. Sad mu stiže
-obaveštenje „*X nije prihvatio vaš zahtev.*", bez razloga — vrsta
-`request_declined`, bez dugmadi.
-
-**Kako proveriti:** pošalji zahtev, odbij ga sa druge strane, pa se vrati na
-nalog pošiljaoca i otvori zvonce. Servis je pokriven testovima; **poziv iz rute
-`/relationships/:id/decline` nije nijednom izvršen na živim podacima.** Gledaj i
-da se obaveštenje prikaže kao običan tekst — klijent ne grana po `kind`-u, pa bi
-nova vrsta trebalo da prođe kao svaka druga, ali to niko nije video.
-
-<details>
-<summary>Prvobitni opis provere (16.8.2026)</summary>
-
-**Kako:** Prijatelji → unesi email → „Dodaj prijatelja". Sad se šalje **poziv**, a
-ne veza. Prijavi se kao druga strana → isti tab → kartica „Čeka vaš odgovor" →
-kvačica.
-
-**Na šta obratiti pažnju:**
-
-- Dok je na čekanju, učenik stoji u listi **posivljen, sa „čeka potvrdu"**, a
-  dugme za napredak i zadatke je nedostupno. Ako je dostupno, provera na serveru
-  je jedino što stoji između — a to je već jednom bilo premalo.
-- Posle prihvatanja: zadavanje zagonetki i lekcije mora da proradi **odmah**, bez
-  ponovne prijave.
-- Odbijanje briše zahtev; ponovno slanje mora da radi.
-- Oba smera sada imaju dugme: iznad polja za email biraš **„Ja sam trener"** ili
-  **„Ja sam učenik"**, i natpis polja se menja u skladu s tim. Proveriti da
-  izbor „Ja sam učenik" stvarno stigne kao *zahtev treneru* — druga strana mora
-  da vidi „želi da mu budete trener", ne obrnuto.
-
-> **Zatečeni podaci:** tri postojeće veze su prešle kao `accepted`, i među njima
-> je i **uzajaman par** koji je i bio bag (dvoje koji su dodali jedan drugog).
-> Taj par je raskinut 17.8.2026.
->
-> **Ispravka ih ne sprečava** — suprotno onome što je ovde ranije pisalo.
-> `requestRelationship` proverava postojeći red samo u **istom** smeru
-> (`trainer_id = $1 AND student_id = $2`), pa je obrnuti red drugi red i prolazi.
-> Pristanak čini da par više ne može da nastane nečujno, ali može da nastane.
-
-</details>
-
 ## 0a. Obaveštenja posle popravke — 17.8.2026, nije viđeno uživo
 
 **Kako:** otvori zvonce na **oba** rasporeda — na Androidu je u zaglavlju, na
@@ -496,32 +423,6 @@ poruku → „Napravi" → otvori link.
 - Da li se ocenjeni korak vraća na red kad mu dođe vreme.
 - Da „Ponovo" vrati korak istog dana, a „Lako" ga odgurne daleko.
 
-## 4. Snimanje časa — ✅ provereno 15.8.2026
-
-Ceo tok je prošao uživo: snimanje → potezi → pauza → nastavak → zaustavljanje →
-čuvanje → reprodukcija, uključujući i zvuk (koji do tada nikad nije radio).
-
-Provereno i na podacima, ne samo okom: snimak `id=13` ima svih 10 događaja i na
-uređaju i u bazi, sa istim vremenima. Razmak između poteza je ~1–2 s osim jednog
-od 4830 ms tačno na mestu pauze — dakle mrtvo vreme pauze **jeste** oduzeto, što
-je i bio razlog refaktora u `LessonRecorder`.
-
-**Sinhronizacija zvuka posle pauze — ✅ provereno.** Agora ne ume da pauzira
-snimanje, pa mikrofon radi kroz pauzu dok je vremenska osa table zamrznuta. Sad
-klijent uz snimak šalje intervale pauza, a server ih iseče iz zvuka
-(`services/audioTrimmer.js`) pri čuvanju. Provereno uživo: snimanje sa pauzom pa
-reprodukcija — tabla i glas idu zajedno do kraja.
-
-Sečenje je namerno „best effort": ako FFmpeg zakaže, snimak se svejedno sačuva sa
-neisečenim zvukom. Bolje neusklađen zvuk nego izgubljen čas. Ako sinhronizacija
-ikad opet odluta, prvo potraži `[AUDIO TRIM] Cut N pause(s), Xms total` u logu
-servera — bez te linije sečenje nije ni pokušano (`ffmpeg` van PATH-a ili
-`pauseIntervals` nije stigao).
-
-**MP4 izvoz — ✅ provereno uživo 15.8.2026.** Poslednja neproverena veća funkcija
-snimanja, i najskuplja po CPU na droplet-u od 1 vCPU. Čekala je na admin nalog i
-Premium (stavka 11) — posle toga korisnik potvrdio da izvoz radi.
-
 ## 5. Keširanje evaluacija
 
 **Kako:** u Analysis Studiju uradi „Analiziraj celu partiju", pa **odmah zatim**
@@ -540,47 +441,6 @@ opet ide punom brzinom, i to je namerno.
 Testovi renderuju dijaloge na 360×640 i 320×568 i hvataju prelivanje, ali
 **„Moji zadaci" i izveštaj o učeniku nisu pokriveni** — oni zovu server pri
 otvaranju, pa bi test visio. Njih treba pogledati okom.
-
-## 7. Uvoz partija sa Chess.com/Lichess — ✅ obe strane potvrđene uživo
-
-**Lichess potvrđen 15.8.2026** (korisnik isprobao). Chess.com je potvrđen ranije
-istog dana, uz bag koji je usput nađen i popravljen — vidi niže.
-
-
-**Kako:** Analysis Studio → dugme za „Unos Pozicije" → kartica „Chess.com/Lichess" →
-izaberi platformu, unesi korisničko ime → „Preuzmi Partije". Sleće na karticu
-„PGN Uvoz" sa popunjenim tekstom; ako ima više partija, prvo pita koju kroz isti
-birač kao kod PGN fajla sa više partija.
-
-**Na šta obratiti pažnju:**
-- Chess.com strana je uživo isprobana direktnim pozivom (van aplikacije) i radi —
-  pravi PGN, pravi headeri.
-- Lichess strana je **samo delimično potvrđena uživo**: ruta i format su tačni po
-  zvaničnom API spec-u, i sam poziv sa ispravnim `User-Agent`-om je dobio pravi
-  odgovor servera (ne generičku grešku), ali test je posle nekoliko pokušaja
-  udario u Lichess-ovo ograničenje brzine i nisam uspeo da vidim pravi PGN u
-  odgovoru. Prva stvar za proveru kad se ovo isproba uživo.
-- **Napomena za dalji rad:** Lichess ćutke vraća lažnu 404 stranicu zahtevima bez
-  prepoznatljivog `User-Agent`-a — samo na ovoj ruti (`/api/games/user/...`), ne
-  i na `/api/user/...`. Servis sad šalje `User-Agent: ChessMasterCoach/1.0`; ako
-  se ikad ukloni ili promeni, ova ruta će ponovo tiho „ne raditi" umesto da
-  vrati grešku.
-- Samo klikanje kroz dijalog (tab, dugme, layout) nije provereno okom — nema
-  alata za automatizaciju native Windows GUI-ja u ovoj sesiji. `flutter analyze`
-  je čist, testovi prolaze.
-
-**✅ Nađeno i popravljeno 15.8.2026, korisnik je isprobao uživo:** uvoz sa
-Chess.com je javljao „Neispravan PGN format" pri prebacivanju na tablu. Uzrok:
-Chess.com stavlja `{[%clk ..]}` komentar posle svakog poteza, što po PGN
-konvenciji primorava oznaku `12...` za nastavak crnog — a `chess` paket (0.7.0)
-u svom `load_pgn`-u skida obično `12.` naivnim regex-om, ali ne i `12...`,
-pa ostave dve tačke kao otpadak koji se tumači kao nepostojeći potez i obara
-ceo uvoz. Ovo pogađa **svaki** PGN sa komentarima koji prekidaju par poteza, ne
-samo Chess.com — uključujući ručno nalepljen PGN sa sajtova koji izvoze satove
-ili engine-komentare. Popravka: `PgnParser.sanitizeForLoadPgn` (`pgn_parser.dart`)
-skida `12...` pre poziva `load_pgn`, pozvano iz `_importPgn` u
-`analysis_studio_screen.dart`. Test koji pada bez ispravke:
-`test/pgn_parser_sanitize_test.dart` (potvrđeno `git stash`-om).
 
 ## 8. Preimenovanje paketa
 
@@ -631,26 +491,6 @@ Admin nalog sad postoji (stavka 11) — ovo je jedino što je nedostajalo. Ostaj
 samo da se izveštaj stvarno otvori i pogleda da li brojevi imaju smisla.
 
 Posle toga se **morate ponovo prijaviti** da bi token nosio novu ulogu.
-
-## 11. Admin dodela naloga — ✅ odrađeno i testirano uživo 15.8.2026
-
-`UPDATE users SET role = 'admin'` za nalog `id=5` (vlasnikov glavni nalog),
-potvrđeno pre i posle upisa. Nalog `id=3`, prvobitno predložen pa promenjen,
-nije diran. (Emailovi se namerno ne upisuju ovde — repozitorijum je javan.)
-
-`POST /users/account-type` je zatim **stvarno pozvan** (ne direktan upis u
-bazu) — admin token mintovan sa istim `JWT_SECRET`-om koji server koristi,
-poziv vraćen 200: `account_type` za taj nalog promenjen na
-`'premium'`. Ovo je prvi put da je ovaj endpoint uopšte pozvan — bio je
-napisan i testiran jedinično, ali nikad pogođen uživo.
-
-Korisnik se ponovo prijavio i potvrdio da **MP4 izvoz radi** (stavka 4) —
-ceo lanac je sad zatvoren.
-
-Stavka 10 (merenje troška) je sad otključana admin nalogom — `GET
-/billing/usage` sam izveštaj i dalje nije otvoren okom. Stavka 9 (naplata)
-ostaje blokirana na nešto drugo: pravu kupovinu, koja čeka Play Console, ne
-admin nalog.
 
 ## 12. Skener pozicija iz knjige — backend proveren uživo 19.8.2026, ekran nije
 
@@ -797,123 +637,6 @@ stanje koje ova proba nije dodirnula.
 - [x] Na telefonu traka sa tri dugmeta („Poništi", „Dodaj u lekciju", „Zadaj
       učeniku") mora da se prelomi, ne da iscuri sa ekrana.
 
-## 15. Pregled domaćeg i komentari — ✅ provereno uživo 20.8.2026
-
-Backend je pozvan preko HTTP-a sa tokenima obe strane; pravilo o rešenju,
-komentari i sva odbijanja su provereni, probne poruke obrisane.
-
-**Korisnik je 20.8.2026. prošao i ekrane**, na Windows-u i na telefonu: odigran
-potez uz rešenje po poziciji, „nije zabeležen" na starom Lichess zadatku,
-komentar na poziciju i na ceo zadatak sa oba naloga, iks samo na svojoj poruci.
-Ista proba je otkrila i stavku 17.
-
-**Kako:** kao trener — Prijatelji → učenik → dodir na zadatak u listi. Kao
-učenik — „Moji zadaci" → „Pregled i komentari" na kartici zadatka.
-
-**Na šta obratiti pažnju:**
-
-- [x] Na svakoj poziciji se vidi **tabla**, zadatak, ocena i vreme.
-- [x] **Odigran potez** piše „nije zabeležen" za sve stare zadatke — to je tačno,
-      jer se potez čuva tek od 20.8.2026. Za **nov** odgovor mora da stoji potez.
-- [x] Kod učenika se **rešenje ne vidi** na poziciji koju nije uradio, i stoji
-      „otkriva se kad odgovoriš". Kod trenera se vidi.
-- [x] Zadatak tipa **lekcija** nema ocenu „netačno" ni na jednom koraku — samo
-      „pregledano" ili „nije otvoreno".
-- [x] Komentar na ceo zadatak i komentar na jednu poziciju stoje na različitim
-      mestima, i druga strana ih vidi (proveriti na oba naloga).
-- [x] Svoju poruku mogu da obrišem, tuđu ne — kod tuđe nema iksa.
-- [x] Na telefonu se kartica pozicije ne preliva (tabla 120 px + tekst desno).
-
-## 16. Slobodan redosled domaćeg — ✅ provereno uživo 20.8.2026
-
-Čisto klijentska izmena; server nije menjan.
-
-**Provereno uživo 20.8.2026:** mreža od šest pozicija sa stanjima, „Počni",
-„Pozicija 3 od 6", „Sledeća nerešena", i ocena „Nije to · Rešenje: Qf1#" posle
-namerno pogrešnog odgovora.
-
-**Kako:** kao učenik, „Moji zadaci" → otvori zadatak sastavljen od trenerovih
-pozicija.
-
-**Na šta obratiti pažnju:**
-
-- [x] Zadatak se otvara kao **mreža svih pozicija**, ne odmah kao tabla.
-- [x] Tri stanja se razlikuju na prvi pogled: `tačno`, `netačno`, `nije urađeno`.
-- [x] Dodir na **bilo koju** neurađenu poziciju je otvara — i onu na kraju.
-- [x] „Nastavi" vodi na **prvu** neurađenu, a ne na onu posle poslednje otvorene.
-- [x] Preskoči drugu poziciju, uradi ostale, pa na poslednjoj pritisni „Sledeća
-      nerešena" — mora da te vrati **na preskočenu**, ne da izađe.
-- [x] Već urađena pozicija se otvara sa zaključanom tablom i porukom „računa se
-      prvi pokušaj"; figure se ne pomeraju.
-- [x] Traka napretka raste kako se rešava, a ne kako se šeta kroz spisak.
-- [x] Na telefonu mreža ima dve kolone i kartica se ne preliva.
-
-## 17. Tabla u lekciji i čitljiva linija — ✅ provereno uživo 20.8.2026
-
-Obe izmene su nastale iz probe u stavkama 14–16 i proverene istog dana, na
-svežem build-u za Windows i na telefonu.
-
-**Kako:** kao učenik otvori zadatu lekciju u kojoj neki korak ima zadatak.
-
-- [x] **Figure se pomeraju.** Posle prvog poteza se pojavljuje „Vrati poziciju"
-      i napomena da se ništa ne ocenjuje.
-- [x] „Vrati poziciju" vraća tačno onu poziciju koju korak pokazuje — i kad se
-      stoji usred varijante, ne na njen početak.
-- [x] Prelazak na sledeći korak sam vraća tablu; ništa se ne prenosi.
-- [x] Napredak i dalje broji **pregledane korake**, ne odigrane poteze, i ne
-      pojavljuje se nikakva ocena.
-- [x] U pregledu Lichess zadatka linija piše kao `Rb7 Rxb7 g8=Q`, a ne kao
-      `e7b7 b8b7 g7g8q`.
-
-## 18. Prva pogrešna ideja u zagonetki — ✅ provereno uživo 20.8.2026
-
-**Kako:** kao učenik otvori zadatak sa Lichess zagonetkama („Domaći zadatak"),
-pa **namerno odigraj pogrešan potez**, zatim tačan. Onda uradi jednu zagonetku
-**iz prve**, bez greške. Pa otvori „Pregled i komentari".
-
-**Na šta obratiti pažnju:**
-
-- [x] Kod zagonetke gde si pogrešio piše **„Prvo probao: <potez>"** — u
-      notaciji, ne kao `e2e4`.
-- [x] Kod zagonetke rešene iz prve **nema nijednog reda o potezu**. Ne sme da
-      piše „nije zabeležen".
-- [x] Kod starih zagonetki (pre 20.8.2026) i dalje piše „nije zabeležen".
-- [x] Kod trenera piše isto, samo „Prvo probao" umesto „Prvo si probao".
-- [x] Linija ispod i dalje stoji u čitljivom zapisu.
-
-## 19. Zvonce odgovara na zahtev — ✅ provereno uživo 20.8.2026
-
-Odgovor na zahtev za odnos preselio se iz taba Prijatelji u zvonce. Server nije
-menjan.
-
-**Kako:** treba drugi nalog. Pošalji zahtev sa jednog naloga, pa se prijavi na
-drugi i otvori zvonce.
-
-**Na šta obratiti pažnju:**
-
-- [x] U zvoncetu zahtev ima **kvačicu i krstić**, i kaže ko šta traži.
-- [x] Posle odgovora red **ostaje** i piše „Zahtev je prihvaćen/odbijen"; dijalog
-      se ne zatvara sam.
-- [x] **Značka pada** posle odgovora (broji i zahteve, ne samo poruke).
-- [x] U tabu Prijatelji **nema više kartice** „Čeka vaš odgovor".
-- [x] Sivi red u listi kaže na koga se čeka: „čeka potvrdu" kad sam ja poslao,
-      „odgovorite u zvoncetu" kad se čeka moj odgovor.
-- [x] Posle prihvatanja odnos se pojavi u listi kao običan, bez restarta.
-- [x] Odbijanje i dalje šalje obaveštenje pošiljaocu („nije prihvatio vaš
-      zahtev"), i ponovno slanje posle odbijanja radi.
-- [x] Na telefonu se dijalog ne preliva sa dugmadima u redu. *(Prelivao se —
-      vidi belešku ispod.)*
-
-**Telefon još nema ovaj build** — poslednja stavka ostaje neproverena dok se
-uređaj ne priključi i ne odradi `chess_app/build_and_deploy.ps1`.
-
-**Zapaženo pri proveri 20.8.2026 (nije greška u ovome, nego rupa pored):**
-onaj ko je **poslao** zahtev ne vidi da je druga strana prihvatila sve dok ne
-izađe iz taba Prijatelji i ne vrati se u njega. Lista se osvežava pri ulasku u
-tab, a ne dok se u njemu stoji. Uz to, `accept` ne šalje pošiljaocu nikakvo
-obaveštenje — `decline` šalje. Vidi „Prihvatanje se ne vidi kod pošiljaoca" u
-[STANJE-RADA.md](STANJE-RADA.md).
-
 ## 20. Jedna traka za kretanje kroz poteze — 20.8.2026, nije viđeno uživo
 
 Faza 2 unifikacije. Šest zasebnih redova dugmadi `<< < > >>` zamenjeno je
@@ -1019,32 +742,6 @@ kvadrat umesto table. Vidi „Koraci lekcije su se čitali na četiri načina" u
 - [ ] Lekcija sa **više** koraka i dalje pokazuje svoj korak, ne svoju prvu
       poziciju.
 
-## Nađeno na telefonu 20.8.2026, popravljeno istog dana
-
-Uz stavke 20 i 21, proba na telefonu je izbacila četiri greške koje **nijedan
-test i nijedan log nisu mogli da pokažu**, jer release build ne crta upozorenje
-o prelivu:
-
-1. **Traka za poteze** — devet dugmadi u jednom redu; NAG i brisanje poteza su
-   bili van ekrana. Sad `Wrap`.
-2. **Gornji red u Analysis Studio-u** — devet radnji, a `AppBar` ih seče;
-   „Podešavanja" i „Unos Pozicije / PGN" nisu bili dohvatljivi. Sad meni sa tri
-   tačke na uskom ekranu.
-3. **Dijalog sa obaveštenjima** — sadržaj je imao fiksnu širinu 360, a telefon
-   *jeste* 360 dp, pa je uz margine izlazio 79 px van ekrana. Zato se
-   „pavle želi da vas upiše kao učenika" lomilo po jednu reč u red. Širina se
-   sad uzima iz ekrana, a dugmad su ispod teksta i nose natpise „Prihvati" i
-   „Odbij" umesto gole kvačice.
-4. **Prazne ikone na Windows-u** — `Icons.handshake` i `Icons.chat_bubble_outline`
-   crtale su se kao ništa, jer `flutter build windows` nije ponovo napravio
-   `MaterialIcons-Regular.otf`; font je bio stariji od trenutka kad su ikone
-   dodate. Android ga je regenerisao, pa je ista verzija bila ispravna na
-   telefonu i pogrešna na Windows-u. Vidi CLAUDE.md.
-
-**Novi izgled reda sa zahtevom je viđen uživo istog dana:** naslov u jednom
-redu, a ispod njega „✗ Odbij" i „✓ Prihvati" sa natpisima. Redosled je namerno
-takav — odbijanje levo, potvrda desno, da se potvrda ne pritisne u prolazu.
-
 ## Značka je stajala i posle čitanja — nađeno i popravljeno 20.8.2026
 
 Korisnik je primetio da zvonce i dalje pokazuje 3 pošto je sve pročitao. Broj je
@@ -1072,101 +769,6 @@ označiti sve pročitanim. Test čita rutu i pada ako ikad dodirne
       potvrđena sa obe strane (3 = 1 zahtev + 2 nepročitana, pa 5 = 0 + 5), ali
       tačno ta kombinacija nije viđena. Ne vredi je praviti namerno — videće se
       prvi put kad neko pošalje zahtev.
-
-## 22. Baza otvaranja preko servera — ✅ provereno uživo 24.8.2026
-
-Lichess Explorer se više ne zove iz aplikacije nego iz backenda, koji drži jedan
-token i keš. Korisniku token više nije potreban.
-
-**Pre probe:** `LICHESS_API_TOKEN=...` u `chess_backend/.env` i restart backenda.
-Token se pravi na `lichess.org/account/oauth/token/create` **bez ijedne dozvole**
-— dugme „Napravi token" u Podešavanjima otvara baš tu stranicu sa popunjenim
-opisom. Dok toga nema, ruta vraća 503 sa `reason: "not-configured"`, što je
-ispravno ponašanje, ali nije ono što se ovde proverava.
-
-- [x] Analiza → panel „Lichess Opening Explorer" pokazuje statistiku partija
-      **bez ikakvog tokena u Podešavanjima**. To je cela poenta izmene.
-      *(Korisnik potvrdio 24.8.2026, uz token u `.env` na lokalnom backendu.)*
-- [x] Ista pozicija drugi put: panel se popuni odmah, a u dnevniku backenda nema
-      novog upita ka Lichess-u. To je keš.
-- [x] Filter „2000+" menja brojeve. Ranije je pokazivao samo partije između 2000
-      i 2199 iako je pisalo 2000+; sada su uključene i sve grupe iznad.
-- [x] Ugašen backend, pa pomeren potez: panel pređe na ChessDB, a u dnevniku
-      aplikacije stoji `⛔ Nedostupno (network)`. **Prazna baza i nedostupna baza
-      ne smeju da izgledaju isto** — to je greška koja se u ovom projektu vraća.
-- [x] Namerno pokvaren token u `.env`: u dnevniku backenda `[EXPLORER]
-      unauthorized`, u aplikaciji ChessDB. Ista provera kao za tablice.
-- [x] Podešavanja → „Napravi token" otvara lichess.org sa popunjenim opisom i
-      **bez ijedne čekirane dozvole**.
-- [x] Unet lični token: upit onda ide pravo na Lichess (u dnevniku aplikacije
-      nema poziva ka našem backendu za otvaranja), i panel i dalje radi.
-- [x] Gost, bez prijave: panel pokazuje ChessDB, ne praznu Lichess tablu.
-
-**Korisnik je prošao ovo 24.8.2026. na Windows verziji i potvrdio da radi kako je opisano.**
-
-## 23. Spisak prečica — ✅ provereno uživo 24.8.2026
-
-Stranica „Prečice na tastaturi" (`/shortcuts`). Postoji jer je Ctrl+, bila
-napravljena, testirana i neupotrebljiva — nije imalo gde da se pročita da
-postoji.
-
-- [x] **F1** na Windows-u otvara spisak preko onoga što je bilo, a **Esc** ga
-      zatvara i vraća tačno tamo.
-- [x] Držanje F1 ne slaže spisak na spisak.
-- [x] Podešavanja → „PREČICE NA TASTATURI" → „Spisak prečica" otvara istu
-      stranu. To je jedini put na telefonu.
-- [x] Sve što na spisku piše zaista radi: Esc, Ctrl+`,`, strelice u šetnji kroz
-      partiju, desni klik na tablu. Spisak koji laže gori je od nepostojećeg.
-- [x] Na 360 dp se nijedan red ne preliva — tekst se prelama unutar kartice.
-- [x] F1 dok je fokus u polju za tekst i dalje otvara spisak, a slova i strelice
-      u tom polju ostaju polju.
-
-**Korisnik je prošao spisak 24.8.2026. na Windows-u i potvrdio da radi kako je
-opisano.**
-
-## 24. Strelice na pet ekrana — ✅ provereno uživo 24.8.2026
-
-Tastature na Androidu nema, pa je ovo provera za Windows. Svuda gde ispod table
-stoji traka sa potezima važi isto: ← → potez, ↑ ↓ krajevi linije, Home/End isto
-što i ↑ ↓.
-
-- [x] **Analiza:** strelice šetaju po varijanti, i tabla ih prati.
-- [x] **Soba:** strelice rade kod onoga ko vodi tablu, a kod onoga ko je ne vodi
-      **ne rade** — isto pravilo koje traka već poštuje.
-- [x] **Lekcija (zadatak tipa lekcija):** strelice šetaju kroz liniju koraka.
-- [x] **Ponavljanje:** pre „Prikaži nastavak" strelice **ne rade**. Ovo je
-      namerno: inače bi tastatura rekla odgovor pre nego što se dete seti.
-      Posle otkrivanja rade.
-- [x] **AI ekran (vežbe):** strelice rade kad ispod table postoji traka, a kad
-      trake nema ne rade ništa (nema linije za šetnju).
-- [x] Home i End rade svuda gde i ↑ ↓.
-- [x] **Dok je fokus u polju za tekst** (komentar u analizi, kod sobe), strelice
-      pripadaju polju i ne pomeraju poteze.
-- [x] Šetnja kroz partiju i dalje radi kao pre — nije dirana.
-
-**Korisnik je prošao svih pet ekrana 24.8.2026. na Windows-u i potvrdio da rade
-kako je opisano — uključujući obe ograde (ponavljanje pre otkrivanja, mesto koje
-ne vodi tablu u sobi) i strelice u polju za tekst.**
-
-## 25. Ctrl+1…4 i Ctrl+C — ✅ provereno uživo 24.8.2026
-
-- [x] **Ctrl+1…4** na početnom ekranu menja tabove: Trening, Časovi,
-      Biblioteka, Ljudi. Radi **odmah po otvaranju**, bez ijednog klika pre
-      toga.
-- [x] Dok je otvorena vežba ili soba preko početnog ekrana, Ctrl+2 ne menja tab
-      ispod — tasteri pripadaju onome što je gore.
-- [x] Dok je fokus u polju za kod sobe, cifre se kucaju u polje.
-- [x] **Ctrl+C** kopira FEN sa table koja je na ekranu, isto što i desni klik, i
-      isto tako kaže da je kopirano. Probati na više ekrana (analiza, soba,
-      vežbe).
-- [x] **Ctrl+C dok je označen tekst u polju** (komentar u analizi) kopira
-      **tekst**, ne poziciju. Ovo je bilo pokvareno pri izradi i popravljeno;
-      vredi videti uživo.
-- [x] Ctrl+C na ekranu bez table ne radi ništa i ne javlja ništa.
-- [x] Uz to, ponovo: strelice na ekranu koji je **tek otvoren**, bez klika pre
-      toga. Isti uzrok kao gore, popravljen posle provere stavke 24.
-
-**Korisnik je prošao ovo 24.8.2026. na Windows verziji i potvrdio da radi kako je opisano.**
 
 ## 26. Slova u treneru završnica i razmak u reprodukciji — 24.8.2026, nije viđeno uživo
 
@@ -1197,46 +799,6 @@ Reprodukcija snimka (ekran sa snimljenim časom):
 
 Ovo poslednje je jedino mesto gde prečica namerno ustupa taster, pa je vredno
 videti oba slučaja.
-
-## 27. Sud o potezu u Analizi — ✅ provereno uživo 24.8.2026
-
-Novi panel „Sud o potezu" u Analizi, i `GET /opening-judge` iza njega. Traži
-**vaš** Lichess token u Podešavanjima — server svoj namerno ne troši na ovo.
-Backend mora da radi (`npm run dev`).
-
-Bez tokena:
-
-- [x] Panel objašnjava zašto ne radi i nudi dugme „Podešavanja". Nema dugmeta
-      „Presudi".
-- [x] Baza otvaranja u istoj Analizi i dalje radi normalno — nju token ne
-      uslovljava.
-
-Sa tokenom, na tabli na kojoj je odigran potez:
-
-- [x] Dugme „Presudi <potez>" stoji tek kad je neki potez odigran; na početnoj
-      poziciji piše „Odigrajte potez na tabli pa ga presudite".
-- [x] **Teorija:** odigrati 1.e4 e5 2.Nf3 i presuditi — „Glavna teorija", uz
-      broj partija majstora.
-- [x] **Greška:** odigrati 1.e4 e5 2.Bc4 Qh4?? ili 1.f3 e5 2.g4 — presuda je
-      „Sumnjiv potez", uz „Bolje je bilo …" i „Kažnjava se sa …".
-- [x] Kazna koja se ispiše zaista mat ili gubitak figure — odigrati je rukom na
-      tabli i videti da linija ima smisla.
-- [x] **Crni potez se sudi iz ugla crnog.** Ovo je jedino mesto gde greška ne
-      bi ličila na grešku: presuda bi bila obrnuta, i to samo za jednu boju.
-      Odigrati loš potez **crnim** i proveriti da piše da gubi, a ne da dobija.
-- [x] Presuda ostaje uz svoj potez: presuditi potez, pa strelicom otići na
-      drugi — panel više ne pokazuje staru presudu.
-- [x] Isti potez presuđen dvaput ne pravi novi upit (drugi put stiže odmah).
-- [x] Retka pozicija koju oblak nema: presuda je „Nije presuđeno", sivo, sa
-      rečenicom da to nije isto što i loš potez.
-
-Ograničenja i greške:
-
-- [x] Pogrešan token u Podešavanjima → „Lichess je odbio vaš token".
-- [x] Panel se može isključiti u Podešavanjima („Sud o potezu"), kao i ostali
-      paneli Analize.
-
-**Korisnik je prošao ovo 24.8.2026. na Windows verziji i potvrdio da radi kako je opisano.**
 
 ## 28. Znak ocene u onlajn motoru — 24.8.2026, nije viđeno uživo
 
@@ -1498,37 +1060,6 @@ Prijatelji i pozivi:
 - [ ] Poziv (`POST /invitations/send`) nekome ko nije u prihvaćenoj vezi →
       **403**, i toj osobi ne stiže zvonce.
 
-## 34. Glas ima nivo — ✅ provereno uživo 25.8.2026
-
-Treba trener, jedan učenik i (za prvu stavku) curl ili Postman.
-
-**Korisnik je 25.8.2026. potvrdio sve stavke.**
-
-- [x] **Rupa koja je zatvorena:** nalog **bez veze** sa trenerom pozove
-      `POST /agora/token` sa tuđim kodom sobe kao `channelName` → **403**.
-      (Ranije: `PUBLISHER` token i ulazak u glas mimo spiska zvanica, bez
-      pojavljivanja na spisku učesnika.)
-- [x] Trener uđe u svoju sobu → ima dugme za mikrofon i čuje se.
-- [x] Učeniku se u bazi postavi `voice_level = 'listen'`
-      (`UPDATE trainer_students SET voice_level = 'listen' WHERE ...`), pa uđe u
-      sobu: **ne traži mu se dozvola za mikrofon**, umesto dugmeta stoji
-      „Slušate čas", a na spisku učesnika je slušalica.
-- [x] Taj učenik čuje trenera i vuče poteze po tabli.
-- [x] Klikne **Da**, **Ne**, **Nisam razumeo/la** → treneru se pojavi poruka sa
-      njegovim imenom. (Ime dolazi sa servera — provera da nije ono što je
-      klijent poslao.)
-- [x] Trener na spisku učesnika klikne **Daj mikrofon** → učeniku stigne poruka,
-      aplikacija se sama ponovo priključi kanalu, dozvola za mikrofon se traži
-      **tek sad**, i od tog trenutka se čuje.
-- [x] Trener klikne **Oduzmi mikrofon** → učenik se više ne čuje, a i dalje je u
-      času. Provera da nije samo utišan: neka učenik pokuša „Uključi mikrofon" —
-      tog dugmeta nema.
-- [x] Nova veza sa učenikom kome je upisana godina maloletnika kreće od
-      `listen` (`SELECT voice_level FROM trainer_students` posle prihvatanja).
-- [x] Snimanje časa na nivou „sluša": u snimku se čuje trener, a ne i dete.
-- [x] `node server.js` se uopšte pokreće. (Na `master`-u pre ovoga nije —
-      `SyntaxError` u `audio_join`.)
-
 ## 35. Age gate — pitanje za godinu rođenja, 25.8.2026, nije viđeno uživo
 
 Ovo je ono što stavkama 33 i 34 daje zube: dok nijedan nalog nema `birth_year`,
@@ -1676,76 +1207,66 @@ Zatečene veze (odluka „javi, ne menjaj"):
       `voice_level` te veze ostaju **nepromenjeni**.
 - [ ] Punoletan nalog upiše godinu → **nikakvo** obaveštenje ne odlazi.
 
-## 37. Snimanje poštuje saglasnost roditelja — 25.8.2026, nije viđeno uživo
+## 37. Snimanje traži da si sam u sobi — 26.8.2026, nije viđeno uživo
 
-Ovo daje smisao stavki 36: do ove izmene je `parent_allows_recording` punila
-roditeljska stranica, a čitao je niko. Treba trener, dete sa upisanom godinom
-maloletnika, i prošla stavka 36.
+**Stavka je 27.8.2026. napisana iznova, jer je pravilo koje je proveravala
+ukinuto.** Do 26.8.2026. glasila je „snimanje poštuje saglasnost roditelja" i
+merila se prema `parent_allows_recording`; ta kolona danas ništa ne odlučuje.
+Stari spisak je u
+[arhiva/TODO-provera-do-26.8.2026.md](arhiva/TODO-provera-do-26.8.2026.md)
+samo kroz stavku 4 — sam spisak je obrisan, jer je opisivao tok koji ne postoji
+i jedna mu je kutijica bila **naopako** („gost ne blokira snimanje"; danas
+blokira).
 
-Ekran i dugme:
+Pravilo je sada jedno, i stoji u
+[recordingConsent.js](../chess_backend/services/recordingConsent.js): **zvuk
+snima samo punoletan vlasnik sobe dok je u njoj sam.** Čas između trenera i
+učenika ne snima se uopšte, ni uz čiju saglasnost. Reprodukcija časa nije
+dirana — snimak je `timeline_json`, a `audio_url` je oduvek smeo da bude prazan.
 
-- [x] Dete kome **roditelj nije dao saglasnost za snimanje** uđe u sobu →
-      kod trenera je dugme „Započni snimanje časa" **ugašeno**, a ispod njega
-      piše razlog **sa imenom deteta**. Provereno uživo 25.8.2026: dok je dete
-      u sobi, čas ne može ponovo da se pokrene.
-- [x] Dete izađe iz sobe → dugme se **samo** vraća u normalu, bez osvežavanja
-      ekrana. (Kontrola koja ostane ugašena kad razlog nestane je isto pogrešna
-      kao ona koja ostane upaljena kad se razlog pojavi.) Provereno uživo
-      25.8.2026.
-- [ ] Roditelj koji je saglasnost dao **sa** kvačicom na snimanju → dugme radi
-      normalno.
-- [x] Punoletan učenik, ili učenik bez upisane godine → dugme radi kao i pre.
-      (Ovo je najvažnija stavka na spisku: da popravka nije ugasila snimanje
-      svima.) **Provereno uživo 25.8.2026** sa učenikom 2.
+Za probu treba trener sam u sobi, pa jedan učenik, pa jedan gost.
+
+Dugme i razlog ispod njega (`recording_consent` stiže na svaku promenu spiska):
+
+- [ ] Punoletan trener **sam u sobi** → „Započni snimanje" je upaljeno, ispod
+      njega ne piše ništa.
+- [ ] Uđe **učenik** → dugme se gasi, a ispod piše rečenica koja **imenuje** ko
+      smeta. (Odbijanje koje ne ume da kaže koga se tiče je odbijanje po kome
+      niko ne može da postupi.)
+- [ ] Učenik izađe → dugme se **samo** vraća, bez osvežavanja ekrana.
+- [ ] Uđe **gost bez naloga** → dugme se gasi isto kao za učenika, a gost je u
+      razlogu nazvan gostom. Ovo je obrnuto od starog pravila, pod kojim je gost
+      bio nevidljiv jer nema nalog ni godine.
+- [ ] Nalog **bez upisane godine** sam u sobi → dugme je **ugašeno**, uz poruku
+      da snimanje traži godinu rođenja. (Svuda drugde u ovom kodu neupisana
+      godina prolazi; ovde namerno ne prolazi — „nismo pitali" ne sme da se čita
+      kao „da".)
+- [ ] Nalog sa godinom **ispod 18** sam u sobi → ugašeno, uz poruku da je
+      snimanje samo za punoletne. Granica je 18 i **nije** `AGE_OF_CONSENT`:
+      to je drugo pitanje i druga brojka.
 
 Brava, a ne samo dugme:
 
-- [x] Trener pokrene snimanje **pa** dete uđe u sobu → snimanje se
-      **zaustavlja samo**, uz poruku sa razlogom, a dete **ostaje na času**.
-      Ponuđeno je čuvanje onoga što je snimljeno pre nego što je dete ušlo.
-      **Provereno uživo 25.8.2026** (soba 104362, posle popravke poruke koja
-      obara radnju): poruka glasi „Čas ne može da se snima — roditelj nije
-      dozvolio snimanje za: učenik 1. Snimanje je zaustavljeno.", dete stoji u
-      spisku prisutnih, a dijalog „Završetak i sačuvanje snimka časa" je otvoren.
-- [x] Dete i dalje **govori** — mikrofon mu radi dok se ne snima. Provereno
-      uživo 25.8.2026. To je i bila odluka: roditelj je odbio *snimanje*, ne
-      prisustvo, pa se odustaje od snimka, a ne od deteta.
-- [ ] Snimak sačuvan pre dolaska deteta se normalno sinhronizuje na server.
-- [x] Isto probati i sa pauzom: pokreni, pauziraj, pusti dete unutra, nastavi →
-      snimanje ne kreće ponovo. Provereno uživo 25.8.2026 — to je i jedini put
-      kroz granu `resumed` na serveru.
+- [ ] Trener pokrene snimanje **pa** neko uđe → stiže `recording_must_stop`,
+      snimanje **staje samo**, a onaj ko je ušao **ostaje na času**. Ponuđeno je
+      čuvanje onoga što je snimljeno pre njegovog ulaska — u tom delu ga nema.
+- [ ] Snimanje pokrenuto bez prava → stiže `recording_denied`, snimak se
+      **baca**, ne nudi se „Sačuvaj". (Odbijen snimak koji ostane na uređaju i
+      čeka dugme je odbijen snimak koji će biti sačuvan.)
+- [ ] Isto sa pauzom: pokreni, pauziraj, pusti nekoga unutra, nastavi →
+      snimanje ne kreće ponovo.
 
-Upis (druga brava — traži curl ili Postman):
+Upis (traži `curl` ili Postman):
 
-- [ ] `POST /recordings/save` sa `roomId` sobe u kojoj je bilo blokirano dete →
-      **403**, i u `chess_backend/uploads/` **nema novog fajla**. (Multer ga
-      zapiše pre provere; brisanje je deo popravke.)
-- [ ] Isti pokušaj iz aplikacije: snimak ostaje na uređaju, u dnevniku piše
+- [ ] `POST /recordings/save` za sobu u kojoj je bio još neko → **403**, i u
+      `chess_backend/uploads/` **nema novog fajla**. (Multer ga zapiše pre
+      provere, pa je brisanje deo popravke — ovo je jedina provera koja to
+      hvata.)
+- [ ] Isti pokušaj iz aplikacije → snimak ostaje na uređaju, u dnevniku piše
       `Odbijen snimak`, i **ne pokušava ponovo** pri svakoj sinhronizaciji.
-- [ ] Restart backend-a usred časa, pa čuvanje snimka → snimak **prolazi**, a
-      poruka kaže da saglasnost nije mogla da se proveri. (Odbijanje bi uništilo
-      pravi čas zbog tuđeg restarta; tiho prolaženje bi bilo laž.) **Do
-      25.8.2026 ovo nije moglo da prođe** — aplikacija tu poruku nije čitala
-      uopšte; sada je prikazuje posle sinhronizacije.
-- [x] **Snimak posle prekida zbog saglasnosti** (ponoviti scenario odozgo, pa
-      „Sačuvaj snimak") → u logu **više nema** „restart usred časa?", nego
-      `[SNIMANJE] Upis za sobu … je deo snimljen pre prekida zbog saglasnosti`,
-      a treneru se prikaže rečenica *„Snimanje je zaustavljeno jer roditelj nije
-      dozvolio snimanje. Sačuvan je samo deo snimljen pre nego što je učenik ušao
-      na čas."* **Provereno uživo 25.8.2026**, soba 104362: server je upisao
-      tačan red, klijent je javio prekid u istoj sekundi
-      (`stopAudioRecording` u 23:52:05.076, ulazak u 23:52:05), a poruka je
-      stigla i u dnevnik (`[SYNC_RECORDING] Napomena servera: …`) i na ekran.
-- [x] U bazi, za taj snimak: `SELECT participants FROM session_recordings ORDER
-      BY id DESC LIMIT 1;` → **deteta nema u spisku**. (Pre popravke je stajalo,
-      pa mu se snimak i prikazivao kao njegov.) **Provereno 25.8.2026**, i
-      razlika se vidi u tri reda jedne iste sobe: snimak od 21:30 (pre
-      popravke) ima `{1,2}`, oni od 21:52 i 21:58 imaju `{1}`.
-
-Gost:
-
-- [ ] Gost (bez naloga) u sobi koja prima goste ne blokira snimanje. Da li gost
-      uopšte sme unutra je pitanje prekidača iz stavke 32, ne ovog.
+- [ ] Restart backend-a usred snimanja, pa čuvanje → snimak **prolazi**, uz
+      poruku da provera nije mogla da se obavi. (Odbijanje bi uništilo pravi
+      snimak zbog tuđeg restarta; tiho prolaženje bi bilo laž.)
 
 ## 38. Obrisan nalog gubi prijavu — 25.8.2026, delimično provereno
 
@@ -1767,7 +1288,7 @@ aplikaciju.
 - [ ] Oduzimanje admin uloge (`UPDATE users SET role = 'korisnik' ...`) važi
       **odmah**, bez ponovne prijave: admin rute odbijaju na sledeći zahtev.
 
-## Gde je provera stala — 25.8.2026, 23:00
+## Gde je provera stala — 26.8.2026
 
 Nastavlja se odavde. Nalozi i veze **stoje u bazi**, ne treba ih praviti iznova.
 
@@ -1776,33 +1297,32 @@ Nastavlja se odavde. Nalozi i veze **stoje u bazi**, ne treba ih praviti iznova.
 | | |
 |---|---|
 | nalozi | trener (1975), učenik 1 (2014, maloletan), učenik 2 (2002) |
-| veza sa detetom | `accepted`, saglasnost roditelja data, **snimanje odbijeno** (`parent_allows_recording = false`), glas `listen` |
+| veza sa detetom | `accepted`, saglasnost roditelja data, glas `listen`. (`parent_allows_recording` u toj vezi stoji na `false`, ali **od 26.8.2026. ništa ne odlučuje** — snimanje više ne zavisi od roditelja nego od toga da li je vlasnik sam u sobi.) |
 | veza sa punoletnim | `accepted`, glas `talk`, roditelj nije ni pitan |
 | soba | `961671`, tvorac trener, spisak zvanica prazan, `allow_guests = false` |
 | `.env` | `PUBLIC_BASE_URL` i `PARENT_CONSENT_VERSION` podešeni |
 
 **Gotovo:** stavka 33 u celini (pravilo o godinama, oba smera, i slanje i
 prihvatanje), stavka 36 glavni tok (uključujući kontrolu sa punoletnim
-učenikom), stavka 34 sa učenikove strane, stavka 31 dijalog „Ko sme u sobu",
-stavka 38 preko `curl`-a.
+učenikom), **stavka 34 u celini** (korisnik je potvrdio sve kutijice 25.8.2026 —
+raniji zapis da je ostao „daj/oduzmi mikrofon" bio je zastareo), stavka 31
+dijalog „Ko sme u sobu", stavka 38 preko `curl`-a. Sve zaključene stavke su
+27.8.2026. izdvojene u
+[arhiva/TODO-provera-do-26.8.2026.md](arhiva/TODO-provera-do-26.8.2026.md).
 
-**Prvo sledeće — ponoviti stavku 37 od početka**, jer je popravljena greška zbog
-koje snimanje nije stajalo (vidi „Poruka koja obori radnju" u `STANJE-RADA.md`).
-Windows aplikacija traži **hot restart (`R`)** ili nov `flutter run`; server je
-nodemon već pokupio.
+**Prvo sledeće — stavka 37, ali po novom pravilu.** Spisak od 25.8.2026. koji je
+ovde stajao proveravao je da roditeljsko odbijanje zaustavlja snimanje; to
+pravilo je ukinuto 26.8.2026. i zamenjeno jednim koje ne zavisi ni od kakve
+saglasnosti: **snima samo punoletan vlasnik sobe dok je sam u njoj.** Nov spisak
+je u samoj stavci 37 i traži trenera samog, pa učenika, pa gosta bez naloga —
+gost sada blokira snimanje, što je obrnuto od onoga što je pisalo ovde.
 
-- [ ] Trener sam u sobi → dugme za snimanje **upaljeno**
-- [ ] Pokreni snimanje, pa neka **učenik 1 uđe** → snimanje se **samo
-      zaustavlja**, uz poruku sa imenom deteta, a dete **ostaje na času**
-- [ ] Dete izađe → dugme se samo vraća
-- [x] Sa **učenikom 2** (punoletan) snimanje radi normalno i snimak se sačuva
-      — provereno uživo 25.8.2026
-- [ ] `POST /recordings/save` za sobu u kojoj je bilo blokirano dete → **403**, i
-      u `uploads/` nema fajla
+Windows aplikacija i dalje traži **hot restart (`R`)** ili nov `flutter run`
+pre te probe; server je nodemon već pokupio.
 
-**Zatim, po redu:** ostatak stavke 34 (daj/oduzmi mikrofon, brzi odgovori kod
-trenera), stavka 31 sa grupama, stavka 32 prekidač za goste, ostatak 35 i 36
-(odbijanje roditelja, rubovi linka, `.env` provere), stavka 38 u aplikaciji.
+**Zatim, po redu:** stavka 31 sa grupama, stavka 32 prekidač za goste, ostatak
+35 i 36 (odbijanje roditelja, rubovi linka, `.env` provere), stavka 38 u
+aplikaciji.
 
 **Poznate sitnice, zapisane a nepopravljene:**
 
@@ -1818,3 +1338,5 @@ trenera), stavka 31 sa grupama, stavka 32 prekidač za goste, ostatak 35 i 36
   pokazalo da je i sama ograda pucala na zatvorenom ekranu — vidi „Poruka koja
   obori radnju" u `STANJE-RADA.md`. **Zato aplikacija mora da se pokrene ispočetka
   pre stavke 37** (`R` u `flutter run`, ili nov build): izmena dira `lib/` široko
+  i hot reload je ne prenosi celu. (Rečenica je do 27.8.2026. stajala
+  nedovršena — ovako je i mišljena.)

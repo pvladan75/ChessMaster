@@ -60,8 +60,14 @@ user-facing — it is Ubisoft's brand. The application id is
 `rs.pejovic.chesscoach`, deliberately decoupled from whatever the brand ends up
 being.
 
-**Language:** user-facing strings and `docs/` are Serbian; code comments and
-commit messages are English. Follow whichever register the file already uses.
+**Language:** the user writes in Serbian and reads English, so **reply in
+English** and write new `docs/` in English. Code comments and commit messages
+are English, as before. Two things stay Serbian no matter what: user-facing
+strings in the app, because the users are Serbian children and trainers, and the
+legal texts (`docs/politika-privatnosti.md`, `docs/saglasnost-roditelja.md`),
+because a lawyer approved that exact wording for Serbia. The existing Serbian
+docs stay Serbian — follow whichever register a file already uses, and translate
+one only when asked to.
 
 ## The recurring bug in this codebase
 
@@ -138,15 +144,34 @@ it, so the same build can be right on the phone and wrong on Windows.
 
 ## Where things are written down
 
-- `docs/STANJE-RADA.md` — the handoff document. Decisions and their *why*, which
-  is the part unrecoverable from code. Read it before proposing work; much of
-  the obvious backlog is already done.
+- `docs/STANJE-RADA.md` — the handoff document, and the only one worth reading
+  whole. What is still live: where we are, what is open, what is next, and the
+  rules that still hold. Read it before proposing work; much of the obvious
+  backlog is already done.
+- `docs/arhiva/` — closed history split out on 27.8.2026, in two files: the
+  handoff doc's finished sections (fixes with a ✅ and a date, measurements, the
+  routes by which the current shape was reached) and the verification items that
+  are closed in full. **Never read an archive file up front.** `grep` it when you
+  need the *why* of an older decision, or the evidence that something passed,
+  and read only the section you hit.
+  Item numbers in `TODO-provera.md` were deliberately **not** renumbered when it
+  was split — other docs cite them by number ("stavka 27"), so gaps in the
+  numbering are expected, not a mistake.
 - `docs/TODO-provera.md` — features that pass tests but have never been watched
   running. Ticked off only after the user confirms live.
 - `docs/TODO-objavljivanje.md` — publishing steps, in dependency order.
 
 Keep these current as part of the work, not afterwards. When something is
-verified live, say who verified it and when.
+verified live, say who verified it and when. New entries go in
+`docs/STANJE-RADA.md`; move one to `docs/arhiva/` once it is done, verified, and
+nothing upcoming depends on reading it.
+
+**These docs are big, and reading one whole is a real cost.** `TODO-provera.md`
+is 75 KB and `TODO-objavljivanje.md` 45 KB — roughly 22k and 14k tokens, more
+than that in Serbian. `grep` for the item you need and read around the hit;
+slurping all three costs more context than the code they describe. The handoff
+doc was 242 KB and `TODO-provera.md` 101 KB until they were split, which is why
+every session used to open above 150k tokens before doing any work.
 
 ## Server
 
