@@ -1435,6 +1435,36 @@ rubovi iz tačke 8f (zatvorena kartica, odbijen pristup).
    „Ovaj nalog je već verifikovan…", a aplikacija se vraća na formu za prijavu.
    **Ni u jednom slučaju se ne sme dobiti token.**
 
+## 41. Pogrešan potez i engine koji razmišlja — 27.8.2026, nije viđeno uživo
+
+Bagovi 1 i 7 sa prolaska kroz aplikaciju. Zašto je „Pokušaj ponovo" uklonjeno i
+šta je bila ona jedna sekunda — vidi „Bagovi 1 i 7" u
+[STANJE-RADA.md](STANJE-RADA.md).
+
+1. **Taktika po vašoj meri, pogrešan potez.** Odigrati pogrešan potez: figura se
+   vraća, piše „Nije to. Probajte drugi potez.", i **odmah** se može igrati
+   sledeći potez — bez ijednog dugmeta između. Dugmeta „Pokušaj ponovo" nema.
+2. **Tabla se ne da razvlačiti.** Posle pogrešnog poteza povući nekoliko figura
+   redom, i belih i crnih. Nijedna ne sme da ostane na novom polju: pozicija na
+   ekranu je uvek pozicija koja se rešava.
+3. **Domaći ima jedan pokušaj.** Otvoriti zadatak koji je zadao trener i
+   namerno pogrešiti. Piše „Nije to. Zadatak ima jedan pokušaj, potez je
+   zabeležen.", tabla se zaključava, i **ne** može se igrati ponovo. „Prikaži
+   rešenje" radi i pokazuje liniju do kraja. Kod trenera taj zadatak stoji kao
+   pokušan, sa pogrešnim potezom u pregledu.
+4. **Završnice.** Isto ponašanje kao pod 1 i 2 (režim „Održi remi" ili „Dobij").
+   Taster **R** više ne radi ništa — dugme koje je pozivao ne postoji.
+5. **Osnovno matiranje, potez preko engine-a.** Ovo je bag 1: dok engine
+   razmišlja **i u sekundi između njegove odluke i poteza**, pokušati odigrati
+   potez. Tabla ne sme da primi ništa u tom trenutku, a engine mora da nastavi
+   da igra normalno posle toga. Ranije je odigrao još jedan potez i stao.
+6. **Log je čist.** Uz otvoren backend log: pri svakom prelasku na novu poziciju
+   **ne sme** da se pojavi „FEN string must contain six space-delimited fields"
+   ni „Discarding stale ... from old FEN:  " sa praznim FEN-om.
+7. **Ako engine ipak ne odgovori,** posle jednog ponovnog pokušaja piše „Engine
+   nije odgovorio. Odigrajte potez ponovo." i tabla je opet slobodna — nikad
+   zaključana bez izlaza.
+
 ## Gde je provera stala — 26.8.2026
 
 Nastavlja se odavde. Nalozi i veze **stoje u bazi**, ne treba ih praviti iznova.

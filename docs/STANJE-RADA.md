@@ -919,6 +919,57 @@ ne postoji — dugme vodi u zadatak), i sekcija „Izveštaji roditeljima" iz C
 (`student_reports` nema stanje „sastavljen, nije poslat", pa bi broj bio
 izmišljen).
 
+## Bagovi 1 i 7 sa prolaska kroz aplikaciju — 27.8.2026
+
+**Bag 1: engine se „zamrzne" ako se odigra potez dok razmišlja.** Nije Stockfish
+nego jedna sekunda. Kad engine odabere potez, `_isOpponentTurn` se gasio
+**odmah**, a potez se igrao tek posle pauze od 1000 ms — a tabla je nema samo
+dok je ta zastavica podignuta. U toj sekundi korisnik odigra potez figurom
+strane koja je na potezu (engine-ove!), pa zakazani potez padne na poziciju
+kojoj više ne pripada. Odatle nadalje pozicija u `_puzzleGame` i pozicija na
+tabli nisu ista stvar, i drill prestane da odgovara.
+
+Zastavica se sada gasi tek kad je potez **na tabli** (`resetBoardState` to
+ionako radi), potez se pred igranje **proverava ponovo** — protiv table na koju
+sleće, a ne one za koju je izabran — i ako više nije legalan, traži se nov
+odgovor umesto da se odigra nasilu.
+
+Uz to, dve stvari koje su rupu skrivale:
+
+- Kad engine nema šta da odigra (sve evaluacije stigle za staru poziciju, pa su
+  odbačene kao zastarele), ranije se tiho izlazilo iz funkcije. Sad ide **jedan**
+  ponovni upit za poziciju koja je stvarno na tabli, pa tek onda odustajanje sa
+  porukom — i tabla se vraća korisniku, jer zaključana tabla i tabla koja ne
+  odgovara izgledaju isto spolja.
+- `stopAnalysis()` briše `_currentFen`, ali engine posle „stop" šalje još
+  nekoliko redova i `bestmove`. Ti redovi su se prosleđivali sa **praznim**
+  FEN-om: svaki slušalac ih odbaci kao zastarele, ali tek pošto
+  `AnalysisLine.fromPv` pokuša da napravi tablu od `''` i baci *„FEN string must
+  contain six space-delimited fields"* u log, po redu. To je bio šum u kom se
+  pravo zamrzavanje izgubilo. Sada se izlaz zaustavljene pretrage ne prosleđuje.
+
+**Bag 7: posle pogrešnog poteza tabla je primala poteze koje niko nije čuvao.**
+Pogrešan potez postavlja status `failed`, a `failed` znači „gotovo", pa je
+sledeći `_onMove` izlazio **bez vraćanja table** — dok je widget figuru već
+pomerio. Nekoliko povlačenja kasnije, tabla na ekranu i pozicija koja se rešava
+bile su dve različite stvari, za obe boje.
+
+Dva pravila, oba tražena:
+
+1. **Svako odbijanje poteza vraća tablu.** Bez izuzetka i bez obzira na razlog.
+2. **Nema više dugmeta „Pokušaj ponovo".** Pogrešan potez u vežbi sam vraća
+   poziciju i odmah dozvoljava nov pokušaj — to je jedino zbog čega je iko to
+   dugme i pritiskao. Greška ostaje zabeležena, pa rešenje posle greške i dalje
+   ne važi kao čisto.
+3. **Domaći je izuzetak.** Tamo je prvi potez odgovor i već je zabeležen, pa
+   drugi pokušaj ne bi menjao ništa osim utiska. Umesto toga piše da je zadatak
+   sa jednim pokušajem i da je potez zabeležen, tabla se zaključava, a „Prikaži
+   rešenje" ostaje dostupno — tu i vredi najviše.
+
+Isto je primenjeno na trener završnica, gde je korisnik video isto ponašanje.
+`test/wrong_move_board_test.dart` drži pravilo (dokazano mutacijom); taktika
+nema ubrizgan API pa se ne može testirati bez mreže — ostaje provera uživo.
+
 ## Rupa u prijavi, nađena usput 27.8.2026
 
 **`POST /verify-email` je izdavao token bez ijedne provere.** Ruta je nalazila

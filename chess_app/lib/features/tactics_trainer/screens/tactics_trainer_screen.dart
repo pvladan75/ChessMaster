@@ -74,6 +74,13 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   /// so a second pass does not walk over work they have already answered.
   List<String>? _queue;
 
+  /// Whether this puzzle's attempt has already been sent to the server.
+  ///
+  /// A wrong answer to homework finishes the puzzle on the spot, and the user
+  /// may then still ask to see the solution; without this the same attempt
+  /// would be submitted twice.
+  bool _attemptRecorded = false;
+
   /// Puzzles walked past without an answer, in the order they were skipped.
   ///
   /// Kept because "Zadatak je završen" was shown at the end of the run whether
@@ -191,6 +198,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       _boardLocked = false;
       _startedAt = DateTime.now();
       _feedback = null;
+      _attemptRecorded = false;
     });
 
     _boardController.loadFen(game.fen);
@@ -236,6 +244,13 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     final session = _session;
     final game = _game;
     if (session == null || game == null || _boardLocked || session.isComplete) {
+      // The board widget has already moved the piece under the user's finger,
+      // so a bare `return` leaves it there. That is how a refused move became
+      // a board you could shuffle at will, for both sides: every drag was
+      // declined here and every one of them stayed on screen. Whatever the
+      // reason for refusing, the position the user sees has to be the position
+      // that exists.
+      if (game != null) _boardController.loadFen(game.fen);
       return;
     }
 
@@ -258,7 +273,10 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     // the real position.
     final probe = chess.Chess.fromFEN(game.fen);
     final moved = probe.move({'from': from, 'to': to, 'promotion': promotion});
-    if (moved == false) return;
+    if (moved == false) {
+      _boardController.loadFen(game.fen);
+      return;
+    }
 
     // The suffix belongs on the move only when a promotion actually happened.
     final uci = isPromotion ? '$from$to$promotion' : '$from$to';
@@ -271,13 +289,31 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     );
 
     if (!verdict.correct) {
+      // The board is put back, so the user sees the position they must still
+      // solve rather than the mistake they just made.
+      _boardController.loadFen(game.fen);
+
+      if (widget.isAssignment) {
+        // Homework has one answer. It is already recorded as wrong by the
+        // first attempt, so offering another try would show a second chance
+        // that changes nothing — the trainer sees the first move either way.
+        // Better to say so and move on.
+        setState(() {
+          _feedback = 'Nije to. Zadatak ima jedan pokušaj, potez je zabeležen.';
+          _feedbackIsGood = false;
+        });
+        await _finish(solved: false, note: 'Nije rešeno.');
+        return;
+      }
+
+      // Practice: straight back to trying, with no button in between. The
+      // mistake stays on the session's record, so a retried puzzle still does
+      // not count as a clean solve and the rating is unaffected.
+      session.retryAfterMistake();
       setState(() {
-        _feedback = 'Nije to. Pokušajte ponovo.';
+        _feedback = 'Nije to. Probajte drugi potez.';
         _feedbackIsGood = false;
       });
-      // The board is left untouched, so the user sees the position they must
-      // still solve rather than the mistake they just made.
-      _boardController.loadFen(game.fen);
       return;
     }
 
@@ -341,19 +377,25 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     setState(() => _boardLocked = _session?.isComplete ?? true);
   }
 
-  Future<void> _finish({required bool solved}) async {
+  /// Records the attempt and closes the puzzle.
+  ///
+  /// [note] replaces the message when neither "solved" nor "solved with help"
+  /// is the truth — a wrong answer to homework, which has one attempt, is
+  /// finished too.
+  Future<void> _finish({required bool solved, String? note}) async {
     final puzzle = _puzzle;
     if (puzzle == null) return;
 
     setState(() {
       _boardLocked = true;
-      _feedback = solved ? 'Rešeno!' : 'Rešeno uz pomoć.';
+      _feedback = note ?? (solved ? 'Rešeno!' : 'Rešeno uz pomoć.');
       _feedbackIsGood = solved;
     });
 
     final elapsed = _startedAt == null
         ? null
         : DateTime.now().difference(_startedAt!).inMilliseconds;
+    _attemptRecorded = true;
     final result = await _api.submitAttempt(
       puzzleId: puzzle.id,
       solved: solved,
@@ -371,7 +413,14 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   Future<void> _showSolution() async {
     final session = _session;
     final game = _game;
-    if (session == null || game == null || session.isComplete) return;
+    // `failed` is allowed through: homework has one attempt, and the position
+    // it got wrong is exactly the one worth seeing played out. `solved` is not
+    // — there is nothing left to show.
+    if (session == null ||
+        game == null ||
+        session.status == SolveStatus.solved) {
+      return;
+    }
 
     setState(() => _boardLocked = true);
     final token = _puzzleToken;
@@ -391,6 +440,13 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       setState(() {});
     }
 
+    // Recorded once. A homework answer that was already submitted as wrong
+    // must not be sent a second time just because the user then looked at the
+    // solution — the first attempt is the one that counts, on both sides.
+    if (_attemptRecorded) {
+      setState(() => _boardLocked = true);
+      return;
+    }
     await _finish(solved: false);
   }
 
@@ -402,13 +458,6 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       _feedback = 'Pomerite figuru sa polja $square.';
       _feedbackIsGood = true;
     });
-  }
-
-  void _retry() {
-    final session = _session;
-    if (session == null) return;
-    session.retryAfterMistake();
-    setState(() => _feedback = null);
   }
 
   @override
@@ -705,19 +754,19 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       runSpacing: 10,
       alignment: WrapAlignment.center,
       children: [
-        if (failedNow)
-          ElevatedButton.icon(
-            onPressed: _retry,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Pokušaj ponovo'),
-          ),
+        // No "Pokušaj ponovo". A wrong move in practice puts the position back
+        // and lets the user try again straight away, which is what everybody
+        // pressed that button for; leaving it there meant a board that
+        // accepted drags while it waited for an answer nobody needed to give.
+        // Homework is the other half of the same rule: one attempt, already
+        // recorded, so there is nothing to retry.
         if (!complete)
           OutlinedButton.icon(
             onPressed: _hintSquare == null ? _useHint : null,
             icon: const Icon(Icons.lightbulb_outline),
             label: const Text('Pomoć'),
           ),
-        if (!complete)
+        if (!complete || failedNow)
           OutlinedButton.icon(
             onPressed: _showSolution,
             icon: const Icon(Icons.visibility),

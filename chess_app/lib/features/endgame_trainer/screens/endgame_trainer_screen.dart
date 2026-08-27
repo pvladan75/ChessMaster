@@ -280,14 +280,24 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     }
     final solve = _solve;
     final game = _game;
-    if (solve == null || game == null || _boardLocked) return;
+    if (solve == null || game == null || _boardLocked) {
+      // The board widget has already moved the piece under the user's finger,
+      // so a bare `return` leaves it sitting there. See the same guard in the
+      // tactics trainer: this is how a refused move turned into a board you
+      // could rearrange at will, for both sides.
+      if (game != null) _boardController.loadFen(game.fen);
+      return;
+    }
     if (_drilling) {
       await _onDrillMove(from, to);
       return;
     }
     // A solved position stops taking moves; a drill does not, because there the
     // point is the moves after the first one.
-    if (solve.isComplete) return;
+    if (solve.isComplete) {
+      _boardController.loadFen(game.fen);
+      return;
+    }
 
     final isPromotion = _isPromotion(game, from, to);
     const promotion = 'q';
@@ -296,6 +306,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     // disturb the position the user still has to solve.
     final probe = chess.Chess.fromFEN(game.fen);
     if (probe.move({'from': from, 'to': to, 'promotion': promotion}) == false) {
+      _boardController.loadFen(game.fen);
       return;
     }
 
@@ -315,10 +326,16 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     }
 
     if (!verdict.correct) {
+      // Straight back to the position, with no button in between. The failed
+      // status used to stay until "Pokušaj ponovo" was pressed, and while it
+      // did the board took drags it then refused — so the position on screen
+      // and the position being solved drifted apart. The mistake stays on the
+      // record either way, so this costs nothing that was being measured.
+      solve.retryAfterMistake();
       setState(() {
         _feedback = solve.puzzle.mode == EndgameMode.draw
-            ? 'Taj potez gubi remi. Pokušajte ponovo.'
-            : 'Taj potez ispušta dobitak. Pokušajte ponovo.';
+            ? 'Taj potez gubi remi. Probajte drugi.'
+            : 'Taj potez ispušta dobitak. Probajte drugi.';
         _feedbackIsGood = false;
       });
       _boardController.loadFen(game.fen);
@@ -910,15 +927,6 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     });
   }
 
-  void _retry() {
-    final solve = _solve;
-    final game = _game;
-    if (solve == null || game == null) return;
-    solve.retryAfterMistake();
-    setState(() => _feedback = null);
-    _boardController.loadFen(game.fen);
-  }
-
   /// The letters, and the button each of them presses.
   ///
   /// Written as a mirror of [_buildControls] on purpose: a key stands for a
@@ -951,10 +959,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
     return {
       LogicalKeyboardKey.keyN: _loadNext,
-      // "Ispočetka" in this mode is the button the failed answer puts up, and
-      // it is there and nowhere else.
-      LogicalKeyboardKey.keyR:
-          solve.status == EndgameSolveStatus.failed ? _retry : null,
+      // Nothing to retry any more: a wrong answer puts the position back by
+      // itself, so the button this key stood for no longer exists.
+      LogicalKeyboardKey.keyR: null,
       LogicalKeyboardKey.keyH: solve.isComplete ? null : _showHint,
       // The tables are a drill button; solving a position with the answer in
       // front of you is not solving it.
@@ -1243,12 +1250,6 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       runSpacing: 8,
       alignment: WrapAlignment.center,
       children: [
-        if (solve.status == EndgameSolveStatus.failed)
-          OutlinedButton.icon(
-            onPressed: _retry,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Pokušaj ponovo'),
-          ),
         if (!solve.isComplete)
           OutlinedButton.icon(
             onPressed: _showHint,
