@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess/chess.dart' as chess;
 
 /// Called when the user taps a move chip to jump the board to that position.
@@ -90,7 +91,7 @@ class PgnSolutionTreeWidget extends StatelessWidget {
         // pre-move candidate list, which does have a 'san' key, so look
         // it up there before actually playing the move.
         String sanStr = uciMove;
-        for (final m in tempBoard.moves({'verbose': true})) {
+        for (final m in legalMoves(tempBoard)) {
           if (m['from'] == from && m['to'] == to) {
             if (promo == null ||
                 m['promotion'] == promo ||

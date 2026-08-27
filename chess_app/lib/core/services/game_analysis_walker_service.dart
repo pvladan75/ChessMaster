@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
+
 import 'package:chess/chess.dart' as chess;
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/core/models/game_moment.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
 import 'package:chess_app/core/services/positional_evaluator_service.dart';
@@ -56,7 +58,11 @@ class GameAnalysisWalkerService {
       final promo = uci.length > 4 ? uci.substring(4, 5) : null;
 
       String? san;
-      for (final m in game.moves({'verbose': true})) {
+      // `legalMoves` rather than the package's own list: its verbose maps have
+      // no promotion in them, so a UCI carrying one (`d7d8q`) matched nothing,
+      // `san` stayed null, and the walk **stopped at the first promotion of the
+      // game** — silently, halfway through somebody's analysis.
+      for (final m in legalMoves(game)) {
         if (m['from'] == from &&
             m['to'] == to &&
             (promo == null || m['promotion'] == promo)) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/features/analysis_studio/services/chessdb_service.dart';
@@ -259,7 +260,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
       // (State only has from/to/flags/piece) — verbose pre-move candidates
       // are the only place a 'san' key actually exists, so look the move up
       // there instead of playing it and hoping history recorded it.
-      for (final m in game.moves({'verbose': true})) {
+      for (final m in legalMoves(game)) {
         if (m['from'] == from && m['to'] == to) {
           if (promo == null ||
               m['promotion'] == promo ||

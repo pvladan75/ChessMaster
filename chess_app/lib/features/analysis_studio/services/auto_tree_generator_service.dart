@@ -1,6 +1,7 @@
 import 'package:chess_app/services/app_settings_service.dart';
 import 'dart:async';
 import 'package:chess/chess.dart' as chess;
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -191,9 +192,13 @@ class AutoTreeGeneratorService {
       if (!moveOk && moveUci.length >= 4) {
         final from = moveUci.substring(0, 2);
         final to = moveUci.substring(2, 4);
-        for (var m in tempGame.moves({'verbose': true})) {
+        // Through the repaired list and `playMove`: the package's own maps
+        // carry no promotion, and handed straight back to `move()` a promotion
+        // is refused — so this fallback quietly failed on exactly the lines a
+        // pawn was queening in, and the tree stopped there.
+        for (var m in legalMoves(tempGame)) {
           if (m['from'] == from && m['to'] == to) {
-            moveOk = tempGame.move(m);
+            moveOk = playMove(tempGame, m);
             if (moveOk) break;
           }
         }

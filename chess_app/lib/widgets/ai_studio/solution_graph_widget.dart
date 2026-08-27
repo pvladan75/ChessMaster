@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess/chess.dart' as chess;
 
 import 'package:chess_app/widgets/ai_studio/solution_tree_models.dart';
@@ -489,7 +490,7 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
         final promo = whiteMoveUci.length > 4 ? whiteMoveUci[4] : null;
 
         String san = '$from$to';
-        for (var m in game.moves({'verbose': true})) {
+        for (var m in legalMoves(game)) {
           if (m['from'] == from && m['to'] == to) {
             if (promo == null ||
                 m['promotion'] == promo ||
@@ -563,7 +564,7 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
           final promo = oppMoveUci.length > 4 ? oppMoveUci[4] : null;
 
           String san = '$from$to';
-          for (var m in game.moves({'verbose': true})) {
+          for (var m in legalMoves(game)) {
             if (m['from'] == from && m['to'] == to) {
               san = m['san'] ?? san;
               break;
@@ -624,7 +625,7 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
             final t = mUci.substring(2, 4);
             final pr = mUci.length > 4 ? mUci[4] : null;
             String s = '$f$t';
-            for (var vm in gTest.moves({'verbose': true})) {
+            for (var vm in legalMoves(gTest)) {
               if (vm['from'] == f && vm['to'] == t) {
                 if (pr == null ||
                     vm['promotion'] == pr ||

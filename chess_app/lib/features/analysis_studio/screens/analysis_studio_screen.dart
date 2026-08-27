@@ -14,7 +14,9 @@ import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/services/stockfish_service.dart';
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/widgets/promotion_picker.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/routing/app_routes.dart';
@@ -748,7 +750,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     // before actually playing the move.
     String san = '$from$to';
     final promo = promotion.isEmpty ? null : promotion;
-    for (final m in _chessGame!.moves({'verbose': true})) {
+    for (final m in legalMoves(_chessGame!)) {
       if (m['from'] == from && m['to'] == to) {
         if (promo == null ||
             m['promotion'] == promo ||
@@ -1209,7 +1211,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
     String san = '$from$to';
     final promoLower = promo.isEmpty ? null : promo.toLowerCase();
-    for (final m in _chessGame!.moves({'verbose': true})) {
+    for (final m in legalMoves(_chessGame!)) {
       if (m['from'] == from && m['to'] == to) {
         if (promoLower == null || m['promotion'] == promoLower) {
           san = (m['san'] as String?) ?? san;
@@ -1768,7 +1770,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     );
   }
 
-  void _handleTapMoveInput(String square) {
+  Future<void> _handleTapMoveInput(String square) async {
     final game = _chessGame;
     if (game == null) return;
     final piece = game.get(square);
@@ -1784,9 +1786,22 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (from == null || from == square) return;
 
     setState(() => _selectedSquareForTap = null);
-    // Auto-queen, same as the rest of the app's tap-to-move; the chess
-    // package ignores the promotion key for non-promoting moves.
-    _handleUserMove(from, square, 'q');
+
+    // Asked, not assumed. Dragging a pawn to the last rank has always opened a
+    // dialog (the board package's own); tapping quietly made a queen, so the
+    // same move meant two different things depending on how it was played —
+    // and an analysis line that turns on a knight could not be entered by
+    // tapping at all.
+    var promotion = '';
+    if (isPromotionMove(game, from, square)) {
+      final chosen = await askPromotionPiece(
+        context,
+        isWhite: game.turn == chess.Color.WHITE,
+      );
+      if (chosen == null || !mounted) return;
+      promotion = chosen;
+    }
+    _handleUserMove(from, square, promotion);
   }
 
   Widget _buildBoardWidget(double size) {

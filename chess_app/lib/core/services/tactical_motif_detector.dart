@@ -1,3 +1,4 @@
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/core/models/tactical_motif.dart';
 
@@ -1138,13 +1139,12 @@ class TacticalMotifDetector {
   /// generic. Returns null if none exists (including when it isn't that
   /// side's turn at all).
   String? _findMateInOneMove(chess.Chess game) {
-    for (final move in game.moves({'verbose': true})) {
+    for (final move in legalMoves(game)) {
       final clone = chess.Chess.fromFEN(game.fen);
-      final applied = clone.move({
-        'from': move['from'],
-        'to': move['to'],
-        if (move['promotion'] != null) 'promotion': move['promotion'],
-      });
+      // Through `playMove`, because the commonest mate in one of all is a
+      // promotion — and played without naming the piece it is not played at
+      // all, so "d8=Q#" was never among the mates this could find.
+      final applied = playMove(clone, move);
       if (applied && clone.in_checkmate) {
         return (move['san'] as String?) ?? '${move['from']}${move['to']}';
       }
