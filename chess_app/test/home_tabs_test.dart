@@ -89,6 +89,28 @@ void main() {
         reason: 'nema nijednog ulaza u podešavanja');
   });
 
+  testWidgets('one tab does not have two names', (tester) async {
+    // The rail called the first tab "Početna" and the bottom bar called it
+    // "Trening", over one and the same TrainingHubScreen. Nothing broke, and
+    // only whichever layout you happened to be looking at could tell you what
+    // the tab was called - which is why it survived until somebody read both
+    // lists side by side.
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await openHome(tester);
+
+    final rail = find.byType(NavigationRail);
+    expect(rail, findsOneWidget);
+    expect(
+      find.descendant(of: rail, matching: find.text('Trening')),
+      findsOneWidget,
+      reason: 'rail mora da zove prvi tab isto kao donja traka',
+    );
+    expect(find.text('Početna'), findsNothing);
+  });
+
   testWidgets('the rail is still there after an exercise is closed',
       (tester) async {
     // Reported from the desktop build: entering "Mat u N" and coming back left

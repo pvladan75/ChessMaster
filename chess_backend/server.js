@@ -28,6 +28,7 @@ const repertoireRoutes = require('./routes/repertoire');
 const groupRoutes = require('./routes/groups');
 const accountRoutes = require('./routes/account');
 const consentRoutes = require('./routes/consent');
+const trainerPanelRoutes = require('./routes/trainerPanel');
 const { authenticateToken, requireRole, authenticateSocket } = require('./middleware/auth');
 const entitlementService = require('./services/entitlementService');
 const realtime = require('./services/realtime');
@@ -144,6 +145,7 @@ app.use('/', accountRoutes);
 // The parent's page. Mounted at the root and deliberately unauthenticated:
 // the person it is for has no account here, and the link is the whole lock.
 app.use('/', consentRoutes);
+app.use('/', trainerPanelRoutes);
 app.use('/', socialRoutes);
 
 // SOCKET.IO REALTIME EVENTS

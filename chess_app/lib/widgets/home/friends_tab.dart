@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/features/groups/screens/groups_screen.dart';
+import 'package:chess_app/features/trainer_panel/models/trainer_panel.dart';
+import 'package:chess_app/features/trainer_panel/widgets/trainer_panel_view.dart';
 
 /// The "Prijatelji" tab: add-by-email form plus the current friends list.
 class HomeFriendsTab extends StatelessWidget {
@@ -39,6 +41,21 @@ class HomeFriendsTab extends StatelessWidget {
   /// screen that owns the session.
   final VoidCallback onFixParentEmail;
 
+  /// The trainer's day, drawn above the list of people.
+  ///
+  /// It lives here rather than in a fifth tab because teaching is a position in
+  /// a relationship, not a property of an account: a destination of its own
+  /// would be empty for everybody who teaches nobody. This tab is already the
+  /// one that exists because of a relationship, and it already knows how to
+  /// draw nothing when there is none.
+  final TrainerPanel panel;
+
+  /// Enters a lesson this trainer is hosting.
+  final void Function(String roomCode) onEnterLesson;
+
+  /// Opens one piece of homework from the panel.
+  final void Function(PanelAssignment assignment) onOpenPanelAssignment;
+
   const HomeFriendsTab({
     super.key,
     required this.studentEmailController,
@@ -52,6 +69,9 @@ class HomeFriendsTab extends StatelessWidget {
     required this.onRefresh,
     required this.onOpenProgress,
     required this.onFixParentEmail,
+    this.panel = TrainerPanel.empty,
+    required this.onEnterLesson,
+    required this.onOpenPanelAssignment,
   });
 
   /// Everyone, in whatever state the relationship is.
@@ -170,6 +190,15 @@ class HomeFriendsTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Above the list, because it is what the trainer came for: the
+              // list answers "who", the panel answers "what now".
+              TrainerPanelView(
+                panel: panel,
+                onEnterLesson: onEnterLesson,
+                onOpenAssignment: onOpenPanelAssignment,
+                onOpenStudent: (id, name) =>
+                    onOpenProgress({'id': id, 'name': name}),
+              ),
               Card(
                 elevation: 4,
                 child: Padding(

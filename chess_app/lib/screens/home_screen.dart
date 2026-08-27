@@ -28,6 +28,8 @@ import 'package:chess_app/widgets/home/dashboard_tab.dart';
 import 'package:chess_app/widgets/home/biblioteka_tab.dart';
 import 'package:chess_app/widgets/home/friends_tab.dart';
 import 'package:chess_app/models/relationship_request_target.dart';
+import 'package:chess_app/features/trainer_panel/models/trainer_panel.dart';
+import 'package:chess_app/features/trainer_panel/services/trainer_panel_api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserSession session;
@@ -152,6 +154,14 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> _scheduledSessions = [];
   bool _isLoadingScheduled = false;
 
+  /// The trainer's panel, and the number the "Ljudi" badge shows.
+  ///
+  /// Empty for anybody who teaches nobody, which is most people who open this
+  /// app — and drawing nothing is the whole reason this is a section of a tab
+  /// rather than a tab of its own.
+  TrainerPanel _panel = TrainerPanel.empty;
+  late final TrainerPanelApiService _panelApi;
+
   late final BillingService _billing;
   int _dueReviews = 0;
 
@@ -172,6 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _billing = BillingService(authToken: widget.session.token);
+    _panelApi = TrainerPanelApiService(authToken: widget.session.token);
     if (!widget.session.isGuest && !_inTest) {
       // Before anything else: does being signed in currently mean anything?
       // Everything below assumes a server that answers, and when none does the
@@ -187,6 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _fetchNotifications();
       _fetchScheduledSessions();
       _fetchDueReviews();
+      _fetchPanel();
     }
     OpeningBookService.instance.ensureLoaded();
     GameSessionService.instance.addListener(_onGameSessionChanged);
@@ -352,6 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     await _fetchTrainers();
     await _fetchPendingRequests();
+    await _fetchPanel();
   }
 
   /// The same relationships read from the other end.
@@ -396,6 +409,34 @@ class _HomeScreenState extends State<HomeScreen> {
       // failure here must not bury the student list behind an error banner.
       print("Error fetching pending requests: $e");
     }
+  }
+
+  /// The trainer's panel — today's lessons, deadlines, handed-in work, quiet
+  /// students — and the badge number that goes with it.
+  ///
+  /// Read alongside the student list, and again after anything that could
+  /// change it: a request answered here adds a student, and homework opened
+  /// from the panel takes an item off it. Silent on failure, like the pending
+  /// list above and for the same reason — the panel sits over a working screen,
+  /// and an empty one is the normal case.
+  Future<void> _fetchPanel() async {
+    if (widget.session.isGuest) return;
+    final panel = await _panelApi.fetch();
+    if (mounted) setState(() => _panel = panel);
+  }
+
+  /// Opens one assignment's review from the panel, and takes it off the badge.
+  ///
+  /// The write goes first and the screen opens either way. The order is the
+  /// rule this codebase learned twice: the bookkeeping about an action must
+  /// never be able to take the action down.
+  Future<void> _openPanelAssignment(PanelAssignment assignment) async {
+    unawaited(_panelApi
+        .markReviewed(assignment.id)
+        .then((_) => mounted ? _fetchPanel() : null));
+    await context.push(
+      AppRoutes.assignmentReviewPath(assignment.id, title: assignment.title),
+    );
   }
 
   /// Answers one request. Returns whether it went through, because the bell
@@ -918,6 +959,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// The "Ljudi" icon, carrying what is waiting there.
+  ///
+  /// The number is the trainer's queue — homework handed in and not opened,
+  /// plus requests nobody has answered — and it counts only what a tap can
+  /// clear. A badge that cannot reach zero is a badge that stops being read,
+  /// which is why deadlines and quiet students are on the panel and not in this
+  /// number.
+  Widget _peopleIcon(IconData icon) {
+    return Badge(
+      isLabelVisible: _panel.waiting > 0,
+      label: Text('${_panel.waiting}'),
+      child: Icon(icon),
+    );
+  }
+
   void _navigateToGame(String roomCode, [String? sessionRole]) {
     // The role travels in the URL; the room route rebuilds the session with it.
     final effectiveRole =
@@ -1027,6 +1083,9 @@ class _HomeScreenState extends State<HomeScreen> {
             onDeleteStudent: _deleteStudent,
             onOpenProgress: _openStudentProgress,
             onFixParentEmail: _askForParentEmail,
+            panel: _panel,
+            onEnterLesson: (code) => _navigateToGame(code, 'host'),
+            onOpenPanelAssignment: _openPanelAssignment,
           );
         default:
           // The crossroads, not the working screen. Everything it offers is a
@@ -1155,23 +1214,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                     onPressed: _showNotificationsDialog,
                                   ),
                                 ),
-                          destinations: const [
-                            NavigationRailDestination(
-                                icon: Icon(Icons.dashboard_outlined),
-                                selectedIcon: Icon(Icons.dashboard),
-                                label: Text('Početna')),
-                            NavigationRailDestination(
+                          destinations: [
+                            const NavigationRailDestination(
+                                icon: Icon(Icons.psychology_outlined),
+                                selectedIcon: Icon(Icons.psychology),
+                                // The same tab as the bottom bar's first
+                                // destination, and it now says so. It was
+                                // "Početna" here and "Trening" there, over one
+                                // TrainingHubScreen: two names for one place,
+                                // and only whichever layout you were looking
+                                // at could tell you which.
+                                label: Text('Trening')),
+                            const NavigationRailDestination(
                                 icon: Icon(Icons.school_outlined),
                                 selectedIcon: Icon(Icons.school),
                                 label: Text('Časovi')),
-                            NavigationRailDestination(
+                            const NavigationRailDestination(
                                 icon: Icon(Icons.library_books_outlined),
                                 selectedIcon: Icon(Icons.library_books),
                                 label: Text('Biblioteka')),
                             NavigationRailDestination(
-                                icon: Icon(Icons.people_outline),
-                                selectedIcon: Icon(Icons.people),
-                                label: Text('Ljudi')),
+                                icon: _peopleIcon(Icons.people_outline),
+                                selectedIcon: _peopleIcon(Icons.people),
+                                label: const Text('Ljudi')),
                           ],
                         ),
                       if (isWide || isLandscape)
@@ -1192,22 +1257,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 : NavigationBar(
                     selectedIndex: _selectedIndex,
                     onDestinationSelected: _selectTab,
-                    destinations: const [
-                      NavigationDestination(
+                    destinations: [
+                      const NavigationDestination(
                           icon: Icon(Icons.psychology_outlined),
                           selectedIcon: Icon(Icons.psychology),
                           label: 'Trening'),
-                      NavigationDestination(
+                      const NavigationDestination(
                           icon: Icon(Icons.school_outlined),
                           selectedIcon: Icon(Icons.school),
                           label: 'Časovi'),
-                      NavigationDestination(
+                      const NavigationDestination(
                           icon: Icon(Icons.library_books_outlined),
                           selectedIcon: Icon(Icons.library_books),
                           label: 'Biblioteka'),
                       NavigationDestination(
-                          icon: Icon(Icons.people_outline),
-                          selectedIcon: Icon(Icons.people),
+                          icon: _peopleIcon(Icons.people_outline),
+                          selectedIcon: _peopleIcon(Icons.people),
                           label: 'Ljudi'),
                     ],
                   ),

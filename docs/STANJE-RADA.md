@@ -486,10 +486,10 @@ refspec `+refs/heads/master:refs/remotes/origin/master` — kako i piše u
 **Ostalo otvoreno, po veličini:** prevod sajta i pravni status prevoda; nivoi
 pretplate (`CENA-I-PRETPLATA.md`, odeljak 7); `checkUserLimits` bez pozivaoca;
 slanje pošte sa domena (SPF/DKIM) umesto sa lične Gmail adrese;
-`PUBLIC_BASE_URL` prazan na dropletu; i kanvas sa predlozima za panel trenera,
-koji čeka izbor varijante. **Kanvas je napravljen 26.8.2026** — vidi odeljak na
-kraju dokumenta; sada zaista čeka izbor, jer do tada varijante nisu ni
-postojale.
+`PUBLIC_BASE_URL` prazan na dropletu. ~~Kanvas sa predlozima za panel
+trenera, koji čeka izbor varijante~~ — kanvas je napravljen 26.8.2026, korisnik
+je 27.8.2026. izabrao **A + značka iz C**, i to je napisano; ostaje samo provera
+uživo (stavka 39 u [TODO-provera.md](TODO-provera.md)).
 
 ## Sledeće, po redu
 
@@ -876,3 +876,45 @@ repozitorijum javan.
 Ono što maketa **ne** rešava: prelivanje na uskom telefonu. To i dalje traži
 proveru na uređaju, iz razloga opisanog u `CLAUDE.md` — u release build-u nema
 žuto-crnih traka.
+
+## Panel trenera — izabrano i napisano, 27.8.2026
+
+Korisnik je izabrao **A kao ekran, C kao broj**, kako je i predloženo. Napisano
+istog dana; **nije viđeno uživo** — stavka 39 u
+[TODO-provera.md](TODO-provera.md).
+
+**Nije nov tab, nego odeljak na vrhu taba „Ljudi".** Razlog je isti onaj koji
+drži i ostatak ovog dokumenta: trener je *položaj u vezi*, ne osobina naloga, pa
+bi peto odredište u traci stajalo prazno svakome ko nikoga ne uči — a to je
+većina korisnika i gotovo sva deca. „Ljudi" je jedini tab koji ionako postoji
+zbog veze. Uz to, peto odredište bi se pisalo na dva mesta (`NavigationBar` i
+`NavigationRail`) plus prečice i istorija tabova, a pet natpisa na telefonu od
+360 dp je tačno onaj red koji release build ćutke odseca.
+
+Šta je napisano:
+
+| | |
+|---|---|
+| `GET /trainer/panel` | jedan poziv, četiri odeljka: današnji časovi, domaći kojima ističe rok, predato a nepregledano, i učenici koji ćute duže od 7 dana |
+| `POST /assignments/:id/reviewed` | jedini događaj koji prazni značku |
+| `assignments.reviewed_at` | nova kolona; bez nje značka može samo da raste |
+| `acceptedStudentsOf` | isti fragment kao `acceptedTrainersOf`, samo iz drugog smera — spisak „moji učenici" ide kroz njega, ne kroz ručno prepisan uslov |
+
+**Značka broji samo ono što trener može da isprazni** — predato a nepregledano,
+plus zahtevi na koje nije odgovorio. Rokovi i učenici koji ćute jesu na ekranu i
+**nisu** u broju: njih ne zatvara nijedan potez trenera, a značka koja ne može
+da padne na nulu prestaje da se čita. To je i cela poenta varijante C.
+
+`POST .../reviewed` je zasebna ruta, a ne propratni efekat čitanja pregleda,
+jer isti pregled čita i učenik: da GET piše, dete bi gledanjem svoje povratne
+informacije brisalo stavku sa trenerovog spiska. Poziv ide **pre** otvaranja
+ekrana i ne može da ga obori — isto pravilo kao „uradi pa javi" iz `CLAUDE.md`.
+
+Usput popravljeno: prvi tab se u traci zvao **„Trening"**, a u bočnom rail-u
+**„Početna"** — jedan te isti `TrainingHubScreen`. Sada oba kažu „Trening", i
+`test/home_tabs_test.dart` pada ako se raziđu.
+
+Ostalo namerno nenapisano: „Podseti" iz makete (traži poruku učeniku, a ta ruta
+ne postoji — dugme vodi u zadatak), i sekcija „Izveštaji roditeljima" iz C
+(`student_reports` nema stanje „sastavljen, nije poslat", pa bi broj bio
+izmišljen).

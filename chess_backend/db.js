@@ -673,6 +673,19 @@ async function initDB() {
       CREATE INDEX IF NOT EXISTS idx_assignments_student ON assignments(student_id, due_at);
       CREATE INDEX IF NOT EXISTS idx_assignments_trainer ON assignments(trainer_id, created_at DESC);
     `);
+
+    // When the trainer last looked at a finished assignment.
+    //
+    // The trainer panel counts what is waiting for them, and a count is only
+    // worth showing if it can reach zero. "Finished" is written by the student
+    // (`completed_at`), so without a second timestamp there is no event that
+    // ever takes the item off the list again.
+    await client.query(`
+      ALTER TABLE assignments
+        ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
+      CREATE INDEX IF NOT EXISTS idx_assignments_unreviewed
+        ON assignments(trainer_id) WHERE completed_at IS NOT NULL AND reviewed_at IS NULL;
+    `);
     logger.info('Verified database table & indexes: assignments');
 
     // Create assignment_items table — the assigned puzzles and their results.

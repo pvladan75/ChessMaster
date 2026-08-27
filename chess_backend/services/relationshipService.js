@@ -60,6 +60,23 @@ function acceptedTrainersOf(param) {
             WHERE student_id = ${param} AND status = 'accepted'`;
 }
 
+/// SQL fragment: the ids of the users who are `param`'s **accepted** students.
+///
+/// The same fragment read from the other end, and it exists for the same
+/// reason. A trainer's own screens ask this question — who am I teaching — and
+/// a copy that forgets the status would put somebody who never answered into a
+/// list the trainer then acts on.
+///
+/// Not a substitute for `trainerOwnsStudent`: this one builds a list, that one
+/// answers about a single named student before something is written.
+function acceptedStudentsOf(param) {
+  if (!/^\$\d+$/.test(param)) {
+    throw new Error(`acceptedStudentsOf expects a placeholder like "$1", got: ${param}`);
+  }
+  return `SELECT student_id FROM trainer_students
+            WHERE trainer_id = ${param} AND status = 'accepted'`;
+}
+
 /// Whether two people are in an accepted relationship, in either direction.
 ///
 /// The third place rights are read from, and it exists for the same reason as
@@ -502,6 +519,7 @@ async function notifyDecline(pool, { recipientId, declinerId, declinerName }) {
 
 module.exports = {
   acceptedTrainersOf,
+  acceptedStudentsOf,
   acceptedEdgeBetween,
   notifyAccept,
   notifyAwaitingParent,

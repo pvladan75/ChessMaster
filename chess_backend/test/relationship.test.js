@@ -473,9 +473,15 @@ test('no call site reads the edge without filtering on status', () => {
   const offenders = [];
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8');
-    // Each subquery that pulls trainer ids out of the edge table, up to the
-    // bracket or template literal that closes it.
-    const pattern = /SELECT\s+trainer_id\s+FROM\s+trainer_students[\s\S]{0,240}?(?=\)|`)/g;
+    // Each subquery that pulls ids out of the edge table, in either direction,
+    // up to the bracket or template literal that closes it.
+    //
+    // Both directions, because the mistake is the same one read from the other
+    // end: a trainer's own screens ask "who am I teaching", and a copy that
+    // forgets the status puts somebody who never answered into a list the
+    // trainer then acts on.
+    const pattern =
+      /SELECT\s+(?:trainer_id|student_id)\s+FROM\s+trainer_students[\s\S]{0,240}?(?=\)|`)/g;
     for (const [snippet] of source.matchAll(pattern)) {
       if (!/status/.test(snippet)) {
         offenders.push(`${path.basename(file)}: ${snippet.replace(/\s+/g, ' ').trim()}`);

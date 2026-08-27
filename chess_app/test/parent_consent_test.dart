@@ -53,6 +53,8 @@ void main() {
             onRoleChanged: (_) {},
             onRefresh: () async {},
             onFixParentEmail: onFixParentEmail ?? () {},
+            onEnterLesson: (_) {},
+            onOpenPanelAssignment: (_) {},
           ),
         ),
       );

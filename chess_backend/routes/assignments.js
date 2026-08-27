@@ -20,6 +20,7 @@ const reports = require('../services/reportService');
 const { judgeAttempt } = require('../services/customPuzzleJudge');
 const { buildReview } = require('../services/assignmentReview');
 const notes = require('../services/assignmentNotes');
+const { markReviewed } = require('../services/trainerPanelService');
 
 /// How long a parent's link stays alive. Long enough to be useful, short enough
 /// that a forwarded link does not expose a child's record indefinitely.
@@ -322,6 +323,32 @@ router.get('/:id/review', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Error building assignment review:', err);
     res.status(500).json({ error: 'Greška pri dobavljanju pregleda.' });
+  }
+});
+
+// POST /assignments/:id/reviewed — the trainer has looked at finished homework.
+//
+// Its own route rather than a side effect of `GET /:id/review`, because the
+// student reads that same review: a read that writes would have the child
+// emptying their trainer's queue by looking at their own feedback. It is also
+// what the notifications route does — reading the bell and marking it read are
+// two calls, for the same reason.
+//
+// Idempotent by construction: the UPDATE carries the whole rule, so a second
+// call, somebody else's assignment, and one that is not finished yet all write
+// nothing and answer the same way.
+router.post('/:id/reviewed', authenticateToken, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Neispravan ID zadatka.' });
+  }
+
+  try {
+    const marked = await markReviewed(pool, { assignmentId: id, trainerId: req.user.id });
+    res.json({ ok: true, marked });
+  } catch (err) {
+    logger.error('Error marking assignment reviewed:', err);
+    res.status(500).json({ error: 'Greška pri obeležavanju zadatka.' });
   }
 });
 

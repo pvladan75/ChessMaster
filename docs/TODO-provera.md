@@ -1288,6 +1288,55 @@ aplikaciju.
 - [ ] Oduzimanje admin uloge (`UPDATE users SET role = 'korisnik' ...`) važi
       **odmah**, bez ponovne prijave: admin rute odbijaju na sledeći zahtev.
 
+## 39. Panel trenera u tabu „Ljudi" — 27.8.2026, nije viđeno uživo
+
+Izabrana varijanta A („Danas") kao odeljak, plus značka iz varijante C. Zašto
+odeljak a ne peti tab — vidi „Panel trenera — izabrano i napisano" u
+[STANJE-RADA.md](STANJE-RADA.md).
+
+Traži nalog **trenera sa bar jednim prihvaćenim učenikom**. Nalozi iz stavke 31
+i dalje stoje u bazi.
+
+Redom, jer svaki korak pravi ulaz za sledeći:
+
+1. **Prazan panel.** Prijaviti se kao učenik (ili trener kome je dan prazan) i
+   otvoriti „Ljudi". Panela **nema uopšte** — ne prazan okvir sa četiri
+   naslova, nego ništa. Na znački nema broja.
+2. **Danas.** Kao trener zakazati čas za danas (Časovi → zakaži), pa se vratiti
+   na „Ljudi". Red nosi vreme, naziv, ime pozvanog i kod sobe; „Uđi" otvara
+   sobu **kao domaćin** (tabla se sme pomerati). Čas koji je već počeo pre
+   manje od dva sata **i dalje stoji** — to je namerno.
+3. **Domaći ističe.** Zadati učeniku vežbu sa rokom u toku dana. Red kaže
+   „0 od N urađeno" i „rok danas u HH:MM". Kad rok prođe, red **ne nestaje**
+   nego menja tekst u „rok je istekao" i boju u crvenu.
+4. **Za pregled i značka.** Učenik reši ceo zadatak. Kod trenera: broj na tabu
+   „Ljudi" poraste, u panelu se pojavi red „predato danas" sa tačnošću.
+   Kucnuti „Pregledaj" → otvara se pregled po pozicijama. **Vratiti se nazad:**
+   red je nestao i **broj na znački je pao za jedan**. Ponovo otvoriti isti
+   pregled — broj se ne menja (drugo gledanje ništa ne piše).
+5. **Učenik ne prazni trenerov spisak.** Isti zadatak otvoriti **kao učenik**
+   (svoj pregled) pre nego što ga trener pogleda, pa proveriti da je kod
+   trenera i dalje u „Za pregled". Ovo je razlog zašto je obeležavanje zasebna
+   ruta, i jedina stvar na spisku koja se ne vidi na trenerovom ekranu.
+6. **Nije vežbao.** Učenik koji sedam dana nije rešio ništa stoji pod „Nije
+   vežbao"; onaj koji nikad ništa nije rešio stoji **prvi** i piše „još nije
+   rešio nijedan zadatak". „Otvori" vodi na njegov napredak, gde su i dugmad
+   „Zadaj lekciju" / „Zadaj vežbu".
+7. **Zahtevi u broju.** Poslati zahtev sa trećeg naloga ka treneru: broj na
+   znački poraste i bez ijednog domaćeg. Odgovoriti na zahtev — broj padne.
+8. **Telefon, 360 dp.** Ovo je jedini deo koji test ne može da zameni:
+   `test/trainer_panel_test.dart` crta panel na 360×640 i pada na prelivanje,
+   ali **release build ne crta žuto-crne trake** (vidi `CLAUDE.md`). Pogledati
+   na telefonu da nijedno dugme („Uđi", „Pregledaj", „Otvori") nije odsečeno uz
+   ivicu, sa dugim imenom učenika i dugim naslovom zadatka.
+9. **Rail na Windows-u.** Prvi tab se u bočnoj traci sada zove „Trening", isto
+   kao u donjoj traci na telefonu (ranije je pisalo „Početna").
+
+**Poznato unapred, da se ne prijavljuje kao greška:** u maketi je kod „Domaći
+ističe" stajalo dugme „Podseti", a kod nas piše „Otvori" — poruka učeniku nije
+napisana. I odeljak „Izveštaji roditeljima" iz varijante C ne postoji, jer
+`student_reports` nema stanje „sastavljen, nije poslat".
+
 ## Gde je provera stala — 26.8.2026
 
 Nastavlja se odavde. Nalozi i veze **stoje u bazi**, ne treba ih praviti iznova.
@@ -1322,7 +1371,8 @@ pre te probe; server je nodemon već pokupio.
 
 **Zatim, po redu:** stavka 31 sa grupama, stavka 32 prekidač za goste, ostatak
 35 i 36 (odbijanje roditelja, rubovi linka, `.env` provere), stavka 38 u
-aplikaciji.
+aplikaciji, i **stavka 39** (panel trenera, napisan 27.8.2026) — koja koristi
+iste ove naloge i vezu, pa se lako nadovezuje.
 
 **Poznate sitnice, zapisane a nepopravljene:**
 
