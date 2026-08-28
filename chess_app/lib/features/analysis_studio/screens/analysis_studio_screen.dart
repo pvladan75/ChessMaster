@@ -329,17 +329,17 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       context,
       () => SnackBar(
         content: const Text('Vraćena je vaša poslednja analiza.'),
-        backgroundColor: Colors.teal,
+        backgroundColor: context.colors.accent,
         duration: const Duration(seconds: 6),
         // Reported from a phone on 20.8.2026: it sat there for minutes with no
         // way to get rid of it, since the only action rebuilds the analysis.
         // Whatever keeps the timer from firing on that device, a message with
         // no way out is wrong on its own.
         showCloseIcon: true,
-        closeIconColor: Colors.white,
+        closeIconColor: context.colors.canvas,
         action: SnackBarAction(
           label: 'Počni iznova',
-          textColor: Colors.white,
+          textColor: context.colors.canvas,
           onPressed: () {
             AnalysisDraftService.instance.clear();
             setState(() {
@@ -1084,9 +1084,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (aiComment == null || aiComment.trim().isEmpty) {
       AppFeedback.show(
         context,
-        () => const SnackBar(
-            content: Text('Greška pri generisanju AI komentara.'),
-            backgroundColor: Colors.redAccent),
+        () => SnackBar(
+            content: const Text('Greška pri generisanju AI komentara.'),
+            backgroundColor: context.colors.danger),
       );
       return;
     }
@@ -1116,10 +1116,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           _refreshArrows();
           AppFeedback.show(
             context,
-            () => const SnackBar(
-                content: Text(
+            () => SnackBar(
+                content: const Text(
                     '⚡ Automatska analiza uspešno završena i sačuvana u stablo!'),
-                backgroundColor: Colors.amber),
+                backgroundColor: context.colors.warning),
           );
         },
       ),
@@ -1164,11 +1164,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               () => SnackBar(
                 content: Text(
                     '🧩 Izvučeno ${extractedPuzzles.length} vežbi (sačuvano)'),
-                backgroundColor: Colors.teal,
+                backgroundColor: context.colors.accent,
                 duration: const Duration(seconds: 6),
                 action: SnackBarAction(
                   label: 'Prikaži',
-                  textColor: Colors.white,
+                  textColor: context.colors.canvas,
                   onPressed: () {
                     setState(() => _activePuzzleSet = extractedPuzzles);
                     _loadPuzzleAtIndex(0);
@@ -1216,7 +1216,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       context,
       () => SnackBar(
           content: Text('🧩 ${puzzle.themeLabel}'),
-          backgroundColor: Colors.teal),
+          backgroundColor: context.colors.accent),
     );
 
     if (canReveal) {
@@ -1319,9 +1319,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       if (!tempGame.load_pgn(pgn)) {
         AppFeedback.show(
           context,
-          () => const SnackBar(
-              content: Text('⚠️ Neispravan PGN format.'),
-              backgroundColor: Colors.red),
+          () => SnackBar(
+              content: const Text('⚠️ Neispravan PGN format.'),
+              backgroundColor: context.colors.danger),
         );
         return;
       }
@@ -1383,7 +1383,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         context,
         () => SnackBar(
           content: Text('✅ PGN učitan — $imported poteza u stablu.'),
-          backgroundColor: Colors.teal,
+          backgroundColor: context.colors.accent,
         ),
       );
     } catch (e) {
@@ -1391,7 +1391,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         context,
         () => SnackBar(
             content: Text('Greška pri uvozu PGN-a: $e'),
-            backgroundColor: Colors.red),
+            backgroundColor: context.colors.danger),
       );
     }
   }
@@ -1423,9 +1423,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (loadedRoot == null) {
       AppFeedback.show(
         context,
-        () => const SnackBar(
-            content: Text('⚠️ Učitavanje nije uspelo. Proverite konekciju.'),
-            backgroundColor: Colors.red),
+        () => SnackBar(
+            content:
+                const Text('⚠️ Učitavanje nije uspelo. Proverite konekciju.'),
+            backgroundColor: context.colors.danger),
       );
       return;
     }
@@ -1445,7 +1446,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       context,
       () => SnackBar(
           content: Text('✅ Učitano: "${summary.title}"'),
-          backgroundColor: Colors.teal),
+          backgroundColor: context.colors.accent),
     );
   }
 
@@ -2003,8 +2004,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       trailing: [
         const SizedBox(width: 8),
         IconButton(
-          icon: const Icon(Icons.comment,
-              size: 18, color: Colors.lightBlueAccent),
+          icon: Icon(Icons.comment, size: 18, color: context.colors.info),
           tooltip: 'Dodaj Komentar',
           onPressed: _showCommentDialog,
         ),
@@ -2015,15 +2015,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.auto_awesome,
-                  size: 18, color: Colors.tealAccent),
+              : Icon(Icons.auto_awesome,
+                  size: 18, color: context.colors.accent),
           tooltip: 'Generiši AI komentar',
           onPressed: (_isGeneratingAiComment || _currentNode.isRoot)
               ? null
               : _generateAiComment,
         ),
         IconButton(
-          icon: const Icon(Icons.style, size: 18, color: Colors.amberAccent),
+          icon: Icon(Icons.style, size: 18, color: context.colors.warning),
           tooltip: 'NAG Simboli (!, ?)',
           onPressed: _showNagSelector,
         ),
@@ -2056,7 +2056,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         margin: const EdgeInsets.only(top: 6),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.grey.shade900,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(8),
           border:
               Border.all(color: context.colors.info.withValues(alpha: 0.35)),
@@ -2144,7 +2144,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: context.colors.danger,
-                foregroundColor: Colors.white),
+                foregroundColor: context.colors.canvas),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Obriši'),
           ),
