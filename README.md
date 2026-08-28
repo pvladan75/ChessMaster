@@ -1,8 +1,10 @@
 # ♟️ Mislisha — Interactive Chess Training & AI Coaching Platform
 
-**Mislisha** is a full-stack, cross-platform interactive chess training and remote teaching application built with **Flutter** (Android, Windows, Web) and **Node.js / Express / PostgreSQL** with **Socket.IO**, **Agora RTC**, and **Google Gemini AI**.
+**Mislisha** is a full-stack interactive chess training and remote teaching application built with **Flutter** (Android and Windows are the supported targets) and **Node.js / Express / PostgreSQL** with **Socket.IO**, **Agora RTC**, and **Google Gemini AI**.
 
-Designed for chess trainers and students, it provides real-time interactive chessboard synchronization, Stockfish engine integration, dynamic role management, audio voice chat, full session recording & MP4 video playback, friend management, room invitations, Google Calendar scheduled sessions, and an **AI Chess Coach with Adaptive Puzzles**.
+Designed for chess trainers and students, it provides real-time interactive chessboard synchronization, Stockfish engine integration, dynamic role management, live voice chat, a silent replay of every lesson's move timeline, homework and spaced repetition, parent-gated trainer–student relationships, friend management, room invitations, Google Calendar scheduled sessions, and an **AI Chess Coach with Adaptive Puzzles**.
+
+Most users are children, which decides more of the design than any other single fact — see §8 and §10 below, and `CLAUDE.md`.
 
 ---
 
@@ -64,7 +66,7 @@ Designed for chess trainers and students, it provides real-time interactive ches
 
 ### 6. 🎤 Real-Time Interactive Classroom & Voice Chat
 - **Synchronized Chessboard**: Moves, PGN variations, custom arrow drawings, and board setups sync in real-time across all connected clients via WebSockets.
-- **Agora Voice RTC**: Integrated voice audio communication with mute/unmute and hand-raising mechanics.
+- **Agora Voice RTC**: Integrated voice audio communication with mute/unmute and hand-raising mechanics. Live voice is not recorded voice — see §8; a lesson's audio is never written to disk.
 - **Dynamic Role Management**: Host (`Trener`) can promote any participant to Co-Host (`Trener`) or demote to `Učenik`.
 
 ### 7. 📚 Lesson Builder & Multi-Step Courses
@@ -75,15 +77,42 @@ Designed for chess trainers and students, it provides real-time interactive ches
 - **Mini Board Previews**: each lesson in the list shows a real board thumbnail (`BoardThumbnail`) instead of a generic icon.
 - Backend: `PUT`/`DELETE /lessons/:id`, ownership-checked, alongside the existing `POST /lessons/save` and `GET /lessons`.
 
-### 8. 📹 Complete Session Recording & MP4 Video Rendering
-- **Timeline Recording**: Records move timestamps, FEN positions, arrow annotations, and trainer voice audio during live lessons.
-- **In-Session Pause & Resume**: Pause and resume recording mid-session with gap-free timestamp calculations.
-- **Synced Interactive Replay & Server-Side MP4 Export**: Dedicated `ReplayPlayerScreen` and FFmpeg server-side video rendering.
+### 8. 📹 Silent Lesson Replay & Solo Recording
+
+**A lesson is not recorded with sound, by anybody, under any consent** — since
+26.8.2026, and deliberately. A recorded lesson was the one feature that put a
+child's voice into `uploads/`, which is the only artefact here that cannot be
+reproduced, anonymised or taken back. The reasoning is written out in
+`services/recordingConsent.js`.
+
+- **Timeline Recording**: move timestamps, FEN positions and arrow annotations. A recording is a `timeline_json`; `audio_url` was always nullable, so the replay survives the removal of the sound.
+- **Audio only for an adult alone in a room** (`services/recordingConsent.js`): a trainer by themselves records teaching material and publishes it wherever they like. Anyone else in the room — a student, or a guest with no account at all — blocks it, because they are somebody else in the recording.
+- **In-Session Pause & Resume**: pause and resume mid-session with gap-free timestamp calculations.
+- **Synced Interactive Replay & Server-Side MP4 Export**: `ReplayPlayerScreen` plus FFmpeg rendering (`videoRenderer.js`). Exports are reproducible, so they age out on a retention timer; `uploads/` never does.
 - **App-Matching Piece Theme**: rendered videos default to a "Classic" piece set transcribed directly from the app's own `chess_vectors_flutter` artwork, so exported video looks identical to the live app instead of merely similar (Alpha/Staunton remain available as alternates).
 
 ### 9. 👥 Friends List, Room Invites & Google Calendar
 - **Friends Management & Invitations**: Pre-session and in-session friend invites with persistent offline notification badges.
 - **1-Click Google Calendar Sync**: Scheduled sessions pre-fill Google Calendar events for hosts and students.
+
+### 10. 🧑‍🏫 Teaching Relationships, Homework & Consent
+
+The sections above describe what happens on a board. This is the half that
+decides who may see it.
+
+- **Trainer ↔ student edges, not roles** (`trainer_students`): *trainer* is a position in a relationship, not a property of a person — the same account teaches in one edge and learns in another. `users.role` survives only for `'admin'`. Either side may send the request; nothing is granted until `status = 'accepted'`.
+- **Parental consent for minors** (`services/parentConsentService.js`): a minor's relationship stops at `awaiting_parent`, and the parent confirms through a link to a page this backend serves — not a code read out to a child, which proves only that mail arrived. The age threshold and the consent text version are configuration, because the wording was approved for Serbia specifically.
+- **Homework & assignments**: positions, lessons and puzzle sets assigned to a student, with a review screen for the trainer and per-move notes.
+- **Spaced repetition** (`services/spacedRepetitionService.js`): missed positions come back on a schedule rather than only when someone remembers them.
+- **Groups, repertoire, endgame training, position scanner**: student groups; opening repertoire building and drilling; endgame drills against a tablebase; and scanning a printed diagram into a position.
+- **Parent reports, entitlements and usage metering** (`reportService.js`, `entitlementService.js`, `playBillingService.js`): built and covered by tests, but **not yet watched running** — tracked in `docs/TODO-provera.md`.
+
+Rights are read through exactly two places, and new code uses them rather than
+writing the condition again: `trainerOwnsStudent` for homework and reports, and
+`acceptedTrainersOf` for anything a student reads *because* someone teaches
+them. Three hand-written copies of the second one all forgot the status check,
+so an unanswered request already unlocked the sender's lessons; a test now reads
+the source and fails if a fourth copy appears.
 
 ---
 
@@ -94,15 +123,15 @@ Ono što je sledeće na listi (dogovoreno, još neurađeno), plus par sugestija:
 1. **LLM-generisani komentari (Premium)** — umesto (ili pored) template teksta iz `TacticalMotifDetector`/`PositionalEvaluatorService`, ponuditi tečniju prozu generisanu preko LLM-a. **Ključna arhitektonska odluka koju treba čuvati**: LLM nikad ne sme da generiše taktičke/pozicione *činjenice* sam — samo da preformuliše već tačne, mašinski proverene nalaze (`MotifFinding`/`PositionalFinding`) u prirodniji stil. Ovo sprečava halucinacije ("dama je vezana" kad zapravo nije). Videti odgovor u chat-u za konkretne korake (provajder, cena, ključ).
 2. **Dublja integracija izvučenih vežbi sa ekranom za rešavanje** — trenutno "Pretvori partiju u vežbe" učitava poziciju na Analysis Studio tablu; puna integracija sa AI Studio puzzle-solving tokom (verifikacija poteza, praćenje rejtinga) je veći, poseban zahvat ako se pokaže da je vredan.
 3. **Otvoreno pitanje: da li treba filtrirati i live panele** ("Taktički motivi" / "Pozicioni faktori") istim rangiranjem po značaju koje već koriste auto-komentari — u testiranju je panel ponekad prikazao 10+ čipova odjednom. Vidi `memory/project_positional_panel_declutter.md` iz prethodne sesije — odluka je namerno ostavljena za kasnije.
-4. **Mobile/Android provera** — sve novo ovog kruga (paneli, ručni dijalog, Game Review, Puzzle Extractor) testirano je samo na Windows desktop buildu; vredi proći kroz njih i na telefonu pre nego što se smatraju gotovim (dijaloge posebno, zbog veličine ekrana).
+4. **Mobile/Android provera** — prolaz kroz aplikaciju na telefonu je počeo (28.8.2026, jedanaest nalaza, svi rešeni), ali nije završen. Šta je gledano uživo a šta nije vodi se u `docs/TODO-provera.md`; dijalozi su i dalje najrizičniji, jer release build ne crta upozorenje o preklapanju nego tiho odseca ono što ne staje.
 5. **Predlog (nije dogovoreno)**: `GameAnalysisWalkerService` i `AutoTreeGeneratorService` oba pozivaju engine nezavisno — ako se partija prvo pregleda pomoću "Analiziraj celu partiju" pa se posle nad istim pozicijama pokrene automatska analiza (ili obrnuto), evaluacije se ponovo računaju od nule. Ako ovo počne da smeta u praksi (sporo), vredelo bi keširati eval po FEN-u unutar jedne sesije.
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: Flutter (Dart) — Android, Windows Desktop, Web
-- **Backend Server**: Node.js, Express.js, Socket.IO, `@google/genai`
+- **Frontend**: Flutter (Dart) — Android and Windows Desktop are the targets CI and the deploy script build for; a `web/` directory exists but is not maintained
+- **Backend Server**: Node.js **>= 22.15** (the Lichess puzzle import uses `zlib.zstd*`, which does not exist before that), Express.js, Socket.IO, `@google/genai`
 - **Database**: PostgreSQL (`pg` client) with GIN and B-Tree indexing
 - **AI Integration**: Google Gemini 2.5 Flash (`@google/genai`)
 - **Real-Time Audio**: Agora RTC SDK (`agora_rtc_engine`)
@@ -113,8 +142,10 @@ Ono što je sledeće na listi (dogovoreno, još neurađeno), plus par sugestija:
 
 ## 🚀 API Endpoints Summary
 
-- `GET /api/puzzles/next?userId=...&theme=...`: Fetches adaptive puzzle matching user rating.
-- `POST /api/puzzles/submit`: Submits puzzle solution, calculates Elo rating change.
+- `GET /api/puzzles/next?userId=...&theme=...`: Fetches a puzzle from the older engine-verified `puzzles` table (mate-in-N, "winning position").
+- `POST /api/puzzles/submit`: Submits that puzzle's solution, calculates the Elo rating change.
+- `GET /api/puzzles/adaptive`: The Lichess-backed selector described in §1 — targets the motif the user is measurably weakest at.
+- `POST /api/puzzles/attempt`: Updates the overall rating and every trainable theme on the puzzle, using the puzzle's stored rating rather than a client-supplied one.
 - `POST /api/ai/explain-position`: Passes FEN position and Stockfish evaluation to Gemini AI for natural language coaching advice.
 - `POST /sessions/schedule`: Schedules future lesson rooms with 1-click Google Calendar integration.
 
