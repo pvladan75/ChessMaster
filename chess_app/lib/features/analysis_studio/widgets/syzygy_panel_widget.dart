@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:flutter/material.dart';
 
 class _CategoryStyle {
   final String label;
@@ -9,6 +9,7 @@ class _CategoryStyle {
   const _CategoryStyle(this.label, this.color);
 }
 
+// Syzygy endgame theoretical WDL outcomes — domain evaluation constants.
 _CategoryStyle _styleFor(SyzygyCategory category) {
   switch (category) {
     case SyzygyCategory.win:
@@ -53,35 +54,37 @@ class SyzygyPanelWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     if (!isEligible) return const SizedBox.shrink();
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.indigo.shade900.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4)),
+        color: colors.surface,
+        borderRadius: AppRadii.roundedSm,
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.table_chart, color: Colors.cyanAccent, size: 16),
+              Icon(Icons.table_chart, color: colors.info, size: 16),
               const SizedBox(width: 6),
               Text(
                 'Syzygy Tablebase',
-                style: AppText.bodyBold.copyWith(color: Colors.cyanAccent),
+                style: AppText.bodyBold.copyWith(color: colors.info),
               ),
               const Spacer(),
               if (isLoading)
-                const SizedBox(
+                SizedBox(
                   width: 12,
                   height: 12,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.cyanAccent),
+                      strokeWidth: 2, color: colors.info),
                 )
               else if (result != null)
                 _buildVerdictChip(result!),
@@ -91,12 +94,11 @@ class SyzygyPanelWidget extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               'Tablebase nije dostupan za ovu poziciju.',
-              style:
-                  AppText.caption.copyWith(color: context.colors.textSecondary),
+              style: AppText.caption.copyWith(color: colors.textSecondary),
             ),
           ],
           if (!isLoading && result != null && result!.moves.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: 6,
               runSpacing: 6,
@@ -117,7 +119,7 @@ class SyzygyPanelWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: style.color.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: AppRadii.roundedSm,
         border: Border.all(color: style.color),
       ),
       child: Text(
@@ -133,12 +135,12 @@ class SyzygyPanelWidget extends StatelessWidget {
     final dtz = _dtzLabel(move.dtz);
     return InkWell(
       onTap: onMoveSelected != null ? () => onMoveSelected!(move.uci) : null,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: AppRadii.roundedSm,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
           color: style.color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: AppRadii.roundedSm,
           border: Border.all(color: style.color.withValues(alpha: 0.6)),
         ),
         child: Text(

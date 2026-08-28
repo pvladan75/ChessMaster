@@ -10,6 +10,8 @@ import 'package:chess_app/move_tree.dart' show PgnGameInfo, MoveTree;
 import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/game_selector_dialog.dart';
 import 'package:chess_app/features/analysis_studio/services/chess_platform_import_service.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 class AnalysisBoardSetupDialog extends StatefulWidget {
@@ -180,7 +182,8 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
     if (!mounted) return;
     AppFeedback.show(
       context,
-      () => SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+      () => SnackBar(
+          content: Text(message), backgroundColor: context.colors.danger),
     );
   }
 
@@ -267,33 +270,32 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Dialog(
-      backgroundColor: Colors.grey.shade900,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: colors.surface,
+      shape: AppRadii.dialogShape,
       child: Container(
         width: 550,
         height: 620,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.tune, color: Colors.tealAccent, size: 22),
-                    SizedBox(width: 8),
+                    Icon(Icons.tune, color: colors.accent, size: 22),
+                    const SizedBox(width: AppSpacing.sm),
                     Text(
                       'Unos Pozicije (Board Setup)',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
+                      style: AppText.title.copyWith(color: colors.textPrimary),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.grey),
+                  icon: Icon(Icons.close, color: colors.textMuted),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -301,9 +303,9 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             TabBar(
               controller: _tabController,
               isScrollable: true,
-              indicatorColor: Colors.tealAccent,
-              labelColor: Colors.tealAccent,
-              unselectedLabelColor: Colors.grey,
+              indicatorColor: colors.accent,
+              labelColor: colors.accent,
+              unselectedLabelColor: colors.textMuted,
               tabs: const [
                 Tab(icon: Icon(Icons.edit_note, size: 18), text: 'FEN String'),
                 Tab(icon: Icon(Icons.file_upload, size: 18), text: 'PGN Uvoz'),
@@ -338,28 +340,30 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   }
 
   Widget _buildFenInputTab() {
+    final colors = context.colors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Unesite važeći FEN string (Forsyth-Edwards Notation):',
-          style: TextStyle(fontSize: 13, color: Colors.grey),
+          style: AppText.bodyLarge.copyWith(color: colors.textSecondary),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         TextField(
           controller: _fenTextController,
           maxLines: 3,
-          style: const TextStyle(
-              color: Colors.white, fontSize: 13, fontFamily: 'monospace'),
+          style: TextStyle(
+              color: colors.textPrimary, fontSize: 13, fontFamily: 'monospace'),
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.black45,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            fillColor: colors.canvas,
+            border: OutlineInputBorder(borderRadius: AppRadii.roundedSm),
             errorText: _isFenValid ? null : _fenErrorMessage,
           ),
           onChanged: _validateFen,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Row(
           children: [
             OutlinedButton.icon(
@@ -373,7 +377,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                 }
               },
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             OutlinedButton.icon(
               icon: const Icon(Icons.restart_alt, size: 16),
               label: const Text('Početna Pozicija'),
@@ -393,8 +397,6 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             icon: const Icon(Icons.check),
             label: const Text('Postavi FEN Poziciju'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
             ),
             onPressed: _isFenValid
@@ -410,31 +412,34 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   }
 
   Widget _buildPgnImportTab() {
+    final colors = context.colors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Zalepite PGN tekst (Portable Game Notation) sa partijom ili varijantom:',
-          style: TextStyle(fontSize: 13, color: Colors.grey),
+          style: AppText.bodyLarge.copyWith(color: colors.textSecondary),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Expanded(
           child: TextField(
             controller: _pgnTextController,
             maxLines: 8,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 13, fontFamily: 'monospace'),
+            style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 13,
+                fontFamily: 'monospace'),
             decoration: InputDecoration(
               filled: true,
-              fillColor: Colors.black45,
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              fillColor: colors.canvas,
+              border: OutlineInputBorder(borderRadius: AppRadii.roundedSm),
               hintText: '1. e4 e5 2. Nf3 Nc6 3. Bb5 ...',
-              hintStyle: const TextStyle(color: Colors.grey),
+              hintStyle: TextStyle(color: colors.textMuted),
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Row(
           children: [
             OutlinedButton.icon(
@@ -449,7 +454,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                 }
               },
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             OutlinedButton.icon(
               icon: const Icon(Icons.folder_open, size: 16),
               label: const Text('Učitaj .pgn fajl'),
@@ -457,15 +462,13 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
             icon: const Icon(Icons.file_open),
             label: const Text('Uvezi PGN Partiju'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.indigo,
-              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
             ),
             onPressed: () {
@@ -482,6 +485,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   }
 
   Widget _buildManualBuilderTab() {
+    final colors = context.colors;
     const paletteKeys = [
       'P',
       'N',
@@ -510,14 +514,13 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                 padding: const EdgeInsets.symmetric(horizontal: 2.0),
                 child: ChoiceChip(
                   label: key == 'CLEAR'
-                      ? const Icon(Icons.close,
-                          size: 18, color: Colors.redAccent)
+                      ? Icon(Icons.close, size: 18, color: colors.danger)
                       : SizedBox(
                           width: 22,
                           height: 22,
                           child: chessPieceWidget(key, size: 22)),
                   selected: isSelected,
-                  selectedColor: Colors.teal,
+                  selectedColor: colors.accent.withValues(alpha: 0.22),
                   onSelected: (_) {
                     setState(() => _selectedPalettePiece = key);
                   },
@@ -531,12 +534,11 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             OutlinedButton.icon(
-              icon: const Icon(Icons.delete_outline,
-                  size: 16, color: Colors.redAccent),
-              label: const Text('Obriši tablu 🗑️',
-                  style: TextStyle(fontSize: 11, color: Colors.redAccent)),
+              icon: Icon(Icons.delete_outline, size: 16, color: colors.danger),
+              label: Text('Obriši tablu 🗑️',
+                  style: TextStyle(fontSize: 11, color: colors.danger)),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.redAccent),
+                side: BorderSide(color: colors.danger),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               ),
@@ -547,12 +549,11 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
               },
             ),
             OutlinedButton.icon(
-              icon: const Icon(Icons.restart_alt,
-                  size: 16, color: Colors.tealAccent),
-              label: const Text('Početna pozicija 🔄',
-                  style: TextStyle(fontSize: 11, color: Colors.tealAccent)),
+              icon: Icon(Icons.restart_alt, size: 16, color: colors.accent),
+              label: Text('Početna pozicija 🔄',
+                  style: TextStyle(fontSize: 11, color: colors.accent)),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.tealAccent),
+                side: BorderSide(color: colors.accent),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               ),
@@ -573,7 +574,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             aspectRatio: 1.0,
             child: Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.tealAccent, width: 2),
+                border: Border.all(color: colors.accent, width: 2),
               ),
               child: GridView.builder(
                 physics: const NeverScrollableScrollPhysics(),
@@ -609,6 +610,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                       setState(() => _builderBoard[row][col] = '');
                     },
                     child: Container(
+                      // Domain constant: Board square colors preserved as chess literals
                       color: isDarkSquare
                           ? Colors.teal.shade900
                           : Colors.teal.shade100,
@@ -630,12 +632,12 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
           children: [
             Row(
               children: [
-                const Text('Na potezu: ',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                Text('Na potezu: ',
+                    style: AppText.body.copyWith(color: colors.textMuted)),
                 DropdownButton<PlayerColor>(
                   value: _builderSideToMove,
-                  dropdownColor: Colors.grey.shade900,
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                  dropdownColor: colors.surface,
+                  style: AppText.body.copyWith(color: colors.textPrimary),
                   items: const [
                     DropdownMenuItem(
                         value: PlayerColor.white, child: Text('⚪ Beli')),
@@ -650,25 +652,25 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             ),
             Row(
               children: [
-                const Text('Rokade: ',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                Text('Rokade: ',
+                    style: AppText.body.copyWith(color: colors.textMuted)),
                 FilterChip(
-                  label: const Text('K', style: TextStyle(fontSize: 10)),
+                  label: const Text('K', style: AppText.micro),
                   selected: _whiteCastleK,
                   onSelected: (v) => setState(() => _whiteCastleK = v),
                 ),
                 FilterChip(
-                  label: const Text('Q', style: TextStyle(fontSize: 10)),
+                  label: const Text('Q', style: AppText.micro),
                   selected: _whiteCastleQ,
                   onSelected: (v) => setState(() => _whiteCastleQ = v),
                 ),
                 FilterChip(
-                  label: const Text('k', style: TextStyle(fontSize: 10)),
+                  label: const Text('k', style: AppText.micro),
                   selected: _blackCastleK,
                   onSelected: (v) => setState(() => _blackCastleK = v),
                 ),
                 FilterChip(
-                  label: const Text('q', style: TextStyle(fontSize: 10)),
+                  label: const Text('q', style: AppText.micro),
                   selected: _blackCastleQ,
                   onSelected: (v) => setState(() => _blackCastleQ = v),
                 ),
@@ -683,8 +685,6 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             icon: const Icon(Icons.check_circle_outline),
             label: const Text('Generiši i Postavi Poziciju'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal.shade800,
-              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 10),
             ),
             onPressed: () {
@@ -712,30 +712,32 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   }
 
   Widget _buildPlatformImportTab() {
+    final colors = context.colors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Unesite korisničko ime da preuzmete poslednje partije:',
-          style: TextStyle(fontSize: 13, color: Colors.grey),
+          style: AppText.bodyLarge.copyWith(color: colors.textSecondary),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Row(
           children: [
             ChoiceChip(
               label: const Text('Lichess'),
               selected: _importPlatform == ChessPlatform.lichess,
-              selectedColor: Colors.teal,
+              selectedColor: colors.accent.withValues(alpha: 0.22),
               onSelected: _importLoading
                   ? null
                   : (_) =>
                       setState(() => _importPlatform = ChessPlatform.lichess),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             ChoiceChip(
               label: const Text('Chess.com'),
               selected: _importPlatform == ChessPlatform.chessCom,
-              selectedColor: Colors.teal,
+              selectedColor: colors.accent.withValues(alpha: 0.22),
               onSelected: _importLoading
                   ? null
                   : (_) =>
@@ -743,42 +745,42 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         TextField(
           controller: _importUsernameController,
           enabled: !_importLoading,
-          style: const TextStyle(color: Colors.white, fontSize: 13),
+          style: AppText.bodyLarge.copyWith(color: colors.textPrimary),
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.black45,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            fillColor: colors.canvas,
+            border: OutlineInputBorder(borderRadius: AppRadii.roundedSm),
             hintText: 'korisničko ime',
-            hintStyle: const TextStyle(color: Colors.grey),
-            prefixIcon: const Icon(Icons.person, color: Colors.grey),
+            hintStyle: TextStyle(color: colors.textMuted),
+            prefixIcon: Icon(Icons.person, color: colors.textMuted),
           ),
           onSubmitted: (_) => _fetchFromPlatform(),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Text(
           'Učitava poslednjih 20 partija; ako ih ima više, birate koju uvozite.',
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          style: AppText.caption.copyWith(color: colors.textMuted),
         ),
         const Spacer(),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
             icon: _importLoading
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                      strokeWidth: 2,
+                      color: colors.textPrimary,
+                    ),
                   )
                 : const Icon(Icons.cloud_download),
             label: Text(_importLoading ? 'Preuzimanje...' : 'Preuzmi Partije'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepPurple,
-              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
             ),
             onPressed: _importLoading ? null : _fetchFromPlatform,

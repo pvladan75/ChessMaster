@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/services.dart';
@@ -465,7 +464,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                       }
                     },
                     child: Container(
-                      color: const ui.Color(0xFF020617),
+                      color: context.colors.canvas,
                       child: InteractiveViewer(
                         transformationController: _transformController,
                         constrained: false,
@@ -483,6 +482,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                                   positionedNodes: positioned,
                                   activeNodeId: widget.activeNode.id,
                                   isHorizontal: _isHorizontal,
+                                  edgeColor: context.colors.borderStrong,
+                                  activeEdgeColor: context.colors.accent,
                                 ),
                               ),
                               ...positioned.map((pn) => _buildNodeCard(
@@ -518,8 +519,9 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
+        color: context.colors.canvas.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: context.colors.border),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -541,7 +543,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                 : 'Uključi naknadni filter po eval-u (sakrij slabije grane)',
             () => setState(() => _filterEnabled = !_filterEnabled),
           ),
-          const Divider(height: 6, color: Colors.white24),
+          Divider(height: 6, color: context.colors.border),
           _toolbarButton(
             _isPlaying ? Icons.pause : Icons.play_arrow,
             _isPlaying
@@ -559,7 +561,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     return PopupMenuButton<_PlaySpeed>(
       tooltip: 'Brzina prikazivanja: ${_playSpeed.label}',
       initialValue: _playSpeed,
-      color: Colors.grey.shade900,
+      color: context.colors.surface,
       onSelected: _setPlaySpeed,
       itemBuilder: (ctx) => _PlaySpeed.values.map((s) {
         return PopupMenuItem<_PlaySpeed>(
@@ -573,7 +575,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
               ),
               const SizedBox(width: 6),
               Text(s.label,
-                  style: TextStyle(color: context.colors.textPrimary)),
+                  style: AppText.bodyLarge
+                      .copyWith(color: context.colors.textPrimary)),
             ],
           ),
         );
@@ -593,8 +596,9 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.65),
+        color: context.colors.canvas.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: context.colors.border),
       ),
       child: Row(
         children: [
@@ -602,7 +606,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
           const SizedBox(width: 6),
           Text(
             'Prag: ${_clampedDisplayCutoff.toStringAsFixed(1)} / ${_effectiveMaxCutoff.toStringAsFixed(1)}',
-            style: TextStyle(fontSize: 11, color: context.colors.textPrimary),
+            style: AppText.caption.copyWith(color: context.colors.textPrimary),
           ),
           Expanded(
             child: SliderTheme(
@@ -659,25 +663,25 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
 
     Color bgColor;
     Color borderColor;
-    Color textColor = Colors.white;
+    Color textColor = context.colors.textPrimary;
 
     if (isSelected) {
-      bgColor = Colors.teal.shade700;
-      borderColor = Colors.tealAccent;
+      bgColor = context.colors.accent.withValues(alpha: 0.22);
+      borderColor = context.colors.accent;
     } else if (node.isRoot) {
-      bgColor = const ui.Color(0xFF1E293B);
-      borderColor = Colors.white24;
-      textColor = Colors.white70;
+      bgColor = context.colors.surface;
+      borderColor = context.colors.border;
+      textColor = context.colors.textSecondary;
     } else if (isMainLine) {
-      bgColor = const ui.Color(0xFF0F172A);
-      borderColor = Colors.teal.shade600;
+      bgColor = context.colors.surfaceRaised;
+      borderColor = context.colors.accent.withValues(alpha: 0.5);
     } else {
-      bgColor = Colors.purple.shade900.withValues(alpha: 0.85);
-      borderColor = Colors.purpleAccent.shade100;
+      bgColor = context.colors.accentAlt.withValues(alpha: 0.15);
+      borderColor = context.colors.accentAlt.withValues(alpha: 0.4);
     }
 
     String label;
-    Color evalBg = Colors.grey.shade700;
+    Color evalBg = context.colors.textMuted;
     if (node.isRoot) {
       label = '🏁';
     } else {
@@ -686,11 +690,11 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
         final val = node.eval!;
         label += ' (${_formatEval(val)})';
         if (val.abs() > 500) {
-          evalBg = val > 0 ? Colors.amber.shade800 : Colors.red.shade900;
+          evalBg = val > 0 ? context.colors.warning : context.colors.danger;
         } else if (val > 0.3) {
-          evalBg = Colors.green.shade800;
+          evalBg = context.colors.success;
         } else if (val < -0.3) {
-          evalBg = Colors.red.shade800;
+          evalBg = context.colors.danger;
         }
       }
     }
@@ -732,7 +736,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                              color: Colors.tealAccent.withValues(alpha: 0.4),
+                              color:
+                                  context.colors.accent.withValues(alpha: 0.4),
                               blurRadius: 8,
                               spreadRadius: 1)
                         ]
@@ -747,8 +752,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: (isSelected ? AppText.bodyBold : AppText.body)
+                            .copyWith(
                           fontWeight:
                               isSelected ? FontWeight.bold : FontWeight.w600,
                           color: textColor,
@@ -778,10 +783,10 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                     'Ova pozicija je dostignuta i drugim redosledom poteza',
                 child: Container(
                   padding: const EdgeInsets.all(2),
-                  decoration: const BoxDecoration(
-                      color: Colors.amber, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                      color: context.colors.warning, shape: BoxShape.circle),
                   child: const Icon(Icons.call_split,
-                      size: 9, color: Colors.black),
+                      size: 9, color: Color(0xFF0F172A)),
                 ),
               ),
             ),
@@ -808,7 +813,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
               ListTile(
                 leading: Icon(Icons.star, color: ctx.colors.warning),
                 title: Text('Unapredi u Glavnu Liniju (Main Line)',
-                    style: TextStyle(color: ctx.colors.textPrimary)),
+                    style: AppText.bodyLarge
+                        .copyWith(color: ctx.colors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   if (node.parent != null) {
@@ -819,7 +825,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
               ListTile(
                 leading: Icon(Icons.delete, color: ctx.colors.danger),
                 title: Text('Obriši Ovu Varijantu',
-                    style: TextStyle(color: ctx.colors.textPrimary)),
+                    style: AppText.bodyLarge
+                        .copyWith(color: ctx.colors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   widget.onDeleteNode?.call(node);
@@ -890,20 +897,25 @@ class _TreeEdgesPainter extends CustomPainter {
   final List<_PositionedNode> positionedNodes;
   final String activeNodeId;
   final bool isHorizontal;
+  final Color edgeColor;
+  final Color activeEdgeColor;
 
-  _TreeEdgesPainter(
-      {required this.positionedNodes,
-      required this.activeNodeId,
-      required this.isHorizontal});
+  _TreeEdgesPainter({
+    required this.positionedNodes,
+    required this.activeNodeId,
+    required this.isHorizontal,
+    required this.edgeColor,
+    required this.activeEdgeColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final linePaint = Paint()
-      ..color = const ui.Color(0xFF334155)
+      ..color = edgeColor
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
     final activePaint = Paint()
-      ..color = Colors.tealAccent
+      ..color = activeEdgeColor
       ..strokeWidth = 3.0
       ..style = PaintingStyle.stroke;
 

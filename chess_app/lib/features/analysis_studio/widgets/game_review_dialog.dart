@@ -240,8 +240,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
           Text('Dubina motora (d): $_engineDepth',
               style: AppText.body.copyWith(color: context.colors.textPrimary)),
           Text('depth $_engineDepth',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.orangeAccent)),
+              style: AppText.bodyBold.copyWith(color: context.colors.warning)),
         ],
       ),
       Slider(
@@ -249,7 +248,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         min: 5,
         max: 30,
         divisions: 25,
-        activeColor: Colors.orangeAccent,
+        activeColor: context.colors.warning,
         onChanged: (val) => setState(() => _engineDepth = val.round()),
       ),
       CheckboxListTile(
@@ -377,13 +376,10 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
       const SizedBox(height: 8),
       SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
+        child: FilledButton.icon(
           icon: const Icon(Icons.play_arrow),
-          label: const Text('Pokreni analizu',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: context.colors.accent,
-            foregroundColor: Colors.white,
+          label: const Text('Pokreni analizu'),
+          style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
           onPressed: moveCount == 0 ? null : _start,
@@ -423,9 +419,6 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
             ],
             const SizedBox(height: 16),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal.shade700,
-                  foregroundColor: Colors.white),
               onPressed: () => Navigator.pop(context),
               child: const Text('Zatvori'),
             ),
@@ -442,7 +435,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
           children: [
             LinearProgressIndicator(
                 value: progressPct,
-                backgroundColor: Colors.grey.shade800,
+                backgroundColor: context.colors.surfaceRaised,
                 color: context.colors.accent),
             const SizedBox(height: 16),
             Text(
