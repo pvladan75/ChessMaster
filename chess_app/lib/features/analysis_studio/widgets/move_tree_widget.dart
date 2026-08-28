@@ -70,7 +70,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: _showVisualGraph
-                              ? Colors.teal.shade800
+                              ? context.colors.accent.withValues(alpha: 0.22)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
@@ -99,7 +99,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: !_showVisualGraph
-                              ? Colors.teal.shade800
+                              ? context.colors.accent.withValues(alpha: 0.22)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
@@ -248,7 +248,9 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.teal.shade800 : Colors.grey.shade800,
+            color: isSelected
+                ? context.colors.accent.withValues(alpha: 0.22)
+                : context.colors.surfaceRaised,
             borderRadius: BorderRadius.circular(4),
             border: isSelected
                 ? Border.all(color: context.colors.accent, width: 1.5)
@@ -303,10 +305,12 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.deepPurple.shade900.withValues(alpha: 0.4),
+              color: context.colors.accentAlt.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(4),
-              border:
-                  Border.all(color: Colors.purpleAccent.shade100, width: 0.8),
+              border: Border.all(
+                color: context.colors.accentAlt.withValues(alpha: 0.4),
+                width: 0.8,
+              ),
             ),
             child: InkWell(
               onTap: () => widget.onSelectNode(varChild),
@@ -325,7 +329,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                           : FontWeight.normal,
                       color: varChild.id == widget.activeNode.id
                           ? context.colors.warning
-                          : Colors.purpleAccent.shade100,
+                          : context.colors.accentAlt,
                     ),
                   ),
                   Text(')',

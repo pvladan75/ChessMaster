@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/services/server_status_service.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 /// The "Početna" tab: welcome header, session shortcuts, account stats and
 /// the recordings list. Purely presentational — [HomeScreen] owns fetching
@@ -39,8 +41,10 @@ class HomeDashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: AppSpacing.screenPadding,
       child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 700),
@@ -49,33 +53,28 @@ class HomeDashboardTab extends StatelessWidget {
             children: [
               // Welcome Header Card
               Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                shape: AppRadii.cardShape,
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(AppSpacing.xl),
                   child: Row(
                     children: [
                       CircleAvatar(
                         radius: 26,
-                        backgroundColor: Colors.deepPurple,
+                        backgroundColor: colors.brand.withValues(alpha: 0.22),
                         child: Text(
                           userName.isNotEmpty ? userName[0].toUpperCase() : 'K',
-                          style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
+                          style: AppText.display.copyWith(color: colors.brand),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: AppSpacing.lg),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Dobrodošli, $userName!',
-                              style: const TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold),
+                              style: AppText.headline
+                                  .copyWith(color: colors.textPrimary),
                             ),
                             // The greeting proves the phone remembers you and
                             // nothing else. Said alone, with the backend off, it
@@ -83,11 +82,11 @@ class HomeDashboardTab extends StatelessWidget {
                             // stated right underneath rather than left to be
                             // discovered when something fails to save.
                             const _ConnectionNotice(),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: AppSpacing.xs),
                             Text(
                               'Spremite se za šahovski čas, rešavajte zagonetke ili analizirajte pozicije.',
-                              style: TextStyle(
-                                  color: Colors.grey[400], fontSize: 12),
+                              style: AppText.body
+                                  .copyWith(color: colors.textSecondary),
                             ),
                           ],
                         ),
@@ -97,75 +96,70 @@ class HomeDashboardTab extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl),
 
               // Action Cards Grid (Multiplayer Session & Studio)
               Row(
                 children: [
                   Expanded(
                     child: Card(
-                      elevation: 4,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: const BorderSide(color: Colors.teal, width: 1.5),
+                        borderRadius: AppRadii.roundedLg,
+                        side: BorderSide(color: colors.accent, width: 1.5),
                       ),
                       child: InkWell(
                         onTap: onCreateSessionTap,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: AppRadii.roundedLg,
                         child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: const EdgeInsets.all(AppSpacing.lg),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Icon(Icons.video_call,
-                                  size: 36, color: Colors.tealAccent),
-                              SizedBox(height: 12),
+                                  size: 36, color: colors.accent),
+                              const SizedBox(height: AppSpacing.md),
                               Text('Nova Sesija',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.tealAccent)),
-                              SizedBox(height: 4),
+                                  style: AppText.title
+                                      .copyWith(color: colors.accent)),
+                              const SizedBox(height: AppSpacing.xs),
                               Text(
-                                  'Pokrenite čas kao Host ili zakažite termin za učenike.',
-                                  style: TextStyle(
-                                      fontSize: 11, color: Colors.grey)),
+                                'Pokrenite čas kao Host ili zakažite termin za učenike.',
+                                style: AppText.caption
+                                    .copyWith(color: colors.textSecondary),
+                              ),
                             ],
                           ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Card(
-                      elevation: 4,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: const BorderSide(
-                            color: Colors.deepPurpleAccent, width: 1.5),
+                        borderRadius: AppRadii.roundedLg,
+                        side: BorderSide(color: colors.brand, width: 1.5),
                       ),
                       child: InkWell(
                         onTap: onOpenStudio,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: AppRadii.roundedLg,
                         child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: const EdgeInsets.all(AppSpacing.lg),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Icon(Icons.dashboard,
-                                  size: 36, color: Colors.purpleAccent),
-                              SizedBox(height: 12),
+                                  size: 36, color: colors.brand),
+                              const SizedBox(height: AppSpacing.md),
                               Text('Šahovski Studio',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.purpleAccent)),
-                              SizedBox(height: 4),
+                                  style: AppText.title
+                                      .copyWith(color: colors.brand)),
+                              const SizedBox(height: AppSpacing.xs),
                               Text(
-                                  'Samostalni rad, FEN postavljanje, PGN i Stockfish analiza.',
-                                  style: TextStyle(
-                                      fontSize: 11, color: Colors.grey)),
+                                'Samostalni rad, FEN postavljanje, PGN i Stockfish analiza.',
+                                style: AppText.caption
+                                    .copyWith(color: colors.textSecondary),
+                              ),
                             ],
                           ),
                         ),
@@ -175,76 +169,70 @@ class HomeDashboardTab extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
 
               // Homework. Sits directly under the session shortcuts because for
               // a student it is the reason to open the app between lessons.
               Card(
-                elevation: 4,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(
-                      color: Colors.lightBlueAccent, width: 1.5),
+                  borderRadius: AppRadii.roundedLg,
+                  side: BorderSide(color: colors.info, width: 1.5),
                 ),
                 child: InkWell(
                   onTap: onOpenAssignments,
-                  borderRadius: BorderRadius.circular(16),
-                  child: const Padding(
-                    padding: EdgeInsets.all(16.0),
+                  borderRadius: AppRadii.roundedLg,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     child: Row(
                       children: [
                         Icon(Icons.assignment_turned_in,
-                            size: 32, color: Colors.lightBlueAccent),
-                        SizedBox(width: 14),
+                            size: 32, color: colors.info),
+                        const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Moji zadaci',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.lightBlueAccent,
-                                ),
+                                style:
+                                    AppText.title.copyWith(color: colors.info),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: AppSpacing.xs),
                               Text(
                                 'Vežbe koje vam je trener zadao i vaš napredak po temama.',
-                                style:
-                                    TextStyle(fontSize: 11, color: Colors.grey),
+                                style: AppText.caption
+                                    .copyWith(color: colors.textSecondary),
                               ),
                             ],
                           ),
                         ),
-                        Icon(Icons.chevron_right, color: Colors.grey),
+                        Icon(Icons.chevron_right, color: colors.textMuted),
                       ],
                     ),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
 
               // Spaced repetition. Shown even at zero so the student learns the
               // feature exists before anything is due; the badge is what pulls
               // them back on the days it is not.
               Card(
-                elevation: 4,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: AppRadii.roundedLg,
                   side: BorderSide(
                     color: dueReviewCount > 0
-                        ? Colors.orangeAccent
-                        : Colors.grey.shade700,
+                        ? colors.warning
+                        : colors.borderStrong,
                     width: 1.5,
                   ),
                 ),
                 child: InkWell(
                   onTap: onOpenReviews,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: AppRadii.roundedLg,
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     child: Row(
                       children: [
                         Badge(
@@ -254,8 +242,8 @@ class HomeDashboardTab extends StatelessWidget {
                             Icons.repeat,
                             size: 32,
                             color: dueReviewCount > 0
-                                ? Colors.orangeAccent
-                                : Colors.grey,
+                                ? colors.warning
+                                : colors.textMuted,
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -265,39 +253,37 @@ class HomeDashboardTab extends StatelessWidget {
                             children: [
                               Text(
                                 'Ponavljanje',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                                style: AppText.title.copyWith(
                                   color: dueReviewCount > 0
-                                      ? Colors.orangeAccent
-                                      : Colors.grey,
+                                      ? colors.warning
+                                      : colors.textPrimary,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: AppSpacing.xs),
                               Text(
                                 dueReviewCount > 0
                                     ? '$dueReviewCount ${dueReviewCount == 1 ? 'pozicija čeka' : 'pozicija čeka'} na ponavljanje.'
                                     : 'Pozicije iz lekcija vraćaju se na ponavljanje kad im dođe vreme.',
-                                style: const TextStyle(
-                                    fontSize: 11, color: Colors.grey),
+                                style: AppText.caption
+                                    .copyWith(color: colors.textSecondary),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(Icons.chevron_right, color: Colors.grey),
+                        Icon(Icons.chevron_right, color: colors.textMuted),
                       ],
                     ),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               // Join Room Card
               Card(
-                elevation: 4,
+                shape: AppRadii.cardShape,
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Row(
                     children: [
                       Expanded(
@@ -311,15 +297,17 @@ class HomeDashboardTab extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.md),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.login),
                         label: const Text('Pridruži se'),
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14)),
+                          minimumSize: const Size(48, 48),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                            vertical: 14,
+                          ),
+                        ),
                         onPressed: () {
                           final code = codeController.text.trim();
                           if (code.isNotEmpty) onJoinRoom(code);
@@ -330,7 +318,7 @@ class HomeDashboardTab extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
 
               // The material card.
               //
@@ -339,9 +327,9 @@ class HomeDashboardTab extends StatelessWidget {
               // adult made alone in a room. A label that still said 'čas' named
               // a thing this app can no longer produce.
               Card(
-                elevation: 4,
+                shape: AppRadii.cardShape,
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(AppSpacing.xl),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -349,14 +337,14 @@ class HomeDashboardTab extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Row(
-                            children: const [
-                              Icon(Icons.video_library,
-                                  color: Colors.deepPurpleAccent),
-                              SizedBox(width: 8),
-                              Text('Snimljeni materijal',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
+                            children: [
+                              Icon(Icons.video_library, color: colors.brand),
+                              const SizedBox(width: AppSpacing.sm),
+                              Text(
+                                'Snimljeni materijal',
+                                style: AppText.title
+                                    .copyWith(color: colors.textPrimary),
+                              ),
                             ],
                           ),
                           IconButton(
@@ -365,15 +353,20 @@ class HomeDashboardTab extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       if (isLoadingRecordings)
                         const Center(child: CircularProgressIndicator())
                       else if (recordings.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: AppSpacing.lg),
                           child: Center(
-                              child: Text('Nemate sačuvanog materijala.',
-                                  style: TextStyle(color: Colors.grey))),
+                            child: Text(
+                              'Nemate sačuvanog materijala.',
+                              style: AppText.body
+                                  .copyWith(color: colors.textMuted),
+                            ),
+                          ),
                         )
                       else
                         ListView.separated(
@@ -395,25 +388,33 @@ class HomeDashboardTab extends StatelessWidget {
 
                             return ListTile(
                               contentPadding: EdgeInsets.zero,
-                              leading: const CircleAvatar(
-                                backgroundColor: Colors.deepPurple,
+                              leading: CircleAvatar(
+                                backgroundColor:
+                                    colors.brand.withValues(alpha: 0.22),
                                 child:
-                                    Icon(Icons.play_arrow, color: Colors.white),
+                                    Icon(Icons.play_arrow, color: colors.brand),
                               ),
-                              title: Text(title,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13)),
-                              subtitle: Text('$dateStr • $durationMin min',
-                                  style: const TextStyle(
-                                      fontSize: 11, color: Colors.grey)),
+                              title: Text(
+                                title,
+                                style: AppText.bodyLargeBold
+                                    .copyWith(color: colors.textPrimary),
+                              ),
+                              subtitle: Text(
+                                '$dateStr • $durationMin min',
+                                style: AppText.caption
+                                    .copyWith(color: colors.textSecondary),
+                              ),
                               trailing: ElevatedButton.icon(
                                 icon: const Icon(Icons.movie, size: 14),
-                                label: const Text('Pusti',
-                                    style: TextStyle(fontSize: 11)),
+                                label: Text(
+                                  'Pusti',
+                                  style: AppText.caption,
+                                ),
                                 style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.deepPurpleAccent,
-                                    foregroundColor: Colors.white),
+                                  minimumSize: const Size(48, 36),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.md),
+                                ),
                                 onPressed: () => onOpenReplay(rec['id'] as int),
                               ),
                             );
@@ -432,9 +433,6 @@ class HomeDashboardTab extends StatelessWidget {
 }
 
 /// Says so when being signed in currently buys nothing.
-///
-/// Listens rather than reading once: the check finishes after this screen is
-/// first built, and a notice that arrives a second late is still the truth.
 class _ConnectionNotice extends StatelessWidget {
   const _ConnectionNotice();
 
@@ -455,14 +453,15 @@ class _ConnectionNotice extends StatelessWidget {
                     ? Icons.lock_clock
                     : Icons.cloud_off,
                 size: 14,
-                color: Colors.orangeAccent,
+                color: context.colors.warning,
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   service.message,
-                  style: const TextStyle(
-                      color: Colors.orangeAccent, fontSize: 11.5),
+                  style: AppText.caption.copyWith(
+                    color: context.colors.warning,
+                  ),
                 ),
               ),
             ],

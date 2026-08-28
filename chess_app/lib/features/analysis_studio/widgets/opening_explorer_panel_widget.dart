@@ -1,13 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess/chess.dart' as chess;
-import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
+import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/features/analysis_studio/services/chessdb_service.dart';
+import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:flutter/material.dart';
 
 // Matches the historical outcome share a move led to across real games —
 // not "good/bad for the mover" (that depends on whose turn it is).
+// Domain constants: Opening outcome breakdown bar colors.
 const _whiteColor = Colors.lightBlueAccent;
 const _drawColor = Colors.grey;
 const _blackColor = Colors.deepOrangeAccent;
@@ -56,24 +57,25 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     if (!useLichess) return _buildChessDbPanel(context);
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.deepPurple.shade900.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.purpleAccent.withValues(alpha: 0.4)),
+        color: colors.surface,
+        borderRadius: AppRadii.roundedSm,
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.travel_explore,
-                  color: context.colors.accentAlt, size: 16),
+              Icon(Icons.travel_explore, color: colors.accentAlt, size: 16),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -81,8 +83,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
                       ? '${result!.opening!.eco} · ${result!.opening!.name}'
                       : 'Lichess Opening Explorer',
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.bodyBold
-                      .copyWith(color: context.colors.accentAlt),
+                  style: AppText.bodyBold.copyWith(color: colors.accentAlt),
                 ),
               ),
               if (isLoading)
@@ -92,7 +93,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
                     width: 12,
                     height: 12,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: context.colors.accentAlt),
+                        strokeWidth: 2, color: colors.accentAlt),
                   ),
                 ),
               if (onMinRatingChanged != null)
@@ -100,12 +101,11 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
                   value: minRating,
                   isDense: true,
                   underline: const SizedBox.shrink(),
-                  dropdownColor: Colors.grey.shade900,
+                  dropdownColor: colors.surface,
                   icon: Icon(Icons.expand_more,
-                      color: context.colors.accentAlt, size: 16),
+                      color: colors.accentAlt, size: 16),
                   style: AppText.micro.copyWith(
-                      color: context.colors.accentAlt,
-                      fontWeight: FontWeight.bold),
+                      color: colors.accentAlt, fontWeight: FontWeight.bold),
                   items: kOpeningExplorerRatingOptions
                       .map((r) => DropdownMenuItem<int?>(
                           value: r, child: Text(ratingOptionLabel(r))))
@@ -118,24 +118,23 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '${result!.total} partija',
-              style: AppText.micro.copyWith(color: context.colors.textMuted),
+              style: AppText.micro.copyWith(color: colors.textMuted),
             ),
           ],
           if (!isLoading && (result == null || result!.total == 0)) ...[
             const SizedBox(height: 6),
             Text(
               'Nema statistike za ovu poziciju.',
-              style:
-                  AppText.caption.copyWith(color: context.colors.textSecondary),
+              style: AppText.caption.copyWith(color: colors.textSecondary),
             ),
           ],
           if (!isLoading && result != null && result!.moves.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: result!.moves
-                  .map((move) => _buildMoveChip(move, result!.total))
+                  .map((move) => _buildMoveChip(context, move, result!.total))
                   .toList(),
             ),
           ],
@@ -145,30 +144,30 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
   }
 
   Widget _buildChessDbPanel(BuildContext context) {
+    final colors = context.colors;
     final moves = chessDbResult?.moves ?? [];
+
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.deepPurple.shade900.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.purpleAccent.withValues(alpha: 0.3)),
+        color: colors.surface,
+        borderRadius: AppRadii.roundedSm,
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.cloud_outlined,
-                  color: context.colors.accentAlt, size: 16),
+              Icon(Icons.cloud_outlined, color: colors.accentAlt, size: 16),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   'ChessDB Cloud (konsenzus, ne partije)',
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.bodyBold
-                      .copyWith(color: context.colors.accentAlt),
+                  style: AppText.bodyBold.copyWith(color: colors.accentAlt),
                 ),
               ),
               if (isLoadingChessDb)
@@ -176,32 +175,31 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
                   width: 12,
                   height: 12,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: context.colors.accentAlt),
+                      strokeWidth: 2, color: colors.accentAlt),
                 ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Procena iz motorske analize, ne iz odigranih partija. Za pravu statistiku izaberite Lichess u Podešavanjima.',
-            style: AppText.micro.copyWith(
-                color: context.colors.textPrimary.withValues(alpha: 0.5)),
+            style: AppText.micro.copyWith(color: colors.textSecondary),
           ),
           if (!isLoadingChessDb && moves.isEmpty) ...[
             const SizedBox(height: 6),
             Text(
               'Nema podataka za ovu poziciju.',
-              style:
-                  AppText.caption.copyWith(color: context.colors.textSecondary),
+              style: AppText.caption.copyWith(color: colors.textSecondary),
             ),
           ],
           if (!isLoadingChessDb && moves.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: moves
                   .take(8)
-                  .map((m) => _buildChessDbMoveChip(m, chessDbResult!.fen))
+                  .map((m) =>
+                      _buildChessDbMoveChip(context, m, chessDbResult!.fen))
                   .toList(),
             ),
           ],
@@ -210,23 +208,25 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildChessDbMoveChip(ChessDbMove move, String fen) {
+  Widget _buildChessDbMoveChip(
+      BuildContext context, ChessDbMove move, String fen) {
+    final colors = context.colors;
     final san = _sanFromUci(fen, move.uci);
     final scoreLabel = move.score > 0
         ? '+${(move.score / 100).toStringAsFixed(2)}'
         : (move.score / 100).toStringAsFixed(2);
     final winrateColor = move.winrate >= 55
-        ? Colors.greenAccent
-        : (move.winrate <= 45 ? Colors.redAccent : Colors.white70);
+        ? colors.success
+        : (move.winrate <= 45 ? colors.danger : colors.textSecondary);
     return InkWell(
       onTap: onMoveSelected != null ? () => onMoveSelected!(move.uci) : null,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: AppRadii.roundedSm,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.white24),
+          color: colors.surfaceRaised,
+          borderRadius: AppRadii.roundedSm,
+          border: Border.all(color: colors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,8 +234,8 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
           children: [
             Text(
               san,
-              style: AppText.caption
-                  .copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+              style: AppText.caption.copyWith(
+                  color: colors.textPrimary, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 2),
             Text(
@@ -273,18 +273,20 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
     return uci;
   }
 
-  Widget _buildMoveChip(OpeningExplorerMove move, int positionTotal) {
+  Widget _buildMoveChip(
+      BuildContext context, OpeningExplorerMove move, int positionTotal) {
+    final colors = context.colors;
     final percent =
         positionTotal == 0 ? 0 : (move.total * 100 / positionTotal).round();
     return InkWell(
       onTap: onMoveSelected != null ? () => onMoveSelected!(move.uci) : null,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: AppRadii.roundedSm,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.white24),
+          color: colors.surfaceRaised,
+          borderRadius: AppRadii.roundedSm,
+          border: Border.all(color: colors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,8 +294,8 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
           children: [
             Text(
               '${move.san} ($percent%)',
-              style: AppText.caption
-                  .copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+              style: AppText.caption.copyWith(
+                  color: colors.textPrimary, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 3),
             ClipRRect(
@@ -302,7 +304,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
                 width: 60,
                 height: 4,
                 child: move.total == 0
-                    ? const ColoredBox(color: Colors.white24)
+                    ? ColoredBox(color: colors.border)
                     : Row(
                         children: [
                           if (move.white > 0)

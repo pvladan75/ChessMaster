@@ -169,13 +169,10 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
       const SizedBox(height: 8),
       SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
+        child: FilledButton.icon(
           icon: const Icon(Icons.play_arrow),
-          label: const Text('Dodaj poteze',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: context.colors.accent,
-            foregroundColor: Colors.white,
+          label: const Text('Dodaj poteze'),
+          style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
           onPressed: _start,
@@ -191,7 +188,7 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
           children: [
             LinearProgressIndicator(
                 value: progressPct,
-                backgroundColor: Colors.grey.shade800,
+                backgroundColor: context.colors.surfaceRaised,
                 color: context.colors.accent),
             const SizedBox(height: 16),
             Text(
@@ -231,9 +228,6 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal.shade700,
-                  foregroundColor: Colors.white),
               onPressed: () {
                 widget.onCompleted(_lastAdded);
                 Navigator.pop(context);

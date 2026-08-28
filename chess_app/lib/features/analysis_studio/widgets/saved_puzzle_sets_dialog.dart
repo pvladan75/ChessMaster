@@ -93,17 +93,17 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
                     children: _sets.map((set) {
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 4),
-                        color: Colors.black26,
+                        color: context.colors.surfaceRaised,
                         child: ListTile(
                           dense: true,
                           leading: Icon(Icons.folder_open,
                               color: context.colors.info, size: 18),
                           title: Text(set.title,
-                              style: AppText.caption
+                              style: AppText.bodyLarge
                                   .copyWith(color: context.colors.textPrimary)),
                           subtitle: Text(
                             '${set.puzzles.length} vežbi',
-                            style: AppText.micro
+                            style: AppText.caption
                                 .copyWith(color: context.colors.textMuted),
                           ),
                           trailing: Row(
@@ -116,9 +116,6 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
                                 onPressed: () => _delete(set),
                               ),
                               ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.teal,
-                                    foregroundColor: Colors.white),
                                 onPressed: set.puzzles.isEmpty
                                     ? null
                                     : () {

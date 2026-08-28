@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
+
 /// The "Biblioteka" tab: shortcuts into the Studio (empty board), the Analysis
 /// board, and reading positions out of the trainer's own book. Stateless — all
 /// three actions just navigate.
@@ -20,7 +23,7 @@ class HomeBibliotekaTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: AppSpacing.screenPadding,
       child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 700),
@@ -28,36 +31,38 @@ class HomeBibliotekaTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Card(
-                elevation: 4,
+                shape: AppRadii.cardShape,
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(AppSpacing.xl),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        children: const [
+                        children: [
                           Icon(Icons.library_books,
-                              color: Colors.tealAccent, size: 28),
-                          SizedBox(width: 12),
-                          Text('Biblioteka Pozicija i Lekcija',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                              color: context.colors.accent, size: 28),
+                          const SizedBox(width: AppSpacing.md),
+                          Text(
+                            'Biblioteka Pozicija i Lekcija',
+                            style: AppText.headline
+                                .copyWith(color: context.colors.textPrimary),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
                         'Upravljajte vašim sačuvanim pozicijama, PGN fajlovima i kursevima.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                        style: AppText.body
+                            .copyWith(color: context.colors.textSecondary),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.lg),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.dashboard_customize),
                         label: const Text(
                             'Otvori Šahovski Studio sa praznom tablom'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          minimumSize: const Size(double.infinity, 48),
+                          padding: AppSpacing.buttonPadding,
                         ),
                         onPressed: onOpenStudio,
                       ),
@@ -65,45 +70,41 @@ class HomeBibliotekaTab extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               Card(
-                elevation: 4,
-                color: Colors.deepPurple.shade900.withValues(alpha: 0.3),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                shape: AppRadii.cardShape,
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(AppSpacing.xl),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        children: const [
+                        children: [
                           Icon(Icons.biotech,
-                              color: Colors.tealAccent, size: 28),
-                          SizedBox(width: 12),
-                          Text('Tabla za Analizu 🔬',
-                              style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white)),
+                              color: context.colors.accent, size: 28),
+                          const SizedBox(width: AppSpacing.md),
+                          Text(
+                            'Tabla za Analizu 🔬',
+                            style: AppText.headline
+                                .copyWith(color: context.colors.textPrimary),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
                         'Slobodna šahovska tabla za duboku analizu, unos varijacija za obe strane, rad sa PGN/FEN pozicijama i beleženje komentara i NAG simbola.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                        style: AppText.body
+                            .copyWith(color: context.colors.textSecondary),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.lg),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.biotech),
-                          label: const Text('Otvori Tablu za Analizu',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          label: const Text('Otvori Tablu za Analizu'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal.shade700,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            minimumSize: const Size(double.infinity, 48),
+                            padding: AppSpacing.buttonPadding,
                           ),
                           onPressed: onOpenAnalysis,
                         ),
@@ -112,52 +113,56 @@ class HomeBibliotekaTab extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                shape: AppRadii.cardShape,
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(AppSpacing.xl),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        children: const [
+                        children: [
                           Icon(Icons.document_scanner_outlined,
-                              color: Colors.tealAccent, size: 28),
-                          SizedBox(width: 12),
-                          Text('Pozicije iz vaše knjige',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                              color: context.colors.accent, size: 28),
+                          const SizedBox(width: AppSpacing.md),
+                          Text(
+                            'Pozicije iz vaše knjige',
+                            style: AppText.headline
+                                .copyWith(color: context.colors.textPrimary),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
                         'Učitajte PDF knjige i izvucite dijagrame kao pozicije za zadatke. '
                         'Svaku poziciju potvrđujete sami, a dokument se ne čuva na serveru.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                        style: AppText.body
+                            .copyWith(color: context.colors.textSecondary),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.lg),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.document_scanner_outlined),
                           label: const Text('Skeniraj pozicije'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal.shade700,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            minimumSize: const Size(double.infinity, 48),
+                            padding: AppSpacing.buttonPadding,
                           ),
                           onPressed: onOpenScanner,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
                           icon: const Icon(Icons.grid_view_outlined),
                           label: const Text('Moje sačuvane pozicije'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 48),
+                            padding: AppSpacing.buttonPadding,
+                          ),
                           onPressed: onOpenSavedPositions,
                         ),
                       ),
