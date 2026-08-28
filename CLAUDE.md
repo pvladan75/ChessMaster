@@ -20,11 +20,27 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 643 tests
-cd chess_app && flutter analyze       # must be clean
-cd chess_backend && npm test          # node --test, 504 tests
+cd chess_app && flutter test          # 767 tests, all green
+cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
+cd chess_backend && npm test          # node --test, 541 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
+
+Counts measured 28.8.2026. They are here so a suite that quietly stops running
+half of itself is visible; if the number you get is lower, find out why before
+carrying on.
+
+**`flutter analyze` does not exit clean, and has not for a long time.** It
+reports 29 issues, every one of them `info` level and every one of them
+`curly_braces_in_flow_control_structures`, spread over
+`positional_evaluator_service.dart`, `tactical_motif_detector.dart`,
+`game_analysis_walker_service.dart`, `review_api_service.dart`,
+`ai_studio_screen.dart` and `matrix_filter_panel.dart`. This file used to say
+"must be clean", which is worse than saying nothing: it makes a red exit code
+look like the normal state, so a real error added tomorrow reads as the same
+failure as today's. **What must hold is zero errors, zero warnings, and no new
+infos — compare the list, not the exit code.** Clearing the 29 is a fine
+standalone chore and would restore the simpler rule.
 
 Run `dart format` on any Dart file you edit — CI does not enforce it, but the
 formatter reindents aggressively and an unformatted file turns the next diff
