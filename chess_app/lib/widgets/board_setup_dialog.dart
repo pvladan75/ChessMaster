@@ -67,7 +67,7 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
       title: Row(
         children: [
           Icon(Icons.dashboard_customize, color: colors.accent),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           const Text('Postavi poziciju (Board Setup)', style: AppText.title),
         ],
       ),
@@ -83,12 +83,12 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                 '(ili desni klik) prazni polje.',
                 style: AppText.caption.copyWith(color: colors.textMuted),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: colors.canvas,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadii.roundedSm,
                 ),
                 child: Column(
                   children: [
@@ -111,7 +111,7 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                         );
                       }).toList(),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: ['k', 'q', 'r', 'b', 'n', 'p'].map((p) {
@@ -131,17 +131,17 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                         );
                       }).toList(),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     InkWell(
                       onTap: () => setState(() => selectedPiece = null),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
+                            horizontal: AppSpacing.md, vertical: AppSpacing.xs),
                         decoration: BoxDecoration(
                           color: selectedPiece == null
                               ? colors.danger
                               : colors.border,
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: AppRadii.roundedXs,
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -151,7 +151,7 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                                 color: selectedPiece == null
                                     ? colors.canvas
                                     : colors.textPrimary),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: AppSpacing.xs),
                             Text('Brisač (Ukloni figuru)',
                                 style: AppText.caption.copyWith(
                                     color: selectedPiece == null
@@ -164,7 +164,7 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               AspectRatio(
                 aspectRatio: 1.0,
                 child: Container(
@@ -211,7 +211,7 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Row(
                 children: [
                   const Text('Na potezu: ', style: AppText.bodyBold),
@@ -222,7 +222,7 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                       if (val) setState(() => turn = 'w');
                     },
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   ChoiceChip(
                     label: const Text('Crni (b)', style: AppText.caption),
                     selected: turn == 'b',
@@ -232,7 +232,7 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text('Prava na rokadu:', style: AppText.bodyBold),
@@ -262,7 +262,7 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
