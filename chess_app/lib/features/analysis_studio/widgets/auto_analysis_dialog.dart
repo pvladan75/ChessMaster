@@ -114,10 +114,10 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
 
     return Dialog(
       backgroundColor: context.colors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
       child: Container(
         width: 480,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,7 +126,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               children: [
                 Icon(Icons.auto_awesome,
                     color: context.colors.warning, size: 22),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 Text(
                   'Automatska Analiza Pozicije',
                   style:
@@ -134,13 +134,13 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             if (!_isAnalyzing) ...[
               Text(
                 'Podesite parametre za automatsku izgradnju stabla varijanti:',
                 style: AppText.body.copyWith(color: context.colors.textMuted),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
 
               // N: Plies depth
               Row(
@@ -234,7 +234,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: context.colors.canvas,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadii.roundedSm,
                   border: Border.all(
                       color: _isHeavy
                           ? context.colors.danger
@@ -249,7 +249,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                           ? context.colors.danger
                           : context.colors.textMuted,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
                         'Do $_worstCasePositions pozicija na dubini $_engineDepth · procena ~$_estimatedSeconds s'
@@ -265,7 +265,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -275,7 +275,8 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: context.colors.warning,
                     foregroundColor: context.colors.canvas,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: AppSpacing.md),
                   ),
                   onPressed: _startAnalysis,
                 ),
@@ -289,14 +290,14 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                   children: [
                     Icon(Icons.check_circle,
                         color: context.colors.accent, size: 36),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
                       'Gotovo! Analizirano $_processedNodes pozicija.',
                       textAlign: TextAlign.center,
                       style: AppText.subtitle
                           .copyWith(color: context.colors.accent),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       'Gornja granica je bila $_totalEstimatedNodes (da nije bilo orezivanja). '
                       'Grane čiji je eval bio gori od najboljeg poteza za više od ${_deltaCutoff.toStringAsFixed(1)} pešaka su preskočene — to je očekivano, ne greška.',
@@ -304,7 +305,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                       style: AppText.caption
                           .copyWith(color: context.colors.textMuted),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                           backgroundColor: context.colors.accent,
@@ -324,27 +325,27 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                         value: progressPct,
                         backgroundColor: context.colors.surfaceRaised,
                         color: context.colors.warning),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     Text(
                       'Obrađeno čvorova: $_processedNodes / $_totalEstimatedNodes',
                       style: AppText.bodyLargeBold
                           .copyWith(color: context.colors.accent),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       _statusMsg,
                       textAlign: TextAlign.center,
                       style: AppText.body
                           .copyWith(color: context.colors.textMuted),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       'Napomena: broj iznad je gornja granica bez orezivanja — grane sa slabijim potezima se preskaču pa se stvarni broj skoro uvek zaustavi mnogo ranije.',
                       textAlign: TextAlign.center,
                       style: AppText.micro
                           .copyWith(color: context.colors.textMuted),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     OutlinedButton.icon(
                       icon: Icon(Icons.cancel, color: context.colors.danger),
                       label: Text('Otkaži',

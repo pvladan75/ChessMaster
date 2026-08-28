@@ -153,12 +153,12 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
     // "Not reachable" and "nothing here" must not look the same.
     if (_failed || _review == null) {
       return ListView(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
         children: [
           Icon(Icons.cloud_off, size: 40, color: colors.textMuted),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           const Text('Ne mogu da učitam pregled.', textAlign: TextAlign.center),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           Center(
             child: FilledButton(
                 onPressed: _load, child: const Text('Pokušaj opet')),
@@ -169,12 +169,12 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
 
     final review = _review!;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
         _summary(review),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         _generalNotes(review),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
         if (review.items.isEmpty)
           Text('Ovaj zadatak nema nijednu poziciju.',
               style: TextStyle(color: colors.textSecondary))
@@ -206,7 +206,7 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
     return Card(
       color: colors.surface,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -218,7 +218,7 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
             if (review.instructions != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(review.instructions!, style: const TextStyle(fontSize: 13)),
             ],
             const SizedBox(height: 6),
@@ -241,7 +241,7 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
     return Card(
       color: colors.surface,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -306,9 +306,9 @@ class _ItemCard extends StatelessWidget {
 
     return Card(
       color: colors.surface,
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -328,7 +328,7 @@ class _ItemCard extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 11, color: colors.textSecondary)),
                   ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,19 +348,19 @@ class _ItemCard extends StatelessWidget {
                         ],
                       ),
                       if (item.instruction != null) ...[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(item.instruction!,
                             style: TextStyle(
                                 fontSize: 12, color: colors.textSecondary)),
                       ],
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       ..._answerLines(context),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             ...notes.map((note) =>
                 _NoteRow(note: note, onDelete: () => onDeleteNote(note))),
             Align(
@@ -430,7 +430,7 @@ class _ItemCard extends StatelessWidget {
           item.solutionSan != null &&
           item.playedSan != item.solutionSan) {
         lines.add(Padding(
-          padding: const EdgeInsets.only(top: 2),
+          padding: const EdgeInsets.only(top: AppSpacing.xxs),
           child: Text('priznato iako nije autorov potez',
               style: TextStyle(fontSize: 11, color: colors.success)),
         ));
@@ -450,7 +450,7 @@ class _ItemCard extends StatelessWidget {
       {bool muted = false}) {
     final colors = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
       child: RichText(
         text: TextSpan(
           style: TextStyle(fontSize: 12, color: colors.textPrimary),
@@ -488,7 +488,8 @@ class _ItemCard extends StatelessWidget {
   }
 
   Widget _chip(String text, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(99),
@@ -508,7 +509,7 @@ class _NoteRow extends StatelessWidget {
     final colors = context.colors;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
