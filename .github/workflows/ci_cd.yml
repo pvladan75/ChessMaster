@@ -1,4 +1,4 @@
-name: Chess Master CI/CD Pipeline
+name: Mislisha CI/CD Pipeline
 
 on:
   push:

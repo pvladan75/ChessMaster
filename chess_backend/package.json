@@ -1,7 +1,7 @@
 {
   "name": "chess_backend",
   "version": "1.0.0",
-  "description": "Backend for Chess Master application",
+  "description": "Backend for the Mislisha application",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
