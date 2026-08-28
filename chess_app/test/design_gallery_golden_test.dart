@@ -1,7 +1,10 @@
 @Tags(['golden'])
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/screens/design_gallery_screen.dart';
 import 'package:chess_app/widgets/ai_studio/category_selection_hub.dart';
@@ -187,7 +190,40 @@ Widget _buildThemedApp({required Widget child}) {
   );
 }
 
+/// Load real glyphs before rendering a golden.
+///
+/// Without this, `flutter test` has no font and every character is drawn as a
+/// filled box — the screenshot shows layout and colour and not one letter,
+/// which makes it useless as the artefact a design review is supposed to read.
+/// The files come from the Flutter SDK itself, located through `FLUTTER_ROOT`
+/// (set by `flutter test`), so no path is hardcoded and no package is added.
+Future<void> _loadRealFonts() async {
+  final root = Platform.environment['FLUTTER_ROOT'];
+  if (root == null) return;
+  final fonts = Directory(
+    '$root/bin/cache/artifacts/material_fonts',
+  );
+  if (!fonts.existsSync()) return;
+
+  Future<void> load(String family, List<String> files) async {
+    final loader = FontLoader(family);
+    for (final f in files) {
+      final file = File('${fonts.path}/$f');
+      if (!file.existsSync()) continue;
+      loader.addFont(
+        Future.value(file.readAsBytesSync().buffer.asByteData()),
+      );
+    }
+    await loader.load();
+  }
+
+  await load('Roboto', ['roboto-regular.ttf', 'roboto-bold.ttf']);
+  await load('MaterialIcons', ['materialicons-regular.otf']);
+}
+
 void main() {
+  setUpAll(_loadRealFonts);
+
   group('Golden Screenshots', () {
     testWidgets('Gallery - Mobile 360x640', (tester) async {
       tester.view.physicalSize = const Size(360, 640);
