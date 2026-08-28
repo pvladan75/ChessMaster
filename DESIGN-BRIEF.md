@@ -165,6 +165,35 @@ All four, every time:
   these the work cannot be reviewed.
 - **`DESIGN-PROPOSALS.md`** written up.
 
+### Getting the screenshots without a backend
+
+You are working in a `git worktree`, so this directory has only what git tracks.
+Before anything else:
+
+```bash
+cd chess_app
+cp dart_defines.example.json dart_defines.json   # the real one is not in git, and you do not need it
+flutter pub get
+```
+
+Do **not** ask for the real `dart_defines.json`. It carries a Lichess API token
+and Google desktop OAuth credentials; nothing in your mandate needs them, and the
+example file has the same shape with empty values.
+
+For the screenshots themselves, do not try to boot the whole app — the training
+hub sits behind a login against a backend that is not running. Use golden files:
+a widget test that pumps the gallery and the pilot at a fixed
+`Size(360, 640)` and again at `Size(1200, 800)`, with `matchesGoldenFile`, then
+
+```bash
+flutter test --update-goldens
+```
+
+which writes real PNGs. That gets you the picture, and it gets you the 360 dp
+overflow check from section 4 in the same run, because a test build throws on an
+overflow where a release build silently clips. Keep those tests out of the normal
+suite's expectations if they would be brittle — say what you did either way.
+
 Commit in small, readable steps — tokens, then theme, then gallery, then pilot —
 so the review can follow the reasoning. Do not merge, do not rebase onto
 `master`, do not push anywhere but this branch. `master` moves while you work;
