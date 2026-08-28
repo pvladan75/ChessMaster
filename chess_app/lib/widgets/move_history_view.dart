@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:chess_app/move_tree.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 class MoveHistoryView extends StatelessWidget {
   final MoveTree moveTree;
@@ -23,6 +25,7 @@ class MoveHistoryView extends StatelessWidget {
   void _collectSpans(MoveNode node, List<InlineSpan> spans,
       BuildContext context, bool showMoveNumber) {
     if (node.children.isEmpty) return;
+    final colors = context.colors;
 
     final mainChild = node.children[0];
     final parts = node.fen.split(' ');
@@ -32,14 +35,12 @@ class MoveHistoryView extends StatelessWidget {
     if (isWhite) {
       spans.add(TextSpan(
         text: '$moveNum. ',
-        style: const TextStyle(
-            color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
+        style: AppText.bodyLargeBold.copyWith(color: colors.textMuted),
       ));
     } else if (showMoveNumber) {
       spans.add(TextSpan(
         text: '$moveNum... ',
-        style: const TextStyle(
-            color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
+        style: AppText.bodyLargeBold.copyWith(color: colors.textMuted),
       ));
     }
 
@@ -47,12 +48,10 @@ class MoveHistoryView extends StatelessWidget {
 
     spans.add(TextSpan(
       text: '${mainChild.san} ',
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 13,
-        color: isMainActive ? Colors.greenAccent : Colors.white,
+      style: AppText.bodyLargeBold.copyWith(
+        color: isMainActive ? colors.success : colors.textPrimary,
         backgroundColor: isMainActive
-            ? Colors.green.withValues(alpha: 0.3)
+            ? colors.success.withValues(alpha: 0.15)
             : Colors.transparent,
       ),
       recognizer: TapGestureRecognizer()..onTap = () => onSelectNode(mainChild),
@@ -61,30 +60,30 @@ class MoveHistoryView extends StatelessWidget {
     if (mainChild.comment.isNotEmpty) {
       spans.add(TextSpan(
         text: '{${mainChild.comment}} ',
-        style: const TextStyle(
-            color: Colors.yellowAccent,
-            fontStyle: FontStyle.italic,
-            fontSize: 12),
+        style: AppText.body.copyWith(
+          color: colors.warning,
+          fontStyle: FontStyle.italic,
+        ),
       ));
     }
 
     // Variations
     for (int i = 1; i < node.children.length; i++) {
       final varChild = node.children[i];
-      spans.add(const TextSpan(
+      spans.add(TextSpan(
         text: '( ',
-        style: TextStyle(color: Colors.grey, fontSize: 11),
+        style: AppText.caption.copyWith(color: colors.textMuted),
       ));
 
       if (isWhite) {
         spans.add(TextSpan(
           text: '$moveNum. ',
-          style: const TextStyle(color: Colors.grey, fontSize: 11),
+          style: AppText.caption.copyWith(color: colors.textMuted),
         ));
       } else {
         spans.add(TextSpan(
           text: '$moveNum... ',
-          style: const TextStyle(color: Colors.grey, fontSize: 11),
+          style: AppText.caption.copyWith(color: colors.textMuted),
         ));
       }
 
@@ -92,12 +91,11 @@ class MoveHistoryView extends StatelessWidget {
 
       spans.add(TextSpan(
         text: '${varChild.san} ',
-        style: TextStyle(
-          fontSize: 11,
+        style: AppText.caption.copyWith(
           fontWeight: FontWeight.normal,
-          color: isVarActive ? Colors.greenAccent : Colors.grey[400],
+          color: isVarActive ? colors.success : colors.textMuted,
           backgroundColor: isVarActive
-              ? Colors.green.withValues(alpha: 0.3)
+              ? colors.success.withValues(alpha: 0.15)
               : Colors.transparent,
         ),
         recognizer: TapGestureRecognizer()
@@ -107,18 +105,18 @@ class MoveHistoryView extends StatelessWidget {
       if (varChild.comment.isNotEmpty) {
         spans.add(TextSpan(
           text: '{${varChild.comment}} ',
-          style: const TextStyle(
-              color: Colors.yellowAccent,
-              fontStyle: FontStyle.italic,
-              fontSize: 10),
+          style: AppText.micro.copyWith(
+            color: colors.warning,
+            fontStyle: FontStyle.italic,
+          ),
         ));
       }
 
       _collectSpans(varChild, spans, context, false);
 
-      spans.add(const TextSpan(
+      spans.add(TextSpan(
         text: ') ',
-        style: TextStyle(color: Colors.grey, fontSize: 11),
+        style: AppText.caption.copyWith(color: colors.textMuted),
       ));
     }
 
@@ -128,19 +126,20 @@ class MoveHistoryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final List<InlineSpan> spans = _buildSpans(moveTree.root, context);
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+        color: colors.canvas,
+        borderRadius: AppRadii.roundedMd,
+        border: Border.all(color: colors.border),
       ),
       child: spans.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(
                 'Nema odigranih poteza.',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+                style: AppText.bodyLarge.copyWith(color: colors.textMuted),
               ),
             )
           : SingleChildScrollView(

@@ -104,7 +104,7 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
                           subtitle: Text(
                             '${set.puzzles.length} vežbi',
                             style: AppText.caption
-                                .copyWith(color: context.colors.textMuted),
+                                .copyWith(color: context.colors.textSecondary),
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,

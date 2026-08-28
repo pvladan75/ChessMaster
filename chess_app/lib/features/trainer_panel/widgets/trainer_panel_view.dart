@@ -220,7 +220,9 @@ class TrainerPanelView extends StatelessWidget {
                   Text(
                     note,
                     style: TextStyle(
-                        fontSize: 12, color: noteColor ?? colors.textMuted),
+                        fontSize: 12,
+                        color: noteColor ??
+                            (filled ? colors.textSecondary : colors.textMuted)),
                   ),
                 ],
               ],
@@ -254,7 +256,7 @@ class TrainerPanelView extends StatelessWidget {
       title: lesson.title,
       subtitle: guests,
       note: 'soba ${lesson.roomCode}',
-      noteColor: colors.textMuted,
+      noteColor: colors.textSecondary,
       action: 'Uđi',
       onAction: () => onEnterLesson(lesson.roomCode),
     );

@@ -6,6 +6,8 @@ import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 /// Dialogs used by [AnalysisStudioScreen] that are pure UI: they read whatever
@@ -20,18 +22,16 @@ void showCommentDialog(
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      backgroundColor: Colors.grey.shade900,
-      title: const Text('Dodaj / Izmeni Komentar',
-          style: TextStyle(color: Colors.white)),
+      title: const Text('Dodaj / Izmeni Komentar'),
       content: TextField(
         controller: controller,
         maxLines: 4,
-        style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
+        style: TextStyle(color: ctx.colors.textPrimary),
+        decoration: InputDecoration(
           hintText: 'Unesite zabelešku ili analitički komentar...',
-          hintStyle: TextStyle(color: Colors.grey),
+          hintStyle: TextStyle(color: ctx.colors.textMuted),
           filled: true,
-          fillColor: Colors.black45,
+          fillColor: ctx.colors.canvas,
         ),
       ),
       actions: [
@@ -98,19 +98,16 @@ void showManualCommentDialog(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(
-                        color: Colors.tealAccent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13)),
+                    style: AppText.bodyLargeBold
+                        .copyWith(color: ctx.colors.accent)),
                 const SizedBox(height: 4),
                 if (candidates.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text(
                       emptyHint,
-                      style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
+                      style: AppText.body.copyWith(
+                          color: ctx.colors.textMuted,
                           fontStyle: FontStyle.italic),
                     ),
                   )
@@ -121,8 +118,8 @@ void showManualCommentDialog(
                         controlAffinity: ListTileControlAffinity.leading,
                         visualDensity: VisualDensity.compact,
                         title: Text(line,
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 12)),
+                            style: AppText.body
+                                .copyWith(color: ctx.colors.textPrimary)),
                         value: selected.contains(line),
                         onChanged: (checked) {
                           setDialogState(() {
@@ -140,9 +137,7 @@ void showManualCommentDialog(
         }
 
         return AlertDialog(
-          backgroundColor: Colors.grey.shade900,
-          title: const Text('Dodaj / Izmeni Komentar',
-              style: TextStyle(color: Colors.white)),
+          title: const Text('Dodaj / Izmeni Komentar'),
           content: ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: 560,
@@ -156,12 +151,12 @@ void showManualCommentDialog(
                   TextField(
                     controller: freeTextController,
                     maxLines: 3,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: ctx.colors.textPrimary),
+                    decoration: InputDecoration(
                       hintText: 'Sopstveni komentar (opciono)...',
-                      hintStyle: TextStyle(color: Colors.grey),
+                      hintStyle: TextStyle(color: ctx.colors.textMuted),
                       filled: true,
-                      fillColor: Colors.black45,
+                      fillColor: ctx.colors.canvas,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -229,7 +224,7 @@ void showNagSelector(BuildContext context, ValueChanged<String?> onSelected) {
   final nags = ['!!', '!', '?', '??', '!?', '!□', 'clear'];
   showModalBottomSheet(
     context: context,
-    backgroundColor: Colors.grey.shade900,
+    backgroundColor: context.colors.surface,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
     builder: (ctx) {
@@ -243,8 +238,8 @@ void showNagSelector(BuildContext context, ValueChanged<String?> onSelected) {
                 label: Text(n == 'clear' ? 'Ukloni NAG' : n,
                     style: const TextStyle(fontWeight: FontWeight.bold)),
                 backgroundColor:
-                    n == 'clear' ? Colors.red.shade900 : Colors.teal.shade900,
-                labelStyle: const TextStyle(color: Colors.white),
+                    n == 'clear' ? ctx.colors.danger : ctx.colors.accent,
+                labelStyle: TextStyle(color: ctx.colors.canvas),
                 onPressed: () {
                   onSelected(n == 'clear' ? null : n);
                   Navigator.pop(ctx);
@@ -262,21 +257,20 @@ void showLogsDialog(BuildContext context) {
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      backgroundColor: Colors.grey.shade900,
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.terminal, color: Colors.amberAccent),
-              SizedBox(width: 8),
+              Icon(Icons.terminal, color: ctx.colors.warning),
+              const SizedBox(width: 8),
               Text('Logovi Engine-a 📜',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
+                  style: AppText.title.copyWith(color: ctx.colors.textPrimary)),
             ],
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline,
-                color: Colors.redAccent, size: 20),
+            icon:
+                Icon(Icons.delete_outline, color: ctx.colors.danger, size: 20),
             tooltip: 'Očisti logove',
             onPressed: () {
               AppLogger.clear();
@@ -293,26 +287,25 @@ void showLogsDialog(BuildContext context) {
           builder: (context, _, __) {
             final logs = AppLogger.logs;
             if (logs.isEmpty) {
-              return const Center(
+              return Center(
                 child: Text('Nema zabeleženih logova.',
-                    style: TextStyle(color: Colors.grey)),
+                    style: AppText.body.copyWith(color: ctx.colors.textMuted)),
               );
             }
             return Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.black,
+                color: ctx.colors.canvas,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade800),
+                border: Border.all(color: ctx.colors.surfaceRaised),
               ),
               child: SingleChildScrollView(
                 reverse: true,
                 child: SelectableText(
                   logs.join('\n'),
-                  style: const TextStyle(
+                  style: AppText.caption.copyWith(
                     fontFamily: 'monospace',
-                    fontSize: 11,
-                    color: Colors.greenAccent,
+                    color: ctx.colors.success,
                   ),
                 ),
               ),
@@ -325,16 +318,18 @@ void showLogsDialog(BuildContext context) {
           icon: const Icon(Icons.copy, size: 16),
           label: const Text('Kopiraj Logove'),
           style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal, foregroundColor: Colors.white),
+              backgroundColor: ctx.colors.accent,
+              foregroundColor: ctx.colors.canvas),
           onPressed: () async {
             await Clipboard.setData(
                 ClipboardData(text: AppLogger.formattedLogs));
             if (ctx.mounted) {
               AppFeedback.show(
                 ctx,
-                () => const SnackBar(
-                    content: Text('✅ Logovi kopirani u klipbord!'),
-                    backgroundColor: Colors.teal),
+                () => SnackBar(
+                    content: Text('✅ Logovi kopirani u klipbord!',
+                        style: TextStyle(color: ctx.colors.canvas)),
+                    backgroundColor: ctx.colors.accent),
               );
             }
           },
@@ -357,13 +352,12 @@ Future<void> exportPgnDialog(
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      backgroundColor: Colors.grey.shade900,
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.file_download, color: Colors.lightBlueAccent),
-          SizedBox(width: 8),
+          Icon(Icons.file_download, color: ctx.colors.info),
+          const SizedBox(width: 8),
           Text('Izvezeni PGN Tekst',
-              style: TextStyle(color: Colors.white, fontSize: 16)),
+              style: AppText.title.copyWith(color: ctx.colors.textPrimary)),
         ],
       ),
       content: SizedBox(
@@ -371,8 +365,8 @@ Future<void> exportPgnDialog(
         child: SingleChildScrollView(
           child: SelectableText(
             pgnText,
-            style: const TextStyle(
-                color: Colors.white, fontFamily: 'monospace', fontSize: 12),
+            style: AppText.body.copyWith(
+                color: ctx.colors.textPrimary, fontFamily: 'monospace'),
           ),
         ),
       ),
@@ -385,7 +379,8 @@ Future<void> exportPgnDialog(
           icon: const Icon(Icons.copy, size: 16),
           label: const Text('Kopirano u Klipbord!'),
           style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal, foregroundColor: Colors.white),
+              backgroundColor: ctx.colors.accent,
+              foregroundColor: ctx.colors.canvas),
           onPressed: () => Navigator.pop(ctx),
         ),
       ],
@@ -400,12 +395,10 @@ Future<bool> confirmReplaceAnalysisDialog(
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      backgroundColor: Colors.grey.shade900,
-      title:
-          const Text('Učitaj analizu?', style: TextStyle(color: Colors.white)),
+      title: const Text('Učitaj analizu?'),
       content: Text(
         'Trenutno stablo analize (nesačuvano) će biti zamenjeno sa "$title".',
-        style: const TextStyle(color: Colors.grey),
+        style: AppText.body.copyWith(color: ctx.colors.textMuted),
       ),
       actions: [
         TextButton(
@@ -435,18 +428,16 @@ Future<void> promptSaveAnalysisDialog(
   final title = await showDialog<String>(
     context: context,
     builder: (ctx) => AlertDialog(
-      backgroundColor: Colors.grey.shade900,
-      title:
-          const Text('Sačuvaj analizu', style: TextStyle(color: Colors.white)),
+      title: const Text('Sačuvaj analizu'),
       content: TextField(
         controller: controller,
         autofocus: true,
-        style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
+        style: TextStyle(color: ctx.colors.textPrimary),
+        decoration: InputDecoration(
           hintText: 'Naziv analize',
-          hintStyle: TextStyle(color: Colors.grey),
+          hintStyle: TextStyle(color: ctx.colors.textMuted),
           filled: true,
-          fillColor: Colors.black45,
+          fillColor: ctx.colors.canvas,
         ),
       ),
       actions: [
@@ -472,10 +463,14 @@ Future<void> promptSaveAnalysisDialog(
   AppFeedback.show(
     context,
     () => SnackBar(
-      content: Text(result != null
-          ? '✅ Analiza "${result.title}" sačuvana.'
-          : '⚠️ Čuvanje nije uspelo. Proverite konekciju.'),
-      backgroundColor: result != null ? Colors.teal : Colors.red,
+      content: Text(
+        result != null
+            ? '✅ Analiza "${result.title}" sačuvana.'
+            : '⚠️ Čuvanje nije uspelo. Proverite konekciju.',
+        style: TextStyle(color: context.colors.canvas),
+      ),
+      backgroundColor:
+          result != null ? context.colors.accent : context.colors.danger,
     ),
   );
 }
@@ -496,9 +491,10 @@ void showSavedAnalysesDialog(
   if (userSession.isGuest) {
     AppFeedback.show(
       context,
-      () => const SnackBar(
-        content: Text('Čuvanje analize zahteva prijavljen nalog.'),
-        backgroundColor: Colors.orange,
+      () => SnackBar(
+        content: Text('Čuvanje analize zahteva prijavljen nalog.',
+            style: TextStyle(color: context.colors.canvas)),
+        backgroundColor: context.colors.warning,
       ),
     );
     return;
@@ -520,13 +516,12 @@ void showSavedAnalysesDialog(
         }
 
         return AlertDialog(
-          backgroundColor: Colors.grey.shade900,
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.cloud_outlined, color: Colors.lightBlueAccent),
-              SizedBox(width: 8),
+              Icon(Icons.cloud_outlined, color: ctx.colors.info),
+              const SizedBox(width: 8),
               Text('Sačuvane analize',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
+                  style: AppText.title.copyWith(color: ctx.colors.textPrimary)),
             ],
           ),
           content: SizedBox(
@@ -540,8 +535,8 @@ void showSavedAnalysesDialog(
                     icon: const Icon(Icons.save, size: 16),
                     label: const Text('Sačuvaj trenutnu analizu'),
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        foregroundColor: Colors.white),
+                        backgroundColor: ctx.colors.accent,
+                        foregroundColor: ctx.colors.canvas),
                     onPressed: () async {
                       Navigator.pop(ctx);
                       await promptSaveAnalysisDialog(context,
@@ -549,7 +544,7 @@ void showSavedAnalysesDialog(
                     },
                   ),
                 ),
-                const Divider(height: 24),
+                Divider(height: 24, color: ctx.colors.border),
                 Expanded(
                   child: FutureBuilder<List<SavedAnalysisSummary>>(
                     future: future,
@@ -559,50 +554,50 @@ void showSavedAnalysesDialog(
                       }
                       final items = snapshot.data ?? [];
                       if (items.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Text('Nema sačuvanih analiza.',
-                              style: TextStyle(color: Colors.grey)),
+                              style: AppText.body
+                                  .copyWith(color: ctx.colors.textMuted)),
                         );
                       }
                       return ListView.separated(
                         itemCount: items.length,
                         separatorBuilder: (_, __) =>
-                            const Divider(height: 1, color: Colors.white12),
+                            Divider(height: 1, color: ctx.colors.border),
                         itemBuilder: (context, index) {
                           final item = items[index];
                           return ListTile(
                             dense: true,
                             title: Text(item.title,
-                                style: const TextStyle(color: Colors.white)),
+                                style: AppText.bodyLarge
+                                    .copyWith(color: ctx.colors.textPrimary)),
                             subtitle: Text(
                               '${item.createdAt.day.toString().padLeft(2, '0')}.${item.createdAt.month.toString().padLeft(2, '0')}.${item.createdAt.year}. ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}',
-                              style: const TextStyle(
-                                  color: Colors.grey, fontSize: 11),
+                              style: AppText.caption
+                                  .copyWith(color: ctx.colors.textMuted),
                             ),
                             trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline,
-                                  color: Colors.redAccent, size: 20),
+                              icon: Icon(Icons.delete_outline,
+                                  color: ctx.colors.danger, size: 20),
                               tooltip: 'Obriši',
                               onPressed: () async {
                                 final confirmed = await showDialog<bool>(
                                   context: context,
                                   builder: (confirmCtx) => AlertDialog(
-                                    backgroundColor: Colors.grey.shade900,
-                                    title: const Text('Obriši analizu?',
-                                        style: TextStyle(color: Colors.white)),
+                                    title: const Text('Obriši analizu?'),
                                     content: Text(
                                         '"${item.title}" će biti trajno obrisana.',
-                                        style: const TextStyle(
-                                            color: Colors.grey)),
+                                        style: AppText.body.copyWith(
+                                            color: ctx.colors.textMuted)),
                                     actions: [
                                       TextButton(
                                           child: const Text('Otkaži'),
                                           onPressed: () =>
                                               Navigator.pop(confirmCtx, false)),
                                       TextButton(
-                                        child: const Text('Obriši',
+                                        child: Text('Obriši',
                                             style: TextStyle(
-                                                color: Colors.redAccent)),
+                                                color: ctx.colors.danger)),
                                         onPressed: () =>
                                             Navigator.pop(confirmCtx, true),
                                       ),

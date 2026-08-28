@@ -59,9 +59,9 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
 
   static const AppColorTokens dark = AppColorTokens(
     // Surfaces
-    canvas: Color(0xFF0F172A), // Slate 900 (relative luminance = 0.0080)
+    canvas: Color(0xFF0F172A), // Slate 900 (relative luminance = 0.0088)
     surface: Color(0xFF1E293B), // Slate 800 (relative luminance = 0.0218)
-    surfaceRaised: Color(0xFF334155), // Slate 700 (relative luminance = 0.0527)
+    surfaceRaised: Color(0xFF334155), // Slate 700 (relative luminance = 0.0514)
 
     // Structure
     border: Color(0x1FFFFFFF), // 12% white overlay for subtle boundaries
@@ -97,7 +97,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     warning: Color(0xFFFBBF24),
 
     // #FDA4AF (Rose 300 - Errors, lost position, invalid moves):
-    // Contrast: 9.54:1 on canvas / 7.71:1 on surface / 5.39:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
+    // Contrast: 9.44:1 on canvas / 7.74:1 on surface / 5.48:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
     danger: Color(0xFFFDA4AF),
 
     // #4ADE80 (Green 400 - Correct moves, solved puzzles, victories; distinct from Teal accent):

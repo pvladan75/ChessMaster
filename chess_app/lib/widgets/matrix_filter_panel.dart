@@ -162,11 +162,11 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                       IconData? chipIcon;
 
                       if (isInc) {
-                        chipBg = colors.success.withValues(alpha: 0.3);
+                        chipBg = colors.success.withValues(alpha: 0.15);
                         chipText = colors.success;
                         chipIcon = Icons.add_circle;
                       } else if (isExc) {
-                        chipBg = colors.danger.withValues(alpha: 0.3);
+                        chipBg = colors.danger.withValues(alpha: 0.15);
                         chipText = colors.danger;
                         chipIcon = Icons.remove_circle;
                       }

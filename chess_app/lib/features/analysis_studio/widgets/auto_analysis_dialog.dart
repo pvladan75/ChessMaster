@@ -171,9 +171,8 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                       style: AppText.body
                           .copyWith(color: context.colors.textPrimary)),
                   Text('Top $_candidateCount poteza',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.cyanAccent)),
+                      style: AppText.bodyBold
+                          .copyWith(color: context.colors.info)),
                 ],
               ),
               Slider(
@@ -181,7 +180,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 min: 1,
                 max: 3,
                 divisions: 2,
-                activeColor: Colors.cyanAccent,
+                activeColor: context.colors.info,
                 onChanged: (val) =>
                     setState(() => _candidateCount = val.round()),
               ),
@@ -216,9 +215,8 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                       style: AppText.body
                           .copyWith(color: context.colors.textPrimary)),
                   Text('depth $_engineDepth',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orangeAccent)),
+                      style: AppText.bodyBold
+                          .copyWith(color: context.colors.warning)),
                 ],
               ),
               Slider(
@@ -226,7 +224,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 min: 5,
                 max: 50,
                 divisions: 45,
-                activeColor: Colors.orangeAccent,
+                activeColor: context.colors.warning,
                 onChanged: (val) => setState(() => _engineDepth = val.round()),
               ),
 
@@ -235,12 +233,12 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.black38,
+                  color: context.colors.canvas,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                       color: _isHeavy
                           ? context.colors.danger
-                          : Colors.grey.shade700),
+                          : context.colors.surfaceRaised),
                 ),
                 child: Row(
                   children: [
@@ -275,8 +273,8 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                   label: const Text('Započni Automatsku Analizu ⚡',
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber.shade800,
-                    foregroundColor: Colors.white,
+                    backgroundColor: context.colors.warning,
+                    foregroundColor: context.colors.canvas,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   onPressed: _startAnalysis,
@@ -309,8 +307,8 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal.shade700,
-                          foregroundColor: Colors.white),
+                          backgroundColor: context.colors.accent,
+                          foregroundColor: context.colors.canvas),
                       onPressed: () => Navigator.pop(context),
                       child: const Text('Zatvori'),
                     ),
@@ -324,7 +322,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                   children: [
                     LinearProgressIndicator(
                         value: progressPct,
-                        backgroundColor: Colors.grey.shade800,
+                        backgroundColor: context.colors.surfaceRaised,
                         color: context.colors.warning),
                     const SizedBox(height: 16),
                     Text(

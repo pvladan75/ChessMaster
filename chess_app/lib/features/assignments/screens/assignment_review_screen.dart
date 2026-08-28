@@ -325,8 +325,8 @@ class _ItemCard extends StatelessWidget {
                     color: colors.surfaceRaised,
                     child: Text('tabla nije\ndostupna',
                         textAlign: TextAlign.center,
-                        style:
-                            TextStyle(fontSize: 11, color: colors.textMuted)),
+                        style: TextStyle(
+                            fontSize: 11, color: colors.textSecondary)),
                   ),
                 const SizedBox(width: 12),
                 Expanded(

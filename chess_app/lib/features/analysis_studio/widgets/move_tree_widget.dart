@@ -265,7 +265,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                   TextSpan(
                       text: moveNumStr,
                       style: AppText.caption
-                          .copyWith(color: context.colors.textMuted)),
+                          .copyWith(color: context.colors.textSecondary)),
                 TextSpan(
                   text: mainChild.moveSan ?? '',
                   style: TextStyle(
@@ -305,7 +305,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: context.colors.accentAlt.withValues(alpha: 0.15),
+              color: context.colors.accentAlt.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
                 color: context.colors.accentAlt.withValues(alpha: 0.4),
