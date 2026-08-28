@@ -255,7 +255,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
       title: Row(
         children: [
           Icon(Icons.collections_bookmark, color: colors.brand),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Text(isEditing ? 'Izmeni lekciju' : 'Kreiraj lekciju (Više koraka)',
               style: AppText.title),
         ],
@@ -280,7 +280,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                     hintText: 'Npr. Završnice sa skakačem - Kompletna modul',
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 TextField(
                   controller: descController,
                   decoration: const InputDecoration(
@@ -289,7 +289,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                   ),
                   maxLines: 2,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -307,7 +307,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                     onPressed: isAddingFromLibrary ? null : _addFromLibrary,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 if (selectedPositions.isNotEmpty) ...[
                   const Text(
                     'Redosled koraka (prevuci da promeniš):',
@@ -338,7 +338,8 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                             item['pgn']?.toString().isNotEmpty == true;
                         return Card(
                           key: ValueKey(identityHashCode(item)),
-                          margin: const EdgeInsets.symmetric(vertical: 2),
+                          margin: const EdgeInsets.symmetric(
+                              vertical: AppSpacing.xxs),
                           child: ListTile(
                             dense: true,
                             leading: Icon(

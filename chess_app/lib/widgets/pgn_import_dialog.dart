@@ -48,7 +48,7 @@ class _PgnImportDialogState extends State<PgnImportDialog> {
       title: Row(
         children: [
           Icon(Icons.file_open, color: colors.brand),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           const Expanded(child: Text('Uvezi PGN', style: AppText.title)),
         ],
       ),
@@ -71,12 +71,12 @@ class _PgnImportDialogState extends State<PgnImportDialog> {
                   foregroundColor: colors.canvas,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               Text(
                 'ili nalepi tekst partije:',
                 style: AppText.body.copyWith(color: colors.textMuted),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               TextField(
                 controller: _controller,
                 minLines: 5,
@@ -84,8 +84,8 @@ class _PgnImportDialogState extends State<PgnImportDialog> {
                 decoration: const InputDecoration(
                   hintText: '[Event "..."]\n1. e4 e5 2. Nf3 ...',
                   border: OutlineInputBorder(),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
                 ),
                 style: AppText.body,
               ),

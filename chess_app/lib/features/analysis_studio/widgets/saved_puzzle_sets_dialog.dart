@@ -47,10 +47,10 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: context.colors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
       child: Container(
         width: 460,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,26 +58,26 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
             Row(
               children: [
                 Icon(Icons.extension, color: context.colors.accent, size: 22),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 Text('Sačuvane vežbe',
                     style: AppText.title
                         .copyWith(color: context.colors.textPrimary)),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(
               'Vežbe se automatski čuvaju na uređaju kad se otkriju tokom "Analiziraj celu partiju".',
               style: AppText.body.copyWith(color: context.colors.textMuted),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             if (_loading)
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
                 child: Center(child: CircularProgressIndicator()),
               )
             else if (_sets.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                 child: Text(
                   'Još nema sačuvanih vežbi.',
                   textAlign: TextAlign.center,
@@ -92,7 +92,8 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
                   child: Column(
                     children: _sets.map((set) {
                       return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        margin:
+                            const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                         color: context.colors.surfaceRaised,
                         child: ListTile(
                           dense: true,
@@ -133,7 +134,7 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
                   ),
                 ),
               ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(

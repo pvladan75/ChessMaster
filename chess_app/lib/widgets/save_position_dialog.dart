@@ -87,7 +87,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                     hintText: 'Npr. Sicilijanska odbrana - Najdorf',
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 TextField(
                   controller: descController,
                   decoration: const InputDecoration(
@@ -96,7 +96,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                   ),
                   maxLines: 2,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 const Text(
                   'Labele (Oznake):',
                   style: AppText.bodyLargeBold,
@@ -114,7 +114,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                         )),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Expanded(
@@ -124,27 +124,28 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                           hintText: 'Ukucaj i dodaj labelu...',
                           isDense: true,
                           border: OutlineInputBorder(),
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10, vertical: AppSpacing.sm),
                         ),
                         style: AppText.body,
                         onChanged: (_) => setState(() {}),
                         onSubmitted: (val) => addTag(val),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     ElevatedButton(
                       onPressed: () => addTag(tagInputController.text),
                       style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12)),
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.md)),
                       child: const Text('Dodaj'),
                     ),
                   ],
                 ),
                 if (suggestions.isNotEmpty &&
                     tagInputController.text.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Container(
                     constraints: const BoxConstraints(maxHeight: 120),
                     decoration: BoxDecoration(
@@ -166,7 +167,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 CheckboxListTile(
                   title: const Text(
                     'Zapamti ove Labele za sledeće pozicije',

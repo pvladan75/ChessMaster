@@ -21,7 +21,7 @@ class ShareStudentPositionDialog extends StatelessWidget {
       title: Row(
         children: [
           Icon(Icons.share, color: colors.warning),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           const Text('Prikaži poziciju treneru', style: AppText.title),
         ],
       ),
@@ -37,10 +37,10 @@ class ShareStudentPositionDialog extends StatelessWidget {
                 'Izaberite predavača u učionici kome želite da pošaljete vašu poziciju sa table na uvid:',
                 style: AppText.body.copyWith(color: colors.textMuted),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               if (trainers.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                   child: Text(
                       'Trenutno nema prijavljenih trenera u ovoj učionici.',
                       style: AppText.body.copyWith(color: colors.warning)),

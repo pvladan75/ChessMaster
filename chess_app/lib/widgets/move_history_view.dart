@@ -143,7 +143,7 @@ class MoveHistoryView extends StatelessWidget {
               ),
             )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               child: RichText(
                 text: TextSpan(
                   children: spans,

@@ -70,7 +70,7 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
           Row(
             children: [
               Icon(Icons.psychology, color: colors.accent),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 'Linija #${widget.line.multipv} (${widget.line.evaluation})',
                 style: AppText.title,
@@ -78,7 +78,8 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
             ],
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               color: colors.accent.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(6),
@@ -103,7 +104,7 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: colors.canvas,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadii.roundedSm,
                   border: Border.all(
                       color: colors.textMuted.withValues(alpha: 0.2)),
                 ),
@@ -128,7 +129,7 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
                   enableUserMoves: false,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
 
               // Navigation stepper buttons
               MoveNavigationControls(
