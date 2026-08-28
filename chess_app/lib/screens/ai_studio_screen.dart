@@ -24,6 +24,7 @@ import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/core/models/drill_outcome.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
@@ -311,13 +312,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           setState(() => _isBackendConnected = true);
           AppFeedback.show(
             context,
-            () => const SnackBar(
-              backgroundColor: Colors.teal,
+            () => SnackBar(
+              backgroundColor: context.colors.accent,
               duration: Duration(seconds: 3),
               content: Row(
                 children: [
-                  Icon(Icons.wifi, color: Colors.white),
-                  SizedBox(width: 8),
+                  Icon(Icons.wifi, color: context.colors.canvas),
+                  SizedBox(width: AppSpacing.sm),
                   Text('✅ Veza sa backend serverom je ponovo uspostavljena.',
                       style: TextStyle(fontWeight: FontWeight.bold)),
                 ],
@@ -863,12 +864,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       context,
       () => SnackBar(
         backgroundColor:
-            isCritical ? Colors.red.shade900 : Colors.amber.shade900,
+            isCritical ? Colors.red.shade900 : context.colors.warning,
         duration: const Duration(seconds: 4),
         content: Row(
           children: [
             Icon(isCritical ? Icons.cancel : Icons.warning_amber,
-                color: Colors.white),
+                color: isCritical ? Colors.white : context.colors.canvas),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -876,11 +877,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.white)),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isCritical
+                              ? Colors.white
+                              : context.colors.canvas)),
                   Text(msg,
-                      style:
-                          const TextStyle(fontSize: 11, color: Colors.white70)),
+                      style: AppText.caption.copyWith(
+                          color: isCritical
+                              ? Colors.white70
+                              : context.colors.textSecondary)),
                 ],
               ),
             ),
@@ -1868,7 +1874,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       enableDrag: false,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppSpacing.xl)),
       ),
       builder: (ctx) {
         final bottomPadding = MediaQuery.of(ctx).padding.bottom;
@@ -1880,41 +1887,41 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               maxHeight: MediaQuery.of(ctx).size.height * 0.88,
             ),
             padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 16,
-              bottom: bottomPadding + 20,
+              left: AppSpacing.xl,
+              right: AppSpacing.xl,
+              top: AppSpacing.lg,
+              bottom: bottomPadding + AppSpacing.xl,
             ),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.cancel_outlined,
-                      color: Colors.redAccent, size: isLandscape ? 36 : 48),
-                  const SizedBox(height: 8),
-                  const Text(
+                      color: context.colors.danger,
+                      size: isLandscape ? 36 : 48),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
                     'Netačan Potez!',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
+                    style: AppText.headline.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     'Potez koji ste odigrali nije u stablu rešenja. Izaberite opciju:',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                    style: AppText.bodyLarge
+                        .copyWith(color: context.colors.textMuted),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.refresh),
                       label: const Text('Pokušaj Ponovo'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber.shade800,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: context.colors.warning,
+                        foregroundColor: context.colors.canvas,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: AppSpacing.md),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
@@ -1934,9 +1941,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           icon: const Icon(Icons.lightbulb_outline),
                           label: const Text('Prikaži Rešenje'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            backgroundColor: context.colors.accentAlt,
+                            foregroundColor: context.colors.canvas,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.md),
                           ),
                           onPressed: () {
                             Navigator.pop(ctx);
@@ -1954,9 +1962,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           icon: const Icon(Icons.arrow_forward),
                           label: const Text('Sledeća Zagonetka'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            backgroundColor: context.colors.accent,
+                            foregroundColor: context.colors.canvas,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.md),
                           ),
                           onPressed: () {
                             Navigator.pop(ctx);
@@ -2107,7 +2116,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         title: Row(
           children: [
             Icon(Icons.flag, color: context.colors.danger, size: 28),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             const Text('Mat', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
@@ -2144,9 +2153,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Row(
-          children: const [
-            Icon(Icons.emoji_events, color: Colors.amberAccent, size: 28),
-            SizedBox(width: 8),
+          children: [
+            Icon(Icons.emoji_events, color: context.colors.warning, size: 28),
+            SizedBox(width: AppSpacing.sm),
             Text('🎉 POBEDA!', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
@@ -2251,9 +2260,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             context: context,
             builder: (ctx) => AlertDialog(
               title: Row(
-                children: const [
-                  Icon(Icons.emoji_events, color: Colors.amber, size: 28),
-                  SizedBox(width: 8),
+                children: [
+                  Icon(Icons.emoji_events,
+                      color: context.colors.warning, size: 28),
+                  SizedBox(width: AppSpacing.sm),
                   Text('Zagonetka Rešena!',
                       style: TextStyle(fontWeight: FontWeight.bold)),
                 ],
@@ -2262,10 +2272,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   'Bravo! Tačno ste odigrali sve poteze.\nNovi rejting: $newRating (${change >= 0 ? "+" : ""}$change)'),
               actions: [
                 OutlinedButton.icon(
-                  icon: const Icon(Icons.account_tree_outlined,
-                      color: Colors.tealAccent, size: 18),
-                  label: const Text('Prikaži Rešenje',
-                      style: TextStyle(color: Colors.tealAccent, fontSize: 13)),
+                  icon: Icon(Icons.account_tree_outlined,
+                      color: context.colors.accent, size: 18),
+                  label: Text('Prikaži Rešenje',
+                      style: AppText.bodyLarge
+                          .copyWith(color: context.colors.accent)),
                   onPressed: () {
                     Navigator.pop(ctx);
                     setState(() {
@@ -2275,11 +2286,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.arrow_forward, size: 18),
-                  label: const Text('Naredna Zagonetka',
-                      style: TextStyle(fontSize: 13)),
+                  label:
+                      const Text('Naredna Zagonetka', style: AppText.bodyLarge),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      foregroundColor: Colors.white),
+                      backgroundColor: context.colors.accent,
+                      foregroundColor: context.colors.canvas),
                   onPressed: () {
                     Navigator.pop(ctx);
                     _fetchNextPuzzle();
@@ -2366,16 +2377,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                                   });
                                 },
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: AppSpacing.sm),
                       ],
-                      const Icon(Icons.psychology,
-                          color: Colors.amberAccent, size: 20),
-                      const SizedBox(width: 8),
+                      Icon(Icons.psychology,
+                          color: context.colors.warning, size: 20),
+                      const SizedBox(width: AppSpacing.sm),
                       Text(
                         _selectedCategory == null
                             ? 'Šahovski trener i vežbe'
                             : _getCategoryTitle(),
-                        style: const TextStyle(fontSize: 14),
+                        style: AppText.subtitle,
                       ),
                     ],
                   ),
@@ -2458,14 +2469,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     final backButtonCard = Card(
       elevation: 3,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 14.0, vertical: AppSpacing.sm),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             OutlinedButton.icon(
               icon: const Icon(Icons.arrow_back, size: 16),
-              label:
-                  const Text('Nazad na izbor', style: TextStyle(fontSize: 12)),
+              label: Text('Nazad na izbor', style: AppText.body),
               onPressed: () {
                 _resetEngineState();
                 setState(() {
@@ -2490,11 +2501,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         color: _puzzleOrientation == PlayerColor.white
             ? Colors.blueGrey.shade900
             : Colors.teal.shade900,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadii.roundedLg,
         border: Border.all(
             color: _puzzleOrientation == PlayerColor.white
-                ? Colors.white38
-                : Colors.tealAccent),
+                ? context.colors.textMuted
+                : context.colors.accent),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -2504,16 +2515,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             size: 18,
             color: _puzzleOrientation == PlayerColor.white
                 ? Colors.white
-                : Colors.tealAccent,
+                : context.colors.accent,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Flexible(
             child: Text(
               headerGoal,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: Colors.white),
+              style: AppText.bodyLargeBold.copyWith(color: Colors.white),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -2542,15 +2550,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           icon: const Icon(Icons.refresh, size: 16),
           label: const Text('Probaj Ponovo'),
           style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber.shade800,
-              foregroundColor: Colors.white),
+              backgroundColor: context.colors.warning,
+              foregroundColor: context.colors.canvas),
           onPressed: _restartCurrentPuzzle,
         ),
         ElevatedButton.icon(
           icon: const Icon(Icons.arrow_forward),
           label: const Text('Naredna Pozicija'),
           style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal, foregroundColor: Colors.white),
+              backgroundColor: context.colors.accent,
+              foregroundColor: context.colors.canvas),
           onPressed: () {
             if (_selectedCategory == 'basic_mate') {
               _loadBasicMatePreset(_selectedBasicMateType);
@@ -2601,32 +2610,30 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                         });
                       },
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
             ],
             Expanded(
               child: Text(
                 headerGoal,
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white),
+                style: AppText.captionBold.copyWith(color: Colors.white),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const BoardCoordinatesButton(size: 18, color: Colors.white70),
-            const SizedBox(width: 8),
+            BoardCoordinatesButton(
+                size: 18, color: context.colors.textSecondary),
+            const SizedBox(width: AppSpacing.sm),
             IconButton(
-              icon: const Icon(Icons.biotech,
-                  size: 18, color: Colors.indigoAccent),
+              icon: Icon(Icons.biotech,
+                  size: 18, color: context.colors.accentAlt),
               tooltip: 'Analiziraj u Tabli za Analizu 🔬',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               onPressed: _exportToAnalysisStudio,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             IconButton(
-              icon: const Icon(Icons.refresh,
-                  size: 16, color: Colors.amberAccent),
+              icon:
+                  Icon(Icons.refresh, size: 16, color: context.colors.warning),
               tooltip: 'Probaj Ponovo',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -2634,8 +2641,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             ),
             const SizedBox(width: 10),
             IconButton(
-              icon: const Icon(Icons.arrow_forward,
-                  size: 16, color: Colors.tealAccent),
+              icon: Icon(Icons.arrow_forward,
+                  size: 16, color: context.colors.accent),
               tooltip: 'Naredna Pozicija',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -2653,18 +2660,21 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
       return Padding(
         padding: const EdgeInsets.only(
-            left: 12.0, top: 4.0, bottom: 8.0, right: 8.0),
+            left: AppSpacing.md,
+            top: AppSpacing.xs,
+            bottom: AppSpacing.sm,
+            right: AppSpacing.sm),
         child: Column(
           children: [
             landscapeTopHeader,
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // LEFT SIDE (Board & Eval Bar)
                   Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
+                    padding: const EdgeInsets.only(right: AppSpacing.md),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -2674,7 +2684,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           builder: _buildBoardWithTapAndHighlights,
                         ),
                         if (_showEvalBar) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: AppSpacing.xs),
                           SizedBox(
                             width: boardSize,
                             child: HorizontalEvalBarWidget(
@@ -2689,7 +2699,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     ),
                   ),
 
-                  const SizedBox(width: 4),
+                  const SizedBox(width: AppSpacing.xs),
 
                   // RIGHT SIDE (Controls, Tree & Stockfish Analysis & History)
                   Expanded(
@@ -2703,49 +2713,46 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                                 child: ElevatedButton.icon(
                                   icon: const Icon(Icons.biotech, size: 16),
                                   label: const Text('Analiza 🔬',
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold)),
+                                      style: AppText.captionBold),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.indigo.shade800,
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 10, horizontal: 4),
+                                        vertical: 10,
+                                        horizontal: AppSpacing.xs),
                                   ),
                                   onPressed: _exportToAnalysisStudio,
                                 ),
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: AppSpacing.xs),
                               Expanded(
                                 child: ElevatedButton.icon(
                                   icon: const Icon(Icons.refresh, size: 16),
                                   label: const Text('Probaj ponovo',
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold)),
+                                      style: AppText.captionBold),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.amber.shade900,
-                                    foregroundColor: Colors.white,
+                                    backgroundColor: context.colors.warning,
+                                    foregroundColor: context.colors.canvas,
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 10, horizontal: 4),
+                                        vertical: 10,
+                                        horizontal: AppSpacing.xs),
                                   ),
                                   onPressed: _restartCurrentPuzzle,
                                 ),
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: AppSpacing.xs),
                               Expanded(
                                 child: ElevatedButton.icon(
                                   icon:
                                       const Icon(Icons.arrow_forward, size: 16),
                                   label: const Text('Naredna pozicija',
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold)),
+                                      style: AppText.captionBold),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.teal.shade800,
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 10, horizontal: 4),
+                                        vertical: 10,
+                                        horizontal: AppSpacing.xs),
                                   ),
                                   onPressed: () {
                                     if (_selectedCategory == 'basic_mate') {
@@ -2759,9 +2766,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           _buildSolutionTreeSection(),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           if (_selectedCategory != 'mate_puzzle')
                             StockfishAnalysisWidget(
                               analysisDepth: _analysisDepth,
@@ -2804,7 +2811,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                                 });
                               },
                             ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           if (_puzzleMoveTree != null)
                             MoveNavigationControls(
                               cursor: _moveCursor()!,
@@ -2829,7 +2836,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       children: [
         // STATIC NON-SCROLLABLE CHESS BOARD AT TOP
         Padding(
-          padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+          padding:
+              const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
           child: Center(
             child: SizedBox(
               width: boardSize,
@@ -2838,7 +2846,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 elevation: 4,
                 margin: EdgeInsets.zero,
                 child: Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(AppSpacing.sm),
                   child: _isLoadingPuzzle
                       ? const Center(child: CircularProgressIndicator())
                       : BoardWithCoordinates(
@@ -2855,8 +2863,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         // SCROLLABLE CONTROLS & BUTTONS BELOW THE BOARD
         Expanded(
           child: SingleChildScrollView(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
             child: Center(
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 650),
@@ -2869,10 +2877,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                         depth: _currentEvalDepth,
                         orientation: _puzzleOrientation,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                     ],
                     actionButtonsRow,
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     if (_selectedCategory != 'mate_puzzle')
                       StockfishAnalysisWidget(
                         analysisDepth: _analysisDepth,
@@ -2914,9 +2922,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           });
                         },
                       ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     _buildSolutionTreeSection(),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     if (_puzzleMoveTree != null)
                       MoveNavigationControls(
                         cursor: _moveCursor()!,
