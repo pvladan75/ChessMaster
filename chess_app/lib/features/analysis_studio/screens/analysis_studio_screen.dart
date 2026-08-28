@@ -1527,12 +1527,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       children: [
         if (_activePuzzleSet != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8.0),
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
             child: _buildPuzzleSetBar(),
           ),
         // Static Fixed Board at top
         Padding(
-          padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+          padding:
+              const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
           child: Center(
             child: SizedBox(
               width: boardSize,
@@ -1541,7 +1542,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 elevation: 4,
                 margin: EdgeInsets.zero,
                 child: Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(AppSpacing.sm),
                   child: BoardWithCoordinates(
                     size: boardSize - 16.0,
                     orientation: _orientation,
@@ -1560,8 +1561,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         // Scrollable Controls Below Board
         Expanded(
           child: SingleChildScrollView(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
             child: Column(
               children: [
                 if (_showEvalBar) ...[
@@ -1585,7 +1586,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
   Widget _buildLandscapeLayout(double boardSize) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1607,7 +1608,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   SizedBox(
                     width: boardSize,
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0),
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
                       child: _buildPuzzleSetBar(),
                     ),
                   ),
@@ -1684,13 +1685,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           children: [
             Container(
               width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md, vertical: AppSpacing.sm),
               decoration: BoxDecoration(
                 color: phaseInfo.isEndgame
                     ? Colors.indigo.shade900
                     : Colors.grey.shade900,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadii.roundedSm,
                 border: Border.all(
                   color: phaseInfo.isEndgame
                       ? Colors.cyanAccent
@@ -1711,10 +1713,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   Expanded(
                     child: Text(
                       displayOpeningName,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
+                      style: AppText.bodyBold.copyWith(color: Colors.white),
                     ),
                   ),
                 ],
@@ -1953,11 +1952,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (set == null) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 4.0),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
         color: Colors.teal.shade900,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadii.roundedSm,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2049,15 +2049,16 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (comment.isEmpty && nag == null) return const SizedBox.shrink();
 
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadii.roundedSm,
       onTap: _showCommentDialog,
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(top: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.sm),
         decoration: BoxDecoration(
           color: context.colors.surface,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadii.roundedSm,
           border:
               Border.all(color: context.colors.info.withValues(alpha: 0.35)),
         ),
