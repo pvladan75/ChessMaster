@@ -886,7 +886,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                       style: AppText.caption.copyWith(
                           color: isCritical
                               ? Colors.white70
-                              : context.colors.textSecondary)),
+                              : context.colors.canvas.withValues(alpha: 0.7))),
                 ],
               ),
             ),
