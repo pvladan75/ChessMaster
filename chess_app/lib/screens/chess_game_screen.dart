@@ -41,6 +41,8 @@ import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/create_course_dialog.dart';
 import 'package:chess_app/widgets/save_position_dialog.dart';
 import 'package:chess_app/widgets/matrix_filter_panel.dart';
+import 'package:chess_app/widgets/pgn_import_dialog.dart';
+import 'package:chess_app/widgets/move_history_view.dart';
 import 'package:chess_app/widgets/game_selector_dialog.dart';
 import 'package:chess_app/widgets/share_position_dialog.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
@@ -148,9 +150,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
   List<dynamic> lessons = [];
   bool isLoadingLessons = false;
   final TextEditingController fenPasteController = TextEditingController();
-  final TextEditingController pgnPasteController = TextEditingController();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController commentController = TextEditingController();
+
+  /// Holds back the comment broadcast until the trainer stops typing.
+  Timer? _commentBroadcast;
   List<String> moveHistory = [];
 
   late MoveTree moveTree;
@@ -330,9 +334,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.disconnect();
     socket.dispose();
     _agoraService.leaveChannel();
+    _commentBroadcast?.cancel();
     commentController.dispose();
     fenPasteController.dispose();
-    pgnPasteController.dispose();
     searchController.dispose();
     super.dispose();
   }
@@ -630,6 +634,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
         loadLessonPosition(fen, null);
         _showSuccess('Učitana pozicija iz linije analize!');
       },
+      onInsertLineAsVariation:
+          canDriveSharedBoard ? _insertEngineLineAsVariation : null,
     );
   }
 
@@ -675,29 +681,109 @@ class _ChessGamePageState extends State<ChessGamePage> {
               final start = drawingStartSquare!;
               drawingStartSquare = null;
               if (start != square) {
-                moveTree.current.arrows.add(ChessArrow(
-                  from: start,
-                  to: square,
-                  colorCode: selectedArrowColorCode,
-                ));
-                _recordEvent('arrow_drawn', {
-                  'arrows': moveTree.current.arrows
-                      .map((a) => {
-                            'from': a.from,
-                            'to': a.to,
-                            'colorCode': a.colorCode
-                          })
-                      .toList()
-                });
-                socket.emit('pgn_loaded', {
-                  'roomId': widget.roomCode,
-                  'pgn': moveTree.exportToPgn(),
-                });
+                _toggleArrow(start, square);
               }
             }
           });
         },
       ),
+    );
+  }
+
+  /// Draws the arrow, or takes it back if the same one is already there.
+  ///
+  /// Redrawing a square pair to remove it is what Lichess and chess.com do, and
+  /// it is the only way to correct one arrow that does not go through the
+  /// board's whole annotation. The colour is deliberately not part of the
+  /// match: the mistake being corrected is usually "wrong arrow", not "right
+  /// arrow, wrong colour", and having to remember which colour it was drawn in
+  /// to erase it would be worse than the button it replaces.
+  ///
+  /// Must be called from inside a [setState] — [_publishArrows] does not
+  /// rebuild on its own.
+  void _toggleArrow(String from, String to) {
+    final arrows = moveTree.current.arrows;
+    final existing = arrows.indexWhere((a) => a.from == from && a.to == to);
+    if (existing >= 0) {
+      arrows.removeAt(existing);
+    } else {
+      arrows.add(ChessArrow(
+        from: from,
+        to: to,
+        colorCode: selectedArrowColorCode,
+      ));
+    }
+    _publishArrows();
+  }
+
+  /// Takes back the arrow drawn last on this move. Returns false when there
+  /// was none, so the caller can say so rather than silently doing nothing.
+  bool _undoLastArrow() {
+    final arrows = moveTree.current.arrows;
+    if (arrows.isEmpty) return false;
+    arrows.removeLast();
+    _publishArrows();
+    return true;
+  }
+
+  /// Records the current move's arrows and sends them to the room.
+  ///
+  /// One place, because the recording and the broadcast have to agree: a
+  /// replay built from the events and a board built from the PGN are the same
+  /// annotation seen twice.
+  void _publishArrows() {
+    _recordEvent('arrow_drawn', {
+      'arrows': moveTree.current.arrows
+          .map((a) => {'from': a.from, 'to': a.to, 'colorCode': a.colorCode})
+          .toList()
+    });
+    socket.emit('pgn_loaded', {
+      'roomId': widget.roomCode,
+      'pgn': moveTree.exportToPgn(),
+    });
+  }
+
+  /// Undo beside clear-all, for the studio and the trainer alike.
+  ///
+  /// A Wrap rather than a Row: two labelled buttons do not fit side by side in
+  /// a 300 dp sidebar on a phone, and a Row that does not fit is clipped with
+  /// nothing painted to say so in a release build.
+  Widget _buildArrowEditButtons() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () {
+            // Do the thing, then say it: the message must not be able to take
+            // down the edit it reports on.
+            bool undone = false;
+            setState(() {
+              undone = _undoLastArrow();
+              drawingStartSquare = null;
+            });
+            if (undone) {
+              _showSuccess('Poslednja strelica je poništena.');
+            } else {
+              _showError('Nema strelice za poništavanje.');
+            }
+          },
+          icon: const Icon(Icons.undo, size: 16),
+          label: const Text('Poništi strelicu', style: TextStyle(fontSize: 12)),
+        ),
+        OutlinedButton.icon(
+          onPressed: () {
+            setState(() {
+              moveTree.current.arrows.clear();
+              drawingStartSquare = null;
+              _publishArrows();
+            });
+          },
+          icon: const Icon(Icons.layers_clear, size: 16),
+          label: const Text('Izbriši sve strelice',
+              style: TextStyle(fontSize: 12)),
+        ),
+      ],
     );
   }
 
@@ -1912,6 +1998,150 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
+  /// Writes the comment the trainer is typing onto the move it belongs to.
+  ///
+  /// Straight onto the node rather than into a buffer flushed on some "save":
+  /// the tree is what gets exported, saved as a lesson and sent to the room, so
+  /// a comment that lives anywhere else is a comment that is silently lost by
+  /// navigating away from the move.
+  void _setCurrentComment(String text) {
+    final node = moveTree.current;
+    if (node.parent == null) return;
+    node.comment = text;
+
+    // The node is written on every keystroke; the room is told once the typing
+    // stops. Broadcasting per character would re-export the whole tree to PGN
+    // and push it down the socket for every letter of a paragraph.
+    _commentBroadcast?.cancel();
+    _commentBroadcast = Timer(const Duration(milliseconds: 600), () {
+      socket.emit('pgn_loaded', {
+        'roomId': widget.roomCode,
+        'pgn': moveTree.exportToPgn(),
+      });
+    });
+  }
+
+  /// Appends the engine's verdict on this position to the current move's
+  /// comment, in the bracketed form PGN readers already ignore as text.
+  void _insertEvalIntoComment() {
+    if (moveTree.current.parent == null) {
+      _showError('Komentar se dodaje na potez, ne na početnu poziciju.');
+      return;
+    }
+    if (!isEngineEnabled) {
+      _showError('Uključite evaluaciju da bi bilo šta bilo za upisati.');
+      return;
+    }
+
+    final stamp = '[$currentEngineEval / dubina $_currentEvalDepth]';
+    final existing = commentController.text.trim();
+    final merged = existing.isEmpty ? stamp : '$existing $stamp';
+
+    setState(() {
+      commentController.text = merged;
+      commentController.selection =
+          TextSelection.collapsed(offset: merged.length);
+      _setCurrentComment(merged);
+    });
+    _showSuccess('Evaluacija je upisana u komentar.');
+  }
+
+  /// Files an engine line in the tree as a variation off the current move,
+  /// with the evaluation it was computed for written onto its first move.
+  ///
+  /// Leaves the cursor where it was. The point of the button is to keep the
+  /// line and go on analysing, not to be taken to the end of it.
+  void _insertEngineLineAsVariation(AnalysisLine line) {
+    final lanMoves = line.continuationLan
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((t) => t.isNotEmpty)
+        .toList();
+
+    if (lanMoves.isEmpty) {
+      _showError('Linija analize je prazna.');
+      return;
+    }
+
+    late AppendedLine result;
+    setState(() {
+      result = MoveTree.appendLine(moveTree.current, lanMoves);
+      final head = result.head;
+      if (result.added > 0 && head != null) {
+        final stamp = '[${line.evaluation} / dubina ${line.depth}]';
+        head.comment = head.comment.isEmpty ? stamp : '${head.comment} $stamp';
+      }
+    });
+
+    if (result.added == 0) {
+      _showError(result.rejected
+          ? 'Linija ne odgovara trenutnoj poziciji.'
+          : 'Linija je već bila u stablu.');
+      return;
+    }
+
+    socket.emit('pgn_loaded', {
+      'roomId': widget.roomCode,
+      'pgn': moveTree.exportToPgn(),
+    });
+    _showSuccess('Ubačeno poteza u varijantu: ${result.added}.');
+  }
+
+  /// Makes the line the cursor is standing on the main line, all the way up.
+  ///
+  /// One step per branch point on the way to the root, because a variation
+  /// three moves deep inside another variation is still a sideline until every
+  /// fork above it has been turned as well.
+  void _promoteCurrentLine() {
+    var node = moveTree.current;
+    if (node.parent == null) {
+      _showError('Početna pozicija nije varijanta.');
+      return;
+    }
+
+    var moved = false;
+    setState(() {
+      var child = node;
+      var parent = child.parent;
+      while (parent != null) {
+        final at = parent.children.indexOf(child);
+        if (at > 0) {
+          parent.children.removeAt(at);
+          parent.children.insert(0, child);
+          moved = true;
+        }
+        child = parent;
+        parent = parent.parent;
+      }
+    });
+
+    if (!moved) {
+      _showError('Ovo je već glavna linija.');
+      return;
+    }
+
+    socket.emit('pgn_loaded', {
+      'roomId': widget.roomCode,
+      'pgn': moveTree.exportToPgn(),
+    });
+    _showSuccess('Varijanta je postavljena kao glavna linija.');
+  }
+
+  /// Cuts the current move and everything after it, and steps back to its
+  /// parent — which is the only position still on the board afterwards.
+  void _deleteCurrentSubtree() {
+    final node = moveTree.current;
+    final parent = node.parent;
+    if (parent == null) {
+      _showError('Početna pozicija se ne može obrisati.');
+      return;
+    }
+
+    parent.children.remove(node);
+    _selectNode(parent);
+    _showSuccess('Varijanta je obrisana.');
+  }
+
   // Jump to specific MoveNode in active history and broadcast state
   void _selectNode(MoveNode node) {
     _recordEvent('fen_change', {'fen': node.fen});
@@ -2067,6 +2297,32 @@ class _ChessGamePageState extends State<ChessGamePage> {
         drawingStartSquare = null;
       });
       _broadcastMoveAndState(from, to, newFen);
+    }
+  }
+
+  void _showPgnImportDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => PgnImportDialog(
+        onPickFile: _openLocalPgnFile,
+        onPasted: _loadPgnText,
+      ),
+    );
+  }
+
+  /// Loads pasted PGN through the same path a file takes, [MoveTree.splitGames]
+  /// included — a paste out of a game-history export holds several games just
+  /// as often as a file does, and picking one of them is already built.
+  void _loadPgnText(String content) {
+    final games = MoveTree.splitGames(content);
+    if (games.isEmpty) {
+      _showError('Nalepljeni tekst ne sadrži važeću PGN partiju.');
+      return;
+    }
+    if (games.length == 1) {
+      _loadSinglePgnGame(games[0]);
+    } else {
+      _showGameSelectorDialog(games);
     }
   }
 
@@ -2407,6 +2663,98 @@ class _ChessGamePageState extends State<ChessGamePage> {
         onSelect: _selectNode,
       );
 
+  /// The move tree, and the annotation that hangs off the move it is standing
+  /// on.
+  ///
+  /// The tree used to exist only in memory: variations were built, and stored,
+  /// and exported to PGN, with nothing on screen that showed them. Playing an
+  /// alternative move from an earlier position therefore looked like it had
+  /// thrown the original continuation away — the navigation strip follows first
+  /// children and never wanders into a sibling, so there was no way back to a
+  /// line that had just been pushed sideways. It was all still there; it just
+  /// could not be reached. This is the view that reaches it.
+  Widget _buildMoveTreeSection() {
+    final node = moveTree.current;
+    final onMove = node.parent != null;
+    final mayEdit = canDriveSharedBoard;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'Stablo poteza',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+        const SizedBox(height: 6),
+        // A fixed height, because this sits inside a scrolling column and the
+        // tree's own scroll view has no height of its own to offer.
+        SizedBox(
+          height: 150,
+          child: MoveHistoryView(
+            moveTree: moveTree,
+            currentNode: node,
+            onSelectNode: mayEdit ? _selectNode : (_) {},
+          ),
+        ),
+        const SizedBox(height: 6),
+        if (mayEdit)
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              OutlinedButton.icon(
+                onPressed: onMove ? _promoteCurrentLine : null,
+                icon: const Icon(Icons.vertical_align_top, size: 16),
+                label: const Text('U glavnu liniju',
+                    style: TextStyle(fontSize: 12)),
+              ),
+              OutlinedButton.icon(
+                onPressed: onMove ? _deleteCurrentSubtree : null,
+                icon: const Icon(Icons.delete_outline, size: 16),
+                label: const Text('Obriši varijantu',
+                    style: TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
+        const SizedBox(height: 12),
+        Text(
+          onMove
+              ? 'Komentar uz potez ${formatMoveWithNumber(node, moveTree.root)}'
+              : 'Komentar (izaberite potez)',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: commentController,
+          enabled: mayEdit && onMove,
+          minLines: 2,
+          maxLines: 5,
+          onChanged: _setCurrentComment,
+          decoration: const InputDecoration(
+            hintText: 'Objašnjenje, plan, ocena pozicije...',
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          ),
+          style: const TextStyle(fontSize: 12),
+        ),
+        if (mayEdit) ...[
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: onMove ? _insertEvalIntoComment : null,
+              icon: const Icon(Icons.speed, size: 16),
+              label: const Text('Ubaci evaluaciju u komentar',
+                  style: TextStyle(fontSize: 12)),
+            ),
+          ),
+        ],
+        const Divider(height: 24),
+      ],
+    );
+  }
+
   Widget buildNavigationControls() {
     return MoveNavigationControls(
       cursor: _moveCursor(),
@@ -2438,10 +2786,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final isLandscape = media.orientation == Orientation.landscape;
 
     // Sizing of ChessBoard
+    // In landscape the left column is the board and nothing else, so it may
+    // take nearly the whole height — a little less when the eval bar is above
+    // it, which is the only other thing sharing that column.
     final boardSize = (isWide
             ? min(media.size.height * 0.62, media.size.width * 0.42)
             : isLandscape
-                ? min(media.size.height * 0.75, media.size.width * 0.42)
+                ? min(media.size.height * (_showEvalBar ? 0.84 : 0.94),
+                    media.size.width * 0.46)
                 : min(media.size.height * 0.65, media.size.width * 0.9)) *
         AppSettingsService.instance.boardSizeScale;
 
@@ -2485,9 +2837,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _openLocalPgnFile,
+                  onPressed: _showPgnImportDialog,
                   icon: const Icon(Icons.file_open, size: 16),
-                  label: const Text('Otvori PGN fajl'),
+                  label: const Text('Uvezi PGN (fajl ili tekst)'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurpleAccent,
                     foregroundColor: Colors.white,
@@ -2538,63 +2890,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       }
                     },
                     tooltip: 'Učitaj FEN',
-                  )
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: pgnPasteController,
-                      decoration: const InputDecoration(
-                        hintText: 'Nalepi PGN partiju...',
-                        border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                      ),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.playlist_add,
-                        color: Colors.deepPurpleAccent),
-                    onPressed: () {
-                      final pgnStr = pgnPasteController.text.trim();
-                      if (pgnStr.isNotEmpty) {
-                        final parsed = MoveTree.parsePgn(pgnStr);
-                        if (parsed != null && parsed.root.children.isNotEmpty) {
-                          setState(() {
-                            moveTree = parsed;
-                            commentController.text = moveTree.current.comment;
-                            pgnPasteController.clear();
-                          });
-
-                          controller.loadFen(parsed.root.fen);
-                          socket.emit('move', {
-                            'roomId': widget.roomCode,
-                            'move': null,
-                            'currentFen': parsed.root.fen,
-                            'role': widget.userSession.role,
-                            'movePath': <String>[],
-                          });
-
-                          socket.emit('pgn_loaded', {
-                            'roomId': widget.roomCode,
-                            'pgn': pgnStr,
-                          });
-
-                          _showSuccess('PGN partija učitana!');
-                          _triggerEngineAnalysis();
-                        } else {
-                          _showError('Neuspešno parsiranje PGN-a.');
-                        }
-                      } else {
-                        _showError('Nalepite PGN tekst.');
-                      }
-                    },
-                    tooltip: 'Učitaj PGN',
                   )
                 ],
               ),
@@ -2862,6 +3157,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
+                _buildMoveTreeSection(),
                 if (isStudio) ...[
                   const Divider(height: 12),
                   const Text(
@@ -2905,25 +3201,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     ),
                   ],
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              moveTree.current.arrows.clear();
-                              drawingStartSquare = null;
-                            });
-                            _recordEvent('arrow_drawn',
-                                {'arrows': <Map<String, dynamic>>[]});
-                          },
-                          icon: const Icon(Icons.layers_clear, size: 16),
-                          label: const Text('Izbriši strelice',
-                              style: TextStyle(fontSize: 12)),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildArrowEditButtons(),
                   const SizedBox(height: 12),
                   Card(
                     color: Colors.indigo.withValues(alpha: 0.15),
@@ -3059,29 +3337,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     ),
                   ],
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              moveTree.current.arrows.clear();
-                              drawingStartSquare = null;
-                            });
-                            _recordEvent('arrow_drawn',
-                                {'arrows': <Map<String, dynamic>>[]});
-                            socket.emit('pgn_loaded', {
-                              'roomId': widget.roomCode,
-                              'pgn': moveTree.exportToPgn(),
-                            });
-                          },
-                          icon: const Icon(Icons.layers_clear, size: 16),
-                          label: const Text('Izbriši strelice',
-                              style: TextStyle(fontSize: 12)),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildArrowEditButtons(),
                 ] else ...[
                   Text(
                     'Status dozvole: ${_getPermissionLabel(boardControl)}',
@@ -3822,14 +4078,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    isHost
-                                        ? "Igrate kao Beli (Host)"
-                                        : "Igrate kao Crni (Korisnik)",
-                                    style: TextStyle(
-                                        color: Colors.grey[400], fontSize: 15),
-                                  ),
-                                  const SizedBox(height: 12),
                                   if (_showEvalBar) ...[
                                     SizedBox(
                                       width: boardSize,
@@ -3866,26 +4114,26 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     )
                   : isLandscape
                       // Phone landscape: no room to stack board + everything else
-                      // vertically, so it goes side by side instead — board (+nav)
-                      // on the left, everything else in one scrollable pane on the
-                      // right. The left (lessons) sidebar stays in the Drawer.
+                      // vertically, so it goes side by side instead. The left
+                      // column holds nothing but the board (and its eval bar),
+                      // so the board gets the full height of the screen; every
+                      // control, the navigation strip included, is in the
+                      // scrollable right column. Sharing the left column with
+                      // the strip is what used to push ranks 7 and 8 off the
+                      // bottom. The left (lessons) sidebar stays in the Drawer.
                       ? Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Expanded(
+                              // Still scrollable, though the column is now only
+                              // the board: the board size is multiplied by a
+                              // user setting that can be larger than 1, and a
+                              // release build clips silently instead of saying
+                              // so.
                               child: SingleChildScrollView(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      isHost
-                                          ? "Igrate kao Beli (Host)"
-                                          : "Igrate kao Crni (Korisnik)",
-                                      style: TextStyle(
-                                          color: Colors.grey[400],
-                                          fontSize: 13),
-                                    ),
                                     const SizedBox(height: 6),
                                     if (_showEvalBar) ...[
                                       SizedBox(
@@ -3900,11 +4148,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                       const SizedBox(height: 6),
                                     ],
                                     _buildChessBoardWithOverlay(boardSize),
-                                    const SizedBox(height: 8),
-                                    SizedBox(
-                                      width: boardSize,
-                                      child: buildNavigationControls(),
-                                    ),
+                                    const SizedBox(height: 6),
                                   ],
                                 ),
                               ),
@@ -3918,6 +4162,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
+                                    buildNavigationControls(),
                                     _buildStockfishAnalysisWidget(),
                                     const SizedBox(height: 8),
                                     buildRightSidebar(),
@@ -3930,14 +4175,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       : Column(
                           children: [
                             const SizedBox(height: 8),
-                            Text(
-                              isHost
-                                  ? "Igrate kao Beli (Host)"
-                                  : "Igrate kao Crni (Korisnik)",
-                              style: TextStyle(
-                                  color: Colors.grey[400], fontSize: 13),
-                            ),
-                            const SizedBox(height: 6),
                             if (_showEvalBar) ...[
                               SizedBox(
                                 width: boardSize,
@@ -3952,17 +4189,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             ],
                             _buildChessBoardWithOverlay(boardSize),
                             const SizedBox(height: 8),
-                            // PGN navigators on mobile (fixed)
-                            SizedBox(
-                              width: boardSize,
-                              child: buildNavigationControls(),
-                            ),
-                            const SizedBox(height: 8),
-                            // Scrollable sidebar below the fixed board — the Stockfish
-                            // eval toggles ("Prikaži evaluaciju" / "Prikaži
-                            // evaluacionu liniju") live in here too now instead of
-                            // being pinned above it, so they scroll with everything
-                            // else rather than staying fixed on screen.
+                            // Everything below the board scrolls together, the
+                            // navigation strip included. The strip used to be
+                            // pinned here between two fixed toolbars, which
+                            // left the move list and the studio controls a few
+                            // dozen pixels of viewport to scroll inside on a
+                            // phone. The board is the only thing that has to
+                            // stay put.
                             Expanded(
                               child: SingleChildScrollView(
                                 padding: const EdgeInsets.symmetric(
@@ -3971,6 +4204,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
+                                    buildNavigationControls(),
                                     _buildStockfishAnalysisWidget(),
                                     const SizedBox(height: 8),
                                     buildRightSidebar(),

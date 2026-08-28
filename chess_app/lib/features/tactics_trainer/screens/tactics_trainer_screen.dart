@@ -6,6 +6,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
+import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
@@ -101,6 +102,9 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
   @override
   void dispose() {
+    // The reader is leaving, which is one of the three things that may cut a
+    // sentence off. See SpeechService.stop.
+    SpeechService.instance.stop();
     _boardController.dispose();
     super.dispose();
   }
@@ -116,6 +120,12 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
         !_skipped.contains(leaving.id)) {
       _skipped.add(leaving.id);
     }
+
+    // Moving to the next puzzle is the reader saying they are done with the
+    // last verdict; and forgetting it means the same sentence is read again
+    // when it comes round on a later puzzle.
+    SpeechService.instance.stop();
+    SpeechService.instance.forget();
 
     final token = ++_puzzleToken;
     setState(() {
@@ -692,29 +702,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
     if (message == null) return const SizedBox(height: 8);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color:
-            (_feedbackIsGood ? context.colors.success : context.colors.warning)
-                .withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            _feedbackIsGood ? Icons.check_circle_outline : Icons.error_outline,
-            size: 18,
-            color: _feedbackIsGood
-                ? context.colors.success
-                : context.colors.warning,
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(message)),
-        ],
-      ),
-    );
+    return _SpokenFeedback(message: message, isGood: _feedbackIsGood);
   }
 
   Widget _buildControls() {
@@ -771,4 +759,62 @@ String puzzleCountLabel(int count) {
     return '$count zagonetke';
   }
   return '$count zagonetaka';
+}
+
+/// The verdict, shown and — when speech is switched on — read out.
+///
+/// Speaking from the widget that shows the sentence rather than from the eight
+/// places the screen sets one, for the reason the endgame panel gives: a screen
+/// that has to remember to speak at every one of them will eventually forget at
+/// one. What is on screen is what is said, and there is no second list to keep
+/// in step.
+class _SpokenFeedback extends StatefulWidget {
+  final String message;
+  final bool isGood;
+
+  const _SpokenFeedback({required this.message, required this.isGood});
+
+  @override
+  State<_SpokenFeedback> createState() => _SpokenFeedbackState();
+}
+
+class _SpokenFeedbackState extends State<_SpokenFeedback> {
+  @override
+  void initState() {
+    super.initState();
+    SpeechService.instance.speak(widget.message);
+  }
+
+  @override
+  void didUpdateWidget(_SpokenFeedback old) {
+    super.didUpdateWidget(old);
+    if (old.message != widget.message) {
+      SpeechService.instance.speak(widget.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent =
+        widget.isGood ? context.colors.success : context.colors.warning;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            widget.isGood ? Icons.check_circle_outline : Icons.error_outline,
+            size: 18,
+            color: accent,
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(widget.message)),
+        ],
+      ),
+    );
+  }
 }

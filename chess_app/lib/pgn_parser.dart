@@ -24,6 +24,38 @@ class PgnParser {
     return pgn.replaceAll(RegExp(r'\d+\.\.\.'), '');
   }
 
+  /// Removes PGN variations — everything between a `(` and its matching `)` —
+  /// leaving the main line.
+  ///
+  /// This parser produces a linear list of positions, which is what the lesson
+  /// viewer and the review session walk, and a variation written into a lesson
+  /// by the studio is not part of that line. Left in, `load_pgn` reads the
+  /// sideline's moves as if they continued the game: "1. e4 (1. d4 d5) e5"
+  /// came back as e4, d5, e5 — a line nobody played, shown to a student as
+  /// their homework.
+  ///
+  /// Counted rather than matched with a regular expression, because variations
+  /// nest: a regex stops at the first `)` and leaves the outer one behind.
+  static String stripVariations(String pgn) {
+    final out = StringBuffer();
+    var depth = 0;
+    for (final rune in pgn.runes) {
+      final ch = String.fromCharCode(rune);
+      if (ch == '(') {
+        depth++;
+        continue;
+      }
+      if (ch == ')') {
+        // An unbalanced ')' is a malformed PGN, not a reason to start deleting
+        // the game: depth stays at zero and the character is simply dropped.
+        if (depth > 0) depth--;
+        continue;
+      }
+      if (depth == 0) out.write(ch);
+    }
+    return out.toString();
+  }
+
   static PgnGame? parse(String pgn) {
     if (pgn.trim().isEmpty) return null;
 
@@ -33,6 +65,9 @@ class PgnParser {
     cleaned = cleaned.replaceAll(RegExp(r'\[.*\]'), '');
     // Remove comments in curly braces { ... }
     cleaned = cleaned.replaceAll(RegExp(r'\{[\s\S]*?\}'), '');
+    // And then variations, once no stray bracket inside a comment can be
+    // mistaken for one.
+    cleaned = stripVariations(cleaned);
     // Remove inline comments with semicolon ;
     cleaned = cleaned.replaceAll(RegExp(r';.*'), '');
     // Remove game result markers (1-0, 0-1, 1/2-1/2, *)

@@ -2,28 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'package:chess_app/move_tree.dart';
 
-/// One position on the walked line, as the navigation strip offers it.
-///
-/// The strip never learns what a move *is* — only its label and what to call
-/// when it is tapped — which is what lets three unrelated move models share
-/// one row of buttons.
-class MoveStop {
-  final String label;
-  final bool isCurrent;
-  final VoidCallback onSelect;
-
-  /// Small leading icon, used for the "Početak" stop so it reads as a marker
-  /// rather than as a move.
-  final IconData? icon;
-
-  const MoveStop({
-    required this.label,
-    required this.isCurrent,
-    required this.onSelect,
-    this.icon,
-  });
-}
-
 /// Walking a line of moves, independent of how those moves are stored.
 ///
 /// Three models sit underneath the screens of this app — a [MoveTree] (lesson
@@ -52,10 +30,6 @@ abstract class MoveCursor {
   /// The position the cursor is standing on, or null when there is no line to
   /// stand on at all.
   String? get currentFen;
-
-  /// The line walked so far, oldest first, for the optional chip strip.
-  /// Empty means this screen offers no chips.
-  List<MoveStop> get line => const [];
 }
 
 /// A cursor over a [MoveTree], selecting nodes through [onSelect].
@@ -105,46 +79,13 @@ class MoveTreeCursor implements MoveCursor {
     }
     onSelect(curr);
   }
-
-  @override
-  List<MoveStop> get line {
-    final path = <MoveNode>[];
-    MoveNode? curr = currentNode;
-    while (curr != null && curr.parent != null) {
-      path.insert(0, curr);
-      curr = curr.parent;
-    }
-
-    return [
-      MoveStop(
-        label: 'Početak',
-        isCurrent: currentNode == moveTree.root,
-        onSelect: first,
-        icon: Icons.flag,
-      ),
-      for (final node in path)
-        MoveStop(
-          label: formatMoveWithNumber(node, moveTree.root),
-          isCurrent: node == currentNode,
-          onSelect: () => onSelect(node),
-        ),
-    ];
-  }
 }
 
 /// A cursor over a line replayed into a list of positions: [fens] holds the
 /// starting position followed by one entry per move, so index 0 is "before the
 /// first move" and [fens].length - 1 is the end.
-///
-/// The end is taken from [fens] rather than from [movesSan] on purpose. The two
-/// come from the same parse and normally agree, but if they ever did not, a
-/// bound read off the labels would walk past the last position it can show.
 class LinearMoveCursor implements MoveCursor {
   final List<String> fens;
-
-  /// One label per move, in order. May be empty — then the strip still walks,
-  /// it just cannot offer chips.
-  final List<String> movesSan;
 
   /// Where the cursor stands: 0 is the starting position.
   final int index;
@@ -156,7 +97,6 @@ class LinearMoveCursor implements MoveCursor {
     required this.fens,
     required this.index,
     required this.onSeek,
-    this.movesSan = const [],
   });
 
   int get _lastIndex => fens.isEmpty ? 0 : fens.length - 1;
@@ -182,27 +122,6 @@ class LinearMoveCursor implements MoveCursor {
 
   @override
   void last() => onSeek(_lastIndex);
-
-  @override
-  List<MoveStop> get line {
-    if (fens.isEmpty || movesSan.isEmpty) return const [];
-    final rootFen = fens.first;
-
-    return [
-      MoveStop(
-        label: 'Početak',
-        isCurrent: index == 0,
-        onSelect: first,
-        icon: Icons.flag,
-      ),
-      for (var ply = 0; ply < movesSan.length; ply++)
-        MoveStop(
-          label: formatSanAtPly(rootFen: rootFen, ply: ply, san: movesSan[ply]),
-          isCurrent: index == ply + 1,
-          onSelect: () => onSeek(ply + 1),
-        ),
-    ];
-  }
 }
 
 /// Formats [node]'s SAN with its move number relative to [rootNode], the way

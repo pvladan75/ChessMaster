@@ -614,7 +614,6 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
                         // No chips. Naming the moves under the board says in
                         // notation what the board is already saying in pieces, and
                         // it is the form a child working on a board needs least.
-                        showMoveChips: false,
                         centerLabel: 'Potez ${walk.cursor} od ${walk.frontier}',
                         onFlipBoard: () => setState(() {
                           _orientation = _orientation == PlayerColor.white

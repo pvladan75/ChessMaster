@@ -1563,3 +1563,65 @@ prolazi i parser (`Parser::ParseFile`, bez grešaka).
 - [ ] `flutter run` ili APK iz CI-ja → piše „build nije označen". Verzija se
       **ne** prikazuje sama, jer `1.1.0+2` je isti niz na svim gradnjama ove
       nedelje i izgledao bi kao odgovor.
+
+---
+
+## 43. Jedanaest nalaza sa prolaska kroz aplikaciju — 28.8.2026, nije viđeno uživo
+
+Sve iz `TESTING_LOG.md` (dnevnik provere koji korisnik vodi van repozitorijuma).
+`flutter analyze` je čist, `flutter test` prolazi 767 (bilo 746). Ništa od
+navedenog **nije viđeno kako radi**.
+
+**Raspored ekrana — traži telefon, ne izlazi u testovima.** Release build ne crta
+upozorenje o prekoračenju, pa se ovo ne vidi ni u `analyze` ni u logu:
+
+- [ ] Uspravno, `Šahovski studio` i `Časovi → Nova sesija`: tabla stoji, a
+      **sve ispod nje se skroluje zajedno** — navigacija, motor, bočni panel.
+      Traka je do sada bila zakucana i jela ~64 dp na telefonu.
+- [ ] Položeno: leva kolona je **samo tabla**, desna sve ostalo uključujući
+      navigaciju. Provera koja se traži: **vide li se redovi 7 i 8** — do sada
+      su bili odsečeni jer je traka delila levu kolonu sa tablom.
+- [ ] Ista dva rasporeda i sa uključenom evaluacionom linijom (tabla se tada
+      smanjuje sa 94% na 84% visine) i sa uvećanjem table iz Podešavanja
+      preko 1.0.
+- [ ] Natpis „Igrate kao Beli (Host)" je nestao sa sva tri rasporeda.
+
+**Stablo poteza i komentari — glavni deo posla:**
+
+- [ ] Odigrati liniju, vratiti se dva poteza, odigrati drugi potez → **izvorni
+      nastavak se i dalje vidi** u „Stablo poteza", u zagradi, i dodir na njega
+      vraća tablu na njega. To je stavka zbog koje je sve ostalo pisano.
+- [ ] „U glavnu liniju" okreće **sve račve do korena**, ne samo najbližu.
+- [ ] „Obriši varijantu" seče i vraća na roditelja.
+- [ ] Komentar se kuca u polje ispod stabla; zaglavlje imenuje potez. Prelazak
+      na drugi potez pa nazad → komentar je i dalje tu.
+- [ ] U sobi (ne studiju): komentar stiže i drugom učesniku, i to **tek pošto
+      se prestane kucati** (600 ms), a ne po slovu.
+- [ ] Sačuvati kao lekciju → dodeliti učeniku → učenik u pregledaču vidi
+      **trenerov komentar ispod table** za potez na kom stoji, i **linija je
+      glavna linija**, ne sporedna. Ovo je put na kom je nađen bag sa
+      varijacijama; vredi ga proći sa lekcijom koja **ima** varijaciju.
+
+**Motor u stablo:**
+
+- [ ] Dugme na redu linije i „Ubaci kao varijaciju" u dijalogu → linija ulazi
+      kao varijanta, evaluacija se upisuje na njen prvi potez, a **kursor ostaje
+      gde je bio**.
+- [ ] Ista linija dvaput → „Linija je već bila u stablu", bez druge iste grane.
+- [ ] „Ubaci evaluaciju u komentar" dopisuje `[+2.22 / dubina 24]`.
+
+**Sitnije:**
+
+- [ ] Strelice: ponovo povučena ista strelica se briše; „Poništi strelicu" vraća
+      poslednju; „Izbriši sve strelice" i dalje briše sve. Provera i u sobi, gde
+      se promena emituje, i u studiju, gde se ne emituje.
+- [ ] Postavljanje pozicije: dodir na polje sa **istom** figurom je uklanja, dug
+      pritisak i desni klik prazne polje bez brisača. Oba dijaloga — sobin i onaj
+      u Analysis Studio-u.
+- [ ] „Uvezi PGN (fajl ili tekst)" otvara dijalog; nalepljena partija se učita, a
+      nalepljen izvoz sa više partija ponudi izbor (to staro polje nije umelo).
+- [ ] „Taktika po vašoj meri" izgovara poruke kao „Završnice" — i **ćuti** kad se
+      pređe na sledeću zagonetku ili napusti ekran. Windows bez srpskog glasa i
+      dalje ćuti, kao i dosad.
+- [ ] Traka sa čipovima poteza („Početak", „1. Bd1", …) više se ne pojavljuje
+      **nigde**, a grafičko stablo rešenja u „Mat u N poteza" je netaknuto.

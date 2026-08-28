@@ -9,11 +9,16 @@ class EngineLineDialog extends StatefulWidget {
   final PlayerColor orientation;
   final Function(String fen)? onLoadFenToMainBoard;
 
+  /// Plays the whole line into the calling screen's move tree. Null where
+  /// there is no tree to play it into.
+  final Function(AnalysisLine line)? onInsertLineAsVariation;
+
   const EngineLineDialog({
     super.key,
     required this.line,
     required this.orientation,
     this.onLoadFenToMainBoard,
+    this.onInsertLineAsVariation,
   });
 
   @override
@@ -144,6 +149,16 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Zatvori'),
         ),
+        if (widget.onInsertLineAsVariation != null &&
+            widget.line.sanMoveList.isNotEmpty)
+          OutlinedButton.icon(
+            onPressed: () {
+              widget.onInsertLineAsVariation!(widget.line);
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.call_split, size: 16),
+            label: const Text('Ubaci kao varijaciju'),
+          ),
         if (widget.onLoadFenToMainBoard != null &&
             widget.line.fenList.isNotEmpty)
           ElevatedButton.icon(

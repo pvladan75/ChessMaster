@@ -587,14 +587,26 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                   final piece = _builderBoard[row][col];
 
                   return InkWell(
+                    // Same three ways to clear a square as the lesson room's
+                    // setup board: tap the armed piece again, long-press, or
+                    // right-click. Switching to the eraser and back to place
+                    // one more piece is the part that made this tedious.
                     onTap: () {
                       setState(() {
-                        if (_selectedPalettePiece == 'CLEAR') {
+                        if (_selectedPalettePiece == 'CLEAR' ||
+                            (piece.isNotEmpty &&
+                                piece == _selectedPalettePiece)) {
                           _builderBoard[row][col] = '';
                         } else {
                           _builderBoard[row][col] = _selectedPalettePiece;
                         }
                       });
+                    },
+                    onLongPress: () {
+                      setState(() => _builderBoard[row][col] = '');
+                    },
+                    onSecondaryTap: () {
+                      setState(() => _builderBoard[row][col] = '');
                     },
                     child: Container(
                       color: isDarkSquare

@@ -52,6 +52,32 @@ class PgnGameInfo {
   }
 }
 
+/// What [MoveTree.appendLine] did with the moves it was given.
+class AppendedLine {
+  /// The node the walk ended on. The node it started from when nothing at all
+  /// could be played.
+  final MoveNode end;
+
+  /// The first move of the line, whether it was created here or was already in
+  /// the tree. Null when not a single move was playable.
+  final MoveNode? head;
+
+  /// How many nodes this actually created. Zero means every move was already
+  /// in the tree, or none of them was legal — [rejected] tells those apart.
+  final int added;
+
+  /// A move in the line was not legal from the position reached. The walk
+  /// stops there and keeps what came before it.
+  final bool rejected;
+
+  const AppendedLine({
+    required this.end,
+    required this.head,
+    required this.added,
+    required this.rejected,
+  });
+}
+
 class MoveTree {
   final MoveNode root;
   MoveNode current;
@@ -272,6 +298,79 @@ class MoveTree {
     }
 
     return tree;
+  }
+
+  /// Plays a line of long-algebraic moves ("e2e4", "e7e8q") onto [from].
+  ///
+  /// Replays them against [from]'s own position rather than trusting positions
+  /// computed elsewhere: an engine line is calculated for the board's FEN and
+  /// filed under a node's, and while those are the same position they are not
+  /// guaranteed to be the same string. A move that is not legal from here ends
+  /// the walk rather than writing a node nothing can reach.
+  ///
+  /// A move already among the children is stepped into rather than added a
+  /// second time — the same rule a hand-played move follows, so filing the
+  /// engine's first choice twice does not grow two identical branches.
+  static AppendedLine appendLine(MoveNode from, List<String> lanMoves) {
+    final game = chess.Chess();
+    if (!game.load(from.fen)) {
+      return AppendedLine(end: from, head: null, added: 0, rejected: true);
+    }
+
+    var node = from;
+    MoveNode? head;
+    var added = 0;
+
+    for (final lan in lanMoves) {
+      if (lan.length < 4) break;
+      final fromSq = lan.substring(0, 2);
+      final toSq = lan.substring(2, 4);
+      final promotion = lan.length > 4 ? lan[4] : null;
+      final move = {
+        'from': fromSq,
+        'to': toSq,
+        if (promotion != null) 'promotion': promotion,
+      };
+
+      if (!game.move(move)) {
+        return AppendedLine(
+            end: node, head: head, added: added, rejected: true);
+      }
+
+      // The move has to be named from the position before it, which is why it
+      // is played, taken back for the naming, and played again.
+      final played = game.history.last.move;
+      game.undo_move();
+      final san = game.move_to_san(played);
+      game.move(move);
+
+      MoveNode? existing;
+      for (final child in node.children) {
+        if (child.from == fromSq && child.to == toSq) {
+          existing = child;
+          break;
+        }
+      }
+
+      if (existing != null) {
+        node = existing;
+      } else {
+        final child = MoveNode(
+          san: san,
+          fen: game.fen,
+          from: fromSq,
+          to: toSq,
+          parent: node,
+        );
+        node.children.add(child);
+        node = child;
+        added++;
+      }
+
+      head ??= node;
+    }
+
+    return AppendedLine(end: node, head: head, added: added, rejected: false);
   }
 
   // Split PGN file into multiple games

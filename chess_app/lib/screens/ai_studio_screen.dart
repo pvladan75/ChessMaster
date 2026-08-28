@@ -2706,7 +2706,6 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                           if (_puzzleMoveTree != null)
                             MoveNavigationControls(
                               cursor: _moveCursor()!,
-                              showMoveChips: true,
                             ),
                         ],
                       ),
@@ -2819,7 +2818,6 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     if (_puzzleMoveTree != null)
                       MoveNavigationControls(
                         cursor: _moveCursor()!,
-                        showMoveChips: true,
                       ),
                   ],
                 ),

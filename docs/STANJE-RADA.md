@@ -15,7 +15,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 27.8.2026.
+Poslednje ažuriranje: 28.8.2026.
 
 ---
 
@@ -1510,3 +1510,70 @@ Prijavljeni učenik ionako ne zavisi od polja: postoje trenerov poziv uživo
 (`lesson_invite_received`), obaveštenje o zakazanom času sa sopstvenim dugmetom
 „Pridruži se", i traka za nastavak započetog časa. **Odluka o polju je, dakle,
 odluka o gostima** — i tek kad se ona donese, briše se i ostalo što uz nju ide.
+
+---
+
+## Jedanaest nalaza sa prolaska kroz aplikaciju — 28.8.2026
+
+Korisnik je vodio zaseban dnevnik provere (`D:/Projekti/mislisha-test/
+TESTING_LOG.md`, van ovog repozitorijuma) sa jedanaest stavki: dva baga i devet
+želja. Sve su rešene istog dana. Ovde stoji samo ono što se iz koda ne vidi —
+razlozi, i dve stvari koje su namerno ostavljene.
+
+### Stablo poteza je postojalo, samo se nije videlo
+
+Najveći nalaz nije bio nedostatak funkcije nego njena nevidljivost. `MoveTree`
+u `chess_game_screen.dart` odavno pravi varijacije, čuva ih i izvozi u PGN, a
+`_promptBranchingDialog` čak pita gde novi potez ide. Ali `MoveHistoryView` —
+napisan, potpun, sa varijacijama i komentarima — **nije bio pozvan nigde**, a
+navigaciona traka ide isključivo kroz prvo dete. Trener bi se vratio dva poteza
+unazad, odigrao drugi potez, i izvorni nastavak bi mu nestao sa ekrana iako je
+i dalje bio u stablu.
+
+Isto se ponovilo sa komentarima: `commentController` se održavao u koraku sa
+izabranim čvorom na **četrnaest** mesta, a nijedno polje nije bilo vezano za
+njega. Zato je stavka u dnevniku glasila „studio nema komentare ni čuvanje" —
+čuvanje je radilo sve vreme, samo nije imalo šta da sačuva.
+
+**Pouka koja se ponavlja:** grep na „ko koristi ovaj widget" pre nego što se
+piše nov. Dva gotova, testabilna dela stajala su neupotrebljena, a nalaz je
+opisan kao nedostatak arhitekture.
+
+### Varijacije su, čim su postale vidljive, otkrile pravi bag
+
+`PgnParser` (koji čitaju pregledač lekcije i ponavljanje) uklanja `{komentare}`
+ali **nije uklanjao `(varijacije)`**. `chess.load_pgn` je zato poteze sporedne
+linije čitao kao nastavak partije: `1. e4 (1. d4 d5) e5` vraća e4, d5, e5 —
+liniju koju niko nije odigrao, prikazanu detetu kao domaći zadatak.
+
+Nije grizlo dosad zato što ništa nije proizvodilo lekcije sa varijacijama.
+Rešeno vidljivo (`PgnParser.stripVariations`, broji zagrade jer se varijacije
+gnezde), ali obrazac je poznat: **funkcija koja se tek uključuje otkriva put
+koji je oduvek bio pogrešan.** Isto kao `zlib.zstd*` i `sed s/^KEY=.*/`.
+
+Uz to, trenerova beleška se sada vidi i učeniku, ispod table u pregledaču
+lekcije. Linija se čita jednim parserom a beleške drugim, pa ako se ta dva ne
+slože oko broja poteza, **ne prikazuje se nijedan komentar** — beleška ispod
+pogrešnog poteza je gore od nijedne, jer izgleda kao da je trener rekao nešto
+što nije.
+
+### Traka sa čipovima poteza je uklonjena, ne isključena
+
+Želja je bila da nestane vodoravna traka poteza iznad navigacije, svuda. Pošto
+je `showMoveChips: true` stajalo na tačno dva mesta i ništa drugo nije čitalo
+`MoveCursor.line`, uklonjeno je celo — `MoveStop`, oba `line` gettera, parametar
+i sam widget. `formatMoveWithNumber` je ostao, jer sada imenuje potez u zaglavlju
+polja za komentar.
+
+### Šta je namerno izostavljeno
+
+- **NAG oznake** (`$1` = `!`, `$14` = `⩲`). Tekstualni komentari putuju kroz PGN
+  u oba smera; glifovi nemaju polje na `MoveNode`, izvoz ih ne piše, a uvoz
+  `!`/`?` baca pri čišćenju tokena. Traži polje, birač u UI-ju i odluku šta sa
+  tim što se već baca — sopstvena stavka, ne dodatak uz komentare.
+- **Prevlačenje figure van table** u postavljanju pozicije. Dodir na istu
+  figuru, dug pritisak i desni klik sada svi prazne polje; prevlačenje bi
+  tražilo `Draggable`/`DragTarget` na svih 64 polja i na paleti, što je veće od
+  sva tri zajedno a kupuje četvrti način za isto.
+
+Obe stoje kao zasebne otvorene stavke u dnevniku provere.

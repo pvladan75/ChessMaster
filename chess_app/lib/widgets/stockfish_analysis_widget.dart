@@ -20,6 +20,11 @@ class StockfishAnalysisWidget extends StatelessWidget {
   final VoidCallback? onForceRestart;
   final Function(String fen)? onLoadFenToMainBoard;
 
+  /// Plays an engine line into the screen's own move tree, as a variation off
+  /// the position being analysed. Null on a screen that has no move tree to
+  /// put it in, and then no button for it is offered.
+  final Function(AnalysisLine line)? onInsertLineAsVariation;
+
   /// This board's own analysis dials. Null on a screen that has no say over
   /// them — a small preview, or a board somebody else is driving.
   final int? analysisDepth;
@@ -41,6 +46,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
     this.onOpenSettings,
     this.onForceRestart,
     this.onLoadFenToMainBoard,
+    this.onInsertLineAsVariation,
     this.analysisDepth,
     this.analysisLines,
     this.onAnalysisDepthChanged,
@@ -54,6 +60,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
         line: line,
         orientation: orientation,
         onLoadFenToMainBoard: onLoadFenToMainBoard,
+        onInsertLineAsVariation: onInsertLineAsVariation,
       ),
     );
   }
@@ -301,6 +308,16 @@ class StockfishAnalysisWidget extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 4),
+                          if (onInsertLineAsVariation != null)
+                            IconButton(
+                              onPressed: () => onInsertLineAsVariation!(line),
+                              icon: const Icon(Icons.call_split, size: 16),
+                              color: Colors.tealAccent,
+                              visualDensity: VisualDensity.compact,
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.all(4),
+                              tooltip: 'Ubaci liniju kao varijaciju',
+                            ),
                           const Icon(Icons.more_horiz,
                               size: 16, color: Colors.grey),
                         ],

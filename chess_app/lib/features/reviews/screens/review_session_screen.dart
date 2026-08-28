@@ -323,7 +323,6 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
   /// arrow keys read it from here rather than each building their own.
   MoveCursor _moveCursor() => LinearMoveCursor(
         fens: _fens,
-        movesSan: _moves,
         index: _moveIndex,
         onSeek: _seek,
       );

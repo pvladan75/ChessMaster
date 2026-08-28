@@ -49,11 +49,6 @@ class AnalysisNodeCursor implements MoveCursor {
     onSelect(curr);
   }
 
-  /// The studio shows its line as a tree of its own, below the board, so the
-  /// strip offers no chips here.
-  @override
-  List<MoveStop> get line => const [];
-
   /// Walks up from [node] to the nearest ancestor that is itself a branch
   /// point (has more than one child) — i.e. the node the current line
   /// diverged from. If the path back to the root never branches, that's

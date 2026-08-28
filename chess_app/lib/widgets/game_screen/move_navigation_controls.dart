@@ -4,7 +4,7 @@ import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 
 /// First/prev/next/last toolbar for walking a line of moves, with an optional
-/// strip of tappable move chips above it and an optional flip button.
+/// flip button.
 ///
 /// This is the one navigation strip in the app. It used to be six: this one for
 /// the lesson room, a near-identical `MoveHistoryNavigationWidget` for the AI
@@ -26,13 +26,7 @@ class MoveNavigationControls extends StatelessWidget {
   /// Omitted where the screen has no board orientation to flip.
   final VoidCallback? onFlipBoard;
 
-  /// Shows the walked line as tappable chips above the buttons — worth the
-  /// vertical space when jumping several moves back is the common action, as
-  /// in puzzle solving. Ignored when the cursor offers no [MoveCursor.line].
-  final bool showMoveChips;
-
-  /// Label between the back and forward buttons, e.g. "Potez 3 od 12". Hidden
-  /// when chips are shown, since the chips already say where you are.
+  /// Label between the back and forward buttons, e.g. "Potez 3 od 12".
   final String? centerLabel;
 
   /// Screen-specific buttons appended after the flip button — the Analysis
@@ -48,7 +42,6 @@ class MoveNavigationControls extends StatelessWidget {
     required this.cursor,
     this.canNavigate = true,
     this.onFlipBoard,
-    this.showMoveChips = false,
     this.centerLabel = 'Navigacija',
     this.trailing = const [],
     this.iconSize,
@@ -58,7 +51,6 @@ class MoveNavigationControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final canGoBack = canNavigate && cursor.canGoBack;
     final canGoForward = canNavigate && cursor.canGoForward;
-    final stops = showMoveChips ? cursor.line : const <MoveStop>[];
 
     // A Wrap, not a Row. Nine buttons at a 48 dp touch target need 432 dp and a
     // phone has 360–410, so the Analysis Studio's NAG and delete buttons ran off
@@ -81,7 +73,7 @@ class MoveNavigationControls extends StatelessWidget {
           onPressed: canGoBack ? cursor.previous : null,
           tooltip: 'Prethodni potez',
         ),
-        if (stops.isEmpty && centerLabel != null)
+        if (centerLabel != null)
           Text(
             centerLabel!,
             style: const TextStyle(fontWeight: FontWeight.bold),
@@ -109,52 +101,7 @@ class MoveNavigationControls extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (stops.isNotEmpty) ...[
-            _MoveChipStrip(stops: stops, canNavigate: canNavigate),
-            const SizedBox(height: 6),
-          ],
-          buttons,
-        ],
-      ),
-    );
-  }
-}
-
-/// The walked line as chips, oldest first, with the current stop selected.
-class _MoveChipStrip extends StatelessWidget {
-  final List<MoveStop> stops;
-  final bool canNavigate;
-
-  const _MoveChipStrip({required this.stops, required this.canNavigate});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final stop in stops)
-            Padding(
-              padding: const EdgeInsets.only(right: 6.0),
-              child: ChoiceChip(
-                avatar: stop.icon == null ? null : Icon(stop.icon, size: 14),
-                label: Text(
-                  stop.label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight:
-                        stop.isCurrent ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-                selected: stop.isCurrent,
-                onSelected: canNavigate ? (_) => stop.onSelect() : null,
-              ),
-            ),
-        ],
-      ),
+      child: buttons,
     );
   }
 }

@@ -75,7 +75,9 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Izaberite figuru i kliknite na polje tabele da je postavite:',
+                'Izaberite figuru i kliknite na polje da je postavite. '
+                'Ponovni klik na istu figuru je uklanja, a dug pritisak '
+                '(ili desni klik) prazni polje.',
                 style: TextStyle(fontSize: 11, color: Colors.grey),
               ),
               const SizedBox(height: 8),
@@ -168,10 +170,23 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                       bool isLight = (r + c) % 2 == 0;
                       final p = grid[r][c];
                       return InkWell(
+                        // Tapping a square that already holds the armed piece
+                        // takes it off again, so correcting one square does not
+                        // mean switching to the eraser and back. Long-press and
+                        // right-click clear regardless of what is armed, which
+                        // is the shortcut a mouse and a phone each expect.
                         onTap: () {
                           setState(() {
-                            grid[r][c] = selectedPiece;
+                            grid[r][c] = (p != null && p == selectedPiece)
+                                ? null
+                                : selectedPiece;
                           });
+                        },
+                        onLongPress: () {
+                          setState(() => grid[r][c] = null);
+                        },
+                        onSecondaryTap: () {
+                          setState(() => grid[r][c] = null);
                         },
                         child: Container(
                           color: isLight

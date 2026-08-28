@@ -31,11 +31,9 @@ AnalysisNode _analysisChain(AnalysisNode root, List<String> sans) {
 void main() {
   group('LinearMoveCursor', () {
     late List<int> seeks;
-    LinearMoveCursor cursorAt(int index,
-            {List<String>? fens, List<String> movesSan = const []}) =>
+    LinearMoveCursor cursorAt(int index, {List<String>? fens}) =>
         LinearMoveCursor(
           fens: fens ?? const ['a', 'b', 'c'],
-          movesSan: movesSan,
           index: index,
           onSeek: seeks.add,
         );
@@ -56,11 +54,8 @@ void main() {
       expect(cursor.currentFen, isNull);
     });
 
-    test('the end is the last position, not the last label', () {
-      // The two come from one parse and normally agree. If they ever did not,
-      // taking the bound off the labels would walk past the last position the
-      // screen can show — the whole point of reading it from the FENs.
-      final cursor = cursorAt(0, movesSan: const ['e4']);
+    test('the end is the last position the cursor was given', () {
+      final cursor = cursorAt(0);
       cursor.last();
       expect(seeks, [2]);
     });
@@ -72,21 +67,6 @@ void main() {
         ..next()
         ..last();
       expect(seeks, [0, 0, 2, 2]);
-    });
-
-    test('chips are numbered from the starting position', () {
-      final cursor = cursorAt(
-        1,
-        fens: const [_startFen, _startFen, _startFen],
-        movesSan: const ['e4', 'e5'],
-      );
-      expect(cursor.line.map((s) => s.label), ['Početak', '1. e4', 'e5']);
-      expect(cursor.line.map((s) => s.isCurrent), [false, true, false]);
-    });
-
-    test('without labels there are no chips, even though walking works', () {
-      expect(cursorAt(1).line, isEmpty);
-      expect(cursorAt(1).canGoForward, isTrue);
     });
   });
 
