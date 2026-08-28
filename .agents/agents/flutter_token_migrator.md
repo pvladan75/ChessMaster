@@ -129,6 +129,17 @@ the task briefs cite these rules by number, so nothing here is ever renumbered.
     pairing: `onPrimary`, `onSecondary` and `onError` in `lib/theme/app_theme.dart`
     are all `#0F172A`, which is `colors.canvas`.
 
+    **This rule is about the light 400-level tokens, and only those.** It was
+    written when every semantic token in the palette was light, so "token as a
+    background" and "light colour as a background" were the same sentence. They
+    are not the same rule. A **container** token — a dark hued surface, should
+    the palette grow one — carries its own paired on-container foreground, and
+    `canvas` on it would be near-invisible. Batch 6 measured the case: a
+    proposed Sky 700 container reaches 5.93:1 under white and **3.01:1** under
+    `canvas`. Check which kind of token you are holding before you apply the
+    pairing: if the background is darker than `surfaceRaised`, this rule does
+    not apply and the foreground is a light on-container colour.
+
     Before you finish a file, find every site in your own diff where a `colors.*`
     token became a `BoxDecoration.color`, a `backgroundColor`, or a
     `Container.color`, and resolve what is drawn on top of each one. Compute the
