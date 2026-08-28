@@ -243,7 +243,7 @@ class _PaletteGrid extends StatelessWidget {
       _SwatchData(
           'warning (Amber)', colors.warning, '#FBBF24', '8.76:1 AA Upozorenje'),
       _SwatchData(
-          'danger (Rose)', colors.danger, '#FB7185', '5.44:1 AA Greška/Mat'),
+          'danger (Rose)', colors.danger, '#FDA4AF', '7.71:1 AA Greška/Mat'),
       _SwatchData('success (Green)', colors.success, '#4ADE80',
           '8.40:1 AA Tačan potez'),
     ];
@@ -610,22 +610,34 @@ class _ButtonsSection extends StatelessWidget {
               FilledButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.play_arrow),
-                label: const Text('Započni trening'),
+                label: const Text('Primarno'),
+              ),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: colors.brand.withValues(alpha: 0.22),
+                  foregroundColor: colors.brand,
+                  side: BorderSide(
+                    color: colors.brand.withValues(alpha: 0.45),
+                  ),
+                ),
+                onPressed: () {},
+                icon: const Icon(Icons.menu_book_outlined),
+                label: const Text('Tonalno'),
               ),
               ElevatedButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.emoji_events_outlined),
-                label: const Text('Dobij poziciju'),
+                label: const Text('Izdignuto'),
               ),
               OutlinedButton.icon(
                 onPressed: () {},
-                icon: const Icon(Icons.menu_book_outlined),
-                label: const Text('Otvori repertoar'),
+                icon: const Icon(Icons.filter_list),
+                label: const Text('Uokvireno'),
               ),
               TextButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.refresh),
-                label: const Text('Pokušaj ponovo'),
+                label: const Text('Tekstualno'),
               ),
               IconButton(
                 onPressed: () {},
@@ -982,7 +994,7 @@ class _ChessComponentsSection extends StatelessWidget {
                         _MoveRow(
                           moveNum: '3.',
                           whiteMove: 'Bc4',
-                          blackMove: 'Nf6?!',
+                          blackMove: 'Nf6',
                           whiteGlyph: '!',
                           blackGlyph: '?!',
                           isCurrent: true,
@@ -1283,7 +1295,7 @@ class _DialogPreviewSection extends StatelessWidget {
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          'Završi lekciju?',
+                          'Završi trening?',
                           style:
                               AppText.title.copyWith(color: colors.textPrimary),
                         ),

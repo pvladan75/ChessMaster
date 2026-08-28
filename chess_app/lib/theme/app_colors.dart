@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 
 export 'app_spacing.dart';
 export 'app_radii.dart';
+export 'app_theme.dart';
 
 /// Named color roles for the app's dark UI, registered as a [ThemeExtension]
 /// so screens read `context.colors.X`.
 ///
-/// Every foreground color is calibrated against the three dark surfaces
-/// (canvas #0F172A, surface #1E293B, surfaceRaised #334155) to guarantee WCAG AA
-/// compliance (>= 4.5:1 for body text, >= 3.0:1 for large text/icons and UI elements).
+/// Contrast guarantees (WCAG 2.1):
+/// - On canvas (#0F172A) and surface (#1E293B): ALL text and semantic tokens guarantee >= 4.5:1.
+/// - On surfaceRaised (#334155): textPrimary, textSecondary, and critical alert tokens
+///   (danger, warning, success, info, accent) guarantee >= 4.5:1 for body text.
+///   Supporting roles (textMuted, accentAlt, brand) guarantee >= 3.0:1 for icons, badges,
+///   chips, and large text.
 /// Exact measured contrast ratios are documented beside each token.
 @immutable
 class AppColorTokens extends ThemeExtension<AppColorTokens> {
@@ -73,31 +77,31 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
 
     // Semantic accents
     // #2DD4BF (Teal 400 - Engine, active interactive state):
-    // Contrast: 9.59:1 on canvas / 7.86:1 on surface / 5.56:1 on surfaceRaised (WCAG AA)
+    // Contrast: 9.59:1 on canvas / 7.86:1 on surface / 5.56:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
     accent: Color(0xFF2DD4BF),
 
     // #C084FC (Purple 400 - Variations, alternative moves, secondary branches):
-    // Contrast: 6.76:1 on canvas / 5.54:1 on surface / 3.92:1 on surfaceRaised (WCAG AA)
+    // Contrast: 6.76:1 on canvas / 5.54:1 on surface / 3.92:1 on surfaceRaised (WCAG AA on canvas & surface; >=3:1 on raised)
     accentAlt: Color(0xFFC084FC),
 
     // #A78BFA (Violet 400 - Mislisha platform brand identity):
-    // Contrast: 6.56:1 on canvas / 5.38:1 on surface / 3.80:1 on surfaceRaised (WCAG AA)
+    // Contrast: 6.56:1 on canvas / 5.38:1 on surface / 3.80:1 on surfaceRaised (WCAG AA on canvas & surface; >=3:1 on raised)
     brand: Color(0xFFA78BFA),
 
     // #38BDF8 (Sky 400 - Information, hints):
-    // Contrast: 8.33:1 on canvas / 6.83:1 on surface / 4.83:1 on surfaceRaised (WCAG AA)
+    // Contrast: 8.33:1 on canvas / 6.83:1 on surface / 4.83:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
     info: Color(0xFF38BDF8),
 
     // #FBBF24 (Amber 400 - Warnings, blunder alerts):
-    // Contrast: 10.69:1 on canvas / 8.76:1 on surface / 6.20:1 on surfaceRaised (WCAG AA)
+    // Contrast: 10.69:1 on canvas / 8.76:1 on surface / 6.20:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
     warning: Color(0xFFFBBF24),
 
-    // #FB7185 (Rose 400 - Errors, lost position, invalid moves):
-    // Contrast: 6.63:1 on canvas / 5.44:1 on surface / 3.85:1 on surfaceRaised (WCAG AA)
-    danger: Color(0xFFFB7185),
+    // #FDA4AF (Rose 300 - Errors, lost position, invalid moves):
+    // Contrast: 9.54:1 on canvas / 7.71:1 on surface / 5.39:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
+    danger: Color(0xFFFDA4AF),
 
     // #4ADE80 (Green 400 - Correct moves, solved puzzles, victories; distinct from Teal accent):
-    // Contrast: 10.25:1 on canvas / 8.40:1 on surface / 5.94:1 on surfaceRaised (WCAG AA)
+    // Contrast: 10.25:1 on canvas / 8.40:1 on surface / 5.94:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
     success: Color(0xFF4ADE80),
   );
 

@@ -74,9 +74,9 @@ class ChessColorTokens extends ThemeExtension<ChessColorTokens> {
   final Color squareLastMove;     // e.g. rgba(45, 212, 191, 0.35) (Teal highlight)
   final Color squareSelected;     // e.g. rgba(192, 132, 252, 0.40) (Purple highlight)
   final Color squareLegalMove;    // e.g. rgba(255, 255, 255, 0.25) dot / ring
-  final Color squareCheck;        // e.g. rgba(251, 113, 133, 0.60) (Rose highlight)
+  final Color squareCheck;        // e.g. rgba(253, 164, 175, 0.60) (Rose highlight)
   final Color clockActive;        // e.g. #2DD4BF
-  final Color clockLowTime;       // e.g. #FB7185 (< 30s alert)
+  final Color clockLowTime;       // e.g. #FDA4AF (< 30s alert)
   final Color evalWhite;          // e.g. #FFFFFF
   final Color evalBlack;          // e.g. #1E293B
 }
