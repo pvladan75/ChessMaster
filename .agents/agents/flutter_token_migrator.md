@@ -165,3 +165,38 @@ the task briefs cite these rules by number, so nothing here is ever renumbered.
     The general form, and the reason this is a rule rather than a correction:
     **a brief that hands you two instances of a rule is giving you the rule, not
     the census.** Enumerate the instances yourself, from the diff.
+
+## THE SEVENTH, FOUND BY THE GATE THAT WAS FIXED TO SEE IT
+
+24. **A tinted background is not a token background, and rule 23 is wrong on
+    one.**
+
+    `context.colors.warning.withValues(alpha: 0.3)` over `surface` is not
+    `warning`. It is a faintly warm dark surface, and it takes the ordinary text
+    colours. Measured across all seven light tokens at alpha 0.30 over
+    `surface`:
+
+        textPrimary     6.97 - 8.38    safe on every one
+        textSecondary   4.91 - 5.90    clears AA on every one
+        canvas          2.04 - 2.45    fails on every one
+
+    `canvas` is exactly what rule 23 mandates for a *solid* token background,
+    and it is the one foreground that never works on a tint. Reaching for it
+    because the background expression contains a token is a guaranteed defect.
+    Rule 23 is about a token painted at full strength; check which you are
+    holding before you apply it.
+
+    **The same token on its own tint is a decoration, not a default.** It is the
+    obvious-looking choice and it usually fails. At alpha 0.30 every one of the
+    seven is under 4.5 — accent 4.06, danger 4.02, warning 4.37, success 4.22,
+    info 3.72, accentAlt 3.29, brand 3.22. Dropping to 0.25 rescues accent,
+    danger, warning and success. `brand` and `accentAlt` do not reach 4.5 until
+    alpha 0.10 and 0.12, where there is barely a tint left to see. So: if you
+    want a token on its own tint, compute that token at that alpha and write the
+    number down. If it is short, lower the alpha. If the token is `brand` or
+    `accentAlt`, use `textPrimary` and stop trying.
+
+    A brief that tells you to pair a tinted background with its own token is
+    telling you what it should look like, not what is readable. Measure it
+    anyway. Rule 23's last paragraph fires on the shape of the code, not on the
+    brief, and this rule inherits that.
