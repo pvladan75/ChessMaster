@@ -1648,13 +1648,14 @@ sa table kroz `outcomeFor` umesto iz kategorije vežbe.
 - [x] Mat koji je motor zadao → dijalog **„Mat — Stockfish vam je zadao mat"**
       sa „Pokušaj ponovo" i „Sledeća Pozicija".
 
-**Nije viđeno, iako ide kroz isti kod:**
+- [x] **`Pronađite dobitni put` (`winning_position`) kad motor zada mat** —
+      korisnik, 28.8.2026. Ovo je bila kategorija u kojoj je bag zapravo živeo:
+      ranije se tu prikazivao dijalog **pobede** („Uspešno ste zadali mat
+      Stockfish-u") i vežba se obeležavala kao rešena. Sada se ponaša isto kao
+      `basic_mate` — traka o zameni strana i dijalog poraza.
 
-- [ ] **`Pronađite dobitni put` (`winning_position`) kad motor zada mat.** Ovo je
-      bio pravi bag: ranije se tu prikazivao dijalog **pobede** („Uspešno ste
-      zadali mat Stockfish-u") i vežba se obeležavala kao rešena. Živa provera
-      je odrađena u `basic_mate`, gde je poruka i pre bila tačna — pa je baš
-      kategorija u kojoj je bag postojao ostala nepogledana.
+**Nije viđeno:**
+
 - [ ] Pobeda **posle** zamene strana: matirati novom stranom → mora „POBEDA",
       ne poraz.
 - [ ] Pat/remi posle zamene → „🤝 Pat / Remi u poziciji", bez ijednog dijaloga.
