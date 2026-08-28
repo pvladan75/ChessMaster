@@ -298,7 +298,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               child: Row(
                 children: [
                   Icon(actions[i].icon, color: actions[i].color, size: 20),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.md),
                   Flexible(child: Text(actions[i].tooltip)),
                 ],
               ),
@@ -1572,7 +1572,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                     depth: _currentEvalDepth,
                     orientation: _orientation,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                 ],
                 _buildPositionInfoPanel(),
                 _buildAnalysisAndTreeSection(),
@@ -1628,7 +1628,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 if (_showEvalBar) ...[
                   SizedBox(
                     width: boardSize,
@@ -1640,7 +1640,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 SizedBox(
                   width: boardSize,
                   child: _buildNavigationToolbar(),
@@ -1652,7 +1652,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
 
           // Right Side: Tree & Engine Analysis
           Expanded(
@@ -1709,7 +1709,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                         : Colors.tealAccent,
                     size: 18,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       displayOpeningName,
@@ -1787,7 +1787,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               _saveDraft();
             },
           ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         if (AppSettingsService.instance.isPanelVisible('engine_analysis'))
           StockfishAnalysisWidget(
             isEngineEnabled: _showEvaluation,
@@ -2002,7 +2002,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       iconSize: 20,
       onFlipBoard: _flipBoard,
       trailing: [
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.sm),
         IconButton(
           icon: Icon(Icons.comment, size: 18, color: context.colors.info),
           tooltip: 'Dodaj Komentar',
@@ -2073,7 +2073,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(Icons.comment, size: 16, color: context.colors.info),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: RichText(
                   text: TextSpan(

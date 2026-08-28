@@ -63,9 +63,9 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
         widget.selectedIncludeTags.length + widget.selectedExcludeTags.length;
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       color: colors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedSm),
       child: ExpansionTile(
         initiallyExpanded: false,
         dense: true,
@@ -81,7 +81,8 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
             if (activeCount > 0) ...[
               const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 6, vertical: AppSpacing.xxs),
                 decoration: BoxDecoration(
                   color: colors.accent,
                   borderRadius: BorderRadius.circular(10),
@@ -109,8 +110,8 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
         ),
         children: [
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -140,7 +141,7 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Text(
                   'Kliknite labelu jednom za [Sadrži (+)], drugi put za [Ne sadrži (-)]:',
                   style: AppText.micro.copyWith(color: colors.textMuted),
@@ -176,10 +177,11 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                         onLongPress: () => toggleExcludeTag(tag),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xs),
                           decoration: BoxDecoration(
                             color: chipBg,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: AppRadii.roundedMd,
                             border: Border.all(
                               color: isInc
                                   ? colors.success
@@ -194,7 +196,7 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                             children: [
                               if (chipIcon != null) ...[
                                 Icon(chipIcon, size: 12, color: chipText),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: AppSpacing.xs),
                               ],
                               Text(tag,
                                   style: AppText.caption

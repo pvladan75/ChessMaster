@@ -100,10 +100,11 @@ void showManualCommentDialog(
                 Text(title,
                     style: AppText.bodyLargeBold
                         .copyWith(color: ctx.colors.accent)),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 if (candidates.isEmpty)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                     child: Text(
                       emptyHint,
                       style: AppText.body.copyWith(
@@ -159,7 +160,7 @@ void showManualCommentDialog(
                       fillColor: ctx.colors.canvas,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   // Plain Row, not IntrinsicHeight — IntrinsicHeight forces
                   // every CheckboxListTile in both columns to the height of
                   // the *tallest* column's own intrinsic-height computation,
@@ -178,7 +179,7 @@ void showManualCommentDialog(
                         selectedTactical,
                         emptyHint: 'Nema taktičkih nalaza za ovaj potez.',
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: AppSpacing.lg),
                       buildChecklist(
                         'Pozicioni faktori',
                         positionalCandidates,
@@ -230,7 +231,7 @@ void showNagSelector(BuildContext context, ValueChanged<String?> onSelected) {
     builder: (ctx) {
       return SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Wrap(
             spacing: 8,
             children: nags.map((n) {
@@ -263,7 +264,7 @@ void showLogsDialog(BuildContext context) {
           Row(
             children: [
               Icon(Icons.terminal, color: ctx.colors.warning),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text('Logovi Engine-a 📜',
                   style: AppText.title.copyWith(color: ctx.colors.textPrimary)),
             ],
@@ -293,10 +294,10 @@ void showLogsDialog(BuildContext context) {
               );
             }
             return Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               decoration: BoxDecoration(
                 color: ctx.colors.canvas,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadii.roundedSm,
                 border: Border.all(color: ctx.colors.surfaceRaised),
               ),
               child: SingleChildScrollView(
@@ -355,7 +356,7 @@ Future<void> exportPgnDialog(
       title: Row(
         children: [
           Icon(Icons.file_download, color: ctx.colors.info),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Text('Izvezeni PGN Tekst',
               style: AppText.title.copyWith(color: ctx.colors.textPrimary)),
         ],
@@ -519,7 +520,7 @@ void showSavedAnalysesDialog(
           title: Row(
             children: [
               Icon(Icons.cloud_outlined, color: ctx.colors.info),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text('Sačuvane analize',
                   style: AppText.title.copyWith(color: ctx.colors.textPrimary)),
             ],

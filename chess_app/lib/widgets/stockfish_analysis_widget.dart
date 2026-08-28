@@ -73,7 +73,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
     final bestLine = lines.isNotEmpty ? lines.first : null;
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       color: colors.brand.withValues(alpha: 0.15),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Padding(
@@ -95,7 +95,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.psychology, color: colors.accent, size: 20),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -169,7 +169,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.bar_chart, size: 18, color: colors.warning),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       Text(
                         'Prikaži evaluacionu liniju',
                         style: AppText.bodyLarge.copyWith(
@@ -192,7 +192,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
             if (analysisDepth != null &&
                 analysisLines != null &&
                 isAllowedToUseEngine) ...[
-              const SizedBox(height: 2),
+              const SizedBox(height: AppSpacing.xxs),
               EngineAnalysisDials(
                 depth: analysisDepth!,
                 lines: analysisLines!,
@@ -210,7 +210,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                          horizontal: 10, vertical: AppSpacing.xs),
                       decoration: BoxDecoration(
                         color: colors.accent.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(6),
@@ -223,7 +223,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                             .copyWith(color: colors.accent),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Row(
                         children: [
@@ -245,7 +245,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
               ],
 
               // Top 3 Lines List (Compact 1 line per row with '...' inspector button)
@@ -254,11 +254,11 @@ class StockfishAnalysisWidget extends StatelessWidget {
                 'Linije (Klik na liniju za kompletan pregled):',
                 style: AppText.captionBold.copyWith(color: colors.textMuted),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
 
               if (lines.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(AppSpacing.sm),
                   child: Text(
                     'Računanje poteza...',
                     style: AppText.caption.copyWith(
@@ -277,7 +277,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 3.0, horizontal: 4.0),
+                          vertical: 3.0, horizontal: AppSpacing.xs),
                       child: Row(
                         children: [
                           SizedBox(
@@ -298,7 +298,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                                   .copyWith(color: colors.textPrimary),
                             ),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: AppSpacing.xs),
                           if (onInsertLineAsVariation != null)
                             IconButton(
                               onPressed: () => onInsertLineAsVariation!(line),
@@ -306,7 +306,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                               color: colors.accent,
                               visualDensity: VisualDensity.compact,
                               constraints: const BoxConstraints(),
-                              padding: const EdgeInsets.all(4),
+                              padding: const EdgeInsets.all(AppSpacing.xs),
                               tooltip: 'Ubaci liniju kao varijaciju',
                             ),
                           Icon(Icons.more_horiz,
