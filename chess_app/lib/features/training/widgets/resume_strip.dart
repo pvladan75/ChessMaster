@@ -5,6 +5,7 @@ import 'package:chess_app/features/analysis_studio/services/analysis_draft_servi
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 /// Where the reader left off, at the top of the first screen they see.
 ///
@@ -54,21 +55,22 @@ class _ResumeStripState extends State<ResumeStrip> {
   @override
   Widget build(BuildContext context) {
     final session = GameSessionService.instance;
+    final colors = context.colors;
     final items = <Widget>[
       if (session.hasActiveSession)
         _ResumeChip(
-          icon: Icons.videocam,
+          icon: Icons.videocam_outlined,
           label: 'Nastavi čas ${session.roomCode}',
-          colour: Colors.teal,
+          colour: colors.accent,
           onTap: () => context.push(
             AppRoutes.roomPath(session.roomCode!, role: session.role),
           ),
         ),
       if (_hasDraft)
         _ResumeChip(
-          icon: Icons.biotech,
+          icon: Icons.biotech_outlined,
           label: 'Nastavi analizu',
-          colour: Colors.indigo,
+          colour: colors.brand,
           onTap: () => context.push(AppRoutes.analysis),
         ),
     ];
@@ -76,19 +78,27 @@ class _ResumeStripState extends State<ResumeStrip> {
     if (items.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Nastavi',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelLarge
-                  ?.copyWith(color: context.colors.textMuted)),
-          const SizedBox(height: 8),
+          Text(
+            'Nastavi',
+            style: AppText.captionBold.copyWith(color: colors.textMuted),
+          ),
+          const SizedBox(height: AppSpacing.sm),
           // Wrap: two of these with a room code in one of them outgrow a phone,
           // and a release build clips instead of warning.
-          Wrap(spacing: 8, runSpacing: 8, children: items),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: items,
+          ),
         ],
       ),
     );
@@ -110,11 +120,20 @@ class _ResumeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return ActionChip(
-      avatar: Icon(icon, size: 18, color: colour),
-      label: Text(label),
+      avatar: Icon(icon, size: 20, color: colour),
+      label: Text(
+        label,
+        style: AppText.bodyBold.copyWith(color: colors.textPrimary),
+      ),
       onPressed: onTap,
-      backgroundColor: colour.withValues(alpha: 0.14),
+      backgroundColor: colour.withValues(alpha: 0.16),
+      side: BorderSide(color: colour.withValues(alpha: 0.35)),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
     );
   }
 }

@@ -75,12 +75,198 @@ class ChessApp extends StatelessWidget {
           ),
           darkTheme: ThemeData(
             brightness: Brightness.dark,
-            primaryColor: Colors.deepPurple,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.deepPurple,
-              brightness: Brightness.dark,
+            primaryColor: AppColorTokens.dark.brand,
+            scaffoldBackgroundColor: AppColorTokens.dark.canvas,
+            colorScheme: ColorScheme.dark(
+              primary: AppColorTokens.dark.brand,
+              onPrimary: Colors.white,
+              primaryContainer: const Color(0xFF4C1D95),
+              onPrimaryContainer: AppColorTokens.dark.brand,
+              secondary: AppColorTokens.dark.accent,
+              onSecondary: Colors.black,
+              secondaryContainer: const Color(0xFF134E4A),
+              onSecondaryContainer: AppColorTokens.dark.accent,
+              tertiary: AppColorTokens.dark.accentAlt,
+              onTertiary: Colors.black,
+              error: AppColorTokens.dark.danger,
+              onError: Colors.black,
+              surface: AppColorTokens.dark.surface,
+              onSurface: AppColorTokens.dark.textPrimary,
+              onSurfaceVariant: AppColorTokens.dark.textSecondary,
+              outline: AppColorTokens.dark.border,
+              outlineVariant: AppColorTokens.dark.borderStrong,
             ),
             useMaterial3: true,
+            cardTheme: const CardThemeData(
+              elevation: 0,
+              margin: EdgeInsets.zero,
+              shape: AppRadii.cardShape,
+            ).copyWith(color: AppColorTokens.dark.surface),
+            dialogTheme: DialogThemeData(
+              backgroundColor: AppColorTokens.dark.surface,
+              elevation: 6,
+              shape: AppRadii.dialogShape,
+              titleTextStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              contentTextStyle: const TextStyle(fontSize: 12),
+            ),
+            appBarTheme: AppBarTheme(
+              backgroundColor: AppColorTokens.dark.canvas,
+              foregroundColor: AppColorTokens.dark.textPrimary,
+              elevation: 0,
+              centerTitle: false,
+              titleTextStyle: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            filledButtonTheme: FilledButtonThemeData(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColorTokens.dark.brand,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(48, 48),
+                padding: AppSpacing.buttonPadding,
+                shape: AppRadii.buttonShape,
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColorTokens.dark.surfaceRaised,
+                foregroundColor: AppColorTokens.dark.textPrimary,
+                elevation: 0,
+                minimumSize: const Size(48, 48),
+                padding: AppSpacing.buttonPadding,
+                shape: AppRadii.buttonShape,
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            outlinedButtonTheme: OutlinedButtonThemeData(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColorTokens.dark.textPrimary,
+                side: BorderSide(
+                  color: AppColorTokens.dark.borderStrong,
+                  width: 1.5,
+                ),
+                minimumSize: const Size(48, 48),
+                padding: AppSpacing.buttonPadding,
+                shape: AppRadii.buttonShape,
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColorTokens.dark.accent,
+                minimumSize: const Size(48, 48),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
+                shape: AppRadii.buttonShape,
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            iconButtonTheme: IconButtonThemeData(
+              style: IconButton.styleFrom(
+                minimumSize: const Size(48, 48),
+              ),
+            ),
+            chipTheme: ChipThemeData(
+              backgroundColor: AppColorTokens.dark.surfaceRaised,
+              disabledColor: AppColorTokens.dark.surface,
+              selectedColor: AppColorTokens.dark.accent.withValues(alpha: 0.2),
+              labelStyle: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColorTokens.dark.textPrimary,
+              ),
+              secondaryLabelStyle: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColorTokens.dark.textPrimary,
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              shape: AppRadii.chipShape,
+              side: BorderSide(color: AppColorTokens.dark.border),
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: AppColorTokens.dark.surface,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: 14.0,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: AppRadii.roundedMd,
+                borderSide: BorderSide(color: AppColorTokens.dark.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: AppRadii.roundedMd,
+                borderSide: BorderSide(color: AppColorTokens.dark.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: AppRadii.roundedMd,
+                borderSide: BorderSide(
+                  color: AppColorTokens.dark.accent,
+                  width: 2.0,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: AppRadii.roundedMd,
+                borderSide: BorderSide(
+                  color: AppColorTokens.dark.danger,
+                  width: 1.5,
+                ),
+              ),
+              hintStyle: TextStyle(
+                fontSize: 12,
+                color: AppColorTokens.dark.textMuted,
+              ),
+              labelStyle: TextStyle(
+                fontSize: 12,
+                color: AppColorTokens.dark.textSecondary,
+              ),
+            ),
+            dividerTheme: DividerThemeData(
+              color: AppColorTokens.dark.border,
+              thickness: 1,
+              space: 1,
+            ),
+            listTileTheme: const ListTileThemeData(
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.xs,
+              ),
+              minLeadingWidth: 24,
+            ),
+            tooltipTheme: TooltipThemeData(
+              decoration: BoxDecoration(
+                color: AppColorTokens.dark.surfaceRaised,
+                borderRadius: AppRadii.roundedSm,
+                border: Border.all(color: AppColorTokens.dark.border),
+              ),
+              textStyle: TextStyle(
+                fontSize: 11,
+                color: AppColorTokens.dark.textPrimary,
+              ),
+            ),
             extensions: const [AppColorTokens.dark],
           ),
         );

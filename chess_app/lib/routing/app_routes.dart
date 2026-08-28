@@ -138,4 +138,7 @@ abstract final class AppRoutes {
     ].join('&');
     return '$trainingDrill?$query';
   }
+
+  /// Internal design gallery for design review and visual component inspection.
+  static const String designGallery = '/design-gallery';
 }

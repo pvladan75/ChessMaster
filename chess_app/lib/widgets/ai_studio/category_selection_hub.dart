@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 class CategorySelectionHubWidget extends StatelessWidget {
   final Function(String depth) onSelectMatePuzzle;
@@ -27,16 +29,17 @@ class CategorySelectionHubWidget extends StatelessWidget {
   /// The hub is ordered by phase of the game rather than by where the material
   /// comes from, because that is the order a lesson is taught in and the only
   /// grouping a child already has a name for.
-  Widget _section(String title) {
+  Widget _section(BuildContext context, String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 10),
+      padding: const EdgeInsets.only(
+        left: AppSpacing.xs,
+        bottom: AppSpacing.sm,
+      ),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
+        style: AppText.captionBold.copyWith(
+          color: context.colors.textMuted,
           letterSpacing: 1.2,
-          color: Colors.grey,
         ),
       ),
     );
@@ -44,61 +47,69 @@ class CategorySelectionHubWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
+        constraints: const BoxConstraints(maxWidth: 640),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+          primary: false,
+          padding: AppSpacing.screenPadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Card(
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+              // Hero header card
+              Container(
+                padding: AppSpacing.cardPaddingComfortable,
+                decoration: BoxDecoration(
+                  color: colors.surface,
+                  borderRadius: AppRadii.roundedLg,
+                  border: Border.all(color: colors.border),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: Colors.deepPurple.shade700,
-                        child: const Icon(
-                          Icons.psychology,
-                          color: Colors.white,
-                          size: 32,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: colors.brand.withValues(alpha: 0.16),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: colors.brand.withValues(alpha: 0.35),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Šahovski trener i vežbe',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Vežbe su poređane po fazi partije: otvaranje, taktika, pa završnica i tehnika.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
+                      child: Icon(
+                        Icons.psychology_outlined,
+                        color: colors.brand,
+                        size: 30,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: AppSpacing.lg),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Šahovski trener i vežbe',
+                            style: AppText.headline.copyWith(
+                              color: colors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Vežbe su poređane po fazi partije: otvaranje, taktika, pa završnica i tehnika.',
+                            style: AppText.body.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
 
               // SECTION: Otvaranje.
               //
@@ -107,437 +118,259 @@ class CategorySelectionHubWidget extends StatelessWidget {
               // endgame nor a set of exercises: it is a thing the student
               // builds and comes back to. It stands alone, and it stands first,
               // because it is the phase a game starts in.
-              _section('Otvaranje'),
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: Colors.indigo.shade300, width: 1.5),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(18.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.menu_book_outlined,
-                              color: Colors.indigo.shade200, size: 28),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Repertoar otvaranja',
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Nije skup zadataka nego nešto što gradite: birate šta biste '
-                        'odigrali, poziciju po poziciju, i odmah dobijate procenu '
-                        'izbora. Repertoar ostaje sačuvan i dopunjuje se vremenom.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('Otvori repertoar'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo.shade700,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
-                        ),
-                        onPressed: onSelectRepertoire,
-                      ),
-                    ],
-                  ),
+              _section(context, 'Otvaranje'),
+              _CategoryCard(
+                accentColor: colors.brand,
+                icon: Icons.menu_book_outlined,
+                title: 'Repertoar otvaranja',
+                description:
+                    'Nije skup zadataka nego nešto što gradite: birate šta biste '
+                    'odigrali, poziciju po poziciju, i odmah dobijate procenu '
+                    'izbora. Repertoar ostaje sačuvan i dopunjuje se vremenom.',
+                action: FilledButton.icon(
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Otvori repertoar'),
+                  onPressed: onSelectRepertoire,
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
 
               // SECTION: Taktika.
               //
               // Both cards below ask the same thing of the solver - one
               // position, find the move - and differ only in where the position
               // comes from and whether the answer ends in mate.
-              _section('Taktika'),
+              _section(context, 'Taktika'),
 
               // Adaptive tactics first: it is the mode that adjusts to the
               // solver, while the one under it is a fixed set.
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(
-                      color: Colors.lightBlueAccent, width: 1.5),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(18.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: const [
-                          Icon(Icons.auto_graph,
-                              color: Colors.lightBlueAccent, size: 28),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Taktika po vašoj meri',
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Zagonetke iz Lichess baze, birane prema vašem rejtingu i temi '
-                        'koju najslabije rešavate. Rejting se prati po svakom motivu posebno.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('Započni trening'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.lightBlue.shade800,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
-                        ),
-                        onPressed: onSelectTactics,
-                      ),
-                    ],
+              _CategoryCard(
+                accentColor: colors.info,
+                icon: Icons.auto_graph,
+                title: 'Taktika po vašoj meri',
+                description:
+                    'Zagonetke iz Lichess baze, birane prema vašem rejtingu i temi '
+                    'koju najslabije rešavate. Rejting se prati po svakom motivu posebno.',
+                action: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.info.withValues(alpha: 0.22),
+                    foregroundColor: colors.info,
+                    side: BorderSide(
+                      color: colors.info.withValues(alpha: 0.45),
+                    ),
                   ),
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Započni trening'),
+                  onPressed: onSelectTactics,
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               // Zagonetke: Mat u 1, 2 ili 3 poteza.
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Colors.teal, width: 1.5),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(18.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: const [
-                          Icon(
-                            Icons.sports_esports,
-                            color: Colors.tealAccent,
-                            size: 28,
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Zagonetke: Mat u 1, 2 ili 3 poteza',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Rešavajte forsiranu matnu sekvencu u traženom broju poteza.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.looks_one),
-                            label: const Text('Mat u 1'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal.shade800,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () => onSelectMatePuzzle('1'),
-                          ),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.looks_two),
-                            label: const Text('Mat u 2'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal.shade800,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () => onSelectMatePuzzle('2'),
-                          ),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.looks_3),
-                            label: const Text('Mat u 3'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal.shade800,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () => onSelectMatePuzzle('3'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              _CategoryCard(
+                accentColor: colors.accent,
+                icon: Icons.sports_esports_outlined,
+                title: 'Zagonetke: Mat u 1, 2 ili 3 poteza',
+                description:
+                    'Rešavajte forsiranu matnu sekvencu u traženom broju poteza.',
+                action: Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.looks_one_outlined),
+                      label: const Text('Mat u 1'),
+                      onPressed: () => onSelectMatePuzzle('1'),
+                    ),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.looks_two_outlined),
+                      label: const Text('Mat u 2'),
+                      onPressed: () => onSelectMatePuzzle('2'),
+                    ),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.looks_3_outlined),
+                      label: const Text('Mat u 3'),
+                      onPressed: () => onSelectMatePuzzle('3'),
+                    ),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
 
               // SECTION: Završnica i tehnika.
               //
               // Everything here is a position played out to the end rather than
               // a single move found: master endings, the classical mates, and a
               // won game that still has to be converted.
-              _section('Završnica i tehnika'),
+              _section(context, 'Završnica i tehnika'),
 
               // Two buttons for the master endings, not one: converting a won
               // position and holding a drawn one are different skills, and a
               // child asked to "find the move" without being told which of the
               // two it is has been asked the wrong question.
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Colors.amber, width: 1.5),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(18.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: const [
-                          Icon(Icons.flag_outlined,
-                              color: Colors.amber, size: 28),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Završnice iz majstorskih partija',
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Pozicije izdvojene iz partija velemajstora. Za završnice '
-                        'sa malo figura ishod je tačan, ne procenjen — priznaje se '
-                        'svaki potez koji drži rezultat, a ne samo jedan. Pre '
-                        'početka birate koje završnice i koji nivo.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 16),
-                      // Wrap, not Row: two Serbian labels plus icons outgrow a
-                      // 360 dp phone, and a release build clips instead of
-                      // warning.
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.emoji_events_outlined),
-                            label: const Text('Dobij'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.amber.shade800,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 12),
-                            ),
-                            onPressed: onSelectEndgameWin,
-                          ),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.shield_outlined),
-                            label: const Text('Održi remi'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.amber.shade900,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 12),
-                            ),
-                            onPressed: onSelectEndgameDraw,
-                          ),
-                          // The same material read as games rather than as
-                          // positions: a real ending played badly, walked from
-                          // the first mistake to the last.
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.history_edu_outlined),
-                            label: const Text('Greške iz partija'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.brown.shade700,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 12),
-                            ),
-                            onPressed: onSelectBlunderGames,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              _CategoryCard(
+                accentColor: colors.warning,
+                icon: Icons.flag_outlined,
+                title: 'Završnice iz majstorskih partija',
+                description:
+                    'Pozicije izdvojene iz partija velemajstora. Za završnice '
+                    'sa malo figura ishod je tačan, ne procenjen — priznaje se '
+                    'svaki potez koji drži rezultat, a ne samo jedan. Pre '
+                    'početka birate koje završnice i koji nivo.',
+                action: Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.emoji_events_outlined),
+                      label: const Text('Dobij'),
+                      onPressed: onSelectEndgameWin,
+                    ),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.shield_outlined),
+                      label: const Text('Održi remi'),
+                      onPressed: onSelectEndgameDraw,
+                    ),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.history_edu_outlined),
+                      label: const Text('Greške iz partija'),
+                      onPressed: onSelectBlunderGames,
+                    ),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               // Vežbajte osnovno matiranje.
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(
-                    color: Colors.purpleAccent,
-                    width: 1.5,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(18.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: const [
-                          Icon(
-                            Icons.workspace_premium,
-                            color: Colors.purpleAccent,
-                            size: 28,
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Vežbajte osnovno matiranje',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
+              _CategoryCard(
+                accentColor: colors.accentAlt,
+                icon: Icons.workspace_premium_outlined,
+                title: 'Vežbajte osnovno matiranje',
+                description:
+                    'Matirajte protivnika u klasičnim matnim pozicijama protiv Stockfish-a.',
+                action: Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(
+                        Icons.sentiment_satisfied_alt,
+                        size: 20,
                       ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Matirajte protivnika u klasičnim matnim pozicijama protiv Stockfish-a.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      label: const Text('Lako'),
+                      onPressed: () => onSelectBasicMate('easy'),
+                    ),
+                    ElevatedButton.icon(
+                      icon: const Icon(
+                        Icons.sentiment_neutral,
+                        size: 20,
                       ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          ElevatedButton.icon(
-                            icon: const Icon(
-                              Icons.sentiment_satisfied,
-                              size: 16,
-                            ),
-                            label: const Text('Lako'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.purple.shade800,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () => onSelectBasicMate('easy'),
-                          ),
-                          ElevatedButton.icon(
-                            icon: const Icon(
-                              Icons.sentiment_neutral,
-                              size: 16,
-                            ),
-                            label: const Text('Srednje'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.purple.shade800,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () => onSelectBasicMate('medium'),
-                          ),
-                          ElevatedButton.icon(
-                            icon: const Icon(
-                              Icons.sentiment_very_dissatisfied,
-                              size: 16,
-                            ),
-                            label: const Text('Teško'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.purple.shade800,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () => onSelectBasicMate('hard'),
-                          ),
-                        ],
+                      label: const Text('Srednje'),
+                      onPressed: () => onSelectBasicMate('medium'),
+                    ),
+                    ElevatedButton.icon(
+                      icon: const Icon(
+                        Icons.sentiment_very_dissatisfied,
+                        size: 20,
                       ),
-                    ],
-                  ),
+                      label: const Text('Teško'),
+                      onPressed: () => onSelectBasicMate('hard'),
+                    ),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               // Pronađite dobitni put.
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: Colors.green.shade400, width: 1.5),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(18.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.emoji_events,
-                            color: Colors.green.shade300,
-                            size: 28,
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Pronađite dobitni put',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Igrajte dobitne pozicije do kraja protiv Stockfish-a uz opcioni Blunder Alert.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('Započni vežbanje dobitnih pozicija'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade800,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
-                        ),
-                        onPressed: onSelectWinningPosition,
-                      ),
-                    ],
+              _CategoryCard(
+                accentColor: colors.success,
+                icon: Icons.military_tech_outlined,
+                title: 'Pronađite dobitni put',
+                description:
+                    'Igrajte dobitne pozicije do kraja protiv Stockfish-a uz opcioni Blunder Alert.',
+                action: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.success.withValues(alpha: 0.22),
+                    foregroundColor: colors.success,
+                    side: BorderSide(
+                      color: colors.success.withValues(alpha: 0.45),
+                    ),
                   ),
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Započni vežbanje dobitnih pozicija'),
+                  onPressed: onSelectWinningPosition,
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryCard extends StatelessWidget {
+  final Color accentColor;
+  final IconData icon;
+  final String title;
+  final String description;
+  final Widget action;
+
+  const _CategoryCard({
+    required this.accentColor,
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.action,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadii.roundedLg,
+        side: BorderSide(color: colors.border),
+      ),
+      child: Padding(
+        padding: AppSpacing.cardPadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.15),
+                    borderRadius: AppRadii.roundedSm,
+                  ),
+                  child: Icon(icon, color: accentColor, size: 24),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: AppText.title.copyWith(color: colors.textPrimary),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              description,
+              style: AppText.body.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            action,
+          ],
         ),
       ),
     );
