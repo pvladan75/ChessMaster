@@ -8,6 +8,8 @@ import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/position_picker_dialog.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 class CreateCourseDialog extends StatefulWidget {
@@ -56,14 +58,16 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
   void _showError(String message) {
     AppFeedback.show(
       context,
-      () => SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+      () => SnackBar(
+          content: Text(message), backgroundColor: context.colors.danger),
     );
   }
 
   void _showSuccess(String message) {
     AppFeedback.show(
       context,
-      () => SnackBar(content: Text(message), backgroundColor: Colors.green),
+      () => SnackBar(
+          content: Text(message), backgroundColor: context.colors.success),
     );
   }
 
@@ -245,14 +249,15 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return AlertDialog(
       title: Row(
         children: [
-          const Icon(Icons.collections_bookmark,
-              color: Colors.deepPurpleAccent),
+          Icon(Icons.collections_bookmark, color: colors.brand),
           const SizedBox(width: 8),
           Text(isEditing ? 'Izmeni lekciju' : 'Kreiraj lekciju (Više koraka)',
-              style: const TextStyle(fontSize: 16)),
+              style: AppText.title),
         ],
       ),
       // The width must be tight: AlertDialog wraps its children in an
@@ -306,7 +311,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                 if (selectedPositions.isNotEmpty) ...[
                   const Text(
                     'Redosled koraka (prevuci da promeniš):',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    style: AppText.bodyBold,
                   ),
                   const SizedBox(height: 6),
                   ConstrainedBox(
@@ -341,14 +346,13 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                                   ? Icons.biotech
                                   : Icons.push_pin_outlined,
                               color: hasVariations
-                                  ? Colors.tealAccent
-                                  : Colors.grey,
+                                  ? colors.accent
+                                  : colors.textMuted,
                               size: 18,
                             ),
                             title: Text(
                               '${index + 1}. ${item['title'] ?? ''}',
-                              style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold),
+                              style: AppText.bodyBold,
                             ),
                             subtitle: Text(
                               item['instruction']?.toString().isNotEmpty == true
@@ -356,11 +360,10 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                                   : 'bez zadatka — učenik neće znati šta se traži',
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11,
+                              style: AppText.caption.copyWith(
                                 color: item['instruction'] == null
-                                    ? Colors.orangeAccent
-                                    : Colors.grey,
+                                    ? colors.warning
+                                    : colors.textMuted,
                                 fontStyle: item['instruction'] == null
                                     ? FontStyle.italic
                                     : FontStyle.normal,
@@ -375,16 +378,16 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                                   onPressed: () => _editInstruction(index),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.close,
-                                      size: 18, color: Colors.redAccent),
+                                  icon: Icon(Icons.close,
+                                      size: 18, color: colors.danger),
                                   tooltip: 'Ukloni',
                                   onPressed: () => setState(
                                       () => selectedPositions.removeAt(index)),
                                 ),
                                 ReorderableDragStartListener(
                                   index: index,
-                                  child: const Icon(Icons.drag_handle,
-                                      size: 18, color: Colors.grey),
+                                  child: Icon(Icons.drag_handle,
+                                      size: 18, color: colors.textMuted),
                                 ),
                               ],
                             ),

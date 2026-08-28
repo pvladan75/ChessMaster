@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 /// Where a PGN comes into the room from: a file, or pasted text.
 ///
@@ -36,17 +38,18 @@ class _PgnImportDialogState extends State<PgnImportDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     // Taken from the screen rather than fixed: a fixed 360 is wider than the
     // content box of a dialog on a 360 dp phone, and a release build clips it
     // without painting anything to say so.
     final width = MediaQuery.of(context).size.width * 0.9;
 
     return AlertDialog(
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.file_open, color: Colors.deepPurpleAccent),
-          SizedBox(width: 8),
-          Expanded(child: Text('Uvezi PGN', style: TextStyle(fontSize: 16))),
+          Icon(Icons.file_open, color: colors.brand),
+          const SizedBox(width: 8),
+          const Expanded(child: Text('Uvezi PGN', style: AppText.title)),
         ],
       ),
       content: SizedBox(
@@ -64,14 +67,14 @@ class _PgnImportDialogState extends State<PgnImportDialog> {
                 icon: const Icon(Icons.folder_open, size: 16),
                 label: const Text('Otvori PGN fajl'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurpleAccent,
-                  foregroundColor: Colors.white,
+                  backgroundColor: colors.brand,
+                  foregroundColor: colors.canvas,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'ili nalepi tekst partije:',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: AppText.body.copyWith(color: colors.textMuted),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -84,7 +87,7 @@ class _PgnImportDialogState extends State<PgnImportDialog> {
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 ),
-                style: const TextStyle(fontSize: 12),
+                style: AppText.body,
               ),
             ],
           ),

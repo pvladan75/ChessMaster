@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 class SavePositionDialog extends StatefulWidget {
@@ -55,6 +57,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final suggestions = widget.availableUserLabels
         .where((l) => !dialogActiveTags.contains(l))
         .where((l) =>
@@ -96,7 +99,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                 const SizedBox(height: 16),
                 const Text(
                   'Labele (Oznake):',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: AppText.bodyLargeBold,
                 ),
                 const SizedBox(height: 6),
                 Wrap(
@@ -104,10 +107,10 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                   runSpacing: 6,
                   children: [
                     ...dialogActiveTags.map((t) => Chip(
-                          label: Text(t, style: const TextStyle(fontSize: 11)),
+                          label: Text(t, style: AppText.caption),
                           deleteIcon: const Icon(Icons.close, size: 14),
                           onDeleted: () => removeTag(t),
-                          backgroundColor: Colors.teal.withValues(alpha: 0.2),
+                          backgroundColor: colors.accent.withValues(alpha: 0.2),
                         )),
                   ],
                 ),
@@ -124,7 +127,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                           contentPadding:
                               EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         ),
-                        style: const TextStyle(fontSize: 12),
+                        style: AppText.body,
                         onChanged: (_) => setState(() {}),
                         onSubmitted: (val) => addTag(val),
                       ),
@@ -145,8 +148,8 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                   Container(
                     constraints: const BoxConstraints(maxHeight: 120),
                     decoration: BoxDecoration(
-                      border:
-                          Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color: colors.textMuted.withValues(alpha: 0.3)),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: ListView.builder(
@@ -156,8 +159,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                         final suggestion = suggestions[index];
                         return ListTile(
                           dense: true,
-                          title: Text(suggestion,
-                              style: const TextStyle(fontSize: 12)),
+                          title: Text(suggestion, style: AppText.body),
                           onTap: () => addTag(suggestion),
                         );
                       },
@@ -168,7 +170,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                 CheckboxListTile(
                   title: const Text(
                     'Zapamti ove Labele za sledeće pozicije',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    style: AppText.bodyBold,
                   ),
                   value: persistChecked,
                   contentPadding: EdgeInsets.zero,
@@ -197,9 +199,9 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
             if (title.isEmpty) {
               AppFeedback.show(
                 context,
-                () => const SnackBar(
-                    content: Text('Unesite naziv lekcije.'),
-                    backgroundColor: Colors.redAccent),
+                () => SnackBar(
+                    content: const Text('Unesite naziv lekcije.'),
+                    backgroundColor: context.colors.danger),
               );
               return;
             }

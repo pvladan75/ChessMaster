@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 
 class BoardSetupDialog extends StatefulWidget {
@@ -59,13 +61,14 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return AlertDialog(
       title: Row(
-        children: const [
-          Icon(Icons.dashboard_customize, color: Colors.tealAccent),
-          SizedBox(width: 8),
-          Text('Postavi poziciju (Board Setup)',
-              style: TextStyle(fontSize: 16)),
+        children: [
+          Icon(Icons.dashboard_customize, color: colors.accent),
+          const SizedBox(width: 8),
+          const Text('Postavi poziciju (Board Setup)', style: AppText.title),
         ],
       ),
       content: SizedBox(
@@ -74,17 +77,17 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'Izaberite figuru i kliknite na polje da je postavite. '
                 'Ponovni klik na istu figuru je uklanja, a dug pritisak '
                 '(ili desni klik) prazni polje.',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
+                style: AppText.caption.copyWith(color: colors.textMuted),
               ),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.black26,
+                  color: colors.canvas,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -98,7 +101,9 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                           child: Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: isSel ? Colors.teal : Colors.transparent,
+                              color: isSel
+                                  ? colors.accent.withValues(alpha: 0.30)
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: chessPieceWidget(p, size: 26),
@@ -116,7 +121,9 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                           child: Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: isSel ? Colors.teal : Colors.transparent,
+                              color: isSel
+                                  ? colors.accent.withValues(alpha: 0.30)
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: chessPieceWidget(p, size: 26),
@@ -132,19 +139,24 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                             horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
                           color: selectedPiece == null
-                              ? Colors.redAccent
-                              : Colors.white10,
+                              ? colors.danger
+                              : colors.border,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
+                          children: [
                             Icon(Icons.cleaning_services,
-                                size: 14, color: Colors.white),
-                            SizedBox(width: 4),
+                                size: 14,
+                                color: selectedPiece == null
+                                    ? colors.canvas
+                                    : colors.textPrimary),
+                            const SizedBox(width: 4),
                             Text('Brisač (Ukloni figuru)',
-                                style: TextStyle(
-                                    fontSize: 11, color: Colors.white)),
+                                style: AppText.caption.copyWith(
+                                    color: selectedPiece == null
+                                        ? colors.canvas
+                                        : colors.textPrimary)),
                           ],
                         ),
                       ),
@@ -156,8 +168,8 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
               AspectRatio(
                 aspectRatio: 1.0,
                 child: Container(
-                  decoration:
-                      BoxDecoration(border: Border.all(color: Colors.grey)),
+                  decoration: BoxDecoration(
+                      border: Border.all(color: colors.textMuted)),
                   child: GridView.builder(
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
@@ -202,12 +214,9 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Text('Na potezu: ',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  const Text('Na potezu: ', style: AppText.bodyBold),
                   ChoiceChip(
-                    label:
-                        const Text('Beli (w)', style: TextStyle(fontSize: 11)),
+                    label: const Text('Beli (w)', style: AppText.caption),
                     selected: turn == 'w',
                     onSelected: (val) {
                       if (val) setState(() => turn = 'w');
@@ -215,8 +224,7 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                   ),
                   const SizedBox(width: 8),
                   ChoiceChip(
-                    label:
-                        const Text('Crni (b)', style: TextStyle(fontSize: 11)),
+                    label: const Text('Crni (b)', style: AppText.caption),
                     selected: turn == 'b',
                     onSelected: (val) {
                       if (val) setState(() => turn = 'b');
@@ -227,34 +235,28 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
               const SizedBox(height: 8),
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Prava na rokadu:',
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                child: Text('Prava na rokadu:', style: AppText.bodyBold),
               ),
               Wrap(
                 spacing: 8,
                 children: [
                   FilterChip(
-                    label:
-                        const Text('Beli O-O', style: TextStyle(fontSize: 10)),
+                    label: const Text('Beli O-O', style: AppText.micro),
                     selected: wk,
                     onSelected: (val) => setState(() => wk = val),
                   ),
                   FilterChip(
-                    label: const Text('Beli O-O-O',
-                        style: TextStyle(fontSize: 10)),
+                    label: const Text('Beli O-O-O', style: AppText.micro),
                     selected: wq,
                     onSelected: (val) => setState(() => wq = val),
                   ),
                   FilterChip(
-                    label:
-                        const Text('Crni O-O', style: TextStyle(fontSize: 10)),
+                    label: const Text('Crni O-O', style: AppText.micro),
                     selected: bk,
                     onSelected: (val) => setState(() => bk = val),
                   ),
                   FilterChip(
-                    label: const Text('Crni O-O-O',
-                        style: TextStyle(fontSize: 10)),
+                    label: const Text('Crni O-O-O', style: AppText.micro),
                     selected: bq,
                     onSelected: (val) => setState(() => bq = val),
                   ),
@@ -285,8 +287,8 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                       });
                     },
                     icon: const Icon(Icons.restart_alt, size: 14),
-                    label: const Text('Početna pozicija',
-                        style: TextStyle(fontSize: 11)),
+                    label:
+                        const Text('Početna pozicija', style: AppText.caption),
                   ),
                   TextButton.icon(
                     onPressed: () {
@@ -298,11 +300,9 @@ class _BoardSetupDialogState extends State<BoardSetupDialog> {
                         bq = false;
                       });
                     },
-                    icon: const Icon(Icons.clear,
-                        size: 14, color: Colors.redAccent),
-                    label: const Text('Očisti tablu',
-                        style:
-                            TextStyle(fontSize: 11, color: Colors.redAccent)),
+                    icon: Icon(Icons.clear, size: 14, color: colors.danger),
+                    label: Text('Očisti tablu',
+                        style: AppText.caption.copyWith(color: colors.danger)),
                   ),
                 ],
               ),

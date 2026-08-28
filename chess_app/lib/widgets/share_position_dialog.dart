@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 class ShareStudentPositionDialog extends StatelessWidget {
   final List<dynamic> roomMembers;
@@ -12,14 +14,15 @@ class ShareStudentPositionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final trainers = roomMembers.where((m) => m['role'] == 'trener').toList();
 
     return AlertDialog(
       title: Row(
-        children: const [
-          Icon(Icons.share, color: Colors.amberAccent),
-          SizedBox(width: 8),
-          Text('Prikaži poziciju treneru', style: TextStyle(fontSize: 16)),
+        children: [
+          Icon(Icons.share, color: colors.warning),
+          const SizedBox(width: 8),
+          const Text('Prikaži poziciju treneru', style: AppText.title),
         ],
       ),
       content: ConstrainedBox(
@@ -30,25 +33,23 @@ class ShareStudentPositionDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Izaberite predavača u učionici kome želite da pošaljete vašu poziciju sa table na uvid:',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: AppText.body.copyWith(color: colors.textMuted),
               ),
               const SizedBox(height: 12),
               if (trainers.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Text(
                       'Trenutno nema prijavljenih trenera u ovoj učionici.',
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.orangeAccent)),
+                      style: AppText.body.copyWith(color: colors.warning)),
                 )
               else
                 ...trainers.map((t) => ListTile(
                       dense: true,
-                      leading: const Icon(Icons.person, color: Colors.amber),
-                      title: Text(t['name'],
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      leading: Icon(Icons.person, color: colors.warning),
+                      title: Text(t['name'], style: AppText.bodyLargeBold),
                       subtitle: const Text('Trener / Predavač'),
                       trailing: ElevatedButton.icon(
                         onPressed: () {
@@ -58,8 +59,8 @@ class ShareStudentPositionDialog extends StatelessWidget {
                         icon: const Icon(Icons.send, size: 14),
                         label: const Text('Prikaži treneru'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber,
-                          foregroundColor: Colors.black,
+                          backgroundColor: colors.warning,
+                          foregroundColor: colors.canvas,
                         ),
                       ),
                     )),

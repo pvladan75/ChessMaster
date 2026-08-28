@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 
 class EngineLineDialog extends StatefulWidget {
@@ -58,6 +60,7 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final maxIndex = widget.line.fenList.length - 1;
 
     return AlertDialog(
@@ -66,27 +69,23 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
         children: [
           Row(
             children: [
-              const Icon(Icons.psychology, color: Colors.tealAccent),
+              Icon(Icons.psychology, color: colors.accent),
               const SizedBox(width: 8),
               Text(
                 'Linija #${widget.line.multipv} (${widget.line.evaluation})',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: AppText.title,
               ),
             ],
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.teal.withValues(alpha: 0.2),
+              color: colors.accent.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               widget.line.evaluation,
-              style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.tealAccent),
+              style: AppText.bodyBold.copyWith(color: colors.accent),
             ),
           ),
         ],
@@ -103,16 +102,17 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.black26,
+                  color: colors.canvas,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  border: Border.all(
+                      color: colors.textMuted.withValues(alpha: 0.2)),
                 ),
                 child: SelectableText(
                   widget.line.continuationSan.isNotEmpty
                       ? widget.line.continuationSan
                       : 'Nema dostupnih poteza.',
-                  style: const TextStyle(
-                      fontSize: 13, height: 1.4, color: Colors.white),
+                  style: AppText.bodyLarge
+                      .copyWith(height: 1.4, color: colors.textPrimary),
                 ),
               ),
               const SizedBox(height: 14),
@@ -169,8 +169,8 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
             icon: const Icon(Icons.input, size: 16),
             label: const Text('Učitaj ovaj poziciju na glavnu tablu'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
+              backgroundColor: colors.accent,
+              foregroundColor: colors.canvas,
             ),
           ),
       ],
