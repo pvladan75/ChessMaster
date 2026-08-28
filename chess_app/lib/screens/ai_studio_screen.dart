@@ -22,6 +22,8 @@ import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/core/models/drill_outcome.dart';
+import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
@@ -121,6 +123,27 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   /// The pause before the engine answers, kept so that leaving can cancel it.
   Timer? _engineMoveDelay;
+
+  /// Which side the reader is playing.
+  ///
+  /// There used to be no such thing. The engine was defined purely by
+  /// reaction — after the human moves, the engine answers — which holds right
+  /// up until the reader steps back through the move tree to a position where
+  /// the engine was to move and plays that move themselves. From there the
+  /// engine answers *them*, and the sides have changed hands without anybody
+  /// saying so.
+  ///
+  /// The swap is allowed and stays allowed: watching the engine play your own
+  /// side is a real reason to do it. What could not stay is deciding the
+  /// outcome from who moved last, because that reads a mate the engine has
+  /// just delivered as one the reader delivered.
+  chess.Color? _userColor;
+
+  /// Read the reader's side off the position a drill starts from.
+  ///
+  /// The side to move in the starting FEN is the side the drill is set for —
+  /// these positions are handed over with the reader to move.
+  void _adoptUserColorFromFen(String fen) => _userColor = sideToMoveOf(fen);
 
   Future<void> _openEngineSettings() async {
     await showEngineSettingsDialog(
@@ -750,14 +773,21 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         _activeFen = _puzzleGame!.fen;
         resetBoardState(isNewPuzzle: false);
 
-        if (_puzzleGame!.in_checkmate) {
-          if (_selectedCategory == 'basic_mate') {
-            _showSnackBar('❌ Stockfish vam je zadao mat.');
-          } else {
-            setState(() => _puzzleSolved = true);
-            _showEndgameWinDialog();
-          }
-        } else if (_puzzleGame!.in_stalemate || _puzzleGame!.in_draw) {
+        // Read off the board and the reader's side, never off the category.
+        // This used to branch on which drill it was, and everything that was
+        // not `basic_mate` fell through to the victory dialog — so in
+        // `winning_position` a mate delivered *by* Stockfish congratulated the
+        // reader on delivering it and marked the drill solved.
+        // The engine has just moved, so the side to move is the reader's —
+        // that is the fallback if a drill somehow loaded without a side.
+        final outcome =
+            outcomeFor(_puzzleGame!, _userColor ?? _puzzleGame!.turn);
+        if (outcome == DrillOutcome.readerLost) {
+          _showEndgameLossDialog();
+        } else if (outcome == DrillOutcome.readerWon) {
+          setState(() => _puzzleSolved = true);
+          _showEndgameWinDialog();
+        } else if (outcome == DrillOutcome.drawn) {
           _showSnackBar('🤝 Pat / Remi u poziciji.');
         } else {
           if (_selectedCategory != 'mate_puzzle' &&
@@ -998,6 +1028,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         _puzzleGame = chess.Chess.fromFEN(fen);
         _activeFen = fen;
         _initialPuzzleFen = fen;
+        _adoptUserColorFromFen(fen);
         _puzzleMoveTree = MoveTree(startingFen: fen);
 
         print('\n==================================================');
@@ -1072,6 +1103,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         _puzzleGame = chess.Chess.fromFEN(fen);
         _activeFen = fen;
         _initialPuzzleFen = fen;
+        _adoptUserColorFromFen(fen);
         _puzzleMoveTree = MoveTree(startingFen: fen);
 
         setState(() {
@@ -1386,12 +1418,30 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       return;
     }
 
+    // Read before the move is played, because afterwards the turn has already
+    // flipped. If the reader is moving for the side that is not theirs, they
+    // have stepped back to a position the engine was to play and taken it
+    // over — so from the next reply onwards the engine is playing what used to
+    // be their side.
+    final chess.Color movingColor = _puzzleGame!.turn;
+    final bool sidesSwapped = isSideSwap(_userColor, movingColor);
+    if (sidesSwapped) _userColor = movingColor;
+
     playMove(_puzzleGame!, matchedMove);
     _activeFen = _puzzleGame!.fen;
     _puzzleBoardController.loadFen(_puzzleGame!.fen);
 
     // Universal reboot of board state for move execution (preserves toggles A/B if ON!)
     resetBoardState(isNewPuzzle: false);
+
+    // Do the thing, then say it. The board is already updated above; this only
+    // reports it, and it reports it because a side change that happens in
+    // silence is indistinguishable from the engine having gone wrong.
+    if (sidesSwapped) {
+      _showSnackBar(_userColor == chess.Color.WHITE
+          ? '↔ Od ove pozicije igrate belim, Stockfish crnim.'
+          : '↔ Od ove pozicije igrate crnim, Stockfish belim.');
+    }
 
     final fromStr = userLan.substring(0, 2);
     final toStr = userLan.substring(2, 4);
@@ -1407,7 +1457,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     });
 
     // --- STEP 0: IMMEDIATE CHECKMATE VICTORY ON BOARD (FOR BASIC MATES & WINNING POSITIONS) ---
-    if (_puzzleGame!.in_checkmate && _selectedCategory != 'mate_puzzle') {
+    // Same reading as the engine's branch, through the same function: the
+    // reader has just moved, so a mate here is theirs. Written this way rather
+    // than as a bare `in_checkmate` so that both verdicts in this screen come
+    // from one rule instead of two that can drift apart — which is how they
+    // drifted apart in the first place.
+    if (outcomeFor(_puzzleGame!, _userColor ?? movingColor) ==
+            DrillOutcome.readerWon &&
+        _selectedCategory != 'mate_puzzle') {
       print('\n==================================================');
       print('[TRAINING_LOG] 🏆 MAT NA TABLI! Korisnik je uspešno zadao mat!');
       print('==================================================\n');
@@ -2034,6 +2091,51 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _currentSolutionsNode = Map<String, dynamic>.from(_rootSolutionsTree);
       _activeBranchPoints.clear();
     });
+  }
+
+  /// The counterpart to [_showEndgameWinDialog], which had none.
+  ///
+  /// Losing used to be a snackbar in one drill and a victory dialog in the
+  /// others. A child who has just been mated deserves the same weight of answer
+  /// as one who has just mated — and, more plainly, needs to be told which of
+  /// the two happened.
+  void _showEndgameLossDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.flag, color: context.colors.danger, size: 28),
+            const SizedBox(width: 8),
+            const Text('Mat', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text('Stockfish vam je zadao mat. Probajte ponovo.'),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.refresh),
+            label: const Text('Pokušaj ponovo'),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _resetCurrentPuzzle();
+            },
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.arrow_forward),
+            label: const Text('Sledeća Pozicija'),
+            onPressed: () {
+              Navigator.pop(ctx);
+              if (_selectedCategory == 'basic_mate') {
+                _loadBasicMatePreset(_selectedBasicMateType);
+              } else {
+                _fetchNextPuzzle();
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   void _showEndgameWinDialog() {
