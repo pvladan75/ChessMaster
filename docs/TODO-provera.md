@@ -1625,3 +1625,40 @@ upozorenje o prekoračenju, pa se ovo ne vidi ni u `analyze` ni u logu:
       dalje ćuti, kao i dosad.
 - [ ] Traka sa čipovima poteza („Početak", „1. Bd1", …) više se ne pojavljuje
       **nigde**, a grafičko stablo rešenja u „Mat u N poteza" je netaknuto.
+
+---
+
+## 44. Strana igrača u vežbama protiv motora — 28.8.2026, delimično viđeno uživo
+
+Prijavio korisnik: u vežbi protiv motora može se u stablu poteza vratiti na
+poziciju gde je motor na potezu, odigrati taj potez sam, i od tada motor igra
+ono što je bila korisnikova strana. Uzrok je bio da pojam „korisnikova strana"
+nije ni postojao — motor je bio definisan čisto reaktivno.
+
+Zamena je namerno **ostavljena kao mogućnost** (gledati kako motor igra tvoju
+stranu je razlog zbog kog neko to radi), ali se sada javlja, a presude se čitaju
+sa table kroz `outcomeFor` umesto iz kategorije vežbe.
+
+**Viđeno uživo, korisnik, 28.8.2026** (`Vežbanje: easy — Matirajte Stockfish-a`):
+
+- [x] Povratak u stablu na motorov potez, odigran ručno → traka **„↔ Od ove
+      pozicije igrate crnim, Stockfish belim"**, i motor od tog trenutka vuče
+      belim. Potvrđeno i logom: `b8c7`, `c7b6` (crni kralj), pa `d4d6`, `c4c5`,
+      `d7e7`, `e7a7` (beli top i kralj).
+- [x] Mat koji je motor zadao → dijalog **„Mat — Stockfish vam je zadao mat"**
+      sa „Pokušaj ponovo" i „Sledeća Pozicija".
+
+**Nije viđeno, iako ide kroz isti kod:**
+
+- [ ] **`Pronađite dobitni put` (`winning_position`) kad motor zada mat.** Ovo je
+      bio pravi bag: ranije se tu prikazivao dijalog **pobede** („Uspešno ste
+      zadali mat Stockfish-u") i vežba se obeležavala kao rešena. Živa provera
+      je odrađena u `basic_mate`, gde je poruka i pre bila tačna — pa je baš
+      kategorija u kojoj je bag postojao ostala nepogledana.
+- [ ] Pobeda **posle** zamene strana: matirati novom stranom → mora „POBEDA",
+      ne poraz.
+- [ ] Pat/remi posle zamene → „🤝 Pat / Remi u poziciji", bez ijednog dijaloga.
+- [ ] „Pokušaj ponovo" u dijalogu poraza vraća **istu** poziciju, a „Sledeća
+      Pozicija" učitava novu.
+- [ ] Da traka o zameni **ne** iskoči kad se igra normalno, od prvog do
+      poslednjeg poteza svojom stranom.

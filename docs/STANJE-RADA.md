@@ -1645,3 +1645,60 @@ postane istinita.
   `fontFamily`, pa ne hvata font učitan u testu. U pravoj aplikaciji se
   iscrtavaju ispravno, provereno na Windows buildu. Jedan red u `AppTheme` kad
   se bude diralo.
+
+---
+
+## Presuda koja se čitala iz kategorije, a ne sa table — 28.8.2026
+
+Korisnik je prijavio nešto što je zvučalo kao sitnica: u vežbi protiv motora
+može se u stablu poteza vratiti na poziciju gde je motor na potezu, odigrati
+taj potez sam, i od tada motor igra ono što je bila korisnikova strana.
+
+Tačno, i uzrok je bio da **pojam „korisnikova strana" nije ni postojao**. Motor
+je bio definisan čisto reaktivno — posle čovekovog poteza, motor odgovara — što
+važi sve dok se čovek ne vrati unazad i ne preuzme motorov potez.
+
+### Šta se našlo dok se tražilo gde ta praznina smeta
+
+Gore od prijave. U `ai_studio_screen.dart`, unutar obrade **motorovog** poteza:
+
+```dart
+if (in_checkmate) {
+  if (category == 'basic_mate') showSnackBar('Stockfish vam je zadao mat');
+  else { _puzzleSolved = true; _showEndgameWinDialog(); }
+}
+```
+
+Motor je upravo odigrao, dakle mat je uvek onaj koji je korisnik **primio**. Sve
+što nije `basic_mate` padalo je u dijalog **„🎉 POBEDA! Uspešno ste zadali mat
+Stockfish-u"** i obeležavalo vežbu kao rešenu — pa je `winning_position`
+čestitao detetu na matu koji ga je upravo dokrajčio. **Za to nije bila potrebna
+nikakva zamena strana**; zamena je samo činila lakim da se dođe dotle.
+
+### Pouka, koja se ponavlja u ovom repozitorijumu
+
+Presuda se izvodila iz **koja je ovo vežba** umesto iz **šta je na tabli**.
+Isti oblik kao svuda u odeljku o ponavljajućem bagu: odgovor se čita sa
+pogrešnog mesta, a pogrešno mesto se najčešće slaže sa tačnim — dok se jednog
+dana ne raziđu.
+
+Zato `core/models/drill_outcome.dart` ne prima ni kategoriju ni „ko je poslednji
+vukao": to su dva ulaza koja su davala pogrešan odgovor, pa sada **ne postoji
+način da se proslede**. Mat imenuje svoju žrtvu time ko je na potezu. Obe
+presude na ekranu idu kroz jednu funkciju, umesto dva pravila koja su se već
+jednom razišla. Test je dokazan mutacijom: vraćanje starog pravila obara tri od
+deset.
+
+### Ostala tri ekrana su čista, svaki iz svog razloga
+
+Provereno istog dana, jer je pitanje bilo da li isti oblik postoji drugde:
+
+- `repertoire_drill_screen` — strana se **prosleđuje** (`widget.color`), a
+  protivnikovi odgovori dolaze iz knjige, ne od motora.
+- `blunder_walk_screen` — nema protivnika-motora ni presude o matu; to je
+  šetnja kroz već odigranu partiju.
+- `endgame_trainer_screen` — presudu daje **server** (`solve.submit`), pa se
+  lokalno i ne izvodi. Komentar u fajlu to i kaže.
+
+Praznina je, dakle, bila samo tamo gde se presuđivalo lokalno bez pojma o
+stranama.
