@@ -1577,3 +1577,71 @@ polja za komentar.
   sva tri zajedno a kupuje četvrti način za isto.
 
 Obe stoje kao zasebne otvorene stavke u dnevniku provere.
+
+---
+
+## Dizajnerski prolaz na zasebnoj grani — spojen 28.8.2026
+
+Vizuelni sloj je prvi put dobio svoj prolaz, i to kao eksperiment: zaseban agent
+(Gemini) radio je u `git worktree`-u na grani `design/gemini-pass`, dok je ovde
+tekao rad na funkcionalnosti. Spojeno istog dana, `2c19ca6`, bez ijednog
+konflikta.
+
+### Zašto se spojilo bez konflikta
+
+Zato što je opseg bio uzak i napisan unapred. U Flutter-u izmena dizajna i
+izmena ponašanja žive u istom fajlu, pa dva paralelna toka po pravilu prepisuju
+ista stabla widgeta. Dogovoreno mu je tačno četvoro: sloj tokena, dva prazna
+`ThemeData` bloka u `main.dart`, nova galerija koja postoji samo da se gleda, i
+**jedan** pilot ekran. Sve ostalo je pisao kao predlog u `DESIGN-PROPOSALS.md`
+umesto da menja kod.
+
+**To je oblik koji vredi ponoviti**, a ne samo detalj ove runde: širok diff bi
+bio bačen pri spajanju, a predlog nije. Pilot je bio trening hub — mali,
+vizuelan, pokriven testom i van puta rada na stablu poteza.
+
+### Šta je ušlo
+
+- `lib/theme/app_theme.dart` — cela `ThemeData`, koju čitaju i `main.dart` i
+  golden test. Namerno jedno mesto: tema je pre toga postojala u dva primerka,
+  pa su se screenshotovi renderovali iz teme koju aplikacija ne isporučuje.
+- Prefarban sloj tokena, sa **izmerenim kontrastom upisanim uz svaki token**,
+  plus `app_spacing.dart` i `app_radii.dart`.
+- Popunjena `ThemeData` prestilizuje svih 29 ekrana bez diranja ijednog od njih.
+- Galerija na `/design-gallery`, dostupna isključivo kroz stavku iza
+  `kDebugMode` na dnu Podešavanja — u release buildu je nema.
+
+### Pouka, koja je opštija od dizajna
+
+Od osam nalaza iz pregleda, **tri nisu bila loš dizajn nego netačna tvrdnja**:
+
+- paleta dokumentovana kao 4.5:1 koja meri 2.72 (belo na `brand`, i to kao
+  podrazumevani stil dugmeta, dakle za celu aplikaciju a ne za jedan ekran),
+- zaglavlje koje garantuje AA za tokene koji ga ne ispunjavaju,
+- i screenshotovi ponuđeni kao dokaz, na kojima nema nijednog slova, jer golden
+  test ne učitava font.
+
+Isti oblik kao sve u odeljku o ponavljajućem bagu: korak koji prijavi uspeh a
+omane sloj niže. Uhvaćeno je samo zato što je **svaki broj preračunat nezavisno
+i svaki ekran otvoren u pokrenutoj aplikaciji**. Kad sledeći put neki agent
+napiše meru, meri je ponovo.
+
+Vredi zabeležiti i jedan dobar znak: kod tvrdnje o kontrastu je mogao da oslabi
+tvrdnju dok se ne poklopi sa bojama — umesto toga je promenio `danger` da tvrdnja
+postane istinita.
+
+### Šta ostaje otvoreno
+
+- `DESIGN-PROPOSALS.md` (koren repoa) nosi ostatak: predlozi po ekranima,
+  komponentna biblioteka, i **redosled za svetlu temu** — prvo migracija ~53
+  fajla koji još drže sirove literale boja, pa svetli tokeni, pa podešavanje.
+  Obrnutim redom svetla tema daje belo na belom.
+- Svetla tema je namerno **ne**napisana: `ThemeMode` je zakucan na `dark` i
+  `setThemeMode` ne postoji nigde u `lib/`, pa bi to bio mrtav kod.
+- `DESIGN-BRIEF.md` je posle spajanja ostao na korenu. Pisan je agentu („ovo
+  smeš da menjaš"), pa kao projektna dokumentacija tu ne stoji — treba ga
+  premestiti u `docs/` kao zapis o tome kako je opseg omeđen, ili obrisati.
+- Natpisi na dugmadi su na goldenima i dalje kutije: `textStyle` u temi nema
+  `fontFamily`, pa ne hvata font učitan u testu. U pravoj aplikaciji se
+  iscrtavaju ispravno, provereno na Windows buildu. Jedan red u `AppTheme` kad
+  se bude diralo.
