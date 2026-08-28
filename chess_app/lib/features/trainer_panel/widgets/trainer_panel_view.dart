@@ -44,16 +44,16 @@ class TrainerPanelView extends StatelessWidget {
 
     return Card(
       elevation: 4,
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(Icons.today, color: colors.accent, size: 28),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 // Expanded, not a bare Text: at 360 px a title next to an icon
                 // is wider than the card, and a release build clips it in
                 // silence instead of striping it.
@@ -65,7 +65,7 @@ class TrainerPanelView extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             if (panel.today.isNotEmpty)
               _section(
                 context,
@@ -166,7 +166,7 @@ class TrainerPanelView extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           ...children,
         ],
       ),
@@ -191,16 +191,19 @@ class TrainerPanelView extends StatelessWidget {
     final colors = context.colors;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: filled ? colors.surfaceRaised : colors.surface,
         border: Border.all(color: colors.border),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadii.roundedMd,
       ),
       child: Row(
         children: [
-          if (leading != null) ...[leading, const SizedBox(width: 12)],
+          if (leading != null) ...[
+            leading,
+            const SizedBox(width: AppSpacing.md)
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,13 +213,13 @@ class TrainerPanelView extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w500),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: AppSpacing.xxs),
                 Text(
                   subtitle,
                   style: TextStyle(fontSize: 13, color: colors.textSecondary),
                 ),
                 if (note != null) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     note,
                     style: TextStyle(
@@ -228,7 +231,7 @@ class TrainerPanelView extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           filled
               ? ElevatedButton(onPressed: onAction, child: Text(action))
               : OutlinedButton(onPressed: onAction, child: Text(action)),

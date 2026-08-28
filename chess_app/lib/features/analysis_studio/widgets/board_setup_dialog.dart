@@ -320,7 +320,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                     text: 'Chess.com/Lichess'),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
@@ -397,7 +397,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             icon: const Icon(Icons.check),
             label: const Text('Postavi FEN Poziciju'),
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             ),
             onPressed: _isFenValid
                 ? () {
@@ -469,7 +469,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             icon: const Icon(Icons.file_open),
             label: const Text('Uvezi PGN Partiju'),
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             ),
             onPressed: () {
               final pgn = _pgnTextController.text.trim();
@@ -511,7 +511,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             children: paletteKeys.map((key) {
               final isSelected = _selectedPalettePiece == key;
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
                 child: ChoiceChip(
                   label: key == 'CLEAR'
                       ? Icon(Icons.close, size: 18, color: colors.danger)
@@ -539,8 +539,8 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                   style: TextStyle(fontSize: 11, color: colors.danger)),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: colors.danger),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: AppSpacing.xs),
               ),
               onPressed: () {
                 setState(() {
@@ -554,8 +554,8 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                   style: TextStyle(fontSize: 11, color: colors.accent)),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: colors.accent),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: AppSpacing.xs),
               ),
               onPressed: () {
                 setState(() {
@@ -781,7 +781,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                 : const Icon(Icons.cloud_download),
             label: Text(_importLoading ? 'Preuzimanje...' : 'Preuzmi Partije'),
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             ),
             onPressed: _importLoading ? null : _fetchFromPlatform,
           ),

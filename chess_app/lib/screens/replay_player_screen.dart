@@ -302,7 +302,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           title: Row(
             children: [
               Icon(Icons.video_settings_rounded, color: context.colors.brand),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               const Text('Video Studio - Podešavanje Videa',
                   style: AppText.title),
             ],
@@ -316,13 +316,13 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                   '1. Stil šahovskih figura:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 DropdownButtonFormField<String>(
                   initialValue: selectedPieceStyle,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                        horizontal: 10, vertical: AppSpacing.sm),
                   ),
                   items: const [
                     DropdownMenuItem(
@@ -342,18 +342,18 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                     }
                   },
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 Text(
                   '2. Tema šahovske table:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 DropdownButtonFormField<String>(
                   initialValue: selectedBoardTheme,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                        horizontal: 10, vertical: AppSpacing.sm),
                   ),
                   items: const [
                     DropdownMenuItem(
@@ -372,12 +372,12 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                     }
                   },
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 Text(
                   '3. Orijentacija table:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 RadioGroup<String>(
                   groupValue: selectedPerspective,
                   onChanged: (val) =>
@@ -449,13 +449,13 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                   '5. Rezolucija i Kvalitet:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 DropdownButtonFormField<String>(
                   initialValue: selectedResolution,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                        horizontal: 10, vertical: AppSpacing.sm),
                   ),
                   items: const [
                     DropdownMenuItem(
@@ -539,7 +539,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
         title: Row(
           children: [
             Icon(Icons.check_circle, color: context.colors.accent),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             const Text('MP4 Video spreman!'),
           ],
         ),
@@ -548,12 +548,12 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(message, style: AppText.bodyLarge),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             if (downloadUrl != null) ...[
               Text('Direktan link za preuzimanje:',
                   style: AppText.caption
                       .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               SelectableText(
                 downloadUrl,
                 style:
@@ -674,7 +674,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
               Expanded(
                 child: Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(12.0),
+                    padding: const EdgeInsets.all(AppSpacing.md),
                     child: AspectRatio(
                       aspectRatio: 1.0,
                       child: LayoutBuilder(
@@ -711,7 +711,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
 
               // Player Control Deck
               Container(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   boxShadow: const [
