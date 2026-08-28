@@ -30,6 +30,7 @@ import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/saved_positions_screen.dart';
+import 'package:chess_app/screens/design_gallery_screen.dart';
 
 /// The app's navigation graph.
 ///
@@ -331,6 +332,10 @@ final List<RouteBase> appRouteTable = [
   GoRoute(
     path: AppRoutes.birthYear,
     builder: (context, state) => const BirthYearScreen(canCancel: true),
+  ),
+  GoRoute(
+    path: AppRoutes.designGallery,
+    builder: (context, state) => const DesignGalleryScreen(),
   ),
 ];
 

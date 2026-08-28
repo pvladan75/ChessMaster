@@ -73,16 +73,7 @@ class ChessApp extends StatelessWidget {
             ),
             useMaterial3: true,
           ),
-          darkTheme: ThemeData(
-            brightness: Brightness.dark,
-            primaryColor: Colors.deepPurple,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.deepPurple,
-              brightness: Brightness.dark,
-            ),
-            useMaterial3: true,
-            extensions: const [AppColorTokens.dark],
-          ),
+          darkTheme: AppTheme.dark,
         );
       },
     );

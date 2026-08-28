@@ -1,0 +1,3 @@
+tags:
+  golden:
+    skip: "Golden screenshot tests are visual review artifacts; run with: flutter test --tags golden"

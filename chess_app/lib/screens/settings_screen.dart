@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -895,6 +896,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
+              if (kDebugMode) ...[
+                const SizedBox(height: 16),
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.palette_outlined,
+                      color: context.colors.brand,
+                    ),
+                    title: const Text('Galerija dizajna (Debug)'),
+                    subtitle: const Text(
+                      'Pregled palete boja, tipografije, dugmadi i komponenti.',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push(AppRoutes.designGallery),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
             ],
           ),
