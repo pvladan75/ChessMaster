@@ -1,6 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess/chess.dart' as chess;
+import 'package:flutter/material.dart';
+
+import 'package:chess_app/core/services/legal_moves.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 /// Called when the user taps a move chip to jump the board to that position.
 typedef PgnMoveSelected = void Function(
@@ -27,11 +30,13 @@ class PgnSolutionTreeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     if (!visible || solutions.isEmpty || initialFen == null) {
       return const SizedBox.shrink();
     }
 
-    final chips = _buildPgnChipsFromSolutions(solutions);
+    final chips = _buildPgnChipsFromSolutions(context, solutions);
     if (chips.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -39,7 +44,7 @@ class PgnSolutionTreeWidget extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade900,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.teal.shade700, width: 1.5),
       ),
@@ -47,15 +52,12 @@ class PgnSolutionTreeWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Icon(Icons.account_tree, color: Colors.tealAccent, size: 18),
-              SizedBox(width: 8),
+            children: [
+              Icon(Icons.account_tree, color: colors.accent, size: 18),
+              const SizedBox(width: 8),
               Text(
                 'Stablo Rešenja (PGN):',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Colors.white),
+                style: AppText.subtitle.copyWith(color: colors.textPrimary),
               ),
             ],
           ),
@@ -70,7 +72,9 @@ class PgnSolutionTreeWidget extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildPgnChipsFromSolutions(Map<String, dynamic> solutions) {
+  List<Widget> _buildPgnChipsFromSolutions(
+      BuildContext context, Map<String, dynamic> solutions) {
+    final colors = context.colors;
     final List<Widget> chips = [];
 
     final tempBoard = chess.Chess.fromFEN(initialFen!);
@@ -115,23 +119,23 @@ class PgnSolutionTreeWidget extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color:
-                    isCurrentPos ? Colors.amber.shade700 : Colors.teal.shade900,
+                color: isCurrentPos
+                    ? colors.warning.withValues(alpha: 0.22)
+                    : colors.surfaceRaised,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isCurrentPos
-                      ? Colors.amberAccent
-                      : Colors.tealAccent.withValues(alpha: 0.5),
+                      ? colors.warning
+                      : colors.accent.withValues(alpha: 0.5),
                   width: isCurrentPos ? 2 : 1,
                 ),
               ),
               child: Text(
                 labelStr,
-                style: TextStyle(
-                  color: isCurrentPos ? Colors.white : Colors.tealAccent,
-                  fontWeight:
-                      isCurrentPos ? FontWeight.bold : FontWeight.normal,
-                  fontSize: 13,
+                style:
+                    (isCurrentPos ? AppText.bodyLargeBold : AppText.bodyLarge)
+                        .copyWith(
+                  color: isCurrentPos ? colors.warning : colors.accent,
                 ),
               ),
             ),

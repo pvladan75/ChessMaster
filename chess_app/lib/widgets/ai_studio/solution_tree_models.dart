@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 
 class SolutionGraphNode {
   final String id;
@@ -53,21 +52,25 @@ class PositionedNode {
 class TreeEdgesPainter extends CustomPainter {
   final List<PositionedNode> positionedNodes;
   final String? activeFen;
+  final Color edgeColor;
+  final Color activeEdgeColor;
 
   TreeEdgesPainter({
     required this.positionedNodes,
     required this.activeFen,
+    required this.edgeColor,
+    required this.activeEdgeColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final Paint linePaint = Paint()
-      ..color = const ui.Color(0xFF334155)
+      ..color = edgeColor
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
 
     final Paint activePaint = Paint()
-      ..color = const ui.Color(0xFF38BDF8)
+      ..color = activeEdgeColor
       ..strokeWidth = 3.0
       ..style = PaintingStyle.stroke;
 
@@ -96,6 +99,8 @@ class TreeEdgesPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant TreeEdgesPainter oldDelegate) {
     return oldDelegate.activeFen != activeFen ||
-        oldDelegate.positionedNodes != positionedNodes;
+        oldDelegate.positionedNodes != positionedNodes ||
+        oldDelegate.edgeColor != edgeColor ||
+        oldDelegate.activeEdgeColor != activeEdgeColor;
   }
 }
