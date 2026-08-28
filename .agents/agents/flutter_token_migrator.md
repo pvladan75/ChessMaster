@@ -32,6 +32,9 @@ Each of the five below is a real defect from an earlier batch of this same
 migration. Every one of them passed `flutter test` and `flutter analyze`; the
 only place any of them was visible was the diff.
 
+A sixth is **rule 23**, at the end of this file. It is out of order deliberately:
+the task briefs cite these rules by number, so nothing here is ever renumbered.
+
 10. **Map to the exact token, never to the nearest one.** `AppText` has an entry
     for every size in use (10, 11, 12, 13, 14, 16, 18, 22): `fontSize: 13` is
     `AppText.bodyLarge`, never `AppText.caption`. A previous pass mapped each
@@ -114,3 +117,40 @@ only place any of them was visible was the diff.
     afterthought to the code — it is usually the only evidence that you made a
     distinction rather than applied a pattern. Produce every item the brief asks
     for, in the brief's own words, before you report anything as done.
+
+## THE SIXTH BROKEN RULE
+
+23. **A token used as a background takes `context.colors.canvas` as its
+    foreground — and the check is triggered by the code, never by the brief.**
+
+    `accent`, `danger`, `warning`, `success`, `brand`, `accentAlt` and `info` are
+    light tokens, chosen to be legible *on* canvas. The moment one becomes a
+    filled background, light text on it collapses. The theme already declares the
+    pairing: `onPrimary`, `onSecondary` and `onError` in `lib/theme/app_theme.dart`
+    are all `#0F172A`, which is `colors.canvas`.
+
+    Before you finish a file, find every site in your own diff where a `colors.*`
+    token became a `BoxDecoration.color`, a `backgroundColor`, or a
+    `Container.color`, and resolve what is drawn on top of each one. Compute the
+    ratio for every one of them — see the `verify-contrast` skill. This is not
+    rule 15: rule 15 tells you to compute a number you have chosen to write down,
+    and an agent that writes no numbers never opens the skill. This rule fires on
+    the shape of the code whether or not the brief mentions contrast, and whether
+    or not you intend to quote a figure.
+
+    Where the background is conditional, the foreground is conditional with it.
+    A single `colors.canvas` on a two-state chip fixes the light branch and
+    destroys the dark one.
+
+    What went wrong: a batch was handed a brief that named two filled buttons and
+    gave the correct dark foreground for each. Both were done correctly, both
+    were reported as passing AAA — and the same batch shipped
+    `textPrimary` on `danger` at **1.81:1** and `textPrimary` on `accent` at
+    **1.78:1**, at a chip and a badge the brief had not listed. Each was worse
+    than the raw Material colour it replaced. Both sites were covered by written
+    rules the agent did not consult, in `GEMINI.md` and in the `verify-contrast`
+    skill.
+
+    The general form, and the reason this is a rule rather than a correction:
+    **a brief that hands you two instances of a rule is giving you the rule, not
+    the census.** Enumerate the instances yourself, from the diff.

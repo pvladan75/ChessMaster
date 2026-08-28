@@ -43,7 +43,7 @@ This document defines core rules, architectural guidelines, and constraints for 
     - `context.colors.accent`: Teal 400 (`#2DD4BF`) — engine eval, active board state.
     - `context.colors.accentAlt`: Purple 400 (`#C084FC`) — alternate branches, variations.
     - `context.colors.brand`: Violet 400 (`#A78BFA`) — platform identity.
-    - `context.colors.danger`: Rose 300 (`#FDA4AF`) — errors, blunders, lost positions ($\ge 5.39:1$ on all surfaces).
+    - `context.colors.danger`: Rose 300 (`#FDA4AF`) — errors, blunders, lost positions (9.44 / 7.74 / 5.48 on canvas / surface / surfaceRaised).
     - `context.colors.warning`: Amber 400 (`#FBBF24`) — warnings, blunder alerts.
     - `context.colors.success`: Green 400 (`#4ADE80`) — correct moves, puzzle victories.
     - `context.colors.info`: Sky 400 (`#38BDF8`) — informational hints, adaptive mode.
@@ -56,6 +56,7 @@ This document defines core rules, architectural guidelines, and constraints for 
   - Every interactive button and touch target must have a minimum size of **48×48 dp**.
   - Body text must achieve **WCAG AA ($\ge 4.5:1$)** against **the surface it actually sits on**, which is not always `surface`. Large text, icons, borders and badges need $\ge 3.0:1$.
   - A contrast figure is only meaningful with its background named. Never write an unqualified "$\ge X:1$" next to a token — three of the tokens above pass on `canvas` and `surface` and fail on `surfaceRaised`, and an unqualified number hides exactly that.
+  - **A token used as a background takes `context.colors.canvas` as its foreground.** `accent`, `danger`, `warning`, `success`, `brand`, `accentAlt` and `info` are light tokens, chosen to be read *on* canvas; putting `textPrimary` on one gives roughly 1.8:1. The theme already declares the pairing — `onPrimary`, `onSecondary` and `onError` are all `#0F172A`. This is not a rule about buttons: it holds for any filled chip, badge, pill or container. Where the background is conditional, the foreground must switch with it.
   - **Recompute before you claim.** Every ratio in this file was verified against the sRGB relative-luminance formula. If you change a token, recompute all three surfaces and update the numbers here in the same edit.
 
 ---
