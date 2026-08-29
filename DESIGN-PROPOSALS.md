@@ -187,6 +187,47 @@ final Color groupedContainerBorder;   // #818CF8 (Indigo 400,  L = 0.30201)
 final Color onGroupedContainer;       // #E0E7FF (Indigo 100,  L = 0.80219) -> 9.27:1 contrast
 ```
 
+
+#### DECIDED AND SHIPPED — 29.8.2026
+
+The container role is in `AppColorTokens` as of this date. Values as shipped,
+every ratio recomputed rather than carried over from the proposal:
+
+| token | value | on-container | ratio | border | ratio |
+|---|---|---|---|---|---|
+| `successContainer` | `#065F46` | `onSuccessContainer` `#ECFDF5` | **7.29:1** | `successContainerBorder` `#34D399` | **4.00:1** |
+| `groupedContainer` | `#312E81` | `onGroupedContainer` `#E0E7FF` | **9.27:1** | `groupedContainerBorder` `#818CF8` | **3.83:1** |
+| `infoContainer` | `#075985` | `onInfoContainer` `#F0F9FF` | **7.09:1** | `colors.info` `#38BDF8` | **3.53:1** |
+| `canvasRecessed` | `#020617` | `textPrimary` | **19.28:1** | — | — |
+
+Two changes from what §7.2 and §7.3 proposed, and the reason for each:
+
+1. **The active node is Sky 800 (`#075985`), not Sky 700.** §7.5 records the
+   border defect — `colors.info` on Sky 600 is 1.91:1 — and the recommended Sky
+   700 lifts it only to **2.77:1**, still under the 3.0 a UI boundary needs. So
+   the proposal fixed the text it measured and left the border it had itself
+   identified. Sky 800 clears both, and its border is `colors.info`, a token
+   that already existed: two new colours instead of three, and the same shape as
+   the other two containers — an 800/900 background, a 400 border, a 50/100 text.
+2. **The on-container text is Sky 50 (`#F0F9FF`), not `Colors.white`**, for the
+   same consistency: every container in the set now names its own foreground
+   rather than borrowing white.
+
+`test/container_token_contrast_test.dart` recomputes all eight ratios from the
+tokens on every run and was proved by mutation. Rule 25 in
+`.agents/agents/flutter_token_migrator.md` tells migrators that rules 23 and 24
+stop at a container.
+
+**What this does and does not unblock.** It unblocks
+`solution_graph_widget.dart`, which is what §7.1 scoped and what batch 6
+deliberately left unchanged, and it gives the six dark containers batch 8 left
+standing in `ai_studio_screen.dart` somewhere to go. It does **not** unblock
+`chess_game_screen.dart` or `board_overlay_painter.dart`, which several
+handoffs claimed it did: a census on 29.8.2026 found 144 literals in the former,
+**none** of them `.shadeN00` and none a raw `Color(0x...)`, and the latter's ten
+raw colours are bright overlay hues, domain constants under rule 14. Neither
+file was ever waiting on this.
+
 ---
 
 ### 7.3 The Fourth Accent & AI Studio Identity Hue (`#0284C7` Sky 600)

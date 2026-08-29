@@ -200,3 +200,41 @@ the task briefs cite these rules by number, so nothing here is ever renumbered.
     telling you what it should look like, not what is readable. Measure it
     anyway. Rule 23's last paragraph fires on the shape of the code, not on the
     brief, and this rule inherits that.
+
+## THE CONTAINERS EXIST NOW
+
+25. **A container token is a surface, and rules 23 and 24 both stop at it.**
+
+    Since 29.8.2026 `AppColorTokens` carries three container triples and a
+    recessed canvas:
+
+        successContainer  #065F46  onSuccessContainer  #ECFDF5  border #34D399
+        groupedContainer  #312E81  onGroupedContainer  #E0E7FF  border #818CF8
+        infoContainer     #075985  onInfoContainer     #F0F9FF  border colors.info
+        canvasRecessed    #020617  -- below canvas, for deep viewports
+
+    Every one of them is a **dark hued surface**. Rule 23 sends a light token
+    used as a background to `colors.canvas`; on a container that is **2.32:1**
+    (success) and **1.56:1** (grouped), so the rule is exactly wrong here. That
+    is the clause rule 23 has carried since batch 6 and there was nothing to
+    apply it to until now. **A container takes its own `on*Container`
+    foreground**, and its own border, and nothing else.
+
+    Use them where the code already paints a dark hued surface and the palette
+    used to have no name for it — a solved or checkmate node, a cluster of
+    grouped branches, the active node in the AI Studio graph. Do **not** reach
+    for one as a substitute for a 400-level token: `successContainer` is not a
+    darker `success`, it is the surface `success` would be unreadable on.
+
+    `test/container_token_contrast_test.dart` recomputes all eight ratios from
+    the tokens on every run, so a retuned shade fails there rather than on a
+    phone. It was proved by mutation: putting `infoContainer` back to Sky 600
+    (`#0284C7`), which is what the code paints today and what the proposal
+    started from, fails with "info as a border on infoContainer measures
+    1.91:1, under 3.0:1".
+
+    The proposal in `DESIGN-PROPOSALS.md` §7.2 recommended Sky 700 for that
+    container. It fixes the text (5.93:1) and leaves the border at 2.77:1, still
+    under the 3.0 a boundary needs. Sky 800 fixes both and keeps `colors.info`
+    as the border, so the triple needed two new colours instead of three. When a
+    proposal gives you a number, check the *other* pairings it did not.

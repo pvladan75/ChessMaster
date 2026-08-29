@@ -39,6 +39,27 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
   final Color danger;
   final Color success;
 
+  // Containers. A container is a dark hued surface a widget sits *on*, and it
+  // is not the same role as a semantic accent. The 400-level tokens above are
+  // foregrounds, chosen to be legible on canvas; used as a filled background
+  // they collapse -- textPrimary on success measures 1.67:1, on brand 2.60:1.
+  // Each container therefore carries its own light on-container foreground and
+  // its own 400-level border, and rule 23's canvas-foreground mandate does not
+  // apply to any of them.
+  final Color canvasRecessed; // below canvas: deep viewports, graph boards
+
+  final Color successContainer; // solved, checkmate, a finished line
+  final Color onSuccessContainer;
+  final Color successContainerBorder;
+
+  final Color groupedContainer; // clustered branches, defence variations
+  final Color onGroupedContainer;
+  final Color groupedContainerBorder;
+
+  final Color infoContainer; // the active node, AI Studio identity
+  final Color onInfoContainer;
+  // infoContainer's border is `info` itself: 3.53:1 on it, and no new colour.
+
   const AppColorTokens({
     required this.canvas,
     required this.surface,
@@ -55,6 +76,15 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     required this.warning,
     required this.danger,
     required this.success,
+    required this.canvasRecessed,
+    required this.successContainer,
+    required this.onSuccessContainer,
+    required this.successContainerBorder,
+    required this.groupedContainer,
+    required this.onGroupedContainer,
+    required this.groupedContainerBorder,
+    required this.infoContainer,
+    required this.onInfoContainer,
   });
 
   static const AppColorTokens dark = AppColorTokens(
@@ -103,6 +133,31 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     // #4ADE80 (Green 400 - Correct moves, solved puzzles, victories; distinct from Teal accent):
     // Contrast: 10.25:1 on canvas / 8.40:1 on surface / 5.94:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
     success: Color(0xFF4ADE80),
+
+    // Containers. Every figure below is the on-container text against its own
+    // container, and the border against the same, measured not asserted.
+
+    // #020617 (Slate 950): 4.3x darker than canvas, for a surface nested inside
+    // a panel that already sits on canvas. textPrimary on it is 19.28:1.
+    canvasRecessed: Color(0xFF020617),
+
+    // Emerald 800 / 50 / 400. Text 7.29:1 (AAA), border 4.00:1.
+    successContainer: Color(0xFF065F46),
+    onSuccessContainer: Color(0xFFECFDF5),
+    successContainerBorder: Color(0xFF34D399),
+
+    // Indigo 900 / 100 / 400. Text 9.27:1 (AAA), border 3.83:1.
+    groupedContainer: Color(0xFF312E81),
+    onGroupedContainer: Color(0xFFE0E7FF),
+    groupedContainerBorder: Color(0xFF818CF8),
+
+    // Sky 800 / 50, bordered by `info` (Sky 400). Text 7.09:1, border 3.53:1.
+    // The active node is #0284C7 (Sky 600) today, where white is 4.10:1 and the
+    // info border is 1.91:1 -- both under bar. Sky 800 fixes both and keeps the
+    // blue; Sky 700, which the proposal recommended, fixes only the text and
+    // leaves the border at 2.77:1.
+    infoContainer: Color(0xFF075985),
+    onInfoContainer: Color(0xFFF0F9FF),
   );
 
   @override
@@ -122,6 +177,15 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     Color? warning,
     Color? danger,
     Color? success,
+    Color? canvasRecessed,
+    Color? successContainer,
+    Color? onSuccessContainer,
+    Color? successContainerBorder,
+    Color? groupedContainer,
+    Color? onGroupedContainer,
+    Color? groupedContainerBorder,
+    Color? infoContainer,
+    Color? onInfoContainer,
   }) {
     return AppColorTokens(
       canvas: canvas ?? this.canvas,
@@ -139,6 +203,17 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       warning: warning ?? this.warning,
       danger: danger ?? this.danger,
       success: success ?? this.success,
+      canvasRecessed: canvasRecessed ?? this.canvasRecessed,
+      successContainer: successContainer ?? this.successContainer,
+      onSuccessContainer: onSuccessContainer ?? this.onSuccessContainer,
+      successContainerBorder:
+          successContainerBorder ?? this.successContainerBorder,
+      groupedContainer: groupedContainer ?? this.groupedContainer,
+      onGroupedContainer: onGroupedContainer ?? this.onGroupedContainer,
+      groupedContainerBorder:
+          groupedContainerBorder ?? this.groupedContainerBorder,
+      infoContainer: infoContainer ?? this.infoContainer,
+      onInfoContainer: onInfoContainer ?? this.onInfoContainer,
     );
   }
 
@@ -161,6 +236,21 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       warning: Color.lerp(warning, other.warning, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
       success: Color.lerp(success, other.success, t)!,
+      canvasRecessed: Color.lerp(canvasRecessed, other.canvasRecessed, t)!,
+      successContainer:
+          Color.lerp(successContainer, other.successContainer, t)!,
+      onSuccessContainer:
+          Color.lerp(onSuccessContainer, other.onSuccessContainer, t)!,
+      successContainerBorder:
+          Color.lerp(successContainerBorder, other.successContainerBorder, t)!,
+      groupedContainer:
+          Color.lerp(groupedContainer, other.groupedContainer, t)!,
+      onGroupedContainer:
+          Color.lerp(onGroupedContainer, other.onGroupedContainer, t)!,
+      groupedContainerBorder:
+          Color.lerp(groupedContainerBorder, other.groupedContainerBorder, t)!,
+      infoContainer: Color.lerp(infoContainer, other.infoContainer, t)!,
+      onInfoContainer: Color.lerp(onInfoContainer, other.onInfoContainer, t)!,
     );
   }
 }
