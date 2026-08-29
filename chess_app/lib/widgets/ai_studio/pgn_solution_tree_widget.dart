@@ -47,7 +47,7 @@ class PgnSolutionTreeWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: AppRadii.roundedMd,
-        border: Border.all(color: Colors.teal.shade700, width: 1.5),
+        border: Border.all(color: colors.accent, width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

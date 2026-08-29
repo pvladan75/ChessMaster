@@ -219,10 +219,10 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
       decoration: BoxDecoration(
         color: colors.canvas,
         borderRadius: AppRadii.roundedLg,
-        border: Border.all(color: const Color(0xFF0284C7), width: 1.5),
-        boxShadow: const [
+        border: Border.all(color: colors.info, width: 1.5),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x400284C7),
+            color: colors.info.withValues(alpha: 0.25),
             blurRadius: 10,
             spreadRadius: 1,
           )

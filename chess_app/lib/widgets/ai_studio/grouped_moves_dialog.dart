@@ -97,8 +97,8 @@ void showGroupedMovesDialog({
               icon: const Icon(Icons.gamepad, size: 16),
               label: const Text('Prikaži Poziciju na Tabli'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0284C7),
-                foregroundColor: Colors.white,
+                backgroundColor: colors.info,
+                foregroundColor: colors.canvas,
               ),
               onPressed: () {
                 Navigator.pop(ctx);

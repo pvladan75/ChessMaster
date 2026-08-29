@@ -2170,7 +2170,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             icon: const Icon(Icons.arrow_forward),
             label: const Text('Sledeća Pozicija'),
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple, foregroundColor: Colors.white),
+                backgroundColor: context.colors.accentAlt,
+                foregroundColor: context.colors.canvas),
             onPressed: () {
               Navigator.pop(ctx);
               if (_selectedCategory == 'basic_mate') {
@@ -2595,8 +2596,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             // screen and no longer is, because it opens as its own route now.
             if (_selectedCategory != null) ...[
               IconButton(
-                icon:
-                    const Icon(Icons.arrow_back, size: 18, color: Colors.white),
+                icon: Icon(Icons.arrow_back,
+                    size: 18, color: context.colors.textPrimary),
                 tooltip: widget.initialCategory != null
                     ? 'Nazad na trening'
                     : 'Nazad na izbor kategorije',
@@ -2620,7 +2621,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             Expanded(
               child: Text(
                 headerGoal,
-                style: AppText.captionBold.copyWith(color: Colors.white),
+                style: AppText.captionBold
+                    .copyWith(color: context.colors.textPrimary),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
