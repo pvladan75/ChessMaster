@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:chess/chess.dart' as chess;
@@ -271,27 +272,48 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    // 550x620 was hard-coded, and on a 360dp phone that is a size the screen
+    // cannot give: everything inside laid out against a width that was not
+    // there. In debug it striped; in release it would simply have been clipped,
+    // which is how three of these were found by looking at a phone rather than
+    // by any test. Desktop is unchanged - the min() only bites where it must.
+    final screen = MediaQuery.sizeOf(context);
+    final wide = screen.width >= 900;
+    // 40dp a side is a desktop margin; on a phone it is a quarter of the
+    // board. And where there is room the dialog is wider than the old 550, so
+    // the manual builder fits without scrolling to reach its own button.
+    final inset = wide ? 40.0 : AppSpacing.md;
 
     return Dialog(
       shape: AppRadii.dialogShape,
+      insetPadding:
+          EdgeInsets.symmetric(horizontal: inset, vertical: AppSpacing.lg),
       child: Container(
-        width: 550,
-        height: 620,
+        width: math.min(wide ? 760.0 : 550.0, screen.width - 2 * inset),
+        height: math.min(720.0, screen.height - 2 * AppSpacing.lg),
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.tune, color: colors.accent, size: 22),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(
-                      'Unos Pozicije (Board Setup)',
-                      style: AppText.title.copyWith(color: colors.textPrimary),
-                    ),
-                  ],
+                // The title is the part that gives way: the icon and the
+                // close button have fixed sizes, a sentence does not.
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(Icons.tune, color: colors.accent, size: 22),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          'Unos Pozicije (Board Setup)',
+                          style:
+                              AppText.title.copyWith(color: colors.textPrimary),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 IconButton(
                   icon: Icon(Icons.close, color: colors.textMuted),
@@ -363,7 +385,12 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
           onChanged: _validateFen,
         ),
         const SizedBox(height: AppSpacing.md),
-        Row(
+        // Two buttons with long Serbian labels do not fit a phone side by
+        // side; wrapped, the second drops to its own line instead of past the
+        // edge.
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.xs,
           children: [
             OutlinedButton.icon(
               icon: const Icon(Icons.paste, size: 16),
@@ -376,7 +403,6 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                 }
               },
             ),
-            const SizedBox(width: AppSpacing.sm),
             OutlinedButton.icon(
               icon: const Icon(Icons.restart_alt, size: 16),
               label: const Text('Početna Pozicija'),
@@ -527,8 +553,10 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
           ),
         ),
         const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        Wrap(
+          alignment: WrapAlignment.spaceEvenly,
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.xs,
           children: [
             OutlinedButton.icon(
               icon: Icon(Icons.delete_outline, size: 16, color: colors.danger),
@@ -623,55 +651,58 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
         ),
         const SizedBox(height: 6),
 
-        // Controls: Side to move & Castling
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        // Controls: Side to move & Castling.
+        //
+        // One flat Wrap, and every part of it can break: a Row here cost the
+        // castling rights on a phone, overflowing by 168 pixels so that `Q`,
+        // `k` and `q` sat past the right edge where nothing can be tapped.
+        // Nesting Rows inside the Wrap only moved the problem - a Row is as
+        // wide as its contents whatever it sits in, so the label and the
+        // dropdown are children of the Wrap themselves.
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.xs,
           children: [
-            Row(
-              children: [
-                Text('Na potezu: ',
-                    style: AppText.body.copyWith(color: colors.textMuted)),
-                DropdownButton<PlayerColor>(
-                  value: _builderSideToMove,
-                  dropdownColor: colors.surface,
-                  style: AppText.body.copyWith(color: colors.textPrimary),
-                  items: const [
-                    DropdownMenuItem(
-                        value: PlayerColor.white, child: Text('⚪ Beli')),
-                    DropdownMenuItem(
-                        value: PlayerColor.black, child: Text('⚫ Crni')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setState(() => _builderSideToMove = val);
-                  },
-                ),
+            Text('Na potezu:',
+                style: AppText.body.copyWith(color: colors.textMuted)),
+            DropdownButton<PlayerColor>(
+              value: _builderSideToMove,
+              dropdownColor: colors.surface,
+              isDense: true,
+              style: AppText.body.copyWith(color: colors.textPrimary),
+              items: const [
+                DropdownMenuItem(
+                    value: PlayerColor.white, child: Text('⚪ Beli')),
+                DropdownMenuItem(
+                    value: PlayerColor.black, child: Text('⚫ Crni')),
               ],
+              onChanged: (val) {
+                if (val != null) setState(() => _builderSideToMove = val);
+              },
             ),
-            Row(
-              children: [
-                Text('Rokade: ',
-                    style: AppText.body.copyWith(color: colors.textMuted)),
-                FilterChip(
-                  label: const Text('K', style: AppText.micro),
-                  selected: _whiteCastleK,
-                  onSelected: (v) => setState(() => _whiteCastleK = v),
-                ),
-                FilterChip(
-                  label: const Text('Q', style: AppText.micro),
-                  selected: _whiteCastleQ,
-                  onSelected: (v) => setState(() => _whiteCastleQ = v),
-                ),
-                FilterChip(
-                  label: const Text('k', style: AppText.micro),
-                  selected: _blackCastleK,
-                  onSelected: (v) => setState(() => _blackCastleK = v),
-                ),
-                FilterChip(
-                  label: const Text('q', style: AppText.micro),
-                  selected: _blackCastleQ,
-                  onSelected: (v) => setState(() => _blackCastleQ = v),
-                ),
-              ],
+            const SizedBox(width: AppSpacing.md),
+            Text('Rokade:',
+                style: AppText.body.copyWith(color: colors.textMuted)),
+            FilterChip(
+              label: const Text('K', style: AppText.micro),
+              selected: _whiteCastleK,
+              onSelected: (v) => setState(() => _whiteCastleK = v),
+            ),
+            FilterChip(
+              label: const Text('Q', style: AppText.micro),
+              selected: _whiteCastleQ,
+              onSelected: (v) => setState(() => _whiteCastleQ = v),
+            ),
+            FilterChip(
+              label: const Text('k', style: AppText.micro),
+              selected: _blackCastleK,
+              onSelected: (v) => setState(() => _blackCastleK = v),
+            ),
+            FilterChip(
+              label: const Text('q', style: AppText.micro),
+              selected: _blackCastleQ,
+              onSelected: (v) => setState(() => _blackCastleQ = v),
             ),
           ],
         ),
