@@ -91,10 +91,31 @@ the task briefs cite these rules by number, so nothing here is ever renumbered.
     green board is a legitimate choice in either theme. Batch 46 fills that
     catalogue; before it lands, only `classic` exists.
 
-    **Arrow colours are not covered and stay literals.** All fourteen of them.
-    They are a fixed vocabulary the reader learns (this arrow means the engine's
-    first line), not a matter of taste, and nobody has yet measured them against
-    a pale board.
+    **Amended a third time, 29.8.2026, for arrow colours.** The paragraph this
+    replaces said they stay literals because "nobody has yet measured them
+    against a pale board". They have been measured now, and that is what
+    changed — not the taste, the evidence:
+
+    - There are **five**, not fourteen. `arrowPalette` holds `R`/`G`/`B`/`O`/`P`
+      and `_getEngineColor(rank)` holds the same five in another order; the
+      fourteen was a count of literal occurrences, not of colours.
+    - `R` and `P` measure **1.04:1** under protanopia — one colour, not two.
+      `B` and `O` measure **1.07:1 under normal vision**, so that pair has been
+      hue-only for every reader since it was written.
+    - Composited at the alpha they are drawn with, every one of the five falls
+      to between 1.01:1 and 1.12:1 against some square of some board skin.
+
+    So arrow colours now have the same kind of home board squares and piece
+    colours got: `ArrowColor` in `lib/theme/arrow_colors.dart`, a domain-named
+    value chosen by the reader rather than a surface token. **Batch 47 fills
+    it; before that batch lands the file does not exist and nothing may
+    reference it.** They remain a fixed vocabulary the reader learns — that was
+    never the part in question.
+
+    The engine's rank arrows are **not** a colour problem and are not to be
+    redesigned: rank is already carried twice, by colour and by stroke width
+    (7 px for the best line down to 1 px for the fifth). The user-drawn arrow is
+    the one with no second channel, and it is the reason this exists.
 
 ## HOW TO REPORT
 
