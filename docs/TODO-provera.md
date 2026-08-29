@@ -1814,13 +1814,13 @@ Proveriti, na Windows buildu i na telefonu:
    istu tablu kao i ona velika. Do sada su bili tri različita: mrka, zelena i
    tirkizna.
 
-Kože se za sada ne biraju — u katalogu je samo `classic`. Izbor dolazi u fazi 5,
-posle paketa 46 (Gemini) koji dodaje ostale.
+Kože se u fazi 2 još nisu birale — u katalogu je bila samo `classic`. Birač je
+došao u fazi 5 (stavka 49), a ostale kože u paketu 46 (stavka 48).
 
 ## 48. Kože table i figura — 29.8.2026, nije viđeno uživo
 
-Paket 46 dodao je pet tabli i tri kompleta figura. Biraju se tek u fazi 5, pa se
-do tada gledaju kroz galeriju i testove — ali kad birač postoji, proveriti:
+Paket 46 dodao je pet tabli i tri kompleta figura. **Birač postoji od faze 5**
+(stavka 49), u Podešavanjima → „IZGLED". Proveriti:
 
 1. **Svaku tablu sa svakim kompletom figura**, na telefonu. Brojke kažu da sve
    ivice figura prolaze 3.0:1 na oba polja svake table; ono što brojke ne kažu
@@ -1836,3 +1836,36 @@ do tada gledaju kroz galeriju i testove — ali kad birač postoji, proveriti:
    za sebe, ne za paletu.
 4. **Animacija poteza na svakoj koži** — pokrivka polja uzima boju te table, pa
    svaka koža ima svoju.
+
+## 49. Birač teme, table i figura — 29.8.2026, nije viđeno uživo
+
+Faza 5 plana iz [PLAN-TEME-I-TABLA.md](PLAN-TEME-I-TABLA.md): odeljak „IZGLED" u
+Podešavanjima, iznad „NALOG". Testovi tvrde šta se iscrtava posle dodira; ono što
+ne vide je kako to izgleda i da li se iko u tome snađe.
+
+Proveriti, na Windows buildu i na telefonu:
+
+1. **Svetla tema.** Ovo je prvi put da je iko vidi na pravom ekranu — pisana je
+   28.8.2026 i do sada je bila mrtav kod. Proći kroz **sve** ekrane, ne samo
+   Podešavanja: soba za čas, Analysis Studio, AI studio, trening, zadaci,
+   izveštaji. Tražiti tekst koji je nestao u podlogu i ivicu koje nema.
+2. **Sistemska tema prati telefon.** Prebaciti telefon u noćni režim dok je
+   aplikacija otvorena — tema se menja bez ponovnog pokretanja.
+3. **Izbor preživi gašenje aplikacije.** Izabrati svetlu, ubiti proces, otvoriti
+   ponovo. Ovo je ono što je do juče bilo pokvareno: `init()` je prepisivao
+   sačuvani izbor na `dark` na svakom pokretanju.
+4. **Tabla se ne menja sa temom.** Izabrati zelenu tablu, pa prebaciti temu iz
+   tamne u svetlu — tabla ostaje zelena. To je namerno i to je jedina stvar oko
+   koje je plan bio izričit.
+5. **Pločice se ne prelamaju čudno** na telefonu od 360 dp. Red teme se namerno
+   prelama 2 + 1; table idu 3 + 2, figure 2 + 1. Ako je uređaj uži ili je font
+   uvećan, gledati da ništa nije odsečeno — release build ne crta prugice.
+6. **Pregled figura je čitljiv.** Četiri figure na 30 px; ako se na telefonu ne
+   raspoznaje razlika između „Klasične" i „Tople", pregled ne radi svoj posao i
+   polje treba da poraste.
+7. **Kartica motora i kartica naloga** — dva reda koja su se prelivala (303 px i
+   26 px) sada su `Expanded`. Proveriti da natpis nije prelomljen ružno i da
+   vrednost desno stoji gde je i stajala.
+
+Stavka 48 je spisak *kombinacija* koje treba pogledati kad birač postoji; ova je
+o samom biraču.

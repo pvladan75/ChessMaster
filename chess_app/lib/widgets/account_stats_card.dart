@@ -80,8 +80,12 @@ class _AccountStatsCardState extends State<AccountStatsCard> {
               children: [
                 Icon(Icons.pie_chart, color: context.colors.accent),
                 const SizedBox(width: AppSpacing.sm),
-                Text('Statistika naloga', style: AppText.title),
-                const Spacer(),
+                // Expanded rather than a fixed Text plus a Spacer: the
+                // title, the gap and the plan chip together overflowed this row
+                // by 26 pixels at 360 dp.
+                Expanded(
+                  child: Text('Statistika naloga', style: AppText.title),
+                ),
                 if (_loading)
                   const SizedBox(
                     width: 14,

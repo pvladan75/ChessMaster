@@ -8,6 +8,9 @@ class AppSettingsService extends ChangeNotifier {
 
   AppSettingsService._internal();
 
+  /// Dark until something stored says otherwise, because dark is what this app
+  /// has always opened as and a fresh install should not look like a different
+  /// program.
   ThemeMode _themeMode = ThemeMode.dark;
 
   /// How hard the engine plays **when it is the one making the move**.
@@ -90,6 +93,42 @@ class AppSettingsService extends ChangeNotifier {
 
   ThemeMode get themeMode => _themeMode;
 
+  /// The reader-facing name of each mode, in the order Settings offers them.
+  ///
+  /// Sistem first, because it is the answer that stops being a decision: the
+  /// phone already knows whether it is night.
+  static const Map<ThemeMode, String> kThemeModeNames = {
+    ThemeMode.system: 'Sistem',
+    ThemeMode.light: 'Svetla',
+    ThemeMode.dark: 'Tamna',
+  };
+
+  /// The three strings that have ever been written under `app_theme_mode`,
+  /// unchanged since the first picker in August 2026. They are kept exactly as
+  /// they were: a preference written before the picker was removed is a
+  /// preference this build has to be able to read.
+  static ThemeMode _themeModeFromString(String? stored) {
+    switch (stored) {
+      case 'light':
+        return ThemeMode.light;
+      case 'system':
+        return ThemeMode.system;
+      default:
+        return ThemeMode.dark;
+    }
+  }
+
+  static String _themeModeToString(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'light';
+      case ThemeMode.system:
+        return 'system';
+      case ThemeMode.dark:
+        return 'dark';
+    }
+  }
+
   /// The three levels, and what each one is worth in plies.
   static const Map<String, int> kEnginePlayDepths = {
     'lako': 18,
@@ -141,13 +180,7 @@ class AppSettingsService extends ChangeNotifier {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    // The UI is dark-only today (hardcoded surfaces/white text), so the theme
-    // picker was removed. Anyone who had already chosen light or system would
-    // otherwise stay stuck there with no control left to escape it.
-    _themeMode = ThemeMode.dark;
-    if (prefs.getString('app_theme_mode') != 'dark') {
-      await prefs.setString('app_theme_mode', 'dark');
-    }
+    _themeMode = _themeModeFromString(prefs.getString('app_theme_mode'));
 
     _defaultEngineMoveTimeSeconds =
         (prefs.getInt('app_engine_movetime') ?? 2).clamp(1, 60);
@@ -211,6 +244,20 @@ class AppSettingsService extends ChangeNotifier {
       }
     });
     return best;
+  }
+
+  /// Light, dark, or whatever the machine says.
+  ///
+  /// Until 29.8.2026 [init] stamped `dark` over whatever was stored here on
+  /// every launch, because the light [ThemeData] carried no [AppColorTokens]
+  /// and every screen would have painted dark-theme text on a light scaffold.
+  /// `AppTheme.light` exists now, so the stamp is gone and this setter is the
+  /// only thing that writes the key.
+  Future<void> setThemeMode(ThemeMode mode) async {
+    _themeMode = mode;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_theme_mode', _themeModeToString(mode));
   }
 
   Future<void> setEnginePlayLevel(String level) async {

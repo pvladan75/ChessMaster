@@ -1679,10 +1679,11 @@ postane istinita.
   (odeljak niže). To nije izuzetak od pravila 14 nego njegova druga izmena —
   domenska boja sme da dobije domenski token, a `BoardSkin` je taj token za
   tablu. Strelice ostaju literali i nisu pokrivene.
-- Svetla tema je bila namerno **ne**napisana: `ThemeMode` je zakucan na `dark` i
-  `setThemeMode` ne postoji nigde u `lib/`, pa bi to bio mrtav kod. **Napisana je
-  29.8.2026** (paket 45, `b4fb881`) i i dalje je mrtav kod — namerno: prikazuje
-  se tek kad faza 5 doda birač. Odeljak niže.
+- Svetla tema je bila namerno **ne**napisana: `ThemeMode` je bio zakucan na
+  `dark`, a `setThemeMode` nije postojao nigde u `lib/`. Napisana je 29.8.2026
+  (paket 45, `b4fb881`), i istog dana je **faza 5 dodala birač** — tema, tabla i
+  figure biraju se u odeljku „IZGLED" u Podešavanjima. Nije više mrtav kod.
+  Odeljak niže.
 - `DESIGN-BRIEF.md` je posle spajanja ostao na korenu. Pisan je agentu („ovo
   smeš da menjaš"), pa kao projektna dokumentacija tu ne stoji — treba ga
   premestiti u `docs/` kao zapis o tome kako je opseg omeđen, ili obrisati.
@@ -1750,7 +1751,7 @@ stranama.
 
 ---
 
-## Teme, boje polja i boje figura — plan i faze 1–2, 29.8.2026
+## Teme, boje polja i boje figura — plan i faze 1–5, 29.8.2026
 
 Plan u celini je u [PLAN-TEME-I-TABLA.md](PLAN-TEME-I-TABLA.md); ovde stoji samo
 ono što je urađeno i šta treba znati pre nastavka.
@@ -1862,7 +1863,49 @@ Uživo nije viđeno: [TODO-provera.md](TODO-provera.md), stavka 47.
   proglasi gotovom. Ako ne prolazi, rešenje nije nova boja tokena nego oznaka
   koja ne zavisi samo od boje (deblji obod, tačka, ugao) — token `warning`
   znači „poslednji potez" i na svim ostalim mestima.
-- **Faza 5 (ovde)**: „Izgled" u Podešavanjima — tema, tabla, figure. Ne sme da
-  se spoji pre paketa 45: tada se uklanja prisila na tamnu temu u `init()`, a
-  sačuvani izbori „svetla"/„sistem" ljudi koji su birali pre nego što je birač
-  uklonjen tog trenutka oživljavaju.
+### Faza 5 — birač, 29.8.2026
+
+Odeljak **„IZGLED"** u `settings_screen.dart`, iznad „NALOG": tema
+(Sistem / Svetla / Tamna) kao čipovi, pa pet tabli i tri kompleta figura kao
+pločice koje se tapkaju. `setThemeMode` pamti izbor, a **prisila na tamnu temu u
+`init()` je uklonjena**.
+
+Ta linija nije samo ignorisala sačuvanu vrednost nego ju je i **prepisivala** na
+svakom pokretanju, i to od `6780886` (13.8.2026). Praktična posledica: svako ko
+je otvorio aplikaciju posle tog datuma već je izgubio svoj izbor, pa „oživljene"
+svetle teme ima samo na instalaciji starijoj od toga. Redosled faza je i dalje
+bio tačan — polje dejstva je samo manje nego što je plan pretpostavljao.
+
+Tri odluke koje je doneo kod, a ne plan:
+
+- **Pregled nije dvaput `BoardThumbnail`.** Tabla se sudi celom tablom i dobija
+  je na 72 px. Komplet figura je ispuna, ivica i dekoracija — ništa od toga ne
+  preživljava polje od devet piksela — pa dobija četiri figure na 30 px, na dva
+  polja **izabrane** table: bela figura na tamnom polju i crna na svetlom, pa
+  obrnuto, jer su to dva para koja padaju.
+- **Prsten izbora je 2 px u oba stanja**, samo druge boje kad nije izabran.
+  Ivica koja menja debljinu menja širinu pločice, pa se `Wrap` prelama pod
+  prstom koji ju je upravo dodirnuo.
+- **Sve je `Wrap`.** Tri srpska čipa su već 330 dp naspram 316 koliko kartica
+  ima na telefonu od 360 dp, pa se red teme namerno prelama 2 + 1.
+
+Dvanaest testova u `test/appearance_settings_test.dart`, i svaki tvrdi šta se
+**iscrtava** posle dodira, a ne šta je zapamćeno: svetli tokeni ispod ekrana
+(poređeni polje po polje — `Theme` dok animira izdaje *lerpovan*
+`AppColorTokens`, pa identitet nikad ne pogađa), `SkinnedChessBoard` bez
+prosleđene kože koji crta zeleno, `chessPieceWidget` bez prosleđene kože koji
+nosi toplu ispunu, i koža koja preživi prelazak na svetlu temu. Dokazano
+mutacijom: vraćanje prisile u `init()` i praznjenje oba `onTap`-a obara sedam od
+dvanaest.
+
+**Uz put su nađena dva prelivanja, oba zatečena i oba na ovom ekranu.** Na 360 dp
+red „Maksimalno vreme razmišljanja engine-a:" u kartici motora prelivao se za
+303 px, a zaglavlje kartice naloga za 26 — nevidljivo, jer release build seče
+umesto da išara. Oba natpisa su sada `Expanded`, zajedno sa druga dva reda
+natpis/vrednost u istoj kartici. Nađena su samo zato što novi test pumpa na
+`Size(360, 640)`.
+
+Mere posle faze 5: **869 testova** (12 novih), 1 preskočen, `flutter analyze` na
+istih 29 poznatih `info`-a.
+
+Uživo nije viđeno: [TODO-provera.md](TODO-provera.md), stavke 47, 48 i 49.

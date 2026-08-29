@@ -17,6 +17,8 @@ import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/widgets/parent_email_dialog.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/theme/board_skins.dart';
+import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -134,6 +136,204 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const _speechSample =
       'Linije se čitaju ovako: a, b, c, d, e, f, g, h. '
       'Greška je napravljena u 8. potezu, posle Rd8.';
+
+  /// The FEN the previews are drawn from.
+  ///
+  /// The opening position rather than a contrived one: it is the board a
+  /// reader recognises, it puts both colours on both square colours, and the
+  /// back ranks are exactly where a piece skin succeeds or fails.
+  static const _previewFen =
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+  /// One choice, drawn as whatever it would look like if it were chosen.
+  ///
+  /// [preview] is built by the caller rather than described to this method,
+  /// because a board skin and a piece skin are judged by looking at different
+  /// things — a whole board for the squares, four large pieces for the pieces.
+  Widget _skinChoice(
+    BuildContext context, {
+    required String name,
+    required bool selected,
+    required Widget preview,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: InkWell(
+        borderRadius: AppRadii.roundedSm,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          decoration: BoxDecoration(
+            borderRadius: AppRadii.roundedSm,
+            border: Border.all(
+              // Two pixels in both states, a different colour rather than a
+              // different width: a border that changes width changes the tile's
+              // width, and a Wrap then re-flows under the finger that just
+              // tapped it.
+              color: selected ? context.colors.accent : context.colors.border,
+              width: 2,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              preview,
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                name,
+                style: AppText.caption.copyWith(
+                  color: selected
+                      ? context.colors.accent
+                      : context.colors.textSecondary,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Four pieces on two squares of the chosen board, at a size where the fill
+  /// and the stroke are separately visible.
+  ///
+  /// A [BoardThumbnail] is the wrong preview here: at the width this card can
+  /// spare, one of its squares is about nine pixels, and a piece skin is a fill
+  /// colour, a stroke colour and a decoration colour that all disappear at that
+  /// size. The board previews above use a whole board because square colours
+  /// are what a whole board shows.
+  Widget _piecePreview(BoardSkin board, PieceSkin pieces) {
+    // 30 rather than 34 for one reason that is arithmetic rather than taste:
+    // four squares plus the tile's padding and border come to 140, and two of
+    // those fit the 316 dp a card has on a 360 dp phone. At 34 they do not, and
+    // the three piece sets stack into three rows of one.
+    const square = 30.0;
+    return ClipRRect(
+      borderRadius: AppRadii.roundedXs,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        // A white piece on a dark square and a black piece on a light one, and
+        // then the other way round: the two pairings that fail are a pale piece
+        // on a pale square and a dark one on a dark square, so both are shown.
+        children: [
+          for (final (letter, isLight) in const [
+            ('K', false),
+            ('p', true),
+            ('N', true),
+            ('q', false),
+          ])
+            Container(
+              width: square,
+              height: square,
+              color: isLight ? board.lightSquare : board.darkSquare,
+              alignment: Alignment.center,
+              child: chessPieceWidget(letter, size: square - 4, skin: pieces),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Theme, board and pieces — the three questions about how the app looks.
+  ///
+  /// The theme picker was removed in August 2026 and is back because
+  /// `AppTheme.light` now carries a full `AppColorTokens.light`; before that,
+  /// choosing "Svetla" painted dark-theme text on a light scaffold. The board
+  /// and piece skins are deliberately *not* part of the theme: a green board in
+  /// the light theme is a legitimate choice, so a skin survives a switch
+  /// between light and dark untouched.
+  Widget _appearanceCard(BuildContext context) {
+    final board = _settings.boardSkin;
+    final pieces = _settings.pieceSkin;
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Tema aplikacije:',
+                style: TextStyle(fontWeight: FontWeight.w500)),
+            const SizedBox(height: AppSpacing.sm),
+            // A Wrap rather than a Row or a SegmentedButton: three Serbian
+            // labels plus a large text scale is exactly the shape that gets
+            // clipped without a word of warning in a release build.
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                for (final entry in AppSettingsService.kThemeModeNames.entries)
+                  ChoiceChip(
+                    label: Text(entry.value),
+                    selected: _settings.themeMode == entry.key,
+                    onSelected: (_) => _settings.setThemeMode(entry.key),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Sistem prati podešavanje telefona ili računara. Boje table se '
+              'biraju odvojeno i ne menjaju se sa temom.',
+              style: AppText.caption.copyWith(color: context.colors.textMuted),
+            ),
+            const Divider(height: 24),
+            const Text('Boja table:',
+                style: TextStyle(fontWeight: FontWeight.w500)),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                for (final skin in BoardSkin.all)
+                  _skinChoice(
+                    context,
+                    name: skin.name,
+                    selected: skin.id == board.id,
+                    // The pieces on it are the chosen ones, so this row also
+                    // answers "how do my pieces look on that board".
+                    preview: BoardThumbnail(
+                      fen: _previewFen,
+                      size: 72,
+                      skin: skin,
+                      pieceSkin: pieces,
+                    ),
+                    onTap: () => _settings.setBoardSkin(skin.id),
+                  ),
+              ],
+            ),
+            const Divider(height: 24),
+            const Text('Figure:',
+                style: TextStyle(fontWeight: FontWeight.w500)),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                for (final skin in PieceSkin.all)
+                  _skinChoice(
+                    context,
+                    name: skin.name,
+                    selected: skin.id == pieces.id,
+                    preview: _piecePreview(board, skin),
+                    onTap: () => _settings.setPieceSkin(skin.id),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Figure se crtaju na izabranoj tabli, pa se ovde vidi i kako '
+              'stoje jedne pored drugih.',
+              style: AppText.caption.copyWith(color: context.colors.textMuted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   /// The stated year of birth, and the way back to it.
   ///
@@ -304,8 +504,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Brzina čitanja:',
-                        style: TextStyle(fontWeight: FontWeight.w500)),
+                    const Expanded(
+                      child: Text('Brzina čitanja:',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
+                    ),
                     Text(
                       _settings.speechRate.toStringAsFixed(2),
                       style: TextStyle(
@@ -461,16 +663,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
-              // The light/system options were removed rather than left broken:
-              // the UI hardcodes dark surfaces and white text in ~200 places,
-              // so light mode produced white-on-pale text in several panels.
-              // Restore this picker once the colors go through theme tokens.
-
               // A language picker for the *app* used to live here, but there
               // is no localization layer — every string is hardcoded Serbian —
               // so it silently did nothing. Re-add it together with real i18n.
               // The voice's language is a different question and is settable
               // below: it picks among the voices the machine actually has.
+
+              const SizedBox(height: AppSpacing.xxl),
+              Text('IZGLED',
+                  style: AppText.bodyBold
+                      .copyWith(color: context.colors.textMuted)),
+              const SizedBox(height: AppSpacing.sm),
+              _appearanceCard(context),
 
               const SizedBox(height: AppSpacing.xxl),
               Text('NALOG',
@@ -536,8 +740,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Maksimalno vreme razmišljanja engine-a:',
-                              style: TextStyle(fontWeight: FontWeight.w500)),
+                          // Expanded, not a bare Text: this label is 38
+                          // characters and the row it sits in overflowed by 303
+                          // pixels on a 360 dp phone — invisibly, because a
+                          // release build clips instead of striping.
+                          const Expanded(
+                            child: Text(
+                                'Maksimalno vreme razmišljanja engine-a:',
+                                style: TextStyle(fontWeight: FontWeight.w500)),
+                          ),
                           Text(
                             '${_settings.defaultEngineMoveTimeSeconds} s',
                             style: TextStyle(
@@ -621,8 +832,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Veličina table:',
-                              style: TextStyle(fontWeight: FontWeight.w500)),
+                          const Expanded(
+                            child: Text('Veličina table:',
+                                style: TextStyle(fontWeight: FontWeight.w500)),
+                          ),
                           Text(
                             '${(_settings.boardSizeScale * 100).round()}%',
                             style: TextStyle(
@@ -666,8 +879,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Animacija poteza:',
-                              style: TextStyle(fontWeight: FontWeight.w500)),
+                          const Expanded(
+                            child: Text('Animacija poteza:',
+                                style: TextStyle(fontWeight: FontWeight.w500)),
+                          ),
                           Text(
                             _settings.moveAnimationDurationMs == 0
                                 ? 'Isključeno'

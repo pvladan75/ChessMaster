@@ -192,20 +192,53 @@ stroke *within* a piece skin (a pair that is too close is a silhouette), and the
 theme's `warning` and `accent` over both squares of every skin, which is the
 highlight measurement phase 1 declined to move into the skin.
 
-### Phase 5 — the setting (Claude) — after phases 2, 3 and 4
+### Phase 5 — the setting (Claude) — **done, 29.8.2026**
 
-A "Izgled" section in `settings_screen.dart`: theme (Sistem / Svetla / Tamna),
-board skin, piece skin, each with a live `BoardThumbnail` preview.
-`setThemeMode` persists, and the force-to-dark in `init()` is removed.
+An "IZGLED" section in `settings_screen.dart`, above "NALOG": theme
+(Sistem / Svetla / Tamna) as chips, then the five board skins and the three
+piece skins as tappable previews. `setThemeMode` persists, and the force-to-dark
+in `init()` is gone.
 
 **Removing that line resurrects old preferences.** Anyone who chose light or
-system before the picker was removed has that value still sitting in
-`SharedPreferences` under `app_theme_mode`; the current `init()` stamps it back
-to `dark` on every launch. Once it stops, those users land in light mode on
-first launch — fine once phase 3 exists, and a white-on-white bug report if this
-phase ever merges before it. That is the whole reason for the ordering.
+system before the picker was removed had that value sitting in
+`SharedPreferences` under `app_theme_mode`. Two things are worth writing down
+about how large that population actually is: `init()` did not merely ignore the
+stored value, it **wrote `dark` back over it** on every launch, and it has done
+so since `6780886` on 13.8.2026 — so anybody who has opened the app since then
+has already had their choice erased, and only an install older than that comes
+back to light. It is still the reason for the ordering; it is just a smaller
+blast radius than the plan assumed.
 
-### Phase 6 — watched running (Claude + owner)
+Three decisions the code made that the plan did not:
+
+- **The previews are not both `BoardThumbnail`s.** A board skin is judged by a
+  whole board and gets one at 72 px. A piece skin is a fill, a stroke and a
+  decoration colour, none of which survive a nine-pixel square, so it gets four
+  pieces at 30 px on two squares of the *chosen* board — a white piece on a dark
+  square and a black one on a light square, and then the reverse, because those
+  are the two pairings that fail.
+- **The selection ring is 2 px in both states**, transparent-coloured rather
+  than thinner when unselected. A border that changes width changes the tile's
+  width, and a `Wrap` then re-flows under the finger that just tapped it.
+- **Everything is a `Wrap`.** Three Serbian chips are already 330 dp against the
+  316 a card has on a 360 dp phone, so the theme row wraps 2 + 1 by design.
+
+Twelve tests in `test/appearance_settings_test.dart`, every one of them an
+assertion about what is **painted** after a tap: the light tokens under the
+screen (compared field by field — `Theme` hands out a *lerped* `AppColorTokens`
+while it animates, so identity never matches), `SkinnedChessBoard` with no
+override painting green, `chessPieceWidget` with no override carrying the warm
+fill, and the skin surviving a switch to the light theme. Proved by mutation:
+restoring the stamp in `init()` and blanking both `onTap`s fails seven of them.
+
+**Two overflows found on the way, both pre-existing and both on this screen.**
+At 360 dp the engine card's "Maksimalno vreme razmišljanja engine-a:" row
+overflowed by 303 px and the account card's header row by 26 — invisibly, since
+a release build clips instead of striping. Both labels are now `Expanded`, along
+with the two other label/value rows in the same card. They were found only
+because the new test pumps at `Size(360, 640)`.
+
+### Phase 6 — watched running (owner) — open
 
 Windows build and the phone, both themes, every skin. Specifically:
 
@@ -234,10 +267,10 @@ that already cannot be updated. Vendoring it is the smaller debt, and it buys
 the Serbian promotion dialog on drag. It goes in with a header saying where it
 came from and what was changed.
 
-**Test counts are gates, not trivia.** 805 Flutter tests / 1 skipped today. Each
-phase adds tests; a phase that ends with fewer is a phase that broke something
-quietly. `flutter analyze` stays at 29 known infos — compare the list, not the
-exit code.
+**Test counts are gates, not trivia.** 805 Flutter tests / 1 skipped when this
+was written; **869 / 1 after phase 5**. Each phase adds tests; a phase that ends
+with fewer is a phase that broke something quietly. `flutter analyze` stays at 29
+known infos — compare the list, not the exit code.
 
 **Do not let a phase report success one layer above where it failed.** The
 recurring bug in this codebase, and every phase here has a version of it: a skin
