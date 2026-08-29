@@ -216,8 +216,14 @@ void main() {
   });
 
   group('the picker swatch says which colour it is without using colour', () {
-    test('the five initials are distinct, and Ljubičasta keeps both letters',
+    test('every colour in the catalogue is offered, with a distinct initial',
         () {
+      // Until 29.8.2026 the picker listed four ids by hand while the catalogue
+      // held five, so purple was drawn by the engine and could be picked by
+      // nobody. The row is generated from `ArrowColor.all` now, and this is the
+      // assertion that a sixth colour would have to be offered too.
+      expect(ArrowColor.all.length, greaterThanOrEqualTo(5));
+
       final initials = ArrowColor.all.map(ArrowColorButton.initialOf).toList();
       expect(initials.toSet().length, initials.length,
           reason: 'two swatches sharing a letter is two identical swatches: '

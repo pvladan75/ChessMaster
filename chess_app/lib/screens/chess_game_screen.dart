@@ -147,7 +147,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   bool isDrawingMode = false;
   String? drawingStartSquare;
-  String selectedArrowColorCode = 'G'; // 'G', 'R', 'B', 'O'
+
+  /// Which colour a drawn arrow takes. One of `ArrowColor.all`'s ids;
+  /// green because it is the first swatch, not because it means anything.
+  String selectedArrowColorCode = 'G';
 
   List<dynamic> lessons = [];
   bool isLoadingLessons = false;
@@ -789,18 +792,39 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
-  Widget _buildColorButton(String code) {
+  Widget _buildColorButton(ArrowColor arrow) {
     // Colour and name both come from the one catalogue. They used to be a
     // Material colour and a Serbian string typed out here, and the colour had
     // drifted from what the painter drew; the name was typed eight times.
     return ArrowColorButton(
-      arrow: ArrowColor.byId(code),
-      isSelected: selectedArrowColorCode == code,
+      arrow: arrow,
+      isSelected: selectedArrowColorCode == arrow.id,
       onTap: () {
         setState(() {
-          selectedArrowColorCode = code;
+          selectedArrowColorCode = arrow.id;
         });
       },
+    );
+  }
+
+  /// One swatch per colour in the catalogue, generated rather than listed.
+  ///
+  /// It was listed until 29.8.2026, and the list said `G`, `R`, `B`, `O` while
+  /// the catalogue held five: purple was drawn by the engine for its fourth
+  /// line and could not be picked by anybody. Nothing was wrong with it, and
+  /// nobody noticed for months — which is the argument for generating it. A
+  /// sixth colour now appears here by existing.
+  ///
+  /// A `Wrap` rather than a `Row`: five 28 px circles plus their spacing is
+  /// about 190 dp, and a release build clips an overflowing row without a word.
+  Widget _buildColorButtonRow() {
+    return Wrap(
+      alignment: WrapAlignment.spaceAround,
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: [
+        for (final arrow in ArrowColor.all) _buildColorButton(arrow),
+      ],
     );
   }
 
@@ -3196,15 +3220,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ),
                   if (isDrawingMode) ...[
                     const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildColorButton('G'),
-                        _buildColorButton('R'),
-                        _buildColorButton('B'),
-                        _buildColorButton('O'),
-                      ],
-                    ),
+                    _buildColorButtonRow(),
                   ],
                   const SizedBox(height: AppSpacing.sm),
                   _buildArrowEditButtons(),
@@ -3333,15 +3349,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ),
                   if (isDrawingMode) ...[
                     const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildColorButton('G'),
-                        _buildColorButton('R'),
-                        _buildColorButton('B'),
-                        _buildColorButton('O'),
-                      ],
-                    ),
+                    _buildColorButtonRow(),
                   ],
                   const SizedBox(height: AppSpacing.sm),
                   _buildArrowEditButtons(),
