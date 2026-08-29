@@ -165,7 +165,7 @@ squares and the two `main.dart` seed colours (the latter in phase 3). That
 number is documented in `STANJE-RADA.md` and must be updated in the same commit,
 or the next person will count 29 and go looking for what was lost.
 
-### Phase 3 — light tokens (Gemini, batch 45) — runs in parallel with 1 and 2
+### Phase 3 — light tokens (Gemini, batch 45) — **done, merged `b4fb881`**
 
 `AppColorTokens.light`, all 30 tokens, and `AppTheme.light` mirroring
 `AppTheme.dark` component for component. Registered as `theme:` in `main.dart`,

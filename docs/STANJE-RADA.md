@@ -1679,9 +1679,10 @@ postane istinita.
   (odeljak niže). To nije izuzetak od pravila 14 nego njegova druga izmena —
   domenska boja sme da dobije domenski token, a `BoardSkin` je taj token za
   tablu. Strelice ostaju literali i nisu pokrivene.
-- Svetla tema je namerno **ne**napisana: `ThemeMode` je zakucan na `dark` i
-  `setThemeMode` ne postoji nigde u `lib/`, pa bi to bio mrtav kod. **Piše se od
-  29.8.2026** — paket 45, odeljak niže.
+- Svetla tema je bila namerno **ne**napisana: `ThemeMode` je zakucan na `dark` i
+  `setThemeMode` ne postoji nigde u `lib/`, pa bi to bio mrtav kod. **Napisana je
+  29.8.2026** (paket 45, `b4fb881`) i i dalje je mrtav kod — namerno: prikazuje
+  se tek kad faza 5 doda birač. Odeljak niže.
 - `DESIGN-BRIEF.md` je posle spajanja ostao na korenu. Pisan je agentu („ovo
   smeš da menjaš"), pa kao projektna dokumentacija tu ne stoji — treba ga
   premestiti u `docs/` kao zapis o tome kako je opseg omeđen, ili obrisati.
@@ -1807,7 +1808,26 @@ Uživo nije viđeno: [TODO-provera.md](TODO-provera.md), stavka 47.
 
 ### Šta sledi
 
-- **Paket 45 (Gemini)**: `AppColorTokens.light` + `AppTheme.light`, neuključeni.
+- **Paket 45 (Gemini)**: gotov i spojen 29.8.2026 (`b4fb881`).
+  `AppColorTokens.light` + `AppTheme.light`, svih trideset uloga, `theme:` u
+  `main.dart` umesto seed-a. Ništa se ne vidi — `themeMode` je i dalje `dark`.
+
+  Presuda harness-a bila je FAIL i **bila je uglavnom do kapija**: dva prava
+  propusta (galerija je čitala `Theme.of(context).brightness`, što druga
+  polovina pravila 19 zabranjuje, i natpis `Light` na srpskom ekranu), a treća
+  kapija je pala na fajlovima koje je zadatak **tražio**. Svih trideset
+  navedenih kontrasta prera­čunato je nezavisno i svih trideset je tačno; test
+  registracije dokazan je mutacijom.
+
+  Ono što nijedna kapija nije mogla da vidi našlo se otvaranjem screenshota:
+  petnaest pločica palete nosilo je heks i kontrast **kao otkucan tekst**.
+  Tačno za tamnu paletu, i laž onog trenutka kad isti ekran nauči da crta
+  svetlu — `#1E293B` ispod belog kvadrata. Sada se oboje čita iz same boje.
+  Isti oblik kao sve u odeljku o ponavljajućem bagu: nešto što **prijavljuje**
+  vrednost umesto da je pročita.
+
+  `report-batch-45.md` nije napisan (pravilo 22). Brojke su zato provere­ne
+  ručno.
 - **Paket 46 (Gemini)**: ostatak kataloga koža, sa merenjima — svaka koža figura
   prema svakom polju svake table. Merilo nosi **ivica** figure, ne ispuna: bela
   ispuna na svetlom polju meri oko 1.3:1 i oduvek je merila toliko.
