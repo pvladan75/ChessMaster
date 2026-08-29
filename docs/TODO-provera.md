@@ -1576,10 +1576,10 @@ gradnja je ispisala `Mislisha 1.1.0+2 (release 28dc27b+)`, sa `+` jer je sama
 skripta tada bila nekomitovana, što je uzgred i provera žiga za prljavo stablo.
 Ostaje da se vidi uživo:
 
-- [ ] Podešavanja u Windows verziji ispisuju isti red. Do 29.8.2026. je tamo
-      pisalo „build nije označen“, jer stara skripta nije prosleđivala
-      `BUILD_*` — pa izveštaj o bagu sa Windows-a nije imao čime da imenuje
-      kod.
+- [x] Podešavanja u Windows verziji ispisuju isti red — korisnik 29.8.2026:
+      `Mislisha 1.1.0+2 • faf2630 • release • 2026-08-29T17:04`. Bez `+`,
+      dakle iz čistog stabla, i `faf2630` je baš commit koji je žig i uveo.
+      Do tog dana je tu pisalo „build nije označen“.
 - [ ] `-Install` napravi kopiju u `%LOCALAPPDATA%\Mislisha` i prečicu u Start
       meniju, a `-Uninstall` ih ukloni.
 - [ ] **Grana koja sama briše zaostao font sa ikonama nije se okinula** — font
