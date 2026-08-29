@@ -1884,12 +1884,71 @@ za pet linija motora). Brief za Gemini je
    zvuči loše i preživljava, jer debljina to već kaže. Ono što nema drugi kanal
    je **korisnikova** strelica: sve su 6 px.
 
+**Boje su izabrane 29.8.2026** — `lib/theme/arrow_colors.dart`, sa
+`test/arrow_color_contrast_test.dart`. Odeljak niže objašnjava zašto je prag
+1.5, a ne 1.8.
+
 **Nov bag, nađen usput i nije od strelica: značka evaluacije je nečitljiva u
 svetloj temi.** `badgeTextColor` je `context.colors.canvas` — skoro crno u tamnoj
 temi (8.8:1, u redu) i skoro belo u svetloj, gde rang 1 meri **1.55:1**. Svih
 deset kombinacija u svetloj temi je ispod 4.5:1. Ovo je postalo dohvatljivo tek
 fazom 5, kad je svetla tema mogla da se izabere. Tekst značke mora da se bira iz
 svetline same značke, ne iz teme. Claude-ovo, nije počelo.
+
+### Zašto je prag za strelice 1.5, a ne 1.8 — 29.8.2026
+
+Batch 47 (Gemini) je dobio prag **1.8** za svaki par boja i rečenicu da boje
+moraju da ostanu prepoznatljive po imenu. Isporučio je 1.771 i **rekao da nije
+stigao do 1.8**, sa označenim ćelijama — što je bilo ispravno ponašanje i razlog
+što je runda bila jeftina. Svih trideset brojki za parove, svih deset za halo i
+svih šest za rangove motora prekontrolisano je nezavisno i **sve su tačne**;
+četiri od pet simuliranih heksova promaše za jedan bit u poslednjem mestu, što je
+zaokruživanje pri ispisu i ništa izvedeno iz njih se ne pomera.
+
+Cena je bila narandžasta `#88370E`, koja je **braon**, i crvena `#FA8158`, koja
+je losos — a njih dve su na 5° razmaka po tonu, dakle ista boja razdvojena samo
+svetlinom.
+
+**Onda je pretražen prostor, i ispalo je da 1.8 nikada nije ni bilo dostižno:**
+
+| šta se drži fiksno | najveći dostižan prag |
+|---|---|
+| ton u ±15° od imena | **1.50** |
+| ton u ±20° od imena | **1.50** |
+| ton u ±25° | 1.60, ali narandžasta odluta u žutu |
+| ton napušten | 1.77 — tačno ono što je Gemini našao |
+
+Razlog je strukturni: pod oba deficita pet boja pada na **dve** tonske ose, pa
+sve moraju da se razdvoje svetlinom, a pojas svetline koji ih drži dalje od crne
+i bele ograničava koliko to može da ide. Zamena narandžaste tirkiznom na 180°
+ostavlja plafon na tačno 1.50 — dakle nije stvar izbora tona.
+
+Dve greške u prvom brifu, obe moje:
+
+1. **Halo pravilo je bilo prazno.** „Nijedna boja ne sme biti unutar 1.2:1 od
+   *obe*, crne i bele" ne može da se desi: ispod 1.2 prema crnoj traži L < 0.01,
+   ispod 1.2 prema beloj traži L > 0.825. Gemini je pročitao strože — svaka boja
+   čisti 1.2 prema obema — i to je jedino čitanje koje išta ograničava. Popravio
+   je pravilo umesto mene; granica je sada 1.1 i u tom, strožem čitanju.
+2. **Prepoznatljivost je bila rečenica, a prag broj.** Kad jedno ima meru a
+   drugo nema, žrtvuje se ono bez mere, i to je ispravno ponašanje agenta.
+
+Finalne vrednosti su birane pretragom koja **minimizuje odstupanje tona**, ne
+prvim rešenjem koje prođe: `#FF2929`, `#FF9429`, `#85FF85`, `#00188F`,
+`#910FB3` — odstupanja 0°, 0°, 0°, 10°, 2.5°. Najgori par 1.50 (B/P,
+protanopija).
+
+**Test sada meri i prepoznatljivost**, i prvi pokušaj te mere je bio pogrešan:
+jedinstven pojas svetline 0.28–0.80 propuštao je `#88370E` (ton 20, unutar
+dozvole; svetlina 0.29, unutar pojasa). Braon je prošao test napisan da uhvati
+braon — uhvatio ga je test za parove, što je sreća a ne pokrivenost. Topli
+tonovi gube ime kad potamne a hladni ne: tamna narandžasta je braon, tamna
+crvena je bordo, a mornarsko plava je i dalje plava. Prag je zato **0.45 za luk
+od crvene do žute i 0.28 za ostalo**. Nađeno mutacijom, kao i sve ostalo ovde.
+
+Boje još **nisu upotrebljene** — `arrow_colors.dart` niko ne uvozi. Ožičenje
+(halo ispod strelice, popravka značke, oznaka na pločici birača) je sledeće i
+Claude-ovo je.
 
 ### Šta sledi
 
