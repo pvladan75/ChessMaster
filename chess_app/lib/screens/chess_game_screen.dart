@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
 import 'package:chess/chess.dart' as chess;
 
@@ -51,6 +50,8 @@ import 'package:chess_app/features/groups/widgets/room_guests_dialog.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:go_router/go_router.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 // 3. MULTIPLAYER CHESS GAME PAGE
 class ChessGamePage extends StatefulWidget {
@@ -516,7 +517,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             context,
             () => SnackBar(
                   content: Text(data['error']?.toString() ?? 'Nije uspelo.'),
-                  backgroundColor: Colors.redAccent,
+                  backgroundColor: context.colors.danger,
                 ));
         return;
       }
@@ -526,15 +527,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 content: Text(mayTalk
                     ? 'Učenik je dobio mikrofon.'
                     : 'Učeniku je oduzet mikrofon — i dalje sluša i odgovara na tabli.'),
-                backgroundColor: mayTalk ? Colors.green : Colors.orange,
+                backgroundColor:
+                    mayTalk ? context.colors.success : context.colors.warning,
               ));
     } catch (e) {
       if (!mounted) return;
       AppFeedback.show(
           context,
-          () => const SnackBar(
+          () => SnackBar(
                 content: Text('Server nije dostupan.'),
-                backgroundColor: Colors.redAccent,
+                backgroundColor: context.colors.danger,
               ));
     }
   }
@@ -769,7 +771,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             }
           },
           icon: const Icon(Icons.undo, size: 16),
-          label: const Text('Poništi strelicu', style: TextStyle(fontSize: 12)),
+          label: const Text('Poništi strelicu', style: AppText.body),
         ),
         OutlinedButton.icon(
           onPressed: () {
@@ -780,16 +782,17 @@ class _ChessGamePageState extends State<ChessGamePage> {
             });
           },
           icon: const Icon(Icons.layers_clear, size: 16),
-          label: const Text('Izbriši sve strelice',
-              style: TextStyle(fontSize: 12)),
+          label: const Text('Izbriši sve strelice', style: AppText.body),
         ),
       ],
     );
   }
 
-  Widget _buildColorButton(String code, ui.Color color, String tooltip) {
+  Widget _buildColorButton(String code, String tooltip) {
     return ArrowColorButton(
-      color: color,
+      // The swatch reads the same palette the painter draws with. It used to be
+      // handed a Material colour at each call site, and they had drifted.
+      color: ChessBoardPainter.arrowPalette[code] ?? Colors.tealAccent,
       tooltip: tooltip,
       isSelected: selectedArrowColorCode == code,
       onTap: () {
@@ -904,8 +907,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
           : 'Nemate ovlašćenje za ovu akciju.';
       AppFeedback.show(
         context,
-        () =>
-            SnackBar(content: Text(reason), backgroundColor: Colors.redAccent),
+        () => SnackBar(
+            content: Text(reason), backgroundColor: context.colors.danger),
       );
     });
 
@@ -926,7 +929,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
       final text = messages[reason] ?? 'Ulazak u sobu nije dozvoljen.';
       AppFeedback.show(
         context,
-        () => SnackBar(content: Text(text), backgroundColor: Colors.redAccent),
+        () => SnackBar(
+            content: Text(text), backgroundColor: context.colors.danger),
       );
       // And out, rather than sitting in a room that never fills: the board
       // would stay empty and the reason would scroll away with the snackbar.
@@ -1117,7 +1121,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     ? 'Promovisani ste u ulogu Trenera! Sada imate punu kontrolu nad tablom i sesijom.'
                     : 'Vaša uloga je vraćena na Učenik.',
               ),
-              backgroundColor: newRole == 'trener' ? Colors.teal : Colors.amber,
+              backgroundColor: newRole == 'trener'
+                  ? context.colors.accent
+                  : context.colors.warning,
               duration: const Duration(seconds: 4),
             ),
           );
@@ -1205,8 +1211,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         ? '$updatedBy je nastavio snimanje.'
                         : '$updatedBy je zaustavio snimanje.'))),
             duration: const Duration(seconds: 2),
-            backgroundColor:
-                status == 'started' ? Colors.redAccent : Colors.amber,
+            backgroundColor: status == 'started'
+                ? context.colors.danger
+                : context.colors.warning,
           ),
         );
       }
@@ -1224,10 +1231,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
             context: context,
             builder: (ctx) => AlertDialog(
               title: Row(
-                children: const [
-                  Icon(Icons.share, color: Colors.amber),
-                  SizedBox(width: 8),
-                  Text('Predložena pozicija'),
+                children: [
+                  Icon(Icons.share, color: context.colors.warning),
+                  const SizedBox(width: AppSpacing.sm),
+                  const Text('Predložena pozicija'),
                 ],
               ),
               content: Text(
@@ -1253,7 +1260,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             () => SnackBar(
               content:
                   Text('Učenik $studentName je podelio poziciju: "$title"'),
-              backgroundColor: Colors.blueAccent,
+              backgroundColor: context.colors.info,
             ),
           );
         }
@@ -1298,7 +1305,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ? 'Trener je isključio vaš mikrofon. I dalje čujete čas i '
                       'odgovarate na tabli.'
                   : 'Trener je isključio vaš mikrofon.')),
-          backgroundColor: mayTalk ? Colors.green : Colors.orange,
+          backgroundColor:
+              mayTalk ? context.colors.success : context.colors.warning,
           duration: const Duration(seconds: 4),
         ),
       );
@@ -1317,7 +1325,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         context,
         () => SnackBar(
           content: Text('$who: $said'),
-          backgroundColor: Colors.blueGrey,
+          backgroundColor: context.colors.info,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -1335,10 +1343,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
           });
           AppFeedback.show(
             context,
-            () => const SnackBar(
+            () => SnackBar(
               content: Text(
                   'Trener vas je utišao. Možete podići ruku ako želite reč.'),
-              backgroundColor: Colors.orange,
+              backgroundColor: context.colors.warning,
               duration: Duration(seconds: 4),
             ),
           );
@@ -1358,9 +1366,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
           });
           AppFeedback.show(
             context,
-            () => const SnackBar(
+            () => SnackBar(
               content: Text('Trener vam je dozvolio reč.'),
-              backgroundColor: Colors.green,
+              backgroundColor: context.colors.success,
               duration: Duration(seconds: 4),
             ),
           );
@@ -1375,7 +1383,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           context,
           () => SnackBar(
             content: Text('Učenik $userName želi reč.'),
-            backgroundColor: Colors.orangeAccent,
+            backgroundColor: context.colors.warning,
             duration: const Duration(seconds: 4),
           ),
         );
@@ -1483,9 +1491,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     AppFeedback.show(
       context,
-      () => const SnackBar(
+      () => SnackBar(
         content: Text('Snimanje je pauzirano. Akcije se privremeno ne beleže.'),
-        backgroundColor: Colors.orange,
+        backgroundColor: context.colors.warning,
         duration: Duration(seconds: 2),
       ),
     );
@@ -1504,10 +1512,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     AppFeedback.show(
       context,
-      () => const SnackBar(
+      () => SnackBar(
         content: Text(
             'Snimanje je nastavljeno! Svi sledstveni potezi se beleže u kombinovani snimak.'),
-        backgroundColor: Colors.green,
+        backgroundColor: context.colors.success,
         duration: Duration(seconds: 2),
       ),
     );
@@ -1543,7 +1551,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Unesite naziv materijala:'),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: titleController,
               decoration: const InputDecoration(
@@ -1551,10 +1559,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(
               'Ukupno zabeleženo događaja: ${_recorder.eventCount}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: AppText.body.copyWith(color: context.colors.textMuted),
             ),
           ],
         ),
@@ -1565,7 +1573,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                backgroundColor: context.colors.accent,
+                foregroundColor: context.colors.canvas),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Sačuvaj snimak'),
           ),
@@ -1612,10 +1621,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
       AppFeedback.show(
         context,
-        () => const SnackBar(
+        () => SnackBar(
           content: Text(
               'Snimak časa je sačuvan na vašem uređaju! Sinhronizacija sa serverom se vrši u pozadini.'),
-          backgroundColor: Colors.teal,
+          backgroundColor: context.colors.accent,
           duration: Duration(seconds: 4),
         ),
       );
@@ -1656,7 +1665,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         context,
         () => SnackBar(
             content: Text('Greška pri čuvanju lokalnog snimka: $e'),
-            backgroundColor: Colors.redAccent),
+            backgroundColor: context.colors.danger),
       );
     } finally {
       setState(() {
@@ -1791,7 +1800,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               onPressed: () => Navigator.pop(ctx, false)),
           TextButton(
             child:
-                const Text('Obriši', style: TextStyle(color: Colors.redAccent)),
+                Text('Obriši', style: TextStyle(color: context.colors.danger)),
             onPressed: () => Navigator.pop(ctx, true),
           ),
         ],
@@ -1834,7 +1843,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               controller: titleController,
               decoration: const InputDecoration(labelText: 'Naziv'),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             TextField(
               controller: descController,
               decoration: const InputDecoration(labelText: 'Opis (opciono)'),
@@ -2529,11 +2538,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
           title: Row(
-            children: const [
-              Icon(Icons.person_add, color: Colors.tealAccent),
-              SizedBox(width: 8),
-              Text('Pozovi prijatelje u sesiju',
-                  style: TextStyle(fontSize: 16)),
+            children: [
+              Icon(Icons.person_add, color: context.colors.accent),
+              const SizedBox(width: AppSpacing.sm),
+              const Text('Pozovi prijatelje u sesiju', style: AppText.title),
             ],
           ),
           content: Column(
@@ -2541,28 +2549,27 @@ class _ChessGamePageState extends State<ChessGamePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Soba: ${widget.roomCode}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: Colors.tealAccent)),
-              const SizedBox(height: 8),
+                  style:
+                      AppText.bodyBold.copyWith(color: context.colors.accent)),
+              const SizedBox(height: AppSpacing.sm),
               const Text('Izaberite prijatelje koje želite da pozovete:',
-                  style: TextStyle(fontSize: 12)),
-              const SizedBox(height: 12),
+                  style: AppText.body),
+              const SizedBox(height: AppSpacing.md),
               if (loadError != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                   child: Text(loadError,
-                      style: const TextStyle(
-                          fontSize: 11, color: Colors.orangeAccent)),
+                      style: AppText.caption
+                          .copyWith(color: context.colors.warning)),
                 )
               else if (friendsList.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12.0),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                   child: Text(
                       'Nemate nikoga na spisku. Na njemu su učenici i treneri '
                       'sa prihvaćenom vezom.',
-                      style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      style: AppText.caption
+                          .copyWith(color: context.colors.textMuted)),
                 )
               else
                 Container(
@@ -2575,11 +2582,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         return CheckboxListTile(
                           dense: true,
                           title: Text(f['name'] ?? 'Prijatelj',
-                              style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold)),
+                              style: AppText.bodyBold),
                           subtitle: Text(f['email'] ?? '',
-                              style: const TextStyle(
-                                  fontSize: 10, color: Colors.grey)),
+                              style: AppText.micro
+                                  .copyWith(color: context.colors.textMuted)),
                           value: isSel,
                           onChanged: (val) {
                             setModalState(() {
@@ -2606,7 +2612,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
               icon: const Icon(Icons.send, size: 14),
               label: Text('Pošalji pozivnice (${selectedFriendIds.length})'),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                  backgroundColor: context.colors.accent,
+                  foregroundColor: context.colors.canvas),
               onPressed: () async {
                 Navigator.pop(ctx);
                 if (selectedFriendIds.isEmpty) return;
@@ -2639,7 +2646,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       context,
       () => SnackBar(
         content: Text(message),
-        backgroundColor: Colors.redAccent,
+        backgroundColor: context.colors.danger,
       ),
     );
   }
@@ -2649,7 +2656,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       context,
       () => SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: context.colors.success,
       ),
     );
   }
@@ -2684,7 +2691,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       children: [
         const Text(
           'Stablo poteza',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          style: AppText.bodyLargeBold,
         ),
         const SizedBox(height: 6),
         // A fixed height, because this sits inside a scrolling column and the
@@ -2706,23 +2713,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
               OutlinedButton.icon(
                 onPressed: onMove ? _promoteCurrentLine : null,
                 icon: const Icon(Icons.vertical_align_top, size: 16),
-                label: const Text('U glavnu liniju',
-                    style: TextStyle(fontSize: 12)),
+                label: const Text('U glavnu liniju', style: AppText.body),
               ),
               OutlinedButton.icon(
                 onPressed: onMove ? _deleteCurrentSubtree : null,
                 icon: const Icon(Icons.delete_outline, size: 16),
-                label: const Text('Obriši varijantu',
-                    style: TextStyle(fontSize: 12)),
+                label: const Text('Obriši varijantu', style: AppText.body),
               ),
             ],
           ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Text(
           onMove
               ? 'Komentar uz potez ${formatMoveWithNumber(node, moveTree.root)}'
               : 'Komentar (izaberite potez)',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          style: AppText.bodyLargeBold,
         ),
         const SizedBox(height: 6),
         TextField(
@@ -2734,9 +2739,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
           decoration: const InputDecoration(
             hintText: 'Objašnjenje, plan, ocena pozicije...',
             border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            contentPadding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
           ),
-          style: const TextStyle(fontSize: 12),
+          style: AppText.body,
         ),
         if (mayEdit) ...[
           const SizedBox(height: 6),
@@ -2746,7 +2752,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               onPressed: onMove ? _insertEvalIntoComment : null,
               icon: const Icon(Icons.speed, size: 16),
               label: const Text('Ubaci evaluaciju u komentar',
-                  style: TextStyle(fontSize: 12)),
+                  style: AppText.body),
             ),
           ),
         ],
@@ -2803,15 +2809,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
         width: 300,
         color: Theme.of(context).cardColor,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
                 'Lekcije i Pozicije',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: AppText.headline,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -2819,12 +2825,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   icon: const Icon(Icons.dashboard_customize, size: 16),
                   label: const Text('Postavi poziciju (Board Setup)'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
+                    backgroundColor: context.colors.accent,
+                    foregroundColor: context.colors.canvas,
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -2833,7 +2839,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   label: const Text('Sačuvaj trenutnu poziciju'),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -2841,13 +2847,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   icon: const Icon(Icons.file_open, size: 16),
                   label: const Text('Uvezi PGN (fajl ili tekst)'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurpleAccent,
-                    foregroundColor: Colors.white,
+                    backgroundColor: context.colors.brand,
+                    foregroundColor: context.colors.canvas,
                   ),
                 ),
               ),
               if (isTrener) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -2855,8 +2861,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     icon: const Icon(Icons.collections_bookmark, size: 16),
                     label: const Text('Kreiraj lekciju (Više pozicija)'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigoAccent,
-                      foregroundColor: Colors.white,
+                      backgroundColor: context.colors.accentAlt,
+                      foregroundColor: context.colors.canvas,
                     ),
                   ),
                 ),
@@ -2870,16 +2876,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       decoration: const InputDecoration(
                         hintText: 'Nalepi FEN string...',
                         border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
                       ),
-                      style: const TextStyle(fontSize: 12),
+                      style: AppText.body,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   IconButton(
-                    icon:
-                        const Icon(Icons.input, color: Colors.deepPurpleAccent),
+                    icon: Icon(Icons.input, color: context.colors.brand),
                     onPressed: () {
                       final fen = fenPasteController.text.trim();
                       if (fen.isNotEmpty) {
@@ -2894,10 +2899,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 ],
               ),
               const Divider(height: 24),
-              const Text(
+              Text(
                 'Pretraga lekcija',
-                style:
-                    TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.textMuted),
               ),
               const SizedBox(height: 6),
               TextField(
@@ -2913,15 +2919,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     },
                   ),
                   border: const OutlineInputBorder(),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
                 ),
-                style: const TextStyle(fontSize: 12),
+                style: AppText.body,
                 onSubmitted: (val) {
                   fetchLessons(searchQuery: val.trim());
                 },
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               _buildMatrixFilterPanel(),
               if (widget.userSession.role == 'ucenik' &&
                   widget.roomCode != 'STUDIO') ...[
@@ -2932,43 +2938,41 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     icon: const Icon(Icons.share, size: 16),
                     label: const Text('Prikaži moju poziciju treneru'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber.withValues(alpha: 0.2),
-                      foregroundColor: Colors.amberAccent,
+                      backgroundColor:
+                          context.colors.warning.withValues(alpha: 0.2),
+                      foregroundColor: context.colors.textPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
               ],
               Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 4,
                 runSpacing: 4,
                 children: [
-                  const Text(
+                  Text(
                     'Kategorija: ',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        color: Colors.grey),
+                    style: AppText.captionBold
+                        .copyWith(color: context.colors.textMuted),
                   ),
                   ChoiceChip(
-                    label: const Text('Sve', style: TextStyle(fontSize: 10)),
+                    label: const Text('Sve', style: AppText.micro),
                     selected: _lessonCategoryFilter == 'all',
                     onSelected: (val) {
                       if (val) setState(() => _lessonCategoryFilter = 'all');
                     },
                   ),
                   ChoiceChip(
-                    label: const Text('Moje', style: TextStyle(fontSize: 10)),
+                    label: const Text('Moje', style: AppText.micro),
                     selected: _lessonCategoryFilter == 'mine',
                     onSelected: (val) {
                       if (val) setState(() => _lessonCategoryFilter = 'mine');
                     },
                   ),
                   ChoiceChip(
-                    label: const Text('Od trenera',
-                        style: TextStyle(fontSize: 10)),
+                    label: const Text('Od trenera', style: AppText.micro),
                     selected: _lessonCategoryFilter == 'trainer',
                     onSelected: (val) {
                       if (val) {
@@ -2978,11 +2982,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               isLoadingLessons
                   ? const Center(
                       child: Padding(
-                          padding: EdgeInsets.all(16.0),
+                          padding: EdgeInsets.all(AppSpacing.lg),
                           child: CircularProgressIndicator()))
                   : () {
                       final displayedLessons = lessons.where((l) {
@@ -2995,12 +2999,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       }).toList();
 
                       if (displayedLessons.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Padding(
-                            padding: EdgeInsets.all(16.0),
+                            padding: const EdgeInsets.all(AppSpacing.lg),
                             child: Text(
                               'Nema sačuvanih lekcija u ovoj kategoriji.',
-                              style: TextStyle(color: Colors.grey),
+                              style: TextStyle(color: context.colors.textMuted),
                             ),
                           ),
                         );
@@ -3020,7 +3024,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               positionList.isNotEmpty;
 
                           return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            margin: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.xs),
                             child: ListTile(
                               leading: BoardThumbnail(
                                 fen: isCourse
@@ -3032,37 +3037,36 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               ),
                               title: Text(
                                 lesson['title'],
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 13),
+                                style: AppText.bodyLargeBold,
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (isTrainerLesson)
-                                    const Text(
+                                    Text(
                                       'Sačuvana lekcija od trenera',
                                       style: TextStyle(
                                           fontSize: 10,
-                                          color: Colors.amberAccent,
+                                          color: context.colors.warning,
                                           fontWeight: FontWeight.bold),
                                     ),
                                   if (isCourse)
                                     Text(
                                       'Kurs od ${positionList.length} pozicija',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                           fontSize: 10,
-                                          color: Colors.deepPurpleAccent,
+                                          color: context.colors.brand,
                                           fontWeight: FontWeight.bold),
                                     ),
                                   if (lesson['description'] != null &&
                                       lesson['description']
                                           .toString()
                                           .isNotEmpty) ...[
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: AppSpacing.xxs),
                                     Text(
                                       lesson['description'],
-                                      style: const TextStyle(
-                                          fontSize: 11, color: Colors.grey),
+                                      style: AppText.caption.copyWith(
+                                          color: context.colors.textMuted),
                                     ),
                                   ],
                                 ],
@@ -3073,8 +3077,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         IconButton(
-                                          icon: const Icon(Icons.edit_outlined,
-                                              size: 18, color: Colors.grey),
+                                          icon: Icon(Icons.edit_outlined,
+                                              size: 18,
+                                              color: context.colors.textMuted),
                                           tooltip: 'Izmeni',
                                           onPressed: () => isCourse
                                               ? _showCreateCourseDialog(
@@ -3086,9 +3091,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                                       lesson)),
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.delete_outline,
+                                          icon: Icon(Icons.delete_outline,
                                               size: 18,
-                                              color: Colors.redAccent),
+                                              color: context.colors.danger),
                                           tooltip: 'Obriši',
                                           onPressed: () => _confirmDeleteLesson(
                                               Map<String, dynamic>.from(
@@ -3142,7 +3147,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         child: Material(
           color: Theme.of(context).cardColor,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
@@ -3153,18 +3158,17 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       : (isHost
                           ? 'Host Kontrole & Istorija'
                           : 'Kontrola i Istorija'),
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                  style: AppText.headline,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 _buildMoveTreeSection(),
                 if (isStudio) ...[
                   const Divider(height: 12),
                   const Text(
                     'Crtanje strelica',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: AppText.bodyLargeBold,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Row(
                     children: [
                       Expanded(
@@ -3180,9 +3184,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               ? 'Završi crtanje'
                               : 'Nacrtaj strelicu'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                isDrawingMode ? Colors.amber : Colors.teal,
-                            foregroundColor: Colors.white,
+                            backgroundColor: isDrawingMode
+                                ? context.colors.warning
+                                : context.colors.accent,
+                            foregroundColor: context.colors.canvas,
                           ),
                         ),
                       ),
@@ -3193,34 +3198,32 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildColorButton('G', Colors.green, 'Zelena'),
-                        _buildColorButton('R', Colors.red, 'Crvena'),
-                        _buildColorButton('B', Colors.blue, 'Plava'),
-                        _buildColorButton('O', Colors.orange, 'Narandžasta'),
+                        _buildColorButton('G', 'Zelena'),
+                        _buildColorButton('R', 'Crvena'),
+                        _buildColorButton('B', 'Plava'),
+                        _buildColorButton('O', 'Narandžasta'),
                       ],
                     ),
                   ],
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   _buildArrowEditButtons(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Card(
-                    color: Colors.indigo.withValues(alpha: 0.15),
+                    color: context.colors.accentAlt.withValues(alpha: 0.15),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    child: const Padding(
-                      padding: EdgeInsets.all(12.0),
+                        borderRadius: AppRadii.roundedSm),
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSpacing.md),
                       child: Row(
                         children: [
                           Icon(Icons.architecture,
-                              color: Colors.indigoAccent, size: 20),
-                          SizedBox(width: 8),
+                              color: context.colors.textPrimary, size: 20),
+                          const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
                               'Studio Režim (Samostalan rad - Učionica isključena)',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.indigoAccent,
-                                  fontWeight: FontWeight.bold),
+                              style: AppText.captionBold
+                                  .copyWith(color: context.colors.textPrimary),
                             ),
                           ),
                         ],
@@ -3233,8 +3236,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     decoration: const InputDecoration(
                       labelText: 'Dozvole za Učenika',
                       border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                     ),
                     items: const [
                       DropdownMenuItem(
@@ -3252,13 +3255,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     ],
                     onChanged: _changeStudentPermissions,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   SwitchListTile(
                     title: const Text('Dozvoli učeniku Stockfish',
                         style: TextStyle(
                             fontSize: 13, fontWeight: FontWeight.w500)),
                     value: allowStudentEngine,
-                    activeThumbColor: Colors.tealAccent,
+                    activeThumbColor: context.colors.accent,
                     contentPadding: EdgeInsets.zero,
                     onChanged: (val) {
                       setState(() {
@@ -3270,10 +3273,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       });
                     },
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   const Text(
                     'Prisili tablu učeniku na:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: AppText.bodyLargeBold,
                   ),
                   const SizedBox(height: 6),
                   Row(
@@ -3284,7 +3287,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           child: const Text('Beli'),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => _forceStudentOrientation('black'),
@@ -3293,13 +3296,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   const Divider(height: 12),
                   const Text(
                     'Crtanje strelica (Trener)',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: AppText.bodyLargeBold,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Row(
                     children: [
                       Expanded(
@@ -3312,8 +3315,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isDrawingMode
-                                ? Colors.teal
-                                : Colors.deepPurple.withValues(alpha: 0.3),
+                                ? context.colors.accent
+                                : context.colors.brand.withValues(alpha: 0.3),
+                            foregroundColor: isDrawingMode
+                                ? context.colors.canvas
+                                : context.colors.textPrimary,
                           ),
                           icon:
                               Icon(isDrawingMode ? Icons.check : Icons.gesture),
@@ -3329,14 +3335,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildColorButton('G', Colors.green, 'Zelena'),
-                        _buildColorButton('R', Colors.red, 'Crvena'),
-                        _buildColorButton('B', Colors.blue, 'Plava'),
-                        _buildColorButton('O', Colors.orange, 'Narandžasta'),
+                        _buildColorButton('G', 'Zelena'),
+                        _buildColorButton('R', 'Crvena'),
+                        _buildColorButton('B', 'Plava'),
+                        _buildColorButton('O', 'Narandžasta'),
                       ],
                     ),
                   ],
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   _buildArrowEditButtons(),
                 ] else ...[
                   Text(
@@ -3344,17 +3350,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 15),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   if (!isAllowedToMove)
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.lock, color: Colors.orange, size: 16),
-                        SizedBox(width: 6),
+                        Icon(Icons.lock,
+                            color: context.colors.warning, size: 16),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             'Tabla je zaključana od strane trenera.',
-                            style:
-                                TextStyle(color: Colors.orange, fontSize: 13),
+                            style: AppText.bodyLarge
+                                .copyWith(color: context.colors.warning),
                           ),
                         ),
                       ],
@@ -3362,8 +3369,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   else
                     Row(
                       children: [
-                        const Icon(Icons.lock_open,
-                            color: Colors.green, size: 16),
+                        Icon(Icons.lock_open,
+                            color: context.colors.success, size: 16),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -3372,40 +3379,41 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 : boardControl == 'student_black'
                                     ? 'Možete vući samo crne figure.'
                                     : 'Slobodna analiza omogućena.',
-                            style: const TextStyle(
-                                color: Colors.green, fontSize: 13),
+                            style: AppText.bodyLarge
+                                .copyWith(color: context.colors.success),
                           ),
                         ),
                       ],
                     ),
                 ],
                 if (!isStudio) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Card(
-                    color: Colors.amber.withValues(alpha: 0.08),
+                    color: context.colors.warning.withValues(alpha: 0.08),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                        borderRadius: AppRadii.roundedSm),
                     child: Padding(
-                      padding: const EdgeInsets.all(12.0),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Row(
-                            children: const [
-                              Icon(Icons.people, color: Colors.amber, size: 18),
-                              SizedBox(width: 8),
-                              Text(
+                            children: [
+                              Icon(Icons.people,
+                                  color: context.colors.warning, size: 18),
+                              const SizedBox(width: AppSpacing.sm),
+                              const Text(
                                 'Prisutni u učionici',
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           if (roomMembers.isEmpty)
-                            const Text(
+                            Text(
                               'Učitavanje prisutnih...',
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey),
+                              style: AppText.body
+                                  .copyWith(color: context.colors.textMuted),
                             )
                           else
                             ...roomMembers.map<Widget>((member) {
@@ -3414,17 +3422,17 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               final isMemberTrainer =
                                   member['role'] == 'trener';
                               return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4.0),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: AppSpacing.xs),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.fiber_manual_record,
-                                        color: Colors.greenAccent, size: 8),
-                                    const SizedBox(width: 8),
+                                    Icon(Icons.fiber_manual_record,
+                                        color: context.colors.success, size: 8),
+                                    const SizedBox(width: AppSpacing.sm),
                                     Expanded(
                                       child: Text(
                                         '${member['name']} ${isMe ? "(Ja)" : ""} ${isMemberTrainer ? "[Trener]" : "[Učenik]"}',
-                                        style: const TextStyle(fontSize: 12),
+                                        style: AppText.body,
                                       ),
                                     ),
                                     if (isHost && !isMe) ...[
@@ -3445,15 +3453,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                               value: 'host',
                                               child: Text(
                                                   'Promoviši u Hosta (Co-host)',
-                                                  style:
-                                                      TextStyle(fontSize: 12)),
+                                                  style: AppText.body),
                                             )
                                           else
                                             const PopupMenuItem(
                                               value: 'korisnik',
                                               child: Text('Vrati u Korisnika',
-                                                  style:
-                                                      TextStyle(fontSize: 12)),
+                                                  style: AppText.body),
                                             ),
                                         ],
                                       ),
@@ -3463,18 +3469,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               );
                             }),
                           if (isTrener && !isStudio) ...[
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.sm),
                             SizedBox(
                               width: double.infinity,
                               child: OutlinedButton.icon(
                                 onPressed: _showInSessionInviteFriendsDialog,
                                 icon: const Icon(Icons.person_add, size: 14),
                                 label: const Text('Pozovi prijatelje u sesiju',
-                                    style: TextStyle(fontSize: 11)),
+                                    style: AppText.caption),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.tealAccent,
-                                  side: const BorderSide(
-                                      color: Colors.tealAccent),
+                                  foregroundColor: context.colors.accent,
+                                  side:
+                                      BorderSide(color: context.colors.accent),
                                 ),
                               ),
                             ),
@@ -3483,13 +3489,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Card(
-                    color: Colors.blueGrey.withValues(alpha: 0.15),
+                    color: context.colors.textMuted.withValues(alpha: 0.15),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                        borderRadius: AppRadii.roundedSm),
                     child: Padding(
-                      padding: const EdgeInsets.all(12.0),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -3497,10 +3503,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Row(
-                                children: const [
-                                  Icon(Icons.mic, color: Colors.blueAccent),
-                                  SizedBox(width: 8),
-                                  Text(
+                                children: [
+                                  Icon(Icons.mic, color: context.colors.info),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  const Text(
                                     'Audio Učionica',
                                     style:
                                         TextStyle(fontWeight: FontWeight.bold),
@@ -3508,34 +3514,35 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 ],
                               ),
                               if (!isVoiceOn)
-                                const Icon(Icons.mic_off,
-                                    color: Colors.blueGrey, size: 16)
+                                Icon(Icons.mic_off,
+                                    color: context.colors.textMuted, size: 16)
                               else if (isAudioConnecting)
-                                const SizedBox(
+                                SizedBox(
                                   width: 14,
                                   height: 14,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.blueAccent),
+                                      strokeWidth: 2,
+                                      color: context.colors.info),
                                 )
                               else if (audioError != null)
-                                const Icon(Icons.warning,
-                                    color: Colors.redAccent, size: 16)
+                                Icon(Icons.warning,
+                                    color: context.colors.danger, size: 16)
                               else
-                                const Icon(Icons.check_circle,
-                                    color: Colors.green, size: 16),
+                                Icon(Icons.check_circle,
+                                    color: context.colors.success, size: 16),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           // Above the switch, and shown whether the voice is on
                           // or off: a join that was refused turns the panel back
                           // off, and the reason has to survive that.
                           if (audioError != null) ...[
                             Text(
                               audioError!,
-                              style: const TextStyle(
-                                  color: Colors.redAccent, fontSize: 11),
+                              style: AppText.caption
+                                  .copyWith(color: context.colors.danger),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.sm),
                           ],
                           // The voice is off until somebody asks for it. What
                           // this offers depends on whether a conversation is
@@ -3547,8 +3554,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 color: _voiceUsersOther.isEmpty
-                                    ? Colors.blueGrey.withValues(alpha: 0.15)
-                                    : Colors.green.withValues(alpha: 0.12),
+                                    ? context.colors.textMuted
+                                        .withValues(alpha: 0.15)
+                                    : context.colors.success
+                                        .withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Row(
@@ -3559,10 +3568,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                         : Icons.record_voice_over,
                                     size: 16,
                                     color: _voiceUsersOther.isEmpty
-                                        ? Colors.blueGrey
-                                        : Colors.greenAccent,
+                                        ? context.colors.textMuted
+                                        : context.colors.success,
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: AppSpacing.sm),
                                   Expanded(
                                     child: Text(
                                       _voiceUsersOther.isEmpty
@@ -3570,7 +3579,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                               'otvara dok ga sami ne uključite.'
                                           : 'U razgovoru: '
                                               '${_voiceUsersOther.join(', ')}.',
-                                      style: const TextStyle(fontSize: 11),
+                                      style: AppText.caption,
                                     ),
                                   ),
                                 ],
@@ -3584,9 +3593,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   ? 'Uključi glas'
                                   : 'Priključi se razgovoru'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Colors.green.withValues(alpha: 0.2),
-                                foregroundColor: Colors.greenAccent,
+                                backgroundColor: context.colors.success
+                                    .withValues(alpha: 0.2),
+                                foregroundColor: context.colors.success,
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 10),
                               ),
@@ -3604,20 +3613,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color:
-                                      Colors.blueGrey.withValues(alpha: 0.15),
+                                  color: context.colors.textMuted
+                                      .withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   children: [
                                     Icon(Icons.headset,
-                                        size: 16, color: Colors.blueGrey),
-                                    SizedBox(width: 8),
+                                        size: 16,
+                                        color: context.colors.textMuted),
+                                    SizedBox(width: AppSpacing.sm),
                                     Expanded(
                                       child: Text(
                                         'Slušate čas. Odgovarate dugmadima ispod '
                                         'i potezima na tabli.',
-                                        style: TextStyle(fontSize: 11),
+                                        style: AppText.caption,
                                       ),
                                     ),
                                   ],
@@ -3637,15 +3647,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                           : 'Utišaj me'),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: isAudioMuted
-                                            ? Colors.redAccent
+                                            ? context.colors.danger
                                                 .withValues(alpha: 0.2)
-                                            : Colors.green
+                                            : context.colors.success
                                                 .withValues(alpha: 0.2),
                                         foregroundColor: isAudioMuted
-                                            ? Colors.redAccent
-                                            : Colors.greenAccent,
+                                            ? context.colors.danger
+                                            : context.colors.success,
                                         padding: const EdgeInsets.symmetric(
-                                            vertical: 8),
+                                            vertical: AppSpacing.sm),
                                       ),
                                     ),
                                   ),
@@ -3671,21 +3681,20 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                           _sendQuickAnswer(entry.key),
                                       style: OutlinedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 10, vertical: 4),
-                                        foregroundColor: Colors.lightBlueAccent,
+                                            horizontal: 10,
+                                            vertical: AppSpacing.xs),
+                                        foregroundColor: context.colors.info,
                                       ),
                                       child: Text(entry.value,
-                                          style: const TextStyle(fontSize: 11)),
+                                          style: AppText.caption),
                                     ),
                                 ],
                               ),
-                            const SizedBox(height: 12),
-                            const Text(
+                            const SizedBox(height: AppSpacing.md),
+                            Text(
                               'Učesnici u audio razgovoru:',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey,
-                                  fontWeight: FontWeight.bold),
+                              style: AppText.captionBold
+                                  .copyWith(color: context.colors.textMuted),
                             ),
                             const SizedBox(height: 6),
                             ...audioUsers.map<Widget>((user) {
@@ -3701,8 +3710,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   user['userId'] == widget.userSession.id;
 
                               return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4.0),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: AppSpacing.xs),
                                 child: Row(
                                   children: [
                                     Icon(
@@ -3713,26 +3722,24 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                               : Icons.mic),
                                       size: 16,
                                       color: isUserTalking
-                                          ? Colors.greenAccent
+                                          ? context.colors.success
                                           : (!userMaySpeak
-                                              ? Colors.blueGrey
+                                              ? context.colors.textMuted
                                               : (isUserMuted
-                                                  ? Colors.redAccent
-                                                  : Colors.grey)),
+                                                  ? context.colors.danger
+                                                  : context.colors.textMuted)),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: AppSpacing.sm),
                                     Expanded(
                                       child: Text(
                                         '${user['userName']} ${isMe ? "(Ja)" : ""} ${isUserTrainer ? "[Trener]" : ""}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: isUserTalking
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                          color: isUserTalking
-                                              ? Colors.greenAccent
-                                              : Colors.white,
-                                        ),
+                                        style: AppText.body.copyWith(
+                                            fontWeight: isUserTalking
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                            color: isUserTalking
+                                                ? context.colors.success
+                                                : context.colors.textPrimary),
                                       ),
                                     ),
                                     // Two different controls, deliberately kept
@@ -3748,8 +3755,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                                 : Icons.mic_off,
                                             size: 16,
                                             color: userMaySpeak
-                                                ? Colors.greenAccent
-                                                : Colors.blueGrey),
+                                                ? context.colors.success
+                                                : context.colors.textMuted),
                                         onPressed: () => _setStudentVoice(
                                             user['userId'] as int,
                                             !userMaySpeak),
@@ -3786,23 +3793,23 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               );
                             }),
                             if (audioUsers.isEmpty)
-                              const Text(
+                              Text(
                                 'Nema povezanih korisnika.',
-                                style:
-                                    TextStyle(fontSize: 11, color: Colors.grey),
+                                style: AppText.caption
+                                    .copyWith(color: context.colors.textMuted),
                               ),
                             if (widget.userSession.role == 'trener' &&
                                 audioUsers.length > 1) ...[
-                              const SizedBox(height: 12),
+                              const SizedBox(height: AppSpacing.md),
                               ElevatedButton(
                                 onPressed: () {
                                   socket.emit('audio_mute_all_students',
                                       {'roomId': widget.roomCode});
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Colors.red.withValues(alpha: 0.15),
-                                  foregroundColor: Colors.redAccent,
+                                  backgroundColor: context.colors.danger
+                                      .withValues(alpha: 0.15),
+                                  foregroundColor: context.colors.textPrimary,
                                 ),
                                 child: const Text('Utišaj sve učenike'),
                               ),
@@ -3810,25 +3817,25 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             if (widget.userSession.role == 'ucenik' &&
                                 isAudioMuted &&
                                 isHandRaised) ...[
-                              const SizedBox(height: 8),
-                              const Center(
+                              const SizedBox(height: AppSpacing.sm),
+                              Center(
                                 child: Text(
                                   'Utišani ste. Ruka je podignuta...',
-                                  style: TextStyle(
-                                      color: Colors.orangeAccent, fontSize: 11),
+                                  style: AppText.caption
+                                      .copyWith(color: context.colors.warning),
                                 ),
                               ),
                             ] else if (widget.userSession.role == 'ucenik' &&
                                 isAudioMuted) ...[
-                              const SizedBox(height: 8),
+                              const SizedBox(height: AppSpacing.sm),
                               ElevatedButton.icon(
                                 onPressed: _raiseHand,
                                 icon: const Icon(Icons.pan_tool, size: 14),
                                 label: const Text('Podigni ruku za reč'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Colors.orange.withValues(alpha: 0.2),
-                                  foregroundColor: Colors.orangeAccent,
+                                  backgroundColor: context.colors.warning
+                                      .withValues(alpha: 0.2),
+                                  foregroundColor: context.colors.textPrimary,
                                 ),
                               ),
                             ],
@@ -3843,7 +3850,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               icon: const Icon(Icons.call_end, size: 16),
                               label: const Text('Isključi glas'),
                               style: TextButton.styleFrom(
-                                  foregroundColor: Colors.redAccent),
+                                  foregroundColor: context.colors.danger),
                             ),
                           ],
                         ],
@@ -3852,15 +3859,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ),
                 ],
                 if (isTrener && !isStudio) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Card(
                     color: isRecording
-                        ? Colors.red.withValues(alpha: 0.15)
-                        : Colors.deepPurple.withValues(alpha: 0.15),
+                        ? context.colors.danger.withValues(alpha: 0.15)
+                        : context.colors.brand.withValues(alpha: 0.15),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                        borderRadius: AppRadii.roundedSm),
                     child: Padding(
-                      padding: const EdgeInsets.all(12.0),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -3874,12 +3881,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     : Icons.videocam,
                                 color: isRecording
                                     ? (isRecordingPaused
-                                        ? Colors.orangeAccent
-                                        : Colors.redAccent)
-                                    : Colors.deepPurpleAccent,
+                                        ? context.colors.warning
+                                        : context.colors.danger)
+                                    : context.colors.textPrimary,
                                 size: 18,
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: AppSpacing.sm),
                               Text(
                                 isRecording
                                     ? (isRecordingPaused
@@ -3890,14 +3897,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   fontWeight: FontWeight.bold,
                                   color: isRecording
                                       ? (isRecordingPaused
-                                          ? Colors.orangeAccent
-                                          : Colors.redAccent)
-                                      : Colors.white,
+                                          ? context.colors.warning
+                                          : context.colors.danger)
+                                      : context.colors.textPrimary,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           if (isRecording) ...[
                             Row(
                               children: [
@@ -3908,12 +3915,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                         : _pauseRecording,
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: isRecordingPaused
-                                          ? Colors.greenAccent
-                                          : Colors.orangeAccent,
+                                          ? context.colors.success
+                                          : context.colors.warning,
                                       side: BorderSide(
                                           color: isRecordingPaused
-                                              ? Colors.greenAccent
-                                              : Colors.orangeAccent),
+                                              ? context.colors.success
+                                              : context.colors.warning),
                                     ),
                                     icon: Icon(
                                         isRecordingPaused
@@ -3924,21 +3931,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                         isRecordingPaused
                                             ? 'Nastavi'
                                             : 'Pauziraj',
-                                        style: const TextStyle(fontSize: 12)),
+                                        style: AppText.body),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: AppSpacing.sm),
                                 Expanded(
                                   child: ElevatedButton.icon(
                                     onPressed: _stopRecording,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.redAccent,
-                                      foregroundColor: Colors.white,
+                                      backgroundColor: context.colors.danger,
+                                      foregroundColor: context.colors.canvas,
                                     ),
-                                    icon: const Icon(Icons.stop,
-                                        color: Colors.white, size: 14),
+                                    icon: Icon(Icons.stop,
+                                        color: context.colors.canvas, size: 14),
                                     label: const Text('Sačuvaj',
-                                        style: TextStyle(fontSize: 12)),
+                                        style: AppText.body),
                                   ),
                                 ),
                               ],
@@ -3948,11 +3955,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               onPressed:
                                   _recordingAllowed ? _startRecording : null,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.deepPurpleAccent,
-                                foregroundColor: Colors.white,
+                                backgroundColor: context.colors.brand,
+                                foregroundColor: context.colors.canvas,
                               ),
-                              icon: const Icon(Icons.fiber_manual_record,
-                                  color: Colors.white, size: 16),
+                              icon: Icon(Icons.fiber_manual_record,
+                                  color: context.colors.canvas, size: 16),
                               label: const Text('Započni snimanje'),
                             ),
                             // The reason stands under the button rather than
@@ -3960,19 +3967,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             // with no explanation is a bug report.
                             if (!_recordingAllowed &&
                                 _recordingBlockedReason != null) ...[
-                              const SizedBox(height: 8),
+                              const SizedBox(height: AppSpacing.sm),
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.family_restroom,
-                                      color: Colors.orangeAccent, size: 16),
-                                  const SizedBox(width: 8),
+                                  Icon(Icons.family_restroom,
+                                      color: context.colors.warning, size: 16),
+                                  const SizedBox(width: AppSpacing.sm),
                                   Expanded(
                                     child: Text(
                                       _recordingBlockedReason!,
-                                      style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.orangeAccent),
+                                      style: AppText.body.copyWith(
+                                          color: context.colors.warning),
                                     ),
                                   ),
                                 ],
@@ -4013,7 +4019,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             // in, and that is not a decision a seat in the room grants.
             if (activeRole == 'trener' && widget.roomCode != 'STUDIO')
               IconButton(
-                icon: const Icon(Icons.groups, color: Colors.tealAccent),
+                icon: Icon(Icons.groups, color: context.colors.accent),
                 tooltip: 'Ko sme u sobu',
                 onPressed: () => showDialog<void>(
                   context: context,
@@ -4023,14 +4029,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 ),
               ),
             IconButton(
-              icon: const Icon(Icons.biotech, color: Colors.tealAccent),
+              icon: Icon(Icons.biotech, color: context.colors.accent),
               tooltip: 'Izvezi u Tablu za Analizu 🔬',
               onPressed: () {
                 context.push(AppRoutes.analysisPath(fen: controller.getFen()));
               },
             ),
             IconButton(
-              icon: const Icon(Icons.settings, color: Colors.grey),
+              icon: Icon(Icons.settings, color: context.colors.textMuted),
               tooltip: 'Podešavanja',
               onPressed: () async {
                 // Settings sits on top of the room; the socket and the audio
@@ -4041,15 +4047,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
             ),
             if (widget.roomCode != 'STUDIO')
               IconButton(
-                icon: const Icon(Icons.logout, color: Colors.redAccent),
+                icon: Icon(Icons.logout, color: context.colors.danger),
                 tooltip: 'Napusti sesiju',
                 onPressed: _leaveSessionExplicitly,
               ),
             Icon(
               isConnected ? Icons.cloud_done : Icons.cloud_off,
-              color: isConnected ? Colors.green : Colors.red,
+              color:
+                  isConnected ? context.colors.success : context.colors.danger,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.lg),
           ],
         ),
         // Mobile layout has a Drawer for lessons listing (if Trainer)
@@ -4088,16 +4095,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                         orientation: boardOrientation,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: AppSpacing.sm),
                                   ],
                                   _buildChessBoardWithOverlay(boardSize),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: AppSpacing.md),
                                   // PGN navigators
                                   SizedBox(
                                     width: boardSize,
                                     child: buildNavigationControls(),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: AppSpacing.sm),
                                   // Stockfish analysis widget directly UNDER board
                                   SizedBox(
                                     width: boardSize,
@@ -4157,14 +4164,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             Expanded(
                               child: SingleChildScrollView(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0, vertical: 8.0),
+                                    horizontal: AppSpacing.lg,
+                                    vertical: AppSpacing.sm),
                                 child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     buildNavigationControls(),
                                     _buildStockfishAnalysisWidget(),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: AppSpacing.sm),
                                     buildRightSidebar(),
                                   ],
                                 ),
@@ -4174,7 +4182,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         )
                       : Column(
                           children: [
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.sm),
                             if (_showEvalBar) ...[
                               SizedBox(
                                 width: boardSize,
@@ -4188,7 +4196,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               const SizedBox(height: 6),
                             ],
                             _buildChessBoardWithOverlay(boardSize),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.sm),
                             // Everything below the board scrolls together, the
                             // navigation strip included. The strip used to be
                             // pinned here between two fixed toolbars, which
@@ -4199,14 +4207,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             Expanded(
                               child: SingleChildScrollView(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0, vertical: 8.0),
+                                    horizontal: AppSpacing.lg,
+                                    vertical: AppSpacing.sm),
                                 child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     buildNavigationControls(),
                                     _buildStockfishAnalysisWidget(),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: AppSpacing.sm),
                                     buildRightSidebar(),
                                   ],
                                 ),
@@ -4242,12 +4251,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, 'discard'),
-            child: const Text('Izađi bez čuvanja',
-                style: TextStyle(color: Colors.redAccent)),
+            child: Text('Izađi bez čuvanja',
+                style: TextStyle(color: context.colors.danger)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                backgroundColor: context.colors.accent,
+                foregroundColor: context.colors.canvas),
             onPressed: () => Navigator.pop(ctx, 'save'),
             child: const Text('Zaustavi i sačuvaj'),
           ),

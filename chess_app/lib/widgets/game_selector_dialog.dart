@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:chess_app/move_tree.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 class GameSelectorDialog extends StatelessWidget {
   final List<PgnGameInfo> games;
@@ -26,14 +28,14 @@ class GameSelectorDialog extends StatelessWidget {
             return ListTile(
               title: Text(
                 game.displayName,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style: AppText.bodyLargeBold,
               ),
               subtitle: Text(
                 game.pgnBody.length > 60
                     ? '${game.pgnBody.substring(0, 60)}...'
                     : game.pgnBody,
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted),
               ),
               trailing: const Icon(Icons.arrow_forward_ios, size: 12),
               onTap: () {

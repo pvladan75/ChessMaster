@@ -62,7 +62,7 @@ class _OpeningPickerState extends State<OpeningPicker> {
         if (widget.hint != null) ...[
           Text(widget.hint!,
               style: AppText.caption.copyWith(color: context.colors.textMuted)),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
         ],
         TextField(
           controller: _query,
@@ -76,7 +76,7 @@ class _OpeningPickerState extends State<OpeningPicker> {
           ),
           onChanged: _search,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Expanded(
           child: _results.isEmpty
               ? Center(

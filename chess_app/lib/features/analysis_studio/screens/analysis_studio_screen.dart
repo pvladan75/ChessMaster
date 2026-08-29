@@ -298,7 +298,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               child: Row(
                 children: [
                   Icon(actions[i].icon, color: actions[i].color, size: 20),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.md),
                   Flexible(child: Text(actions[i].tooltip)),
                 ],
               ),
@@ -329,17 +329,17 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       context,
       () => SnackBar(
         content: const Text('Vraćena je vaša poslednja analiza.'),
-        backgroundColor: Colors.teal,
+        backgroundColor: context.colors.accent,
         duration: const Duration(seconds: 6),
         // Reported from a phone on 20.8.2026: it sat there for minutes with no
         // way to get rid of it, since the only action rebuilds the analysis.
         // Whatever keeps the timer from firing on that device, a message with
         // no way out is wrong on its own.
         showCloseIcon: true,
-        closeIconColor: Colors.white,
+        closeIconColor: context.colors.canvas,
         action: SnackBarAction(
           label: 'Počni iznova',
-          textColor: Colors.white,
+          textColor: context.colors.canvas,
           onPressed: () {
             AnalysisDraftService.instance.clear();
             setState(() {
@@ -1084,9 +1084,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (aiComment == null || aiComment.trim().isEmpty) {
       AppFeedback.show(
         context,
-        () => const SnackBar(
-            content: Text('Greška pri generisanju AI komentara.'),
-            backgroundColor: Colors.redAccent),
+        () => SnackBar(
+            content: const Text('Greška pri generisanju AI komentara.'),
+            backgroundColor: context.colors.danger),
       );
       return;
     }
@@ -1116,10 +1116,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           _refreshArrows();
           AppFeedback.show(
             context,
-            () => const SnackBar(
-                content: Text(
+            () => SnackBar(
+                content: const Text(
                     '⚡ Automatska analiza uspešno završena i sačuvana u stablo!'),
-                backgroundColor: Colors.amber),
+                backgroundColor: context.colors.warning),
           );
         },
       ),
@@ -1164,11 +1164,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               () => SnackBar(
                 content: Text(
                     '🧩 Izvučeno ${extractedPuzzles.length} vežbi (sačuvano)'),
-                backgroundColor: Colors.teal,
+                backgroundColor: context.colors.accent,
                 duration: const Duration(seconds: 6),
                 action: SnackBarAction(
                   label: 'Prikaži',
-                  textColor: Colors.white,
+                  textColor: context.colors.canvas,
                   onPressed: () {
                     setState(() => _activePuzzleSet = extractedPuzzles);
                     _loadPuzzleAtIndex(0);
@@ -1216,7 +1216,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       context,
       () => SnackBar(
           content: Text('🧩 ${puzzle.themeLabel}'),
-          backgroundColor: Colors.teal),
+          backgroundColor: context.colors.accent),
     );
 
     if (canReveal) {
@@ -1319,9 +1319,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       if (!tempGame.load_pgn(pgn)) {
         AppFeedback.show(
           context,
-          () => const SnackBar(
-              content: Text('⚠️ Neispravan PGN format.'),
-              backgroundColor: Colors.red),
+          () => SnackBar(
+              content: const Text('⚠️ Neispravan PGN format.'),
+              backgroundColor: context.colors.danger),
         );
         return;
       }
@@ -1383,7 +1383,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         context,
         () => SnackBar(
           content: Text('✅ PGN učitan — $imported poteza u stablu.'),
-          backgroundColor: Colors.teal,
+          backgroundColor: context.colors.accent,
         ),
       );
     } catch (e) {
@@ -1391,7 +1391,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         context,
         () => SnackBar(
             content: Text('Greška pri uvozu PGN-a: $e'),
-            backgroundColor: Colors.red),
+            backgroundColor: context.colors.danger),
       );
     }
   }
@@ -1423,9 +1423,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (loadedRoot == null) {
       AppFeedback.show(
         context,
-        () => const SnackBar(
-            content: Text('⚠️ Učitavanje nije uspelo. Proverite konekciju.'),
-            backgroundColor: Colors.red),
+        () => SnackBar(
+            content:
+                const Text('⚠️ Učitavanje nije uspelo. Proverite konekciju.'),
+            backgroundColor: context.colors.danger),
       );
       return;
     }
@@ -1445,7 +1446,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       context,
       () => SnackBar(
           content: Text('✅ Učitano: "${summary.title}"'),
-          backgroundColor: Colors.teal),
+          backgroundColor: context.colors.accent),
     );
   }
 
@@ -1526,12 +1527,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       children: [
         if (_activePuzzleSet != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8.0),
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
             child: _buildPuzzleSetBar(),
           ),
         // Static Fixed Board at top
         Padding(
-          padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+          padding:
+              const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
           child: Center(
             child: SizedBox(
               width: boardSize,
@@ -1540,7 +1542,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 elevation: 4,
                 margin: EdgeInsets.zero,
                 child: Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(AppSpacing.sm),
                   child: BoardWithCoordinates(
                     size: boardSize - 16.0,
                     orientation: _orientation,
@@ -1559,8 +1561,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         // Scrollable Controls Below Board
         Expanded(
           child: SingleChildScrollView(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
             child: Column(
               children: [
                 if (_showEvalBar) ...[
@@ -1570,7 +1572,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                     depth: _currentEvalDepth,
                     orientation: _orientation,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                 ],
                 _buildPositionInfoPanel(),
                 _buildAnalysisAndTreeSection(),
@@ -1584,7 +1586,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
   Widget _buildLandscapeLayout(double boardSize) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1606,7 +1608,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   SizedBox(
                     width: boardSize,
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0),
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
                       child: _buildPuzzleSetBar(),
                     ),
                   ),
@@ -1626,7 +1628,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 if (_showEvalBar) ...[
                   SizedBox(
                     width: boardSize,
@@ -1638,7 +1640,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 SizedBox(
                   width: boardSize,
                   child: _buildNavigationToolbar(),
@@ -1650,7 +1652,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
 
           // Right Side: Tree & Engine Analysis
           Expanded(
@@ -1683,17 +1685,18 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           children: [
             Container(
               width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md, vertical: AppSpacing.sm),
               decoration: BoxDecoration(
                 color: phaseInfo.isEndgame
                     ? Colors.indigo.shade900
-                    : Colors.grey.shade900,
-                borderRadius: BorderRadius.circular(8),
+                    : context.colors.surfaceRaised,
+                borderRadius: AppRadii.roundedSm,
                 border: Border.all(
                   color: phaseInfo.isEndgame
                       ? Colors.cyanAccent
-                      : Colors.tealAccent,
+                      : context.colors.accent,
                   width: 1,
                 ),
               ),
@@ -1703,17 +1706,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                     phaseInfo.isEndgame ? Icons.auto_awesome : Icons.menu_book,
                     color: phaseInfo.isEndgame
                         ? Colors.cyanAccent
-                        : Colors.tealAccent,
+                        : context.colors.accent,
                     size: 18,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       displayOpeningName,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
+                      style: AppText.bodyBold
+                          .copyWith(color: context.colors.textPrimary),
                     ),
                   ),
                 ],
@@ -1787,7 +1788,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               _saveDraft();
             },
           ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         if (AppSettingsService.instance.isPanelVisible('engine_analysis'))
           StockfishAnalysisWidget(
             isEngineEnabled: _showEvaluation,
@@ -1902,6 +1903,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               child: CustomPaint(
                 size: Size(size, size),
                 painter: ChessBoardPainter(
+                  lastMoveColor: context.colors.warning,
+                  drawingModeColor: context.colors.accent,
+                  badgeTextColor: context.colors.canvas,
+                  badgeBorderColor: context.colors.canvas,
                   arrows: const [],
                   boardSize: size,
                   orientation: _orientation,
@@ -1917,6 +1922,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               child: CustomPaint(
                 size: Size(size, size),
                 painter: ChessBoardPainter(
+                  lastMoveColor: context.colors.warning,
+                  drawingModeColor: context.colors.accent,
+                  badgeTextColor: context.colors.canvas,
+                  badgeBorderColor: context.colors.canvas,
                   arrows: const [],
                   engineArrows: _engineArrows,
                   boardSize: size,
@@ -1952,34 +1961,37 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (set == null) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 4.0),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
         color: Colors.teal.shade900,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadii.roundedSm,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, size: 20, color: Colors.white),
+            icon: Icon(Icons.chevron_left,
+                size: 20, color: context.colors.textPrimary),
             tooltip: 'Prethodna vežba',
             onPressed: _activePuzzleIndex > 0 ? () => _goToPuzzle(-1) : null,
           ),
           Text(
             'Vežba ${_activePuzzleIndex + 1} / ${set.length}',
-            style: AppText.bodyBold.copyWith(color: Colors.white),
+            style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
           ),
           IconButton(
-            icon:
-                const Icon(Icons.chevron_right, size: 20, color: Colors.white),
+            icon: Icon(Icons.chevron_right,
+                size: 20, color: context.colors.textPrimary),
             tooltip: 'Sledeća vežba',
             onPressed: _activePuzzleIndex < set.length - 1
                 ? () => _goToPuzzle(1)
                 : null,
           ),
           IconButton(
-            icon: const Icon(Icons.close, size: 20, color: Colors.white70),
+            icon: Icon(Icons.close,
+                size: 20, color: context.colors.textSecondary),
             tooltip: 'Zatvori vežbe',
             onPressed: _exitPuzzleSet,
           ),
@@ -2001,10 +2013,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       iconSize: 20,
       onFlipBoard: _flipBoard,
       trailing: [
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.sm),
         IconButton(
-          icon: const Icon(Icons.comment,
-              size: 18, color: Colors.lightBlueAccent),
+          icon: Icon(Icons.comment, size: 18, color: context.colors.info),
           tooltip: 'Dodaj Komentar',
           onPressed: _showCommentDialog,
         ),
@@ -2015,15 +2026,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.auto_awesome,
-                  size: 18, color: Colors.tealAccent),
+              : Icon(Icons.auto_awesome,
+                  size: 18, color: context.colors.accent),
           tooltip: 'Generiši AI komentar',
           onPressed: (_isGeneratingAiComment || _currentNode.isRoot)
               ? null
               : _generateAiComment,
         ),
         IconButton(
-          icon: const Icon(Icons.style, size: 18, color: Colors.amberAccent),
+          icon: Icon(Icons.style, size: 18, color: context.colors.warning),
           tooltip: 'NAG Simboli (!, ?)',
           onPressed: _showNagSelector,
         ),
@@ -2049,15 +2060,16 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (comment.isEmpty && nag == null) return const SizedBox.shrink();
 
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadii.roundedSm,
       onTap: _showCommentDialog,
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(top: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.sm),
         decoration: BoxDecoration(
-          color: Colors.grey.shade900,
-          borderRadius: BorderRadius.circular(8),
+          color: context.colors.surface,
+          borderRadius: AppRadii.roundedSm,
           border:
               Border.all(color: context.colors.info.withValues(alpha: 0.35)),
         ),
@@ -2072,7 +2084,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(Icons.comment, size: 16, color: context.colors.info),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: RichText(
                   text: TextSpan(
@@ -2128,7 +2140,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: context.colors.surface,
         title: Text('Obriši potez?',
             style: TextStyle(color: context.colors.textPrimary)),
         content: Text(
@@ -2144,7 +2155,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: context.colors.danger,
-                foregroundColor: Colors.white),
+                foregroundColor: context.colors.canvas),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Obriši'),
           ),

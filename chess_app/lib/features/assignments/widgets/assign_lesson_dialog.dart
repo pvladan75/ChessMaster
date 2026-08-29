@@ -1,3 +1,4 @@
+import 'package:chess_app/theme/app_typography.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -181,7 +182,8 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
             _error ??
                 'Nemate nijednu sačuvanu lekciju. Napravite je u sesiji preko '
                     '"Kreiraj lekciju", pa je odavde možete zadati.',
-            style: TextStyle(fontSize: 13, color: context.colors.textSecondary),
+            style:
+                AppText.bodyLarge.copyWith(color: context.colors.textSecondary),
           ),
         ],
       );

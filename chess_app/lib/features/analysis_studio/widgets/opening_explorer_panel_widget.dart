@@ -6,13 +6,6 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/material.dart';
 
-// Matches the historical outcome share a move led to across real games —
-// not "good/bad for the mover" (that depends on whose turn it is).
-// Domain constants: Opening outcome breakdown bar colors.
-const _whiteColor = Colors.lightBlueAccent;
-const _drawColor = Colors.grey;
-const _blackColor = Colors.deepOrangeAccent;
-
 /// Shows real move popularity/win-rate stats from the Lichess Opening
 /// Explorer for the current position. Falls back to the ChessDB panel when the
 /// user picked ChessDB as their source, and when the Explorer could not be
@@ -88,7 +81,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
               ),
               if (isLoading)
                 Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: AppSpacing.sm),
                   child: SizedBox(
                     width: 12,
                     height: 12,
@@ -115,7 +108,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
             ],
           ),
           if (!isLoading && result != null && result!.total > 0) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               '${result!.total} partija',
               style: AppText.micro.copyWith(color: colors.textMuted),
@@ -179,7 +172,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             'Procena iz motorske analize, ne iz odigranih partija. Za pravu statistiku izaberite Lichess u Podešavanjima.',
             style: AppText.micro.copyWith(color: colors.textSecondary),
@@ -222,7 +215,8 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
       onTap: onMoveSelected != null ? () => onMoveSelected!(move.uci) : null,
       borderRadius: AppRadii.roundedSm,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 6, vertical: AppSpacing.xs),
         decoration: BoxDecoration(
           color: colors.surfaceRaised,
           borderRadius: AppRadii.roundedSm,
@@ -237,7 +231,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
               style: AppText.caption.copyWith(
                   color: colors.textPrimary, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: AppSpacing.xxs),
             Text(
               '$scoreLabel · ${move.winrate.toStringAsFixed(0)}%',
               style: AppText.micro
@@ -282,7 +276,8 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
       onTap: onMoveSelected != null ? () => onMoveSelected!(move.uci) : null,
       borderRadius: AppRadii.roundedSm,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 6, vertical: AppSpacing.xs),
         decoration: BoxDecoration(
           color: colors.surfaceRaised,
           borderRadius: AppRadii.roundedSm,
@@ -303,6 +298,10 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
               child: SizedBox(
                 width: 60,
                 height: 4,
+                // The bar is the historical outcome share a move led to
+                // across real games — not "good/bad for the mover", which
+                // depends on whose turn it is. That is why the fills are
+                // the side tokens and not success/warning/danger.
                 child: move.total == 0
                     ? ColoredBox(color: colors.border)
                     : Row(
@@ -310,15 +309,15 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
                           if (move.white > 0)
                             Expanded(
                                 flex: move.white,
-                                child: const ColoredBox(color: _whiteColor)),
+                                child: ColoredBox(color: colors.sideWhite)),
                           if (move.draws > 0)
                             Expanded(
                                 flex: move.draws,
-                                child: const ColoredBox(color: _drawColor)),
+                                child: ColoredBox(color: colors.sideDraw)),
                           if (move.black > 0)
                             Expanded(
                                 flex: move.black,
-                                child: const ColoredBox(color: _blackColor)),
+                                child: ColoredBox(color: colors.sideBlack)),
                         ],
                       ),
               ),

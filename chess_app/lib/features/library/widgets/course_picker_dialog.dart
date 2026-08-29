@@ -1,3 +1,4 @@
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/theme/app_colors.dart';
@@ -96,9 +97,9 @@ class _CoursePickerDialogState extends State<CoursePickerDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.cloud_off, color: colors.textMuted),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           const Text('Nije moguće doći do servera.'),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           TextButton(onPressed: _load, child: const Text('Pokušaj opet')),
         ],
       );
@@ -107,11 +108,11 @@ class _CoursePickerDialogState extends State<CoursePickerDialog> {
     final courses = _courses ?? const <CourseSummary>[];
     if (courses.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
         child: Text(
           'Nema nijedne lekcije sa koracima. Napravite je preko „Kreiraj lekciju".',
           textAlign: TextAlign.center,
-          style: TextStyle(color: colors.textSecondary, fontSize: 12),
+          style: AppText.body.copyWith(color: colors.textSecondary),
         ),
       );
     }
@@ -125,9 +126,9 @@ class _CoursePickerDialogState extends State<CoursePickerDialog> {
         return ListTile(
           dense: true,
           leading: Icon(Icons.menu_book, size: 18, color: colors.accent),
-          title: Text(course.title, style: const TextStyle(fontSize: 13)),
+          title: Text(course.title, style: AppText.bodyLarge),
           subtitle: Text('${course.stepCount} koraka',
-              style: TextStyle(fontSize: 11, color: colors.textSecondary)),
+              style: AppText.caption.copyWith(color: colors.textSecondary)),
           onTap: () => Navigator.pop(context, course),
         );
       },

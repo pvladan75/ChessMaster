@@ -245,7 +245,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         actions: [
           const BoardCoordinatesButton(),
           Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.only(right: AppSpacing.md),
             child: Center(
               child: Text(
                 'na redu: ${_stats.due} · novo: ${_stats.fresh}',
@@ -267,7 +267,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       builder: (context, constraints) {
         final boardSize = (constraints.maxWidth - 24).clamp(200.0, 420.0);
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -289,7 +289,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               _buildPrompt(context),
               const SizedBox(height: 10),
               _buildControls(context),
@@ -308,7 +308,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         children: [
           Text(_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?',
               style: AppText.bodyBold),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.xxs),
           Text(
             _revealed == null
                 ? 'Odigrajte potez koji ste izabrali za ovu poziciju.'
@@ -370,7 +370,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           ],
         ),
         if (face.detail.isNotEmpty) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           Text(face.detail,
               style:
                   AppText.caption.copyWith(color: context.colors.textPrimary)),
@@ -459,13 +459,13 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     final nothingBuilt = _stats.positions == 0;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(nothingBuilt ? Icons.menu_book_outlined : Icons.done_all,
                 size: 40),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(
               nothingBuilt
                   ? 'Još nema šta da se vežba.'
@@ -484,7 +484,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               style: AppText.caption.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             FilledButton(
               onPressed: () => Navigator.of(context).maybePop(),
               child: const Text('Nazad'),

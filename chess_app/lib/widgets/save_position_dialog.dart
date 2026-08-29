@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 class SavePositionDialog extends StatefulWidget {
@@ -55,6 +57,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final suggestions = widget.availableUserLabels
         .where((l) => !dialogActiveTags.contains(l))
         .where((l) =>
@@ -84,7 +87,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                     hintText: 'Npr. Sicilijanska odbrana - Najdorf',
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 TextField(
                   controller: descController,
                   decoration: const InputDecoration(
@@ -93,10 +96,10 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                   ),
                   maxLines: 2,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 const Text(
                   'Labele (Oznake):',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: AppText.bodyLargeBold,
                 ),
                 const SizedBox(height: 6),
                 Wrap(
@@ -104,14 +107,14 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                   runSpacing: 6,
                   children: [
                     ...dialogActiveTags.map((t) => Chip(
-                          label: Text(t, style: const TextStyle(fontSize: 11)),
+                          label: Text(t, style: AppText.caption),
                           deleteIcon: const Icon(Icons.close, size: 14),
                           onDeleted: () => removeTag(t),
-                          backgroundColor: Colors.teal.withValues(alpha: 0.2),
+                          backgroundColor: colors.accent.withValues(alpha: 0.2),
                         )),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Expanded(
@@ -121,32 +124,33 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                           hintText: 'Ukucaj i dodaj labelu...',
                           isDense: true,
                           border: OutlineInputBorder(),
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10, vertical: AppSpacing.sm),
                         ),
-                        style: const TextStyle(fontSize: 12),
+                        style: AppText.body,
                         onChanged: (_) => setState(() {}),
                         onSubmitted: (val) => addTag(val),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     ElevatedButton(
                       onPressed: () => addTag(tagInputController.text),
                       style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12)),
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.md)),
                       child: const Text('Dodaj'),
                     ),
                   ],
                 ),
                 if (suggestions.isNotEmpty &&
                     tagInputController.text.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Container(
                     constraints: const BoxConstraints(maxHeight: 120),
                     decoration: BoxDecoration(
-                      border:
-                          Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color: colors.textMuted.withValues(alpha: 0.3)),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: ListView.builder(
@@ -156,19 +160,18 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                         final suggestion = suggestions[index];
                         return ListTile(
                           dense: true,
-                          title: Text(suggestion,
-                              style: const TextStyle(fontSize: 12)),
+                          title: Text(suggestion, style: AppText.body),
                           onTap: () => addTag(suggestion),
                         );
                       },
                     ),
                   ),
                 ],
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 CheckboxListTile(
                   title: const Text(
                     'Zapamti ove Labele za sledeće pozicije',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    style: AppText.bodyBold,
                   ),
                   value: persistChecked,
                   contentPadding: EdgeInsets.zero,
@@ -197,9 +200,9 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
             if (title.isEmpty) {
               AppFeedback.show(
                 context,
-                () => const SnackBar(
-                    content: Text('Unesite naziv lekcije.'),
-                    backgroundColor: Colors.redAccent),
+                () => SnackBar(
+                    content: const Text('Unesite naziv lekcije.'),
+                    backgroundColor: context.colors.danger),
               );
               return;
             }

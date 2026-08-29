@@ -6,6 +6,7 @@ import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
@@ -224,7 +225,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
         final boardSize = heightBased < widthBased ? heightBased : widthBased;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             children: [
               _buildPrompt(),
@@ -247,9 +248,9 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               if (_revealed && _moves.isNotEmpty) _buildMoveControls(),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               _revealed ? _buildGradeButtons() : _buildRevealButton(),
             ],
           ),
@@ -285,12 +286,12 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                 ),
                 Text(
                   '${_completed + 1}/${_queue.length}',
-                  style: TextStyle(
-                      fontSize: 13, color: context.colors.textSecondary),
+                  style: AppText.bodyLarge
+                      .copyWith(color: context.colors.textSecondary),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               item.isNew
                   ? 'Nova pozicija — pogledajte je i ocenite koliko vam je jasna.'
@@ -300,7 +301,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
             ),
             if (item.step.title.isNotEmpty && _revealed) ...[
               const SizedBox(height: 6),
-              Text(item.step.title, style: const TextStyle(fontSize: 13)),
+              Text(item.step.title, style: AppText.bodyLarge),
             ],
           ],
         ),
@@ -354,7 +355,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
           'Koliko ste se setili?',
           style: TextStyle(fontSize: 12.5, color: context.colors.textSecondary),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -365,9 +366,9 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                 onPressed: _grading ? null : () => _grade(grade),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors[grade],
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  foregroundColor: context.colors.canvas,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 18, vertical: AppSpacing.md),
                 ),
                 child: Text(grade.label),
               ),
@@ -382,7 +383,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -394,7 +395,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
             const SizedBox(height: 14),
             Text(
               nothingDue ? 'Ništa nije na redu.' : 'Gotovo za danas.',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: AppText.headline,
             ),
             const SizedBox(height: 6),
             Text(
@@ -411,10 +412,10 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
               const SizedBox(height: 10),
               Text(
                 'Ukupno u ponavljanju: ${_stats.total} · savladano: ${_stats.mature}',
-                style: TextStyle(fontSize: 12, color: context.colors.textMuted),
+                style: AppText.body.copyWith(color: context.colors.textMuted),
               ),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
             Wrap(
               spacing: 10,
               children: [

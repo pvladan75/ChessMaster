@@ -530,7 +530,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         actions: [
           const BoardCoordinatesButton(),
           Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.only(right: AppSpacing.md),
             child: Center(
               child: Text(
                 // Their allowance, so the number is theirs to see.
@@ -556,7 +556,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         // release build.
         final boardSize = (constraints.maxWidth - 24).clamp(200.0, 420.0);
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -585,9 +585,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               _buildQuestion(context),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               if (_proposalSan != null) _buildVerdict(context),
               if (_kept.isNotEmpty) _buildKept(context),
               // Open once the engine has been asked about *this* position —
@@ -596,12 +596,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               if (_thinking || _linesFen == _current) _buildEngine(context),
               if (_book != null) _buildBook(context),
               if (_note != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Text(_note!,
                     style: AppText.caption
                         .copyWith(color: context.colors.textMuted)),
               ],
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               _buildControls(context),
             ],
           ),
@@ -619,7 +619,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           _forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?',
           style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: AppSpacing.xxs),
         Text(
           left == 0 ? 'Poslednja pozicija u ovom talasu.' : 'Još $left u redu.',
           style: AppText.caption.copyWith(color: context.colors.textMuted),
@@ -649,13 +649,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// and are accepted, with a word saying which one you settled on.
   Widget _buildKept(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Vaši potezi ovde',
               style: AppText.bodyBold.copyWith(color: context.colors.accent)),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.xxs),
           Text(
             _kept.length == 1
                 ? 'Zvezdica je glavni potez — to će drill tražiti od vas.'
@@ -663,12 +663,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                     'Dodirnite drugi potez da on postane glavni.',
             style: AppText.micro.copyWith(color: context.colors.textMuted),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           for (final move in _kept)
             InkWell(
               onTap: move.isPrimary || _busy ? null : () => _makePrimary(move),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                 child: Row(
                   children: [
                     Icon(
@@ -678,12 +678,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                           ? context.colors.accent
                           : context.colors.textMuted,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     Text(move.san,
                         style:
                             (move.isPrimary ? AppText.bodyBold : AppText.body)
                                 .copyWith(color: context.colors.textPrimary)),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
                         move.isPrimary ? 'glavni' : 'dodirnite za glavni',
@@ -718,11 +718,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final kept = {for (final move in _kept) move.uci};
 
     return Container(
-      margin: const EdgeInsets.only(top: 8),
+      margin: const EdgeInsets.only(top: AppSpacing.sm),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: context.colors.surface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadii.roundedSm,
         border: Border.all(color: context.colors.border),
       ),
       child: Column(
@@ -742,7 +742,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                       AppText.micro.copyWith(color: context.colors.textMuted)),
             ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.xxs),
           Text(
             'Drugi procenat je koliko su te partije donele strani na potezu — '
             'kako je prošlo, ne koliko je dobro.',
@@ -775,7 +775,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final mine = reply.uci == _proposalUci;
     final score = reply.scoreFor(white_: _forWhite);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
         children: [
           SizedBox(
@@ -873,11 +873,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   Widget _buildEngine(BuildContext context) {
     final settings = AppSettingsService.instance;
     return Container(
-      margin: const EdgeInsets.only(top: 8),
+      margin: const EdgeInsets.only(top: AppSpacing.sm),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: context.colors.surface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadii.roundedSm,
         border: Border.all(color: context.colors.border),
       ),
       child: Column(
@@ -902,7 +902,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                 ),
             ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.xxs),
           Text(
             'Lokalni motor — ne troši Lichess kvotu. Ocena je iz ugla belog.',
             style: AppText.micro.copyWith(color: context.colors.textMuted),
@@ -916,7 +916,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             onDepthChanged: (value) => _applyAnalysisDials(depth: value),
             onLinesChanged: (value) => _applyAnalysisDials(lines: value),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           for (final line in (_linesFen == _current ? _lines : const []))
             InkWell(
               onTap:
@@ -958,7 +958,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               _linesFen == _current &&
               _proposalUci == null)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
               child: Text('Dodirnite liniju da odigrate njen prvi potez.',
                   style:
                       AppText.micro.copyWith(color: context.colors.textMuted)),
@@ -1002,12 +1002,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   Widget _buildDone() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.check_circle_outline, size: 40),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(
               'Nema više pozicija u redu.',
               style: AppText.bodyBold,
@@ -1031,7 +1031,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                 textAlign: TextAlign.center,
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             FilledButton(
               onPressed: () => Navigator.of(context).maybePop(),
               child: const Text('Nazad'),

@@ -1,7 +1,9 @@
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
+import 'package:chess_app/theme/app_spacing.dart';
 
 /// Asks which piece the pawn becomes.
 ///
@@ -77,9 +79,8 @@ class _PromotionChoice extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               chessPieceWidget(letter, size: 44) ?? const SizedBox(height: 44),
-              const SizedBox(height: 4),
-              Text(_pieceNames[piece] ?? piece,
-                  style: const TextStyle(fontSize: 11)),
+              const SizedBox(height: AppSpacing.xs),
+              Text(_pieceNames[piece] ?? piece, style: AppText.caption),
             ],
           ),
         ),

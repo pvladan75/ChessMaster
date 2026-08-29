@@ -5,6 +5,7 @@ import 'package:chess_app/routing/app_routes.dart';
 
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
 import '../widgets/assign_lesson_dialog.dart';
@@ -204,12 +205,13 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
           : RefreshIndicator(
               onRefresh: _refresh,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 96),
                 children: [
                   _buildSummary(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   _buildThemes(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   _buildAssignments(),
                 ],
               ),
@@ -222,7 +224,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     if (progress == null) {
       return const Card(
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: EdgeInsets.all(AppSpacing.lg),
           child: Text('Izveštaj nije dostupan.'),
         ),
       );
@@ -231,16 +233,14 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     return Card(
       color: context.colors.surface,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 const Expanded(
-                  child: Text('Pregled',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text('Pregled', style: AppText.title),
                 ),
                 Chip(
                   visualDensity: VisualDensity.compact,
@@ -249,7 +249,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             if (!progress.hasData)
               Text(
                 'Učenik nije rešavao zagonetke u poslednjih ${progress.periodDays} dana.',
@@ -272,14 +272,13 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                   _stat('Ukupno rešeno', '${progress.lifetimeSolved}'),
                 ],
               ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Divider(color: context.colors.border),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               'Zadaci: ${progress.assignmentsCompleted}/${progress.assignmentsTotal} završeno'
               '${progress.assignmentsOverdue > 0 ? ' · ${progress.assignmentsOverdue} van roka' : ''}',
-              style: TextStyle(
-                fontSize: 13,
+              style: AppText.bodyLarge.copyWith(
                 color: progress.assignmentsOverdue > 0
                     ? context.colors.danger
                     : context.colors.textSecondary,
@@ -310,11 +309,12 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
       return Card(
         color: context.colors.surface,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Text(
             'Još nema dovoljno pokušaja da bi se izdvojile slabe teme. '
             'Tema ulazi u izveštaj tek posle nekoliko rešenih zagonetki.',
-            style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
+            style:
+                AppText.bodyLarge.copyWith(color: context.colors.textSecondary),
           ),
         ),
       );
@@ -323,22 +323,21 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     return Card(
       color: context.colors.surface,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Po temama',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 4),
+            const Text('Po temama', style: AppText.title),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               'Prikazane su samo teme sa dovoljno pokušaja da broj nešto znači.',
               style: TextStyle(fontSize: 11.5, color: context.colors.textMuted),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             ...progress.weakestThemes
                 .map((theme) => _themeRow(theme, weak: true)),
             if (progress.strongestThemes.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               ...progress.strongestThemes
                   .take(3)
                   .map((theme) => _themeRow(theme, weak: false)),
@@ -361,11 +360,11 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             flex: 5,
             child: Text(
               themeLabel(theme.theme),
-              style: const TextStyle(fontSize: 13),
+              style: AppText.bodyLarge,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             flex: 4,
             child: ClipRRect(
@@ -383,8 +382,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             width: 74,
             child: Text(
               '$accuracy% (${theme.attempts})',
-              style:
-                  TextStyle(fontSize: 12, color: context.colors.textSecondary),
+              style: AppText.body.copyWith(color: context.colors.textSecondary),
               textAlign: TextAlign.right,
             ),
           ),
@@ -397,18 +395,17 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     return Card(
       color: context.colors.surface,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Zadaci',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 8),
+            const Text('Zadaci', style: AppText.title),
+            const SizedBox(height: AppSpacing.sm),
             if (_assignments.isEmpty)
               Text(
                 'Još niste zadali nijednu vežbu ovom učeniku.',
-                style: TextStyle(
-                    color: context.colors.textSecondary, fontSize: 13),
+                style: AppText.bodyLarge
+                    .copyWith(color: context.colors.textSecondary),
               )
             else
               ..._assignments.map((assignment) => ListTile(
@@ -434,7 +431,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                     subtitle: Text(
                       '${assignment.attemptedItems}/${assignment.totalItems} urađeno'
                       '${assignment.accuracy == null ? '' : ' · tačnost ${assignment.accuracy}%'}',
-                      style: const TextStyle(fontSize: 12),
+                      style: AppText.body,
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete_outline),

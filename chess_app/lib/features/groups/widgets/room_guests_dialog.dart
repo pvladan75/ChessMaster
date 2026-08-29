@@ -158,7 +158,7 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
         child: _loading
             ? const Center(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
+                  padding: EdgeInsets.all(AppSpacing.xxl),
                   child: CircularProgressIndicator(),
                 ),
               )
@@ -189,12 +189,12 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
                       ),
                     ],
                     if (_error != null) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       Text(_error!,
                           style: AppText.caption
                               .copyWith(color: context.colors.danger)),
                     ],
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     for (final guest in _guests)
                       ListTile(
                         dense: true,
@@ -243,7 +243,7 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.help_outline, size: 18, color: context.colors.danger),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             // The sentence stands whatever the reason was, and the reason is
             // added rather than substituted: "what is true of the room" and
@@ -312,7 +312,7 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
         if (groups.isNotEmpty) ...[
           Text('Pozovi grupu',
               style: AppText.bodyBold.copyWith(color: context.colors.accent)),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           Wrap(
             spacing: 8,
             runSpacing: 6,
@@ -325,12 +325,12 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
         ],
         if (students.isNotEmpty) ...[
           Text('Pozovi pojedinačno',
               style: AppText.bodyBold.copyWith(color: context.colors.accent)),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           Wrap(
             spacing: 8,
             runSpacing: 6,

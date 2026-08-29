@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
+
 class StudioInfoHeaderWidget extends StatelessWidget {
   final String? selectedCategory;
   final String selectedMateDepth;
@@ -31,13 +34,15 @@ class StudioInfoHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Column(
       children: [
         Card(
           elevation: 3,
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 14.0, vertical: AppSpacing.sm),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -46,19 +51,19 @@ class StudioInfoHeaderWidget extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           margin: const EdgeInsets.only(bottom: 10),
           decoration: BoxDecoration(
             color: puzzleOrientation == PlayerColor.white
-                ? Colors.blueGrey.shade900
-                : Colors.teal.shade900,
-            borderRadius: BorderRadius.circular(16),
+                ? colors.surface
+                : colors.accent.withValues(alpha: 0.22),
+            borderRadius: AppRadii.roundedLg,
             border: Border.all(
                 color: puzzleOrientation == PlayerColor.white
-                    ? Colors.white38
-                    : Colors.tealAccent),
+                    ? colors.borderStrong
+                    : colors.accent),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -67,17 +72,15 @@ class StudioInfoHeaderWidget extends StatelessWidget {
                 Icons.flag,
                 size: 18,
                 color: puzzleOrientation == PlayerColor.white
-                    ? Colors.white
-                    : Colors.tealAccent,
+                    ? colors.textPrimary
+                    : colors.accent,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Flexible(
                 child: Text(
                   headerGoal,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: Colors.white),
+                  style:
+                      AppText.bodyLargeBold.copyWith(color: colors.textPrimary),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),

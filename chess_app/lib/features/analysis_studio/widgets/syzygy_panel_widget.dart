@@ -116,7 +116,8 @@ class SyzygyPanelWidget extends StatelessWidget {
     final style = _styleFor(result.category);
     final dtz = _dtzLabel(result.dtz);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
       decoration: BoxDecoration(
         color: style.color.withValues(alpha: 0.2),
         borderRadius: AppRadii.roundedSm,

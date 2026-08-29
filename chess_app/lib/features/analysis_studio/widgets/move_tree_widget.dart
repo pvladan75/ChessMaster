@@ -38,9 +38,9 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
     return Card(
       elevation: 2,
       color: context.colors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -67,7 +67,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       borderRadius: BorderRadius.circular(6),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                            horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                         decoration: BoxDecoration(
                           color: _showVisualGraph
                               ? context.colors.accent.withValues(alpha: 0.22)
@@ -90,13 +90,13 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSpacing.xs),
                     InkWell(
                       onTap: () => setState(() => _showVisualGraph = false),
                       borderRadius: BorderRadius.circular(6),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                            horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                         decoration: BoxDecoration(
                           color: !_showVisualGraph
                               ? context.colors.accent.withValues(alpha: 0.22)
@@ -120,7 +120,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       ),
                     ),
                     if (_showVisualGraph) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpacing.xs),
                       IconButton(
                         onPressed: () => _openFullscreen(context),
                         tooltip: 'Prikaži preko celog ekrana',
@@ -168,7 +168,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
       barrierDismissible: true,
       builder: (dialogContext) {
         return Dialog(
-          insetPadding: const EdgeInsets.all(16),
+          insetPadding: const EdgeInsets.all(AppSpacing.lg),
           backgroundColor: dialogContext.colors.surface,
           child: SizedBox(
             width: double.maxFinite,
@@ -176,7 +176,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -203,7 +203,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                 Divider(height: 1, color: dialogContext.colors.border),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.all(AppSpacing.sm),
                     child: VisualMoveTreeWidget(
                       rootNode: widget.rootNode,
                       activeNode: widget.activeNode,
@@ -244,14 +244,15 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
       InkWell(
         onTap: () => widget.onSelectNode(mainChild),
         onLongPress: () => _showNodeContextMenu(context, mainChild),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: AppRadii.roundedXs,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          padding: const EdgeInsets.symmetric(
+              horizontal: 6, vertical: AppSpacing.xxs),
           decoration: BoxDecoration(
             color: isSelected
                 ? context.colors.accent.withValues(alpha: 0.22)
                 : context.colors.surfaceRaised,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: AppRadii.roundedXs,
             border: isSelected
                 ? Border.all(color: context.colors.accent, width: 1.5)
                 : null,
@@ -265,7 +266,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                   TextSpan(
                       text: moveNumStr,
                       style: AppText.caption
-                          .copyWith(color: context.colors.textMuted)),
+                          .copyWith(color: context.colors.textSecondary)),
                 TextSpan(
                   text: mainChild.moveSan ?? '',
                   style: TextStyle(
@@ -303,10 +304,11 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
         final varChild = current.children[i];
         widgets.add(
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 6, vertical: AppSpacing.xxs),
             decoration: BoxDecoration(
-              color: context.colors.accentAlt.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(4),
+              color: context.colors.accentAlt.withValues(alpha: 0.10),
+              borderRadius: AppRadii.roundedXs,
               border: Border.all(
                 color: context.colors.accentAlt.withValues(alpha: 0.4),
                 width: 0.8,

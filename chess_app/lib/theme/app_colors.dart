@@ -39,6 +39,39 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
   final Color danger;
   final Color success;
 
+  // Containers. A container is a dark hued surface a widget sits *on*, and it
+  // is not the same role as a semantic accent. The 400-level tokens above are
+  // foregrounds, chosen to be legible on canvas; used as a filled background
+  // they collapse -- textPrimary on success measures 1.67:1, on brand 2.60:1.
+  // Each container therefore carries its own light on-container foreground and
+  // its own 400-level border, and rule 23's canvas-foreground mandate does not
+  // apply to any of them.
+  final Color canvasRecessed; // below canvas: deep viewports, graph boards
+
+  final Color successContainer; // solved, checkmate, a finished line
+  final Color onSuccessContainer;
+  final Color successContainerBorder;
+
+  final Color groupedContainer; // clustered branches, defence variations
+  final Color onGroupedContainer;
+  final Color groupedContainerBorder;
+
+  final Color infoContainer; // the active node, AI Studio identity
+  final Color onInfoContainer;
+
+  final Color dangerContainer; // a critical alert that owns its whole surface
+  final Color onDangerContainer;
+  final Color dangerContainerBorder;
+  // infoContainer's border is `info` itself: 3.53:1 on it, and no new colour.
+
+  // Side tokens. A side token represents a side of the board (White, Draw, or Black)
+  // as painted by the explorer or the evaluation bar.
+  // Rule 23 does not send anything to `canvas` here - `sideWhite` used as a background
+  // does take a dark foreground, and `canvas` on it measures 16.30:1.
+  final Color sideWhite;
+  final Color sideDraw;
+  final Color sideBlack;
+
   const AppColorTokens({
     required this.canvas,
     required this.surface,
@@ -55,13 +88,28 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     required this.warning,
     required this.danger,
     required this.success,
+    required this.canvasRecessed,
+    required this.successContainer,
+    required this.onSuccessContainer,
+    required this.successContainerBorder,
+    required this.groupedContainer,
+    required this.onGroupedContainer,
+    required this.groupedContainerBorder,
+    required this.infoContainer,
+    required this.onInfoContainer,
+    required this.dangerContainer,
+    required this.onDangerContainer,
+    required this.dangerContainerBorder,
+    required this.sideWhite,
+    required this.sideDraw,
+    required this.sideBlack,
   });
 
   static const AppColorTokens dark = AppColorTokens(
     // Surfaces
-    canvas: Color(0xFF0F172A), // Slate 900 (relative luminance = 0.0080)
+    canvas: Color(0xFF0F172A), // Slate 900 (relative luminance = 0.0088)
     surface: Color(0xFF1E293B), // Slate 800 (relative luminance = 0.0218)
-    surfaceRaised: Color(0xFF334155), // Slate 700 (relative luminance = 0.0527)
+    surfaceRaised: Color(0xFF334155), // Slate 700 (relative luminance = 0.0514)
 
     // Structure
     border: Color(0x1FFFFFFF), // 12% white overlay for subtle boundaries
@@ -97,12 +145,54 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     warning: Color(0xFFFBBF24),
 
     // #FDA4AF (Rose 300 - Errors, lost position, invalid moves):
-    // Contrast: 9.54:1 on canvas / 7.71:1 on surface / 5.39:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
+    // Contrast: 9.44:1 on canvas / 7.74:1 on surface / 5.48:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
     danger: Color(0xFFFDA4AF),
 
     // #4ADE80 (Green 400 - Correct moves, solved puzzles, victories; distinct from Teal accent):
     // Contrast: 10.25:1 on canvas / 8.40:1 on surface / 5.94:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
     success: Color(0xFF4ADE80),
+
+    // Containers. Every figure below is the on-container text against its own
+    // container, and the border against the same, measured not asserted.
+
+    // #020617 (Slate 950): 4.3x darker than canvas, for a surface nested inside
+    // a panel that already sits on canvas. textPrimary on it is 19.28:1.
+    canvasRecessed: Color(0xFF020617),
+
+    // Emerald 800 / 50 / 400. Text 7.29:1 (AAA), border 4.00:1.
+    successContainer: Color(0xFF065F46),
+    onSuccessContainer: Color(0xFFECFDF5),
+    successContainerBorder: Color(0xFF34D399),
+
+    // Indigo 900 / 100 / 400. Text 9.27:1 (AAA), border 3.83:1.
+    groupedContainer: Color(0xFF312E81),
+    onGroupedContainer: Color(0xFFE0E7FF),
+    groupedContainerBorder: Color(0xFF818CF8),
+
+    // Sky 800 / 50, bordered by `info` (Sky 400). Text 7.09:1, border 3.53:1.
+    // The active node is #0284C7 (Sky 600) today, where white is 4.10:1 and the
+    // info border is 1.91:1 -- both under bar. Sky 800 fixes both and keeps the
+    // blue; Sky 700, which the proposal recommended, fixes only the text and
+    // leaves the border at 2.77:1.
+    infoContainer: Color(0xFF075985),
+    onInfoContainer: Color(0xFFF0F9FF),
+
+    // Rose 900 / 50 / 400, the family `danger` (Rose 300) already belongs to.
+    // Text 8.71:1, border 3.55:1, and `danger` itself is 5.06:1 on it, so an
+    // alert can carry its own accent without leaving the container.
+    // It replaces Colors.red.shade900, where white was 6.57:1 but white70 --
+    // the secondary line of a blunder alert -- was 3.85:1, under AA at 11px.
+    dangerContainer: Color(0xFF881337),
+    onDangerContainer: Color(0xFFFFF1F2),
+    dangerContainerBorder: Color(0xFFFB7185),
+
+    // Side tokens
+    // #F1F5F9 (Slate 100): 16.30:1 on canvas / 13.35:1 on surface / 9.45:1 on surfaceRaised
+    sideWhite: Color(0xFFF1F5F9),
+    // #64748B (Slate 500): 3.75:1 on canvas / 3.07:1 on surface / 2.18:1 on surfaceRaised
+    sideDraw: Color(0xFF64748B),
+    // #020617 (Slate 950): 1.13:1 on canvas / 1.38:1 on surface / 1.95:1 on surfaceRaised
+    sideBlack: Color(0xFF020617),
   );
 
   @override
@@ -122,6 +212,21 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     Color? warning,
     Color? danger,
     Color? success,
+    Color? canvasRecessed,
+    Color? successContainer,
+    Color? onSuccessContainer,
+    Color? successContainerBorder,
+    Color? groupedContainer,
+    Color? onGroupedContainer,
+    Color? groupedContainerBorder,
+    Color? infoContainer,
+    Color? onInfoContainer,
+    Color? dangerContainer,
+    Color? onDangerContainer,
+    Color? dangerContainerBorder,
+    Color? sideWhite,
+    Color? sideDraw,
+    Color? sideBlack,
   }) {
     return AppColorTokens(
       canvas: canvas ?? this.canvas,
@@ -139,6 +244,24 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       warning: warning ?? this.warning,
       danger: danger ?? this.danger,
       success: success ?? this.success,
+      canvasRecessed: canvasRecessed ?? this.canvasRecessed,
+      successContainer: successContainer ?? this.successContainer,
+      onSuccessContainer: onSuccessContainer ?? this.onSuccessContainer,
+      successContainerBorder:
+          successContainerBorder ?? this.successContainerBorder,
+      groupedContainer: groupedContainer ?? this.groupedContainer,
+      onGroupedContainer: onGroupedContainer ?? this.onGroupedContainer,
+      groupedContainerBorder:
+          groupedContainerBorder ?? this.groupedContainerBorder,
+      infoContainer: infoContainer ?? this.infoContainer,
+      onInfoContainer: onInfoContainer ?? this.onInfoContainer,
+      dangerContainer: dangerContainer ?? this.dangerContainer,
+      onDangerContainer: onDangerContainer ?? this.onDangerContainer,
+      dangerContainerBorder:
+          dangerContainerBorder ?? this.dangerContainerBorder,
+      sideWhite: sideWhite ?? this.sideWhite,
+      sideDraw: sideDraw ?? this.sideDraw,
+      sideBlack: sideBlack ?? this.sideBlack,
     );
   }
 
@@ -161,6 +284,29 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       warning: Color.lerp(warning, other.warning, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
       success: Color.lerp(success, other.success, t)!,
+      canvasRecessed: Color.lerp(canvasRecessed, other.canvasRecessed, t)!,
+      successContainer:
+          Color.lerp(successContainer, other.successContainer, t)!,
+      onSuccessContainer:
+          Color.lerp(onSuccessContainer, other.onSuccessContainer, t)!,
+      successContainerBorder:
+          Color.lerp(successContainerBorder, other.successContainerBorder, t)!,
+      groupedContainer:
+          Color.lerp(groupedContainer, other.groupedContainer, t)!,
+      onGroupedContainer:
+          Color.lerp(onGroupedContainer, other.onGroupedContainer, t)!,
+      groupedContainerBorder:
+          Color.lerp(groupedContainerBorder, other.groupedContainerBorder, t)!,
+      infoContainer: Color.lerp(infoContainer, other.infoContainer, t)!,
+      onInfoContainer: Color.lerp(onInfoContainer, other.onInfoContainer, t)!,
+      dangerContainer: Color.lerp(dangerContainer, other.dangerContainer, t)!,
+      onDangerContainer:
+          Color.lerp(onDangerContainer, other.onDangerContainer, t)!,
+      dangerContainerBorder:
+          Color.lerp(dangerContainerBorder, other.dangerContainerBorder, t)!,
+      sideWhite: Color.lerp(sideWhite, other.sideWhite, t)!,
+      sideDraw: Color.lerp(sideDraw, other.sideDraw, t)!,
+      sideBlack: Color.lerp(sideBlack, other.sideBlack, t)!,
     );
   }
 }

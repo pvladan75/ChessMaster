@@ -8,6 +8,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -484,11 +485,11 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
         final boardSize = heightBased < widthBased ? heightBased : widthBased;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             children: [
               _buildHeader(),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Center(
                 child: BoardWithCoordinates(
                   size: boardSize,
@@ -507,9 +508,9 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               _buildFeedback(),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               _buildControls(),
             ],
           ),
@@ -542,7 +543,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -556,7 +557,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
             Text(
               unfinished ? 'Domaći još nije predat.' : 'Zadatak je završen.',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: AppText.headline,
             ),
             const SizedBox(height: 6),
             Text(
@@ -568,7 +569,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(color: context.colors.textSecondary),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
             // Wrap, not Row: two buttons side by side are wider than a 360 px
             // phone, and a release build clips the second one in silence.
             Wrap(
@@ -598,14 +599,14 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   Widget _buildError() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.cloud_off, size: 48, color: context.colors.textMuted),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(_error!, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             ElevatedButton.icon(
               onPressed: _loadNext,
               icon: const Icon(Icons.refresh),
@@ -655,21 +656,22 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
                   ? 'Motiv: ${puzzle.trainableThemes.join(', ')}'
                   : 'Potrebno poteza: ${puzzle.userMoveCount} · '
                       'pronađeno ${session.solvedMoveCount}',
-              style:
-                  TextStyle(fontSize: 12, color: context.colors.textSecondary),
+              style: AppText.body.copyWith(color: context.colors.textSecondary),
             ),
             if (widget.isAssignment) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 'Zadatak: $_assignmentIndex od ${widget.puzzleIds!.length}',
-                style: TextStyle(fontSize: 11, color: context.colors.textMuted),
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted),
               ),
             ] else if (_selection?.targetTheme != null &&
                 !session.isComplete) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 'Vežbate svoju najslabiju temu.',
-                style: TextStyle(fontSize: 11, color: context.colors.textMuted),
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted),
               ),
             ],
           ],
@@ -685,8 +687,9 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     if (result != null) {
       final positive = result.ratingChange >= 0;
       return Card(
-        color: (positive ? context.colors.success : context.colors.danger)
-            .withValues(alpha: 0.12),
+        color: positive
+            ? context.colors.success.withValues(alpha: 0.12)
+            : context.colors.danger.withValues(alpha: 0.12),
         child: ListTile(
           leading: Icon(
             positive ? Icons.trending_up : Icons.trending_down,
@@ -700,7 +703,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       );
     }
 
-    if (message == null) return const SizedBox(height: 8);
+    if (message == null) return const SizedBox(height: AppSpacing.sm);
 
     return _SpokenFeedback(message: message, isGood: _feedbackIsGood);
   }
@@ -799,10 +802,10 @@ class _SpokenFeedbackState extends State<_SpokenFeedback> {
         widget.isGood ? context.colors.success : context.colors.warning;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadii.roundedSm,
       ),
       child: Row(
         children: [
@@ -811,7 +814,7 @@ class _SpokenFeedbackState extends State<_SpokenFeedback> {
             size: 18,
             color: accent,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(child: Text(widget.message)),
         ],
       ),

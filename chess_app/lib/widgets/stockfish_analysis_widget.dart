@@ -1,4 +1,6 @@
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/widgets/engine_analysis_dials.dart';
@@ -67,11 +69,12 @@ class StockfishAnalysisWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final bestLine = lines.isNotEmpty ? lines.first : null;
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      color: Colors.deepPurple.withValues(alpha: 0.15),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      color: colors.brand.withValues(alpha: 0.15),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.all(10.0),
@@ -91,9 +94,8 @@ class StockfishAnalysisWidget extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.psychology,
-                        color: Colors.tealAccent, size: 20),
-                    const SizedBox(width: 8),
+                    Icon(Icons.psychology, color: colors.accent, size: 20),
+                    const SizedBox(width: AppSpacing.sm),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -101,19 +103,20 @@ class StockfishAnalysisWidget extends StatelessWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
+                            Text(
                               'Prikaži evaluaciju',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 14),
+                              style: AppText.subtitle.copyWith(
+                                  color: colors.textPrimary,
+                                  fontWeight: FontWeight.bold),
                             ),
                             if (onOpenSettings != null) ...[
                               const SizedBox(width: 6),
                               GestureDetector(
                                 onTap: onOpenSettings,
-                                child: const MouseRegion(
+                                child: MouseRegion(
                                   cursor: SystemMouseCursors.click,
                                   child: Icon(Icons.settings,
-                                      size: 14, color: Colors.grey),
+                                      size: 14, color: colors.textMuted),
                                 ),
                               ),
                             ],
@@ -121,13 +124,13 @@ class StockfishAnalysisWidget extends StatelessWidget {
                               const SizedBox(width: 6),
                               GestureDetector(
                                 onTap: onForceRestart,
-                                child: const MouseRegion(
+                                child: MouseRegion(
                                   cursor: SystemMouseCursors.click,
                                   child: Tooltip(
                                     message:
                                         'Prekini i ponovo pokreni analizu trenutne pozicije',
                                     child: Icon(Icons.restart_alt,
-                                        size: 15, color: Colors.tealAccent),
+                                        size: 15, color: colors.accent),
                                   ),
                                 ),
                               ),
@@ -142,18 +145,17 @@ class StockfishAnalysisWidget extends StatelessWidget {
                                   : (isOnline
                                       ? 'Spoljašnji Stockfish (Online API)'
                                       : 'Lokalni Engine (Nativni)')),
-                          style: TextStyle(
-                            fontSize: 10,
+                          style: AppText.micro.copyWith(
                             color: !isAllowedToUseEngine
-                                ? Colors.redAccent
-                                : Colors.grey,
+                                ? colors.danger
+                                : colors.textMuted,
                           ),
                         ),
                       ],
                     ),
                     Switch(
                       value: isEngineEnabled,
-                      activeThumbColor: Colors.tealAccent,
+                      activeThumbColor: colors.accent,
                       onChanged:
                           isAllowedToUseEngine ? (_) => onToggleEngine() : null,
                     ),
@@ -166,19 +168,17 @@ class StockfishAnalysisWidget extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.bar_chart,
-                          size: 18, color: Colors.amberAccent),
-                      const SizedBox(width: 8),
-                      const Text(
+                      Icon(Icons.bar_chart, size: 18, color: colors.warning),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
                         'Prikaži evaluacionu liniju',
-                        style: TextStyle(
-                            fontSize: 13,
+                        style: AppText.bodyLarge.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: Colors.white),
+                            color: colors.textPrimary),
                       ),
                       Switch(
                         value: isShowEvalBarEnabled,
-                        activeThumbColor: Colors.amberAccent,
+                        activeThumbColor: colors.warning,
                         onChanged: (_) => onToggleShowEvalBar?.call(),
                       ),
                     ],
@@ -192,7 +192,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
             if (analysisDepth != null &&
                 analysisLines != null &&
                 isAllowedToUseEngine) ...[
-              const SizedBox(height: 2),
+              const SizedBox(height: AppSpacing.xxs),
               EngineAnalysisDials(
                 depth: analysisDepth!,
                 lines: analysisLines!,
@@ -202,7 +202,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
             ],
 
             if (isEngineEnabled && isAllowedToUseEngine) ...[
-              const Divider(height: 16),
+              Divider(height: 16, color: colors.border),
 
               // Best Move & Main Evaluation Banner
               if (bestLine != null) ...[
@@ -210,66 +210,59 @@ class StockfishAnalysisWidget extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                          horizontal: 10, vertical: AppSpacing.xs),
                       decoration: BoxDecoration(
-                        color: Colors.teal.withValues(alpha: 0.25),
+                        color: colors.accent.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                            color: Colors.tealAccent.withValues(alpha: 0.4)),
+                            color: colors.accent.withValues(alpha: 0.4)),
                       ),
                       child: Text(
                         'Eval: ${bestLine.evaluation} (depth: ${bestLine.depth > 0 ? bestLine.depth : 0})',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: Colors.tealAccent),
+                        style: AppText.bodyLargeBold
+                            .copyWith(color: colors.accent),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Row(
                         children: [
-                          const Text(
+                          Text(
                             'Najbolji potez: ',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                            style:
+                                AppText.body.copyWith(color: colors.textMuted),
                           ),
                           Text(
                             bestLine.bestMoveSan.isNotEmpty
                                 ? bestLine.bestMoveSan
                                 : '...',
-                            style: const TextStyle(
-                                fontSize: 14,
+                            style: AppText.subtitle.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white),
+                                color: colors.textPrimary),
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
               ],
 
               // Top 3 Lines List (Compact 1 line per row with '...' inspector button)
               Text(
                 'Top ${analysisLines ?? AppSettingsService.instance.analysisLines} '
                 'Linije (Klik na liniju za kompletan pregled):',
-                style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold),
+                style: AppText.captionBold.copyWith(color: colors.textMuted),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
 
               if (lines.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
                   child: Text(
                     'Računanje poteza...',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey,
-                        fontStyle: FontStyle.italic),
+                    style: AppText.caption.copyWith(
+                        color: colors.textMuted, fontStyle: FontStyle.italic),
                   ),
                 )
               else
@@ -284,17 +277,15 @@ class StockfishAnalysisWidget extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 3.0, horizontal: 4.0),
+                          vertical: 3.0, horizontal: AppSpacing.xs),
                       child: Row(
                         children: [
                           SizedBox(
                             width: 50,
                             child: Text(
                               line.evaluation,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.tealAccent,
+                              style: AppText.captionBold.copyWith(
+                                color: colors.accent,
                               ),
                             ),
                           ),
@@ -303,23 +294,23 @@ class StockfishAnalysisWidget extends StatelessWidget {
                               line.continuationSan,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 11, color: Colors.white),
+                              style: AppText.caption
+                                  .copyWith(color: colors.textPrimary),
                             ),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: AppSpacing.xs),
                           if (onInsertLineAsVariation != null)
                             IconButton(
                               onPressed: () => onInsertLineAsVariation!(line),
                               icon: const Icon(Icons.call_split, size: 16),
-                              color: Colors.tealAccent,
+                              color: colors.accent,
                               visualDensity: VisualDensity.compact,
                               constraints: const BoxConstraints(),
-                              padding: const EdgeInsets.all(4),
+                              padding: const EdgeInsets.all(AppSpacing.xs),
                               tooltip: 'Ubaci liniju kao varijaciju',
                             ),
-                          const Icon(Icons.more_horiz,
-                              size: 16, color: Colors.grey),
+                          Icon(Icons.more_horiz,
+                              size: 16, color: colors.textMuted),
                         ],
                       ),
                     ),

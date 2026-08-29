@@ -211,7 +211,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
           width: 560,
           height: 460,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: OpeningPicker(
               hint: 'Nađite otvaranje po imenu — pozicija i ime dolaze s njim.',
               onPicked: (entry) {
@@ -333,7 +333,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
                 constraints.maxWidth < 560 ? constraints.maxWidth : 560.0;
             final boardSize = (width - 24).clamp(200.0, 420.0);
             return SingleChildScrollView(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 child: Center(
                     child: SizedBox(
                   width: width,
@@ -352,7 +352,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
                                   'izmeniti.',
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       Center(
                         child: SegmentedButton<String>(
                           segments: const [
@@ -367,7 +367,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
                           }),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       Center(
                         child: BoardWithCoordinates(
                           size: boardSize,
@@ -394,12 +394,12 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
                       const SizedBox(height: 6),
                       _buildStatus(context),
                       if (_error != null) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.sm),
                         Text(_error!,
                             style: AppText.caption
                                 .copyWith(color: context.colors.danger)),
                       ],
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       _buildControls(context),
                     ],
                   ),
@@ -447,7 +447,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
           ),
         ),
         if (missing != null && _ourTurn) ...[
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.xxs),
           Text(
             missing,
             style: AppText.caption.copyWith(color: context.colors.warning),

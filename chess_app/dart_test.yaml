@@ -1,3 +1,7 @@
 tags:
   golden:
-    skip: "Golden screenshot tests are visual review artifacts; run with: flutter test --tags golden"
+    # `--tags golden` alone does NOT run these: it selects them, and this
+    # unconditional skip still skips them, so the run exits 0 saying "All tests
+    # skipped". That wording stood here for a while and cost a batch its only
+    # check. --run-skipped is the half that does the work.
+    skip: "Golden screenshot tests are visual review artifacts; run with: flutter test --tags golden --run-skipped"

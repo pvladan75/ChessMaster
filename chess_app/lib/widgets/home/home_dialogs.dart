@@ -112,8 +112,8 @@ void showNotificationsDialog(
               ],
             ],
           ),
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          insetPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: AppSpacing.xxl),
           content: SizedBox(
             width: math.min(
               360,
@@ -180,9 +180,10 @@ Widget _requestCard(
   final name = r['other_name'] ?? r['other_email'] ?? '';
 
   return Card(
-    margin: const EdgeInsets.symmetric(vertical: 4.0),
+    margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
     child: Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 8, 4),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md, 10, AppSpacing.sm, AppSpacing.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -255,7 +256,7 @@ Widget _answeredCard(BuildContext context, bool accepted) {
   final colors = context.colors;
 
   return Card(
-    margin: const EdgeInsets.symmetric(vertical: 4.0),
+    margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
     child: ListTile(
       dense: true,
       leading: Icon(
@@ -285,7 +286,7 @@ Widget _messageCard(
   final canJoin = kind == 'room' && roomCode != null;
 
   return Card(
-    margin: const EdgeInsets.symmetric(vertical: 4.0),
+    margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
     child: ListTile(
       dense: true,
       leading: Icon(

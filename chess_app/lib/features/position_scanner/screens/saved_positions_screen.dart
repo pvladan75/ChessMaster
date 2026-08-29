@@ -7,6 +7,7 @@ import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/scanned_position.dart';
@@ -464,7 +465,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
         Container(
           width: double.infinity,
           color: colors.surfaceRaised,
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          padding:
+              const EdgeInsets.fromLTRB(AppSpacing.lg, 10, AppSpacing.lg, 10),
           child: Wrap(
             spacing: 8,
             runSpacing: 6,
@@ -475,12 +477,12 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
                       color: colors.textPrimary, fontWeight: FontWeight.w600)),
               if (all.any((p) => p.needsReview))
                 Text('${all.where((p) => p.needsReview).length} traži pogled',
-                    style: TextStyle(color: colors.warning, fontSize: 12)),
+                    style: AppText.body.copyWith(color: colors.warning)),
               if (all.any((p) => !p.needsReview && p.solutionSan == null))
                 Text(
                     '${all.where((p) => !p.needsReview && p.solutionSan == null).length} bez rešenja',
-                    style: TextStyle(color: colors.info, fontSize: 12)),
-              const SizedBox(width: 8),
+                    style: AppText.body.copyWith(color: colors.info)),
+              const SizedBox(width: AppSpacing.sm),
               ChoiceChip(
                 label: const Text('sve'),
                 selected: _source == null,
@@ -499,7 +501,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
         if (_picked.isNotEmpty) _selectionBar(),
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.md),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 230,
               mainAxisExtent: 296,
@@ -535,7 +537,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     return Container(
       width: double.infinity,
       color: colors.accent.withValues(alpha: 0.15),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.sm),
       // Wrap, not Row: three actions and a count do not fit across a phone, and
       // a Row would overflow rather than fold.
       child: Wrap(
@@ -544,7 +547,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text('Izabrano ${_picked.length}',
-              style: TextStyle(color: colors.textPrimary, fontSize: 13)),
+              style: AppText.bodyLarge.copyWith(color: colors.textPrimary)),
           TextButton(
               onPressed: () => setState(_picked.clear),
               child: const Text('Poništi')),
@@ -577,7 +580,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     return Container(
       width: double.infinity,
       color: colors.surface,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.sm),
       child: Wrap(
         spacing: 12,
         runSpacing: 8,
@@ -591,7 +595,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
               ),
             ),
             Text('provereno $_checkDone / $_checkTotal',
-                style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                style: AppText.body.copyWith(color: colors.textSecondary)),
             TextButton.icon(
               onPressed: _cancelCheck,
               icon: const Icon(Icons.stop_circle_outlined),
@@ -607,8 +611,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('dubina ',
-                    style:
-                        TextStyle(color: colors.textSecondary, fontSize: 12)),
+                    style: AppText.body.copyWith(color: colors.textSecondary)),
                 DropdownButton<int>(
                   value: _depth,
                   isDense: true,
@@ -695,7 +698,7 @@ class _SavedCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: picked ? colors.surfaceRaised : colors.surface,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadii.roundedSm,
           border: Border.all(
             color: picked ? colors.accent : borderColor,
             width: picked ? 2 : 1,
@@ -712,7 +715,7 @@ class _SavedCard extends StatelessWidget {
                     position.sourceLabel == null
                         ? 'str. ${position.sourcePage ?? '?'}'
                         : '#${position.sourceLabel} · str. ${position.sourcePage}',
-                    style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                    style: AppText.body.copyWith(color: colors.textSecondary),
                   ),
                 ),
                 if (selecting)
@@ -757,18 +760,17 @@ class _SavedCard extends StatelessWidget {
                                   'dodaj zadatak za učenika',
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
+                              style: AppText.caption.copyWith(
                                 color: position.instruction == null
                                     ? colors.warning
                                     : colors.textPrimary,
-                                fontSize: 11,
                                 fontStyle: position.instruction == null
                                     ? FontStyle.italic
                                     : FontStyle.normal,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: AppSpacing.xs),
                           Icon(Icons.edit_outlined,
                               size: 13, color: colors.textMuted),
                         ],
@@ -785,10 +787,9 @@ class _SavedCard extends StatelessWidget {
                         const SizedBox(width: 5),
                         Text(
                           position.solutionSan ?? 'bez rešenja',
-                          style: TextStyle(
+                          style: AppText.body.copyWith(
                             color:
                                 incomplete ? colors.info : colors.textSecondary,
-                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -800,7 +801,7 @@ class _SavedCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style:
-                              TextStyle(color: colors.warning, fontSize: 11)),
+                              AppText.caption.copyWith(color: colors.warning)),
                     if (proposal != null) _proposalRow(context),
                   ],
                 ),
@@ -827,12 +828,12 @@ class _SavedCard extends StatelessWidget {
     // enough for a trainer to settle in a second, while silence is not.
     if (!p.hasAnswer) {
       return Padding(
-        padding: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.only(top: AppSpacing.xs),
         child: Text(
           'motor: ${p.reason}',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: colors.textMuted, fontSize: 11),
+          style: AppText.caption.copyWith(color: colors.textMuted),
         ),
       );
     }
@@ -847,7 +848,7 @@ class _SavedCard extends StatelessWidget {
     final named = p.side == 'w' ? 'beli' : 'crni';
 
     return Padding(
-      padding: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
       child: Row(
         children: [
           Expanded(
@@ -857,7 +858,7 @@ class _SavedCard extends StatelessWidget {
                   : 'motor: $named — ${p.reason}',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: tone, fontSize: 11),
+              style: AppText.caption.copyWith(color: tone),
             ),
           ),
           InkWell(
@@ -888,20 +889,20 @@ class _Message extends StatelessWidget {
     final colors = context.colors;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 48, color: colors.textMuted),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(title,
                 style: TextStyle(color: colors.textSecondary),
                 textAlign: TextAlign.center),
             const SizedBox(height: 6),
             Text(detail,
-                style: TextStyle(color: colors.textMuted, fontSize: 12),
+                style: AppText.body.copyWith(color: colors.textMuted),
                 textAlign: TextAlign.center),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             action,
           ],
         ),

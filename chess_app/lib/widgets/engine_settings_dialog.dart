@@ -138,7 +138,7 @@ Future<void> showEngineSettingsDialog(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Trenutni engine:', style: AppText.bodyLargeBold),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     hasCustom
                         ? 'Sopstveni lokalni engine:\n$currentPath'
@@ -149,10 +149,10 @@ Future<void> showEngineSettingsDialog(
                           : context.colors.textMuted,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   if (isBusy) ...[
                     Text(statusMessage, style: AppText.body),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     LinearProgressIndicator(value: progress),
                   ] else ...[
                     Text(
@@ -162,7 +162,7 @@ Future<void> showEngineSettingsDialog(
                     ),
                   ],
                   if (errorMessage != null) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       errorMessage!,
                       style: AppText.caption

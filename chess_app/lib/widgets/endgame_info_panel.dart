@@ -106,7 +106,7 @@ class _EndgameInfoPanelState extends State<EndgameInfoPanel> {
     final messageIsGood = widget.messageIsGood;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: context.colors.surface.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(10),
@@ -128,7 +128,7 @@ class _EndgameInfoPanelState extends State<EndgameInfoPanel> {
           ],
           Text(title, style: theme.textTheme.titleMedium),
           if (subtitle != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(subtitle, style: theme.textTheme.bodySmall),
           ],
           if (message != null) ...[
@@ -137,9 +137,11 @@ class _EndgameInfoPanelState extends State<EndgameInfoPanel> {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: (messageIsGood ? Colors.green : Colors.orange)
+                color: (messageIsGood
+                        ? context.colors.success
+                        : context.colors.warning)
                     .withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadii.roundedSm,
               ),
               child: Text(message),
             ),
@@ -157,7 +159,8 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        padding:
+            const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
         decoration: BoxDecoration(
           color: context.colors.surface,
           borderRadius: BorderRadius.circular(10),

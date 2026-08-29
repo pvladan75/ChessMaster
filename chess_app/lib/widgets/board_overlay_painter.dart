@@ -4,6 +4,8 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_vectors_flutter/chess_vectors_flutter.dart';
 import 'package:chess_app/move_tree.dart';
+import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/theme/app_radii.dart';
 
 class EngineArrow {
   final String from;
@@ -73,12 +75,20 @@ class ChessBoardPainter extends CustomPainter {
   final String? highlightedSquare;
   final String? lastMoveFrom;
   final String? lastMoveTo;
+  final ui.Color lastMoveColor;
+  final ui.Color drawingModeColor;
+  final ui.Color badgeTextColor;
+  final ui.Color badgeBorderColor;
 
   ChessBoardPainter({
     required this.arrows,
     this.engineArrows,
     required this.boardSize,
     required this.orientation,
+    required this.lastMoveColor,
+    required this.drawingModeColor,
+    required this.badgeTextColor,
+    required this.badgeBorderColor,
     this.highlightedSquare,
     this.lastMoveFrom,
     this.lastMoveTo,
@@ -99,10 +109,10 @@ class ChessBoardPainter extends CustomPainter {
           getSquareCenter(lastMoveTo!, effectiveBoardSize, orientation);
 
       final fillPaint = Paint()
-        ..color = Colors.amberAccent.withValues(alpha: 0.45)
+        ..color = lastMoveColor.withValues(alpha: 0.45)
         ..style = PaintingStyle.fill;
       final borderPaint = Paint()
-        ..color = Colors.amber
+        ..color = lastMoveColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5;
 
@@ -125,7 +135,7 @@ class ChessBoardPainter extends CustomPainter {
       final center =
           getSquareCenter(highlightedSquare!, effectiveBoardSize, orientation);
       final paint = Paint()
-        ..color = Colors.tealAccent.withValues(alpha: 0.4)
+        ..color = drawingModeColor.withValues(alpha: 0.4)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(center, squareSize * 0.4, paint);
     }
@@ -165,11 +175,9 @@ class ChessBoardPainter extends CustomPainter {
         if (eArrow.evalText.isNotEmpty) {
           final textSpan = TextSpan(
             text: ' ${eArrow.evalText} ',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
+            style: AppText.micro.copyWith(
+              color: badgeTextColor,
               fontWeight: FontWeight.bold,
-              shadows: [Shadow(blurRadius: 2, color: Colors.black)],
             ),
           );
           final textPainter = TextPainter(
@@ -185,7 +193,7 @@ class ChessBoardPainter extends CustomPainter {
           final badgeRect = RRect.fromRectAndRadius(
             Rect.fromCenter(
                 center: badgeCenter, width: badgeWidth, height: badgeHeight),
-            const Radius.circular(4),
+            const Radius.circular(AppRadii.xs),
           );
 
           final bgPaint = Paint()
@@ -193,7 +201,7 @@ class ChessBoardPainter extends CustomPainter {
             ..style = PaintingStyle.fill;
 
           final borderPaint = Paint()
-            ..color = Colors.black87
+            ..color = badgeBorderColor
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.0;
 
@@ -261,23 +269,39 @@ class ChessBoardPainter extends CustomPainter {
     canvas.drawPath(path, headPaint);
   }
 
-  ui.Color _getColor(String code) {
-    switch (code) {
-      case 'R':
-        return const ui.Color(0xFFFF5252);
-      case 'G':
-        return const ui.Color(0xFF00E676);
-      case 'B':
-        return const ui.Color(0xFF00B0FF);
-      case 'O':
-        return const ui.Color(0xFFFF9100);
-      case 'P':
-        return const ui.Color(0xFFE040FB);
-      default:
-        return Colors.tealAccent;
-    }
-  }
+  /// The annotation palette: what an arrow code means on this board.
+  ///
+  /// Rule 14 -- these are chess colours, not UI tokens. A token named `accent`
+  /// has no business deciding what a red arrow looks like, and none of these
+  /// will ever move into `AppColorTokens`.
+  ///
+  /// They live here because they were typed twice. The painter drew these five
+  /// while the swatch buttons in `chess_game_screen.dart` passed Material's
+  /// primary family -- `Colors.green` #4CAF50 against this #00E676, `Colors.blue`
+  /// #2196F3 against this #00B0FF -- so the colour you picked was not the colour
+  /// you got. One definition, read by both.
+  ///
+  /// `P` has no button on the game screen; only G, R, B and O are offered.
+  ///
+  /// The key order matches the switch this replaced, deliberately: the strings
+  /// gate compares literal *sequence*, not just content, so that a swapped pair
+  /// of labels cannot slip through as an equal multiset. Reordering these to suit
+  /// `_getEngineColor` would have tripped it for no reader-visible reason.
+  static const Map<String, ui.Color> arrowPalette = {
+    'R': ui.Color(0xFFFF5252),
+    'G': ui.Color(0xFF00E676),
+    'B': ui.Color(0xFF00B0FF),
+    'O': ui.Color(0xFFFF9100),
+    'P': ui.Color(0xFFE040FB),
+  };
 
+  ui.Color _getColor(String code) => arrowPalette[code] ?? Colors.tealAccent;
+
+  /// Engine lines colour by rank, and the ranks are not in palette order --
+  /// best line green, then blue, orange, purple, red. Sharing one definition
+  /// with `arrowPalette` would mean naming all five codes a second time, and
+  /// the swatch bug this unification fixes was on the *user's* palette, not
+  /// here. Left duplicated on purpose; see the handoff.
   ui.Color _getEngineColor(int rank) {
     switch (rank) {
       case 1:
@@ -303,7 +327,11 @@ class ChessBoardPainter extends CustomPainter {
         oldDelegate.orientation != orientation ||
         oldDelegate.highlightedSquare != highlightedSquare ||
         oldDelegate.lastMoveFrom != lastMoveFrom ||
-        oldDelegate.lastMoveTo != lastMoveTo;
+        oldDelegate.lastMoveTo != lastMoveTo ||
+        oldDelegate.lastMoveColor != lastMoveColor ||
+        oldDelegate.drawingModeColor != drawingModeColor ||
+        oldDelegate.badgeTextColor != badgeTextColor ||
+        oldDelegate.badgeBorderColor != badgeBorderColor;
   }
 }
 

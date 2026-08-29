@@ -1027,7 +1027,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               panel,
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               _ReadoutPanel(
                 // Guarded by the position it was read for. The refresh clears
                 // it first, so this is a second lock on the same door - and it
@@ -1044,7 +1044,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: EndgameBoardLayout(
             wide: wide,
             constraints: constraints,
@@ -1077,10 +1077,10 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
                     ),
                   ),
                   if (!wide) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     panel,
                   ],
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   _buildControls(solve),
                 ],
               );
@@ -1314,14 +1314,14 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   Widget _buildError() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.search_off, size: 40),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(_error!, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             FilledButton(
               onPressed: _loadNext,
               child: const Text('Pokušaj ponovo'),
@@ -1366,7 +1366,7 @@ class _ReadoutPanel extends StatelessWidget {
     final data = readout;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: context.colors.surface.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(10),
@@ -1387,7 +1387,7 @@ class _ReadoutPanel extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           if (data == null)
             Text(
               loading ? 'Čitam tablice…' : 'Nalaz za ovu poziciju još nije tu.',
@@ -1471,14 +1471,14 @@ class _ReadoutDialog extends StatelessWidget {
               'Drži ${readout.holding} od ${readout.total} poteza.',
               style: theme.textTheme.bodyMedium,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             if (holding.isNotEmpty) ...[
               Text('Drže rezultat', style: theme.textTheme.labelLarge),
               for (final move in holding)
                 _MoveRow(move: move, onTap: _tap(context, move)),
             ],
             if (losing.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Text('Gube rezultat', style: theme.textTheme.labelLarge),
               for (final move in losing)
                 _MoveRow(move: move, onTap: _tap(context, move)),
@@ -1529,7 +1529,7 @@ class _MoveRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colour = move.holds ? Colors.green : Colors.orange;
+    final colour = move.holds ? context.colors.success : context.colors.warning;
     final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -1547,18 +1547,19 @@ class _MoveRow extends StatelessWidget {
                   ?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
             decoration: BoxDecoration(
               color: colour.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadii.roundedSm,
             ),
             child: Text(outcomeWord(move.outcome),
                 style: theme.textTheme.bodySmall),
           ),
           const Spacer(),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Flexible(
             flex: 2,
             child: Text(

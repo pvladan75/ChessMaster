@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:chess_app/theme/app_spacing.dart';
 import 'package:flutter/services.dart';
 
 import 'package:chess_app/services/account_standing_service.dart';
@@ -193,7 +194,7 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppSpacing.xxl),
             child: ConstrainedBox(
               // Taken from the screen rather than fixed: a fixed 360 is exactly
               // the width of the phone this is read on, and a release build
@@ -210,20 +211,20 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
                     size: 48,
                     color: theme.colorScheme.primary,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   Text(
                     'Godina rođenja',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineSmall,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     'Pitamo samo godinu, ne i datum — to je jedno polje manje '
                     'o vama, a odgovara na jedino pitanje koje nam treba.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
                     threshold == null
                         ? 'Od nje zavisi da li je za nalog potrebna saglasnost '
@@ -233,7 +234,7 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.xxl),
                   TextField(
                     controller: _year,
                     focusNode: _focus,
@@ -254,7 +255,7 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
                     onSubmitted: (_) => _saving ? null : _save(),
                   ),
                   if (_error != null) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
                       _error!,
                       textAlign: TextAlign.center,
@@ -263,7 +264,7 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppSpacing.xl),
                   FilledButton(
                     onPressed: _saving ? null : _save,
                     child: _saving
@@ -274,7 +275,7 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
                           )
                         : const Text('Sačuvaj'),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   if (widget.canCancel)
                     TextButton(
                       onPressed: _saving ? null : () => Navigator.pop(context),

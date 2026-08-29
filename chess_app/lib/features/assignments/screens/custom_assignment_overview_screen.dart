@@ -5,6 +5,7 @@ import 'package:chess_app/routing/app_routes.dart';
 
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/assignment.dart';
@@ -124,7 +125,7 @@ class _CustomAssignmentOverviewScreenState
                           style: TextStyle(color: colors.textSecondary)),
                     )
                   : GridView.builder(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       gridDelegate:
                           const SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: 200,
@@ -156,7 +157,8 @@ class _CustomAssignmentOverviewScreenState
     return Container(
       width: double.infinity,
       color: colors.surface,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -167,7 +169,7 @@ class _CustomAssignmentOverviewScreenState
           ),
           if (note != null && note.trim().isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text(note, style: TextStyle(fontSize: 12, color: colors.textMuted)),
+            Text(note, style: AppText.body.copyWith(color: colors.textMuted)),
           ],
           const SizedBox(height: 10),
           Wrap(
@@ -191,7 +193,8 @@ class _CustomAssignmentOverviewScreenState
                     Icon(Icons.check_circle, size: 18, color: colors.success),
                     const SizedBox(width: 6),
                     Text('Sve je urađeno',
-                        style: TextStyle(color: colors.success, fontSize: 13)),
+                        style:
+                            AppText.bodyLarge.copyWith(color: colors.success)),
                   ],
                 ),
               OutlinedButton.icon(
@@ -202,7 +205,7 @@ class _CustomAssignmentOverviewScreenState
             ],
           ),
           if (total > 1) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               'Možeš da radiš kojim redom hoćeš — dodirni bilo koju poziciju.',
               style: TextStyle(fontSize: 11.5, color: colors.textMuted),
@@ -249,20 +252,18 @@ class _PositionTile extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: colors.surface,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadii.roundedSm,
           border: Border.all(color: border, width: outcome == null ? 1 : 2),
         ),
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(AppSpacing.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Text('$number.',
-                    style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold)),
+                    style:
+                        AppText.bodyBold.copyWith(color: colors.textSecondary)),
                 const Spacer(),
                 _stateChip(context),
               ],
@@ -283,8 +284,7 @@ class _PositionTile extends StatelessWidget {
                           : 'tvoj potez: $playedSan'),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 11,
+                  style: AppText.caption.copyWith(
                       color: outcome == null
                           ? colors.textSecondary
                           : colors.textMuted),
@@ -311,7 +311,7 @@ class _PositionTile extends StatelessWidget {
         color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(99),
       ),
-      child: Text(text, style: TextStyle(fontSize: 10, color: color)),
+      child: Text(text, style: AppText.micro.copyWith(color: color)),
     );
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_chess_board/flutter_chess_board.dart';
+import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
+
+import 'package:chess_app/theme/app_colors.dart';
 
 class SelectedSquarePainter extends CustomPainter {
   final String selectedSquare;
@@ -62,6 +64,7 @@ class HorizontalEvalBarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final bool isWhiteOrientation = orientation == PlayerColor.white;
     final double clampedEval = eval.clamp(-10.0, 10.0);
     double winPct = 0.5 + (clampedEval / 20.0);
@@ -85,9 +88,9 @@ class HorizontalEvalBarWidget extends StatelessWidget {
       height: 18,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.grey.shade900,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: Colors.grey.shade700, width: 1),
+        border: Border.all(color: colors.border, width: 1),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(9),
@@ -97,11 +100,11 @@ class HorizontalEvalBarWidget extends StatelessWidget {
               children: [
                 Expanded(
                   flex: (winPct * 1000).round(),
-                  child: Container(color: Colors.grey.shade100),
+                  child: Container(color: colors.sideWhite),
                 ),
                 Expanded(
                   flex: ((1.0 - winPct) * 1000).round(),
-                  child: Container(color: Colors.grey.shade900),
+                  child: Container(color: colors.sideBlack),
                 ),
               ],
             ),
@@ -121,10 +124,10 @@ class HorizontalEvalBarWidget extends StatelessWidget {
                   ),
                   Text(
                     displayEvalText,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w900,
-                      color: Colors.amberAccent,
+                      color: colors.warning,
                     ),
                   ),
                 ],
@@ -155,6 +158,7 @@ class VerticalEvalBarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final bool isWhiteOrientation = orientation == PlayerColor.white;
     final double clampedEval = eval.clamp(-10.0, 10.0);
     double whitePct = 0.5 + (clampedEval / 20.0);
@@ -167,9 +171,9 @@ class VerticalEvalBarWidget extends StatelessWidget {
       width: 22,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.grey.shade900,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: Colors.tealAccent.shade400, width: 1.5),
+        border: Border.all(color: colors.accent, width: 1.5),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(11),
@@ -178,16 +182,14 @@ class VerticalEvalBarWidget extends StatelessWidget {
             Expanded(
               flex: (topPct * 1000).round(),
               child: Container(
-                  color: isWhiteOrientation
-                      ? Colors.grey.shade900
-                      : Colors.grey.shade100),
+                  color:
+                      isWhiteOrientation ? colors.sideBlack : colors.sideWhite),
             ),
             Expanded(
               flex: (bottomPct * 1000).round(),
               child: Container(
-                  color: isWhiteOrientation
-                      ? Colors.grey.shade100
-                      : Colors.grey.shade900),
+                  color:
+                      isWhiteOrientation ? colors.sideWhite : colors.sideBlack),
             ),
           ],
         ),

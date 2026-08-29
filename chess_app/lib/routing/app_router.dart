@@ -1,4 +1,6 @@
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/material.dart';
+import 'package:chess_app/theme/app_colors.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/routing/app_routes.dart';
@@ -355,11 +357,11 @@ class _NothingLeftScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle_outline,
-                size: 48, color: Colors.green),
-            const SizedBox(height: 12),
+            Icon(Icons.check_circle_outline,
+                size: 48, color: context.colors.success),
+            const SizedBox(height: AppSpacing.md),
             const Text('Ovaj zadatak je već završen.'),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             FilledButton.icon(
               onPressed: () => context.pop(),
               icon: const Icon(Icons.arrow_back),
@@ -384,23 +386,25 @@ class _InvalidRouteScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Stranica nije pronađena')),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(AppSpacing.xxl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.explore_off, size: 48, color: Colors.grey),
-              const SizedBox(height: 16),
-              const Text(
+              Icon(Icons.explore_off,
+                  size: 48, color: context.colors.textSecondary),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
                 'Ova putanja ne postoji.',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: AppText.title,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 detail,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style:
+                    AppText.body.copyWith(color: context.colors.textSecondary),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl),
               ElevatedButton.icon(
                 onPressed: () => context.go(AppRoutes.home),
                 icon: const Icon(Icons.home),

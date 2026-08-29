@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 class MatrixFilterPanel extends StatefulWidget {
   final List<String> availableUserLabels;
@@ -56,39 +58,39 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final activeCount =
         widget.selectedIncludeTags.length + widget.selectedExcludeTags.length;
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      color: Colors.blueGrey.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      color: colors.surface,
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedSm),
       child: ExpansionTile(
         initiallyExpanded: false,
         dense: true,
         onExpansionChanged: (val) => setState(() => isExpanded = val),
         title: Row(
           children: [
-            const Icon(Icons.filter_list, size: 16, color: Colors.tealAccent),
+            Icon(Icons.filter_list, size: 16, color: colors.accent),
             const SizedBox(width: 6),
             const Text(
               'Matrica Filter Labela',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              style: AppText.bodyBold,
             ),
             if (activeCount > 0) ...[
               const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 6, vertical: AppSpacing.xxs),
                 decoration: BoxDecoration(
-                  color: Colors.teal,
+                  color: colors.accent,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   '$activeCount',
-                  style: const TextStyle(
-                      fontSize: 10,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold),
+                  style: AppText.micro.copyWith(
+                      color: colors.canvas, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -99,7 +101,7 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
           children: [
             if (activeCount > 0)
               IconButton(
-                icon: const Icon(Icons.refresh, size: 16, color: Colors.grey),
+                icon: Icon(Icons.refresh, size: 16, color: colors.textMuted),
                 onPressed: resetFilters,
                 tooltip: 'Poništi filtere',
               ),
@@ -108,18 +110,18 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
         ),
         children: [
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Text('Režim uslova: ',
-                        style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    Text('Režim uslova: ',
+                        style:
+                            AppText.caption.copyWith(color: colors.textMuted)),
                     ChoiceChip(
-                      label: const Text('SVE (AND)',
-                          style: TextStyle(fontSize: 10)),
+                      label: const Text('SVE (AND)', style: AppText.micro),
                       selected: widget.filterMatchMode == 'all',
                       onSelected: (val) {
                         if (val)
@@ -129,8 +131,7 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                     ),
                     const SizedBox(width: 6),
                     ChoiceChip(
-                      label: const Text('BILO KOJA (OR)',
-                          style: TextStyle(fontSize: 10)),
+                      label: const Text('BILO KOJA (OR)', style: AppText.micro),
                       selected: widget.filterMatchMode == 'any',
                       onSelected: (val) {
                         if (val)
@@ -140,15 +141,15 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                const SizedBox(height: AppSpacing.sm),
+                Text(
                   'Kliknite labelu jednom za [Sadrži (+)], drugi put za [Ne sadrži (-)]:',
-                  style: TextStyle(fontSize: 10, color: Colors.grey),
+                  style: AppText.micro.copyWith(color: colors.textMuted),
                 ),
                 const SizedBox(height: 6),
                 if (widget.availableUserLabels.isEmpty)
-                  const Text('Nema dostupnih labela u bazi.',
-                      style: TextStyle(fontSize: 11, color: Colors.grey))
+                  Text('Nema dostupnih labela u bazi.',
+                      style: AppText.caption.copyWith(color: colors.textMuted))
                 else
                   Wrap(
                     spacing: 6,
@@ -157,17 +158,17 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                       final isInc = widget.selectedIncludeTags.contains(tag);
                       final isExc = widget.selectedExcludeTags.contains(tag);
 
-                      Color chipBg = Colors.grey.withValues(alpha: 0.2);
-                      Color chipText = Colors.white;
+                      Color chipBg = colors.textMuted.withValues(alpha: 0.2);
+                      Color chipText = colors.textPrimary;
                       IconData? chipIcon;
 
                       if (isInc) {
-                        chipBg = Colors.green.withValues(alpha: 0.3);
-                        chipText = Colors.greenAccent;
+                        chipBg = colors.success.withValues(alpha: 0.15);
+                        chipText = colors.success;
                         chipIcon = Icons.add_circle;
                       } else if (isExc) {
-                        chipBg = Colors.red.withValues(alpha: 0.3);
-                        chipText = Colors.redAccent;
+                        chipBg = colors.danger.withValues(alpha: 0.15);
+                        chipText = colors.danger;
                         chipIcon = Icons.remove_circle;
                       }
 
@@ -176,14 +177,17 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                         onLongPress: () => toggleExcludeTag(tag),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xs),
                           decoration: BoxDecoration(
                             color: chipBg,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: AppRadii.roundedMd,
                             border: Border.all(
                               color: isInc
-                                  ? Colors.green
-                                  : (isExc ? Colors.red : Colors.transparent),
+                                  ? colors.success
+                                  : (isExc
+                                      ? colors.danger
+                                      : Colors.transparent),
                               width: 1,
                             ),
                           ),
@@ -192,11 +196,11 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                             children: [
                               if (chipIcon != null) ...[
                                 Icon(chipIcon, size: 12, color: chipText),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: AppSpacing.xs),
                               ],
                               Text(tag,
-                                  style:
-                                      TextStyle(fontSize: 11, color: chipText)),
+                                  style: AppText.caption
+                                      .copyWith(color: chipText)),
                             ],
                           ),
                         ),

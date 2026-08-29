@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess/chess.dart' as chess;
 
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/ai_studio/solution_tree_models.dart';
 import 'package:chess_app/widgets/ai_studio/grouped_moves_dialog.dart';
 
@@ -155,6 +156,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     if (!widget.visible ||
         widget.solutions.isEmpty ||
         widget.initialFen == null) {
@@ -210,15 +213,16 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xs, vertical: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: const ui.Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const ui.Color(0xFF0284C7), width: 1.5),
-        boxShadow: const [
+        color: colors.canvas,
+        borderRadius: AppRadii.roundedLg,
+        border: Border.all(color: colors.info, width: 1.5),
+        boxShadow: [
           BoxShadow(
-            color: ui.Color(0x400284C7),
+            color: colors.info.withValues(alpha: 0.25),
             blurRadius: 10,
             spreadRadius: 1,
           )
@@ -231,61 +235,59 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
-                children: const [
+                children: [
                   Icon(Icons.account_tree_outlined,
-                      color: ui.Color(0xFF38BDF8), size: 20),
-                  SizedBox(width: 8),
+                      color: colors.info, size: 20),
+                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     'Grafičko Stablo Poteza',
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
-                        color: Colors.white),
+                        color: colors.textPrimary),
                   ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                 decoration: BoxDecoration(
-                  color: const ui.Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(8),
+                  color: colors.surface,
+                  borderRadius: AppRadii.roundedSm,
                 ),
                 child: Text(
                   widget.mateDepthLabel,
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: ui.Color(0xFF38BDF8)),
+                  style: AppText.captionBold.copyWith(color: colors.info),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               InkWell(
                 onTap: _togglePlay,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: AppRadii.roundedLg,
                 child: Icon(
                   _isPlaying
                       ? Icons.pause_circle_filled
                       : Icons.play_circle_fill,
                   size: 26,
-                  color: const ui.Color(0xFF38BDF8),
+                  color: colors.info,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 _isPlaying
                     ? 'Reprodukcija rešenja...'
                     : 'Pusti rešenje automatski',
-                style: const TextStyle(fontSize: 11, color: Colors.white70),
+                style: AppText.caption.copyWith(color: colors.textSecondary),
               ),
               const Spacer(),
               _buildSpeedButton(),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           SizedBox(
             height: math.min(
                 canvasHeight + 20.0,
@@ -294,9 +296,9 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
                         280.0, MediaQuery.of(context).size.height - 180.0)
                     : 340.0),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadii.roundedMd,
               child: Container(
-                color: const ui.Color(0xFF020617),
+                color: colors.canvasRecessed,
                 child: InteractiveViewer(
                   constrained: false,
                   boundaryMargin: const EdgeInsets.all(40),
@@ -311,8 +313,11 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
                         CustomPaint(
                           size: Size(canvasWidth, canvasHeight),
                           painter: TreeEdgesPainter(
-                              positionedNodes: positionedNodes,
-                              activeFen: widget.activeFen),
+                            positionedNodes: positionedNodes,
+                            activeFen: widget.activeFen,
+                            edgeColor: colors.surfaceRaised,
+                            activeEdgeColor: colors.info,
+                          ),
                         ),
                         ...positionedNodes
                             .map((pn) => _buildGraphNodeWidget(context, pn)),
@@ -329,10 +334,12 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
   }
 
   Widget _buildSpeedButton() {
+    final colors = context.colors;
+
     return PopupMenuButton<_PlaySpeed>(
       tooltip: 'Brzina: ${_playSpeed.label}',
       initialValue: _playSpeed,
-      color: Colors.grey.shade900,
+      color: colors.surface,
       onSelected: _setPlaySpeed,
       itemBuilder: (ctx) => _PlaySpeed.values.map((s) {
         return PopupMenuItem<_PlaySpeed>(
@@ -340,26 +347,32 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
           child: Row(
             children: [
               Icon(s == _playSpeed ? Icons.check : null,
-                  size: 14, color: const ui.Color(0xFF38BDF8)),
+                  size: 14, color: colors.info),
               const SizedBox(width: 6),
-              Text(s.label, style: const TextStyle(color: Colors.white)),
+              Text(
+                s.label,
+                style: AppText.bodyLarge.copyWith(color: colors.textPrimary),
+              ),
             ],
           ),
         );
       }).toList(),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
         decoration: BoxDecoration(
-          color: const ui.Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(8),
+          color: colors.surface,
+          borderRadius: AppRadii.roundedSm,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.speed, size: 13, color: ui.Color(0xFF38BDF8)),
-            const SizedBox(width: 4),
-            Text(_playSpeed.label,
-                style: const TextStyle(fontSize: 11, color: Colors.white)),
+            Icon(Icons.speed, size: 13, color: colors.info),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              _playSpeed.label,
+              style: AppText.caption.copyWith(color: colors.textPrimary),
+            ),
           ],
         ),
       ),
@@ -367,38 +380,39 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
   }
 
   Widget _buildGraphNodeWidget(BuildContext context, PositionedNode pn) {
+    final colors = context.colors;
     final node = pn.node;
     final bool isActive = (widget.activeFen != null &&
         widget.activeFen!.split(' ')[0] == node.fen.split(' ')[0]);
 
-    ui.Color bgColor;
-    ui.Color borderColor;
-    ui.Color textColor;
+    Color bgColor;
+    Color borderColor;
+    Color textColor;
     IconData? iconData;
 
     if (isActive) {
-      bgColor = const ui.Color(0xFF0284C7);
-      borderColor = const ui.Color(0xFF38BDF8);
-      textColor = Colors.white;
+      bgColor = colors.infoContainer;
+      borderColor = colors.info;
+      textColor = colors.onInfoContainer;
       iconData = Icons.play_arrow_rounded;
     } else if (node.isCheckmate) {
-      bgColor = const ui.Color(0xFF065F46);
-      borderColor = const ui.Color(0xFF34D399);
-      textColor = const ui.Color(0xFFECFDF5);
+      bgColor = colors.successContainer;
+      borderColor = colors.successContainerBorder;
+      textColor = colors.onSuccessContainer;
       iconData = Icons.emoji_events;
     } else if (node.isGrouped) {
-      bgColor = const ui.Color(0xFF312E81);
-      borderColor = const ui.Color(0xFF818CF8);
-      textColor = const ui.Color(0xFFE0E7FF);
+      bgColor = colors.groupedContainer;
+      borderColor = colors.groupedContainerBorder;
+      textColor = colors.onGroupedContainer;
       iconData = Icons.filter_list;
     } else if (node.isWhite) {
-      bgColor = const ui.Color(0xFF1E293B);
-      borderColor = const ui.Color(0xFF475569);
-      textColor = const ui.Color(0xFFF8FAFC);
+      bgColor = colors.surface;
+      borderColor = colors.textMuted;
+      textColor = colors.textPrimary;
     } else {
-      bgColor = const ui.Color(0xFF0F172A);
-      borderColor = const ui.Color(0xFF334155);
-      textColor = const ui.Color(0xFF94A3B8);
+      bgColor = colors.canvas;
+      borderColor = colors.surfaceRaised;
+      textColor = colors.textMuted;
     }
 
     return Positioned(
@@ -424,7 +438,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
           borderRadius: BorderRadius.circular(10),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 6, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               color: bgColor,
               borderRadius: BorderRadius.circular(10),
@@ -432,8 +447,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
                   Border.all(color: borderColor, width: isActive ? 2.5 : 1.5),
               boxShadow: isActive
                   ? [
-                      const BoxShadow(
-                        color: ui.Color(0x8038BDF8),
+                      BoxShadow(
+                        color: colors.info.withValues(alpha: 0.5),
                         blurRadius: 10,
                         spreadRadius: 2,
                       )
@@ -445,15 +460,17 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
               children: [
                 if (iconData != null) ...[
                   Icon(iconData, size: 14, color: textColor),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: AppSpacing.xs),
                 ],
                 Flexible(
                   child: Text(
                     node.moveSan,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: (isActive || node.isCheckmate
+                            ? AppText.bodyBold
+                            : AppText.body)
+                        .copyWith(
                       fontWeight: isActive || node.isCheckmate
                           ? FontWeight.bold
                           : FontWeight.w600,

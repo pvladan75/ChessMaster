@@ -40,3 +40,6 @@ design/*/*.html
 # LAN addresses, ports, sometimes an address book. The repository is public, so
 # this one stays on the machine that writes it.
 docs/bug_spec.txt
+
+# Antigravity CLI drops a symlink to its per-project config here.
+.antigravitycli/

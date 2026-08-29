@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:chess_app/theme/app_colors.dart';
 
 /// One swatch in the arrow-drawing color picker.
 class ArrowColorButton extends StatelessWidget {
@@ -29,7 +30,7 @@ class ArrowColorButton extends StatelessWidget {
             color: color.withValues(alpha: isSelected ? 1.0 : 0.4),
             shape: BoxShape.circle,
             border: isSelected
-                ? Border.all(color: Colors.white, width: 2.0)
+                ? Border.all(color: context.colors.textPrimary, width: 2.0)
                 : Border.all(color: Colors.transparent),
             boxShadow: isSelected
                 ? [
@@ -41,7 +42,7 @@ class ArrowColorButton extends StatelessWidget {
                 : [],
           ),
           child: isSelected
-              ? const Icon(Icons.check, size: 16, color: Colors.white)
+              ? Icon(Icons.check, size: 16, color: context.colors.textPrimary)
               : null,
         ),
       ),

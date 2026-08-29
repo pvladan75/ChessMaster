@@ -559,7 +559,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: EndgameBoardLayout(
             wide: wide,
             constraints: constraints,
@@ -603,7 +603,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     if (_refutation == null)
                       MoveNavigationControls(
                         cursor: LinearMoveCursor(
@@ -622,7 +622,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
                         }),
                       ),
                     if (!wide) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       panel,
                     ],
                     const SizedBox(height: 10),
@@ -761,14 +761,14 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
 
   Widget _buildError() => Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.xxl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.search_off, size: 40),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Text(_error!, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               FilledButton(
                 onPressed: _loadNext,
                 child: const Text('Pokušaj ponovo'),

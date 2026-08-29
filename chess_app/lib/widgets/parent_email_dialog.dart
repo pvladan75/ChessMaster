@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/services/account_standing_service.dart';
+import 'package:chess_app/theme/app_spacing.dart';
 
 /// Asks for the address a parent will be written to.
 ///
@@ -95,13 +96,13 @@ class _ParentEmailDialogState extends State<_ParentEmailDialog> {
               'saglasnost daje.',
               style: theme.textTheme.bodyMedium,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               'Adresa se koristi samo za to i ne prikazuje se drugim '
               'korisnicima.',
               style: theme.textTheme.bodySmall,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             TextField(
               controller: _email,
               autofocus: true,
@@ -114,7 +115,7 @@ class _ParentEmailDialogState extends State<_ParentEmailDialog> {
               onSubmitted: (_) => _saving ? null : _save(),
             ),
             if (_error != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 _error!,
                 style: theme.textTheme.bodySmall

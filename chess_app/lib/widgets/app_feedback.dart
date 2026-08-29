@@ -78,8 +78,8 @@ abstract final class AppFeedback {
     _show(
       context,
       () => SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
+        content: Text(message, style: TextStyle(color: context.colors.canvas)),
+        backgroundColor: context.colors.danger,
         duration: const Duration(seconds: 6),
       ),
     );

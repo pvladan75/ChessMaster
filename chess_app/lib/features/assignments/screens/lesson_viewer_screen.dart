@@ -7,6 +7,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
@@ -268,7 +269,7 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
                   heightBased < widthBased ? heightBased : widthBased;
 
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 child: Column(
                   children: [
                     _buildHeader(done),
@@ -326,22 +327,21 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
     if (comment.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
           color: context.colors.surface,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadii.roundedSm,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(Icons.chat_bubble_outline,
                 size: 16, color: context.colors.textSecondary),
-            const SizedBox(width: 8),
-            Expanded(
-                child: Text(comment, style: const TextStyle(fontSize: 13))),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(child: Text(comment, style: AppText.bodyLarge)),
           ],
         ),
       ),
@@ -371,12 +371,12 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
                 ),
                 Text(
                   '${_stepIndex + 1}/${_steps.length}',
-                  style: TextStyle(
-                      fontSize: 13, color: context.colors.textSecondary),
+                  style: AppText.bodyLarge
+                      .copyWith(color: context.colors.textSecondary),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               'Pregledano $done od ${_steps.length} koraka',
               style: TextStyle(fontSize: 11.5, color: context.colors.textMuted),
@@ -385,13 +385,13 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
             // The title is a name, so without this the student was given a
             // board and left to guess what was being asked of them.
             if (_step.instruction != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: context.colors.surfaceRaised,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadii.roundedSm,
                   border: Border.all(color: context.colors.accent),
                 ),
                 child: Row(
@@ -399,7 +399,7 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
                   children: [
                     Icon(Icons.flag_outlined,
                         size: 16, color: context.colors.accent),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
                         _step.instruction!,
@@ -414,8 +414,8 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
               ),
             ],
             if (instructions != null && instructions.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(instructions, style: const TextStyle(fontSize: 13)),
+              const SizedBox(height: AppSpacing.sm),
+              Text(instructions, style: AppText.bodyLarge),
             ],
           ],
         ),
@@ -432,9 +432,9 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
         children: [
           Text(
             'Probaš poteze — ovde se ništa ne ocenjuje.',
-            style: TextStyle(fontSize: 12, color: context.colors.textMuted),
+            style: AppText.body.copyWith(color: context.colors.textMuted),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           OutlinedButton.icon(
             onPressed: _restore,
             icon: const Icon(Icons.restart_alt, size: 16),
