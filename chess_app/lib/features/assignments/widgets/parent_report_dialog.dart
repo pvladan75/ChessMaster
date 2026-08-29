@@ -144,7 +144,7 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
           'nije mu potreban nalog.',
           style: TextStyle(fontSize: 13, color: context.colors.textSecondary),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
         Text('Period', style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 6),
         Wrap(
@@ -158,7 +158,7 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
               ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
         TextField(
           controller: _note,
           maxLines: 4,
@@ -184,7 +184,7 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
       children: [
         if (!_hasData)
           Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
             child: Text(
               'Napomena: u izabranom periodu učenik nije rešavao zadatke, pa '
               'izveštaj to i kaže umesto da prikaže nule.',
@@ -196,7 +196,7 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
           'menjati kad ga roditelj kasnije ponovo otvori.',
           style: TextStyle(fontSize: 13, color: context.colors.textSecondary),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(10),

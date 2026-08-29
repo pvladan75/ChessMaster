@@ -160,7 +160,8 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
               Text('Teme', style: Theme.of(context).textTheme.labelLarge),
               if (widget.suggestedThemes.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(top: 2, bottom: 6),
+                  padding:
+                      const EdgeInsets.only(top: AppSpacing.xxs, bottom: 6),
                   child: Text(
                     'Predložene su teme na kojima učenik najviše greši.',
                     style: TextStyle(

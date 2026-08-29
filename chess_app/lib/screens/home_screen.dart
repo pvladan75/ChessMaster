@@ -30,6 +30,7 @@ import 'package:chess_app/widgets/home/friends_tab.dart';
 import 'package:chess_app/models/relationship_request_target.dart';
 import 'package:chess_app/features/trainer_panel/models/trainer_panel.dart';
 import 'package:chess_app/features/trainer_panel/services/trainer_panel_api_service.dart';
+import 'package:chess_app/theme/app_spacing.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserSession session;
@@ -1203,7 +1204,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Align(
                               alignment: Alignment.bottomCenter,
                               child: Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.only(
+                                    bottom: AppSpacing.md),
                                 child: IconButton(
                                   tooltip: 'Podešavanja',
                                   icon: const Icon(Icons.settings_outlined,
@@ -1221,8 +1223,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           leading: widget.session.isGuest
                               ? null
                               : Padding(
-                                  padding:
-                                      const EdgeInsets.only(top: 8, bottom: 8),
+                                  padding: const EdgeInsets.only(
+                                      top: AppSpacing.sm,
+                                      bottom: AppSpacing.sm),
                                   child: IconButton(
                                     tooltip: 'Notifikacije i Pozivnice',
                                     icon: Badge(
@@ -1319,7 +1322,8 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () =>
             context.push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: 10),
           child: Row(
             children: [
               const Icon(Icons.podcasts, color: Colors.white, size: 20),

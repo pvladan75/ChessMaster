@@ -20,13 +20,13 @@ void showGroupedMovesDialog({
         return AlertDialog(
           backgroundColor: colors.canvas,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadii.roundedLg,
             side: BorderSide(color: colors.brand, width: 1.5),
           ),
           title: Row(
             children: [
               Icon(Icons.filter_list, color: colors.brand, size: 22),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 'Odbrambene Varijante',
                 style: AppText.title.copyWith(color: colors.textPrimary),
@@ -47,7 +47,7 @@ void showGroupedMovesDialog({
                     style:
                         AppText.bodyLarge.copyWith(color: colors.textSecondary),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,

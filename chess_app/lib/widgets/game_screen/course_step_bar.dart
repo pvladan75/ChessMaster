@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:chess_app/theme/app_spacing.dart';
 
 /// Trainer-only bar for stepping through an active course's lesson list.
 class CourseStepBar extends StatelessWidget {
@@ -21,7 +22,8 @@ class CourseStepBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.deepPurple.shade900,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       child: Row(
         children: [
           const Icon(Icons.collections_bookmark, color: Colors.white, size: 16),
@@ -42,7 +44,7 @@ class CourseStepBar extends StatelessWidget {
                         const Icon(Icons.check,
                             size: 16, color: Colors.deepPurple)
                       else
-                        const SizedBox(width: 16),
+                        const SizedBox(width: AppSpacing.lg),
                       const SizedBox(width: 6),
                       Expanded(
                           child: Text('${i + 1}. $stepTitle',

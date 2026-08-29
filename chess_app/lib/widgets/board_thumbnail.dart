@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:chess_vectors_flutter/chess_vectors_flutter.dart';
+import 'package:chess_app/theme/app_radii.dart';
 
 /// Maps a FEN piece letter ('P','n', ...) to the same chess_vectors_flutter
 /// widget the live board renders, so any custom board UI (setup editors,
@@ -78,7 +79,7 @@ class BoardThumbnail extends StatelessWidget {
     final tileSize = size / 8;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: AppRadii.roundedXs,
       child: SizedBox(
         width: size,
         height: size,

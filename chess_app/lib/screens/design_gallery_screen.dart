@@ -33,7 +33,7 @@ class DesignGalleryScreen extends StatelessWidget {
                   vertical: AppSpacing.xs,
                 ),
                 decoration: BoxDecoration(
-                  color: colors.brand.withValues(alpha: 0.18),
+                  color: colors.brand.withValues(alpha: 0.10),
                   borderRadius: AppRadii.roundedPill,
                   border:
                       Border.all(color: colors.brand.withValues(alpha: 0.4)),
@@ -421,7 +421,7 @@ class _TypographySection extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: AppSpacing.xxs),
                           Text(
                             r.$4,
                             style: r.$3.copyWith(color: colors.textPrimary),
@@ -614,7 +614,7 @@ class _ButtonsSection extends StatelessWidget {
               ),
               FilledButton.icon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: colors.brand.withValues(alpha: 0.22),
+                  backgroundColor: colors.brand.withValues(alpha: 0.10),
                   foregroundColor: colors.brand,
                   side: BorderSide(
                     color: colors.brand.withValues(alpha: 0.45),
@@ -1148,7 +1148,7 @@ class _MoveRow extends StatelessWidget {
                 ),
                 if (whiteGlyph != null)
                   Padding(
-                    padding: const EdgeInsets.only(left: 2),
+                    padding: const EdgeInsets.only(left: AppSpacing.xxs),
                     child: Text(
                       whiteGlyph!,
                       style: AppText.captionBold.copyWith(color: colors.info),
@@ -1168,7 +1168,7 @@ class _MoveRow extends StatelessWidget {
                 ),
                 if (blackGlyph != null)
                   Padding(
-                    padding: const EdgeInsets.only(left: 2),
+                    padding: const EdgeInsets.only(left: AppSpacing.xxs),
                     child: Text(
                       blackGlyph!,
                       style:
@@ -1217,7 +1217,7 @@ class _EngineLineRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.xs,
-              vertical: 2,
+              vertical: AppSpacing.xxs,
             ),
             decoration: BoxDecoration(
               color: isBest
