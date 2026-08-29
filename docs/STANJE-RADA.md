@@ -1828,9 +1828,40 @@ Uživo nije viđeno: [TODO-provera.md](TODO-provera.md), stavka 47.
 
   `report-batch-45.md` nije napisan (pravilo 22). Brojke su zato provere­ne
   ručno.
-- **Paket 46 (Gemini)**: ostatak kataloga koža, sa merenjima — svaka koža figura
-  prema svakom polju svake table. Merilo nosi **ivica** figure, ne ispuna: bela
-  ispuna na svetlom polju meri oko 1.3:1 i oduvek je merila toliko.
+- **Paket 46 (Gemini)**: gotov i spojen 29.8.2026. Pet tabli (`classic`,
+  `Zelena`, `Plava`, `Visoki kontrast`, `Siva`) i tri kompleta figura
+  (`Klasične`, `Tople`, `Visoki kontrast`), i test koji **množi oba kataloga**
+  umesto da nabraja slučajeve. Dokazan tako što je dodata šesta, namerno
+  pokvarena tabla — petlja ju je uhvatila na dva mesta, što spisak ručno
+  napisanih slučajeva ne bi.
+
+  Sve brojke iz `report-batch-46.md` prera­čunate su nezavisno i sve su tačne —
+  drugi paket zaredom. Merilo nosi **ivica** figure, ne ispuna: bela ispuna na
+  svetlom polju meri oko 1.3:1 i oduvek je merila toliko.
+
+  Tamno polje table „Visoki kontrast" je srednje sivo (#737373), a ne skoro
+  crno, i izveštaj kaže zašto: na #222222 crna ivica figure meri 1.32:1, pa bi
+  tabla napravljena da se bolje vidi izbrisala svaku crnu figuru.
+
+  Kapija `strings` je oborila paket zbog **srpskih imena koja mu je zadatak
+  tražio** — isti oblik kao kod paketa 45. Popravljeno u harness-u: kapija sada
+  prima spisak fajlova u kojima paket sme da **doda** string; brisanje i izmena
+  i dalje padaju, jer je to polovina pravila 12 koja nešto čuva.
+
+- **Nalaz koji niko nije tražio, i jedini koji traži odluku**: oznaka poslednjeg
+  poteza je `warning` — ispuna na 45% plus obod od 2,5 px — i **po svetlini se
+  jedva razlikuje od polja ispod sebe**. Ispuna prema neoznačenom polju meri
+  1.05–1.94 kroz svih pet tabli i obe palete; najgore je na plavoj tabli sa
+  tamnom paletom (1.05 i 1.06). Za tamnu paletu na klasičnoj tabli: 1.10 na
+  svetlom polju, 1.35 na tamnom.
+
+  **To je merenje svetline, a ne presuda.** Žuto preko krem polja i dalje
+  izgleda žuće, a promena tona se vidi i kad je razlika u svetlini mala — zato
+  ovo niko do sada nije prijavio kao bag. Ali brojke su dovoljno niske da se
+  mora **pogledati na telefonu, po koži**, pre nego što se ijedna nova tabla
+  proglasi gotovom. Ako ne prolazi, rešenje nije nova boja tokena nego oznaka
+  koja ne zavisi samo od boje (deblji obod, tačka, ugao) — token `warning`
+  znači „poslednji potez" i na svim ostalim mestima.
 - **Faza 5 (ovde)**: „Izgled" u Podešavanjima — tema, tabla, figure. Ne sme da
   se spoji pre paketa 45: tada se uklanja prisila na tamnu temu u `init()`, a
   sačuvani izbori „svetla"/„sistem" ljudi koji su birali pre nego što je birač

@@ -1816,3 +1816,23 @@ Proveriti, na Windows buildu i na telefonu:
 
 Kože se za sada ne biraju — u katalogu je samo `classic`. Izbor dolazi u fazi 5,
 posle paketa 46 (Gemini) koji dodaje ostale.
+
+## 48. Kože table i figura — 29.8.2026, nije viđeno uživo
+
+Paket 46 dodao je pet tabli i tri kompleta figura. Biraju se tek u fazi 5, pa se
+do tada gledaju kroz galeriju i testove — ali kad birač postoji, proveriti:
+
+1. **Svaku tablu sa svakim kompletom figura**, na telefonu. Brojke kažu da sve
+   ivice figura prolaze 3.0:1 na oba polja svake table; ono što brojke ne kažu
+   je kako izgleda `Visoki kontrast` (bele figure su **žute**, #FFFF00) — to je
+   odluka koju treba videti pre nego što se ponudi deci.
+2. **Bela figura na tabli „Visoki kontrast"** je čist obris: belo na belom polju
+   meri 1.00:1 po ispuni, a nosi ga crna ivica na 21:1. Namerno, ali treba
+   videti da li se čita.
+3. **Oznaka poslednjeg poteza, po koži.** Vidi nalaz u
+   [STANJE-RADA.md](STANJE-RADA.md): po svetlini se razlikuje od polja za
+   1.05–1.94. Najgori slučaj je plava tabla sa tamnom paletom. Gledati može li
+   se na prvi pogled reći koji je potez odigran — i ako ne može, to je zadatak
+   za sebe, ne za paletu.
+4. **Animacija poteza na svakoj koži** — pokrivka polja uzima boju te table, pa
+   svaka koža ima svoju.

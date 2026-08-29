@@ -175,7 +175,7 @@ replacing the seed. **No visible change**, because `themeMode` is still
 Contrast is asserted by a test that computes it, not by a comment that claims
 it. The three untrue contrast claims found on 28.8.2026 were all comments.
 
-### Phase 4 — the skin catalogue (Gemini, batch 46) — after phase 1 lands
+### Phase 4 — the skin catalogue (Gemini, batch 46) — **done, merged**
 
 Four or five board skins and three or four piece skins, each with measured
 numbers, plus `test/board_skin_contrast_test.dart`. The measurement that matters
