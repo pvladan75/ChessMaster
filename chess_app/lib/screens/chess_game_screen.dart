@@ -2828,8 +2828,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   icon: const Icon(Icons.dashboard_customize, size: 16),
                   label: const Text('Postavi poziciju (Board Setup)'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
+                    backgroundColor: context.colors.accent,
+                    foregroundColor: context.colors.canvas,
                   ),
                 ),
               ),
@@ -2850,8 +2850,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   icon: const Icon(Icons.file_open, size: 16),
                   label: const Text('Uvezi PGN (fajl ili tekst)'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurpleAccent,
-                    foregroundColor: Colors.white,
+                    backgroundColor: context.colors.brand,
+                    foregroundColor: context.colors.canvas,
                   ),
                 ),
               ),
@@ -2864,8 +2864,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     icon: const Icon(Icons.collections_bookmark, size: 16),
                     label: const Text('Kreiraj lekciju (Više pozicija)'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigoAccent,
-                      foregroundColor: Colors.white,
+                      backgroundColor: context.colors.accentAlt,
+                      foregroundColor: context.colors.canvas,
                     ),
                   ),
                 ),
@@ -2887,8 +2887,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   IconButton(
-                    icon:
-                        const Icon(Icons.input, color: Colors.deepPurpleAccent),
+                    icon: Icon(Icons.input, color: context.colors.brand),
                     onPressed: () {
                       final fen = fenPasteController.text.trim();
                       if (fen.isNotEmpty) {
@@ -2903,10 +2902,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 ],
               ),
               const Divider(height: 24),
-              const Text(
+              Text(
                 'Pretraga lekcija',
-                style:
-                    TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.textMuted),
               ),
               const SizedBox(height: 6),
               TextField(
@@ -2941,8 +2941,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     icon: const Icon(Icons.share, size: 16),
                     label: const Text('Prikaži moju poziciju treneru'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber.withValues(alpha: 0.2),
-                      foregroundColor: Colors.amberAccent,
+                      backgroundColor:
+                          context.colors.warning.withValues(alpha: 0.2),
+                      foregroundColor: context.colors.textPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
@@ -2954,12 +2955,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 spacing: 4,
                 runSpacing: 4,
                 children: [
-                  const Text(
+                  Text(
                     'Kategorija: ',
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 11,
-                        color: Colors.grey),
+                        color: context.colors.textMuted),
                   ),
                   ChoiceChip(
                     label: const Text('Sve', style: TextStyle(fontSize: 10)),
@@ -3004,12 +3005,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       }).toList();
 
                       if (displayedLessons.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Padding(
-                            padding: EdgeInsets.all(AppSpacing.lg),
+                            padding: const EdgeInsets.all(AppSpacing.lg),
                             child: Text(
                               'Nema sačuvanih lekcija u ovoj kategoriji.',
-                              style: TextStyle(color: Colors.grey),
+                              style: TextStyle(color: context.colors.textMuted),
                             ),
                           ),
                         );
@@ -3049,19 +3050,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (isTrainerLesson)
-                                    const Text(
+                                    Text(
                                       'Sačuvana lekcija od trenera',
                                       style: TextStyle(
                                           fontSize: 10,
-                                          color: Colors.amberAccent,
+                                          color: context.colors.warning,
                                           fontWeight: FontWeight.bold),
                                     ),
                                   if (isCourse)
                                     Text(
                                       'Kurs od ${positionList.length} pozicija',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                           fontSize: 10,
-                                          color: Colors.deepPurpleAccent,
+                                          color: context.colors.brand,
                                           fontWeight: FontWeight.bold),
                                     ),
                                   if (lesson['description'] != null &&
@@ -3071,8 +3072,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     const SizedBox(height: AppSpacing.xxs),
                                     Text(
                                       lesson['description'],
-                                      style: const TextStyle(
-                                          fontSize: 11, color: Colors.grey),
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: context.colors.textMuted),
                                     ),
                                   ],
                                 ],
@@ -3083,8 +3085,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         IconButton(
-                                          icon: const Icon(Icons.edit_outlined,
-                                              size: 18, color: Colors.grey),
+                                          icon: Icon(Icons.edit_outlined,
+                                              size: 18,
+                                              color: context.colors.textMuted),
                                           tooltip: 'Izmeni',
                                           onPressed: () => isCourse
                                               ? _showCreateCourseDialog(
@@ -3096,9 +3099,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                                       lesson)),
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.delete_outline,
+                                          icon: Icon(Icons.delete_outline,
                                               size: 18,
-                                              color: Colors.redAccent),
+                                              color: context.colors.danger),
                                           tooltip: 'Obriši',
                                           onPressed: () => _confirmDeleteLesson(
                                               Map<String, dynamic>.from(
@@ -4024,7 +4027,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             // in, and that is not a decision a seat in the room grants.
             if (activeRole == 'trener' && widget.roomCode != 'STUDIO')
               IconButton(
-                icon: const Icon(Icons.groups, color: Colors.tealAccent),
+                icon: Icon(Icons.groups, color: context.colors.accent),
                 tooltip: 'Ko sme u sobu',
                 onPressed: () => showDialog<void>(
                   context: context,
@@ -4034,14 +4037,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 ),
               ),
             IconButton(
-              icon: const Icon(Icons.biotech, color: Colors.tealAccent),
+              icon: Icon(Icons.biotech, color: context.colors.accent),
               tooltip: 'Izvezi u Tablu za Analizu 🔬',
               onPressed: () {
                 context.push(AppRoutes.analysisPath(fen: controller.getFen()));
               },
             ),
             IconButton(
-              icon: const Icon(Icons.settings, color: Colors.grey),
+              icon: Icon(Icons.settings, color: context.colors.textMuted),
               tooltip: 'Podešavanja',
               onPressed: () async {
                 // Settings sits on top of the room; the socket and the audio
@@ -4052,13 +4055,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
             ),
             if (widget.roomCode != 'STUDIO')
               IconButton(
-                icon: const Icon(Icons.logout, color: Colors.redAccent),
+                icon: Icon(Icons.logout, color: context.colors.danger),
                 tooltip: 'Napusti sesiju',
                 onPressed: _leaveSessionExplicitly,
               ),
             Icon(
               isConnected ? Icons.cloud_done : Icons.cloud_off,
-              color: isConnected ? Colors.green : Colors.red,
+              color:
+                  isConnected ? context.colors.success : context.colors.danger,
             ),
             const SizedBox(width: AppSpacing.lg),
           ],
@@ -4255,12 +4259,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, 'discard'),
-            child: const Text('Izađi bez čuvanja',
-                style: TextStyle(color: Colors.redAccent)),
+            child: Text('Izađi bez čuvanja',
+                style: TextStyle(color: context.colors.danger)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                backgroundColor: context.colors.accent,
+                foregroundColor: context.colors.canvas),
             onPressed: () => Navigator.pop(ctx, 'save'),
             child: const Text('Zaustavi i sačuvaj'),
           ),
