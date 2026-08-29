@@ -1863,9 +1863,33 @@ Mere: **881 test** (12 novih), 1 preskočen, `flutter analyze` na istih 29
 `info`-a. Oba tvrđenja dokazana mutacijom — kad se uglovi ne crtaju, padaju tri
 testa; kad im se boje zamene tonovima umesto crno-bele, padaju tri druga.
 
-Ostalo otvoreno: **strelice.** `board_overlay_painter.dart` ima 14 namernih
-literala za strelice, plus `arrow_color_button.dart` — boje kao jedini nosilac
-značenja su tamo najverovatnije još uvek prisutne. Nije gledano.
+### Strelice — izmereno 29.8.2026, popravka nije počela
+
+Nije 14 boja nego **pet**, upotrebljenih dvaput: `arrowPalette` (R/G/B/O/P, koje
+korisnik bira kad crta) i `_getEngineColor(rank)` (isti komplet, drugim redom,
+za pet linija motora). Brief za Gemini je
+[brief-arrow-colours-2026-08.md](brief-arrow-colours-2026-08.md); ovde su nalazi.
+
+1. **Dva para su ista boja.** `R`/`P` mere **1.04:1** pod protanopijom — crvena i
+   ljubičasta su jedna boja. `R`/`B` 1.07 pod deuteranopijom. A `B`/`O` mere
+   **1.07 i pod normalnim vidom**: taj par razlikuje samo ton, za sve. Najbolji
+   par u kompletu je 2.00:1.
+2. **Svaka strelica nestane na nekom polju.** Spljoštena na 0.75 alfe naspram
+   polja ispod sebe, najgori slučaj kroz svih pet koža i sva tri vida: R 1.02,
+   G 1.02, B 1.04, O 1.12, P 1.01.
+3. **Strelice motora su mnogo manje pokvarene nego što izgledaju**, i to je zamka
+   ovog zadatka. Rang je već kodiran dvaput — bojom **i debljinom**,
+   `7.0 - (rank - 1) * 1.5`, pa je najbolja linija 7 px a peta 1 px. Zeleno
+   naspram crvenog za najbolje-naspram-najgore je 1.53:1 pod deuteranopijom, što
+   zvuči loše i preživljava, jer debljina to već kaže. Ono što nema drugi kanal
+   je **korisnikova** strelica: sve su 6 px.
+
+**Nov bag, nađen usput i nije od strelica: značka evaluacije je nečitljiva u
+svetloj temi.** `badgeTextColor` je `context.colors.canvas` — skoro crno u tamnoj
+temi (8.8:1, u redu) i skoro belo u svetloj, gde rang 1 meri **1.55:1**. Svih
+deset kombinacija u svetloj temi je ispod 4.5:1. Ovo je postalo dohvatljivo tek
+fazom 5, kad je svetla tema mogla da se izabere. Tekst značke mora da se bira iz
+svetline same značke, ne iz teme. Claude-ovo, nije počelo.
 
 ### Šta sledi
 
