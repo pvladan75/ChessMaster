@@ -126,7 +126,7 @@ class ShortcutsScreen extends StatelessWidget {
         elevation: 0,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           Text(
             'Nijedna prečica nije jedini put do nečega — sve što je ovde ima i '
@@ -134,10 +134,10 @@ class ShortcutsScreen extends StatelessWidget {
             'klik, i to sa mišem.',
             style: AppText.caption.copyWith(color: context.colors.textMuted),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           for (final group in kShortcutGroups) ...[
             _GroupCard(group: group),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
           ],
         ],
       ),
@@ -153,14 +153,14 @@ class _GroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(group.title, style: AppText.bodyBold),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               group.where,
               style: AppText.caption.copyWith(color: context.colors.textMuted),
@@ -205,7 +205,10 @@ class _KeyCap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: context.colors.surfaceRaised,
         borderRadius: BorderRadius.circular(6),

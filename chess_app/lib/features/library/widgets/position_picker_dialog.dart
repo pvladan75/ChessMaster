@@ -127,7 +127,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
       title: Row(
         children: [
           const Icon(Icons.collections_bookmark_outlined, size: 20),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Text(
             widget.purpose == PickerPurpose.homework
                 ? 'Izaberi pozicije za domaći'
@@ -158,7 +158,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Wrap(
                 spacing: 6,
                 children: [
@@ -181,7 +181,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Flexible(child: _list()),
             ],
           ),
@@ -205,7 +205,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
 
     if (_loading) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 32),
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
         child: Center(child: CircularProgressIndicator()),
       );
     }
@@ -214,15 +214,15 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
     // a trainer told they have no positions goes looking for ones they have.
     if (_failed) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.cloud_off, color: colors.textMuted),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             const Text('Nije moguće doći do servera.',
                 textAlign: TextAlign.center),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             TextButton(onPressed: _load, child: const Text('Pokušaj opet')),
           ],
         ),
@@ -232,7 +232,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
     final entries = _entries ?? const <LibraryEntry>[];
     if (entries.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
         child: Text(
           _search.text.trim().isEmpty
               ? 'Nema sačuvanih pozicija. Skenirajte dijagrame iz knjige ili '

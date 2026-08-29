@@ -224,7 +224,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
         final boardSize = heightBased < widthBased ? heightBased : widthBased;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             children: [
               _buildPrompt(),
@@ -247,9 +247,9 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               if (_revealed && _moves.isNotEmpty) _buildMoveControls(),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               _revealed ? _buildGradeButtons() : _buildRevealButton(),
             ],
           ),
@@ -290,7 +290,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               item.isNew
                   ? 'Nova pozicija — pogledajte je i ocenite koliko vam je jasna.'
@@ -354,7 +354,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
           'Koliko ste se setili?',
           style: TextStyle(fontSize: 12.5, color: context.colors.textSecondary),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -366,8 +366,8 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors[grade],
                   foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 18, vertical: AppSpacing.md),
                 ),
                 child: Text(grade.label),
               ),
@@ -382,7 +382,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -414,7 +414,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                 style: TextStyle(fontSize: 12, color: context.colors.textMuted),
               ),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
             Wrap(
               spacing: 10,
               children: [
