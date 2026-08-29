@@ -429,8 +429,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           'neželjenu poštu (spam).'
                           '${kDebugMode ? '\n(U dev okruženju kod se ispisuje u backend logovima.)' : ''}',
                           textAlign: TextAlign.center,
-                          style:
-                              const TextStyle(fontSize: 14, color: Colors.grey),
+                          style: TextStyle(
+                              fontSize: 14, color: context.colors.textMuted),
                         ),
                         const SizedBox(height: AppSpacing.lg),
                         TextFormField(

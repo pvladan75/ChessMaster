@@ -2504,13 +2504,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: _puzzleOrientation == PlayerColor.white
-            ? Colors.blueGrey.shade900
-            : Colors.teal.shade900,
+        color: context.colors.infoContainer,
         borderRadius: AppRadii.roundedLg,
         border: Border.all(
             color: _puzzleOrientation == PlayerColor.white
-                ? context.colors.textMuted
+                ? context.colors.info
                 : context.colors.accent),
       ),
       child: Row(
@@ -2520,14 +2518,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             Icons.flag,
             size: 18,
             color: _puzzleOrientation == PlayerColor.white
-                ? Colors.white
+                ? context.colors.onInfoContainer
                 : context.colors.accent,
           ),
           const SizedBox(width: AppSpacing.sm),
           Flexible(
             child: Text(
               headerGoal,
-              style: AppText.bodyLargeBold.copyWith(color: Colors.white),
+              style: AppText.bodyLargeBold
+                  .copyWith(color: context.colors.onInfoContainer),
               overflow: TextOverflow.ellipsis,
             ),
           ),
