@@ -198,7 +198,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
       );
     }
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 260,
         mainAxisExtent: 290,
@@ -220,7 +220,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     final accepted = result.positions.where((p) => p.accepted).length;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 10, AppSpacing.lg, 10),
       color: colors.surfaceRaised,
       child: Wrap(
         spacing: 16,
@@ -253,7 +253,8 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     final chosen = _result?.positions.where((p) => p.accepted).length ?? 0;
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
         child: Row(
           children: [
             Expanded(
@@ -262,7 +263,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
                 style: TextStyle(color: colors.textMuted, fontSize: 12),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.md),
             FilledButton.icon(
               onPressed: _saving || chosen == 0 ? null : _save,
               icon: _saving
@@ -306,7 +307,8 @@ class _SetupPanel extends StatelessWidget {
     final colors = context.colors;
     return Container(
       color: colors.surface,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -317,7 +319,7 @@ class _SetupPanel extends StatelessWidget {
                 icon: const Icon(Icons.picture_as_pdf_outlined),
                 label: const Text('Izaberi PDF'),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(
                   fileName ?? 'Nije izabran dokument',
@@ -414,7 +416,7 @@ class _PositionCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: colors.surface,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadii.roundedSm,
           border: Border.all(color: doubtful ? colors.warning : colors.border),
         ),
         padding: const EdgeInsets.all(10),
@@ -445,7 +447,7 @@ class _PositionCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Center(child: BoardThumbnail(fen: position.fen, size: 150)),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             // Whose move it is is the commonest thing a diagram cannot say, so
             // it is one tap away rather than buried in an edit dialog.
             InkWell(
@@ -459,12 +461,12 @@ class _PositionCard extends StatelessWidget {
                     white ? 'beli na potezu' : 'crni na potezu',
                     style: TextStyle(color: colors.textPrimary, fontSize: 12),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: AppSpacing.xs),
                   Icon(Icons.swap_horiz, size: 14, color: colors.textMuted),
                 ],
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: AppSpacing.xxs),
             Text(
               _sideNote(position.sideSource),
               style: TextStyle(
@@ -511,19 +513,19 @@ class _EmptyHint extends StatelessWidget {
     final colors = context.colors;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.auto_stories_outlined,
                 size: 48, color: colors.textMuted),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(
               'Izaberi PDF svoje knjige i opseg strana.',
               style: TextStyle(color: colors.textSecondary),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               'Dijagrami se čitaju iz teksta, ne sa slike, pa rade knjige složene '
               'šahovskim fontom. Dokument se ne čuva na serveru.',

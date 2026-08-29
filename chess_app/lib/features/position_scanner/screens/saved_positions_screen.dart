@@ -464,7 +464,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
         Container(
           width: double.infinity,
           color: colors.surfaceRaised,
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          padding:
+              const EdgeInsets.fromLTRB(AppSpacing.lg, 10, AppSpacing.lg, 10),
           child: Wrap(
             spacing: 8,
             runSpacing: 6,
@@ -480,7 +481,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
                 Text(
                     '${all.where((p) => !p.needsReview && p.solutionSan == null).length} bez rešenja',
                     style: TextStyle(color: colors.info, fontSize: 12)),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               ChoiceChip(
                 label: const Text('sve'),
                 selected: _source == null,
@@ -499,7 +500,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
         if (_picked.isNotEmpty) _selectionBar(),
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.md),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 230,
               mainAxisExtent: 296,
@@ -535,7 +536,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     return Container(
       width: double.infinity,
       color: colors.accent.withValues(alpha: 0.15),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.sm),
       // Wrap, not Row: three actions and a count do not fit across a phone, and
       // a Row would overflow rather than fold.
       child: Wrap(
@@ -577,7 +579,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     return Container(
       width: double.infinity,
       color: colors.surface,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.sm),
       child: Wrap(
         spacing: 12,
         runSpacing: 8,
@@ -695,7 +698,7 @@ class _SavedCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: picked ? colors.surfaceRaised : colors.surface,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadii.roundedSm,
           border: Border.all(
             color: picked ? colors.accent : borderColor,
             width: picked ? 2 : 1,
@@ -768,7 +771,7 @@ class _SavedCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: AppSpacing.xs),
                           Icon(Icons.edit_outlined,
                               size: 13, color: colors.textMuted),
                         ],
@@ -827,7 +830,7 @@ class _SavedCard extends StatelessWidget {
     // enough for a trainer to settle in a second, while silence is not.
     if (!p.hasAnswer) {
       return Padding(
-        padding: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.only(top: AppSpacing.xs),
         child: Text(
           'motor: ${p.reason}',
           maxLines: 2,
@@ -847,7 +850,7 @@ class _SavedCard extends StatelessWidget {
     final named = p.side == 'w' ? 'beli' : 'crni';
 
     return Padding(
-      padding: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
       child: Row(
         children: [
           Expanded(
@@ -888,12 +891,12 @@ class _Message extends StatelessWidget {
     final colors = context.colors;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 48, color: colors.textMuted),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(title,
                 style: TextStyle(color: colors.textSecondary),
                 textAlign: TextAlign.center),
@@ -901,7 +904,7 @@ class _Message extends StatelessWidget {
             Text(detail,
                 style: TextStyle(color: colors.textMuted, fontSize: 12),
                 textAlign: TextAlign.center),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             action,
           ],
         ),
