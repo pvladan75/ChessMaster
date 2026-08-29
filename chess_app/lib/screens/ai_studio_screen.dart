@@ -36,6 +36,7 @@ import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:go_router/go_router.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 
 enum PuzzleGameState {
   idle,
@@ -2989,7 +2990,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   _puzzleSolved ||
                   _puzzleFailed ||
                   _gameState != PuzzleGameState.idle,
-              child: ChessBoard(
+              child: SkinnedChessBoard(
                 controller: _puzzleBoardController,
                 boardOrientation: _puzzleOrientation,
                 onMove: () {

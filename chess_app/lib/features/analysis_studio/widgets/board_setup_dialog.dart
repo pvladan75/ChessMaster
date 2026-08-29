@@ -8,6 +8,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_picker.dart';
 import 'package:chess_app/move_tree.dart' show PgnGameInfo, MoveTree;
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/game_selector_dialog.dart';
 import 'package:chess_app/features/analysis_studio/services/chess_platform_import_service.dart';
@@ -635,10 +636,12 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                       setState(() => _builderBoard[row][col] = '');
                     },
                     child: Container(
-                      // Domain constant: Board square colors preserved as chess literals
+                      // A third board, until 29.8.2026: this editor was teal
+                      // while the thumbnails were green and every live board
+                      // was brown. All three now draw the reader's skin.
                       color: isDarkSquare
-                          ? Colors.teal.shade900
-                          : Colors.teal.shade100,
+                          ? AppSettingsService.instance.boardSkin.darkSquare
+                          : AppSettingsService.instance.boardSkin.lightSquare,
                       child: Center(
                           child: chessPieceWidget(piece.isEmpty ? null : piece,
                               size: 28)),

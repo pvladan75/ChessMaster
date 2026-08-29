@@ -5,6 +5,7 @@ import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
+import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 
 class EngineLineDialog extends StatefulWidget {
   final AnalysisLine line;
@@ -122,9 +123,8 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
               SizedBox(
                 width: 280,
                 height: 280,
-                child: ChessBoard(
+                child: SkinnedChessBoard(
                   controller: previewController,
-                  boardColor: BoardColor.green,
                   boardOrientation: _orientation,
                   enableUserMoves: false,
                 ),

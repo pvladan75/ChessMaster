@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess/chess.dart' as chess;
-import 'package:chess_vectors_flutter/chess_vectors_flutter.dart';
 import 'package:chess_app/move_tree.dart';
+import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/theme/board_skins.dart';
+import 'package:chess_app/widgets/board/chess_piece_image.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/theme/app_radii.dart';
 
@@ -349,38 +351,14 @@ class PendingMoveAnimation {
       {required this.from, required this.to, required this.piece});
 }
 
-Widget pieceImageForAnimation(chess.Piece piece) {
-  final isWhite = piece.color == chess.Color.WHITE;
-  switch (piece.type.name) {
-    case 'p':
-      return isWhite ? WhitePawn() : BlackPawn();
-    case 'n':
-      return isWhite ? WhiteKnight() : BlackKnight();
-    case 'b':
-      return isWhite ? WhiteBishop() : BlackBishop();
-    case 'r':
-      return isWhite ? WhiteRook() : BlackRook();
-    case 'q':
-      return isWhite ? WhiteQueen() : BlackQueen();
-    case 'k':
-      return isWhite ? WhiteKing() : BlackKing();
-    default:
-      return isWhite ? WhitePawn() : BlackPawn();
-  }
-}
-
-String _boardAssetPath(BoardColor color) {
-  switch (color) {
-    case BoardColor.brown:
-      return 'images/brown_board.png';
-    case BoardColor.darkBrown:
-      return 'images/dark_brown_board.png';
-    case BoardColor.green:
-      return 'images/green_board.png';
-    case BoardColor.orange:
-      return 'images/orange_board.png';
-  }
-}
+/// The sprite that flies from one square to the other.
+///
+/// Kept as a named function rather than inlined because the animation is the
+/// one place a piece is drawn without a square under it; the drawing itself is
+/// the app's single piece factory, so an animated knight is the same knight
+/// that lands.
+Widget pieceImageForAnimation(chess.Piece piece, {PieceSkin? skin}) =>
+    chessPieceWidgetFor(piece, skin: skin);
 
 /// Slides a piece sprite from [pending].from to [pending].to over [duration],
 /// then calls [onCompleted]. The underlying board state has already moved
@@ -388,16 +366,24 @@ String _boardAssetPath(BoardColor color) {
 /// so left alone the real piece would sit there, fully visible, from frame
 /// one — the sprite would then look like it's sliding into (and merging
 /// with) a piece that's already arrived, instead of visibly delivering it.
-/// A crop of the board's own square texture is layered over the destination
-/// square for the duration of the slide to hide that, removed the instant
-/// the sprite (and this whole widget) completes.
+/// The destination square is repainted in its own colour for the duration of
+/// the slide to hide that, removed the instant the sprite (and this whole
+/// widget) completes.
+///
+/// Until 29.8.2026 that cover was a *crop of the board image*: the whole PNG
+/// positioned at negative offset inside a clipped square, sprite-sheet style.
+/// It had to change when the squares stopped being an image, and a filled
+/// rectangle is what a flat two-colour board wanted in the first place.
 class AnimatedMovePiece extends StatefulWidget {
   final PendingMoveAnimation pending;
   final double boardSize;
   final PlayerColor orientation;
   final Duration duration;
   final VoidCallback onCompleted;
-  final BoardColor boardColor;
+
+  /// Null takes the reader's chosen board, which is what every caller wants;
+  /// it is a parameter at all so a test can pin a skin without a preference.
+  final BoardSkin? boardSkin;
 
   const AnimatedMovePiece({
     super.key,
@@ -406,8 +392,19 @@ class AnimatedMovePiece extends StatefulWidget {
     required this.orientation,
     required this.duration,
     required this.onCompleted,
-    this.boardColor = BoardColor.brown,
+    this.boardSkin,
   });
+
+  /// a1 is dark, and that is the whole rule: with a zero-based file and a
+  /// one-based rank, a square is light when the two add up to an even number.
+  /// Orientation does not enter into it — flipping the board moves the squares
+  /// around the screen, not the colours off them.
+  static bool isLightSquare(String square) {
+    if (square.length < 2) return true;
+    final file = square.codeUnitAt(0) - 'a'.codeUnitAt(0);
+    final rank = int.tryParse(square[1]) ?? 1;
+    return (file + rank) % 2 == 0;
+  }
 
   @override
   State<AnimatedMovePiece> createState() => _AnimatedMovePieceState();
@@ -443,6 +440,10 @@ class _AnimatedMovePieceState extends State<AnimatedMovePiece>
   @override
   Widget build(BuildContext context) {
     final squareSize = widget.boardSize / 8;
+    final skin = widget.boardSkin ?? AppSettingsService.instance.boardSkin;
+    final coverColour = AnimatedMovePiece.isLightSquare(widget.pending.to)
+        ? skin.lightSquare
+        : skin.darkSquare;
     final destTopLeft = getSquareCenter(
             widget.pending.to, widget.boardSize, widget.orientation) -
         Offset(squareSize / 2, squareSize / 2);
@@ -465,26 +466,11 @@ class _AnimatedMovePieceState extends State<AnimatedMovePiece>
             top: destTopLeft.dy,
             width: squareSize,
             height: squareSize,
-            // The outer Positioned gives this inner Stack tight squareSize x
-            // squareSize constraints, so its default hardEdge clip crops the
-            // oversized, negatively-offset board image down to just this
-            // square's slice — the same trick as a sprite-sheet crop.
+            // Opaque, and exactly one square: the piece has already arrived
+            // underneath it on the real board, and this is what hides it until
+            // the sprite gets there.
             child: IgnorePointer(
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: -destTopLeft.dx,
-                    top: -destTopLeft.dy,
-                    width: widget.boardSize,
-                    height: widget.boardSize,
-                    child: Image.asset(
-                      _boardAssetPath(widget.boardColor),
-                      package: 'flutter_chess_board',
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ],
-              ),
+              child: ColoredBox(color: coverColour),
             ),
           ),
           AnimatedBuilder(

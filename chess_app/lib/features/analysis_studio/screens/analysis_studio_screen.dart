@@ -55,6 +55,7 @@ import 'package:chess_app/services/puzzle_api_service.dart';
 import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart'
     as dialogs;
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 
 class AnalysisStudioScreen extends StatefulWidget {
   final UserSession userSession;
@@ -1861,7 +1862,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   Widget _buildBoardWidget(double size) {
     return Stack(
       children: [
-        ChessBoard(
+        SkinnedChessBoard(
           controller: _boardController,
           boardOrientation: _orientation,
           onMove: () {

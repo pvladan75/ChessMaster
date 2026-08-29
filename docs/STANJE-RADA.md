@@ -15,7 +15,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 28.8.2026.
+Poslednje ažuriranje: 29.8.2026.
 
 ---
 
@@ -1674,8 +1674,14 @@ postane istinita.
   (2), i dve senke (galerija, plejer). Za četiri grupe tokena koje bi ih
   zamenile odlučeno je da se **ne** prave. Ako neko ubuduće izmeri drugi broj,
   prvo proveri je li dodat nov literal, a ne je li lista pogrešna.
+
+  **Od 29.8.2026. uveče ih je 29**: šest polja table otišlo je u `BoardSkin`
+  (odeljak niže). To nije izuzetak od pravila 14 nego njegova druga izmena —
+  domenska boja sme da dobije domenski token, a `BoardSkin` je taj token za
+  tablu. Strelice ostaju literali i nisu pokrivene.
 - Svetla tema je namerno **ne**napisana: `ThemeMode` je zakucan na `dark` i
-  `setThemeMode` ne postoji nigde u `lib/`, pa bi to bio mrtav kod.
+  `setThemeMode` ne postoji nigde u `lib/`, pa bi to bio mrtav kod. **Piše se od
+  29.8.2026** — paket 45, odeljak niže.
 - `DESIGN-BRIEF.md` je posle spajanja ostao na korenu. Pisan je agentu („ovo
   smeš da menjaš"), pa kao projektna dokumentacija tu ne stoji — treba ga
   premestiti u `docs/` kao zapis o tome kako je opseg omeđen, ili obrisati.
@@ -1740,3 +1746,72 @@ Provereno istog dana, jer je pitanje bilo da li isti oblik postoji drugde:
 
 Praznina je, dakle, bila samo tamo gde se presuđivalo lokalno bez pojma o
 stranama.
+
+---
+
+## Teme, boje polja i boje figura — plan i faze 1–2, 29.8.2026
+
+Plan u celini je u [PLAN-TEME-I-TABLA.md](PLAN-TEME-I-TABLA.md); ovde stoji samo
+ono što je urađeno i šta treba znati pre nastavka.
+
+Opseg je odlučio vlasnik projekta 29.8.2026: **svetla + tamna + sistemska** tema,
+bez dodatnih imenovanih paleta, i **prefarbavanje** postojećih figura umesto
+novih kompleta. Koža table je nezavisna od teme aplikacije — zelena tabla je
+legitiman izbor i u svetloj i u tamnoj temi.
+
+### Četiri stvari iz koda koje su odlučile oblik
+
+1. **Svetla tema nije bila isključena nego zamka.** `init()` je prepisivao svaki
+   sačuvani `themeMode` u `dark`, a svetla `ThemeData` u `main.dart` nije nosila
+   `AppColorTokens` — `context.colors` pada nazad na tamne tokene, pa bi svih 29
+   ekrana pisalo tamnim tekstom po svetloj podlozi. Ta linija u `init()` je
+   jedino što je stajalo između sačuvanog izbora i nečitljive aplikacije.
+2. **Boje polja nisu bile podesive.** `flutter_chess_board` crta tablu sa
+   `Image.asset` — četiri gotove PNG slike, bira ih enum. Paket to neće dobiti:
+   i dalje piše `sdk: <3.0.0` i i dalje zove `onWillAccept`.
+3. **Boje figura su bile besplatne.** `chess_vectors_flutter` oduvek prima
+   `fillColor` i `strokeColor`, a crne figure i treću, `decorationColor` (oko i
+   griva skakača, krst na kralju). Ništa u aplikaciji ih nije prosleđivalo.
+4. **Animacija poteza je bila zavarena za sliku**: polje na koje figura sleće
+   pokrivalo se **isečkom PNG-a** table, postavljenim na negativan offset unutar
+   isečenog kvadrata. Sa farbanim poljima nema šta da se iseca.
+
+### Šta je urađeno
+
+**Faza 1** (`b937af9`) — `lib/theme/board_skins.dart`: `BoardSkin` i `PieceSkin`,
+po jedna koža svaka. Namerno **nisu** `ThemeExtension`: koža preživljava promenu
+teme, a `pieceImageForAnimation` nema `BuildContext` iz kog bi je čitao.
+
+`BoardSkin.classic` je #F0DAB5 / #B58763 — to nisu izmišljene vrednosti nego
+**izmereni pikseli** `brown_board.png`, koji je ravna dvobojna slika a ne tekstura
+drveta (120 boja u celom fajlu, sve na spojevima polja). Zato je prelazak na
+farbanje piksel u piksel isti, samo bez mutnih spojeva.
+
+**Faza 2** — `lib/widgets/board/skinned_chess_board.dart`, fork `ChessBoard`-a iz
+paketa. Paket **ostaje** zavisnost: `ChessBoardController` i `PlayerColor` se
+zovu u 35 fajlova, a menja se samo widget koji crta. Uz to: jedna fabrika figura
+za celu aplikaciju (`board/chess_piece_image.dart`), pokrivka animacije farba
+polje umesto da seče sliku, i sličice i oba editora pozicije crtaju istu tablu —
+do sada su bili tri različita: mrka, zelena i tirkizna.
+
+**Promocija prevlačenjem sada pita na srpskom.** To je bila poznata rupa opisana
+u zaglavlju `promotion_picker.dart`: svaki potez tapkanjem je pitao na srpskom, a
+prevlačenje je otvaralo dijalog paketa („Choose promotion", i uvek četiri bele
+figure). Fork ju je zatvorio usput.
+
+Mere: 836 testova (12 novih), 1 preskočen, `flutter analyze` na istih 29 poznatih
+`info`-a. Oba tvrđenja o **iscrtavanju** dokazana su mutacijom — zamenom svetlog
+i tamnog polja u painteru, pa u pokrivci animacije; oba puta su pala kako treba.
+
+Uživo nije viđeno: [TODO-provera.md](TODO-provera.md), stavka 47.
+
+### Šta sledi
+
+- **Paket 45 (Gemini)**: `AppColorTokens.light` + `AppTheme.light`, neuključeni.
+- **Paket 46 (Gemini)**: ostatak kataloga koža, sa merenjima — svaka koža figura
+  prema svakom polju svake table. Merilo nosi **ivica** figure, ne ispuna: bela
+  ispuna na svetlom polju meri oko 1.3:1 i oduvek je merila toliko.
+- **Faza 5 (ovde)**: „Izgled" u Podešavanjima — tema, tabla, figure. Ne sme da
+  se spoji pre paketa 45: tada se uklanja prisila na tamnu temu u `init()`, a
+  sačuvani izbori „svetla"/„sistem" ljudi koji su birali pre nego što je birač
+  uklonjen tog trenutka oživljavaju.

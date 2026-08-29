@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:chess_app/theme/board_skins.dart';
+
 class AppSettingsService extends ChangeNotifier {
   static final AppSettingsService instance = AppSettingsService._internal();
 
@@ -70,6 +72,17 @@ class AppSettingsService extends ChangeNotifier {
   /// gutter takes, especially on a phone.
   bool _showBoardCoordinates = true;
 
+  /// Which board and which pieces the reader has chosen.
+  ///
+  /// Stored as ids rather than as resolved skins, and **not normalised on
+  /// read**: an id this build does not know falls back to `classic` when it is
+  /// resolved, but the stored string is left alone. So a preference written by
+  /// a newer build survives a downgrade and comes back when they upgrade
+  /// again, instead of being silently overwritten with the default the older
+  /// build understood.
+  String _boardSkinId = BoardSkin.classic.id;
+  String _pieceSkinId = PieceSkin.classic.id;
+
   /// Which opening database the Analysis Studio Opening Explorer panel
   /// queries: 'lichess' (real-game move popularity, needs an API token) or
   /// 'chessdb' (ChessDB.cn's shared engine analysis, no token needed).
@@ -106,6 +119,11 @@ class AppSettingsService extends ChangeNotifier {
   String get openingDbSource => _openingDbSource;
   bool get endgameIncludeOnline => _endgameIncludeOnline;
   bool get showBoardCoordinates => _showBoardCoordinates;
+
+  /// The chosen skins, resolved. Every board in the app reads these rather than
+  /// the ids, so an id nothing recognises draws `classic` instead of nothing.
+  BoardSkin get boardSkin => BoardSkin.byId(_boardSkinId);
+  PieceSkin get pieceSkin => PieceSkin.byId(_pieceSkinId);
   bool get speechEnabled => _speechEnabled;
   double get speechRate => _speechRate;
   String get speechLanguage => _speechLanguage;
@@ -163,6 +181,8 @@ class AppSettingsService extends ChangeNotifier {
     _endgameIncludeOnline =
         prefs.getBool('app_endgame_include_online') ?? false;
     _showBoardCoordinates = prefs.getBool('app_board_coordinates') ?? true;
+    _boardSkinId = prefs.getString('app_board_skin') ?? BoardSkin.classic.id;
+    _pieceSkinId = prefs.getString('app_piece_skin') ?? PieceSkin.classic.id;
     _speechEnabled = prefs.getBool('app_speech_enabled') ?? false;
     _speechRate = (prefs.getDouble('app_speech_rate') ?? 0.5).clamp(0.2, 1.0);
     _speechLanguage = prefs.getString('app_speech_language') ?? '';
@@ -278,6 +298,25 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('app_board_coordinates', show);
+  }
+
+  /// Ignores an id no catalogue holds, the same way [setEnginePlayLevel] does:
+  /// a setter that quietly stores a value nothing can draw is the shape of bug
+  /// this codebase keeps finding.
+  Future<void> setBoardSkin(String id) async {
+    if (!BoardSkin.all.any((s) => s.id == id)) return;
+    _boardSkinId = id;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_board_skin', id);
+  }
+
+  Future<void> setPieceSkin(String id) async {
+    if (!PieceSkin.all.any((s) => s.id == id)) return;
+    _pieceSkinId = id;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_piece_skin', id);
   }
 
   Future<void> setSpeechEnabled(bool enabled) async {

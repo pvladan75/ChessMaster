@@ -1780,3 +1780,39 @@ i sve nepregledane. Prva je jedina koja je nešto činila **nedohvatljivim**.
       se unutar tabova više ne crta.
 - [ ] Trening otvoren kao ruta (ne kao tab) i dalje ima svoj AppBar sa putem
       nazad.
+
+## 47. Tabla se crta iz teme, ne iz slike — 29.8.2026, nije viđeno uživo
+
+Faza 2 plana iz [PLAN-TEME-I-TABLA.md](PLAN-TEME-I-TABLA.md). Do sada je tablu
+crtao `flutter_chess_board` — četiri gotove PNG slike, biralo se enumom. Sada je
+crta `SkinnedChessBoard` iz `BoardSkin`, a figure uzimaju boje iz `PieceSkin`.
+Podrazumevana koža (`classic`) nosi **iste piksele** koje je nosila i slika
+(#F0DAB5 / #B58763), pa provera nije „da li je lepše" nego **da li se išta
+promenilo**.
+
+Testovi pokrivaju bojenje polja, boje figura, pokrivku ispod animacije i
+promociju; ono što test ne vidi je kako to izgleda na pravom ekranu.
+
+Proveriti, na Windows buildu i na telefonu:
+
+1. **Tabla izgleda isto kao pre** na svim ekranima sa tablom — soba za čas,
+   Analysis Studio, AI studio, plejer snimka, dijalog sa linijom motora.
+   Ivice između polja su sada oštre; pre su bile mutne, jer je slika 375 px, a
+   375/8 nije ceo broj.
+2. **Dijalog sa linijom motora** je jedina tabla koja je *namerno* bila druge
+   boje (zelena) — sada je iste kao i ostale.
+3. **Prevlačenje pešaka na poslednji red pita na srpskom.** Ranije je taj jedan
+   put otvarao dijalog paketa: „Choose promotion", i to sa četiri **bele**
+   figure ma ko bio na potezu. Proveriti i za crnog.
+4. **Odustajanje u tom dijalogu ne odigra potez.**
+5. **Animacija poteza** — figura kliza, a polje na koje sleće je prekriveno
+   svojom bojom dok ne stigne. Gledati da ne bljesne rupa ni pogrešna boja,
+   posebno pri kretanju sa svetlog na tamno polje.
+6. **Vučena figura je velika koliko i polje.** Ranije je bila fiksnih 45 px —
+   slučajno tačno na telefonu od 360 dp, premala na svakom desktop ekranu.
+7. **Editor pozicije** (i onaj u Analysis Studiju) i **sličice u listama** crtaju
+   istu tablu kao i ona velika. Do sada su bili tri različita: mrka, zelena i
+   tirkizna.
+
+Kože se za sada ne biraju — u katalogu je samo `classic`. Izbor dolazi u fazi 5,
+posle paketa 46 (Gemini) koji dodaje ostale.

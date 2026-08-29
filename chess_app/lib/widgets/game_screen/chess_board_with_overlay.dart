@@ -13,6 +13,7 @@ import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 
 /// The live game board plus its arrow/drawing overlays.
 ///
@@ -238,9 +239,8 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
         children: [
           IgnorePointer(
             ignoring: !widget.isAllowedToMove || widget.isDrawingMode,
-            child: ChessBoard(
+            child: SkinnedChessBoard(
               controller: widget.controller,
-              boardColor: BoardColor.brown,
               boardOrientation: widget.boardOrientation,
               size: widget.boardSize,
               onMove: () {

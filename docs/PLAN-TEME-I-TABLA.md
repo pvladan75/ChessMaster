@@ -86,7 +86,7 @@ fast-forward: `design/gemini-pass` is fully merged (master is 8 ahead, 0 behind)
 
 ## Phases, in dependency order
 
-### Phase 1 — the skin API (Claude, master)
+### Phase 1 — the skin API (Claude, master) — **done, `b937af9`**
 
 `lib/theme/board_skins.dart`, new:
 
@@ -138,7 +138,7 @@ plain value looked up by id, handed down like `boardOrientation` already is.
 `AppSettingsService` grows `boardSkinId` / `pieceSkinId` (persisted, defaulting
 to `classic`) in the same phase, with no UI. Nothing visible changes.
 
-### Phase 2 — the board renders from the skin (Claude)
+### Phase 2 — the board renders from the skin (Claude) — **done**
 
 `lib/widgets/board/skinned_chess_board.dart`: the ~250 lines of
 `flutter_chess_board`'s `ChessBoard`, vendored, with the PNG replaced by painted
