@@ -1695,6 +1695,13 @@ prebačen na tokene razmaka, tipografije i boje. **Testovi i kapije to ne mogu d
 provere** — boja nema kapiju koja zna koju je ulogu literal tražio, a 805 zelenih
 testova kaže samo da se ništa nije srušilo. Ovo se proverava očima.
 
+**Prvi pogled, telefon, debug build — korisnik 29.8.2026:** „Na telefonu
+ekstra izgleda.“ Dakle ništa razbijeno na prvi pogled, i to je vredno — 90
+fajlova je moglo da iseče red van ekrana. **Nijedna stavka ispod se time ne
+štiklira**, jer nisu prošle jedna po jedna: opšti utisak i provera trake
+evaluacije u obe orijentacije nisu ista tvrdnja. Ovo je bio build
+`8404148 • debug`.
+
 **Prvo ono što bi pogrešna zamena pokvarila tiho:**
 
 - [ ] **Traka evaluacije, obe orijentacije.** Belo je dole kad je tabla okrenuta
