@@ -788,8 +788,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                   padding: const EdgeInsets.all(AppSpacing.xxs),
                   decoration: BoxDecoration(
                       color: context.colors.warning, shape: BoxShape.circle),
-                  child: const Icon(Icons.call_split,
-                      size: 9, color: Color(0xFF0F172A)),
+                  child: Icon(Icons.call_split,
+                      size: 9, color: context.colors.canvas),
                 ),
               ),
             ),

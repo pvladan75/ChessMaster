@@ -1691,12 +1691,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               decoration: BoxDecoration(
                 color: phaseInfo.isEndgame
                     ? Colors.indigo.shade900
-                    : Colors.grey.shade900,
+                    : context.colors.surfaceRaised,
                 borderRadius: AppRadii.roundedSm,
                 border: Border.all(
                   color: phaseInfo.isEndgame
                       ? Colors.cyanAccent
-                      : Colors.tealAccent,
+                      : context.colors.accent,
                   width: 1,
                 ),
               ),
@@ -1706,14 +1706,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                     phaseInfo.isEndgame ? Icons.auto_awesome : Icons.menu_book,
                     color: phaseInfo.isEndgame
                         ? Colors.cyanAccent
-                        : Colors.tealAccent,
+                        : context.colors.accent,
                     size: 18,
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       displayOpeningName,
-                      style: AppText.bodyBold.copyWith(color: Colors.white),
+                      style: AppText.bodyBold
+                          .copyWith(color: context.colors.textPrimary),
                     ),
                   ),
                 ],
@@ -1971,24 +1972,26 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, size: 20, color: Colors.white),
+            icon: Icon(Icons.chevron_left,
+                size: 20, color: context.colors.textPrimary),
             tooltip: 'Prethodna vežba',
             onPressed: _activePuzzleIndex > 0 ? () => _goToPuzzle(-1) : null,
           ),
           Text(
             'Vežba ${_activePuzzleIndex + 1} / ${set.length}',
-            style: AppText.bodyBold.copyWith(color: Colors.white),
+            style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
           ),
           IconButton(
-            icon:
-                const Icon(Icons.chevron_right, size: 20, color: Colors.white),
+            icon: Icon(Icons.chevron_right,
+                size: 20, color: context.colors.textPrimary),
             tooltip: 'Sledeća vežba',
             onPressed: _activePuzzleIndex < set.length - 1
                 ? () => _goToPuzzle(1)
                 : null,
           ),
           IconButton(
-            icon: const Icon(Icons.close, size: 20, color: Colors.white70),
+            icon: Icon(Icons.close,
+                size: 20, color: context.colors.textSecondary),
             tooltip: 'Zatvori vežbe',
             onPressed: _exitPuzzleSet,
           ),
