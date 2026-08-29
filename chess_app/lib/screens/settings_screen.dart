@@ -59,9 +59,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!opened && mounted) {
       AppFeedback.show(
         context,
-        () => const SnackBar(
-          content: Text('Nije moguće otvoriti lichess.org u pregledaču.'),
-          backgroundColor: Colors.redAccent,
+        () => SnackBar(
+          content: Text('Nije moguće otvoriti lichess.org u pregledaču.',
+              style: AppText.body.copyWith(color: context.colors.canvas)),
+          backgroundColor: context.colors.danger,
         ),
       );
     }
@@ -86,10 +87,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     AppFeedback.show(
       context,
       () => SnackBar(
-        content: Text(_settings.lichessApiToken.isEmpty
-            ? 'Token uklonjen.'
-            : 'Lichess token sačuvan.'),
-        backgroundColor: Colors.teal,
+        content: Text(
+          _settings.lichessApiToken.isEmpty
+              ? 'Token uklonjen.'
+              : 'Lichess token sačuvan.',
+          style: AppText.body.copyWith(color: context.colors.canvas),
+        ),
+        backgroundColor: context.colors.success,
       ),
     );
   }
@@ -181,7 +185,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: ListTile(
               leading: Icon(
                 onFile ? Icons.mark_email_read_outlined : Icons.email_outlined,
-                color: onFile ? context.colors.accent : Colors.orange,
+                color: onFile ? context.colors.accent : context.colors.warning,
               ),
               title: const Text('Email roditelja'),
               subtitle: Text(onFile
@@ -229,8 +233,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.warning_amber,
-                          color: Colors.orange, size: 18),
+                      Icon(Icons.warning_amber,
+                          color: context.colors.warning, size: 18),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
@@ -375,13 +379,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       CircleAvatar(
                         radius: 28,
-                        backgroundColor: Colors.deepPurple,
+                        backgroundColor: context.colors.brand,
                         child: Text(
                           widget.session.name.isNotEmpty
                               ? widget.session.name[0].toUpperCase()
                               : 'K',
                           style: AppText.display
-                              .copyWith(color: context.colors.textPrimary),
+                              .copyWith(color: context.colors.canvas),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.lg),
@@ -404,7 +408,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   horizontal: AppSpacing.sm,
                                   vertical: AppSpacing.xxs),
                               decoration: BoxDecoration(
-                                color: Colors.teal.withValues(alpha: 0.2),
+                                color: context.colors.accent
+                                    .withValues(alpha: 0.2),
                                 borderRadius: AppRadii.roundedSm,
                               ),
                               child: Text(
@@ -420,8 +425,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         icon: Icon(
                           widget.session.isGuest ? Icons.login : Icons.logout,
                           color: widget.session.isGuest
-                              ? Colors.greenAccent
-                              : Colors.redAccent,
+                              ? context.colors.success
+                              : context.colors.danger,
                         ),
                         tooltip:
                             widget.session.isGuest ? 'Prijavi se' : 'Odjavi se',
@@ -438,8 +443,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     child: const Text('Otkaži')),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.redAccent,
-                                      foregroundColor: Colors.white),
+                                      backgroundColor: context.colors.danger,
+                                      foregroundColor: context.colors.canvas),
                                   onPressed: () {
                                     Navigator.pop(ctx);
                                     _logout();
@@ -549,7 +554,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         max: 60,
                         divisions: 59,
                         label: '${_settings.defaultEngineMoveTimeSeconds} s',
-                        activeColor: Colors.cyanAccent,
+                        activeColor: context.colors.accent,
                         onChanged: (val) {
                           _settings.setEngineMoveTimeSeconds(val.round());
                         },

@@ -16,8 +16,7 @@ import 'package:chess_app/services/oauth_pkce.dart' show OAuthRedirectException;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:chess_app/widgets/app_feedback.dart';
-import 'package:chess_app/theme/app_spacing.dart';
-import 'package:chess_app/theme/app_radii.dart';
+import 'package:chess_app/theme/app_colors.dart';
 
 class LoginRegisterScreen extends StatefulWidget {
   /// The login-gated action (create/join a room, invite a student...) that
@@ -316,8 +315,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     AppFeedback.show(
       context,
       () => SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
+        content: Text(message,
+            style: AppText.body.copyWith(color: context.colors.canvas)),
+        backgroundColor: context.colors.danger,
       ),
     );
   }
@@ -326,8 +326,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     AppFeedback.show(
       context,
       () => SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green.shade800,
+        content: Text(message,
+            style: AppText.body
+                .copyWith(color: context.colors.onSuccessContainer)),
+        backgroundColor: context.colors.successContainer,
       ),
     );
   }
@@ -392,19 +394,20 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.15),
+                            color:
+                                context.colors.warning.withValues(alpha: 0.15),
                             borderRadius: AppRadii.roundedSm,
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.lock_clock,
-                                  size: 18, color: Colors.orangeAccent),
+                              Icon(Icons.lock_clock,
+                                  size: 18, color: context.colors.warning),
                               const SizedBox(width: AppSpacing.sm),
                               Expanded(
                                 child: Text(
                                   _expiryNotice!,
                                   style: AppText.body
-                                      .copyWith(color: Colors.orangeAccent),
+                                      .copyWith(color: context.colors.warning),
                                 ),
                               ),
                             ],
