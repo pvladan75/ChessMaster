@@ -41,8 +41,8 @@ class StudioInfoHeaderWidget extends StatelessWidget {
         Card(
           elevation: 3,
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 14.0, vertical: AppSpacing.sm),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -51,7 +51,7 @@ class StudioInfoHeaderWidget extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           margin: const EdgeInsets.only(bottom: 10),
@@ -59,7 +59,7 @@ class StudioInfoHeaderWidget extends StatelessWidget {
             color: puzzleOrientation == PlayerColor.white
                 ? colors.surface
                 : colors.accent.withValues(alpha: 0.22),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadii.roundedLg,
             border: Border.all(
                 color: puzzleOrientation == PlayerColor.white
                     ? colors.borderStrong
@@ -75,7 +75,7 @@ class StudioInfoHeaderWidget extends StatelessWidget {
                     ? colors.textPrimary
                     : colors.accent,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Flexible(
                 child: Text(
                   headerGoal,

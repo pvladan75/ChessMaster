@@ -98,11 +98,11 @@ class OpeningJudgePanelWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: context.colors.surface.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadii.roundedSm,
         border: Border.all(color: context.colors.border),
       ),
       child: Column(
@@ -232,7 +232,8 @@ class OpeningJudgePanelWidget extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(6),
@@ -260,7 +261,7 @@ class OpeningJudgePanelWidget extends StatelessWidget {
       for (final line in _sentences(j)) ...[
         Text(line,
             style: AppText.caption.copyWith(color: context.colors.textPrimary)),
-        const SizedBox(height: 2),
+        const SizedBox(height: AppSpacing.xxs),
       ],
     ];
   }

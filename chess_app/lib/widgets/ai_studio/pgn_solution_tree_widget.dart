@@ -41,11 +41,12 @@ class PgnSolutionTreeWidget extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-      padding: const EdgeInsets.all(12),
+      margin:
+          const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 6),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadii.roundedMd,
         border: Border.all(color: Colors.teal.shade700, width: 1.5),
       ),
       child: Column(
@@ -54,7 +55,7 @@ class PgnSolutionTreeWidget extends StatelessWidget {
           Row(
             children: [
               Icon(Icons.account_tree, color: colors.accent, size: 18),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 'Stablo Rešenja (PGN):',
                 style: AppText.subtitle.copyWith(color: colors.textPrimary),
@@ -115,14 +116,14 @@ class PgnSolutionTreeWidget extends StatelessWidget {
         chips.add(
           InkWell(
             onTap: () => onMoveSelected(from, to, targetFen, labelStr),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadii.roundedSm,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: isCurrentPos
                     ? colors.warning.withValues(alpha: 0.22)
                     : colors.surfaceRaised,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadii.roundedSm,
                 border: Border.all(
                   color: isCurrentPos
                       ? colors.warning

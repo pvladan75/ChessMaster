@@ -112,12 +112,12 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     if (_items.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.xxl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.menu_book_outlined, size: 40),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Text('Još nijedan repertoar.',
                   style: AppText.bodyBold, textAlign: TextAlign.center),
               const SizedBox(height: 6),
@@ -136,14 +136,13 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       itemCount: _items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
       itemBuilder: (context, i) {
         final item = _items[i];
         return Card(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
           child: ListTile(
             leading: Icon(
               item.forWhite ? Icons.circle_outlined : Icons.circle,

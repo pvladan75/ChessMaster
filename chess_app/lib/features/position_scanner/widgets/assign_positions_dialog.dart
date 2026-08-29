@@ -204,7 +204,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                         onChanged: (value) =>
                             setState(() => _studentId = value),
                       ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     TextField(
                       controller: _title,
                       decoration: const InputDecoration(
@@ -212,7 +212,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                         hintText: 'npr. Matovi u jedan — strane 32–51',
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     TextField(
                       controller: _instructions,
                       maxLines: 2,
@@ -221,7 +221,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                         hintText: 'npr. uradi do petka, bez motora',
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Row(
                       children: [
                         Expanded(
@@ -249,7 +249,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                       ],
                     ),
                     if (_error != null) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       Text(_error!,
                           style: TextStyle(color: colors.danger, fontSize: 12)),
                     ],
@@ -257,7 +257,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                     // leaves the trainer hunting through two hundred cards.
                     for (final item in _refused.take(6))
                       Padding(
-                        padding: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.only(top: AppSpacing.xs),
                         child: Text(
                           '${item['puzzleId']}: ${item['reason']}',
                           style: TextStyle(color: colors.warning, fontSize: 11),

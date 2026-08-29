@@ -133,10 +133,10 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 children: [
                   if (_progress != null) _buildProgressCard(_progress!),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   if (_assignments.isEmpty)
                     _buildEmpty()
                   else
@@ -167,7 +167,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
     return Card(
       color: context.colors.surface,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -200,7 +200,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                     color: context.colors.textSecondary, fontSize: 13),
               ),
               if (progress.weakestThemes.isNotEmpty) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Text(
                   'Najviše grešite: '
                   '${progress.weakestThemes.take(3).map((t) => themeLabel(t.theme)).join(', ')}.',
@@ -221,7 +221,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
 
     return Card(
       color: context.colors.surface,
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: InkWell(
         // A finished lesson stays open: re-reading it is the point. A finished
         // puzzle set has nothing left to solve, so tapping it now opens the
@@ -229,9 +229,9 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
         onTap: done && !isLesson
             ? () => _openReview(assignment)
             : () => _open(assignment),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadii.roundedMd,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

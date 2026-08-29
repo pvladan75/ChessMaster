@@ -88,7 +88,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
               ),
               if (isLoading)
                 Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: AppSpacing.sm),
                   child: SizedBox(
                     width: 12,
                     height: 12,
@@ -115,7 +115,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
             ],
           ),
           if (!isLoading && result != null && result!.total > 0) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               '${result!.total} partija',
               style: AppText.micro.copyWith(color: colors.textMuted),
@@ -179,7 +179,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             'Procena iz motorske analize, ne iz odigranih partija. Za pravu statistiku izaberite Lichess u Podešavanjima.',
             style: AppText.micro.copyWith(color: colors.textSecondary),
@@ -222,7 +222,8 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
       onTap: onMoveSelected != null ? () => onMoveSelected!(move.uci) : null,
       borderRadius: AppRadii.roundedSm,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 6, vertical: AppSpacing.xs),
         decoration: BoxDecoration(
           color: colors.surfaceRaised,
           borderRadius: AppRadii.roundedSm,
@@ -237,7 +238,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
               style: AppText.caption.copyWith(
                   color: colors.textPrimary, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: AppSpacing.xxs),
             Text(
               '$scoreLabel · ${move.winrate.toStringAsFixed(0)}%',
               style: AppText.micro
@@ -282,7 +283,8 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
       onTap: onMoveSelected != null ? () => onMoveSelected!(move.uci) : null,
       borderRadius: AppRadii.roundedSm,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 6, vertical: AppSpacing.xs),
         decoration: BoxDecoration(
           color: colors.surfaceRaised,
           borderRadius: AppRadii.roundedSm,

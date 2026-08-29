@@ -1,3 +1,5 @@
+import 'package:chess_app/theme/app_spacing.dart';
+import 'package:chess_app/theme/app_radii.dart';
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/core/models/move_cursor.dart';
@@ -95,11 +97,12 @@ class MoveNavigationControls extends StatelessWidget {
     );
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadii.roundedMd,
       ),
       child: buttons,
     );
