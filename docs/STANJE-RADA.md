@@ -1967,6 +1967,16 @@ je ispuna srednje tonirana. Zato glif nosi **oba** — ispunjen boljim, oivičen
 drugim — pa je ivica unutar samog glifa 21:1 ma na čemu stajao. Ista logika kao
 strelica i kao uglovi poslednjeg poteza.
 
+**Pločica se više ne zatamnjuje, i to je popravka a ne previd.** Neizabrana
+pločica se crtala na 40% preko panela — tako je radio i prvobitni dizajn. Mereno
+naspram tamne teme: `Crvena` postaje `#782934`, `Narandžasta` postaje `#785434`,
+oba topla tona **ispod praga svetline koji deli narandžastu od braon** — tačno
+onaj promašaj zbog kog je odbijena Gemini-jeva paleta. Uz to je najgori par pao
+sa zagarantovanih 1.50:1 na **1.10:1**, i to u kontroli čiji je jedini posao da
+se boje razlikuju. Birač koji zatamnjuje ono što prikazuje ne prikazuje ništa.
+Izbor nose prsten i sjaj, za to i služe. Nađeno tako što je vlasnik poslao
+screenshot, pa su boje **izmerene onako kako se crtaju** umesto procenjene okom.
+
 **Pločica u biraču ima slovo.** `ArrowColorButton` prima `ArrowColor` umesto
 boje i tooltipa (koji su bili otkucani na osam mesta), i crta inicijal srpskog
 imena: **C, N, Z, P, Lj** — pet različitih, što je sreća koju vredi iskoristiti.
@@ -1979,7 +1989,7 @@ ne razdvaja, a tooltip progovori tek na hover ili dug pritisak.
 naučio. Rang i dalje nosi i debljina, `7.0 - (rang - 1) * 1.5`, i to je kanal
 koji zapravo preživljava deficit.
 
-Mere: **899 testova** (10 novih), 1 preskočen, analyze na istih 29. Tri mutacije:
+Mere: **900 testova** (11 novih), 1 preskočen, analyze na istih 29. Tri mutacije:
 bez obruba pada 4 testa, stari zeleni literal za rang 1 pada 1, `readableOn` koji
 uvek vraća belo pada 2.
 

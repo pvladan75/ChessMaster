@@ -246,8 +246,46 @@ void main() {
       ));
 
       for (final arrow in ArrowColor.all) {
-        expect(find.text(ArrowColorButton.initialOf(arrow)), findsOneWidget,
+        // Twice: the outline pass and the fill pass. Red is mid-toned enough
+        // that no single achromatic letter clears 4.5:1 on it, so the glyph
+        // carries both, the same way the eval badge does.
+        expect(find.text(ArrowColorButton.initialOf(arrow)), findsNWidgets(2),
             reason: arrow.id);
+      }
+    });
+
+    testWidgets('a swatch is drawn in its true colour, never dimmed',
+        (tester) async {
+      // The regression this guards. An unselected swatch used to be drawn at
+      // 40% over the panel, which against the dark theme's surface turned
+      // Crvena into #782934 and Narandžasta into #785434 -- both warm hues
+      // under the lightness floor that separates orange from brown, which is
+      // the exact failure the palette work had just spent a round rejecting.
+      // It also dropped the worst pair from 1.50:1 to 1.10:1, in the one
+      // control whose job is telling the colours apart.
+      for (final selected in [true, false]) {
+        await tester.pumpWidget(MaterialApp(
+          theme: AppTheme.dark,
+          home: Scaffold(
+            body: Row(
+              children: [
+                for (final arrow in ArrowColor.all)
+                  ArrowColorButton(
+                      arrow: arrow, isSelected: selected, onTap: () {}),
+              ],
+            ),
+          ),
+        ));
+
+        final drawn = tester
+            .widgetList<Container>(find.descendant(
+                of: find.byType(ArrowColorButton),
+                matching: find.byType(Container)))
+            .map((c) => (c.decoration as BoxDecoration).color)
+            .toList();
+
+        expect(drawn, ArrowColor.all.map((a) => a.color).toList(),
+            reason: 'selected=$selected');
       }
     });
   });
