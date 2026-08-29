@@ -126,8 +126,12 @@ predate Lichess recording them. 471 games reached tablebase range. 276,877 plies
 in 68 seconds, which says the parse is not what will make an import slow — the
 stream is.
 
-Not verified against a live database — there is no local Postgres on this
-machine and the DDL runs on the next `initDB()`.
+**Verified live by the user**, log timestamped 29.8.2026 23:40: `initDB()` ran
+against the managed database and reported `user_games`, `user_game_imports` and
+`mistake_reviews` after `room_guests`, and the server came up on port 3000. So
+the DDL is applied, not merely written — including the two check constraints and
+the partial index, which a database is free to reject at creation and this one
+did not.
 
 ## 1. Opening leak report
 

@@ -2178,6 +2178,11 @@ pročitano, 4126 redova, nijedna preskočena ni duplirana; ECO na svima, sat na
 ušla u domet tablica, 276.877 poluteza za 68 sekundi. Parsiranje, dakle, neće
 biti usko grlo uvoza — stream hoće.
 
-**Nije provereno nad živom bazom** — na mašini nema lokalnog Postgresa, DDL se
-izvršava pri sledećem `initDB()`. Sledeće na redu je sam uvoznik (jedan stream
-sa Lichess-a, upis kroz tally) i tek onda sve ostalo iz plana.
+**Provereno uživo — korisnik, log u 23:40 29.8.2026**: `initDB()` je prošao nad
+upravljanom bazom i prijavio `user_games`, `user_game_imports` i
+`mistake_reviews` odmah posle `room_guests`, a server je podigao port 3000.
+Dakle DDL je *primenjen*, ne samo napisan — sa oba check uslova i parcijalnim
+indeksom, koje baza sme da odbije pri kreiranju a nije.
+
+Sledeće na redu je sam uvoznik (jedan stream sa Lichess-a, upis kroz tally) i
+tek onda sve ostalo iz plana.
