@@ -4,6 +4,8 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_vectors_flutter/chess_vectors_flutter.dart';
 import 'package:chess_app/move_tree.dart';
+import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/theme/app_radii.dart';
 
 class EngineArrow {
   final String from;
@@ -73,12 +75,20 @@ class ChessBoardPainter extends CustomPainter {
   final String? highlightedSquare;
   final String? lastMoveFrom;
   final String? lastMoveTo;
+  final ui.Color lastMoveColor;
+  final ui.Color drawingModeColor;
+  final ui.Color badgeTextColor;
+  final ui.Color badgeBorderColor;
 
   ChessBoardPainter({
     required this.arrows,
     this.engineArrows,
     required this.boardSize,
     required this.orientation,
+    required this.lastMoveColor,
+    required this.drawingModeColor,
+    required this.badgeTextColor,
+    required this.badgeBorderColor,
     this.highlightedSquare,
     this.lastMoveFrom,
     this.lastMoveTo,
@@ -99,10 +109,10 @@ class ChessBoardPainter extends CustomPainter {
           getSquareCenter(lastMoveTo!, effectiveBoardSize, orientation);
 
       final fillPaint = Paint()
-        ..color = Colors.amberAccent.withValues(alpha: 0.45)
+        ..color = lastMoveColor.withValues(alpha: 0.45)
         ..style = PaintingStyle.fill;
       final borderPaint = Paint()
-        ..color = Colors.amber
+        ..color = lastMoveColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5;
 
@@ -125,7 +135,7 @@ class ChessBoardPainter extends CustomPainter {
       final center =
           getSquareCenter(highlightedSquare!, effectiveBoardSize, orientation);
       final paint = Paint()
-        ..color = Colors.tealAccent.withValues(alpha: 0.4)
+        ..color = drawingModeColor.withValues(alpha: 0.4)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(center, squareSize * 0.4, paint);
     }
@@ -165,11 +175,9 @@ class ChessBoardPainter extends CustomPainter {
         if (eArrow.evalText.isNotEmpty) {
           final textSpan = TextSpan(
             text: ' ${eArrow.evalText} ',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
+            style: AppText.micro.copyWith(
+              color: badgeTextColor,
               fontWeight: FontWeight.bold,
-              shadows: [Shadow(blurRadius: 2, color: Colors.black)],
             ),
           );
           final textPainter = TextPainter(
@@ -185,7 +193,7 @@ class ChessBoardPainter extends CustomPainter {
           final badgeRect = RRect.fromRectAndRadius(
             Rect.fromCenter(
                 center: badgeCenter, width: badgeWidth, height: badgeHeight),
-            const Radius.circular(4),
+            const Radius.circular(AppRadii.xs),
           );
 
           final bgPaint = Paint()
@@ -193,7 +201,7 @@ class ChessBoardPainter extends CustomPainter {
             ..style = PaintingStyle.fill;
 
           final borderPaint = Paint()
-            ..color = Colors.black87
+            ..color = badgeBorderColor
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.0;
 
@@ -303,7 +311,11 @@ class ChessBoardPainter extends CustomPainter {
         oldDelegate.orientation != orientation ||
         oldDelegate.highlightedSquare != highlightedSquare ||
         oldDelegate.lastMoveFrom != lastMoveFrom ||
-        oldDelegate.lastMoveTo != lastMoveTo;
+        oldDelegate.lastMoveTo != lastMoveTo ||
+        oldDelegate.lastMoveColor != lastMoveColor ||
+        oldDelegate.drawingModeColor != drawingModeColor ||
+        oldDelegate.badgeTextColor != badgeTextColor ||
+        oldDelegate.badgeBorderColor != badgeBorderColor;
   }
 }
 

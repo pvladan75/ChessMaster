@@ -1902,6 +1902,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               child: CustomPaint(
                 size: Size(size, size),
                 painter: ChessBoardPainter(
+                  lastMoveColor: context.colors.warning,
+                  drawingModeColor: context.colors.accent,
+                  badgeTextColor: context.colors.canvas,
+                  badgeBorderColor: context.colors.canvas,
                   arrows: const [],
                   boardSize: size,
                   orientation: _orientation,
@@ -1917,6 +1921,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               child: CustomPaint(
                 size: Size(size, size),
                 painter: ChessBoardPainter(
+                  lastMoveColor: context.colors.warning,
+                  drawingModeColor: context.colors.accent,
+                  badgeTextColor: context.colors.canvas,
+                  badgeBorderColor: context.colors.canvas,
                   arrows: const [],
                   engineArrows: _engineArrows,
                   boardSize: size,

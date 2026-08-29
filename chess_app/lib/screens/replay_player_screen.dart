@@ -692,6 +692,10 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                                 Positioned.fill(
                                   child: CustomPaint(
                                     painter: ChessBoardPainter(
+                                      lastMoveColor: context.colors.warning,
+                                      drawingModeColor: context.colors.accent,
+                                      badgeTextColor: context.colors.canvas,
+                                      badgeBorderColor: context.colors.canvas,
                                       arrows: currentArrows,
                                       engineArrows: currentEngineArrows,
                                       boardSize: boardSize,

@@ -2,6 +2,7 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
+import 'package:chess_app/theme/app_colors.dart';
 
 import 'package:chess_app/core/services/board_on_screen.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
@@ -293,6 +294,10 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
               child: CustomPaint(
                 size: Size(widget.boardSize, widget.boardSize),
                 painter: ChessBoardPainter(
+                  lastMoveColor: context.colors.warning,
+                  drawingModeColor: context.colors.accent,
+                  badgeTextColor: context.colors.canvas,
+                  badgeBorderColor: context.colors.canvas,
                   arrows: widget.arrows,
                   engineArrows: widget.engineArrows,
                   boardSize: widget.boardSize,
@@ -308,6 +313,10 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
               child: CustomPaint(
                 size: Size(widget.boardSize, widget.boardSize),
                 painter: ChessBoardPainter(
+                  lastMoveColor: context.colors.warning,
+                  drawingModeColor: context.colors.accent,
+                  badgeTextColor: context.colors.canvas,
+                  badgeBorderColor: context.colors.canvas,
                   arrows: widget.arrows,
                   engineArrows: widget.engineArrows,
                   boardSize: widget.boardSize,
