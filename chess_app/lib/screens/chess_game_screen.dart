@@ -51,8 +51,8 @@ import 'package:chess_app/features/groups/widgets/room_guests_dialog.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:go_router/go_router.dart';
-import 'package:chess_app/theme/app_spacing.dart';
-import 'package:chess_app/theme/app_radii.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 // 3. MULTIPLAYER CHESS GAME PAGE
 class ChessGamePage extends StatefulWidget {
@@ -518,7 +518,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             context,
             () => SnackBar(
                   content: Text(data['error']?.toString() ?? 'Nije uspelo.'),
-                  backgroundColor: Colors.redAccent,
+                  backgroundColor: context.colors.danger,
                 ));
         return;
       }
@@ -528,15 +528,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 content: Text(mayTalk
                     ? 'Učenik je dobio mikrofon.'
                     : 'Učeniku je oduzet mikrofon — i dalje sluša i odgovara na tabli.'),
-                backgroundColor: mayTalk ? Colors.green : Colors.orange,
+                backgroundColor:
+                    mayTalk ? context.colors.success : context.colors.warning,
               ));
     } catch (e) {
       if (!mounted) return;
       AppFeedback.show(
           context,
-          () => const SnackBar(
+          () => SnackBar(
                 content: Text('Server nije dostupan.'),
-                backgroundColor: Colors.redAccent,
+                backgroundColor: context.colors.danger,
               ));
     }
   }
@@ -906,8 +907,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
           : 'Nemate ovlašćenje za ovu akciju.';
       AppFeedback.show(
         context,
-        () =>
-            SnackBar(content: Text(reason), backgroundColor: Colors.redAccent),
+        () => SnackBar(
+            content: Text(reason), backgroundColor: context.colors.danger),
       );
     });
 
@@ -928,7 +929,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
       final text = messages[reason] ?? 'Ulazak u sobu nije dozvoljen.';
       AppFeedback.show(
         context,
-        () => SnackBar(content: Text(text), backgroundColor: Colors.redAccent),
+        () => SnackBar(
+            content: Text(text), backgroundColor: context.colors.danger),
       );
       // And out, rather than sitting in a room that never fills: the board
       // would stay empty and the reason would scroll away with the snackbar.
@@ -1119,7 +1121,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     ? 'Promovisani ste u ulogu Trenera! Sada imate punu kontrolu nad tablom i sesijom.'
                     : 'Vaša uloga je vraćena na Učenik.',
               ),
-              backgroundColor: newRole == 'trener' ? Colors.teal : Colors.amber,
+              backgroundColor: newRole == 'trener'
+                  ? context.colors.accent
+                  : context.colors.warning,
               duration: const Duration(seconds: 4),
             ),
           );
@@ -1207,8 +1211,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         ? '$updatedBy je nastavio snimanje.'
                         : '$updatedBy je zaustavio snimanje.'))),
             duration: const Duration(seconds: 2),
-            backgroundColor:
-                status == 'started' ? Colors.redAccent : Colors.amber,
+            backgroundColor: status == 'started'
+                ? context.colors.danger
+                : context.colors.warning,
           ),
         );
       }
@@ -1226,10 +1231,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
             context: context,
             builder: (ctx) => AlertDialog(
               title: Row(
-                children: const [
-                  Icon(Icons.share, color: Colors.amber),
-                  SizedBox(width: AppSpacing.sm),
-                  Text('Predložena pozicija'),
+                children: [
+                  Icon(Icons.share, color: context.colors.warning),
+                  const SizedBox(width: AppSpacing.sm),
+                  const Text('Predložena pozicija'),
                 ],
               ),
               content: Text(
@@ -1255,7 +1260,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             () => SnackBar(
               content:
                   Text('Učenik $studentName je podelio poziciju: "$title"'),
-              backgroundColor: Colors.blueAccent,
+              backgroundColor: context.colors.info,
             ),
           );
         }
@@ -1300,7 +1305,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ? 'Trener je isključio vaš mikrofon. I dalje čujete čas i '
                       'odgovarate na tabli.'
                   : 'Trener je isključio vaš mikrofon.')),
-          backgroundColor: mayTalk ? Colors.green : Colors.orange,
+          backgroundColor:
+              mayTalk ? context.colors.success : context.colors.warning,
           duration: const Duration(seconds: 4),
         ),
       );
@@ -1319,7 +1325,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         context,
         () => SnackBar(
           content: Text('$who: $said'),
-          backgroundColor: Colors.blueGrey,
+          backgroundColor: context.colors.info,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -1337,10 +1343,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
           });
           AppFeedback.show(
             context,
-            () => const SnackBar(
+            () => SnackBar(
               content: Text(
                   'Trener vas je utišao. Možete podići ruku ako želite reč.'),
-              backgroundColor: Colors.orange,
+              backgroundColor: context.colors.warning,
               duration: Duration(seconds: 4),
             ),
           );
@@ -1360,9 +1366,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
           });
           AppFeedback.show(
             context,
-            () => const SnackBar(
+            () => SnackBar(
               content: Text('Trener vam je dozvolio reč.'),
-              backgroundColor: Colors.green,
+              backgroundColor: context.colors.success,
               duration: Duration(seconds: 4),
             ),
           );
@@ -1377,7 +1383,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           context,
           () => SnackBar(
             content: Text('Učenik $userName želi reč.'),
-            backgroundColor: Colors.orangeAccent,
+            backgroundColor: context.colors.warning,
             duration: const Duration(seconds: 4),
           ),
         );
@@ -1485,9 +1491,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     AppFeedback.show(
       context,
-      () => const SnackBar(
+      () => SnackBar(
         content: Text('Snimanje je pauzirano. Akcije se privremeno ne beleže.'),
-        backgroundColor: Colors.orange,
+        backgroundColor: context.colors.warning,
         duration: Duration(seconds: 2),
       ),
     );
@@ -1506,10 +1512,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     AppFeedback.show(
       context,
-      () => const SnackBar(
+      () => SnackBar(
         content: Text(
             'Snimanje je nastavljeno! Svi sledstveni potezi se beleže u kombinovani snimak.'),
-        backgroundColor: Colors.green,
+        backgroundColor: context.colors.success,
         duration: Duration(seconds: 2),
       ),
     );
@@ -1556,7 +1562,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             const SizedBox(height: AppSpacing.md),
             Text(
               'Ukupno zabeleženo događaja: ${_recorder.eventCount}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: AppText.body.copyWith(color: context.colors.textMuted),
             ),
           ],
         ),
@@ -1567,7 +1573,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                backgroundColor: context.colors.accent,
+                foregroundColor: context.colors.canvas),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Sačuvaj snimak'),
           ),
@@ -1614,10 +1621,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
       AppFeedback.show(
         context,
-        () => const SnackBar(
+        () => SnackBar(
           content: Text(
               'Snimak časa je sačuvan na vašem uređaju! Sinhronizacija sa serverom se vrši u pozadini.'),
-          backgroundColor: Colors.teal,
+          backgroundColor: context.colors.accent,
           duration: Duration(seconds: 4),
         ),
       );
@@ -1658,7 +1665,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         context,
         () => SnackBar(
             content: Text('Greška pri čuvanju lokalnog snimka: $e'),
-            backgroundColor: Colors.redAccent),
+            backgroundColor: context.colors.danger),
       );
     } finally {
       setState(() {
@@ -1793,7 +1800,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               onPressed: () => Navigator.pop(ctx, false)),
           TextButton(
             child:
-                const Text('Obriši', style: TextStyle(color: Colors.redAccent)),
+                Text('Obriši', style: TextStyle(color: context.colors.danger)),
             onPressed: () => Navigator.pop(ctx, true),
           ),
         ],
@@ -2531,11 +2538,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
           title: Row(
-            children: const [
-              Icon(Icons.person_add, color: Colors.tealAccent),
-              SizedBox(width: AppSpacing.sm),
-              Text('Pozovi prijatelje u sesiju',
-                  style: TextStyle(fontSize: 16)),
+            children: [
+              Icon(Icons.person_add, color: context.colors.accent),
+              const SizedBox(width: AppSpacing.sm),
+              const Text('Pozovi prijatelje u sesiju', style: AppText.title),
             ],
           ),
           content: Column(
@@ -2543,28 +2549,27 @@ class _ChessGamePageState extends State<ChessGamePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Soba: ${widget.roomCode}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: Colors.tealAccent)),
+                  style:
+                      AppText.bodyBold.copyWith(color: context.colors.accent)),
               const SizedBox(height: AppSpacing.sm),
               const Text('Izaberite prijatelje koje želite da pozovete:',
-                  style: TextStyle(fontSize: 12)),
+                  style: AppText.body),
               const SizedBox(height: AppSpacing.md),
               if (loadError != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                   child: Text(loadError,
-                      style: const TextStyle(
-                          fontSize: 11, color: Colors.orangeAccent)),
+                      style: AppText.caption
+                          .copyWith(color: context.colors.warning)),
                 )
               else if (friendsList.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                   child: Text(
                       'Nemate nikoga na spisku. Na njemu su učenici i treneri '
                       'sa prihvaćenom vezom.',
-                      style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      style: AppText.caption
+                          .copyWith(color: context.colors.textMuted)),
                 )
               else
                 Container(
@@ -2580,8 +2585,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               style: const TextStyle(
                                   fontSize: 12, fontWeight: FontWeight.bold)),
                           subtitle: Text(f['email'] ?? '',
-                              style: const TextStyle(
-                                  fontSize: 10, color: Colors.grey)),
+                              style: AppText.micro
+                                  .copyWith(color: context.colors.textMuted)),
                           value: isSel,
                           onChanged: (val) {
                             setModalState(() {
@@ -2608,7 +2613,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
               icon: const Icon(Icons.send, size: 14),
               label: Text('Pošalji pozivnice (${selectedFriendIds.length})'),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                  backgroundColor: context.colors.accent,
+                  foregroundColor: context.colors.canvas),
               onPressed: () async {
                 Navigator.pop(ctx);
                 if (selectedFriendIds.isEmpty) return;
@@ -2641,7 +2647,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       context,
       () => SnackBar(
         content: Text(message),
-        backgroundColor: Colors.redAccent,
+        backgroundColor: context.colors.danger,
       ),
     );
   }
@@ -2651,7 +2657,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       context,
       () => SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: context.colors.success,
       ),
     );
   }
