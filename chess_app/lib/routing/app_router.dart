@@ -1,6 +1,6 @@
 import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
+import 'package:chess_app/theme/app_colors.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/routing/app_routes.dart';
@@ -357,8 +357,8 @@ class _NothingLeftScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle_outline,
-                size: 48, color: Colors.green),
+            Icon(Icons.check_circle_outline,
+                size: 48, color: context.colors.success),
             const SizedBox(height: AppSpacing.md),
             const Text('Ovaj zadatak je već završen.'),
             const SizedBox(height: AppSpacing.lg),
@@ -390,7 +390,8 @@ class _InvalidRouteScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.explore_off, size: 48, color: Colors.grey),
+              Icon(Icons.explore_off,
+                  size: 48, color: context.colors.textSecondary),
               const SizedBox(height: AppSpacing.lg),
               Text(
                 'Ova putanja ne postoji.',
@@ -400,7 +401,8 @@ class _InvalidRouteScreen extends StatelessWidget {
               Text(
                 detail,
                 textAlign: TextAlign.center,
-                style: AppText.body.copyWith(color: Colors.grey),
+                style:
+                    AppText.body.copyWith(color: context.colors.textSecondary),
               ),
               const SizedBox(height: AppSpacing.xl),
               ElevatedButton.icon(

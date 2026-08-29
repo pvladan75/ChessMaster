@@ -1,5 +1,6 @@
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:flutter/material.dart';
+import 'package:chess_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
@@ -30,7 +31,6 @@ import 'package:chess_app/widgets/home/friends_tab.dart';
 import 'package:chess_app/models/relationship_request_target.dart';
 import 'package:chess_app/features/trainer_panel/models/trainer_panel.dart';
 import 'package:chess_app/features/trainer_panel/services/trainer_panel_api_service.dart';
-import 'package:chess_app/theme/app_spacing.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserSession session;
@@ -1006,8 +1006,8 @@ class _HomeScreenState extends State<HomeScreen> {
     AppFeedback.show(
       context,
       () => SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.teal,
+        content: Text(message, style: TextStyle(color: context.colors.canvas)),
+        backgroundColor: context.colors.success,
       ),
     );
   }
@@ -1016,8 +1016,8 @@ class _HomeScreenState extends State<HomeScreen> {
     AppFeedback.show(
       context,
       () => SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
+        content: Text(message, style: TextStyle(color: context.colors.canvas)),
+        backgroundColor: context.colors.danger,
       ),
     );
   }
@@ -1153,14 +1153,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           onPressed: () {
                             context.push(AppRoutes.login);
                           },
-                          icon: const Icon(Icons.login, color: Colors.white),
-                          label: const Text('Prijavi Se',
-                              style: TextStyle(color: Colors.white)),
+                          icon: Icon(Icons.login,
+                              color: context.colors.textPrimary),
+                          label: Text('Prijavi Se',
+                              style:
+                                  TextStyle(color: context.colors.textPrimary)),
                         ),
                       IconButton(
                         tooltip: 'Podešavanja',
-                        icon: const Icon(Icons.settings_outlined,
-                            color: Colors.white70),
+                        icon: Icon(Icons.settings_outlined,
+                            color: context.colors.textSecondary),
                         // Out of the tabs and into the bar. Settings is not a place
                         // anybody lives in, and it already had a path of its own -
                         // one that opens over whatever is underneath rather than
@@ -1172,8 +1174,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Badge(
                           isLabelVisible: _unreadNotifications > 0,
                           label: Text('$_unreadNotifications'),
-                          child: const Icon(Icons.notifications,
-                              color: Colors.amberAccent),
+                          child: Icon(Icons.notifications,
+                              color: context.colors.warning),
                         ),
                         onPressed: _showNotificationsDialog,
                       ),
@@ -1208,8 +1210,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     bottom: AppSpacing.md),
                                 child: IconButton(
                                   tooltip: 'Podešavanja',
-                                  icon: const Icon(Icons.settings_outlined,
-                                      color: Colors.white70),
+                                  icon: Icon(Icons.settings_outlined,
+                                      color: context.colors.textSecondary),
                                   onPressed: () =>
                                       context.push(AppRoutes.preferences),
                                 ),
@@ -1231,8 +1233,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     icon: Badge(
                                       isLabelVisible: _unreadNotifications > 0,
                                       label: Text('$_unreadNotifications'),
-                                      child: const Icon(Icons.notifications,
-                                          color: Colors.amberAccent),
+                                      child: Icon(Icons.notifications,
+                                          color: context.colors.warning),
                                     ),
                                     onPressed: _showNotificationsDialog,
                                   ),
@@ -1317,7 +1319,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!gs.hasActiveSession) return const SizedBox.shrink();
 
     return Material(
-      color: Colors.teal.shade700,
+      color: context.colors.infoContainer,
       child: InkWell(
         onTap: () =>
             context.push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
@@ -1326,19 +1328,22 @@ class _HomeScreenState extends State<HomeScreen> {
               horizontal: AppSpacing.lg, vertical: 10),
           child: Row(
             children: [
-              const Icon(Icons.podcasts, color: Colors.white, size: 20),
+              Icon(Icons.podcasts,
+                  color: context.colors.onInfoContainer, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Aktivna sesija (kod: ${gs.roomCode}) — dodirnite da nastavite',
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: context.colors.onInfoContainer,
+                      fontWeight: FontWeight.w600),
                 ),
               ),
               TextButton(
                 onPressed: () => context
                     .push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
-                style: TextButton.styleFrom(foregroundColor: Colors.white),
+                style: TextButton.styleFrom(
+                    foregroundColor: context.colors.onInfoContainer),
                 child: const Text('Nastavi sesiju'),
               ),
             ],
