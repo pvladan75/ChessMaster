@@ -5,6 +5,7 @@ import 'package:chess_app/routing/app_routes.dart';
 
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
@@ -174,9 +175,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
             Row(
               children: [
                 const Expanded(
-                  child: Text('Vaš napredak',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text('Vaš napredak', style: AppText.title),
                 ),
                 Chip(
                   visualDensity: VisualDensity.compact,
@@ -189,22 +188,22 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
             if (!progress.hasData)
               Text(
                 'Još nema podataka — rešite nekoliko zagonetki.',
-                style: TextStyle(
-                    color: context.colors.textSecondary, fontSize: 13),
+                style: AppText.bodyLarge
+                    .copyWith(color: context.colors.textSecondary),
               )
             else ...[
               Text(
                 'Poslednjih ${progress.periodDays} dana: ${progress.totalAttempts} zagonetki, '
                 'tačnost ${progress.accuracy}%, aktivnih dana ${progress.activeDays}.',
-                style: TextStyle(
-                    color: context.colors.textSecondary, fontSize: 13),
+                style: AppText.bodyLarge
+                    .copyWith(color: context.colors.textSecondary),
               ),
               if (progress.weakestThemes.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'Najviše grešite: '
                   '${progress.weakestThemes.take(3).map((t) => themeLabel(t.theme)).join(', ')}.',
-                  style: const TextStyle(fontSize: 13),
+                  style: AppText.bodyLarge,
                 ),
               ],
             ],
@@ -262,8 +261,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
               if (assignment.instructions != null &&
                   assignment.instructions!.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Text(assignment.instructions!,
-                    style: const TextStyle(fontSize: 13)),
+                Text(assignment.instructions!, style: AppText.bodyLarge),
               ],
               const SizedBox(height: 10),
               LinearProgressIndicator(
@@ -276,16 +274,15 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                     ? '${assignment.attemptedItems} / ${assignment.totalItems} koraka pregledano'
                     : '${assignment.attemptedItems} / ${assignment.totalItems} urađeno'
                         '${assignment.accuracy == null ? '' : ' · tačnost ${assignment.accuracy}%'}',
-                style: TextStyle(
-                    fontSize: 12, color: context.colors.textSecondary),
+                style:
+                    AppText.body.copyWith(color: context.colors.textSecondary),
               ),
               if (assignment.dueAt != null)
                 Text(
                   overdue
                       ? 'Rok je istekao'
                       : 'Rok: ${assignment.dueAt!.day}.${assignment.dueAt!.month}.${assignment.dueAt!.year}.',
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: AppText.body.copyWith(
                     color: overdue
                         ? context.colors.danger
                         : context.colors.textMuted,
@@ -303,8 +300,8 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                   child: TextButton.icon(
                     onPressed: () => _openReview(assignment),
                     icon: const Icon(Icons.rate_review_outlined, size: 16),
-                    label: const Text('Pregled i komentari',
-                        style: TextStyle(fontSize: 12)),
+                    label:
+                        const Text('Pregled i komentari', style: AppText.body),
                   ),
                 ),
             ],

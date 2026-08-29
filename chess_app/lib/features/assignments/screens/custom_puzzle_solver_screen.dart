@@ -5,6 +5,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
@@ -320,7 +321,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
               child: Text(
                 'Pozicija ${_index + 1} od ${_queue.length}',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                style: AppText.body.copyWith(color: colors.textSecondary),
               ),
             ),
             IconButton(
@@ -330,7 +331,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
               visualDensity: VisualDensity.compact,
             ),
             Text('Tačno: $_solved',
-                style: TextStyle(color: colors.success, fontSize: 12)),
+                style: AppText.body.copyWith(color: colors.success)),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -366,7 +367,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
         if (assignmentNote != null && assignmentNote.trim().isNotEmpty) ...[
           const SizedBox(height: 6),
           Text(assignmentNote,
-              style: TextStyle(fontSize: 12, color: colors.textMuted)),
+              style: AppText.body.copyWith(color: colors.textMuted)),
         ],
       ],
     );
@@ -402,7 +403,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text('Rezultat se ne menja — računa se prvi pokušaj.',
-                style: TextStyle(color: colors.textMuted, fontSize: 12)),
+                style: AppText.body.copyWith(color: colors.textMuted)),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: 8,
@@ -426,7 +427,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
 
       return Text(
         'Odigraj potez na tabli.',
-        style: TextStyle(color: colors.textMuted, fontSize: 12),
+        style: AppText.body.copyWith(color: colors.textMuted),
       );
     }
 
@@ -441,8 +442,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
             const SizedBox(width: AppSpacing.sm),
             Text(
               verdict.correct ? 'Tačno' : 'Nije to',
-              style: TextStyle(
-                  color: tone, fontSize: 16, fontWeight: FontWeight.bold),
+              style: AppText.title.copyWith(color: tone),
             ),
           ],
         ),
@@ -451,10 +451,10 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
         // something the book did not print, and should know it counted.
         if (verdict.correct && verdict.reason == 'drugi mat, ali mat')
           Text('Drugi mat od onog u knjizi — ali mat je mat.',
-              style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+              style: AppText.body.copyWith(color: colors.textSecondary)),
         if (!verdict.correct && verdict.solutionSan != null)
           Text('Rešenje: ${verdict.solutionSan}',
-              style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+              style: AppText.bodyLarge.copyWith(color: colors.textSecondary)),
         const SizedBox(height: 10),
         FilledButton.icon(
           onPressed: _next,

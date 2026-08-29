@@ -7,6 +7,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
@@ -340,8 +341,7 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
             Icon(Icons.chat_bubble_outline,
                 size: 16, color: context.colors.textSecondary),
             const SizedBox(width: AppSpacing.sm),
-            Expanded(
-                child: Text(comment, style: const TextStyle(fontSize: 13))),
+            Expanded(child: Text(comment, style: AppText.bodyLarge)),
           ],
         ),
       ),
@@ -371,8 +371,8 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
                 ),
                 Text(
                   '${_stepIndex + 1}/${_steps.length}',
-                  style: TextStyle(
-                      fontSize: 13, color: context.colors.textSecondary),
+                  style: AppText.bodyLarge
+                      .copyWith(color: context.colors.textSecondary),
                 ),
               ],
             ),
@@ -415,7 +415,7 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
             ],
             if (instructions != null && instructions.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.sm),
-              Text(instructions, style: const TextStyle(fontSize: 13)),
+              Text(instructions, style: AppText.bodyLarge),
             ],
           ],
         ),
@@ -432,7 +432,7 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
         children: [
           Text(
             'Probaš poteze — ovde se ništa ne ocenjuje.',
-            style: TextStyle(fontSize: 12, color: context.colors.textMuted),
+            style: AppText.body.copyWith(color: context.colors.textMuted),
           ),
           const SizedBox(height: AppSpacing.xs),
           OutlinedButton.icon(

@@ -5,6 +5,7 @@ import 'package:chess_app/routing/app_routes.dart';
 
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
 import '../widgets/assign_lesson_dialog.dart';
@@ -239,9 +240,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             Row(
               children: [
                 const Expanded(
-                  child: Text('Pregled',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text('Pregled', style: AppText.title),
                 ),
                 Chip(
                   visualDensity: VisualDensity.compact,
@@ -279,8 +278,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             Text(
               'Zadaci: ${progress.assignmentsCompleted}/${progress.assignmentsTotal} završeno'
               '${progress.assignmentsOverdue > 0 ? ' · ${progress.assignmentsOverdue} van roka' : ''}',
-              style: TextStyle(
-                fontSize: 13,
+              style: AppText.bodyLarge.copyWith(
                 color: progress.assignmentsOverdue > 0
                     ? context.colors.danger
                     : context.colors.textSecondary,
@@ -315,7 +313,8 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
           child: Text(
             'Još nema dovoljno pokušaja da bi se izdvojile slabe teme. '
             'Tema ulazi u izveštaj tek posle nekoliko rešenih zagonetki.',
-            style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
+            style:
+                AppText.bodyLarge.copyWith(color: context.colors.textSecondary),
           ),
         ),
       );
@@ -328,8 +327,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Po temama',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text('Po temama', style: AppText.title),
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Prikazane su samo teme sa dovoljno pokušaja da broj nešto znači.',
@@ -362,7 +360,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             flex: 5,
             child: Text(
               themeLabel(theme.theme),
-              style: const TextStyle(fontSize: 13),
+              style: AppText.bodyLarge,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -384,8 +382,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             width: 74,
             child: Text(
               '$accuracy% (${theme.attempts})',
-              style:
-                  TextStyle(fontSize: 12, color: context.colors.textSecondary),
+              style: AppText.body.copyWith(color: context.colors.textSecondary),
               textAlign: TextAlign.right,
             ),
           ),
@@ -402,14 +399,13 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Zadaci',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text('Zadaci', style: AppText.title),
             const SizedBox(height: AppSpacing.sm),
             if (_assignments.isEmpty)
               Text(
                 'Još niste zadali nijednu vežbu ovom učeniku.',
-                style: TextStyle(
-                    color: context.colors.textSecondary, fontSize: 13),
+                style: AppText.bodyLarge
+                    .copyWith(color: context.colors.textSecondary),
               )
             else
               ..._assignments.map((assignment) => ListTile(
@@ -435,7 +431,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                     subtitle: Text(
                       '${assignment.attemptedItems}/${assignment.totalItems} urađeno'
                       '${assignment.accuracy == null ? '' : ' · tačnost ${assignment.accuracy}%'}',
-                      style: const TextStyle(fontSize: 12),
+                      style: AppText.body,
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete_outline),

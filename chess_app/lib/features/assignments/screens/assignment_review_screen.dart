@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/assignment_review.dart';
@@ -219,14 +220,14 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
             ),
             if (review.instructions != null) ...[
               const SizedBox(height: AppSpacing.sm),
-              Text(review.instructions!, style: const TextStyle(fontSize: 13)),
+              Text(review.instructions!, style: AppText.bodyLarge),
             ],
             const SizedBox(height: 6),
             Text(
               review.isTrainer
                   ? 'Učenik: ${review.studentName ?? '—'}'
                   : 'Zadao: ${review.trainerName ?? '—'}',
-              style: TextStyle(fontSize: 12, color: colors.textMuted),
+              style: AppText.body.copyWith(color: colors.textMuted),
             ),
           ],
         ),
@@ -267,7 +268,7 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
                 review.isTrainer
                     ? 'Još ništa nije napisano. Učenik vidi ono što ovde napišete.'
                     : 'Još ništa nije napisano. Ovde možete pitati trenera.',
-                style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                style: AppText.body.copyWith(color: colors.textSecondary),
               )
             else
               ...notes.map((note) =>
@@ -325,8 +326,8 @@ class _ItemCard extends StatelessWidget {
                     color: colors.surfaceRaised,
                     child: Text('tabla nije\ndostupna',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 11, color: colors.textSecondary)),
+                        style: AppText.caption
+                            .copyWith(color: colors.textSecondary)),
                   ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
@@ -338,8 +339,7 @@ class _ItemCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               item.label(index),
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 13),
+                              style: AppText.bodyLargeBold,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -350,8 +350,8 @@ class _ItemCard extends StatelessWidget {
                       if (item.instruction != null) ...[
                         const SizedBox(height: AppSpacing.xs),
                         Text(item.instruction!,
-                            style: TextStyle(
-                                fontSize: 12, color: colors.textSecondary)),
+                            style: AppText.body
+                                .copyWith(color: colors.textSecondary)),
                       ],
                       const SizedBox(height: AppSpacing.sm),
                       ..._answerLines(context),
@@ -369,7 +369,7 @@ class _ItemCard extends StatelessWidget {
                 onPressed: onComment,
                 icon: const Icon(Icons.mode_comment_outlined, size: 15),
                 label: Text(isTrainer ? 'Komentariši' : 'Pitaj',
-                    style: const TextStyle(fontSize: 12)),
+                    style: AppText.body),
               ),
             ),
           ],
@@ -432,7 +432,7 @@ class _ItemCard extends StatelessWidget {
         lines.add(Padding(
           padding: const EdgeInsets.only(top: AppSpacing.xxs),
           child: Text('priznato iako nije autorov potez',
-              style: TextStyle(fontSize: 11, color: colors.success)),
+              style: AppText.caption.copyWith(color: colors.success)),
         ));
       }
     }
@@ -453,7 +453,7 @@ class _ItemCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
       child: RichText(
         text: TextSpan(
-          style: TextStyle(fontSize: 12, color: colors.textPrimary),
+          style: AppText.body.copyWith(color: colors.textPrimary),
           children: [
             TextSpan(
                 text: '$label: ',
@@ -494,7 +494,7 @@ class _ItemCard extends StatelessWidget {
           color: color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(99),
         ),
-        child: Text(text, style: TextStyle(fontSize: 11, color: color)),
+        child: Text(text, style: AppText.caption.copyWith(color: color)),
       );
 }
 
