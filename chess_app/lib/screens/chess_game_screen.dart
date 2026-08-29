@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
 import 'package:chess/chess.dart' as chess;
 
@@ -790,9 +789,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
-  Widget _buildColorButton(String code, ui.Color color, String tooltip) {
+  Widget _buildColorButton(String code, String tooltip) {
     return ArrowColorButton(
-      color: color,
+      // The swatch reads the same palette the painter draws with. It used to be
+      // handed a Material colour at each call site, and they had drifted.
+      color: ChessBoardPainter.arrowPalette[code] ?? Colors.tealAccent,
       tooltip: tooltip,
       isSelected: selectedArrowColorCode == code,
       onTap: () {
@@ -3206,10 +3207,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildColorButton('G', Colors.green, 'Zelena'),
-                        _buildColorButton('R', Colors.red, 'Crvena'),
-                        _buildColorButton('B', Colors.blue, 'Plava'),
-                        _buildColorButton('O', Colors.orange, 'Narandžasta'),
+                        _buildColorButton('G', 'Zelena'),
+                        _buildColorButton('R', 'Crvena'),
+                        _buildColorButton('B', 'Plava'),
+                        _buildColorButton('O', 'Narandžasta'),
                       ],
                     ),
                   ],
@@ -3342,10 +3343,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildColorButton('G', Colors.green, 'Zelena'),
-                        _buildColorButton('R', Colors.red, 'Crvena'),
-                        _buildColorButton('B', Colors.blue, 'Plava'),
-                        _buildColorButton('O', Colors.orange, 'Narandžasta'),
+                        _buildColorButton('G', 'Zelena'),
+                        _buildColorButton('R', 'Crvena'),
+                        _buildColorButton('B', 'Plava'),
+                        _buildColorButton('O', 'Narandžasta'),
                       ],
                     ),
                   ],
