@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 /// What the account is and what it has used up.
 ///
@@ -68,19 +70,17 @@ class _AccountStatsCardState extends State<AccountStatsCard> {
     final limits = stats?['limits'] as Map<String, dynamic>?;
 
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.pie_chart, color: Colors.tealAccent),
-                const SizedBox(width: 8),
-                const Text('Statistika naloga',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Icon(Icons.pie_chart, color: context.colors.accent),
+                const SizedBox(width: AppSpacing.sm),
+                Text('Statistika naloga', style: AppText.title),
                 const Spacer(),
                 if (_loading)
                   const SizedBox(
@@ -92,41 +92,40 @@ class _AccountStatsCardState extends State<AccountStatsCard> {
                   Chip(
                     label: Text(
                       premium ? 'PREMIUM' : 'FREE',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 10),
+                      style: AppText.micro.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.textPrimary),
                     ),
                     backgroundColor: premium
-                        ? Colors.amber.withValues(alpha: 0.3)
-                        : Colors.teal.withValues(alpha: 0.3),
+                        ? context.colors.warning.withValues(alpha: 0.3)
+                        : context.colors.accent.withValues(alpha: 0.3),
                   ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.bookmark, color: Colors.teal),
-              title: const Text('Sačuvane lekcije / pozicije',
-                  style: TextStyle(fontSize: 13)),
+              leading: Icon(Icons.bookmark, color: context.colors.accent),
+              title:
+                  Text('Sačuvane lekcije / pozicije', style: AppText.bodyLarge),
               trailing: Text(
                 _limit(stats?['savedLessonsCount'], limits?['maxSavedLessons'],
                     20),
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style: AppText.bodyLargeBold,
               ),
             ),
             ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.video_camera_front,
-                  color: Colors.blueAccent),
-              title: const Text('Kreirano sesija u tekućem mesecu',
-                  style: TextStyle(fontSize: 13)),
+              leading:
+                  Icon(Icons.video_camera_front, color: context.colors.info),
+              title: Text('Kreirano sesija u tekućem mesecu',
+                  style: AppText.bodyLarge),
               trailing: Text(
                 _limit(stats?['monthlySessionsCount'],
                     limits?['maxMonthlySessions'], 5),
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style: AppText.bodyLargeBold,
               ),
             ),
           ],
