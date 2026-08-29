@@ -144,8 +144,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context, _) {
         final known = standing.current?.birthYear;
         return Card(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
           child: ListTile(
             leading: Icon(Icons.cake_outlined, color: context.colors.accent),
             title: const Text('Godina rođenja'),
@@ -176,10 +175,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (current == null || !current.minor) return const SizedBox.shrink();
         final onFile = current.parentEmailOnFile;
         return Padding(
-          padding: const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.only(top: AppSpacing.sm),
           child: Card(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
             child: ListTile(
               leading: Icon(
                 onFile ? Icons.mark_email_read_outlined : Icons.email_outlined,
@@ -206,10 +204,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context, _) {
         final languages = speech.availableLanguages;
         return Card(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -228,13 +225,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 if (speech.state == SpeechState.noVoice ||
                     speech.state == SpeechState.failed) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Icon(Icons.warning_amber,
                           color: Colors.orange, size: 18),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
                           speech.state == SpeechState.failed
@@ -252,7 +249,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: OutlinedButton.icon(
@@ -266,7 +263,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const Divider(height: 24),
                   const Text('Jezik govora:',
                       style: TextStyle(fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   DropdownButton<String>(
                     isExpanded: true,
                     // Only a value the list actually holds. A DropdownButton
@@ -365,16 +362,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             elevation: 0,
           ),
           body: ListView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
               // User Profile Header Card
               Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
                 elevation: 2,
                 color: Theme.of(context).cardColor,
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Row(
                     children: [
                       CircleAvatar(
@@ -388,7 +384,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               .copyWith(color: context.colors.textPrimary),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: AppSpacing.lg),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,13 +398,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: AppText.bodyLarge
                                   .copyWith(color: context.colors.textMuted),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: AppSpacing.xs),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
+                                  horizontal: AppSpacing.sm,
+                                  vertical: AppSpacing.xxs),
                               decoration: BoxDecoration(
                                 color: Colors.teal.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: AppRadii.roundedSm,
                               ),
                               child: Text(
                                 'Korisnik',
@@ -470,28 +467,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // The voice's language is a different question and is settable
               // below: it picks among the voices the machine actually has.
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               Text('NALOG',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               // Moved here from the first tab, where it was the first thing
               // under the buttons for starting a lesson. A plan name and a
               // saved-position count are facts about the account, and this is
               // the screen about the account.
               AccountStatsCard(session: widget.session),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               Text('STOCKFISH ENGINE',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
 
               Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -504,7 +500,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       // evaluation in the app shallower.
                       const Text('Jačina motora kada igra protiv vas:',
                           style: TextStyle(fontWeight: FontWeight.w500)),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       SegmentedButton<String>(
                         segments: [
                           for (final entry in AppSettingsService
@@ -573,12 +569,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       if (isCustomEngineSupported) ...[
                         const Divider(height: 24),
                         const Text('Lokalni engine (.exe):',
                             style: TextStyle(fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
                           _settings.customEnginePath.isNotEmpty
                               ? _settings.customEnginePath
@@ -589,7 +585,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 : context.colors.textMuted,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.sm),
                         Align(
                           alignment: Alignment.centerLeft,
                           child: OutlinedButton.icon(
@@ -604,17 +600,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               Text('IZGLED TABLE I PANELA',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
 
               Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -699,7 +694,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const Divider(height: 24),
                       const Text('Paneli u Analizi (Tabla za Analizu):',
                           style: TextStyle(fontWeight: FontWeight.w500)),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       ..._analysisPanelToggles.map((panel) => CheckboxListTile(
                             contentPadding: EdgeInsets.zero,
                             controlAffinity: ListTileControlAffinity.leading,
@@ -737,32 +732,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               Text('GOVOR (ČITANJE PORUKA)',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               _speechCard(context),
 
               if (!widget.session.isGuest) ...[
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.xxl),
                 Text('NALOG',
                     style: AppText.bodyBold
                         .copyWith(color: context.colors.textMuted)),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 _birthYearCard(context),
                 _parentEmailCard(context),
               ],
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               Text('PREČICE NA TASTATURI',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
 
               Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
                 child: ListTile(
                   leading: Icon(Icons.keyboard, color: context.colors.accent),
                   title: const Text('Spisak prečica'),
@@ -776,23 +770,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               Text('BAZA OTVARANJA (OPENING EXPLORER)',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
 
               Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Izvor podataka:',
                           style: TextStyle(fontWeight: FontWeight.w500)),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       Row(
                         children: [
                           Expanded(
@@ -804,7 +797,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               avatar: const Icon(Icons.bar_chart, size: 16),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: ChoiceChip(
                               label: const Text('ChessDB'),
@@ -816,7 +809,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       Text(
                         _settings.openingDbSource == 'lichess'
                             ? 'Lichess: popularnost poteza iz stvarno odigranih partija igrača. Ne traži nikakvo podešavanje — upit ide preko našeg servera, koji pamti odgovore.'
@@ -830,7 +823,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       TextField(
                         controller: _lichessTokenController,
                         obscureText: true,
@@ -846,7 +839,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               : null,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       // Wrap, not Row: two buttons and a long label fit on a
                       // desktop and do not on a 360 dp phone, where a release
                       // build clips the overflow without a word of warning.
@@ -871,7 +864,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxxl),
 
               // Which build this is, and a tap to carry it into a report.
               //
@@ -883,10 +876,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Center(
                 child: InkWell(
                   onTap: _copyBuildLabel,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadii.roundedSm,
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                     child: Text(
                       buildLabel(),
                       textAlign: TextAlign.center,
@@ -897,10 +890,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               if (kDebugMode) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 Card(
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadii.roundedMd,
                   ),
                   child: ListTile(
                     leading: Icon(
@@ -916,7 +909,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
             ],
           ),
         );
