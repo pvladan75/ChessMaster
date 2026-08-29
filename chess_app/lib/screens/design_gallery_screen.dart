@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -10,128 +12,168 @@ import 'package:chess_app/theme/breakpoints.dart';
 /// and domain-specific chess components (eval bar, move notation, dense analysis panel).
 ///
 /// Designed to be reviewed on both 360dp mobile screens and >=840dp desktop windows.
-class DesignGalleryScreen extends StatelessWidget {
+class DesignGalleryScreen extends StatefulWidget {
   const DesignGalleryScreen({super.key});
 
   @override
+  State<DesignGalleryScreen> createState() => _DesignGalleryScreenState();
+}
+
+class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
+  /// Which palette the gallery is showing. Local to this screen: it overrides
+  /// the theme for what is inside it and changes nothing about the app.
+  ///
+  /// Starts dark, rather than reading the ambient brightness. Rule 19's second
+  /// half stands and is not lifted by the light palette existing: no widget in
+  /// `lib/` asks `Theme.of(context).brightness`, because a widget that branches
+  /// on it is a third palette nobody measures. The gallery does not need to ask
+  /// — the app ships dark, so dark is what it opens on.
+  bool _isLightMode = false;
+
+  @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final isWideScreen = Breakpoints.isWide(context);
 
-    return Scaffold(
-      backgroundColor: colors.canvas,
-      appBar: AppBar(
-        title: const Text('Design Galerija — Mislisha'),
-        elevation: 0,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.lg),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.xs,
+    final theme = _isLightMode ? AppTheme.light : AppTheme.dark;
+
+    return Theme(
+        data: theme,
+        child: Builder(builder: (context) {
+          final colors = context.colors;
+          return Scaffold(
+            backgroundColor: colors.canvas,
+            appBar: AppBar(
+              title: const Text('Design Galerija — Mislisha'),
+              elevation: 0,
+              actions: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Svetla',
+                        style: AppText.caption
+                            .copyWith(color: colors.textPrimary)),
+                    Switch(
+                      value: _isLightMode,
+                      onChanged: (val) => setState(() => _isLightMode = val),
+                      activeTrackColor: colors.brand.withValues(alpha: 0.5),
+                      activeThumbColor: colors.brand,
+                    ),
+                  ],
                 ),
-                decoration: BoxDecoration(
-                  color: colors.brand.withValues(alpha: 0.10),
-                  borderRadius: AppRadii.roundedPill,
-                  border:
-                      Border.all(color: colors.brand.withValues(alpha: 0.4)),
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.lg),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.brand.withValues(alpha: 0.10),
+                        borderRadius: AppRadii.roundedPill,
+                        border: Border.all(
+                            color: colors.brand.withValues(alpha: 0.4)),
+                      ),
+                      child: Text(
+                        isWideScreen
+                            ? 'Desktop (>= 840dp)'
+                            : 'Mobilni (< 840dp)',
+                        style:
+                            AppText.captionBold.copyWith(color: colors.brand),
+                      ),
+                    ),
+                  ),
                 ),
-                child: Text(
-                  isWideScreen ? 'Desktop (>= 840dp)' : 'Mobilni (< 840dp)',
-                  style: AppText.captionBold.copyWith(color: colors.brand),
+              ],
+            ),
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1000),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _IntroBanner(colors: colors),
+                        const SizedBox(height: AppSpacing.xxl),
+                        _SectionHeader(
+                          title: '1. Paleta boja (Tokeni & Kontrast)',
+                          subtitle:
+                              '15 token uloga sa izmerenim WCAG AA/AAA kontrastnim odnosima',
+                          colors: colors,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        _PaletteGrid(colors: colors),
+                        const SizedBox(height: AppSpacing.xxl),
+                        _SectionHeader(
+                          title: '2. Tipografska skala',
+                          subtitle:
+                              'Skala veličina teksta definisana u AppText',
+                          colors: colors,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        _TypographySection(colors: colors),
+                        const SizedBox(height: AppSpacing.xxl),
+                        _SectionHeader(
+                          title: '3. Skala razmaka i zaobljenja',
+                          subtitle:
+                              'AppSpacing (4–32dp) i AppRadii (4–20dp, pill)',
+                          colors: colors,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        _SpacingAndRadiiSection(colors: colors),
+                        const SizedBox(height: AppSpacing.xxl),
+                        _SectionHeader(
+                          title: '4. Dugmad i interaktivne kontrole',
+                          subtitle:
+                              'Prilagođeno deci: minimalna dodirna površina 48×48 dp',
+                          colors: colors,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        _ButtonsSection(colors: colors),
+                        const SizedBox(height: AppSpacing.xxl),
+                        _SectionHeader(
+                          title: '5. Kartice i površine',
+                          subtitle: 'Sistemski nivoi elevacije i granica',
+                          colors: colors,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        _CardsSection(colors: colors),
+                        const SizedBox(height: AppSpacing.xxl),
+                        _SectionHeader(
+                          title: '6. Unos teksta i forme',
+                          subtitle: 'Polja za unos, preklopnici i opcije',
+                          colors: colors,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        _FormsSection(colors: colors),
+                        const SizedBox(height: AppSpacing.xxl),
+                        _SectionHeader(
+                          title: '7. Šahovske komponente',
+                          subtitle:
+                              'Traka evaluacije, notacija poteza i panel analize',
+                          colors: colors,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        _ChessComponentsSection(colors: colors),
+                        const SizedBox(height: AppSpacing.xxl),
+                        _SectionHeader(
+                          title: '8. Dijalozi i obaveštenja',
+                          subtitle: 'Stilizacija modalnih prozora',
+                          colors: colors,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        _DialogPreviewSection(colors: colors),
+                        const SizedBox(height: AppSpacing.xxxl),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1000),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _IntroBanner(colors: colors),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionHeader(
-                    title: '1. Paleta boja (Tokeni & Kontrast)',
-                    subtitle:
-                        '15 token uloga sa izmerenim WCAG AA/AAA kontrastnim odnosima',
-                    colors: colors,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  _PaletteGrid(colors: colors),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionHeader(
-                    title: '2. Tipografska skala',
-                    subtitle: 'Skala veličina teksta definisana u AppText',
-                    colors: colors,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  _TypographySection(colors: colors),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionHeader(
-                    title: '3. Skala razmaka i zaobljenja',
-                    subtitle: 'AppSpacing (4–32dp) i AppRadii (4–20dp, pill)',
-                    colors: colors,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  _SpacingAndRadiiSection(colors: colors),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionHeader(
-                    title: '4. Dugmad i interaktivne kontrole',
-                    subtitle:
-                        'Prilagođeno deci: minimalna dodirna površina 48×48 dp',
-                    colors: colors,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  _ButtonsSection(colors: colors),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionHeader(
-                    title: '5. Kartice i površine',
-                    subtitle: 'Sistemski nivoi elevacije i granica',
-                    colors: colors,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  _CardsSection(colors: colors),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionHeader(
-                    title: '6. Unos teksta i forme',
-                    subtitle: 'Polja za unos, preklopnici i opcije',
-                    colors: colors,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  _FormsSection(colors: colors),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionHeader(
-                    title: '7. Šahovske komponente',
-                    subtitle:
-                        'Traka evaluacije, notacija poteza i panel analize',
-                    colors: colors,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  _ChessComponentsSection(colors: colors),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionHeader(
-                    title: '8. Dijalozi i obaveštenja',
-                    subtitle: 'Stilizacija modalnih prozora',
-                    colors: colors,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  _DialogPreviewSection(colors: colors),
-                  const SizedBox(height: AppSpacing.xxxl),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+          );
+        }));
   }
 }
 
@@ -222,30 +264,21 @@ class _PaletteGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final swatches = [
-      _SwatchData('canvas', colors.canvas, '#0F172A', 'Pozadina ekrana'),
-      _SwatchData('surface', colors.surface, '#1E293B', 'Kartice i paneli'),
-      _SwatchData(
-          'surfaceRaised', colors.surfaceRaised, '#334155', 'Izdignuti redovi'),
-      _SwatchData('border', colors.border, '12% White', 'Suptilne linije'),
-      _SwatchData(
-          'borderStrong', colors.borderStrong, '24% White', 'Granice u fokusu'),
-      _SwatchData('textPrimary', colors.textPrimary, '#F8FAFC', '13.98:1 AAA'),
-      _SwatchData(
-          'textSecondary', colors.textSecondary, '#CBD5E1', '9.85:1 AAA'),
-      _SwatchData('textMuted', colors.textMuted, '#94A3B8', '5.71:1 AA'),
-      _SwatchData(
-          'accent (Teal)', colors.accent, '#2DD4BF', '7.86:1 AA Šah/Tabla'),
-      _SwatchData('accentAlt (Purple)', colors.accentAlt, '#C084FC',
-          '5.54:1 AA Varijante'),
-      _SwatchData(
-          'brand (Violet)', colors.brand, '#A78BFA', '5.38:1 AA Mislisha'),
-      _SwatchData('info (Sky)', colors.info, '#38BDF8', '6.83:1 AA Info/Pomoć'),
-      _SwatchData(
-          'warning (Amber)', colors.warning, '#FBBF24', '8.76:1 AA Upozorenje'),
-      _SwatchData(
-          'danger (Rose)', colors.danger, '#FDA4AF', '7.71:1 AA Greška/Mat'),
-      _SwatchData('success (Green)', colors.success, '#4ADE80',
-          '8.40:1 AA Tačan potez'),
+      _SwatchData('canvas', colors.canvas, 'Pozadina ekrana'),
+      _SwatchData('surface', colors.surface, 'Kartice i paneli'),
+      _SwatchData('surfaceRaised', colors.surfaceRaised, 'Izdignuti redovi'),
+      _SwatchData('border', colors.border, 'Suptilne linije'),
+      _SwatchData('borderStrong', colors.borderStrong, 'Granice u fokusu'),
+      _SwatchData('textPrimary', colors.textPrimary, 'Naslovi i telo'),
+      _SwatchData('textSecondary', colors.textSecondary, 'Drugi red teksta'),
+      _SwatchData('textMuted', colors.textMuted, 'Prigušeno'),
+      _SwatchData('accent (Teal)', colors.accent, 'Motor, aktivno stanje'),
+      _SwatchData('accentAlt (Purple)', colors.accentAlt, 'Varijante'),
+      _SwatchData('brand (Violet)', colors.brand, 'Mislisha'),
+      _SwatchData('info (Sky)', colors.info, 'Info i pomoć'),
+      _SwatchData('warning (Amber)', colors.warning, 'Upozorenje'),
+      _SwatchData('danger (Rose)', colors.danger, 'Greška, mat'),
+      _SwatchData('success (Green)', colors.success, 'Tačan potez'),
     ];
 
     return Wrap(
@@ -260,10 +293,53 @@ class _PaletteGrid extends StatelessWidget {
 class _SwatchData {
   final String name;
   final Color color;
-  final String hex;
+
+  /// What the role is for. Not what it measures, and not what it is worth in
+  /// hex: until 29.8.2026 both of those were typed out beside every swatch,
+  /// which was true of one palette and became a lie the moment the gallery
+  /// learned to render the other. `#1E293B` under a white square, and
+  /// `12% White` under a black overlay. Both are now read off the colour.
   final String note;
 
-  const _SwatchData(this.name, this.color, this.hex, this.note);
+  const _SwatchData(this.name, this.color, this.note);
+}
+
+/// `#RRGGBB`, or `#RRGGBB @ NN%` when the role is an overlay rather than a
+/// solid — `border` and `borderStrong` are the two, and their alpha is the
+/// whole point of them.
+String _hexOf(Color c) {
+  final argb = c.toARGB32();
+  final rgb = argb.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
+  final alpha = (argb >> 24) & 0xFF;
+  if (alpha == 0xFF) return '#$rgb';
+  return '#$rgb @ ${(alpha / 255 * 100).round()}%';
+}
+
+/// WCAG 2.1 relative luminance, and the ratio between two of them.
+///
+/// Computed rather than remembered. The three false contrast claims found on
+/// 28.8.2026 were all numbers somebody had written down beside a colour, and
+/// the header of this gallery was one of them.
+double _relativeLuminance(Color c) {
+  double channel(int v) {
+    final s = v / 255;
+    return s <= 0.03928
+        ? s / 12.92
+        : math.pow((s + 0.055) / 1.055, 2.4).toDouble();
+  }
+
+  final argb = c.toARGB32();
+  return 0.2126 * channel((argb >> 16) & 0xFF) +
+      0.7152 * channel((argb >> 8) & 0xFF) +
+      0.0722 * channel(argb & 0xFF);
+}
+
+double _contrastRatio(Color a, Color b) {
+  final la = _relativeLuminance(a);
+  final lb = _relativeLuminance(b);
+  final hi = math.max(la, lb);
+  final lo = math.min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
 }
 
 class _SwatchCard extends StatelessWidget {
@@ -301,7 +377,7 @@ class _SwatchCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           Text(
-            data.hex,
+            _hexOf(data.color),
             style: AppText.micro.copyWith(color: colors.textSecondary),
           ),
           Text(
@@ -310,6 +386,21 @@ class _SwatchCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
+          // Against the card the swatch is sitting on, measured now rather
+          // than quoted from whenever the palette was last looked at.
+          //
+          // Only for a solid colour. `border` and `borderStrong` are overlays,
+          // and a ratio computed from an overlay's own channels ignores the
+          // compositing that decides what the reader actually sees — it came
+          // out at 14.63:1 for a hairline nobody can see. A number that is
+          // wrong in a new way is not an improvement on one that is stale.
+          if ((data.color.toARGB32() >> 24) == 0xFF)
+            Text(
+              '${_contrastRatio(data.color, colors.surface).toStringAsFixed(2)}:1 na surface',
+              style: AppText.micro.copyWith(color: colors.textMuted),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
         ],
       ),
     );

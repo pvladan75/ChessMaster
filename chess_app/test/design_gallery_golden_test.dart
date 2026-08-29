@@ -10,11 +10,11 @@ import 'package:chess_app/screens/design_gallery_screen.dart';
 import 'package:chess_app/widgets/ai_studio/category_selection_hub.dart';
 import 'package:chess_app/theme/app_colors.dart';
 
-Widget _buildThemedApp({required Widget child}) {
+Widget _buildThemedApp(
+    {required Widget child, Brightness brightness = Brightness.dark}) {
   return MaterialApp(
     debugShowCheckedModeBanner: false,
-    themeMode: ThemeMode.dark,
-    darkTheme: AppTheme.dark,
+    theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
     home: child,
   );
 }
@@ -70,6 +70,31 @@ void main() {
       );
     });
 
+    testWidgets('Gallery - Mobile 360x640 (Light)', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _buildThemedApp(
+            brightness: Brightness.light, child: const DesignGalleryScreen()),
+      );
+      await tester.pumpAndSettle();
+
+      // The gallery overrides the ambient theme with its own switch — that is
+      // the point of it — so a light shot is taken by pressing the switch, not
+      // by handing MaterialApp a light theme it will ignore. It also means
+      // this golden fails if the switch stops working.
+      await tester.tap(find.byType(Switch).first);
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(DesignGalleryScreen),
+        matchesGoldenFile(
+            '../../design-screenshots/gallery_phone_360_light.png'),
+      );
+    });
+
     testWidgets('Gallery - Desktop 1200x800', (tester) async {
       tester.view.physicalSize = const Size(1200, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -83,6 +108,31 @@ void main() {
       await expectLater(
         find.byType(DesignGalleryScreen),
         matchesGoldenFile('../../design-screenshots/gallery_desktop_1200.png'),
+      );
+    });
+
+    testWidgets('Gallery - Desktop 1200x800 (Light)', (tester) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _buildThemedApp(
+            brightness: Brightness.light, child: const DesignGalleryScreen()),
+      );
+      await tester.pumpAndSettle();
+
+      // The gallery overrides the ambient theme with its own switch — that is
+      // the point of it — so a light shot is taken by pressing the switch, not
+      // by handing MaterialApp a light theme it will ignore. It also means
+      // this golden fails if the switch stops working.
+      await tester.tap(find.byType(Switch).first);
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(DesignGalleryScreen),
+        matchesGoldenFile(
+            '../../design-screenshots/gallery_desktop_1200_light.png'),
       );
     });
 
@@ -117,6 +167,38 @@ void main() {
       );
     });
 
+    testWidgets('Training Hub - Mobile 360x640 (Light)', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _buildThemedApp(
+          brightness: Brightness.light,
+          child: Scaffold(
+            appBar: AppBar(title: const Text('Trening')),
+            body: CategorySelectionHubWidget(
+              onSelectMatePuzzle: (_) {},
+              onSelectBasicMate: (_) {},
+              onSelectWinningPosition: () {},
+              onSelectTactics: () {},
+              onSelectEndgameWin: () {},
+              onSelectEndgameDraw: () {},
+              onSelectBlunderGames: () {},
+              onSelectRepertoire: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(Scaffold),
+        matchesGoldenFile(
+            '../../design-screenshots/training_hub_phone_360_light.png'),
+      );
+    });
+
     testWidgets('Training Hub - Desktop 1200x800', (tester) async {
       tester.view.physicalSize = const Size(1200, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -145,6 +227,38 @@ void main() {
         find.byType(Scaffold),
         matchesGoldenFile(
             '../../design-screenshots/training_hub_desktop_1200.png'),
+      );
+    });
+
+    testWidgets('Training Hub - Desktop 1200x800 (Light)', (tester) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _buildThemedApp(
+          brightness: Brightness.light,
+          child: Scaffold(
+            appBar: AppBar(title: const Text('Trening')),
+            body: CategorySelectionHubWidget(
+              onSelectMatePuzzle: (_) {},
+              onSelectBasicMate: (_) {},
+              onSelectWinningPosition: () {},
+              onSelectTactics: () {},
+              onSelectEndgameWin: () {},
+              onSelectEndgameDraw: () {},
+              onSelectBlunderGames: () {},
+              onSelectRepertoire: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(Scaffold),
+        matchesGoldenFile(
+            '../../design-screenshots/training_hub_desktop_1200_light.png'),
       );
     });
   });
