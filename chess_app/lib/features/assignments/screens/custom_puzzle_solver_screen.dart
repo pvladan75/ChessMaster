@@ -261,7 +261,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
                 heightBased < widthBased ? heightBased : widthBased;
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
                 children: [
                   _header(),
@@ -290,7 +290,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   _verdictPanel(),
                 ],
               ),
@@ -333,22 +333,22 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
                 style: TextStyle(color: colors.success, fontSize: 12)),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         // The task, in the place a student looks first. Without it this screen
         // is a board and a stopwatch.
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             color: colors.surfaceRaised,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadii.roundedSm,
             border: Border.all(color: colors.accent),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(Icons.flag_outlined, size: 18, color: colors.accent),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
                   _current.instruction ??
@@ -376,7 +376,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
     final colors = context.colors;
     if (_sending) {
       return const Padding(
-        padding: EdgeInsets.all(12),
+        padding: EdgeInsets.all(AppSpacing.md),
         child: CircularProgressIndicator(),
       );
     }
@@ -400,10 +400,10 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
                         fontSize: 14)),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text('Rezultat se ne menja — računa se prvi pokušaj.',
                 style: TextStyle(color: colors.textMuted, fontSize: 12)),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: 8,
               alignment: WrapAlignment.center,
@@ -438,7 +438,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
           children: [
             Icon(verdict.correct ? Icons.check_circle : Icons.cancel,
                 color: tone, size: 20),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             Text(
               verdict.correct ? 'Tačno' : 'Nije to',
               style: TextStyle(
@@ -446,7 +446,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xs),
         // "drugi mat, ali mat" is worth saying out loud: the student found
         // something the book did not print, and should know it counted.
         if (verdict.correct && verdict.reason == 'drugi mat, ali mat')

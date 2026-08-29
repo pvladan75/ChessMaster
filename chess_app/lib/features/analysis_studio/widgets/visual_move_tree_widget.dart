@@ -445,7 +445,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadii.roundedSm,
       child: LayoutBuilder(
         builder: (context, constraints) {
           _viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
@@ -517,10 +517,11 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
 
   Widget _buildToolbar(List<_PositionedNode> positioned) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxs, vertical: AppSpacing.xxs),
       decoration: BoxDecoration(
         color: context.colors.canvas.withValues(alpha: 0.75),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadii.roundedSm,
         border: Border.all(color: context.colors.border),
       ),
       child: Column(
@@ -594,10 +595,11 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
 
   Widget _buildCutoffBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 10, vertical: AppSpacing.xxs),
       decoration: BoxDecoration(
         color: context.colors.canvas.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadii.roundedSm,
         border: Border.all(color: context.colors.border),
       ),
       child: Row(
@@ -724,13 +726,14 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                   ? null
                   : () =>
                       _showNodeContextMenu(context, node, transpositionGroup),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadii.roundedSm,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 6, vertical: AppSpacing.xs),
                 decoration: BoxDecoration(
                   color: bgColor,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadii.roundedSm,
                   border: Border.all(
                       color: borderColor, width: isSelected ? 2.0 : 1.2),
                   boxShadow: isSelected
@@ -782,7 +785,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                 message:
                     'Ova pozicija je dostignuta i drugim redosledom poteza',
                 child: Container(
-                  padding: const EdgeInsets.all(2),
+                  padding: const EdgeInsets.all(AppSpacing.xxs),
                   decoration: BoxDecoration(
                       color: context.colors.warning, shape: BoxShape.circle),
                   child: const Icon(Icons.call_split,
@@ -835,7 +838,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
               if (others.isNotEmpty) ...[
                 Divider(color: ctx.colors.border, height: 1),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg, 10, AppSpacing.lg, AppSpacing.xs),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
