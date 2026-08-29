@@ -195,6 +195,94 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     sideBlack: Color(0xFF020617),
   );
 
+  static const AppColorTokens light = AppColorTokens(
+    // Surfaces
+    canvas: Color(0xFFF8FAFC), // Slate 50
+    surface: Color(0xFFFFFFFF), // White
+    surfaceRaised: Color(0xFFF1F5F9), // Slate 100
+
+    // Structure
+    border: Color(0x1F000000), // 12% black overlay for subtle boundaries
+    borderStrong: Color(0x3D000000), // 24% black overlay for focused boundaries
+
+    // Text (measured contrast on canvas / surface / surfaceRaised)
+    // #0F172A: 17.06:1 / 17.85:1 / 16.30:1 (WCAG AAA)
+    textPrimary: Color(0xFF0F172A),
+    // #334155: 9.90:1 / 10.35:1 / 9.45:1 (WCAG AAA)
+    textSecondary: Color(0xFF334155),
+    // #64748B: 4.55:1 / 4.76:1 / 4.34:1 (WCAG AA on canvas & surface; >=3:1 UI on raised)
+    textMuted: Color(0xFF64748B),
+
+    // Semantic accents
+    // #0F766E (Teal 700 - Engine, active interactive state):
+    // Contrast: 5.23:1 on canvas / 5.47:1 on surface / 5.00:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
+    accent: Color(0xFF0F766E),
+
+    // #9333EA (Purple 600 - Variations, alternative moves, secondary branches):
+    // Contrast: 5.14:1 on canvas / 5.38:1 on surface / 4.91:1 on surfaceRaised (WCAG AA on canvas & surface; >=3:1 on raised)
+    accentAlt: Color(0xFF9333EA),
+
+    // #7C3AED (Violet 600 - Mislisha platform brand identity):
+    // Contrast: 5.45:1 on canvas / 5.70:1 on surface / 5.20:1 on surfaceRaised (WCAG AA on canvas & surface; >=3:1 on raised)
+    brand: Color(0xFF7C3AED),
+
+    // #0369A1 (Sky 700 - Information, hints):
+    // Contrast: 5.67:1 on canvas / 5.93:1 on surface / 5.42:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
+    info: Color(0xFF0369A1),
+
+    // #B45309 (Amber 700 - Warnings, blunder alerts):
+    // Contrast: 4.80:1 on canvas / 5.02:1 on surface / 4.58:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
+    warning: Color(0xFFB45309),
+
+    // #BE123C (Rose 700 - Errors, lost position, invalid moves):
+    // Contrast: 6.01:1 on canvas / 6.29:1 on surface / 5.74:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
+    danger: Color(0xFFBE123C),
+
+    // #15803D (Green 700 - Correct moves, solved puzzles, victories; distinct from Teal accent):
+    // Contrast: 4.79:1 on canvas / 5.02:1 on surface / 4.58:1 on surfaceRaised (WCAG AA >= 4.5:1 on all surfaces)
+    success: Color(0xFF15803D),
+
+    // Containers. Every figure below is the on-container text against its own
+    // container, and the border against the same, measured not asserted.
+
+    // #E2E8F0 (Slate 200)
+    canvasRecessed: Color(0xFFE2E8F0),
+
+    // Emerald 50 / 900 / 600. Text 9.23:1 (AAA), border 3.58:1.
+    successContainer: Color(0xFFECFDF5),
+    onSuccessContainer: Color(0xFF064E3B),
+    successContainerBorder: Color(0xFF059669),
+
+    // Indigo 50 / 900 / 500. Text 10.22:1 (AAA), border 3.99:1.
+    groupedContainer: Color(0xFFEEF2FF),
+    onGroupedContainer: Color(0xFF312E81),
+    groupedContainerBorder: Color(0xFF6366F1),
+
+    // Sky 50 / 900, bordered by `info` (Sky 700). Text 8.87:1, border 5.57:1.
+    infoContainer: Color(0xFFF0F9FF),
+    onInfoContainer: Color(0xFF0C4A6E),
+
+    // Rose 50 / 900 / 500
+    // Text 8.71:1, border 3.34:1.
+    dangerContainer: Color(0xFFFFF1F2),
+    onDangerContainer: Color(0xFF881337),
+    dangerContainerBorder: Color(0xFFF43F5E),
+
+    // Side tokens. The dark palette's ceiling was `sideBlack`, which cannot be
+    // separated from a dark panel by any colour; in the light palette the
+    // ceiling moves to the other end and belongs to `sideWhite`. White on
+    // `surface` measures 1.00:1, on canvas 1.05 and on surfaceRaised 1.10 —
+    // those are properties of a white bar on a white panel, not of this value,
+    // and the boundary is `borderStrong`, exactly as it is for `sideBlack` in
+    // the dark palette.
+    //
+    // What the stacked bar actually needs is that the three separate from each
+    // other, and they do: white/draw 4.76, draw/black 3.75, white/black 17.85.
+    sideWhite: Color(0xFFFFFFFF),
+    sideDraw: Color(0xFF64748B),
+    sideBlack: Color(0xFF0F172A),
+  );
+
   @override
   AppColorTokens copyWith({
     Color? canvas,

@@ -64,15 +64,7 @@ class ChessApp extends StatelessWidget {
           // navigation stack after the process is killed in the background.
           restorationScopeId: 'chess_app',
           themeMode: AppSettingsService.instance.themeMode,
-          theme: ThemeData(
-            brightness: Brightness.light,
-            primaryColor: Colors.deepPurple,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.deepPurple,
-              brightness: Brightness.light,
-            ),
-            useMaterial3: true,
-          ),
+          theme: AppTheme.light,
           darkTheme: AppTheme.dark,
         );
       },
