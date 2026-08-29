@@ -1918,8 +1918,25 @@ Proveriti, na telefonu i na Windows buildu:
 3. **Značka evaluacije u svetloj temi.** Ovo je bio pravi bag: tekst je bio
    1.55:1 i praktično nečitljiv. Otvoriti Analysis Studio u svetloj temi sa
    uključenim strelicama motora i pročitati brojku na svakoj od pet.
-4. **Slova na pločicama birača** (C, N, Z, P, Lj) — da li se čitaju na 28 px i da
-   li deci znače nešto. Ako ne, alternativa je oblik a ne veća pločica.
+4. **Slova na pločicama birača** — **četiri, ne pet: Z, C, P, N.** Birač na
+   ekranu partije nudi samo `G`, `R`, `B` i `O`; ljubičasta (`P`, slovo `Lj`)
+   nema dugme i nikad ga nije ni imala, iako je motor crta za 4. liniju. Ova
+   stavka je prvo pisala pet slova i to je bila greška — činjenica je stajala u
+   komentaru uz stari `arrowPalette`, koji je obrisan pri ožičenju.
+
+   Da li se čitaju na 28 px i da li deci znače nešto. Ako ne, alternativa je
+   oblik a ne veća pločica.
+
+   **Zamka pri čitanju koda:** slovo na *plavoj* pločici je `P` (Plava), a `P`
+   je ujedno i *id* ljubičaste (`Ljubičasta`). U interfejsu se ne sudaraju —
+   prikazana slova su Z, C, P, N i sva su različita — ali u kodu i u ovim
+   dokumentima se lako pomešaju.
+
+   Otvoreno pitanje za vlasnika: **treba li ljubičasta da dobije petu pločicu?**
+   Nema principijelnog razloga zašto je nema — zelena je takođe boja 1. linije
+   motora pa je svejedno ponuđena — pa liči na propust koji niko nije primetio, a
+   ne na odluku. Ako se doda, slova ostaju različita (Z, C, P, N, Lj) i test to
+   već tvrdi.
 5. **Plava i ljubičasta strelica jedna pored druge.** Merenje kaže 1.50, što je
    plafon; render pod simulacijom kaže da su vrlo slične. Pitanje za oko: da li
    je to problem u praksi, s obzirom da onaj ko crta bira iz obeleženog birača.
