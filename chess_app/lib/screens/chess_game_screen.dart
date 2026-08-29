@@ -51,6 +51,8 @@ import 'package:chess_app/features/groups/widgets/room_guests_dialog.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:go_router/go_router.dart';
+import 'package:chess_app/theme/app_spacing.dart';
+import 'package:chess_app/theme/app_radii.dart';
 
 // 3. MULTIPLAYER CHESS GAME PAGE
 class ChessGamePage extends StatefulWidget {
@@ -1226,7 +1228,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               title: Row(
                 children: const [
                   Icon(Icons.share, color: Colors.amber),
-                  SizedBox(width: 8),
+                  SizedBox(width: AppSpacing.sm),
                   Text('Predložena pozicija'),
                 ],
               ),
@@ -1543,7 +1545,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Unesite naziv materijala:'),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: titleController,
               decoration: const InputDecoration(
@@ -1551,7 +1553,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(
               'Ukupno zabeleženo događaja: ${_recorder.eventCount}',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
@@ -1834,7 +1836,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               controller: titleController,
               decoration: const InputDecoration(labelText: 'Naziv'),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             TextField(
               controller: descController,
               decoration: const InputDecoration(labelText: 'Opis (opciono)'),
@@ -2531,7 +2533,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           title: Row(
             children: const [
               Icon(Icons.person_add, color: Colors.tealAccent),
-              SizedBox(width: 8),
+              SizedBox(width: AppSpacing.sm),
               Text('Pozovi prijatelje u sesiju',
                   style: TextStyle(fontSize: 16)),
             ],
@@ -2545,20 +2547,20 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                       color: Colors.tealAccent)),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               const Text('Izaberite prijatelje koje želite da pozovete:',
                   style: TextStyle(fontSize: 12)),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               if (loadError != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                   child: Text(loadError,
                       style: const TextStyle(
                           fontSize: 11, color: Colors.orangeAccent)),
                 )
               else if (friendsList.isEmpty)
                 const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12.0),
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
                   child: Text(
                       'Nemate nikoga na spisku. Na njemu su učenici i treneri '
                       'sa prihvaćenom vezom.',
@@ -2717,7 +2719,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               ),
             ],
           ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Text(
           onMove
               ? 'Komentar uz potez ${formatMoveWithNumber(node, moveTree.root)}'
@@ -2734,7 +2736,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
           decoration: const InputDecoration(
             hintText: 'Objašnjenje, plan, ocena pozicije...',
             border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            contentPadding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
           ),
           style: const TextStyle(fontSize: 12),
         ),
@@ -2803,7 +2806,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         width: 300,
         color: Theme.of(context).cardColor,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -2811,7 +2814,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 'Lekcije i Pozicije',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -2824,7 +2827,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -2833,7 +2836,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   label: const Text('Sačuvaj trenutnu poziciju'),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -2847,7 +2850,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 ),
               ),
               if (isTrener) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -2870,13 +2873,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       decoration: const InputDecoration(
                         hintText: 'Nalepi FEN string...',
                         border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
                       ),
                       style: const TextStyle(fontSize: 12),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   IconButton(
                     icon:
                         const Icon(Icons.input, color: Colors.deepPurpleAccent),
@@ -2913,15 +2916,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     },
                   ),
                   border: const OutlineInputBorder(),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
                 ),
                 style: const TextStyle(fontSize: 12),
                 onSubmitted: (val) {
                   fetchLessons(searchQuery: val.trim());
                 },
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               _buildMatrixFilterPanel(),
               if (widget.userSession.role == 'ucenik' &&
                   widget.roomCode != 'STUDIO') ...[
@@ -2938,7 +2941,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
               ],
               Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
@@ -2978,11 +2981,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               isLoadingLessons
                   ? const Center(
                       child: Padding(
-                          padding: EdgeInsets.all(16.0),
+                          padding: EdgeInsets.all(AppSpacing.lg),
                           child: CircularProgressIndicator()))
                   : () {
                       final displayedLessons = lessons.where((l) {
@@ -2997,7 +3000,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       if (displayedLessons.isEmpty) {
                         return const Center(
                           child: Padding(
-                            padding: EdgeInsets.all(16.0),
+                            padding: EdgeInsets.all(AppSpacing.lg),
                             child: Text(
                               'Nema sačuvanih lekcija u ovoj kategoriji.',
                               style: TextStyle(color: Colors.grey),
@@ -3020,7 +3023,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               positionList.isNotEmpty;
 
                           return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            margin: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.xs),
                             child: ListTile(
                               leading: BoardThumbnail(
                                 fen: isCourse
@@ -3058,7 +3062,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                       lesson['description']
                                           .toString()
                                           .isNotEmpty) ...[
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: AppSpacing.xxs),
                                     Text(
                                       lesson['description'],
                                       style: const TextStyle(
@@ -3142,7 +3146,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         child: Material(
           color: Theme.of(context).cardColor,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
@@ -3156,7 +3160,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 _buildMoveTreeSection(),
                 if (isStudio) ...[
                   const Divider(height: 12),
@@ -3164,7 +3168,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     'Crtanje strelica',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Row(
                     children: [
                       Expanded(
@@ -3200,20 +3204,20 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       ],
                     ),
                   ],
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   _buildArrowEditButtons(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Card(
                     color: Colors.indigo.withValues(alpha: 0.15),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                        borderRadius: AppRadii.roundedSm),
                     child: const Padding(
-                      padding: EdgeInsets.all(12.0),
+                      padding: EdgeInsets.all(AppSpacing.md),
                       child: Row(
                         children: [
                           Icon(Icons.architecture,
                               color: Colors.indigoAccent, size: 20),
-                          SizedBox(width: 8),
+                          SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
                               'Studio Režim (Samostalan rad - Učionica isključena)',
@@ -3233,8 +3237,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     decoration: const InputDecoration(
                       labelText: 'Dozvole za Učenika',
                       border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                     ),
                     items: const [
                       DropdownMenuItem(
@@ -3252,7 +3256,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     ],
                     onChanged: _changeStudentPermissions,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   SwitchListTile(
                     title: const Text('Dozvoli učeniku Stockfish',
                         style: TextStyle(
@@ -3270,7 +3274,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       });
                     },
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   const Text(
                     'Prisili tablu učeniku na:',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
@@ -3284,7 +3288,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           child: const Text('Beli'),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => _forceStudentOrientation('black'),
@@ -3293,13 +3297,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   const Divider(height: 12),
                   const Text(
                     'Crtanje strelica (Trener)',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Row(
                     children: [
                       Expanded(
@@ -3336,7 +3340,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       ],
                     ),
                   ],
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   _buildArrowEditButtons(),
                 ] else ...[
                   Text(
@@ -3344,7 +3348,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 15),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   if (!isAllowedToMove)
                     const Row(
                       children: [
@@ -3380,27 +3384,27 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     ),
                 ],
                 if (!isStudio) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Card(
                     color: Colors.amber.withValues(alpha: 0.08),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                        borderRadius: AppRadii.roundedSm),
                     child: Padding(
-                      padding: const EdgeInsets.all(12.0),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Row(
                             children: const [
                               Icon(Icons.people, color: Colors.amber, size: 18),
-                              SizedBox(width: 8),
+                              SizedBox(width: AppSpacing.sm),
                               Text(
                                 'Prisutni u učionici',
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           if (roomMembers.isEmpty)
                             const Text(
                               'Učitavanje prisutnih...',
@@ -3414,13 +3418,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               final isMemberTrainer =
                                   member['role'] == 'trener';
                               return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4.0),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: AppSpacing.xs),
                                 child: Row(
                                   children: [
                                     const Icon(Icons.fiber_manual_record,
                                         color: Colors.greenAccent, size: 8),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: AppSpacing.sm),
                                     Expanded(
                                       child: Text(
                                         '${member['name']} ${isMe ? "(Ja)" : ""} ${isMemberTrainer ? "[Trener]" : "[Učenik]"}',
@@ -3463,7 +3467,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               );
                             }),
                           if (isTrener && !isStudio) ...[
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.sm),
                             SizedBox(
                               width: double.infinity,
                               child: OutlinedButton.icon(
@@ -3483,13 +3487,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Card(
                     color: Colors.blueGrey.withValues(alpha: 0.15),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                        borderRadius: AppRadii.roundedSm),
                     child: Padding(
-                      padding: const EdgeInsets.all(12.0),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -3499,7 +3503,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               Row(
                                 children: const [
                                   Icon(Icons.mic, color: Colors.blueAccent),
-                                  SizedBox(width: 8),
+                                  SizedBox(width: AppSpacing.sm),
                                   Text(
                                     'Audio Učionica',
                                     style:
@@ -3525,7 +3529,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     color: Colors.green, size: 16),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           // Above the switch, and shown whether the voice is on
                           // or off: a join that was refused turns the panel back
                           // off, and the reason has to survive that.
@@ -3535,7 +3539,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               style: const TextStyle(
                                   color: Colors.redAccent, fontSize: 11),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.sm),
                           ],
                           // The voice is off until somebody asks for it. What
                           // this offers depends on whether a conversation is
@@ -3562,7 +3566,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                         ? Colors.blueGrey
                                         : Colors.greenAccent,
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: AppSpacing.sm),
                                   Expanded(
                                     child: Text(
                                       _voiceUsersOther.isEmpty
@@ -3612,7 +3616,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   children: [
                                     Icon(Icons.headset,
                                         size: 16, color: Colors.blueGrey),
-                                    SizedBox(width: 8),
+                                    SizedBox(width: AppSpacing.sm),
                                     Expanded(
                                       child: Text(
                                         'Slušate čas. Odgovarate dugmadima ispod '
@@ -3645,7 +3649,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                             ? Colors.redAccent
                                             : Colors.greenAccent,
                                         padding: const EdgeInsets.symmetric(
-                                            vertical: 8),
+                                            vertical: AppSpacing.sm),
                                       ),
                                     ),
                                   ),
@@ -3671,7 +3675,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                           _sendQuickAnswer(entry.key),
                                       style: OutlinedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 10, vertical: 4),
+                                            horizontal: 10,
+                                            vertical: AppSpacing.xs),
                                         foregroundColor: Colors.lightBlueAccent,
                                       ),
                                       child: Text(entry.value,
@@ -3679,7 +3684,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     ),
                                 ],
                               ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: AppSpacing.md),
                             const Text(
                               'Učesnici u audio razgovoru:',
                               style: TextStyle(
@@ -3701,8 +3706,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   user['userId'] == widget.userSession.id;
 
                               return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4.0),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: AppSpacing.xs),
                                 child: Row(
                                   children: [
                                     Icon(
@@ -3720,7 +3725,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                                   ? Colors.redAccent
                                                   : Colors.grey)),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: AppSpacing.sm),
                                     Expanded(
                                       child: Text(
                                         '${user['userName']} ${isMe ? "(Ja)" : ""} ${isUserTrainer ? "[Trener]" : ""}',
@@ -3793,7 +3798,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               ),
                             if (widget.userSession.role == 'trener' &&
                                 audioUsers.length > 1) ...[
-                              const SizedBox(height: 12),
+                              const SizedBox(height: AppSpacing.md),
                               ElevatedButton(
                                 onPressed: () {
                                   socket.emit('audio_mute_all_students',
@@ -3810,7 +3815,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             if (widget.userSession.role == 'ucenik' &&
                                 isAudioMuted &&
                                 isHandRaised) ...[
-                              const SizedBox(height: 8),
+                              const SizedBox(height: AppSpacing.sm),
                               const Center(
                                 child: Text(
                                   'Utišani ste. Ruka je podignuta...',
@@ -3820,7 +3825,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               ),
                             ] else if (widget.userSession.role == 'ucenik' &&
                                 isAudioMuted) ...[
-                              const SizedBox(height: 8),
+                              const SizedBox(height: AppSpacing.sm),
                               ElevatedButton.icon(
                                 onPressed: _raiseHand,
                                 icon: const Icon(Icons.pan_tool, size: 14),
@@ -3852,15 +3857,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ),
                 ],
                 if (isTrener && !isStudio) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Card(
                     color: isRecording
                         ? Colors.red.withValues(alpha: 0.15)
                         : Colors.deepPurple.withValues(alpha: 0.15),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                        borderRadius: AppRadii.roundedSm),
                     child: Padding(
-                      padding: const EdgeInsets.all(12.0),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -3879,7 +3884,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     : Colors.deepPurpleAccent,
                                 size: 18,
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: AppSpacing.sm),
                               Text(
                                 isRecording
                                     ? (isRecordingPaused
@@ -3897,7 +3902,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           if (isRecording) ...[
                             Row(
                               children: [
@@ -3927,7 +3932,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                         style: const TextStyle(fontSize: 12)),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: AppSpacing.sm),
                                 Expanded(
                                   child: ElevatedButton.icon(
                                     onPressed: _stopRecording,
@@ -3960,13 +3965,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             // with no explanation is a bug report.
                             if (!_recordingAllowed &&
                                 _recordingBlockedReason != null) ...[
-                              const SizedBox(height: 8),
+                              const SizedBox(height: AppSpacing.sm),
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Icon(Icons.family_restroom,
                                       color: Colors.orangeAccent, size: 16),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: AppSpacing.sm),
                                   Expanded(
                                     child: Text(
                                       _recordingBlockedReason!,
@@ -4049,7 +4054,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               isConnected ? Icons.cloud_done : Icons.cloud_off,
               color: isConnected ? Colors.green : Colors.red,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.lg),
           ],
         ),
         // Mobile layout has a Drawer for lessons listing (if Trainer)
@@ -4088,16 +4093,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                         orientation: boardOrientation,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: AppSpacing.sm),
                                   ],
                                   _buildChessBoardWithOverlay(boardSize),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: AppSpacing.md),
                                   // PGN navigators
                                   SizedBox(
                                     width: boardSize,
                                     child: buildNavigationControls(),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: AppSpacing.sm),
                                   // Stockfish analysis widget directly UNDER board
                                   SizedBox(
                                     width: boardSize,
@@ -4157,14 +4162,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             Expanded(
                               child: SingleChildScrollView(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0, vertical: 8.0),
+                                    horizontal: AppSpacing.lg,
+                                    vertical: AppSpacing.sm),
                                 child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     buildNavigationControls(),
                                     _buildStockfishAnalysisWidget(),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: AppSpacing.sm),
                                     buildRightSidebar(),
                                   ],
                                 ),
@@ -4174,7 +4180,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         )
                       : Column(
                           children: [
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.sm),
                             if (_showEvalBar) ...[
                               SizedBox(
                                 width: boardSize,
@@ -4188,7 +4194,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               const SizedBox(height: 6),
                             ],
                             _buildChessBoardWithOverlay(boardSize),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.sm),
                             // Everything below the board scrolls together, the
                             // navigation strip included. The strip used to be
                             // pinned here between two fixed toolbars, which
@@ -4199,14 +4205,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             Expanded(
                               child: SingleChildScrollView(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0, vertical: 8.0),
+                                    horizontal: AppSpacing.lg,
+                                    vertical: AppSpacing.sm),
                                 child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     buildNavigationControls(),
                                     _buildStockfishAnalysisWidget(),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: AppSpacing.sm),
                                     buildRightSidebar(),
                                   ],
                                 ),
