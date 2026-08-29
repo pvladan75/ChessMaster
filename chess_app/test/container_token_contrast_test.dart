@@ -65,6 +65,13 @@ void main() {
           4.5,
           'onInfoContainer on infoContainer');
     });
+    test('dangerContainer', () {
+      expectAtLeast(
+          ratio(colors.onDangerContainer.toARGB32(),
+              colors.dangerContainer.toARGB32()),
+          4.5,
+          'onDangerContainer on dangerContainer');
+    });
   });
 
   group('container borders clear the 3:1 a UI boundary needs', () {
@@ -90,6 +97,20 @@ void main() {
           3.0,
           'info as a border on infoContainer');
     });
+    test('dangerContainer', () {
+      expectAtLeast(
+          ratio(colors.dangerContainerBorder.toARGB32(),
+              colors.dangerContainer.toARGB32()),
+          3.0,
+          'dangerContainerBorder on dangerContainer');
+    });
+    test('danger still reads as an accent on its own container', () {
+      // An alert can carry its own accent without leaving the container.
+      expectAtLeast(
+          ratio(colors.danger.toARGB32(), colors.dangerContainer.toARGB32()),
+          4.5,
+          'danger on dangerContainer');
+    });
   });
 
   test('canvas is the wrong foreground on every container', () {
@@ -101,6 +122,7 @@ void main() {
       colors.successContainer,
       colors.groupedContainer,
       colors.infoContainer,
+      colors.dangerContainer,
     ]) {
       expect(
           ratio(colors.canvas.toARGB32(), container.toARGB32()), lessThan(4.5));

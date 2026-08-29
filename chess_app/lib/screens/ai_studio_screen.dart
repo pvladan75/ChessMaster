@@ -863,13 +863,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     AppFeedback.show(
       context,
       () => SnackBar(
-        backgroundColor:
-            isCritical ? Colors.red.shade900 : context.colors.warning,
+        backgroundColor: isCritical
+            ? context.colors.dangerContainer
+            : context.colors.warning,
         duration: const Duration(seconds: 4),
         content: Row(
           children: [
             Icon(isCritical ? Icons.cancel : Icons.warning_amber,
-                color: isCritical ? Colors.white : context.colors.canvas),
+                color: isCritical
+                    ? context.colors.onDangerContainer
+                    : context.colors.canvas),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -880,12 +883,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: isCritical
-                              ? Colors.white
+                              ? context.colors.onDangerContainer
                               : context.colors.canvas)),
                   Text(msg,
                       style: AppText.caption.copyWith(
                           color: isCritical
-                              ? Colors.white70
+                              ? context.colors.onDangerContainer
+                                  .withValues(alpha: 0.85)
                               : context.colors.canvas.withValues(alpha: 0.7))),
                 ],
               ),
@@ -1869,7 +1873,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.grey.shade900,
+      backgroundColor: context.colors.surface,
       isDismissible: false,
       enableDrag: false,
       isScrollControlled: true,
@@ -1902,7 +1906,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   const SizedBox(height: AppSpacing.sm),
                   Text(
                     'Netačan Potez!',
-                    style: AppText.headline.copyWith(color: Colors.white),
+                    style: AppText.headline
+                        .copyWith(color: context.colors.textPrimary),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -2542,8 +2547,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           icon: const Icon(Icons.biotech, size: 16),
           label: const Text('Analiza 🔬'),
           style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.indigo.shade800,
-              foregroundColor: Colors.white),
+              backgroundColor: context.colors.accentAlt,
+              foregroundColor: context.colors.canvas),
           onPressed: _exportToAnalysisStudio,
         ),
         ElevatedButton.icon(
@@ -2715,8 +2720,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                                   label: const Text('Analiza 🔬',
                                       style: AppText.captionBold),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.indigo.shade800,
-                                    foregroundColor: Colors.white,
+                                    backgroundColor: context.colors.accentAlt,
+                                    foregroundColor: context.colors.canvas,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 10,
                                         horizontal: AppSpacing.xs),
@@ -2748,8 +2753,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                                   label: const Text('Naredna pozicija',
                                       style: AppText.captionBold),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.teal.shade800,
-                                    foregroundColor: Colors.white,
+                                    backgroundColor: context.colors.accent,
+                                    foregroundColor: context.colors.canvas,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 10,
                                         horizontal: AppSpacing.xs),

@@ -58,6 +58,10 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
 
   final Color infoContainer; // the active node, AI Studio identity
   final Color onInfoContainer;
+
+  final Color dangerContainer; // a critical alert that owns its whole surface
+  final Color onDangerContainer;
+  final Color dangerContainerBorder;
   // infoContainer's border is `info` itself: 3.53:1 on it, and no new colour.
 
   const AppColorTokens({
@@ -85,6 +89,9 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     required this.groupedContainerBorder,
     required this.infoContainer,
     required this.onInfoContainer,
+    required this.dangerContainer,
+    required this.onDangerContainer,
+    required this.dangerContainerBorder,
   });
 
   static const AppColorTokens dark = AppColorTokens(
@@ -158,6 +165,15 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     // leaves the border at 2.77:1.
     infoContainer: Color(0xFF075985),
     onInfoContainer: Color(0xFFF0F9FF),
+
+    // Rose 900 / 50 / 400, the family `danger` (Rose 300) already belongs to.
+    // Text 8.71:1, border 3.55:1, and `danger` itself is 5.06:1 on it, so an
+    // alert can carry its own accent without leaving the container.
+    // It replaces Colors.red.shade900, where white was 6.57:1 but white70 --
+    // the secondary line of a blunder alert -- was 3.85:1, under AA at 11px.
+    dangerContainer: Color(0xFF881337),
+    onDangerContainer: Color(0xFFFFF1F2),
+    dangerContainerBorder: Color(0xFFFB7185),
   );
 
   @override
@@ -186,6 +202,9 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     Color? groupedContainerBorder,
     Color? infoContainer,
     Color? onInfoContainer,
+    Color? dangerContainer,
+    Color? onDangerContainer,
+    Color? dangerContainerBorder,
   }) {
     return AppColorTokens(
       canvas: canvas ?? this.canvas,
@@ -214,6 +233,10 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
           groupedContainerBorder ?? this.groupedContainerBorder,
       infoContainer: infoContainer ?? this.infoContainer,
       onInfoContainer: onInfoContainer ?? this.onInfoContainer,
+      dangerContainer: dangerContainer ?? this.dangerContainer,
+      onDangerContainer: onDangerContainer ?? this.onDangerContainer,
+      dangerContainerBorder:
+          dangerContainerBorder ?? this.dangerContainerBorder,
     );
   }
 
@@ -251,6 +274,11 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
           Color.lerp(groupedContainerBorder, other.groupedContainerBorder, t)!,
       infoContainer: Color.lerp(infoContainer, other.infoContainer, t)!,
       onInfoContainer: Color.lerp(onInfoContainer, other.onInfoContainer, t)!,
+      dangerContainer: Color.lerp(dangerContainer, other.dangerContainer, t)!,
+      onDangerContainer:
+          Color.lerp(onDangerContainer, other.onDangerContainer, t)!,
+      dangerContainerBorder:
+          Color.lerp(dangerContainerBorder, other.dangerContainerBorder, t)!,
     );
   }
 }
