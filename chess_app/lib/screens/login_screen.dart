@@ -15,6 +15,8 @@ import 'package:chess_app/services/oauth_pkce.dart' show OAuthRedirectException;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/theme/app_spacing.dart';
+import 'package:chess_app/theme/app_radii.dart';
 
 class LoginRegisterScreen extends StatefulWidget {
   /// The login-gated action (create/join a room, invite a student...) that
@@ -355,7 +357,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(AppSpacing.xxl),
           child: Form(
             key: _formKey,
             // One group, so the platform reads these fields as a single
@@ -363,10 +365,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             child: AutofillGroup(
               child: Card(
                 elevation: 8,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.all(AppSpacing.xxl),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -377,7 +378,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                         size: 64,
                         color: Theme.of(context).colorScheme.primary,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       Text(
                         _isAwaitingVerification
                             ? 'Unesite Verifikacioni Kod'
@@ -386,18 +387,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                             fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                       if (_expiryNotice != null) ...[
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.lg),
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: Colors.orange.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: AppRadii.roundedSm,
                           ),
                           child: Row(
                             children: [
                               const Icon(Icons.lock_clock,
                                   size: 18, color: Colors.orangeAccent),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: AppSpacing.sm),
                               Expanded(
                                 child: Text(
                                   _expiryNotice!,
@@ -409,7 +410,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           ),
                         ),
                       ],
-                      const SizedBox(height: 24),
+                      const SizedBox(height: AppSpacing.xxl),
                       if (_isAwaitingVerification) ...[
                         Text(
                           // The spam line is not a nicety. The domain started sending on
@@ -427,7 +428,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           style:
                               const TextStyle(fontSize: 14, color: Colors.grey),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.lg),
                         TextFormField(
                           controller: _codeController,
                           decoration: const InputDecoration(
@@ -441,7 +442,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                               ? 'Unesite 6 cifara'
                               : null,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.lg),
                       ] else ...[
                         // Google first, and above a divider. It is one tap, it
                         // registers as well as signs in, and underneath the email
@@ -451,9 +452,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                         // line between them, rather than three buttons in a row.
                         if (_googleAvailable) ...[
                           _buildGoogleBlock(context),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: AppSpacing.xl),
                           _buildOrDivider(context),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: AppSpacing.xl),
                         ],
                         if (!_isLogin) ...[
                           TextFormField(
@@ -468,7 +469,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                                 ? 'Unesite ime'
                                 : null,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: AppSpacing.lg),
                         ],
                         TextFormField(
                           controller: _emailController,
@@ -492,7 +493,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                                   ? 'Unesite validnu email adresu'
                                   : null,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.lg),
                         TextFormField(
                           controller: _passwordController,
                           autofillHints: [
@@ -513,7 +514,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                                   ? 'Lozinka mora imati bar 6 karaktera'
                                   : null,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppSpacing.md),
                         CheckboxListTile(
                           title: const Text('Zapamti me',
                               style: TextStyle(fontSize: 14)),
@@ -537,7 +538,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           },
                         ),
                       ],
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.lg),
                       _isLoading
                           ? const CircularProgressIndicator()
                           : SizedBox(
@@ -547,7 +548,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                                 onPressed: _submit,
                                 style: ElevatedButton.styleFrom(
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: AppRadii.roundedSm,
                                   ),
                                 ),
                                 child: Text(_isAwaitingVerification
@@ -557,7 +558,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                                         : 'Registruj se email adresom')),
                               ),
                             ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       if (_isAwaitingVerification)
                         TextButton(
                           onPressed: () {
@@ -629,7 +630,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             style: OutlinedButton.styleFrom(
               side: BorderSide(color: Theme.of(context).dividerColor),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadii.roundedSm,
               ),
             ),
           ),
@@ -650,7 +651,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       children: [
         const Expanded(child: Divider()),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: Text(
             'ili',
             style: TextStyle(color: Theme.of(context).hintColor),
