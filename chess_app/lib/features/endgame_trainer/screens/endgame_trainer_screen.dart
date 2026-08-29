@@ -1529,7 +1529,7 @@ class _MoveRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colour = move.holds ? Colors.green : Colors.orange;
+    final colour = move.holds ? context.colors.success : context.colors.warning;
     final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(

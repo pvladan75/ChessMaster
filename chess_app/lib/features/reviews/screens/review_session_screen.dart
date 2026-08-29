@@ -366,7 +366,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                 onPressed: _grading ? null : () => _grade(grade),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors[grade],
-                  foregroundColor: Colors.white,
+                  foregroundColor: context.colors.canvas,
                   padding: const EdgeInsets.symmetric(
                       horizontal: 18, vertical: AppSpacing.md),
                 ),

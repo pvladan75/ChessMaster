@@ -1,6 +1,6 @@
+import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/material.dart';
-import 'package:chess_app/theme/app_spacing.dart';
 
 /// Trainer-only bar for stepping through an active course's lesson list.
 class CourseStepBar extends StatelessWidget {
@@ -22,12 +22,13 @@ class CourseStepBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.deepPurple.shade900,
+      color: context.colors.groupedContainer,
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       child: Row(
         children: [
-          const Icon(Icons.collections_bookmark, color: Colors.white, size: 16),
+          Icon(Icons.collections_bookmark,
+              color: context.colors.onGroupedContainer, size: 16),
           const SizedBox(width: 6),
           Expanded(
             child: PopupMenuButton<int>(
@@ -42,8 +43,7 @@ class CourseStepBar extends StatelessWidget {
                   child: Row(
                     children: [
                       if (i == activeIndex)
-                        const Icon(Icons.check,
-                            size: 16, color: Colors.deepPurple)
+                        Icon(Icons.check, size: 16, color: context.colors.brand)
                       else
                         const SizedBox(width: AppSpacing.lg),
                       const SizedBox(width: 6),
@@ -59,31 +59,38 @@ class CourseStepBar extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '${courseTitle ?? 'Kurs'} — korak ${activeIndex + 1}/${items.length}',
-                      style: AppText.bodyBold.copyWith(color: Colors.white),
+                      style: AppText.bodyBold
+                          .copyWith(color: context.colors.onGroupedContainer),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Icon(Icons.arrow_drop_down,
-                      color: Colors.white70, size: 18),
+                  Icon(Icons.arrow_drop_down,
+                      color: context.colors.onGroupedContainer
+                          .withValues(alpha: 0.7),
+                      size: 18),
                 ],
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_left, color: Colors.white),
+            icon: Icon(Icons.chevron_left,
+                color: context.colors.onGroupedContainer),
             tooltip: 'Prethodni korak',
             onPressed:
                 activeIndex > 0 ? () => onGoToStep(activeIndex - 1) : null,
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right, color: Colors.white),
+            icon: Icon(Icons.chevron_right,
+                color: context.colors.onGroupedContainer),
             tooltip: 'Sledeći korak',
             onPressed: activeIndex < items.length - 1
                 ? () => onGoToStep(activeIndex + 1)
                 : null,
           ),
           IconButton(
-            icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+            icon: Icon(Icons.close,
+                color: context.colors.onGroupedContainer.withValues(alpha: 0.7),
+                size: 18),
             tooltip: 'Zatvori kurs',
             onPressed: onClose,
           ),

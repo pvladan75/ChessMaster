@@ -137,7 +137,9 @@ class _EndgameInfoPanelState extends State<EndgameInfoPanel> {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: (messageIsGood ? Colors.green : Colors.orange)
+                color: (messageIsGood
+                        ? context.colors.success
+                        : context.colors.warning)
                     .withValues(alpha: 0.15),
                 borderRadius: AppRadii.roundedSm,
               ),

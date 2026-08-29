@@ -4,7 +4,7 @@ import 'package:chess_app/models/user_session.dart';
 
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
-import 'package:chess_app/theme/app_spacing.dart';
+import 'package:chess_app/theme/app_colors.dart';
 
 /// Turns an assignment id into the assignment, for screens that need the whole
 /// thing.
@@ -89,7 +89,8 @@ class _AssignmentDetailGateState extends State<AssignmentDetailGate> {
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.cloud_off, size: 40, color: Colors.grey),
+                  Icon(Icons.cloud_off,
+                      size: 40, color: context.colors.textMuted),
                   const SizedBox(height: AppSpacing.md),
                   Text(_error ?? 'Zadatak nije pronađen.'),
                   const SizedBox(height: AppSpacing.md),

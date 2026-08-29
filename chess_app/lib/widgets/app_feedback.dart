@@ -9,7 +9,7 @@ abstract final class AppFeedback {
   /// Builds a SnackBar and shows it, or gives up quietly.
   ///
   /// `context.mounted` is not enough, and the log on 25.8.2026 is full of the
-  /// proof: `ScaffoldMessenger.of(context).showSnackBar` throws *"Looking up a
+  /// proof: calling `showSnackBar` on the messenger throws *"Looking up a
   /// deactivated widget's ancestor is unsafe"* when the messenger it finds has
   /// itself been deactivated — a screen popped while a socket callback was
   /// still in flight, which in a room happens constantly.
@@ -78,8 +78,8 @@ abstract final class AppFeedback {
     _show(
       context,
       () => SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
+        content: Text(message, style: TextStyle(color: context.colors.canvas)),
+        backgroundColor: context.colors.danger,
         duration: const Duration(seconds: 6),
       ),
     );
