@@ -2152,3 +2152,12 @@ izveštaj usmeren na drugog igrača. Parametar `vs=` vraća samo međusobne part
 a `opening=true` dodaje `[ECO]` i `[Opening]` — ECO baza lokalno ne treba.
 Detalji i jedna odluka koja ostaje proizvodu (dozvoliti li profilisanje
 imenovanog deteta) su u planu.
+
+**Podela posla dogovorena 30.8.2026** i upisana kao sekcija 8 plana: Claude —
+šema, serverska logika, prava pristupa i sve što je *garancija*; Gemini — UI,
+izolovana logika na klijentu i widget testovi. Linija nije „server naspram
+klijenta" nego **koliko košta pogrešan odgovor**: brojač koji se računa u UI-ju
+može da izbroji samo ono što je do njega stiglo, a rangiranje na klijentu samo
+ono što mu je poslato — pa su oba prešla na serversku stranu. Pre nego što bilo
+šta osim uvoza krene: **šema mora biti zamrznuta i mora postojati zasejana
+fixture baza**, inače se gradi UI nad oblikom koji se još pomera.

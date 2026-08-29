@@ -207,6 +207,79 @@ compile a profile of a named child. Restricting it to opponents in an
 already-accepted `trainer_students` edge, or to accounts above some rating, is a
 decision somebody has to make rather than a default to accept.
 
+## 8. Division of labour
+
+Agreed 30.8.2026. Two agents, following the dynamic that has worked so far:
+**Claude** as architect for the backend, the schema and security; **Gemini** as
+executor for the UI, self-contained client logic and widget tests.
+
+The line is not "server versus client". It is **what a wrong answer costs**:
+anything that is a *guarantee* — a count that must be true, an access right, a
+paced request, a number the user will believe — is written once, on the backend.
+Anything that *shows* it is Gemini's. That is why two items below moved sides
+from the first draft of this split: a counter computed in the UI can only count
+what reached it, and a ranking computed on the client can only rank what it was
+sent.
+
+The `#` column is this document's own section numbers (0–6), not a separate
+list.
+
+| # | Claude | Gemini |
+|---|---|---|
+| 0 | `user_games` schema; Lichess import as a single stream; count in / out / **skipped, with reasons**, persisted | Import screen, progress, and the display of those three counts |
+| 1 | Aggregation over plies 6–20, minimum-games and score thresholds, `opening_judge_service` integration (network-paced, so backend) | The report screen: table, board preview per flagged node, sorting, drill-down |
+| 2 | ≤7-men filter, paced Syzygy probes, transition detection, **shared position-keyed cache**, results written to the database | Wiring the produced list into the existing endgame trainer; the rook-endgame syllabus screen |
+| 3 | New `review_items` item type (schema decision, see below), server-side persistence, batch extraction, **recurrence ranking** | Solver UI starting one move before the mistake (`fenBefore` / `moveUci` already exist for this); review-session screen |
+| 4 | Repertoire **seed** from played moves and the **diff** against the saved tree — both are the same aggregation as item 1 | The screen reporting which games left the repertoire, and handing those positions to the existing drill |
+| 5 | Access rights through `trainerOwnsStudent` / `acceptedTrainersOf` **and nowhere else**; homework generation into `assignments` / `assignment_items` | Homework and before/after metrics in the trainer panel |
+| 6 | Query-builder parameters (`vs=`, `opening=true`) through the pacer; the privacy decision; **server-side check that the AI output contains no numeral absent from its input** | Re-using the item-1 report for an opponent; the AI explanation's presentation |
+
+Six corrections folded in, with their reasons, because the reasons are what will
+not survive in a chat log:
+
+1. **The import is one stream, not many requests.** The often-quoted "20–30 per
+   second" is Lichess's *games streamed* per second on the export endpoint
+   (20 anonymous, 30 with a token), not a permitted request rate. The limit that
+   actually bites is a 429 that blocks **the address** for a minute — and up to
+   an hour for whoever keeps knocking — which is what `lichessPacing.js` and its
+   150 ms gap exist for. So the strict-pacing emphasis belongs on item 2 (8673
+   probes), not on item 0, and no new number gets invented anywhere.
+2. **The import counter is a backend guarantee.** This is the codebase's
+   recurring bug — a step that skips silently and reports success — so the count
+   is produced and stored where the skipping happens. The UI shows it.
+3. **Counting move frequencies *is* the aggregation query.** Splitting "the
+   counting algorithm" from "the aggregation" would produce two implementations
+   of one computation, and they would disagree without saying so.
+4. **Recurrence ranking is a query over the archive**, so it cannot live on the
+   client.
+5. **`review_items` needs a decision, not an extension.** It is keyed
+   `(user_id, lesson_id, position)` with `REFERENCES saved_lessons ON DELETE
+   CASCADE`. A second item type means either a nullable `lesson_id` plus
+   `item_type` / `source_id` — weakening the foreign key that currently
+   guarantees cleanup — or a parallel table. Decide before either side writes
+   against it.
+6. **A prompt is not a guardrail.** "The model may only restate computed
+   numbers" is a request; the enforcement is structural — pass the numbers as
+   data and reject any output carrying a numeral that is not in the input, or
+   template the numbers outside the model entirely.
+
+Two smaller notes. Nothing needs to be parametrised for *unauthenticated* access
+to Lichess: the client never authenticates there today and does not need to.
+And the repertoire **seed** was missing from the first draft of the split — it
+is the more valuable half of item 4, since it is what spares a player from
+hand-entering a thousand games of their own opening.
+
+**The freeze point.** Items 1–6 are all queries over item 0's table. Parallel
+work on item 0 is fine — schema and import against import UI — but nothing else
+starts until **the schema is frozen and a seeded fixture database exists**.
+Without that, Gemini builds against a shape that then moves.
+
+**Tests belong to whoever wrote the layer**: Gemini owns the widget tests,
+Claude owns `node --test`. A test written by the other side against an assumed
+shape is how this repository once had a green suite over a `server.js` that did
+not parse. Whatever lands updates the counts in `CLAUDE.md`, or the next session
+cannot tell a shrinking suite from a passing one.
+
 ## Costs and limits
 
 | Work | Volume | Feasible where |
