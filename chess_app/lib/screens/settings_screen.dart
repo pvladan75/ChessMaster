@@ -540,9 +540,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: TextStyle(fontWeight: FontWeight.w500)),
                           Text(
                             '${_settings.defaultEngineMoveTimeSeconds} s',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.cyanAccent),
+                                color: context.colors.accent),
                           ),
                         ],
                       ),

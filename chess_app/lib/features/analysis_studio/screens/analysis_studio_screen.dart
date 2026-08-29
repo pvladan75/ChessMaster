@@ -1690,12 +1690,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   horizontal: AppSpacing.md, vertical: AppSpacing.sm),
               decoration: BoxDecoration(
                 color: phaseInfo.isEndgame
-                    ? Colors.indigo.shade900
+                    ? context.colors.groupedContainer
                     : context.colors.surfaceRaised,
                 borderRadius: AppRadii.roundedSm,
                 border: Border.all(
                   color: phaseInfo.isEndgame
-                      ? Colors.cyanAccent
+                      ? context.colors.groupedContainerBorder
                       : context.colors.accent,
                   width: 1,
                 ),
@@ -1705,7 +1705,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   Icon(
                     phaseInfo.isEndgame ? Icons.auto_awesome : Icons.menu_book,
                     color: phaseInfo.isEndgame
-                        ? Colors.cyanAccent
+                        ? context.colors.groupedContainerBorder
                         : context.colors.accent,
                     size: 18,
                   ),
@@ -1965,7 +1965,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
-        color: Colors.teal.shade900,
+        color: context.colors.surfaceRaised,
         borderRadius: AppRadii.roundedSm,
       ),
       child: Row(
