@@ -1993,13 +1993,20 @@ Mere: **900 testova** (11 novih), 1 preskočen, analyze na istih 29. Tri mutacij
 bez obruba pada 4 testa, stari zeleni literal za rang 1 pada 1, `readableOn` koji
 uvek vraća belo pada 2.
 
-**Šta se vidi na renderu, i šta se ne vidi.** Obrub radi savršeno — svaka
-strelica se čita na svakoj koži, i to je bio glavni cilj. Ali pod deuteranopijom
-**plava i ljubičasta ostaju skoro iste**, jer je taj par tačno na 1.50, a to je
-dokazani plafon. Obrub je rešio *vidljivost*, nije rešio *međusobni identitet* i
-boja to ne može. Ako se ispostavi da je bitno razlikovati dve strelice
-međusobno, rešenje je opet kanal a ne boja — isprekidana linija, ili slovo uz
-rep strelice. Odluka za posle telefona, ne pre njega.
+**Šta se vidi na renderu, i kako je pitanje zatvoreno.** Obrub radi — svaka
+strelica se čita na svakoj koži, i to je bio glavni cilj. Ostalo je otvoreno da
+li 1.50:1 dovoljno razdvaja plavu od ljubičaste, jer na simuliranom renderu
+deluju skoro isto, i zapisao sam da bi rešenje bio kanal a ne boja.
+
+**Nije potrebno. Vlasnik projekta, koji je daltonista, potvrdio je 29.8.2026. da
+ih razlikuje** — na živoj tabli, u obe teme. To je najbolji dokaz koji ovo
+pitanje može da dobije, bolji od simulacije, jer simulacija modeluje
+dihromatiju a stvarni deficit je najčešće blaži. **Ako neko ubuduće bude
+„popravljao" taj par isprekidanom linijom ili slovom uz rep — ovo je razlog da
+ne.** Plafon od 1.50 je dovoljan.
+
+Šta ovo *ne* znači: par je i dalje najslabiji u katalogu i test ga i dalje drži
+na 1.50. Potvrda je da je 1.50 dovoljno, ne da razdvojenost više nije bitna.
 
 ### Šta sledi
 

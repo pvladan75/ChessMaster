@@ -1880,7 +1880,37 @@ Detalji i brojke su u [STANJE-RADA.md](STANJE-RADA.md), odeljak „Vid i boje".
 Testovi tvrde da se uglovi crtaju, na oba polja poteza, i da im boje drže ivicu
 na svakoj koži. Ono što test ne vidi je da li oznaka sada izgleda pretrpano.
 
-Proveriti, na telefonu i na Windows buildu:
+**Provereno uživo, sa screenshot-ima u oba pravca.** Jedna prava greška nađena
+i popravljena usput — birač je zatamnjivao boje koje prikazuje (`7bc589f`),
+otkriveno tako što je vlasnik poslao sliku pločica, pa su boje **izmerene onako
+kako se crtaju** umesto procenjene okom.
+
+Šta je potvrđeno:
+
+1. ✅ **Obrub nije predebeo.** Strelice se čitaju na plavoj i klasičnoj koži, u
+   obe teme, i nijedna se ne gubi u polju.
+2. ✅ **Rangovi motora se i dalje razlikuju po debljini** — 1. linija je vidno
+   deblja od 5.
+3. ✅ **Značka evaluacije u svetloj temi.** Ovo je bio pravi bag: tekst je merio
+   **1.55:1**. Potvrđeno na svih pet rangova u obe teme — `+0.13` belim na
+   ljubičastoj, `+0.17` crnim na narandžastoj, `+0.05` belim na crvenoj.
+4. ✅ **Plava i ljubičasta se razlikuju.** Ovo je najvrednija potvrda u celoj
+   stavci: par je tačno na 1.50:1, što je dokazani plafon, i ja sam ostavio
+   otvoreno pitanje da li je to dovoljno u praksi. **Vlasnik projekta, koji je
+   daltonista, kaže da ih razlikuje.** Znači kanal (isprekidana linija, slovo uz
+   rep strelice) **ne treba dodavati** — ako neko ubuduće bude „popravljao" taj
+   par, ovo je razlog da ne.
+5. ✅ **Pločice u biraču**, posle popravke: pet boja, prava boja, slova C, N, Z,
+   P, Lj.
+
+Ostaje samo ovo, i traži decu a ne programera:
+
+- **Da li slova na pločicama deci znače nešto** na 28 px. Ako ne, alternativa je
+  oblik a ne veća pločica.
+- Koža „Visoki kontrast" nije gledana sa strelicama; beli deo obruba se tu gubi
+  na čisto belom polju, i to je u redu jer crni nosi — ali nije viđeno.
+
+Original stavke, radi traga šta je traženo:
 
 1. **Da li je oznaka prejaka.** Uglovi su 28% stranice polja, jezgro 7%, oreol
    oko 15%. Na tabli od 360 dp to je ugao od ~13 px. Ako deluje kao da viče,
@@ -1899,7 +1929,7 @@ Proveriti, na telefonu i na Windows buildu:
 
 Ako oznaka prođe, ovo zatvara i tačku 3 stavke 48.
 
-## 51. Strelice — boje, obrub, značka i birač — 29.8.2026, nije viđeno uživo
+## 51. Strelice — boje, obrub, značka i birač — ✅ vlasnik projekta, 29.8.2026
 
 Pet boja strelica je promenjeno, svaka strelica je dobila crno-beli obrub, tekst
 značke evaluacije se više ne bira iz teme, a pločice u biraču imaju slova.
