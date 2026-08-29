@@ -64,6 +64,14 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
   final Color dangerContainerBorder;
   // infoContainer's border is `info` itself: 3.53:1 on it, and no new colour.
 
+  // Side tokens. A side token represents a side of the board (White, Draw, or Black)
+  // as painted by the explorer or the evaluation bar.
+  // Rule 23 does not send anything to `canvas` here - `sideWhite` used as a background
+  // does take a dark foreground, and `canvas` on it measures 16.30:1.
+  final Color sideWhite;
+  final Color sideDraw;
+  final Color sideBlack;
+
   const AppColorTokens({
     required this.canvas,
     required this.surface,
@@ -92,6 +100,9 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     required this.dangerContainer,
     required this.onDangerContainer,
     required this.dangerContainerBorder,
+    required this.sideWhite,
+    required this.sideDraw,
+    required this.sideBlack,
   });
 
   static const AppColorTokens dark = AppColorTokens(
@@ -174,6 +185,14 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     dangerContainer: Color(0xFF881337),
     onDangerContainer: Color(0xFFFFF1F2),
     dangerContainerBorder: Color(0xFFFB7185),
+
+    // Side tokens
+    // #F1F5F9 (Slate 100): 16.30:1 on canvas / 13.35:1 on surface / 9.45:1 on surfaceRaised
+    sideWhite: Color(0xFFF1F5F9),
+    // #64748B (Slate 500): 3.75:1 on canvas / 3.07:1 on surface / 2.18:1 on surfaceRaised
+    sideDraw: Color(0xFF64748B),
+    // #020617 (Slate 950): 1.13:1 on canvas / 1.38:1 on surface / 1.95:1 on surfaceRaised
+    sideBlack: Color(0xFF020617),
   );
 
   @override
@@ -205,6 +224,9 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     Color? dangerContainer,
     Color? onDangerContainer,
     Color? dangerContainerBorder,
+    Color? sideWhite,
+    Color? sideDraw,
+    Color? sideBlack,
   }) {
     return AppColorTokens(
       canvas: canvas ?? this.canvas,
@@ -237,6 +259,9 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       onDangerContainer: onDangerContainer ?? this.onDangerContainer,
       dangerContainerBorder:
           dangerContainerBorder ?? this.dangerContainerBorder,
+      sideWhite: sideWhite ?? this.sideWhite,
+      sideDraw: sideDraw ?? this.sideDraw,
+      sideBlack: sideBlack ?? this.sideBlack,
     );
   }
 
@@ -279,6 +304,9 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
           Color.lerp(onDangerContainer, other.onDangerContainer, t)!,
       dangerContainerBorder:
           Color.lerp(dangerContainerBorder, other.dangerContainerBorder, t)!,
+      sideWhite: Color.lerp(sideWhite, other.sideWhite, t)!,
+      sideDraw: Color.lerp(sideDraw, other.sideDraw, t)!,
+      sideBlack: Color.lerp(sideBlack, other.sideBlack, t)!,
     );
   }
 }
