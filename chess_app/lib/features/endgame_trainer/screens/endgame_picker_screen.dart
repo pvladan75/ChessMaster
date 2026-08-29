@@ -131,17 +131,17 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
     if (catalog == null || catalog.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.xxl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.search_off, size: 40),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               const Text(
                 'Spisak završnica trenutno nije dostupan.',
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               FilledButton(
                   onPressed: _load, child: const Text('Pokušaj ponovo')),
             ],
@@ -151,12 +151,13 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.xs),
       children: [
         _buildLevels(catalog),
         if (catalog.oppositeBishops > 0) _buildOppositeSwitch(catalog),
         _buildOnlineSwitch(),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         for (final family in catalog.families) _buildFamily(family),
       ],
     );
@@ -185,7 +186,7 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xs),
         Text(
           'Nivo je rejting igrača koji je u toj poziciji pogrešio.',
           style: Theme.of(context).textTheme.bodySmall,
@@ -238,7 +239,7 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
   Widget _buildFamily(EndgameFamily family) {
     final open = _open.contains(family.id);
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Column(
         children: [
           CheckboxListTile(
@@ -260,7 +261,8 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
             for (final ending in family.endings)
               CheckboxListTile(
                 dense: true,
-                contentPadding: const EdgeInsets.only(left: 32, right: 16),
+                contentPadding: const EdgeInsets.only(
+                    left: AppSpacing.xxxl, right: AppSpacing.lg),
                 value: _chosen.contains(ending.material),
                 onChanged: (on) => setState(() {
                   if (on == true) {
@@ -298,7 +300,8 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
     final total = _total;
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.md),
         child: Row(
           children: [
             Expanded(
@@ -309,7 +312,7 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.md),
             FilledButton.icon(
               // Nothing to serve means nothing to start, and saying so here is
               // better than a screen that opens and reports it.

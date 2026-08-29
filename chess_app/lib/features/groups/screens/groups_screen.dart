@@ -219,7 +219,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
       children: [
         if (_error != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
             child: Text(_error!,
                 style: AppText.caption.copyWith(color: context.colors.danger)),
           ),
@@ -233,12 +234,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
   Widget _buildEmpty(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.groups_outlined, size: 40),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text('Još nema grupa.',
                 style: AppText.bodyBold, textAlign: TextAlign.center),
             const SizedBox(height: 6),
@@ -257,15 +258,15 @@ class _GroupsScreenState extends State<GroupsScreen> {
 
   Widget _buildList(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md, AppSpacing.md, AppSpacing.md, 88),
       itemCount: _groups.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
       itemBuilder: (context, i) {
         final group = _groups[i];
         final open = _openGroupId == group.id;
         return Card(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
           child: Column(
             children: [
               ListTile(
@@ -305,7 +306,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
   Widget _buildMembers(BuildContext context, StudentGroup group) {
     if (_loadingMembers) {
       return const Padding(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(AppSpacing.lg),
         child: SizedBox(
             height: 18,
             width: 18,
@@ -314,13 +315,14 @@ class _GroupsScreenState extends State<GroupsScreen> {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, 0, AppSpacing.sm, AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_members.isEmpty)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: Text('Grupa je prazna.',
                   style: AppText.caption
                       .copyWith(color: context.colors.textMuted)),
@@ -330,7 +332,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
               Row(
                 children: [
                   const Icon(Icons.person_outline, size: 16),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(child: Text(member.name, style: AppText.body)),
                   IconButton(
                     tooltip: 'Ukloni iz grupe',
