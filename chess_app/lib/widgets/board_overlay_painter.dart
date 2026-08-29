@@ -79,6 +79,22 @@ class ChessBoardPainter extends CustomPainter {
   final String? lastMoveTo;
   final ui.Color lastMoveColor;
   final ui.Color drawingModeColor;
+
+  /// The two colours the last-move brackets are drawn in.
+  ///
+  /// Black and white, and **not** tokens, deliberately. The one job these two
+  /// have is to be the part of the marker that does not depend on the palette,
+  /// on the board skin, or on the reader's colour vision — and a value that
+  /// must not vary must not come from a variable. Both are achromatic, so a
+  /// protanopia or deuteranopia simulation leaves them exactly where they are;
+  /// there is no hue in them to lose.
+  ///
+  /// `board_skin_contrast_test.dart` measures them against every square of
+  /// every skin and asserts the invariant this pair exists for: whichever
+  /// square the marker lands on, at least one of the two still has a luminance
+  /// edge on it.
+  static const ui.Color lastMoveMarkerShade = ui.Color(0xFF000000);
+  static const ui.Color lastMoveMarkerLight = ui.Color(0xFFFFFFFF);
   final ui.Color badgeTextColor;
   final ui.Color badgeBorderColor;
 
@@ -96,6 +112,69 @@ class ChessBoardPainter extends CustomPainter {
     this.lastMoveTo,
   });
 
+  /// Corner brackets on a last-move square: a black halo with a white core
+  /// drawn over it.
+  ///
+  /// This is the marker's second channel, and it was added on 29.8.2026 because
+  /// the first one had been measured and did not hold. Two numbers decided the
+  /// shape, neither of them a matter of taste:
+  ///
+  /// - The amber fill against the square beneath it measures **1.03:1** at its
+  ///   worst — blue board, dark palette, light square, deuteranopia — and never
+  ///   better than 1.94:1 anywhere on any skin. As a luminance signal it is not
+  ///   weak, it is absent: the marker was legible only as a shift in hue, which
+  ///   is the one channel a red-green deficiency takes away. Roughly one boy in
+  ///   twelve has one, and the users here are children.
+  /// - Black clears 4.4:1 against every square of every skin, white clears
+  ///   3.0:1 against every dark one, so drawing **both** means at least one of
+  ///   them has an edge whatever it lands on. That is why there are two strokes
+  ///   and not one in a cleverly chosen grey.
+  ///
+  /// Corners rather than a thicker border, because a border competes with the
+  /// square's own edge and because the shape is then a third channel on top of
+  /// the second: four right angles pointing inwards look like nothing else on
+  /// this board. The amber is untouched — this is added to it, not instead.
+  void _paintLastMoveBrackets(Canvas canvas, Rect square) {
+    final side = square.width;
+    final arm = side * 0.28;
+    final coreWidth = side * 0.07;
+    final haloWidth = coreWidth * 2.2;
+    // Inset by half the halo, so the widest stroke stays inside its own square
+    // instead of bleeding onto the neighbouring one.
+    final r = square.deflate(haloWidth / 2);
+
+    final path = Path()
+      ..moveTo(r.left, r.top + arm)
+      ..lineTo(r.left, r.top)
+      ..lineTo(r.left + arm, r.top)
+      ..moveTo(r.right - arm, r.top)
+      ..lineTo(r.right, r.top)
+      ..lineTo(r.right, r.top + arm)
+      ..moveTo(r.right, r.bottom - arm)
+      ..lineTo(r.right, r.bottom)
+      ..lineTo(r.right - arm, r.bottom)
+      ..moveTo(r.left + arm, r.bottom)
+      ..lineTo(r.left, r.bottom)
+      ..lineTo(r.left, r.bottom - arm);
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = lastMoveMarkerShade
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = haloWidth
+        ..strokeJoin = StrokeJoin.miter,
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = lastMoveMarkerLight
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = coreWidth
+        ..strokeJoin = StrokeJoin.miter,
+    );
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     final effectiveBoardSize = (size.width > 0 && size.width != double.infinity)
@@ -103,7 +182,9 @@ class ChessBoardPainter extends CustomPainter {
         : boardSize;
     final squareSize = effectiveBoardSize / 8;
 
-    // Draw last move square highlights (origin & destination in glowing amber)
+    // Draw last move square highlights: an amber wash and border, plus the
+    // black-and-white corner brackets that carry the same fact without using
+    // colour to do it.
     if (lastMoveFrom != null && lastMoveTo != null) {
       final fromCenter =
           getSquareCenter(lastMoveFrom!, effectiveBoardSize, orientation);
@@ -123,12 +204,14 @@ class ChessBoardPainter extends CustomPainter {
             center: fromCenter, width: squareSize, height: squareSize);
         canvas.drawRect(rectFrom, fillPaint);
         canvas.drawRect(rectFrom, borderPaint);
+        _paintLastMoveBrackets(canvas, rectFrom);
       }
       if (toCenter != Offset.zero) {
         final rectTo = Rect.fromCenter(
             center: toCenter, width: squareSize, height: squareSize);
         canvas.drawRect(rectTo, fillPaint);
         canvas.drawRect(rectTo, borderPaint);
+        _paintLastMoveBrackets(canvas, rectTo);
       }
     }
 

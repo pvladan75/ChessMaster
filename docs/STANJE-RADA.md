@@ -1807,6 +1807,66 @@ i tamnog polja u painteru, pa u pokrivci animacije; oba puta su pala kako treba.
 
 Uživo nije viđeno: [TODO-provera.md](TODO-provera.md), stavka 47.
 
+### Vid i boje — mereno, ne procenjeno, 29.8.2026
+
+Povod je jedna rečenica vlasnika projekta: *„sve je ekstra, boje, kontrasti,
+inače sam daltonista"*. To menja šta znači „provereno uživo" na ovom projektu —
+njegova potvrda dokazuje svetlinu, veličinu i oblik, a **ne** dokazuje da se dve
+boje razlikuju po tonu. Zato je merenje moralo da zameni oko.
+
+**`test/support/color_vision.dart`** — simulacija dihromatskog vida po Viénot,
+Brettel & Mollon (1999): jedna 3×3 matrica po deficitu, primenjena u
+**linearnom** RGB-u. Uz nju `over()` (spljošti providnu boju na podlogu, jer se
+meri ono što je na ekranu a ne ono što je prosleđeno `Paint`-u), WCAG kontrast, i
+`worstContrast()` koji vraća najgori slučaj kroz sva tri vida.
+
+**Tritanopija namerno nije tu.** Viénot-ova simplifikacija važi za protan i
+deutan i poznato je da za tritan ne valja — sam rad to kaže. Broj koji proizvede
+model koji ne važi gori je od nikakvog broja, jer će mu se verovati.
+
+Instrument se proverava pre nego što mu se veruje, kao i sve ostalo ovde: siva
+prolazi kroz simulaciju nepromenjena, a crvena i zelena padaju na istu žutu osu.
+Prva verzija tog testa je pala i bila je u pravu što je pala — poređenje je bilo
+na `double`-ovima, a povratak sRGB → linearno → matrica → sRGB promaši polaznu
+tačku za nekoliko desethiljaditih. Poredi se `toARGB32()`, jer je to ono što se
+crta.
+
+**Šta su brojke rekle:**
+
+- **Figure prolaze, sve.** Ivica figure naspram polja: najgori slučaj kroz sva
+  tri vida i ceo katalog je **3.36:1**, iznad praga 3.0. Ispuna naspram ivice ne
+  pada ispod 14.65:1. Žute figure iz kompleta „Visoki kontrast" drže 19.56:1 i
+  pod oba deficita — žuto na crnom je jedan od najotpornijih parova koji postoje,
+  pa je ta odluka i pod ovim merenjem u redu.
+- **Oznaka poslednjeg poteza pada.** `warning` na 45% naspram polja ispod sebe:
+  **1.03:1** u najgorem slučaju (plava tabla, tamna paleta, svetlo polje,
+  deuteranopija). To nije slab signal po svetlini nego nikakav — oznaka se
+  videla isključivo kao promena tona.
+
+**Šta je urađeno s tim.** `ChessBoardPainter` sada crta i **uglove**: četiri
+prava ugla ka unutra, u dva poteza — crni oreol pa belo jezgro preko njega. Amber
+ostaje netaknut; ovo je **dodato**, nije zamenjeno, jer je vlasnik odobrio kako
+tabla izgleda i to nije trebalo prepravljati.
+
+Zašto baš dve boje a ne jedna pametno izabrana siva: crno drži 4.4:1 naspram
+svakog polja svake kože, belo drži 3.0:1 naspram svakog tamnog, pa se crtanjem
+**oba** garantuje da bar jedno ima ivicu ma na čemu stajalo. Obe su ahromatske,
+pa ih simulacija ne pomera uopšte — nema tona koji bi izgubile. To je i jedina
+stvar koju test o tome tvrdi: raniji pokušaj je tvrdio da se *kontrast* uglova ne
+menja po vidu, a to je netačno, jer se polje ispod njih menja i kad se ugao ne
+menja.
+
+Uglovi su i treći kanal povrh drugog: četiri prava ugla ne liče ni na šta drugo
+na ovoj tabli, pa oznaka radi i za nekoga ko gleda crno-belu sliku.
+
+Mere: **881 test** (12 novih), 1 preskočen, `flutter analyze` na istih 29
+`info`-a. Oba tvrđenja dokazana mutacijom — kad se uglovi ne crtaju, padaju tri
+testa; kad im se boje zamene tonovima umesto crno-bele, padaju tri druga.
+
+Ostalo otvoreno: **strelice.** `board_overlay_painter.dart` ima 14 namernih
+literala za strelice, plus `arrow_color_button.dart` — boje kao jedini nosilac
+značenja su tamo najverovatnije još uvek prisutne. Nije gledano.
+
 ### Šta sledi
 
 - **Paket 45 (Gemini)**: gotov i spojen 29.8.2026 (`b4fb881`).
@@ -1858,11 +1918,15 @@ Uživo nije viđeno: [TODO-provera.md](TODO-provera.md), stavka 47.
 
   **To je merenje svetline, a ne presuda.** Žuto preko krem polja i dalje
   izgleda žuće, a promena tona se vidi i kad je razlika u svetlini mala — zato
-  ovo niko do sada nije prijavio kao bag. Ali brojke su dovoljno niske da se
-  mora **pogledati na telefonu, po koži**, pre nego što se ijedna nova tabla
-  proglasi gotovom. Ako ne prolazi, rešenje nije nova boja tokena nego oznaka
-  koja ne zavisi samo od boje (deblji obod, tačka, ugao) — token `warning`
-  znači „poslednji potez" i na svim ostalim mestima.
+  ovo niko do sada nije prijavio kao bag.
+
+  **Razrešeno 29.8.2026, i razrešeno je u drugom smeru nego što je pisalo
+  ovde.** Onaj argument — „promena tona se vidi i kad je svetlina ista" — traži
+  oko koje razlikuje tonove. Vlasnik projekta je daltonista, a korisnici su deca
+  među kojima otprilike svaki dvanaesti dečak ima crveno-zeleni deficit. Za njih
+  taj argument ne važi, pa oznaka koja je nosila samo ton nije nosila ništa.
+  Rešenje je ono koje je gore i predviđeno: **oznaka koja ne zavisi od boje.**
+  Odeljak niže.
 ### Faza 5 — birač, 29.8.2026
 
 Odeljak **„IZGLED"** u `settings_screen.dart`, iznad „NALOG": tema

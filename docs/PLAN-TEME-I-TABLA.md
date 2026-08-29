@@ -120,7 +120,10 @@ rather than by taste:
   and moving them into the skin would trade a meaning for a decoration. What
   this does create is a measurement nobody has taken: `warning` was chosen to
   read on a dark canvas, and it will now be laid over a pale square in either
-  theme. That belongs in batch 46's test, not in the skin.
+  theme. That belongs in batch 46's test, not in the skin. **Taken 29.8.2026,
+  and it failed** — 1.03:1 at worst. The answer was the one this paragraph
+  predicts: the meaning stayed in the token, and a second, colourless channel
+  was added beside it rather than the token being retuned.
 - **`blackDecoration` is not optional.** Every black piece except the pawn takes
   a third colour in `chess_vectors_flutter` — the knight's eye and mane, the
   king's cross, the rook and queen inlays — defaulting to white. A `PieceSkin`

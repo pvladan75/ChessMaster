@@ -1829,11 +1829,10 @@ Paket 46 dodao je pet tabli i tri kompleta figura. **Birač postoji od faze 5**
 2. **Bela figura na tabli „Visoki kontrast"** je čist obris: belo na belom polju
    meri 1.00:1 po ispuni, a nosi ga crna ivica na 21:1. Namerno, ali treba
    videti da li se čita.
-3. **Oznaka poslednjeg poteza, po koži.** Vidi nalaz u
-   [STANJE-RADA.md](STANJE-RADA.md): po svetlini se razlikuje od polja za
-   1.05–1.94. Najgori slučaj je plava tabla sa tamnom paletom. Gledati može li
-   se na prvi pogled reći koji je potez odigran — i ako ne može, to je zadatak
-   za sebe, ne za paletu.
+3. **Oznaka poslednjeg poteza, po koži.** Ovo je u međuvremenu rešeno bez
+   gledanja — oznaka je dobila crno-bele uglove, jer je merenje reklo da amber
+   sam nosi 1.03:1 u najgorem slučaju. Ostaje da se pogleda kako **izgleda**, ne
+   da li se vidi: stavka 50.
 4. **Animacija poteza na svakoj koži** — pokrivka polja uzima boju te table, pa
    svaka koža ima svoju.
 
@@ -1869,3 +1868,33 @@ Proveriti, na Windows buildu i na telefonu:
 
 Stavka 48 je spisak *kombinacija* koje treba pogledati kad birač postoji; ova je
 o samom biraču.
+
+## 50. Oznaka poslednjeg poteza i crno-beli uglovi — 29.8.2026, nije viđeno uživo
+
+Amber ispuna i obod su ostali; preko njih se sada crtaju **četiri prava ugla ka
+unutra**, crni oreol sa belim jezgrom. Razlog je merenje, ne ukus: `warning` na
+45% naspram polja ispod sebe daje **1.03:1** u najgorem slučaju, pa se oznaka
+videla samo kao promena tona — a ton je ono što crveno-zeleni deficit oduzima.
+Detalji i brojke su u [STANJE-RADA.md](STANJE-RADA.md), odeljak „Vid i boje".
+
+Testovi tvrde da se uglovi crtaju, na oba polja poteza, i da im boje drže ivicu
+na svakoj koži. Ono što test ne vidi je da li oznaka sada izgleda pretrpano.
+
+Proveriti, na telefonu i na Windows buildu:
+
+1. **Da li je oznaka prejaka.** Uglovi su 28% stranice polja, jezgro 7%, oreol
+   oko 15%. Na tabli od 360 dp to je ugao od ~13 px. Ako deluje kao da viče,
+   smanjuje se `arm` i `coreWidth` u `_paintLastMoveBrackets` — ali **ne** tako
+   što se vrati na samo boju.
+2. **Sve kože.** Uglovi su isti na svih pet tabli, jer su crno-beli; treba
+   videti da nigde ne izgledaju kao greška u crtanju, posebno na „Visoki
+   kontrast" gde je svetlo polje čisto belo (belo jezgro se tu gubi, i to je u
+   redu — crni oreol nosi).
+3. **Figura na obeleženom polju.** Ugao i figura dele polje. Gledati da ugao ne
+   seče figuru tako da se ne prepoznaje koja je.
+4. **Animacija poteza preko obeleženog polja** — pokrivka polja se crta ispod
+   ove oznake.
+5. **Obe teme.** Amber dolazi iz `warning`, koji je različit u svetloj i tamnoj
+   paleti; uglovi nisu i ne menjaju se.
+
+Ako oznaka prođe, ovo zatvara i tačku 3 stavke 48.
