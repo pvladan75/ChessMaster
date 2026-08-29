@@ -1611,6 +1611,36 @@ vizuelan, pokriven testom i van puta rada na stablu poteza.
 - Galerija na `/design-gallery`, dostupna isključivo kroz stavku iza
   `kDebugMode` na dnu Podešavanja — u release buildu je nema.
 
+### Druga runda: paketi 14–43, spojeni 29.8.2026 (`71d3452`)
+
+Prva runda je bila jedan pilot ekran i predlozi. Druga je odradila ostatak, kao
+numerisani paketi na istoj grani: razmaci, tipografija, boje, kontejnerski
+tokeni i pravila 23, 24, 25 i 26 koja su iz njih ispala. Devedeset fajlova,
++2990/−1968, bez ijednog konflikta.
+
+Ono što se ne vidi iz diffa je da su **dve stvari bile odluke, a ne migracija**:
+
+- **Pravilo 14 je suženo, ne ukinuto** (`c2e0ae0`). Ranije je govorilo da boja
+  koja nosi šahovsko značenje ostaje literal. Zabrana da se `surface` rastegne
+  da znači „beli“ ili „crni“ i dalje stoji; ono što je dodato je pošteno
+  rešenje — takva boja sme da dobije **token sa domenskim imenom**, koji odlučuje
+  čovek i dodaje paket napisan za to, nikad izmišljen usput.
+- **Paketi 42 i 43** su dodali prva tri takva tokena (`sideWhite` #F1F5F9,
+  `sideDraw` #64748B, `sideBlack` #020617) i prebacili četrnaest literala na
+  njih: tri polja u eksploreru otvaranja, obe trake evaluacije u obe
+  orijentacije, izabrano stanje u biraču strelica i maketa u galeriji.
+
+Četiri predložene grupe tokena su **odbijene** 29.8.2026 (osmostepena skala za
+Syzygy, `boardHighlight`, `brandBase`, `shadow`), pa literali koje bi one
+zamenile i dalje stoje — namerno. Obrazloženje je u `report-batch-41.md` u
+worktree-u.
+
+Merenja koja su odlučila vrednosti nose testovi, ne komentari
+(`chess_app/test/side_token_contrast_test.dart`): trake se razdvajaju međusobno
+(4.34 / 4.24 / 18.41), a `sideBlack` se **ne može** razdvojiti od panela iza
+sebe ni pri jednoj boji — čisto crno daje 1.18 / 1.44 / 2.03 na tri površine, pa
+je to plafon a ne mana tokena, i granicu nosi `borderStrong`.
+
 ### Pouka, koja je opštija od dizajna
 
 Od osam nalaza iz pregleda, **tri nisu bila loš dizajn nego netačna tvrdnja**:
@@ -1633,9 +1663,18 @@ postane istinita.
 ### Šta ostaje otvoreno
 
 - `DESIGN-PROPOSALS.md` (koren repoa) nosi ostatak: predlozi po ekranima,
-  komponentna biblioteka, i **redosled za svetlu temu** — prvo migracija ~53
-  fajla koji još drže sirove literale boja, pa svetli tokeni, pa podešavanje.
-  Obrnutim redom svetla tema daje belo na belom.
+  komponentna biblioteka, i **redosled za svetlu temu** — prvo migracija
+  preostalih literala, pa svetli tokeni, pa podešavanje. Obrnutim redom svetla
+  tema daje belo na belom.
+- **Brojka „~53 fajla“ je zastarela od 29.8.2026.** Posle paketa 14–43 u `lib/`
+  je ostalo 45 literala boje u 14 fajlova, i većina je tu s razlogom: strelice
+  (`board_overlay_painter.dart`, 14), Syzygy skala (8), polja table
+  (`board_thumbnail.dart` i dva `board_setup_dialog.dart`), `main.dart` seed,
+  poteg ispod broja u traci evaluacije i senka u galeriji. **Stvarnih ostataka
+  ima desetak**, u `ai_studio_screen.dart` (4),
+  `analysis_studio_screen.dart` (4), `settings_screen.dart`,
+  `login_screen.dart` i `replay_player_screen.dart` — to je paket 44 kad se
+  bude radio, i meri se ponovo pre nego što se veruje ovoj brojci.
 - Svetla tema je namerno **ne**napisana: `ThemeMode` je zakucan na `dark` i
   `setThemeMode` ne postoji nigde u `lib/`, pa bi to bio mrtav kod.
 - `DESIGN-BRIEF.md` je posle spajanja ostao na korenu. Pisan je agentu („ovo

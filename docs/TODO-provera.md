@@ -1663,3 +1663,38 @@ sa table kroz `outcomeFor` umesto iz kategorije vežbe.
       Pozicija" učitava novu.
 - [ ] Da traka o zameni **ne** iskoči kad se igra normalno, od prvog do
       poslednjeg poteza svojom stranom.
+
+---
+
+## 45. Migracija na tokene — 29.8.2026, nije viđeno uživo
+
+Paketi 14–43 su spojeni u `master` (`71d3452`): 90 fajlova, ceo vizuelni sloj
+prebačen na tokene razmaka, tipografije i boje. **Testovi i kapije to ne mogu da
+provere** — boja nema kapiju koja zna koju je ulogu literal tražio, a 805 zelenih
+testova kaže samo da se ništa nije srušilo. Ovo se proverava očima.
+
+**Prvo ono što bi pogrešna zamena pokvarila tiho:**
+
+- [ ] **Traka evaluacije, obe orijentacije.** Belo je dole kad je tabla okrenuta
+      belom, gore kad je okrenuta crnom. Zamena grana u ternaru ovde okreće
+      traku za pola korisnika, a svi testovi ostaju zeleni.
+- [ ] **Vodoravna traka evaluacije** u AI studiju — bela i crna polovina, broj
+      preko granice između njih mora da se čita (nosi crni poteg).
+- [ ] **Traka ishoda u eksploreru otvaranja**: tri polja, belo / remi / crno,
+      moraju da se razlikuju međusobno i od panela iza.
+- [ ] **Birač strelica**: izabrani krug ima svetlu ivicu i kvačicu.
+- [ ] Galerija dizajna, maketa trake evaluacije — ista slika kao prava traka.
+
+**Zatim ekrani koje su paketi 32–40 prošli**, jer je tu menjan i razmak i
+tipografija, a ne samo boja:
+
+- [ ] Podešavanja, prijava, početni ekran, Analysis Studio, AI Studio, traka
+      koraka u kursu.
+- [ ] **Na telefonu, u release buildu.** Release ne crta žuto-crne pruge preko
+      prelivanja — red koji je postao preširok se samo iseče i dugmad iza ivice
+      ne postoje. Pravilo je u `CLAUDE.md`; ovde je 90 fajlova razloga da se
+      pogleda.
+
+Ako nešto izgleda pomereno a ne pokvareno, to je i dalje nalaz: paketi su
+menjali razmake na skalu, pa je „izgleda drugačije“ očekivano, a „izgleda
+razbijeno“ nije.
