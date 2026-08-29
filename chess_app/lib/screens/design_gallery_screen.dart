@@ -936,7 +936,7 @@ class _ChessComponentsSection extends StatelessWidget {
                     width: 28,
                     height: 120,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E), // Black side
+                      color: colors.sideBlack, // Black side
                       borderRadius: AppRadii.roundedSm,
                       border: Border.all(color: colors.borderStrong),
                     ),
@@ -946,9 +946,9 @@ class _ChessComponentsSection extends StatelessWidget {
                         // White advantage fill (e.g. 65% white)
                         Container(
                           height: 78,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.vertical(
+                          decoration: BoxDecoration(
+                            color: colors.sideWhite,
+                            borderRadius: const BorderRadius.vertical(
                               bottom: Radius.circular(AppRadii.xs),
                             ),
                           ),
@@ -959,7 +959,7 @@ class _ChessComponentsSection extends StatelessWidget {
                           child: Text(
                             '+1.8',
                             style: AppText.micro.copyWith(
-                              color: Colors.black,
+                              color: colors.canvas,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

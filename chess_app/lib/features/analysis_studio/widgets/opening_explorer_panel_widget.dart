@@ -6,13 +6,6 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/material.dart';
 
-// Matches the historical outcome share a move led to across real games —
-// not "good/bad for the mover" (that depends on whose turn it is).
-// Domain constants: Opening outcome breakdown bar colors.
-const _whiteColor = Colors.lightBlueAccent;
-const _drawColor = Colors.grey;
-const _blackColor = Colors.deepOrangeAccent;
-
 /// Shows real move popularity/win-rate stats from the Lichess Opening
 /// Explorer for the current position. Falls back to the ChessDB panel when the
 /// user picked ChessDB as their source, and when the Explorer could not be
@@ -305,6 +298,10 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
               child: SizedBox(
                 width: 60,
                 height: 4,
+                // The bar is the historical outcome share a move led to
+                // across real games — not "good/bad for the mover", which
+                // depends on whose turn it is. That is why the fills are
+                // the side tokens and not success/warning/danger.
                 child: move.total == 0
                     ? ColoredBox(color: colors.border)
                     : Row(
@@ -312,15 +309,15 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
                           if (move.white > 0)
                             Expanded(
                                 flex: move.white,
-                                child: const ColoredBox(color: _whiteColor)),
+                                child: ColoredBox(color: colors.sideWhite)),
                           if (move.draws > 0)
                             Expanded(
                                 flex: move.draws,
-                                child: const ColoredBox(color: _drawColor)),
+                                child: ColoredBox(color: colors.sideDraw)),
                           if (move.black > 0)
                             Expanded(
                                 flex: move.black,
-                                child: const ColoredBox(color: _blackColor)),
+                                child: ColoredBox(color: colors.sideBlack)),
                         ],
                       ),
               ),

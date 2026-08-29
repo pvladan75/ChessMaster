@@ -100,11 +100,11 @@ class HorizontalEvalBarWidget extends StatelessWidget {
               children: [
                 Expanded(
                   flex: (winPct * 1000).round(),
-                  child: Container(color: Colors.grey.shade100),
+                  child: Container(color: colors.sideWhite),
                 ),
                 Expanded(
                   flex: ((1.0 - winPct) * 1000).round(),
-                  child: Container(color: Colors.grey.shade900),
+                  child: Container(color: colors.sideBlack),
                 ),
               ],
             ),
@@ -182,16 +182,14 @@ class VerticalEvalBarWidget extends StatelessWidget {
             Expanded(
               flex: (topPct * 1000).round(),
               child: Container(
-                  color: isWhiteOrientation
-                      ? Colors.grey.shade900
-                      : Colors.grey.shade100),
+                  color:
+                      isWhiteOrientation ? colors.sideBlack : colors.sideWhite),
             ),
             Expanded(
               flex: (bottomPct * 1000).round(),
               child: Container(
-                  color: isWhiteOrientation
-                      ? Colors.grey.shade100
-                      : Colors.grey.shade900),
+                  color:
+                      isWhiteOrientation ? colors.sideWhite : colors.sideBlack),
             ),
           ],
         ),
