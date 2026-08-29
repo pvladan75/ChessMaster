@@ -7,6 +7,7 @@ import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/scanned_position.dart';
@@ -476,11 +477,11 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
                       color: colors.textPrimary, fontWeight: FontWeight.w600)),
               if (all.any((p) => p.needsReview))
                 Text('${all.where((p) => p.needsReview).length} traži pogled',
-                    style: TextStyle(color: colors.warning, fontSize: 12)),
+                    style: AppText.body.copyWith(color: colors.warning)),
               if (all.any((p) => !p.needsReview && p.solutionSan == null))
                 Text(
                     '${all.where((p) => !p.needsReview && p.solutionSan == null).length} bez rešenja',
-                    style: TextStyle(color: colors.info, fontSize: 12)),
+                    style: AppText.body.copyWith(color: colors.info)),
               const SizedBox(width: AppSpacing.sm),
               ChoiceChip(
                 label: const Text('sve'),
@@ -546,7 +547,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text('Izabrano ${_picked.length}',
-              style: TextStyle(color: colors.textPrimary, fontSize: 13)),
+              style: AppText.bodyLarge.copyWith(color: colors.textPrimary)),
           TextButton(
               onPressed: () => setState(_picked.clear),
               child: const Text('Poništi')),
@@ -594,7 +595,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
               ),
             ),
             Text('provereno $_checkDone / $_checkTotal',
-                style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                style: AppText.body.copyWith(color: colors.textSecondary)),
             TextButton.icon(
               onPressed: _cancelCheck,
               icon: const Icon(Icons.stop_circle_outlined),
@@ -610,8 +611,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('dubina ',
-                    style:
-                        TextStyle(color: colors.textSecondary, fontSize: 12)),
+                    style: AppText.body.copyWith(color: colors.textSecondary)),
                 DropdownButton<int>(
                   value: _depth,
                   isDense: true,
@@ -715,7 +715,7 @@ class _SavedCard extends StatelessWidget {
                     position.sourceLabel == null
                         ? 'str. ${position.sourcePage ?? '?'}'
                         : '#${position.sourceLabel} · str. ${position.sourcePage}',
-                    style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                    style: AppText.body.copyWith(color: colors.textSecondary),
                   ),
                 ),
                 if (selecting)
@@ -760,11 +760,10 @@ class _SavedCard extends StatelessWidget {
                                   'dodaj zadatak za učenika',
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
+                              style: AppText.caption.copyWith(
                                 color: position.instruction == null
                                     ? colors.warning
                                     : colors.textPrimary,
-                                fontSize: 11,
                                 fontStyle: position.instruction == null
                                     ? FontStyle.italic
                                     : FontStyle.normal,
@@ -788,10 +787,9 @@ class _SavedCard extends StatelessWidget {
                         const SizedBox(width: 5),
                         Text(
                           position.solutionSan ?? 'bez rešenja',
-                          style: TextStyle(
+                          style: AppText.body.copyWith(
                             color:
                                 incomplete ? colors.info : colors.textSecondary,
-                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -803,7 +801,7 @@ class _SavedCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style:
-                              TextStyle(color: colors.warning, fontSize: 11)),
+                              AppText.caption.copyWith(color: colors.warning)),
                     if (proposal != null) _proposalRow(context),
                   ],
                 ),
@@ -835,7 +833,7 @@ class _SavedCard extends StatelessWidget {
           'motor: ${p.reason}',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: colors.textMuted, fontSize: 11),
+          style: AppText.caption.copyWith(color: colors.textMuted),
         ),
       );
     }
@@ -860,7 +858,7 @@ class _SavedCard extends StatelessWidget {
                   : 'motor: $named — ${p.reason}',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: tone, fontSize: 11),
+              style: AppText.caption.copyWith(color: tone),
             ),
           ),
           InkWell(
@@ -902,7 +900,7 @@ class _Message extends StatelessWidget {
                 textAlign: TextAlign.center),
             const SizedBox(height: 6),
             Text(detail,
-                style: TextStyle(color: colors.textMuted, fontSize: 12),
+                style: AppText.body.copyWith(color: colors.textMuted),
                 textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.lg),
             action,

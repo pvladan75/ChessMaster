@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/scanned_position.dart';
@@ -260,7 +261,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
             Expanded(
               child: Text(
                 'Sačuvane pozicije ostaju samo tvoje — ne ulaze u zajedničku bazu zagonetki.',
-                style: TextStyle(color: colors.textMuted, fontSize: 12),
+                style: AppText.body.copyWith(color: colors.textMuted),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -359,7 +360,7 @@ class _SetupPanel extends StatelessWidget {
           Text(
             'Najviše 40 strana po prolazu. Strane sa rešenjima su neobavezne — '
             'ako ih ima, iz njih se čita ko je na potezu i koji je potez.',
-            style: TextStyle(color: colors.textMuted, fontSize: 12),
+            style: AppText.body.copyWith(color: colors.textMuted),
           ),
         ],
       ),
@@ -429,7 +430,7 @@ class _PositionCard extends StatelessWidget {
                   position.label == null
                       ? 'str. ${position.page}'
                       : '#${position.label} · str. ${position.page}',
-                  style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                  style: AppText.body.copyWith(color: colors.textSecondary),
                 ),
                 const Spacer(),
                 InkWell(
@@ -459,7 +460,7 @@ class _PositionCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     white ? 'beli na potezu' : 'crni na potezu',
-                    style: TextStyle(color: colors.textPrimary, fontSize: 12),
+                    style: AppText.body.copyWith(color: colors.textPrimary),
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Icon(Icons.swap_horiz, size: 14, color: colors.textMuted),
@@ -469,23 +470,22 @@ class _PositionCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.xxs),
             Text(
               _sideNote(position.sideSource),
-              style: TextStyle(
+              style: AppText.caption.copyWith(
                 color: position.sideSource == 'nepoznato'
                     ? colors.warning
                     : colors.textMuted,
-                fontSize: 11,
               ),
             ),
             const Spacer(),
             if (position.solutionSan != null && position.solutionLegal == true)
               Text('rešenje: ${position.solutionSan}',
-                  style: TextStyle(color: colors.textSecondary, fontSize: 12))
+                  style: AppText.body.copyWith(color: colors.textSecondary))
             else if (position.problem != null)
               Text(
                 position.problem!,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: colors.warning, fontSize: 11),
+                style: AppText.caption.copyWith(color: colors.warning),
               ),
           ],
         ),
@@ -529,7 +529,7 @@ class _EmptyHint extends StatelessWidget {
             Text(
               'Dijagrami se čitaju iz teksta, ne sa slike, pa rade knjige složene '
               'šahovskim fontom. Dokument se ne čuva na serveru.',
-              style: TextStyle(color: colors.textMuted, fontSize: 12),
+              style: AppText.body.copyWith(color: colors.textMuted),
               textAlign: TextAlign.center,
             ),
           ],

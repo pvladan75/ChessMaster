@@ -8,6 +8,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -556,7 +557,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
             Text(
               unfinished ? 'Domaći još nije predat.' : 'Zadatak je završen.',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: AppText.headline,
             ),
             const SizedBox(height: 6),
             Text(
@@ -655,21 +656,22 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
                   ? 'Motiv: ${puzzle.trainableThemes.join(', ')}'
                   : 'Potrebno poteza: ${puzzle.userMoveCount} · '
                       'pronađeno ${session.solvedMoveCount}',
-              style:
-                  TextStyle(fontSize: 12, color: context.colors.textSecondary),
+              style: AppText.body.copyWith(color: context.colors.textSecondary),
             ),
             if (widget.isAssignment) ...[
               const SizedBox(height: AppSpacing.xs),
               Text(
                 'Zadatak: $_assignmentIndex od ${widget.puzzleIds!.length}',
-                style: TextStyle(fontSize: 11, color: context.colors.textMuted),
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted),
               ),
             ] else if (_selection?.targetTheme != null &&
                 !session.isComplete) ...[
               const SizedBox(height: AppSpacing.xs),
               Text(
                 'Vežbate svoju najslabiju temu.',
-                style: TextStyle(fontSize: 11, color: context.colors.textMuted),
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted),
               ),
             ],
           ],

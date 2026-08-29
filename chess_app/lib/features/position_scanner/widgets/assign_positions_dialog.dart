@@ -7,6 +7,7 @@ import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 /// Sends a hand-picked set of the trainer's own positions to one student.
 ///
@@ -188,7 +189,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                       Text(
                         'Nemate nijednog učenika. Odnos se zasniva u tabu Prijatelji, '
                         'i mora ga potvrditi druga strana.',
-                        style: TextStyle(color: colors.warning, fontSize: 12),
+                        style: AppText.body.copyWith(color: colors.warning),
                       )
                     else
                       DropdownButtonFormField<int>(
@@ -229,8 +230,8 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                             _dueAt == null
                                 ? 'Bez roka'
                                 : 'Rok: ${_dueAt!.day}.${_dueAt!.month}.${_dueAt!.year}.',
-                            style: TextStyle(
-                                color: colors.textSecondary, fontSize: 12),
+                            style: AppText.body
+                                .copyWith(color: colors.textSecondary),
                           ),
                         ),
                         TextButton(
@@ -251,7 +252,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                     if (_error != null) ...[
                       const SizedBox(height: AppSpacing.sm),
                       Text(_error!,
-                          style: TextStyle(color: colors.danger, fontSize: 12)),
+                          style: AppText.body.copyWith(color: colors.danger)),
                     ],
                     // Naming each refusal, because "three could not be set"
                     // leaves the trainer hunting through two hundred cards.
@@ -260,7 +261,8 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                         padding: const EdgeInsets.only(top: AppSpacing.xs),
                         child: Text(
                           '${item['puzzleId']}: ${item['reason']}',
-                          style: TextStyle(color: colors.warning, fontSize: 11),
+                          style:
+                              AppText.caption.copyWith(color: colors.warning),
                         ),
                       ),
                   ],

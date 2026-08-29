@@ -6,6 +6,7 @@ import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
@@ -285,8 +286,8 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                 ),
                 Text(
                   '${_completed + 1}/${_queue.length}',
-                  style: TextStyle(
-                      fontSize: 13, color: context.colors.textSecondary),
+                  style: AppText.bodyLarge
+                      .copyWith(color: context.colors.textSecondary),
                 ),
               ],
             ),
@@ -300,7 +301,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
             ),
             if (item.step.title.isNotEmpty && _revealed) ...[
               const SizedBox(height: 6),
-              Text(item.step.title, style: const TextStyle(fontSize: 13)),
+              Text(item.step.title, style: AppText.bodyLarge),
             ],
           ],
         ),
@@ -394,7 +395,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
             const SizedBox(height: 14),
             Text(
               nothingDue ? 'Ništa nije na redu.' : 'Gotovo za danas.',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: AppText.headline,
             ),
             const SizedBox(height: 6),
             Text(
@@ -411,7 +412,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
               const SizedBox(height: 10),
               Text(
                 'Ukupno u ponavljanju: ${_stats.total} · savladano: ${_stats.mature}',
-                style: TextStyle(fontSize: 12, color: context.colors.textMuted),
+                style: AppText.body.copyWith(color: context.colors.textMuted),
               ),
             ],
             const SizedBox(height: AppSpacing.xl),

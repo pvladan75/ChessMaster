@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import '../models/trainer_panel.dart';
 
 /// The trainer's panel: what the job is right now, above the list of people.
@@ -60,7 +61,7 @@ class TrainerPanelView extends StatelessWidget {
                 const Expanded(
                   child: Text(
                     'Panel trenera',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: AppText.headline,
                   ),
                 ),
               ],
@@ -161,7 +162,7 @@ class TrainerPanelView extends StatelessWidget {
                   ),
                   child: Text(
                     '$count',
-                    style: TextStyle(fontSize: 12, color: color),
+                    style: AppText.body.copyWith(color: color),
                   ),
                 ),
             ],
@@ -216,14 +217,14 @@ class TrainerPanelView extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: 13, color: colors.textSecondary),
+                  style:
+                      AppText.bodyLarge.copyWith(color: colors.textSecondary),
                 ),
                 if (note != null) ...[
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
                     note,
-                    style: TextStyle(
-                        fontSize: 12,
+                    style: AppText.body.copyWith(
                         color: noteColor ??
                             (filled ? colors.textSecondary : colors.textMuted)),
                   ),
