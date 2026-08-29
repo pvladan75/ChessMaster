@@ -1684,6 +1684,15 @@ testova kaže samo da se ništa nije srušilo. Ovo se proverava očima.
       moraju da se razlikuju međusobno i od panela iza.
 - [ ] **Birač strelica**: izabrani krug ima svetlu ivicu i kvačicu.
 - [ ] Galerija dizajna, maketa trake evaluacije — ista slika kao prava traka.
+- [ ] **Traka sa ciljem u AI studiju (paket 44) sada ima jednu boju umesto
+      dve.** Ranije se bojila po strani koju igraš (blueGrey / teal); sada je
+      `infoContainer`, a strana se vidi po ivici i ikonici. Ovo je jedina
+      namerna vidljiva promena iz paketa 44 — pogledati je li razlika još
+      čitljiva na telefonu.
+- [ ] Traka faze u Analysis Studiju (završnica) — indigo panel je sada
+      `groupedContainer`; ivica i ikonica moraju da se vide na njemu.
+- [ ] Traka sa vežbama u Analysis Studiju — bila teal, sada `surfaceRaised`,
+      dakle neutralna. Proveriti da se i dalje razlikuje od panela ispod.
 
 **Zatim ekrani koje su paketi 32–40 prošli**, jer je tu menjan i razmak i
 tipografija, a ne samo boja:

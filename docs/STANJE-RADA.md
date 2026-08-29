@@ -1666,15 +1666,14 @@ postane istinita.
   komponentna biblioteka, i **redosled za svetlu temu** — prvo migracija
   preostalih literala, pa svetli tokeni, pa podešavanje. Obrnutim redom svetla
   tema daje belo na belom.
-- **Brojka „~53 fajla“ je zastarela od 29.8.2026.** Posle paketa 14–43 u `lib/`
-  je ostalo 45 literala boje u 14 fajlova, i većina je tu s razlogom: strelice
-  (`board_overlay_painter.dart`, 14), Syzygy skala (8), polja table
-  (`board_thumbnail.dart` i dva `board_setup_dialog.dart`), `main.dart` seed,
-  poteg ispod broja u traci evaluacije i senka u galeriji. **Stvarnih ostataka
-  ima desetak**, u `ai_studio_screen.dart` (4),
-  `analysis_studio_screen.dart` (4), `settings_screen.dart`,
-  `login_screen.dart` i `replay_player_screen.dart` — to je paket 44 kad se
-  bude radio, i meri se ponovo pre nego što se veruje ovoj brojci.
+- **Brojka „~53 fajla“ je zastarela od 29.8.2026**, i posle paketa 44 migracija
+  boje je gotova. U `lib/` je ostalo **35 literala i svi su tu namerno**:
+  strelice (`board_overlay_painter.dart`, 14), Syzygy skala (8), polja table
+  (`board_thumbnail.dart` i dva `board_setup_dialog.dart`, po 2), `main.dart`
+  seed (2), poteg oko izabranog polja i poteg ispod broja u traci evaluacije
+  (2), i dve senke (galerija, plejer). Za četiri grupe tokena koje bi ih
+  zamenile odlučeno je da se **ne** prave. Ako neko ubuduće izmeri drugi broj,
+  prvo proveri je li dodat nov literal, a ne je li lista pogrešna.
 - Svetla tema je namerno **ne**napisana: `ThemeMode` je zakucan na `dark` i
   `setThemeMode` ne postoji nigde u `lib/`, pa bi to bio mrtav kod.
 - `DESIGN-BRIEF.md` je posle spajanja ostao na korenu. Pisan je agentu („ovo
