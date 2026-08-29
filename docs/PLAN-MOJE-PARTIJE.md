@@ -118,6 +118,14 @@ a check constraint requires a centipawn swing for the first and a *pair* of WDL
 verdicts for the second: a tablebase mistake without both is an opinion wearing
 the word "fact".
 
+**Run over a real archive on 30.8.2026**, a fresh export of the same account:
+4126 games read, 4126 rows produced, none skipped and none duplicate — so the
+five refusals were exercised only by the unit tests, not by this file. ECO on
+all 4126 (the export carried `opening=true`), clocks on 3632 of them; the rest
+predate Lichess recording them. 471 games reached tablebase range. 276,877 plies
+in 68 seconds, which says the parse is not what will make an import slow — the
+stream is.
+
 Not verified against a live database — there is no local Postgres on this
 machine and the DDL runs on the next `initDB()`.
 

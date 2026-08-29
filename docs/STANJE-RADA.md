@@ -2172,6 +2172,12 @@ protivnikovu arhivu, pa bi imena po vlasniku učinila svaku agregaciju pogrešno
 drži `read = stored + duplicate + skipped` kad run stane na `done`, a
 `assertBalanced()` puca i pre toga. Testovi: 541 → **556**, svi zeleni.
 
+Modul je pušten preko **stvarne arhive od 4126 partija** (30.8.2026): 4126
+pročitano, 4126 redova, nijedna preskočena ni duplirana; ECO na svima, sat na
+3632 (starije partije su od pre nego što ih je Lichess beležio), 471 partija
+ušla u domet tablica, 276.877 poluteza za 68 sekundi. Parsiranje, dakle, neće
+biti usko grlo uvoza — stream hoće.
+
 **Nije provereno nad živom bazom** — na mašini nema lokalnog Postgresa, DDL se
 izvršava pri sledećem `initDB()`. Sledeće na redu je sam uvoznik (jedan stream
 sa Lichess-a, upis kroz tally) i tek onda sve ostalo iz plana.
