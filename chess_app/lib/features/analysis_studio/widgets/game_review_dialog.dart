@@ -173,11 +173,10 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         );
       },
       child: Dialog(
-        backgroundColor: context.colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
         child: Container(
           width: 440,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85),
           child: Column(
@@ -191,7 +190,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                     children: [
                       Icon(Icons.fact_check,
                           color: context.colors.accent, size: 22),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       Text('Analiziraj partiju',
                           style: AppText.title
                               .copyWith(color: context.colors.textPrimary)),
@@ -205,7 +204,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Flexible(
                 child: SingleChildScrollView(
                   child: Column(
@@ -233,7 +232,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
             : 'Motor će proći kroz $moveCount poteza i za svaki zapisati taktički i pozicioni komentar plus eval. Radi i nad delom partije — vidi opciju ispod.',
         style: AppText.body.copyWith(color: context.colors.textMuted),
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: AppSpacing.lg),
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -283,7 +282,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
       const Divider(height: 20),
       Text('Otkrivanje grešaka',
           style: AppText.bodyBold.copyWith(color: context.colors.textPrimary)),
-      const SizedBox(height: 4),
+      const SizedBox(height: AppSpacing.xs),
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -310,7 +309,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
       ),
       if (_blunderAlertEnabled) ...[
         Padding(
-          padding: const EdgeInsets.only(left: 32.0),
+          padding: const EdgeInsets.only(left: AppSpacing.xxxl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -354,7 +353,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
       ),
       if (_extractPuzzlesEnabled)
         Padding(
-          padding: const EdgeInsets.only(left: 32.0),
+          padding: const EdgeInsets.only(left: AppSpacing.xxxl),
           child: Row(
             children: [
               Text('Maks. broj vežbi: $_maxPuzzles',
@@ -373,14 +372,14 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
             ],
           ),
         ),
-      const SizedBox(height: 8),
+      const SizedBox(height: AppSpacing.sm),
       SizedBox(
         width: double.infinity,
         child: FilledButton.icon(
           icon: const Icon(Icons.play_arrow),
           label: const Text('Pokreni analizu'),
           style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
           ),
           onPressed: moveCount == 0 ? null : _start,
         ),
@@ -394,7 +393,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         child: Column(
           children: [
             Icon(Icons.check_circle, color: context.colors.accent, size: 36),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(
               'Gotovo! Komentarisano $_processed pozicija.',
               textAlign: TextAlign.center,
@@ -417,7 +416,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                 style: AppText.body.copyWith(color: context.colors.textPrimary),
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Zatvori'),
@@ -437,13 +436,13 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                 value: progressPct,
                 backgroundColor: context.colors.surfaceRaised,
                 color: context.colors.accent),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'Obrađeno pozicija: $_processed / $_total',
               style:
                   AppText.bodyLargeBold.copyWith(color: context.colors.accent),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             OutlinedButton.icon(
               icon: Icon(Icons.cancel, color: context.colors.danger),
               label: Text('Otkaži',

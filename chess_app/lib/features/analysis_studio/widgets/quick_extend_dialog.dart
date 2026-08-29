@@ -100,11 +100,10 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
         );
       },
       child: Dialog(
-        backgroundColor: context.colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
         child: Container(
           width: 380,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,7 +115,7 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
                     children: [
                       Icon(Icons.trending_flat,
                           color: context.colors.accent, size: 22),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       Text('Produži granu',
                           style: AppText.title
                               .copyWith(color: context.colors.textPrimary)),
@@ -130,7 +129,7 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               if (!_isRunning)
                 ..._buildSetup()
               else if (_isDone)
@@ -150,7 +149,7 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
         'Motor odigrava svoj najbolji potez, iz poteza u potez, i dodaje ih kao pravu liniju (bez grananja) iza trenutne pozicije.',
         style: AppText.body.copyWith(color: context.colors.textMuted),
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: AppSpacing.lg),
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -166,14 +165,14 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
         activeColor: context.colors.accent,
         onChanged: (val) => setState(() => _plies = val.round()),
       ),
-      const SizedBox(height: 8),
+      const SizedBox(height: AppSpacing.sm),
       SizedBox(
         width: double.infinity,
         child: FilledButton.icon(
           icon: const Icon(Icons.play_arrow),
           label: const Text('Dodaj poteze'),
           style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
           ),
           onPressed: _start,
         ),
@@ -190,13 +189,13 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
                 value: progressPct,
                 backgroundColor: context.colors.surfaceRaised,
                 color: context.colors.accent),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'Odigrano poteza: $_processed / $_total',
               style:
                   AppText.bodyLargeBold.copyWith(color: context.colors.accent),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             OutlinedButton.icon(
               icon: Icon(Icons.cancel, color: context.colors.danger),
               label: Text('Otkaži',
@@ -218,7 +217,7 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
         child: Column(
           children: [
             Icon(Icons.check_circle, color: context.colors.accent, size: 36),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(
               _lastAdded == null
                   ? 'Nije dodat nijedan potez (kraj partije?).'
@@ -226,7 +225,7 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
               textAlign: TextAlign.center,
               style: AppText.subtitle.copyWith(color: context.colors.accent),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             ElevatedButton(
               onPressed: () {
                 widget.onCompleted(_lastAdded);
