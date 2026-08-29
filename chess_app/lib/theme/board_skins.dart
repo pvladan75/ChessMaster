@@ -55,8 +55,42 @@ class BoardSkin {
     darkSquare: Color(0xFFB58763),
   );
 
+  static const BoardSkin green = BoardSkin(
+    id: 'green',
+    name: 'Zelena',
+    lightSquare: Color(0xFFE9EDCC),
+    darkSquare: Color(0xFF779556),
+  );
+
+  static const BoardSkin blue = BoardSkin(
+    id: 'blue',
+    name: 'Plava',
+    lightSquare: Color(0xFFC4D1D1),
+    darkSquare: Color(0xFF677C8D),
+  );
+
+  static const BoardSkin highContrast = BoardSkin(
+    id: 'high_contrast',
+    name: 'Visoki kontrast',
+    lightSquare: Color(0xFFFFFFFF),
+    darkSquare: Color(0xFF737373),
+  );
+
+  static const BoardSkin grayscale = BoardSkin(
+    id: 'grayscale',
+    name: 'Siva',
+    lightSquare: Color(0xFFE2E2E2),
+    darkSquare: Color(0xFF8C8C8C),
+  );
+
   /// Every skin offered, in the order Settings shows them.
-  static const List<BoardSkin> all = [classic];
+  static const List<BoardSkin> all = [
+    classic,
+    green,
+    blue,
+    highContrast,
+    grayscale,
+  ];
 
   /// Falls back rather than throws: an id can come from a preference written by
   /// a newer build, or by a build where a skin existed that has since been
@@ -118,7 +152,27 @@ class PieceSkin {
     blackDecoration: Color(0xFFFFFFFF),
   );
 
-  static const List<PieceSkin> all = [classic];
+  static const PieceSkin warm = PieceSkin(
+    id: 'warm',
+    name: 'Tople',
+    whiteFill: Color(0xFFFDF6E3),
+    whiteStroke: Color(0xFF222222),
+    blackFill: Color(0xFF222222),
+    blackStroke: Color(0xFF222222),
+    blackDecoration: Color(0xFFFDF6E3),
+  );
+
+  static const PieceSkin highContrast = PieceSkin(
+    id: 'high_contrast',
+    name: 'Visoki kontrast',
+    whiteFill: Color(0xFFFFFF00),
+    whiteStroke: Color(0xFF000000),
+    blackFill: Color(0xFF000000),
+    blackStroke: Color(0xFF000000),
+    blackDecoration: Color(0xFFFFFF00),
+  );
+
+  static const List<PieceSkin> all = [classic, warm, highContrast];
 
   static PieceSkin byId(String? id) {
     for (final skin in all) {
