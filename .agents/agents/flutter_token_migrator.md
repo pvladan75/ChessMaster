@@ -40,7 +40,8 @@ the task briefs cite these rules by number, so nothing here is ever renumbered.
     `AppText.bodyLarge`, never `AppText.caption`. A previous pass mapped each
     size to the next smaller token — 13 became 11, 22 became 18 — and shrank the
     text across two directories in an app read by seven-year-olds. The scale
-    exists so that this is a lookup, not a judgement.
+    exists so that this is a lookup, not a judgement. **The size alone is not
+    the key** — see rule 26, which this sentence used to contradict.
 11. **If there is no exact token, keep the literal and report it.** An off-scale
     `fontSize: 15`, a `FontWeight.w900`, a colour with no clear role: leave the
     line untouched and list it in your report as needing a decision. Inventing
@@ -238,3 +239,22 @@ the task briefs cite these rules by number, so nothing here is ever renumbered.
     under the 3.0 a boundary needs. Sky 800 fixes both and keeps `colors.info`
     as the border, so the triple needed two new colours instead of three. When a
     proposal gives you a number, check the *other* pairings it did not.
+
+26. **The weight is half of the `AppText` key.** Four of the eight sizes exist
+    only in a weighted form — `subtitle` is `w600`, and `title`, `headline` and
+    `display` are bold — while `micro` exists only plain. So `TextStyle(fontSize:
+    16)` with no weight **has no token**, and answering it with `AppText.title`
+    bolds text that is not bold. Read the weight out of the same `TextStyle(...)`
+    call as the size, and match on the pair:
+
+        10 plain micro          12 plain body        13 plain bodyLarge
+        11 plain caption        12 bold  bodyBold    13 bold  bodyLargeBold
+        11 bold  captionBold    14 w600  subtitle    16 bold  title
+                                18 bold  headline    22 bold  display
+
+    Any pair not in that table is rule 11: keep the literal, report it, and let
+    a human decide whether the design wants the weight changed. Sixteen sites in
+    `lib/` are in exactly that position, and `gate_scale` now reports them as
+    warnings rather than as instructions. This rule exists because the gate
+    itself got it wrong first: it keyed on size alone and told a run that a
+    plain `fontSize: 16` was `AppText.title`.
