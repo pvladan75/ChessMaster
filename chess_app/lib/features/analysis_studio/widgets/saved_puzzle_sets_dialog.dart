@@ -46,7 +46,6 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: context.colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
       child: Container(
         width: 460,

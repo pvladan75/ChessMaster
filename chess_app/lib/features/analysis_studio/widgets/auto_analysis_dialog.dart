@@ -113,7 +113,6 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
         : 0.0;
 
     return Dialog(
-      backgroundColor: context.colors.surface,
       shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
       child: Container(
         width: 480,

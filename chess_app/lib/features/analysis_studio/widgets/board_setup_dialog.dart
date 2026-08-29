@@ -273,7 +273,6 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
     final colors = context.colors;
 
     return Dialog(
-      backgroundColor: colors.surface,
       shape: AppRadii.dialogShape,
       child: Container(
         width: 550,

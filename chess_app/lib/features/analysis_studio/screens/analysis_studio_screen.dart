@@ -2129,7 +2129,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: context.colors.surface,
         title: Text('Obriši potez?',
             style: TextStyle(color: context.colors.textPrimary)),
         content: Text(
