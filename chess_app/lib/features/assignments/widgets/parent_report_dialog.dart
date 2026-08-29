@@ -1,3 +1,4 @@
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -142,7 +143,8 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
         Text(
           'Za ${widget.studentName}. Roditelj otvara link u pregledaču — '
           'nije mu potreban nalog.',
-          style: TextStyle(fontSize: 13, color: context.colors.textSecondary),
+          style:
+              AppText.bodyLarge.copyWith(color: context.colors.textSecondary),
         ),
         const SizedBox(height: AppSpacing.lg),
         Text('Period', style: Theme.of(context).textTheme.labelLarge),
@@ -194,7 +196,8 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
         Text(
           'Pošaljite ovaj link roditelju. Brojevi u njemu su zamrznuti — neće se '
           'menjati kad ga roditelj kasnije ponovo otvori.',
-          style: TextStyle(fontSize: 13, color: context.colors.textSecondary),
+          style:
+              AppText.bodyLarge.copyWith(color: context.colors.textSecondary),
         ),
         const SizedBox(height: AppSpacing.md),
         Container(

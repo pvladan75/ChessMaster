@@ -1,3 +1,4 @@
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:chess_app/theme/app_spacing.dart';
 
@@ -58,10 +59,7 @@ class CourseStepBar extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '${courseTitle ?? 'Kurs'} — korak ${activeIndex + 1}/${items.length}',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold),
+                      style: AppText.bodyBold.copyWith(color: Colors.white),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

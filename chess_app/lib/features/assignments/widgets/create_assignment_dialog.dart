@@ -1,3 +1,4 @@
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/theme/app_colors.dart';
@@ -164,8 +165,8 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
                       const EdgeInsets.only(top: AppSpacing.xxs, bottom: 6),
                   child: Text(
                     'Predložene su teme na kojima učenik najviše greši.',
-                    style: TextStyle(
-                        fontSize: 11, color: context.colors.textMuted),
+                    style: AppText.caption
+                        .copyWith(color: context.colors.textMuted),
                   ),
                 ),
               const SizedBox(height: 6),
@@ -175,8 +176,7 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
                 children: [
                   for (final theme in _offerableThemes)
                     FilterChip(
-                      label: Text(themeLabel(theme),
-                          style: const TextStyle(fontSize: 12)),
+                      label: Text(themeLabel(theme), style: AppText.body),
                       selected: _themes.contains(theme),
                       onSelected: (on) => setState(() {
                         if (on) {
@@ -193,8 +193,8 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     'Bez izabrane teme zadatak uzima zagonetke svih vrsta.',
-                    style: TextStyle(
-                        fontSize: 11, color: context.colors.textMuted),
+                    style: AppText.caption
+                        .copyWith(color: context.colors.textMuted),
                   ),
                 ),
 

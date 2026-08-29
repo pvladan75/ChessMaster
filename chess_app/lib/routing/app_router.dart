@@ -1,3 +1,4 @@
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -391,15 +392,15 @@ class _InvalidRouteScreen extends StatelessWidget {
             children: [
               const Icon(Icons.explore_off, size: 48, color: Colors.grey),
               const SizedBox(height: AppSpacing.lg),
-              const Text(
+              Text(
                 'Ova putanja ne postoji.',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: AppText.title,
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 detail,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: AppText.body.copyWith(color: Colors.grey),
               ),
               const SizedBox(height: AppSpacing.xl),
               ElevatedButton.icon(

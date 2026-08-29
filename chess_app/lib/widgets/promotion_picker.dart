@@ -1,3 +1,4 @@
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/core/services/legal_moves.dart';
@@ -79,8 +80,7 @@ class _PromotionChoice extends StatelessWidget {
             children: [
               chessPieceWidget(letter, size: 44) ?? const SizedBox(height: 44),
               const SizedBox(height: AppSpacing.xs),
-              Text(_pieceNames[piece] ?? piece,
-                  style: const TextStyle(fontSize: 11)),
+              Text(_pieceNames[piece] ?? piece, style: AppText.caption),
             ],
           ),
         ),

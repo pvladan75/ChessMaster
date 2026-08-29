@@ -1,3 +1,4 @@
+import 'package:chess_app/theme/app_typography.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -239,7 +240,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
                   'sačuvajte poziciju iz Studija za analizu.'
               : 'Ništa ne odgovara traženom.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: colors.textSecondary, fontSize: 12),
+          style: AppText.body.copyWith(color: colors.textSecondary),
         ),
       );
     }
@@ -269,7 +270,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
             entry.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13),
+            style: AppText.bodyLarge,
           ),
           subtitle: Text(
             // The reason it cannot be used replaces the ordinary subtitle: it
@@ -279,8 +280,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
                 : (entry.blockedReason ?? 'ne može se zadati'),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 11,
+            style: AppText.caption.copyWith(
               color: usable ? colors.textSecondary : colors.warning,
             ),
           ),

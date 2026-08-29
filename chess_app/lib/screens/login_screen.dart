@@ -1,3 +1,4 @@
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show TextInput;
@@ -402,8 +403,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                               Expanded(
                                 child: Text(
                                   _expiryNotice!,
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.orangeAccent),
+                                  style: AppText.body
+                                      .copyWith(color: Colors.orangeAccent),
                                 ),
                               ),
                             ],
@@ -523,9 +524,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           // session, so the form is not asked for at all. The
                           // password itself is offered by the device's password
                           // manager, if it has been saved there.
-                          subtitle: const Text(
+                          subtitle: Text(
                             'Ostajete prijavljeni na ovom uređaju.',
-                            style: TextStyle(fontSize: 12),
+                            style: AppText.body,
                           ),
                           value: _rememberMe,
                           activeColor: Theme.of(context).primaryColor,
@@ -639,7 +640,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         Text(
           'Ako još nemate nalog, napraviće se sam.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+          style: AppText.body.copyWith(color: Theme.of(context).hintColor),
         ),
       ],
     );

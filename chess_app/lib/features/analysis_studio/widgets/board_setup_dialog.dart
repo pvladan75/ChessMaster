@@ -352,8 +352,8 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
         TextField(
           controller: _fenTextController,
           maxLines: 3,
-          style: TextStyle(
-              color: colors.textPrimary, fontSize: 13, fontFamily: 'monospace'),
+          style: AppText.bodyLarge
+              .copyWith(color: colors.textPrimary, fontFamily: 'monospace'),
           decoration: InputDecoration(
             filled: true,
             fillColor: colors.canvas,
@@ -425,10 +425,8 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
           child: TextField(
             controller: _pgnTextController,
             maxLines: 8,
-            style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: 13,
-                fontFamily: 'monospace'),
+            style: AppText.bodyLarge
+                .copyWith(color: colors.textPrimary, fontFamily: 'monospace'),
             decoration: InputDecoration(
               filled: true,
               fillColor: colors.canvas,
@@ -535,7 +533,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             OutlinedButton.icon(
               icon: Icon(Icons.delete_outline, size: 16, color: colors.danger),
               label: Text('Obriši tablu 🗑️',
-                  style: TextStyle(fontSize: 11, color: colors.danger)),
+                  style: AppText.caption.copyWith(color: colors.danger)),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: colors.danger),
                 padding: const EdgeInsets.symmetric(
@@ -550,7 +548,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             OutlinedButton.icon(
               icon: Icon(Icons.restart_alt, size: 16, color: colors.accent),
               label: Text('Početna pozicija 🔄',
-                  style: TextStyle(fontSize: 11, color: colors.accent)),
+                  style: AppText.caption.copyWith(color: colors.accent)),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: colors.accent),
                 padding: const EdgeInsets.symmetric(
