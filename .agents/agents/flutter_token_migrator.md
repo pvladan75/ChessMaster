@@ -67,6 +67,22 @@ the task briefs cite these rules by number, so nothing here is ever renumbered.
     named `surface` has no business deciding what a light square, or black's
     share of the eval bar, looks like. When in doubt, leave it and report it.
 
+    **Amended 29.8.2026, and narrowed rather than lifted.** The prohibition
+    was right and stands: no surface or semantic role may be stretched to
+    mean something about chess. What it got wrong is the remedy — it left a
+    domain colour with nowhere to go but a literal, and `Colors.grey` says
+    even less about a drawn game than `surface` would. A domain colour may
+    have a **domain-named token**, decided by a human and added by a batch
+    written for it. It may never be invented inside a sweep: a migration
+    that needs a token the palette does not have is rule 16, stop and ask.
+
+    Batch 42 adds the first three — `sideWhite`, `sideDraw`, `sideBlack`,
+    the side of the board as the explorer and the eval bar both mean it.
+    Until that batch lands they do not exist and nothing may reference
+    them. Board squares, piece colours and arrow colours have no tokens and
+    stay literals, as does the black stroke on the eval bar's number, which
+    is an optical hack for legibility across two fills and not a role.
+
 ## HOW TO REPORT
 
 15. **Report the diff, not the gates.** Green tests mean nothing that is checked
