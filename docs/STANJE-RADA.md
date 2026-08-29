@@ -2186,3 +2186,25 @@ indeksom, koje baza sme da odbije pri kreiranju a nije.
 
 Sledeće na redu je sam uvoznik (jedan stream sa Lichess-a, upis kroz tally) i
 tek onda sve ostalo iz plana.
+
+**Uvoznik napisan 30.8.2026** — `services/gameArchiveImport.js` i
+`routes/userGames.js` na `/games`. Cela arhiva je **jedan stream**, ne hiljade
+zahteva, pa ograničenje nije broj upita u sekundi nego to što server ima jednu
+adresu za sve korisnike — zato i taj jedan zahtev ide kroz isti pacer kao
+explorer. Traje minutima, pa ruta vraća 202 i `importId`, a klijent pita kako
+ide; run koji padne upiše svoj razlog u svoj red, jer u trenutku pada odgovora
+odavno nema.
+
+Četiri ponašanja koja treba znati: nastavlja se od `MAX(played_at)` za tog
+subjekta (drugi uvoz povuče samo novo); drugi istovremeni run se odbija sa 409
+umesto da udvostruči svaki brojač; run koji je ostao `running` posle pada
+procesa se posle pola sata proglašava neuspelim, jer bi inače jedan pad zauvek
+blokirao korisnika; `subject_is_owner` je u ruti fiksiran na `true`, pošto
+odluka o tuđim arhivama (sekcija 6 plana) ne sme da stigne kroz neiskorišćen
+parametar.
+
+Deljenje streama na partije je jedino mesto gde se podaci mogu izgubiti tiho, pa
+nosi najjači test: ista arhiva pušta bajt po bajt i odjednom mora da da iste
+partije. **Dokazano mutacijom** — kad se rep pusti odmah, pada pet testova.
+Testovi: 556 → **569**, svi zeleni. Uživo još nije viđeno:
+[TODO-provera.md](TODO-provera.md), stavka 52.

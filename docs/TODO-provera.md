@@ -1975,3 +1975,36 @@ Proveriti, na telefonu i na Windows buildu:
    nova boja.
 6. **Sve na koži „Visoki kontrast"**, gde je svetlo polje čisto belo — beli deo
    obruba se tu gubi, i to je u redu, jer crni nosi.
+
+## 52. Uvoz sopstvene arhive partija — 30.8.2026, nije viđeno uživo
+
+Prva stvar u projektu koja u bazu upisuje **stvarne partije korisnika**, i prva
+koja jedan HTTP poziv drži otvorenim minutima. Sve što piše dole je testirano
+kodom (13 testova, uključujući dokaz mutacijom za deljenje streama) i nijednom
+gledano kako radi.
+
+Priprema: nalog na koji se prijavljuje mora imati Lichess korisničko ime koje se
+unosi ručno — veze naloga sa Lichess-om još nema.
+
+1. [ ] **`POST /games/import` vrati 202 i `importId` odmah**, ne posle četiri
+   minuta. Ako čeka, ruta ne radi ono zbog čega je napisana.
+2. [ ] **Cela arhiva stigne.** Na kraju `GET /games/imports/:id` mora imati
+   `status = done` i `games_read = games_stored + games_duplicate +
+   games_skipped`. Za arhivu od ~4126 partija očekuje se ~4126 upisanih i
+   nula preskočenih — na PGN fajlu od 29.8.2026 modul nije odbio nijednu.
+3. [ ] **Drugi uvoz odmah zatim povuče skoro ništa.** Ovo je provera da
+   `since` radi: `games_read` mali, `games_duplicate` eventualno 1 (poslednja
+   partija se ponovo pročita namerno), `games_stored` 0 ako se ništa nije
+   igralo u međuvremenu.
+4. [ ] **Drugi uvoz *tokom* prvog vrati 409**, a ne dva paralelna streama.
+5. [ ] **Nepostojeći nalog** vrati 404 sa porukom koja imenuje nalog, i run
+   ostane `failed` sa tim razlogom upisanim.
+6. [ ] **Sat i otvaranje su stvarno u redovima.** `GET /games/stats` treba da
+   pokaže `with_clocks` blizu ukupnog broja za noviju arhivu, i `reached_
+   tablebase` oko 11% (na merenoj arhivi 471 od 4126).
+7. [ ] **Server ostaje odazivan dok uvoz traje.** Uvoz je pozadinski posao u
+   istom procesu; ako se soba ili čas u međuvremenu koče, to treba znati pre
+   nego što se pusti korisnicima.
+8. [ ] **Veličina.** Posle uvoza pogledati koliko je `user_games` zauzeo na
+   dropletu od 960 MB — `moves` i `clocks` su nizovi po partiji, a ovo je prva
+   tabela koja raste sa istorijom korisnika, ne sa njegovim radom u aplikaciji.

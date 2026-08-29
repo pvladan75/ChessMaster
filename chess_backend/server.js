@@ -29,6 +29,7 @@ const groupRoutes = require('./routes/groups');
 const accountRoutes = require('./routes/account');
 const consentRoutes = require('./routes/consent');
 const trainerPanelRoutes = require('./routes/trainerPanel');
+const userGamesRoutes = require('./routes/userGames');
 const { authenticateToken, requireRole, authenticateSocket } = require('./middleware/auth');
 const entitlementService = require('./services/entitlementService');
 const realtime = require('./services/realtime');
@@ -140,6 +141,7 @@ app.use('/library', libraryRoutes);
 app.use('/opening-explorer', openingExplorerRoutes);
 app.use('/opening-judge', openingJudgeRoutes);
 app.use('/repertoire', repertoireRoutes);
+app.use('/games', userGamesRoutes);
 app.use('/groups', groupRoutes);
 app.use('/', accountRoutes);
 // The parent's page. Mounted at the root and deliberately unauthenticated:

@@ -133,6 +133,47 @@ the DDL is applied, not merely written — including the two check constraints a
 the partial index, which a database is free to reject at creation and this one
 did not.
 
+### The importer, written 30.8.2026
+
+`services/gameArchiveImport.js` and `routes/userGames.js`, mounted at `/games`.
+`test/game_archive_import.test.js` covers both (backend suite: 556 → 569).
+
+**A whole archive is one request, not thousands.** Lichess streams a player's
+entire history down a single response, so the rate limit that matters is not
+requests per second — it is that this server has one address for every user of
+the app, which is why even the single request goes through the same pacer as the
+explorer.
+
+**Four minutes is not a request**, so nothing waits for it. The endpoints:
+
+| | |
+|---|---|
+| `POST /games/import` `{ username, since? }` | 202 `{ importId, since }`; the run continues after the response |
+| `POST /games/import/pgn` `{ pgn, username }` | the same pipeline with no network, bounded by the 2 MB JSON body limit |
+| `GET /games/imports` | the last runs, newest first |
+| `GET /games/imports/:id` | one run: four counters, `skipped_by_reason`, status, error |
+| `GET /games/stats` | games, with clocks, reached tablebase, subjects, oldest, newest, plies |
+
+Four behaviours worth knowing before building against it. A run resumes from
+`MAX(played_at)` for that subject, so the second import of an archive pulls only
+what is new. A second concurrent run for one user is refused with 409 rather
+than doubling every counter. A run left `running` by a restarted process is
+reaped after thirty minutes, because otherwise one crash blocks that user
+forever. And a run that fails writes its own reason into its row — the route's
+response is not where a failure is reported, since by then the client is long
+gone.
+
+`subject_is_owner` is fixed at `true` in the route. The table and the importer
+both carry somebody else's archive perfectly well — that is what section 6
+needs — but whether this app lets one account pull a profile of a named child is
+the decision named there, and it should not arrive by way of an unused
+parameter.
+
+The splitter is the part that could lose data quietly, so it is the part with
+the strongest test: the same archive fed one byte at a time and all at once must
+produce the same games. Proven by mutation — emitting the buffered tail eagerly
+fails five tests, that one included.
+
 ## 1. Opening leak report
 
 No engine, no tablebase, no network — pure counting. Group the positions where
