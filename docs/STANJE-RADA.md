@@ -15,7 +15,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 29.8.2026.
+Poslednje ažuriranje: 30.8.2026.
 
 ---
 
@@ -2114,3 +2114,41 @@ Mere posle faze 5: **869 testova** (12 novih), 1 preskočen, `flutter analyze` n
 istih 29 poznatih `info`-a.
 
 Uživo nije viđeno: [TODO-provera.md](TODO-provera.md), stavke 47, 48 i 49.
+
+## Sopstvene partije kao korpus — predlog, 30.8.2026
+
+Pitanje je bilo: korisnik preda arhivu od nekoliko hiljada svojih partija sa
+Lichess-a — šta se s njom može uraditi, a ne može se uraditi partiju po partiju?
+Odgovor je u [PLAN-MOJE-PARTIJE.md](PLAN-MOJE-PARTIJE.md). **Ništa od toga nije
+napisano**; dokument je predlog, ali su brojke u njemu **merene** na stvarnoj
+arhivi od 4073 partije, a ne procenjene.
+
+Tri nalaza koja odlučuju šta vredi graditi:
+
+- **Signal živi između 6. i 20. poluteza.** Na 12. potezu 4073 partije stoje na
+  2749 različitih pozicija (najčešća se ponavlja 52 puta); do 20. ih je 3869 i
+  najčešća se ponavlja 8 puta. Posle desetog poteza svaka je partija skoro
+  jedinstvena i statistika po poziciji prestaje da znači išta.
+- **Izveštaj o otvaranjima je besplatan** — nula motora, nula mreže, samo
+  brojanje. Na uzorku: 14 pozicija na 10. polutezu koje se ponavljaju bar 8 puta
+  a nose ispod 42%, i u jednoj od njih isti potez odigran 33 od 35 puta. To je
+  navika, ne varijansa.
+- **Završnice preko Syzygy-ja su jeftine i tačne.** Cela arhiva ima 8673
+  različite pozicije sa ≤7 figura — oko 22 minuta kroz postojeći `lichessPacing`
+  — i 234 partije koje su ušle u tablice a nisu dobijene. Presuda „izgubio si
+  dobijenu" je činjenica, ne mišljenje motora, što je tačno ono što
+  `tablebaseService.js` čuva.
+
+Ono što nedostaje je **jedno**: tabela sa partijama korisnika. `blunder_games` je
+uvezen javni skup, ne korisnikov. Sve ostalo u planu je upit nad tom tabelom.
+
+Skupo je samo prolaz motorom: ~273k pozicija za celu arhivu, ~7–8 sati na dubini
+14 u jednoj niti. To je noćni posao na desktopu, ne na dropletu od 960 MB, i
+nikako ne kroz cloud-eval — jedan izlazni IP za sve korisnike.
+
+**Usput provereno uživo 30.8.2026**: Lichess daje partije **bilo kog** naloga
+nepotpisanom pozivaocu (HTTP 200, bez tokena), pa je priprema za protivnika isti
+izveštaj usmeren na drugog igrača. Parametar `vs=` vraća samo međusobne partije,
+a `opening=true` dodaje `[ECO]` i `[Opening]` — ECO baza lokalno ne treba.
+Detalji i jedna odluka koja ostaje proizvodu (dozvoliti li profilisanje
+imenovanog deteta) su u planu.
