@@ -2161,3 +2161,17 @@ može da izbroji samo ono što je do njega stiglo, a rangiranje na klijentu samo
 ono što mu je poslato — pa su oba prešla na serversku stranu. Pre nego što bilo
 šta osim uvoza krene: **šema mora biti zamrznuta i mora postojati zasejana
 fixture baza**, inače se gradi UI nad oblikom koji se još pomera.
+
+**Faza 0 napisana 30.8.2026** — šema je zamrznuta. Tri tabele u `db.js`
+(`user_games`, `user_game_imports`, `mistake_reviews`) i čist modul
+`services/gameArchive.js` koji od jedne PGN partije pravi red ili **imenovano
+odbijanje** (pet razloga, i tally odbija svaki šesti). Kolone koje nose ugao
+gledanja zovu se po **subjektu**, ne po vlasniku reda — ista tabela nosi i
+protivnikovu arhivu, pa bi imena po vlasniku učinila svaku agregaciju pogrešnom
+čim se okrene ka nekom drugom, i to pogrešnom uz uredne brojeve. Uslov u bazi
+drži `read = stored + duplicate + skipped` kad run stane na `done`, a
+`assertBalanced()` puca i pre toga. Testovi: 541 → **556**, svi zeleni.
+
+**Nije provereno nad živom bazom** — na mašini nema lokalnog Postgresa, DDL se
+izvršava pri sledećem `initDB()`. Sledeće na redu je sam uvoznik (jedan stream
+sa Lichess-a, upis kroz tally) i tek onda sve ostalo iz plana.

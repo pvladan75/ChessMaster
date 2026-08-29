@@ -73,6 +73,54 @@ incremental. PGN upload covers players who are not on Lichess.
 Small, and everything else is a query over it. Without it, each feature grows
 its own copy of the import.
 
+### The schema, frozen 30.8.2026
+
+Three tables in `db.js`, created by `initDB()` like every other table here, plus
+`services/gameArchive.js` — pure, no database and no network — which turns one
+game's PGN into a row or into a named refusal. `test/game_archive.test.js`
+covers it (backend suite: 541 → 556).
+
+**`user_games`.** The columns that carry a point of view are named after the
+**subject**, not the owner: `subject`, `subject_is_owner`, `subject_color`,
+`subject_score`, `subject_elo`, against `opponent` / `opponent_elo`. Section 6
+puts an opponent's archive in this same table, and columns named after the row's
+owner would make every aggregation wrong the moment one is pointed at somebody
+else — wrong while still returning numbers. The unique key is
+`(user_id, source, external_id, subject)`, because two players' archives of the
+same game are two points of view rather than a conflict.
+
+Written once at import so nothing recomputes them: `moves` in UCI, `ply_count`,
+`min_men` (fewest men the game ever reached) and `tb_entry_ply`. `min_men`
+carries a partial index for `min_men <= 7`, which is what makes section 2 an
+index lookup over the 11% instead of a replay of everything. `clocks` is
+centiseconds per ply and **null when the export carried none** — an array of
+nulls would read as "the clocks are known and they are empty".
+
+**`user_game_imports`.** One row per run, with four counters —
+`games_read`, `games_stored`, `games_duplicate`, `games_skipped` — and
+`skipped_by_reason` as JSONB. Four and not three because re-running an
+incremental import is the normal path, and an already-stored game is neither
+stored nor skipped. A database constraint holds `read = stored + duplicate +
+skipped` at `status = 'done'`, and `createTally().assertBalanced()` throws
+before it gets that far. Both exist for the same reason: an importer that drops
+games and reports success is this codebase's recurring bug wearing a new hat.
+
+The five named refusals are fixed, and the tally rejects any reason outside
+them: `unparsable-pgn`, `not-standard-variant`, `unfinished-game`,
+`subject-not-in-game`, `no-moves`.
+
+**`mistake_reviews`.** The parallel SM-2 store decided on 30.8.2026, with
+`game_id REFERENCES user_games ON DELETE CASCADE` — the guarantee a nullable
+`lesson_id` on `review_items` would have cost. Its SM-2 columns are named
+exactly as `review_items`' are, so `schedule()` in `spacedRepetitionService.js`
+is shared unchanged and owned by neither. `kind` is `engine` or `tablebase`, and
+a check constraint requires a centipawn swing for the first and a *pair* of WDL
+verdicts for the second: a tablebase mistake without both is an opinion wearing
+the word "fact".
+
+Not verified against a live database — there is no local Postgres on this
+machine and the DDL runs on the next `initDB()`.
+
 ## 1. Opening leak report
 
 No engine, no tablebase, no network — pure counting. Group the positions where

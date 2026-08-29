@@ -1068,6 +1068,172 @@ async function initDB() {
     `);
     logger.info('Verified database table & indexes: room_guests');
 
+    // A player's own game archive — the table every "moje partije" feature is
+    // a query over. See docs/PLAN-MOJE-PARTIJE.md; this is its section 0, and
+    // the shape below is frozen so the client can be built against it.
+    //
+    // `subject` and not "me". The same table holds an opponent's archive for
+    // match preparation (plan, section 6), and there the colours and the score
+    // belong to *them*. Naming the columns after the owner of the row would
+    // make every aggregation quietly wrong the first time one is pointed at
+    // someone else, and it would be wrong in a way that still returns numbers.
+    // `subject_is_owner` is decided once, by whoever ran the import, rather
+    // than re-derived from a handle on every read.
+    //
+    // The unique key carries `subject` for the same reason: when a player
+    // imports their own games and later the archive of somebody they have
+    // played, the same Lichess game arrives twice, as two different points of
+    // view. Those are two rows, not a conflict.
+    //
+    // Moves are stored as UCI. SAN cannot be applied without a board, and the
+    // importer already has one — deriving SAN back for display is cheap, while
+    // re-deriving a board to read SAN is what every consumer would otherwise
+    // repeat. `clocks` is centiseconds per ply and nullable, because a default
+    // Lichess export carries no `%clk`; where it does, this is what makes time
+    // trouble analysable instead of merely countable.
+    //
+    // `min_men` is the fewest pieces the game ever reached, written at import.
+    // It exists so the endgame audit (plan, section 2) is an index lookup
+    // rather than a replay of the whole archive to find the 11% worth probing.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_games (
+        id BIGSERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        source VARCHAR(10) NOT NULL CHECK (source IN ('lichess', 'chesscom', 'pgn')),
+        external_id VARCHAR(64) NOT NULL,
+        subject VARCHAR(120) NOT NULL,
+        subject_is_owner BOOLEAN NOT NULL DEFAULT TRUE,
+        played_at TIMESTAMPTZ,
+        subject_color CHAR(1) NOT NULL CHECK (subject_color IN ('w', 'b')),
+        result VARCHAR(7) NOT NULL CHECK (result IN ('1-0', '0-1', '1/2-1/2')),
+        subject_score NUMERIC(2, 1) NOT NULL CHECK (subject_score IN (0, 0.5, 1)),
+        subject_elo SMALLINT,
+        opponent VARCHAR(120),
+        opponent_elo SMALLINT,
+        speed VARCHAR(12),
+        time_control VARCHAR(16),
+        rated BOOLEAN,
+        eco CHAR(3),
+        opening VARCHAR(160),
+        termination VARCHAR(32),
+        start_fen TEXT NOT NULL,
+        moves TEXT[] NOT NULL DEFAULT '{}',
+        clocks INTEGER[],
+        ply_count SMALLINT NOT NULL CHECK (ply_count > 0),
+        min_men SMALLINT NOT NULL CHECK (min_men BETWEEN 2 AND 32),
+        tb_entry_ply SMALLINT,
+        imported_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, source, external_id, subject)
+      );
+      CREATE INDEX IF NOT EXISTS idx_user_games_recent
+        ON user_games(user_id, played_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_user_games_subject
+        ON user_games(user_id, subject, subject_color);
+      CREATE INDEX IF NOT EXISTS idx_user_games_endgame
+        ON user_games(user_id, min_men) WHERE min_men <= 7;
+    `);
+    logger.info('Verified database table & indexes: user_games');
+
+    // One row per import run, and the reason this table exists at all is the
+    // bug this codebase keeps meeting: a step that skips silently, reports
+    // success, and fails one layer later. An importer that drops 300
+    // unparseable games and says "done" is that bug exactly.
+    //
+    // So the count is kept here, where the skipping happens, rather than
+    // computed by whatever screen is showing it — a counter built from what
+    // arrived can only ever count what arrived. `skipped_by_reason` keeps the
+    // *why*, because "300 skipped" is a number and "300 skipped: 297 not
+    // standard chess, 3 no moves" is an answer.
+    //
+    // Four counters and not three: re-running an import is the normal case,
+    // since it is incremental, and a game that is already stored is neither
+    // stored again nor skipped. Folding duplicates into either one would make
+    // the constraint below fail on the ordinary path — and a constraint that
+    // fails on the ordinary path gets removed rather than obeyed.
+    //
+    // The constraint is checked at completion only, so a run in progress may
+    // hold partial counts; a finished run whose numbers do not add up cannot
+    // be written at all.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_game_imports (
+        id BIGSERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        source VARCHAR(10) NOT NULL CHECK (source IN ('lichess', 'chesscom', 'pgn')),
+        subject VARCHAR(120) NOT NULL,
+        since_at TIMESTAMPTZ,
+        status VARCHAR(10) NOT NULL DEFAULT 'running'
+          CHECK (status IN ('running', 'done', 'failed')),
+        games_read INTEGER NOT NULL DEFAULT 0,
+        games_stored INTEGER NOT NULL DEFAULT 0,
+        games_duplicate INTEGER NOT NULL DEFAULT 0,
+        games_skipped INTEGER NOT NULL DEFAULT 0,
+        skipped_by_reason JSONB NOT NULL DEFAULT '{}',
+        error TEXT,
+        started_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        finished_at TIMESTAMPTZ,
+        CONSTRAINT user_game_imports_counts_add_up CHECK (
+          status <> 'done'
+          OR games_read = games_stored + games_duplicate + games_skipped
+        )
+      );
+      CREATE INDEX IF NOT EXISTS idx_user_game_imports_user
+        ON user_game_imports(user_id, started_at DESC);
+    `);
+    logger.info('Verified database table & indexes: user_game_imports');
+
+    // Spaced repetition over a player's *own* mistakes (plan, section 3).
+    //
+    // A parallel table rather than a nullable `lesson_id` on `review_items`,
+    // decided 30.8.2026. Both stores keep a strict foreign key that cascades:
+    // a lesson position dies with its lesson, a mistake dies with the game it
+    // came from. A polymorphic source column would have bought one table at the
+    // price of both guarantees, and of a check constraint standing in for what
+    // the database already knows how to enforce.
+    //
+    // The SM-2 columns are named exactly as in `review_items` on purpose:
+    // `schedule()` in spacedRepetitionService.js is a pure function over those
+    // names, so both stores share the arithmetic and neither owns it.
+    //
+    // `kind` splits the two ways a mistake is found, and the evidence check
+    // below is the point of the column. An engine mistake has a centipawn
+    // swing; a tablebase mistake has a verdict before and after and no swing at
+    // all. A tablebase row without both verdicts would be an opinion wearing
+    // the word "fact", which is the one thing the endgame work must not ship —
+    // see tablebaseService.js, which refuses the same thing at the other end.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS mistake_reviews (
+        id BIGSERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        game_id BIGINT NOT NULL REFERENCES user_games(id) ON DELETE CASCADE,
+        ply SMALLINT NOT NULL CHECK (ply >= 0),
+        fen_before TEXT NOT NULL,
+        played_uci VARCHAR(6) NOT NULL,
+        best_uci VARCHAR(6),
+        kind VARCHAR(10) NOT NULL CHECK (kind IN ('engine', 'tablebase')),
+        theme VARCHAR(40),
+        swing_cp INTEGER,
+        wdl_before SMALLINT CHECK (wdl_before BETWEEN -2 AND 2),
+        wdl_after SMALLINT CHECK (wdl_after BETWEEN -2 AND 2),
+        ease_factor NUMERIC(4, 2) NOT NULL DEFAULT 2.50,
+        interval_days INTEGER NOT NULL DEFAULT 0,
+        repetitions INTEGER NOT NULL DEFAULT 0,
+        lapses INTEGER NOT NULL DEFAULT 0,
+        due_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_reviewed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT mistake_reviews_evidence CHECK (
+          (kind = 'engine' AND swing_cp IS NOT NULL)
+          OR (kind = 'tablebase' AND wdl_before IS NOT NULL AND wdl_after IS NOT NULL)
+        ),
+        UNIQUE (user_id, game_id, ply)
+      );
+      CREATE INDEX IF NOT EXISTS idx_mistake_reviews_due
+        ON mistake_reviews(user_id, due_at);
+      CREATE INDEX IF NOT EXISTS idx_mistake_reviews_theme
+        ON mistake_reviews(user_id, theme);
+    `);
+    logger.info('Verified database table & indexes: mistake_reviews');
+
   } catch (err) {
     logger.error('Database migration/connection error:', err);
     throw err;
