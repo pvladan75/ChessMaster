@@ -1699,10 +1699,15 @@ tipografija, a ne samo boja:
 
 - [ ] Podešavanja, prijava, početni ekran, Analysis Studio, AI Studio, traka
       koraka u kursu.
-- [ ] **Na telefonu, u release buildu.** Release ne crta žuto-crne pruge preko
-      prelivanja — red koji je postao preširok se samo iseče i dugmad iza ivice
-      ne postoje. Pravilo je u `CLAUDE.md`; ovde je 90 fajlova razloga da se
-      pogleda.
+- [ ] **Na telefonu, i to prvo u DEBUG buildu.** Ovo je ispravka onoga što je
+      ovde prvo pisalo („u release buildu“), jer je obrazloženje bilo naopako:
+      release **ne** crta žuto-crne pruge preko prelivanja — red koji je postao
+      preširok se samo iseče i dugmad iza ivice ne postoje. Debug ih crta i puca
+      na tvrdnji, pa je on instrument za ovaj prolaz; release ide posle, da se
+      vidi šta korisnik zapravo dobija i kako radi punom brzinom.
+      Cena: debug i release nisu potpisani istim ključem, pa prelazak traži
+      `adb uninstall rs.pejovic.chesscoach` i odnosi prijavu i podešavanja na
+      tom telefonu. Sporost i trzanje u debug buildu **nisu** nalaz.
 
 Ako nešto izgleda pomereno a ne pokvareno, to je i dalje nalaz: paketi su
 menjali razmake na skalu, pa je „izgleda drugačije“ očekivano, a „izgleda
