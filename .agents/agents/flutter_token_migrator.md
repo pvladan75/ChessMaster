@@ -83,6 +83,19 @@ the task briefs cite these rules by number, so nothing here is ever renumbered.
     stay literals, as does the black stroke on the eval bar's number, which
     is an optical hack for legibility across two fills and not a role.
 
+    **Amended again 29.8.2026, for board squares and piece colours only.**
+    Those two now have somewhere to go that is not a literal and is not a
+    surface token: `BoardSkin` and `PieceSkin` in `lib/theme/board_skins.dart`,
+    which are chosen by the reader in Settings rather than by the palette.
+    They are not `ThemeExtension`s and they do not follow the app theme — a
+    green board is a legitimate choice in either theme. Batch 46 fills that
+    catalogue; before it lands, only `classic` exists.
+
+    **Arrow colours are not covered and stay literals.** All fourteen of them.
+    They are a fixed vocabulary the reader learns (this arrow means the engine's
+    first line), not a matter of taste, and nobody has yet measured them against
+    a pale board.
+
 ## HOW TO REPORT
 
 15. **Report the diff, not the gates.** Green tests mean nothing that is checked
@@ -111,6 +124,19 @@ the task briefs cite these rules by number, so nothing here is ever renumbered.
     painter a `BuildContext` field.
 19. Only the dark theme exists. Do not add light-theme values, and do not make a
     token conditional on `Theme.of(context).brightness`.
+
+    **Amended 29.8.2026. The first half is lifted for one batch; the second
+    half is permanent.** `AppColorTokens.light` and `AppTheme.light` are added
+    by batch 45, which is written for exactly that and names the file. Outside
+    that batch the rule reads as before: a migration that finds itself wanting
+    a light value is rule 16, stop and ask.
+
+    What does not change, and is the reason the second clause was written: a
+    widget never asks which theme it is in. `Theme.of(context).brightness`,
+    `MediaQuery.platformBrightness` and any `isDark ? a : b` in `lib/` outside
+    `theme/` are all still forbidden. Two palettes are two values of one token,
+    resolved by `ThemeData`; a widget that branches on brightness is a third
+    palette nobody can measure.
 
 ## WHEN YOU HAVE AN OPINION ABOUT THE CODE
 
