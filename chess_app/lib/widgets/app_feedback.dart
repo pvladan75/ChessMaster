@@ -45,6 +45,34 @@ abstract final class AppFeedback {
   /// New code should reach for [error], [success], [info] or [warning] first;
   /// this exists so that "build your own SnackBar" never means "go around
   /// AppFeedback".
+  /// The messenger a screen must hold on to if it ever wants its own message
+  /// back.
+  ///
+  /// A SnackBar belongs to the ScaffoldMessenger *above* the route, not to the
+  /// route, so a long-lived one outlives the screen that showed it: it sits
+  /// over whatever comes next, and an action closing over the dead context
+  /// throws inside the action, where [_show]'s catch cannot reach. A screen
+  /// that shows a message worth several seconds therefore takes this in
+  /// `didChangeDependencies` and calls [dismiss] in `dispose`.
+  ///
+  /// Reported 29.8.2026 from the scanner screen, where the saved-positions
+  /// message could only be dismissed by following it somewhere else - and
+  /// after leaving that screen, not even then.
+  static ScaffoldMessengerState? messengerOf(BuildContext context) =>
+      ScaffoldMessenger.maybeOf(context);
+
+  /// Takes back whatever is showing, and cannot throw doing it.
+  ///
+  /// Same rule as everything else here: the message must never be able to take
+  /// down the thing it was reporting on, and that includes its own removal.
+  static void dismiss(ScaffoldMessengerState? messenger) {
+    try {
+      messenger?.hideCurrentSnackBar();
+    } catch (e) {
+      AppLogger.log('[Poruka] nije sklonjena: $e');
+    }
+  }
+
   static void show(BuildContext context, SnackBar Function() build) =>
       _show(context, build);
 

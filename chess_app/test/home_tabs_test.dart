@@ -265,4 +265,62 @@ void main() {
     expect(find.textContaining('Snimljeni časovi'), findsNothing,
         reason: 'kartica opet zove materijal snimljenim časom');
   });
+  // ---------------------------------------------------------------------
+  // Reported from a live pass on 29.8.2026 (ISSUE-013 and ISSUE-014): the
+  // rail showed four icons and no names, and only the first tab had a title
+  // on screen. Both were true in code long before anyone said so, which is
+  // why they are held here now.
+  // ---------------------------------------------------------------------
+
+  testWidgets('the rail says what its icons mean', (tester) async {
+    tester.view.physicalSize = const Size(1400, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await openHome(tester);
+
+    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+    expect(rail.labelType, NavigationRailLabelType.all,
+        reason: 'labels were written for every destination and then not shown; '
+            'on Windows the rail is the whole navigation');
+  });
+
+  testWidgets('every tab carries its own name at the top', (tester) async {
+    tester.view.physicalSize = const Size(1400, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await openHome(tester);
+
+    // The selected tab is named twice on a wide screen: once by the rail's
+    // label and once by the header above the pages. An unselected tab is
+    // named once. Before the header existed, the first tab was named twice
+    // (its own Scaffold brought an AppBar) and the other three once - which
+    // is exactly the inconsistency that was reported.
+    expect(find.text('Trening'), findsNWidgets(2));
+    expect(find.text('Biblioteka'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('Biblioteka'), findsNWidgets(2),
+        reason: 'the header must follow the tab');
+    expect(find.text('Trening'), findsOneWidget);
+  });
+
+  testWidgets('the embedded hub does not bring a second title', (tester) async {
+    tester.view.physicalSize = const Size(1400, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await openHome(tester);
+
+    expect(
+      find.descendant(
+          of: find.byType(TrainingHubScreen), matching: find.byType(AppBar)),
+      findsNothing,
+      reason: 'inside the tab stack the header names the tab; the hub AppBar '
+          'would say it a second time',
+    );
+  });
 }

@@ -1741,3 +1741,42 @@ tipografija, a ne samo boja:
 Ako nešto izgleda pomereno a ne pokvareno, to je i dalje nalaz: paketi su
 menjali razmake na skalu, pa je „izgleda drugačije“ očekivano, a „izgleda
 razbijeno“ nije.
+
+---
+
+## 46. Nalazi sa živog prolaza 29.8.2026 — nije viđeno uzivo
+
+Četiri stvari prijavljene sa telefona i Windows-a istog dana, sve popravljene
+i sve nepregledane. Prva je jedina koja je nešto činila **nedohvatljivim**.
+
+### Dijalog za unos pozicije (ISSUE-015)
+
+- [ ] Telefon, tab „Ručno Slaganje“: sva četiri čipa za rokadu (`K`, `Q`, `k`,
+      `q`) moraju da se vide i da se mogu dodirnuti. Do 29.8.2026. su tri bila
+      iza desne ivice — u release buildu bez ijednog traga da postoje.
+- [ ] Telefon: dijalog je sada širi (inset 12 umesto 40 po strani), tabla bi
+      trebalo da dobije oko 56 piksela.
+- [ ] Windows: „Postavi poziciju“ ide u dve kolone (tabla levo, paleta i
+      kontrole desno) i **ne sme da traži skrolovanje** da bi se stiglo do
+      „Učitaj na tablu“.
+- [ ] Windows: „Unos Pozicije (Board Setup)“ je 760 širok umesto 550.
+
+### Info panel posle skeniranja (ISSUE-012)
+
+- [ ] Skeniraj pozicije → Sačuvaj: traka ima **X** i može da se sklonu, pa se
+      vidi poslednji red pozicija.
+- [ ] Napustiti ekran dok traka stoji → traka nestaje sama.
+- [ ] „Pogledaj“ vodi u „Moje pozicije“ i posle promene ekrana, umesto da pukne
+      i ostane zaglavljena. **Ovo nije pokriveno testom** — da bi se ekran doveo
+      u to stanje treba pravi fajl i mrežni scan, pa je ovo jedina provera koja
+      postoji.
+
+### Navigacija (ISSUE-013 i ISSUE-014)
+
+- [ ] Windows i telefon u pejzažu: uz ikone u rail-u stoje i nazivi (Trening,
+      Časovi, Biblioteka, Ljudi), i rail time nije pojeo previše širine.
+- [ ] Sva četiri taba imaju naslov na vrhu, na istom mestu i istim stilom.
+- [ ] Prvi tab (Trening) ima **jedan** naslov, ne dva — njegov sopstveni AppBar
+      se unutar tabova više ne crta.
+- [ ] Trening otvoren kao ruta (ne kao tab) i dalje ima svoj AppBar sa putem
+      nazad.

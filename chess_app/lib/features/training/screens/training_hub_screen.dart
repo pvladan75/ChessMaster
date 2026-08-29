@@ -19,21 +19,33 @@ import '../widgets/resume_strip.dart';
 /// behind whatever it opened, and coming back to it is a pop rather than a
 /// rebuild.
 class TrainingHubScreen extends StatelessWidget {
-  const TrainingHubScreen({super.key, required this.session});
+  const TrainingHubScreen({
+    super.key,
+    required this.session,
+    this.embedded = false,
+  });
 
   final UserSession session;
+
+  /// True when this sits inside the home screen's tab stack, which now draws
+  /// the tab's name itself for all four tabs. Its own AppBar would then be a
+  /// second title saying the same thing. Pushed as a route it is the only one,
+  /// and it carries the way back.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.canvas,
-      appBar: AppBar(
-        // The title the reader sees, which is not the name the code uses. The
-        // screen behind this used to be called a studio for reasons that
-        // stopped being true a long time ago.
-        title: const Text('Trening'),
-        elevation: 0,
-      ),
+      appBar: embedded
+          ? null
+          : AppBar(
+              // The title the reader sees, which is not the name the code uses.
+              // The screen behind this used to be called a studio for reasons
+              // that stopped being true a long time ago.
+              title: const Text('Trening'),
+              elevation: 0,
+            ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),

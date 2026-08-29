@@ -45,6 +45,20 @@ void main() {
               '${offenders.join(', ')}');
     });
 
+    test('no file hides a message directly either', () {
+      // Taking a message back has the same shape as showing one: it runs on a
+      // messenger that outlives the screen, and it can throw at exactly the
+      // moment the screen is going away. AppFeedback.dismiss swallows that;
+      // a direct call does not.
+      final offenders = [
+        for (final entry in sources.entries)
+          if (entry.value.contains('.hideCurrentSnackBar(')) entry.key,
+      ];
+      expect(offenders, isEmpty,
+          reason: 'poruka se sklanja kroz AppFeedback.dismiss: '
+              '${offenders.join(', ')}');
+    });
+
     test('no file calls showSnackBar directly', () {
       // Separate from the check above on purpose: a messenger captured into a
       // local variable (`final m = ScaffoldMessenger.of(context);`) would slip

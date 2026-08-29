@@ -45,8 +45,27 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
   bool _saving = false;
   bool _onlyDoubtful = false;
 
+  /// The messenger this screen's messages go to, taken while it is still
+  /// mounted.
+  ///
+  /// The save message is deliberately long-lived, because it carries the way
+  /// to the positions that were just saved. But a SnackBar belongs to the
+  /// ScaffoldMessenger *above* this route, not to the route, so it outlived
+  /// the screen: it sat over whatever came next, and its action then ran
+  /// `context.push` on a deactivated context, threw inside the action where
+  /// AppFeedback cannot reach, and left the bar there for good. Reported
+  /// 29.8.2026 as ISSUE-012.
+  ScaffoldMessengerState? _messenger;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _messenger = AppFeedback.messengerOf(context);
+  }
+
   @override
   void dispose() {
+    AppFeedback.dismiss(_messenger);
     _fromController.dispose();
     _toController.dispose();
     _solutionsFromController.dispose();
@@ -131,13 +150,20 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     // Saying only "saved" leaves the trainer with no idea where the positions
     // went — the first live run stored 120 of them and the answer to "where are
     // they" was nowhere on screen. The message carries the way there.
+    // Taken before the bar is built, and used instead of this screen's
+    // context: by the time somebody taps the action the screen may be gone,
+    // and `context.push` on a dead context throws inside the action.
+    final router = GoRouter.of(context);
     AppFeedback.show(
       context,
       () => SnackBar(
         content: Text('U „Moje pozicije": ${outcome.summary}.'),
+        // It covers the last row of scanned positions, and until now the only
+        // way out of it was to follow it somewhere else.
+        showCloseIcon: true,
         action: SnackBarAction(
           label: 'Pogledaj',
-          onPressed: () => context.push(AppRoutes.savedPositions),
+          onPressed: () => router.push(AppRoutes.savedPositions),
         ),
         duration: const Duration(seconds: 8),
       ),

@@ -1,6 +1,7 @@
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:flutter/material.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
@@ -31,6 +32,14 @@ import 'package:chess_app/widgets/home/friends_tab.dart';
 import 'package:chess_app/models/relationship_request_target.dart';
 import 'package:chess_app/features/trainer_panel/models/trainer_panel.dart';
 import 'package:chess_app/features/trainer_panel/services/trainer_panel_api_service.dart';
+
+/// The four tabs, named once.
+///
+/// The rail used to say „Početna“ where the bottom bar said „Trening“, over
+/// one and the same screen, and only whichever layout you were looking at could
+/// tell you which. A name typed twice drifts; this one is read by the rail, the
+/// bottom bar and the header above the pages.
+const List<String> kTabNames = ['Trening', 'Časovi', 'Biblioteka', 'Ljudi'];
 
 class HomeScreen extends StatefulWidget {
   final UserSession session;
@@ -1115,7 +1124,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // First, and default, because it is the one thing that is true for
           // everybody who opens the app. Rooms and homework need a second
           // person; practice does not.
-          return TrainingHubScreen(session: widget.session);
+          return TrainingHubScreen(session: widget.session, embedded: true);
       }
     });
 
@@ -1195,7 +1204,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         NavigationRail(
                           selectedIndex: _selectedIndex,
                           onDestinationSelected: _selectTab,
-                          labelType: NavigationRailLabelType.none,
+                          // Icons only, and a reader guessing which is which:
+                          // the labels were written and then not shown. On
+                          // Windows the rail is the whole navigation, so the
+                          // guessing was the navigation. ISSUE-013, 29.8.2026.
+                          labelType: NavigationRailLabelType.all,
+                          minWidth: 76,
+                          selectedLabelTextStyle: AppText.caption
+                              .copyWith(color: context.colors.accent),
+                          unselectedLabelTextStyle: AppText.caption
+                              .copyWith(color: context.colors.textSecondary),
                           // At the foot of the rail, where a desktop looks for it.
                           // The same lesson as the bell above: the AppBar is null in
                           // landscape, and Windows is always landscape, so anything
@@ -1240,36 +1258,44 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                           destinations: [
-                            const NavigationRailDestination(
-                                icon: Icon(Icons.psychology_outlined),
-                                selectedIcon: Icon(Icons.psychology),
+                            NavigationRailDestination(
+                                icon: const Icon(Icons.psychology_outlined),
+                                selectedIcon: const Icon(Icons.psychology),
                                 // The same tab as the bottom bar's first
                                 // destination, and it now says so. It was
                                 // "Početna" here and "Trening" there, over one
                                 // TrainingHubScreen: two names for one place,
                                 // and only whichever layout you were looking
                                 // at could tell you which.
-                                label: Text('Trening')),
-                            const NavigationRailDestination(
-                                icon: Icon(Icons.school_outlined),
-                                selectedIcon: Icon(Icons.school),
-                                label: Text('Časovi')),
-                            const NavigationRailDestination(
-                                icon: Icon(Icons.library_books_outlined),
-                                selectedIcon: Icon(Icons.library_books),
-                                label: Text('Biblioteka')),
+                                label: Text(kTabNames[0])),
+                            NavigationRailDestination(
+                                icon: const Icon(Icons.school_outlined),
+                                selectedIcon: const Icon(Icons.school),
+                                label: Text(kTabNames[1])),
+                            NavigationRailDestination(
+                                icon: const Icon(Icons.library_books_outlined),
+                                selectedIcon: const Icon(Icons.library_books),
+                                label: Text(kTabNames[2])),
                             NavigationRailDestination(
                                 icon: _peopleIcon(Icons.people_outline),
                                 selectedIcon: _peopleIcon(Icons.people),
-                                label: const Text('Ljudi')),
+                                label: Text(kTabNames[3])),
                           ],
                         ),
                       if (isWide || isLandscape)
                         const VerticalDivider(width: 1, thickness: 1),
                       Expanded(
-                        child: IndexedStack(
-                          index: _selectedIndex,
-                          children: pages,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _TabHeader(title: kTabNames[_selectedIndex]),
+                            Expanded(
+                              child: IndexedStack(
+                                index: _selectedIndex,
+                                children: pages,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -1283,22 +1309,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     selectedIndex: _selectedIndex,
                     onDestinationSelected: _selectTab,
                     destinations: [
-                      const NavigationDestination(
-                          icon: Icon(Icons.psychology_outlined),
-                          selectedIcon: Icon(Icons.psychology),
-                          label: 'Trening'),
-                      const NavigationDestination(
-                          icon: Icon(Icons.school_outlined),
-                          selectedIcon: Icon(Icons.school),
-                          label: 'Časovi'),
-                      const NavigationDestination(
-                          icon: Icon(Icons.library_books_outlined),
-                          selectedIcon: Icon(Icons.library_books),
-                          label: 'Biblioteka'),
+                      NavigationDestination(
+                          icon: const Icon(Icons.psychology_outlined),
+                          selectedIcon: const Icon(Icons.psychology),
+                          label: kTabNames[0]),
+                      NavigationDestination(
+                          icon: const Icon(Icons.school_outlined),
+                          selectedIcon: const Icon(Icons.school),
+                          label: kTabNames[1]),
+                      NavigationDestination(
+                          icon: const Icon(Icons.library_books_outlined),
+                          selectedIcon: const Icon(Icons.library_books),
+                          label: kTabNames[2]),
                       NavigationDestination(
                           icon: _peopleIcon(Icons.people_outline),
                           selectedIcon: _peopleIcon(Icons.people),
-                          label: 'Ljudi'),
+                          label: kTabNames[3]),
                     ],
                   ),
           ),
@@ -1348,6 +1374,39 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The name of the tab you are standing on, in the same place on all four.
+///
+/// Only the first tab had one, and by accident: it is the only tab that brings
+/// its own Scaffold, so it brought an AppBar too. The other three are plain
+/// widgets stacked into this screen and had nothing to carry a title, which
+/// read as three screens that forgot their name. Reported 29.8.2026 as
+/// ISSUE-014.
+///
+/// It lives here, above the stack, rather than in each of the four pages: one
+/// place to change, and it reads `kTabNames`, so the header and the navigation
+/// label cannot say different things about the same tab.
+class _TabHeader extends StatelessWidget {
+  const _TabHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.sm),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: AppText.headline.copyWith(color: context.colors.textPrimary),
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
