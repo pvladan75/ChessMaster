@@ -296,7 +296,6 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
                 painter: ChessBoardPainter(
                   lastMoveColor: context.colors.warning,
                   drawingModeColor: context.colors.accent,
-                  badgeTextColor: context.colors.canvas,
                   badgeBorderColor: context.colors.canvas,
                   arrows: widget.arrows,
                   engineArrows: widget.engineArrows,
@@ -315,7 +314,6 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
                 painter: ChessBoardPainter(
                   lastMoveColor: context.colors.warning,
                   drawingModeColor: context.colors.accent,
-                  badgeTextColor: context.colors.canvas,
                   badgeBorderColor: context.colors.canvas,
                   arrows: widget.arrows,
                   engineArrows: widget.engineArrows,

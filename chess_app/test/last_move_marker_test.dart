@@ -40,7 +40,6 @@ void main() {
         orientation: PlayerColor.white,
         lastMoveColor: amber,
         drawingModeColor: const Color(0xFF00BCD4),
-        badgeTextColor: const Color(0xFFFFFFFF),
         badgeBorderColor: const Color(0xFF000000),
         lastMoveFrom: from,
         lastMoveTo: to,

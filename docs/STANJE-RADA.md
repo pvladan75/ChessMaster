@@ -1946,9 +1946,50 @@ tonovi gube ime kad potamne a hladni ne: tamna narandžasta je braon, tamna
 crvena je bordo, a mornarsko plava je i dalje plava. Prag je zato **0.45 za luk
 od crvene do žute i 0.28 za ostalo**. Nađeno mutacijom, kao i sve ostalo ovde.
 
-Boje još **nisu upotrebljene** — `arrow_colors.dart` niko ne uvozi. Ožičenje
-(halo ispod strelice, popravka značke, oznaka na pločici birača) je sledeće i
-Claude-ovo je.
+### Ožičenje strelica — 29.8.2026
+
+Sve troje je urađeno i sve troje je isti potez: dodaj kanal, ne prepravljaj boju.
+
+**Strelica ima obrub.** `_drawSingleArrow` sada crta u tri prolaza — crni obrub
+(+5 px), beli (+2.5 px), pa sama strelica. Oba obruba su ahromatska, pa se ne
+pomeraju pod simulacijom, a crno drži 4.4:1 naspram svakog polja svake kože i
+belo 3.0:1 naspram svakog tamnog. **To je ono što je paleti dozvolilo da stane
+na 1.5** — spljoštena na svoju alfu, svaka boja strelice pada između 1.01:1 i
+1.12:1 naspram nekog polja, i nijedan izbor pet boja to ne popravlja, jer je
+problem polje a ne paleta.
+
+**Značka evaluacije više ne uzima boju iz teme.** `badgeTextColor` je uklonjen
+iz `ChessBoardPainter` i sa svih šest mesta poziva; tekst se sada bira iz
+svetline same značke (`ChessBoardPainter.readableOn`). To popravlja četiri od pet
+rangova odmah. **Peti se ne da popraviti izborom boje**: crvena `#FF2929` stoji
+na svetlini gde crno daje 3.04:1 a belo 3.74:1 i nijedno ne stiže do 4.5:1, jer
+je ispuna srednje tonirana. Zato glif nosi **oba** — ispunjen boljim, oivičen
+drugim — pa je ivica unutar samog glifa 21:1 ma na čemu stajao. Ista logika kao
+strelica i kao uglovi poslednjeg poteza.
+
+**Pločica u biraču ima slovo.** `ArrowColorButton` prima `ArrowColor` umesto
+boje i tooltipa (koji su bili otkucani na osam mesta), i crta inicijal srpskog
+imena: **C, N, Z, P, Lj** — pet različitih, što je sreća koju vredi iskoristiti.
+Pet krugova koji se razlikuju samo bojom je pet istih krugova za nekoga ko boje
+ne razdvaja, a tooltip progovori tek na hover ili dug pritisak.
+
+`arrowPalette` je nestao iz painter-a; `_getColor` je `ArrowColor.byId`, a
+`_getEngineColor` mapira rang na katalog uz **nepromenjen redosled** (1 zelena,
+2 plava, 3 narandžasta, 4 ljubičasta, 5 crvena) — to je ono što je čitalac
+naučio. Rang i dalje nosi i debljina, `7.0 - (rang - 1) * 1.5`, i to je kanal
+koji zapravo preživljava deficit.
+
+Mere: **899 testova** (10 novih), 1 preskočen, analyze na istih 29. Tri mutacije:
+bez obruba pada 4 testa, stari zeleni literal za rang 1 pada 1, `readableOn` koji
+uvek vraća belo pada 2.
+
+**Šta se vidi na renderu, i šta se ne vidi.** Obrub radi savršeno — svaka
+strelica se čita na svakoj koži, i to je bio glavni cilj. Ali pod deuteranopijom
+**plava i ljubičasta ostaju skoro iste**, jer je taj par tačno na 1.50, a to je
+dokazani plafon. Obrub je rešio *vidljivost*, nije rešio *međusobni identitet* i
+boja to ne može. Ako se ispostavi da je bitno razlikovati dve strelice
+međusobno, rešenje je opet kanal a ne boja — isprekidana linija, ili slovo uz
+rep strelice. Odluka za posle telefona, ne pre njega.
 
 ### Šta sledi
 

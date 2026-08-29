@@ -1906,7 +1906,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 painter: ChessBoardPainter(
                   lastMoveColor: context.colors.warning,
                   drawingModeColor: context.colors.accent,
-                  badgeTextColor: context.colors.canvas,
                   badgeBorderColor: context.colors.canvas,
                   arrows: const [],
                   boardSize: size,
@@ -1925,7 +1924,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 painter: ChessBoardPainter(
                   lastMoveColor: context.colors.warning,
                   drawingModeColor: context.colors.accent,
-                  badgeTextColor: context.colors.canvas,
                   badgeBorderColor: context.colors.canvas,
                   arrows: const [],
                   engineArrows: _engineArrows,

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/theme/arrow_colors.dart';
 import 'package:chess_app/theme/board_skins.dart';
 import 'package:chess_app/widgets/board/chess_piece_image.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -95,7 +97,49 @@ class ChessBoardPainter extends CustomPainter {
   /// edge on it.
   static const ui.Color lastMoveMarkerShade = ui.Color(0xFF000000);
   static const ui.Color lastMoveMarkerLight = ui.Color(0xFFFFFFFF);
-  final ui.Color badgeTextColor;
+
+  /// The two colours every arrow is outlined with.
+  ///
+  /// The same two values as the last-move bracket above, and a **separate pair
+  /// of names on purpose**: these two outline an arrow and those two draw a
+  /// marker, and somebody retuning one of those jobs should not silently move
+  /// the other. What they share is the reason, not the definition — black
+  /// clears 4.4:1 against every square of every board skin and white clears
+  /// 3.0:1 against every dark one, so drawing both guarantees an edge on
+  /// whatever the arrow crosses, and neither moves under a colour-vision
+  /// simulation because neither has a hue to lose.
+  ///
+  /// This is what lets `ArrowColor` stop at a 1.5:1 pair separation instead of
+  /// chasing a number that costs the colours their names: composited at the
+  /// alpha an arrow is drawn with, every arrow colour falls to between 1.01:1
+  /// and 1.12:1 against some square of some skin, and no palette fixes that.
+  /// An outline does.
+  static const ui.Color arrowHaloShade = ui.Color(0xFF000000);
+  static const ui.Color arrowHaloLight = ui.Color(0xFFFFFFFF);
+
+  /// How much wider than the arrow each outline pass is drawn.
+  static const double arrowHaloShadeWidth = 5.0;
+  static const double arrowHaloLightWidth = 2.5;
+
+  /// Black or white, whichever is legible on [background].
+  ///
+  /// Both are computed and the better one wins, rather than being picked off a
+  /// luminance threshold: a threshold is a guess at where the crossover is, and
+  /// the crossover is a thing WCAG defines exactly.
+  static ui.Color readableOn(ui.Color background) {
+    double channel(double c) => c <= 0.04045
+        ? c / 12.92
+        : math.pow((c + 0.055) / 1.055, 2.4).toDouble();
+    final l = 0.2126 * channel(background.r) +
+        0.7152 * channel(background.g) +
+        0.0722 * channel(background.b);
+    final onBlack = (l + 0.05) / 0.05;
+    final onWhite = 1.05 / (l + 0.05);
+    return onBlack >= onWhite
+        ? const ui.Color(0xFF000000)
+        : const ui.Color(0xFFFFFFFF);
+  }
+
   final ui.Color badgeBorderColor;
 
   ChessBoardPainter({
@@ -105,7 +149,6 @@ class ChessBoardPainter extends CustomPainter {
     required this.orientation,
     required this.lastMoveColor,
     required this.drawingModeColor,
-    required this.badgeTextColor,
     required this.badgeBorderColor,
     this.highlightedSquare,
     this.lastMoveFrom,
@@ -258,18 +301,48 @@ class ChessBoardPainter extends CustomPainter {
 
         // Draw Evaluation Badge near the target square center
         if (eArrow.evalText.isNotEmpty) {
-          final textSpan = TextSpan(
-            text: ' ${eArrow.evalText} ',
-            style: AppText.micro.copyWith(
-              color: badgeTextColor,
-              fontWeight: FontWeight.bold,
-            ),
-          );
-          final textPainter = TextPainter(
-            text: textSpan,
-            textDirection: TextDirection.ltr,
-          );
-          textPainter.layout();
+          // Two passes, and for the same reason the arrows have an outline.
+          //
+          // Until 29.8.2026 this text was `context.colors.canvas`: near-black
+          // in the dark theme (8.8:1 on the best line, fine) and near-white in
+          // the light one, where the best line measured **1.55:1** and all ten
+          // rank/palette combinations sat under 4.5:1. Nobody had seen it,
+          // because the light theme only became selectable that day.
+          //
+          // Reading the better of black and white off the badge fixes four of
+          // the five ranks outright. It cannot fix red: `#FF2929` sits at a
+          // luminance where black reaches 3.04:1 and white 3.74:1 and neither
+          // reaches 4.5:1, and no choice between two achromatic colours will,
+          // because the fill is mid-toned. So the glyph carries both — filled
+          // in whichever reads better and outlined in the other — and the edge
+          // inside the glyph is 21:1 whatever it is standing on.
+          final fillColor = readableOn(color);
+          final outlineColor = fillColor == const ui.Color(0xFF000000)
+              ? const ui.Color(0xFFFFFFFF)
+              : const ui.Color(0xFF000000);
+
+          TextPainter painterFor(ui.Color c, {double? strokeWidth}) {
+            final paint = Paint()..color = c;
+            if (strokeWidth != null) {
+              paint
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = strokeWidth
+                ..strokeJoin = StrokeJoin.round;
+            }
+            return TextPainter(
+              text: TextSpan(
+                text: ' ${eArrow.evalText} ',
+                style: AppText.micro.copyWith(
+                  foreground: paint,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              textDirection: TextDirection.ltr,
+            )..layout();
+          }
+
+          final textPainter = painterFor(fillColor);
+          final outlinePainter = painterFor(outlineColor, strokeWidth: 2.0);
 
           final badgeWidth = textPainter.width + 4;
           final badgeHeight = textPainter.height + 2;
@@ -292,11 +365,10 @@ class ChessBoardPainter extends CustomPainter {
 
           canvas.drawRRect(badgeRect, bgPaint);
           canvas.drawRRect(badgeRect, borderPaint);
-          textPainter.paint(
-            canvas,
-            Offset(badgeCenter.dx - textPainter.width / 2,
-                badgeCenter.dy - textPainter.height / 2),
-          );
+          final textOrigin = Offset(badgeCenter.dx - textPainter.width / 2,
+              badgeCenter.dy - textPainter.height / 2);
+          outlinePainter.paint(canvas, textOrigin);
+          textPainter.paint(canvas, textOrigin);
         }
       }
     }
@@ -323,16 +395,6 @@ class ChessBoardPainter extends CustomPainter {
     final start = startRaw + u * 10.0;
     final end = endRaw - u * 6.0;
 
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    // Draw line
-    canvas.drawLine(start, end, paint);
-
-    // Draw arrowhead
     const headLength = 16.0;
     const headWidth = 10.0;
 
@@ -347,60 +409,85 @@ class ChessBoardPainter extends CustomPainter {
       ..lineTo(p2.dx, p2.dy)
       ..close();
 
-    final headPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    canvas.drawPath(path, headPaint);
+    // Three passes, widest first: a black outline, a white one inside it, then
+    // the arrow itself. Neither outline has a hue, so an arrow keeps its edge
+    // on a pale board and on a walnut one, and keeps it for a reader who cannot
+    // separate its colour from the square's. Measured before it was built:
+    // every arrow colour, composited at the alpha it is drawn with, falls to
+    // between 1.01:1 and 1.12:1 against some square of some skin. No choice of
+    // five colours fixes that, because the problem is the square and not the
+    // palette.
+    for (final (passColor, extra) in [
+      (arrowHaloShade, arrowHaloShadeWidth),
+      (arrowHaloLight, arrowHaloLightWidth),
+      (color, 0.0),
+    ]) {
+      canvas.drawLine(
+        start,
+        end,
+        Paint()
+          ..color = passColor
+          ..strokeWidth = strokeWidth + extra
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round,
+      );
+      // The head is a filled triangle, so an outline pass has to grow it:
+      // stroking the same path by `extra` pushes its edge out by half that,
+      // matching what the line above does.
+      if (extra > 0) {
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = passColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = extra
+            ..strokeJoin = StrokeJoin.round,
+        );
+      }
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = passColor
+          ..style = PaintingStyle.fill,
+      );
+    }
   }
 
-  /// The annotation palette: what an arrow code means on this board.
+  /// What an arrow code means on this board.
   ///
-  /// Rule 14 -- these are chess colours, not UI tokens. A token named `accent`
-  /// has no business deciding what a red arrow looks like, and none of these
-  /// will ever move into `AppColorTokens`.
+  /// The five values moved to `lib/theme/arrow_colors.dart` on 29.8.2026, when
+  /// they were measured for the first time and two pairs turned out to be one
+  /// colour each: `R`/`P` at 1.04:1 under protanopia, and `B`/`O` at 1.07:1
+  /// under ordinary vision. Rule 14 was amended a third time to give them a
+  /// domain-named home rather than leaving them as literals here.
   ///
-  /// They live here because they were typed twice. The painter drew these five
-  /// while the swatch buttons in `chess_game_screen.dart` passed Material's
-  /// primary family -- `Colors.green` #4CAF50 against this #00E676, `Colors.blue`
-  /// #2196F3 against this #00B0FF -- so the colour you picked was not the colour
-  /// you got. One definition, read by both.
-  ///
-  /// `P` has no button on the game screen; only G, R, B and O are offered.
-  ///
-  /// The key order matches the switch this replaced, deliberately: the strings
-  /// gate compares literal *sequence*, not just content, so that a swapped pair
-  /// of labels cannot slip through as an equal multiset. Reordering these to suit
-  /// `_getEngineColor` would have tripped it for no reader-visible reason.
-  static const Map<String, ui.Color> arrowPalette = {
-    'R': ui.Color(0xFFFF5252),
-    'G': ui.Color(0xFF00E676),
-    'B': ui.Color(0xFF00B0FF),
-    'O': ui.Color(0xFFFF9100),
-    'P': ui.Color(0xFFE040FB),
-  };
+  /// `ArrowColor.byId` falls back to a grey that is not one of the five, which
+  /// is why this no longer needs a `?? Colors.tealAccent` of its own.
+  ui.Color _getColor(String code) => ArrowColor.byId(code).color;
 
-  ui.Color _getColor(String code) => arrowPalette[code] ?? Colors.tealAccent;
-
-  /// Engine lines colour by rank, and the ranks are not in palette order --
-  /// best line green, then blue, orange, purple, red. Sharing one definition
-  /// with `arrowPalette` would mean naming all five codes a second time, and
-  /// the swatch bug this unification fixes was on the *user's* palette, not
-  /// here. Left duplicated on purpose; see the handoff.
+  /// Engine lines colour by rank, and the ranks are not in catalogue order:
+  /// best line green, then blue, orange, purple, red. That order is preserved
+  /// exactly as it was — it is what a reader has learned — and only the values
+  /// behind it changed.
+  ///
+  /// Rank is carried by **stroke width** as well as by colour
+  /// (`7.0 - (rank - 1) * 1.5`), and that is the channel that actually survives
+  /// a red-green deficiency. The colours are the second channel here, not the
+  /// first, which is why this was not redesigned when they were retuned.
   ui.Color _getEngineColor(int rank) {
     switch (rank) {
       case 1:
-        return const ui.Color(0xFF00E676); // Vibrant Green
+        return ArrowColor.g.color;
       case 2:
-        return const ui.Color(0xFF00B0FF); // Vibrant Blue
+        return ArrowColor.b.color;
       case 3:
-        return const ui.Color(0xFFFF9100); // Vibrant Amber/Orange
+        return ArrowColor.o.color;
       case 4:
-        return const ui.Color(0xFFE040FB); // Vibrant Purple
+        return ArrowColor.p.color;
       case 5:
-        return const ui.Color(0xFFFF5252); // Vibrant Red
+        return ArrowColor.r.color;
       default:
-        return Colors.tealAccent;
+        return ArrowColor.fallback.color;
     }
   }
 
@@ -415,7 +502,6 @@ class ChessBoardPainter extends CustomPainter {
         oldDelegate.lastMoveTo != lastMoveTo ||
         oldDelegate.lastMoveColor != lastMoveColor ||
         oldDelegate.drawingModeColor != drawingModeColor ||
-        oldDelegate.badgeTextColor != badgeTextColor ||
         oldDelegate.badgeBorderColor != badgeBorderColor;
   }
 }

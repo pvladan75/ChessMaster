@@ -30,6 +30,7 @@ import 'package:chess_app/models/pending_session_intent.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/theme/arrow_colors.dart';
 import 'package:chess_app/widgets/game_screen/arrow_color_button.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
@@ -788,12 +789,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
-  Widget _buildColorButton(String code, String tooltip) {
+  Widget _buildColorButton(String code) {
+    // Colour and name both come from the one catalogue. They used to be a
+    // Material colour and a Serbian string typed out here, and the colour had
+    // drifted from what the painter drew; the name was typed eight times.
     return ArrowColorButton(
-      // The swatch reads the same palette the painter draws with. It used to be
-      // handed a Material colour at each call site, and they had drifted.
-      color: ChessBoardPainter.arrowPalette[code] ?? Colors.tealAccent,
-      tooltip: tooltip,
+      arrow: ArrowColor.byId(code),
       isSelected: selectedArrowColorCode == code,
       onTap: () {
         setState(() {
@@ -3198,10 +3199,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildColorButton('G', 'Zelena'),
-                        _buildColorButton('R', 'Crvena'),
-                        _buildColorButton('B', 'Plava'),
-                        _buildColorButton('O', 'Narandžasta'),
+                        _buildColorButton('G'),
+                        _buildColorButton('R'),
+                        _buildColorButton('B'),
+                        _buildColorButton('O'),
                       ],
                     ),
                   ],
@@ -3335,10 +3336,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildColorButton('G', 'Zelena'),
-                        _buildColorButton('R', 'Crvena'),
-                        _buildColorButton('B', 'Plava'),
-                        _buildColorButton('O', 'Narandžasta'),
+                        _buildColorButton('G'),
+                        _buildColorButton('R'),
+                        _buildColorButton('B'),
+                        _buildColorButton('O'),
                       ],
                     ),
                   ],

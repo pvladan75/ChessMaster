@@ -3010,7 +3010,6 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   painter: ChessBoardPainter(
                     lastMoveColor: context.colors.warning,
                     drawingModeColor: context.colors.accent,
-                    badgeTextColor: context.colors.canvas,
                     badgeBorderColor: context.colors.canvas,
                     arrows:
                         (_showEvaluation && _selectedCategory != 'mate_puzzle')

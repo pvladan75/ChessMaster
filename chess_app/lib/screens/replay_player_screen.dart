@@ -695,7 +695,6 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                                     painter: ChessBoardPainter(
                                       lastMoveColor: context.colors.warning,
                                       drawingModeColor: context.colors.accent,
-                                      badgeTextColor: context.colors.canvas,
                                       badgeBorderColor: context.colors.canvas,
                                       arrows: currentArrows,
                                       engineArrows: currentEngineArrows,

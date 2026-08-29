@@ -20,13 +20,13 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 889 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 899 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 541 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-Flutter count measured 29.8.2026, after the arrow palette landed; the backend
+Flutter count measured 29.8.2026, after the arrow wiring landed; the backend
 count 28.8.2026. They are here so a suite that quietly stops running half of
 itself is visible; if the number you get is lower, find out why before carrying
 on.

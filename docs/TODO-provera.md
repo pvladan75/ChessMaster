@@ -1898,3 +1898,32 @@ Proveriti, na telefonu i na Windows buildu:
    paleti; uglovi nisu i ne menjaju se.
 
 Ako oznaka prođe, ovo zatvara i tačku 3 stavke 48.
+
+## 51. Strelice — boje, obrub, značka i birač — 29.8.2026, nije viđeno uživo
+
+Pet boja strelica je promenjeno, svaka strelica je dobila crno-beli obrub, tekst
+značke evaluacije se više ne bira iz teme, a pločice u biraču imaju slova.
+Brojke i razlozi su u [STANJE-RADA.md](STANJE-RADA.md), odeljci „Zašto je prag za
+strelice 1.5" i „Ožičenje strelica".
+
+Proveriti, na telefonu i na Windows buildu:
+
+1. **Da li je obrub predebeo.** Crni je +5 px a beli +2.5 px preko strelice od
+   6 px, pa je ukupno 11 px tamo gde je pre bilo 6. Na tabli od 360 dp to je
+   osetno deblje. Ako smeta, menjaju se `arrowHaloShadeWidth` i
+   `arrowHaloLightWidth` — ali **ne** tako što se obrub ukloni.
+2. **Strelice motora i dalje idu od debele ka tankoj.** Rang 1 je 7 px, rang 5
+   je 1 px; sa obrubom to postaje 12 i 6. Poredak je očuvan, ali proveriti da se
+   peta linija još uvek vidi kao tanja, a ne kao „ista strelica".
+3. **Značka evaluacije u svetloj temi.** Ovo je bio pravi bag: tekst je bio
+   1.55:1 i praktično nečitljiv. Otvoriti Analysis Studio u svetloj temi sa
+   uključenim strelicama motora i pročitati brojku na svakoj od pet.
+4. **Slova na pločicama birača** (C, N, Z, P, Lj) — da li se čitaju na 28 px i da
+   li deci znače nešto. Ako ne, alternativa je oblik a ne veća pločica.
+5. **Plava i ljubičasta strelica jedna pored druge.** Merenje kaže 1.50, što je
+   plafon; render pod simulacijom kaže da su vrlo slične. Pitanje za oko: da li
+   je to problem u praksi, s obzirom da onaj ko crta bira iz obeleženog birača.
+   Ako jeste, sledeći korak je kanal (isprekidana linija ili slovo uz rep), ne
+   nova boja.
+6. **Sve na koži „Visoki kontrast"**, gde je svetlo polje čisto belo — beli deo
+   obruba se tu gubi, i to je u redu, jer crni nosi.
