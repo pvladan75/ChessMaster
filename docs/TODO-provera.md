@@ -1551,11 +1551,17 @@ prolazi i parser (`Parser::ParseFile`, bez grešaka).
       2026-08-28T00:04`, bez `+` jer je stablo bilo čisto — i **dodir ga
       kopira**, provereno lepljenjem.
 
-**Ostalo neprovereno — pretežno debug grana:**
+**Prolaz sa telefonom, debug grana — proverio korisnik 29.8.2026:**
 
-- [ ] `-Mode debug` preskače pitanje, a `D` na pitanju bira debug.
-- [ ] Debug build se zaista napravi i nađe — putanja je
-      `app-arm64-v8a-debug.apk`, a provera „svež APK, ne zaostao" važi i za nju.
+- [x] Debug grana radi od pitanja do instalacije, i debug APK se nađe.
+- [x] U Podešavanjima piše `Mislisha 1.1.0+2 • 8404148 • debug •
+      2026-08-29T16:48`. Dakle **režim se vidi** (`debug`, ne `release`) i
+      commit imenuje kod: `8404148` je bio HEAD od 16:45 do 16:48, kad ga je
+      zamenio `28dc27b`. Bez `+`, dakle stablo je bilo čisto — i to se
+      poklapa, jer je build napravljen između ta dva commita.
+
+**Ostalo neprovereno:**
+
 - [ ] Instalacija debug-a preko release-a (ili obrnuto) → skripta prepozna sukob
       potpisa i ispiše **komandu za brisanje sa upozorenjem da odnosi prijavu i
       podešavanja**, umesto golog „Instalacija nije uspela".
@@ -1563,6 +1569,22 @@ prolazi i parser (`Parser::ParseFile`, bez grešaka).
 - [ ] `flutter run` ili APK iz CI-ja → piše „build nije označen". Verzija se
       **ne** prikazuje sama, jer `1.1.0+2` je isti niz na svim gradnjama ove
       nedelje i izgledao bi kao odgovor.
+
+**Windows, `build_windows.ps1` — 29.8.2026:** skripta od tog dana radi isto
+što i Android — pita debug ili release i žigoše build. Dokazano do `.exe`:
+gradnja je ispisala `Mislisha 1.1.0+2 (release 28dc27b+)`, sa `+` jer je sama
+skripta tada bila nekomitovana, što je uzgred i provera žiga za prljavo stablo.
+Ostaje da se vidi uživo:
+
+- [ ] Podešavanja u Windows verziji ispisuju isti red. Do 29.8.2026. je tamo
+      pisalo „build nije označen“, jer stara skripta nije prosleđivala
+      `BUILD_*` — pa izveštaj o bagu sa Windows-a nije imao čime da imenuje
+      kod.
+- [ ] `-Install` napravi kopiju u `%LOCALAPPDATA%\Mislisha` i prečicu u Start
+      meniju, a `-Uninstall` ih ukloni.
+- [ ] **Grana koja sama briše zaostao font sa ikonama nije se okinula** — font
+      je bio svež u toj gradnji. Kad se sledeći put doda nova ikona, gledati
+      da li se ispiše brisanje i ponovna gradnja, pa da ikona ne izađe prazna.
 
 ---
 
