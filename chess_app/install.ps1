@@ -122,6 +122,7 @@ function Ukloni-Windows {
         # Brise se kroz build_windows.ps1, ne rucno: tamo stoji zastita koja
         # odbija folder koji nije nasa instalacija, i ona je jedini razlog zbog
         # kog jedan pogresan -InstallPath ne odnese tudji folder.
+        $global:LASTEXITCODE = 0
         & "$PSScriptRoot\build_windows.ps1" -Uninstall -InstallPath $m
         if ($LASTEXITCODE -ne 0) { Fail "Brisanje $m nije uspelo." }
     }
@@ -245,16 +246,26 @@ if (-not $Mode) {
 
 if ($radiWindows) {
     Naslov "Windows ($Mode) -> $InstallPath"
-    $argumenti = @("-Mode", $Mode, "-Install", "-InstallPath", $InstallPath)
-    if ($Run -and -not $radiAndroid) { $argumenti += "-Run" }
+    # Recnikom, ne nizom. Niz se rasipa **po mestu**: @("-Mode", "release")
+    # stize kao prvi pozicioni parametar "-Mode" i drugi "release", pa je u
+    # build_and_deploy.ps1 $Serial postajao "-Mode" i skripta se javljala da
+    # uredjaj "-Mode" nije povezan. Recnik se rasipa po imenu.
+    $argumenti = @{ Mode = $Mode; Install = $true; InstallPath = $InstallPath }
+    if ($Run -and -not $radiAndroid) { $argumenti['Run'] = $true }
+    # Nuluje se pre poziva: $LASTEXITCODE postavljaju izvorne komande, a ne
+    # PowerShell skripte. Zaostala vrednost od necega ranije bi uspesnu
+    # gradnju prijavila kao pad - a `exit` iz pozvane skripte je i dalje
+    # upisuje, pa se prava greska ne gubi.
+    $global:LASTEXITCODE = 0
     & "$PSScriptRoot\build_windows.ps1" @argumenti
     if ($LASTEXITCODE -ne 0) { Fail "Windows gradnja nije uspela." }
 }
 
 if ($radiAndroid) {
     Naslov "Android ($Mode)"
-    $argumenti = @("-Mode", $Mode)
-    if ($Serial) { $argumenti += @("-Serial", $Serial) }
+    $argumenti = @{ Mode = $Mode }
+    if ($Serial) { $argumenti['Serial'] = $Serial }
+    $global:LASTEXITCODE = 0
     & "$PSScriptRoot\build_and_deploy.ps1" @argumenti
     if ($LASTEXITCODE -ne 0) { Fail "Android gradnja nije uspela." }
 }
