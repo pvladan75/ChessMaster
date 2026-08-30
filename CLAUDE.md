@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 928 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 934 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 700 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000

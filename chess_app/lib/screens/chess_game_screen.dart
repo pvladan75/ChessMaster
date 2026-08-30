@@ -7,6 +7,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math';
+import 'package:chess_app/services/fen_legality.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:chess/chess.dart' as chess;
@@ -2922,13 +2923,22 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   IconButton(
                     icon: Icon(Icons.input, color: context.colors.brand),
                     onPressed: () {
+                      // Drugi ulaz za poziciju, mimo dijaloga za postavljanje
+                      // — pa mu treba ista provera. Zalepljen FEN bez kralja
+                      // je isto sto i rucno postavljen bez kralja: motor ga ne
+                      // prezivljava.
                       final fen = fenPasteController.text.trim();
-                      if (fen.isNotEmpty) {
-                        loadLessonPosition(fen, null);
-                        fenPasteController.clear();
-                      } else {
+                      if (fen.isEmpty) {
                         _showError('Molimo vas zalepite ispravan FEN.');
+                        return;
                       }
+                      final razlog = fenIllegalReason(fen);
+                      if (razlog != null) {
+                        _showError(razlog);
+                        return;
+                      }
+                      loadLessonPosition(fen, null);
+                      fenPasteController.clear();
                     },
                     tooltip: 'Učitaj FEN',
                   )

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:chess/chess.dart' as chess;
+import 'package:chess_app/services/fen_legality.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_picker.dart';
@@ -190,18 +190,15 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   }
 
   void _validateFen(String fen) {
-    try {
-      final game = chess.Chess.fromFEN(fen.trim());
-      setState(() {
-        _isFenValid = game.fen.isNotEmpty;
-        _fenErrorMessage = '';
-      });
-    } catch (e) {
-      setState(() {
-        _isFenValid = false;
-        _fenErrorMessage = 'Neispravan FEN format.';
-      });
-    }
+    // Ranije je ovde stajalo samo `chess.Chess.fromFEN` u try/catch, sto
+    // proverava da li se zapis moze procitati — a ne da li je pozicija moguca.
+    // Pozicija bez kralja se uredno procita, prodje kao ispravna, i srusi
+    // aplikaciju kad je motor dobije. Nadjeno uzivo 30.8.2026.
+    final razlog = fenIllegalReason(fen);
+    setState(() {
+      _isFenValid = razlog == null;
+      _fenErrorMessage = razlog ?? '';
+    });
   }
 
   void _initBuilderBoardFromFen(String fen) {
