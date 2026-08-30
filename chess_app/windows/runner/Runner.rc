@@ -92,9 +92,9 @@ BEGIN
             VALUE "CompanyName", "rs.pejovic" "\0"
             VALUE "FileDescription", "Mislisha" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "chess_app" "\0"
+            VALUE "InternalName", "Mislisha" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 rs.pejovic. All rights reserved." "\0"
-            VALUE "OriginalFilename", "chess_app.exe" "\0"
+            VALUE "OriginalFilename", "Mislisha.exe" "\0"
             VALUE "ProductName", "Mislisha" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END

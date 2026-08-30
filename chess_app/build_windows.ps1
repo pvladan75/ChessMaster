@@ -47,6 +47,28 @@ function Fail($poruka) {
 
 $precica = Join-Path ([Environment]::GetFolderPath('Programs')) "Mislisha.lnk"
 
+# Ime izvrsnog fajla se cita iz CMakeLists.txt, ne prepisuje ovde. Isti razlog
+# zbog kog build_and_deploy.ps1 cita applicationId iz Gradle-a: prepisana kopija
+# se jednom razidje sa aplikacijom, i tacno to se vec desilo sa imenom paketa na
+# Androidu. Preimenovanje binarnog fajla je onda izmena na jednom mestu.
+$cmake = "windows\CMakeLists.txt"
+if (-not (Test-Path $cmake)) { Fail "Nema $cmake - odakle da procitam ime programa?" }
+$imeBinarnog = (Select-String -Path $cmake -Pattern 'set\(BINARY_NAME\s+"([^"]+)"' |
+    Select-Object -First 1).Matches.Groups[1].Value
+if ([string]::IsNullOrWhiteSpace($imeBinarnog)) {
+    Fail "Ne mogu da procitam BINARY_NAME iz $cmake."
+}
+$imeExe = "$imeBinarnog.exe"
+
+# Instalacije napravljene pre preimenovanja sadrze chess_app.exe. Zastita od
+# brisanja tudjeg foldera mora da ih i dalje prepozna, inace -Uninstall odbija
+# da ukloni bas one kopije zbog kojih i postoji.
+$stariExe = "chess_app.exe"
+function Test-NasaInstalacija($putanja) {
+    return (Test-Path (Join-Path $putanja $imeExe)) -or
+           (Test-Path (Join-Path $putanja $stariExe))
+}
+
 # --- -Uninstall: sam za sebe, pre svih provera ---
 
 if ($Uninstall) {
@@ -55,8 +77,8 @@ if ($Uninstall) {
     if (Test-Path $InstallPath) {
         # Brise se samo folder koji izgleda kao nas. Bez ove provere jedan
         # pogresan -InstallPath odnosi tudji folder bez pitanja.
-        if (-not (Test-Path (Join-Path $InstallPath "chess_app.exe"))) {
-            Fail "$InstallPath ne sadrzi chess_app.exe, pa ovo nije instalacija koju je ova skripta napravila. Nista nije obrisano."
+        if (-not (Test-NasaInstalacija $InstallPath)) {
+            Fail "$InstallPath ne sadrzi ni $imeExe ni $stariExe, pa ovo nije instalacija koju je ova skripta napravila. Nista nije obrisano."
         }
         Remove-Item -Recurse -Force $InstallPath
         Write-Host "Obrisano: $InstallPath" -ForegroundColor Green
@@ -112,7 +134,7 @@ if (-not $Mode) {
 }
 
 $izlazniFolder = "build\windows\x64\runner\" + $Mode.Substring(0, 1).ToUpper() + $Mode.Substring(1)
-$exe = Join-Path $izlazniFolder "chess_app.exe"
+$exe = Join-Path $izlazniFolder $imeExe
 $font = Join-Path $izlazniFolder "data\flutter_assets\fonts\MaterialIcons-Regular.otf"
 
 # --- Zig gradnje ---
@@ -199,7 +221,7 @@ if ($Install) {
     # se ne pokrece. Stara kopija se brise da ne ostane fajl iz proslog builda
     # koji vise niko ne pravi.
     if (Test-Path $InstallPath) {
-        if (-not (Test-Path (Join-Path $InstallPath "chess_app.exe"))) {
+        if (-not (Test-NasaInstalacija $InstallPath)) {
             Fail "$InstallPath postoji a nije instalacija ove aplikacije. Izaberi drugo mesto sa -InstallPath."
         }
         try {
@@ -218,12 +240,12 @@ if ($Install) {
 
     $wsh = New-Object -ComObject WScript.Shell
     $lnk = $wsh.CreateShortcut($precica)
-    $lnk.TargetPath = Join-Path $InstallPath "chess_app.exe"
+    $lnk.TargetPath = Join-Path $InstallPath $imeExe
     $lnk.WorkingDirectory = $InstallPath
     $lnk.Description = "Mislisha $verzija ($Mode)"
     $lnk.Save()
 
-    $pokreni = Join-Path $InstallPath "chess_app.exe"
+    $pokreni = Join-Path $InstallPath $imeExe
     Write-Host "  Instalirano: $InstallPath" -ForegroundColor Green
     Write-Host "  Precica: $precica" -ForegroundColor Green
 }
