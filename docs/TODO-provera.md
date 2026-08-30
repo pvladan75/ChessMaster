@@ -2039,3 +2039,30 @@ PGN fajlu, kroz isti kod koji ide u produkciju — ali nijednom kroz Postgres.
 7. [ ] **Nalaz ima smisla za igrača.** Jedina provera koju kod ne može da
    uradi: da li je pozicija koju izveštaj proglasi navikom zaista mesto gde
    vlasnik projekta misli da igra loše.
+
+## 54. Provera završnica preko Syzygy tablica — 30.8.2026, nije viđeno uživo
+
+Prvi posao u projektu koji minutima priča sa tuđim servisom u pozadini. Sve dole
+je mereno lokalno, kroz produkcioni kod, ali nijednom uz stvarnu tablicu.
+
+1. [ ] **`POST /games/endgame/audit` vrati 202 odmah**, pa
+   `GET /games/endgame/audits/:id` prati napredak. Očekivano na arhivi od 4126
+   partija: `games_total` oko 471, `positions_probed` oko 4255, trajanje oko
+   10–11 minuta prvi put.
+2. [ ] **Drugi prolaz je gotovo trenutan.** `cache_hits` mora da bude blizu
+   `positions_probed` iz prvog prolaza, a `positions_probed` blizu nule. Ako
+   nije, keš ne radi i to je jedina stvar koja ovu funkciju čini ponovljivom.
+3. [ ] **`positions_unknown` je vidljiv i nije nula bez objašnjenja.** Ako
+   tablica ne presudi mnogo pozicija, to treba da se vidi kao broj, ne da
+   nestane.
+4. [ ] **Nalazi imaju smisla.** `GET /games/endgame/mistakes` vraća pozicije
+   sortirane po veličini pada. Otvoriti dve-tri na tabli i proveriti da je
+   „imao si dobijeno" zaista tačno — ovo je jedina provera koju kod ne može da
+   uradi umesto čoveka.
+5. [ ] **Presude su rekonstruisane iz `mistake_reviews`**, sa `wdl_before` i
+   `wdl_after` na svakom redu, i drugi prolaz ne pravi duplikate (isti
+   `user_id, game_id, ply`).
+6. [ ] **Tablica koja padne ne ostavlja poluzavršen posao kao uspešan** — run
+   mora da završi kao `failed` sa razlogom, a ne kao `done`.
+7. [ ] **Server ostaje odazivan** dok deset minuta traje pozadinski posao u
+   istom procesu. Isto pitanje kao kod uvoza, i još nije odgovoreno.

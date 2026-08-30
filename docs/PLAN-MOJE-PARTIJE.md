@@ -281,6 +281,48 @@ of the player's own positions.
 Each found moment then becomes a play-it-out drill against the tablebase, which
 the endgame trainer already does. This is a scan and a list, not a new mode.
 
+### Built 30.8.2026
+
+`tablebase_cache` and `endgame_audits` in `db.js`, `services/endgameAudit.js`,
+and three routes under `/games/endgame`. Findings are written to
+`mistake_reviews` with `kind = 'tablebase'` — the table built for them in
+section 0, whose check constraint refuses a row missing either verdict.
+`test/endgame_audit.test.js` covers it (backend suite: 584 to 596).
+
+**One probe per position, not two.** The tablebase response carries a category
+for every legal move, so the position *before* a move already says what every
+move including the played one is worth. The position after is never asked about.
+
+The two perspectives are the thing to get right and the thing the tests are
+mostly about: a position's category belongs to the side to move, which is the
+player; each move's category belongs to whoever moves next, which is the
+opponent. The player's outcome after their own move is therefore the negation of
+that move's category.
+
+**Measured on the real archive, without touching the network:** 471 games
+reached the tables, and auditing them probes **4255 positions** — only the
+player's own moves, only inside the range. About **10.6 minutes** at the
+existing 150 ms pacing, comfortably under the 22 minutes this plan estimated.
+
+Two measurements corrected the design:
+
+- **Endgame positions do not repeat inside one archive.** All 4255 probes are
+  distinct. The material repeats heavily — 308 signatures, mostly rook and
+  pawns — but the exact position does not, so `tablebase_cache` saves a first
+  run nothing. What it buys is every run after it: re-auditing is free, and an
+  incremental audit after twenty new games probes twenty games' worth. The
+  original justification for that table, that different players' rook endings
+  collide, was a guess and it was wrong.
+- **The five-field cache key costs 83 lookups out of 4255**, under 2%. Keeping
+  the halfmove clock — which is what separates a win from a `cursed-win` — is
+  therefore almost free, and the correctness argument wins without a trade.
+
+`positions_unknown` is a counter of its own and is never folded into anything
+else. A position the tables will not commit to (`unknown`, `maybe-win`,
+`maybe-loss`) is not a position the player got right; it is one nobody judged,
+and counting it as either would turn this feature's single promise — that a
+verdict here is a fact — into a guess.
+
 ## 3. The player's own mistakes as a puzzle set, on spaced repetition
 
 `GameReviewDialog` already extracts blunders as puzzles and keeps `fenBefore`

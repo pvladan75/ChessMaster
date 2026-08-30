@@ -2265,3 +2265,43 @@ pre nego što se bilo šta pita Lichess, a svaki čvor pojedinačno pada na
 
 Testovi: 570 → **584**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
 stavka 53.
+
+## Provera završnica preko tablica — sekcija 2, napisana 30.8.2026
+
+`tablebase_cache` i `endgame_audits` u `db.js`, `services/endgameAudit.js`, tri
+rute pod `/games/endgame`. Nalazi se upisuju u `mistake_reviews` sa
+`kind = 'tablebase'` — tabelu napravljenu za njih još u sekciji 0, čiji check
+uslov odbija red kojem fali bilo koja od dve presude.
+
+**Jedan upit po poziciji, ne dva.** Odgovor tablice nosi kategoriju za svaki
+legalan potez, pa pozicija *pre* poteza već kaže koliko vredi svaki potez
+uključujući odigrani. Pozicija posle se nikad ne pita. Ono što treba pogoditi su
+dve perspektive: kategorija pozicije pripada strani koja je na potezu, dakle
+igraču, a kategorija svakog poteza pripada onome ko igra sledeći, dakle
+protivniku — pa je igračev ishod posle sopstvenog poteza negacija te kategorije.
+
+**Mereno na stvarnoj arhivi, bez mreže:** 471 partija je ušla u tablice, a
+njihova provera pita **4255 pozicija** — samo igračevi potezi, samo u dometu.
+Oko **10,6 minuta** na postojećem tempu od 150 ms, ispod 22 minuta koliko je
+plan procenio.
+
+Dva merenja su ispravila projekat, i oba su upisana tamo gde je stajala pogrešna
+tvrdnja:
+
+- **Pozicije završnica se ne ponavljaju unutar jedne arhive.** Sve 4255 su
+  različite. Materijal se ponavlja jako — 308 potpisa, uglavnom top i pešaci —
+  ali tačna pozicija ne, pa `tablebase_cache` prvom prolazu ne štedi ništa.
+  Vredi za svaki sledeći: ponovna provera je besplatna, a inkrementalna posle
+  dvadeset novih partija pita koliko ima u tih dvadeset. Prvobitno obrazloženje
+  te tabele — da se završnice raznih igrača poklapaju — bilo je nagađanje i bilo
+  je netačno.
+- **Ključ od pet polja košta 83 od 4255 upita**, ispod 2%. Zadržati polupotezni
+  brojač, koji razdvaja dobitak od `cursed-win`-a, praktično je besplatno.
+
+`positions_unknown` je zaseban brojač i ne sabira se ni sa čim. Pozicija koju
+tablica ne presuđuje (`unknown`, `maybe-win`, `maybe-loss`) nije pozicija koju je
+igrač odigrao dobro — nju niko nije presudio, a svrstati je bilo gde pretvorilo
+bi jedino obećanje ove funkcije, da je presuda ovde činjenica, u nagađanje.
+
+Testovi: 584 → **596**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
+stavka 54.

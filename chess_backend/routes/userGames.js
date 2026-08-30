@@ -27,8 +27,12 @@ const {
 } = require('../services/gameArchiveImport');
 const { leakReport, backfillNodes } = require('../services/openingLeaks');
 const { openingJudge } = require('../services/openingJudgeService');
+const {
+  createEndgameAuditor, EndgameAuditUnavailable,
+} = require('../services/endgameAudit');
 
 const importer = createArchiveImporter({ pool });
+const auditor = createEndgameAuditor({ pool });
 
 // A ten-year archive exported from Lichess with clocks is about 9 MB. This is
 // generous room above that and still far below what would hurt a 960 MB
@@ -73,7 +77,7 @@ const importLimiter = rateLimit({
 });
 
 function fail(res, err, whatFailed) {
-  if (err instanceof ArchiveImportUnavailable) {
+  if (err instanceof ArchiveImportUnavailable || err instanceof EndgameAuditUnavailable) {
     return res.status(err.status).json({ error: err.message, reason: err.reason });
   }
   if (err instanceof TypeError) {
@@ -270,6 +274,54 @@ router.post('/openings/backfill', authenticateToken, importLimiter, async (req, 
     return res.json(await backfillNodes(pool, req.user.id));
   } catch (err) {
     return fail(res, err, 'Dopuna otvaranja nije uspela.');
+  }
+});
+
+// POST /games/endgame/audit  { username }
+//
+// Walks every archived game that reached seven men or fewer and records the
+// moves that threw away what the tables say the player had. Minutes on a first
+// run and seconds afterwards, since every answer lands in the shared
+// `tablebase_cache` — so this answers 202 with an id, like the import does.
+router.post('/endgame/audit', authenticateToken, importLimiter, async (req, res) => {
+  try {
+    const { auditId, finished } = await auditor.start({
+      userId: req.user.id,
+      subject: req.body?.username,
+    });
+    finished.catch((err) => logger.info(
+      `[ZAVRŠNICE] Provera ${auditId} završena greškom: ${err.message}`,
+    ));
+    return res.status(202).json({ auditId });
+  } catch (err) {
+    return fail(res, err, 'Provera završnica nije mogla da počne.');
+  }
+});
+
+// GET /games/endgame/audits/:id — how the run is going.
+router.get('/endgame/audits/:id', authenticateToken, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Loš id.' });
+  try {
+    const run = await auditor.getRun(req.user.id, id);
+    if (!run) return res.status(404).json({ error: 'Nema te provere.' });
+    return res.json(run);
+  } catch (err) {
+    return fail(res, err, 'Stanje provere nije dostupno.');
+  }
+});
+
+// GET /games/endgame/mistakes — the findings, worst swing first.
+router.get('/endgame/mistakes', authenticateToken, async (req, res) => {
+  const limit = Number(req.query?.limit);
+  try {
+    return res.json({
+      mistakes: await auditor.listMistakes(req.user.id, {
+        limit: Number.isInteger(limit) && limit > 0 && limit <= 200 ? limit : 50,
+      }),
+    });
+  } catch (err) {
+    return fail(res, err, 'Nalazi iz završnica nisu dostupni.');
   }
 });
 

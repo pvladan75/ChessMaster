@@ -1276,6 +1276,76 @@ async function initDB() {
     `);
     logger.info('Verified database table & indexes: opening_nodes');
 
+    // What the tablebase said about a position, kept.
+    //
+    // Measured before this was written, on a 4126-game archive: an audit probes
+    // 4255 positions and **every one of them is distinct**. Endgames at seven
+    // men or fewer do not repeat inside one player's games — the material does
+    // (308 signatures over those 4255 positions, mostly rook and pawns) but the
+    // exact position does not. So this table does not save a first run
+    // anything, and the earlier guess that "everybody's rook endings collide"
+    // was wrong.
+    //
+    // What it does buy is every run after the first: re-auditing costs nothing,
+    // an incremental audit after twenty new games probes twenty games' worth,
+    // and whatever overlap does exist between users is free. That is a smaller
+    // claim than the one this table was designed on, and it is the true one.
+    //
+    // Keyed on the first **five** FEN fields, not four. The halfmove clock is
+    // dropped everywhere else in this codebase because it makes one position
+    // look like two, but here it decides whether a win is a win or a
+    // `cursed-win` drawn by the fifty-move rule. Measured cost of keeping it:
+    // 83 lookups out of 4255, under 2%. Correctness is cheap here.
+    //
+    // Nothing here expires. A tablebase result is a fact about chess, not a
+    // measurement that goes stale, and the table is the one place in this
+    // project where a cache can be permanent without ever being wrong.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS tablebase_cache (
+        fen TEXT PRIMARY KEY,
+        category VARCHAR(16) NOT NULL,
+        dtz INTEGER,
+        moves JSONB NOT NULL DEFAULT '[]',
+        checked_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    logger.info('Verified database table: tablebase_cache');
+
+    // One row per endgame audit run — section 2 of the plan.
+    //
+    // The same four-counter discipline as `user_game_imports`, for the same
+    // reason, and two counters more that exist to be read rather than to
+    // balance: `positions_probed` against `cache_hits` is how anyone finds out
+    // whether the audit is twenty minutes of traffic or twenty seconds of
+    // lookups, and `positions_unknown` is the number that must never be folded
+    // into anything else. A position the tables will not commit to — 'unknown',
+    // 'maybe-win', 'maybe-loss' — is not a position the player got right. It is
+    // a position nobody judged, and counting it as either would turn this
+    // feature's one promise, that a verdict here is a fact, into a guess.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS endgame_audits (
+        id BIGSERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        subject VARCHAR(120) NOT NULL,
+        status VARCHAR(10) NOT NULL DEFAULT 'running'
+          CHECK (status IN ('running', 'done', 'failed')),
+        games_total INTEGER NOT NULL DEFAULT 0,
+        games_done INTEGER NOT NULL DEFAULT 0,
+        positions_probed INTEGER NOT NULL DEFAULT 0,
+        cache_hits INTEGER NOT NULL DEFAULT 0,
+        positions_unknown INTEGER NOT NULL DEFAULT 0,
+        mistakes_found INTEGER NOT NULL DEFAULT 0,
+        error TEXT,
+        started_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        finished_at TIMESTAMPTZ,
+        CONSTRAINT endgame_audits_counts_add_up
+          CHECK (status <> 'done' OR games_done = games_total)
+      );
+      CREATE INDEX IF NOT EXISTS idx_endgame_audits_user
+        ON endgame_audits(user_id, started_at DESC);
+    `);
+    logger.info('Verified database table & indexes: endgame_audits');
+
   } catch (err) {
     logger.error('Database migration/connection error:', err);
     throw err;
