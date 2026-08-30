@@ -2263,3 +2263,31 @@ Priprema: `OPPONENT_PREP_ENABLED=true` u `.env`, i tek onda ostalo. Dok stoji na
     `GEMINI_API_KEY` i proveriti da ruta i dalje vraća 200 sa
     `reason: 'model-unavailable'`.
 
+## 60. Ekrani za greške i repertoar iz arhive — 30.8.2026, nije viđeno uživo
+
+Batch 48, agent za dizajn, pregledano istog dana. Do drila se stiže preko
+kartice „Moje greške" u treningu; do poređenja repertoara sa ekrana za uvoz,
+pošto mu treba korisničko ime.
+
+1. [ ] **Boja stiže kao „w", ne „white".** Ovo je uhvaćeno pri pregledu i
+   popravljeno, ali nijednom nije viđeno kroz pravi server: ekran drži
+   „white"/„black" jer to piše na dugmetu, a `requireColor` prima samo slova i
+   vraća 400. Otvoriti poređenje repertoara i proveriti da uopšte odgovori.
+   Isto važi za zasejavanje.
+2. [ ] **Izveštaj bez boje ne puca.** `color: null` sa servera znači „obe
+   boje", ne „nedostaje polje".
+3. [ ] **Greška bez `best_uci` se ne nudi kao zadatak.** Filtriranje postoji u
+   kodu; uživo treba videti da drill ne prikaže poziciju na koju nema odgovora.
+4. [ ] **Ocena pomera rok.** Oceniti isti nalaz sa „Dobro" pa proveriti da je
+   `due_at` otišao unapred, i da rečenica koju ekran prikaže dolazi sa servera
+   (`description`), a ne da je sastavljena iz broja.
+5. [ ] **Tablebase nalaz nema centipione.** Za `kind = 'tablebase'` ne sme da
+   piše „0 centipoena" — taj nalaz taj broj nema.
+6. [ ] **Ponavljanja se ne mešaju.** Motivi i završnice su dve liste; ništa se
+   ne rangira preko obe.
+7. [ ] **Zasejavanje prvo pokazuje plan.** `dryRun` mora da se vidi pre nego
+   što se bilo šta upiše, i drugi pritisak da bude svestan.
+8. [ ] **`uci` stiže u poređenju.** Dodat na backendu 30.8.2026 baš zbog ovog
+   ekrana; proveriti da drill može da odigra potez iz poređenja, i da
+   `unplayable` bude nula.
+
