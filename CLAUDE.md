@@ -20,16 +20,15 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 900 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 908 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 650 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-Flutter count measured 29.8.2026, after the arrow wiring landed; the backend
-count 30.8.2026. They are here so a suite that quietly stops running half of
-itself is visible; if the number you get is lower, find out why before carrying
-on.
+Both counts measured 30.8.2026, the Flutter one after the archive screens
+landed. They are here so a suite that quietly stops running half of itself is
+visible; if the number you get is lower, find out why before carrying on.
 
 The one skip is the golden screenshot group, skipped unconditionally in
 `dart_test.yaml`. `--tags golden` alone does **not** run it — that selects the
