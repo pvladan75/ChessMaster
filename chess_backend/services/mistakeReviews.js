@@ -27,6 +27,7 @@
 const {
   GRADES, isValidGrade, schedule, describeInterval,
 } = require('./spacedRepetitionService');
+const { ownGameIds } = require('./archiveScope');
 const logger = require('./logger');
 
 const KINDS = ['engine', 'tablebase'];
@@ -65,18 +66,15 @@ async function recordMistakes(pool, userId, items = []) {
     else candidates.push({ item, index });
   });
 
-  // The games have to be the caller's. Checked in one query rather than per
-  // row, and checked at all because `game_id` arrives from a client: without
-  // this, a guessed id would file somebody else's game under this user.
-  let mine = new Set();
-  if (candidates.length > 0) {
-    const ids = [...new Set(candidates.map(({ item }) => Number(item.gameId)))];
-    const { rows } = await pool.query(
-      'SELECT id FROM user_games WHERE user_id = $1 AND id = ANY($2::bigint[])',
-      [userId, ids],
-    );
-    mine = new Set(rows.map((r) => String(r.id)));
-  }
+  // The games have to be the caller's **own**, which is two conditions and not
+  // one. `user_id` alone would also match an opponent archive imported for
+  // match preparation, and a blunder out of somebody else's game filed here
+  // would be drilled as the player's and ranked in their recurrence report.
+  // Checked at all because `game_id` arrives from a client: without this, a
+  // guessed id would file another user's game under this one.
+  const mine = candidates.length > 0
+    ? await ownGameIds(pool, userId, candidates.map(({ item }) => item.gameId))
+    : new Set();
 
   const storable = [];
   for (const { item, index } of candidates) {

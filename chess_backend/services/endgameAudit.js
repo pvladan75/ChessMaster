@@ -22,6 +22,7 @@
 
 const { Chess } = require('chess.js');
 const { wdlOf, bestReply, TablebaseUnavailable } = require('./tablebaseService');
+const { OWN_GAMES_SQL } = require('./archiveScope');
 const logger = require('./logger');
 
 /// Tablebase range. Seven is what Lichess serves.
@@ -233,10 +234,16 @@ function createEndgameAuditor({
     try {
       // Only the games that ever reached the tables — about one in nine. This
       // is what `min_men` and its partial index were written at import for.
+      //
+      // And only the player's own. This audit writes straight into
+      // `mistake_reviews`, so without that condition, pointing it at an
+      // opponent archive imported for match preparation would fill the
+      // player's own drill with somebody else's endgames.
       const { rows: games } = await pool.query(
         `SELECT id, start_fen, moves, subject_color
            FROM user_games
-          WHERE user_id = $1 AND subject = $2 AND min_men <= $3
+          WHERE user_id = $1 AND subject = $2 AND ${OWN_GAMES_SQL}
+            AND min_men <= $3
           ORDER BY id`,
         [userId, subject, MAX_MEN],
       );

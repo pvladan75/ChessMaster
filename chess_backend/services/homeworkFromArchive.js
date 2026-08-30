@@ -29,6 +29,7 @@ const {
   trainerOwnsStudent, createCustomAssignment, MAX_ITEMS, DEFAULT_ITEMS,
 } = require('./assignmentService');
 const { materialSignature } = require('./mistakeReviews');
+const { OWN_GAMES_SQL } = require('./archiveScope');
 const logger = require('./logger');
 
 /// How many candidates are read for every item wanted. Enough to spread the set
@@ -110,7 +111,7 @@ async function candidateMistakes(pool, studentId, { kind = null, limit }) {
        FROM mistake_reviews m
        JOIN user_games g ON g.id = m.game_id
       WHERE m.user_id = $1
-        AND g.subject_is_owner = TRUE
+        AND g.${OWN_GAMES_SQL}
         AND m.best_uci IS NOT NULL
         AND ($2::varchar IS NULL OR m.kind = $2)
       ORDER BY rank_in_kind, m.kind

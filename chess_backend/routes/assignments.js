@@ -15,6 +15,7 @@ const { authenticateToken, signReportToken } = require('../middleware/auth');
 const { requireQuota, refundQuota } = require('../middleware/entitlements');
 const { ENT } = require('../services/entitlementService');
 const assignments = require('../services/assignmentService');
+const { OWN_GAMES_SQL } = require('../services/archiveScope');
 const { notify } = require('../services/notifications');
 const reports = require('../services/reportService');
 const { judgeAttempt } = require('../services/customPuzzleJudge');
@@ -63,7 +64,7 @@ async function ownArchiveSubject(studentId) {
   const { rows } = await pool.query(
     `SELECT subject, COUNT(*)::int AS games
        FROM user_games
-      WHERE user_id = $1 AND subject_is_owner = TRUE
+      WHERE user_id = $1 AND ${OWN_GAMES_SQL}
       GROUP BY subject ORDER BY games DESC LIMIT 1`,
     [studentId],
   );

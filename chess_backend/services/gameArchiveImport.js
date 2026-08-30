@@ -27,6 +27,7 @@ const {
   createPacer, MIN_REQUEST_GAP_MS, RATE_LIMIT_COOLDOWN_MS,
 } = require('./lichessPacing');
 const { normaliseGame, createTally } = require('./gameArchive');
+const { OWN_GAMES_SQL } = require('./archiveScope');
 const logger = require('./logger');
 
 const DEFAULT_URL = process.env.LICHESS_GAMES_URL
@@ -472,6 +473,11 @@ function createArchiveImporter({
   }
 
   /// What the archive screen shows before anything has been analysed.
+  ///
+  /// The player's own games only. Without that condition this counted every row
+  /// under the user id, so importing one opponent for match preparation would
+  /// have added their games to "your archive has 4126 games" — a number nobody
+  /// would have checked, changing for a reason nobody would have guessed.
   async function archiveStats(userId) {
     const { rows } = await pool.query(
       `SELECT COUNT(*)::int AS games,
@@ -481,7 +487,7 @@ function createArchiveImporter({
               MIN(played_at) AS oldest,
               MAX(played_at) AS newest,
               COALESCE(SUM(ply_count), 0)::int AS plies
-         FROM user_games WHERE user_id = $1`,
+         FROM user_games WHERE user_id = $1 AND ${OWN_GAMES_SQL}`,
       [userId],
     );
     return rows[0];
