@@ -2,11 +2,22 @@ import 'package:chess_app/features/archive/models/json_int.dart';
 
 class RepertoireDiffMove {
   final String san;
+
+  /// The same move a board can actually play. Null when the stored SAN would
+  /// not replay in its own position — the server counts those as `unplayable`,
+  /// and a null here is that bug arriving rather than a move to hand a drill.
+  ///
+  /// Read from the server rather than derived from [san] on purpose: deriving
+  /// it would mean replaying the position in a second chess library with its
+  /// own opinion about an ambiguous SAN, and the two would disagree silently on
+  /// exactly the positions that are hardest to read.
+  final String? uci;
   final int games;
   final double? score;
 
   const RepertoireDiffMove({
     required this.san,
+    this.uci,
     required this.games,
     this.score,
   });
@@ -14,6 +25,7 @@ class RepertoireDiffMove {
   factory RepertoireDiffMove.fromJson(Map<String, dynamic> json) {
     return RepertoireDiffMove(
       san: json['san'] as String,
+      uci: json['uci'] as String?,
       games: jsonInt(json['games']),
       score: json['score'] != null ? (json['score'] as num).toDouble() : null,
     );
@@ -65,28 +77,39 @@ class RepertoireDiffPosition {
 
 class RepertoireDiff {
   final String subject;
-  final String color;
+
+  /// Null means "both colours", which is what the server answers when no
+  /// colour was asked for — not a missing field. Cast as a non-null String it
+  /// threw on every unfiltered report.
+  final String? color;
   final int coveredGames;
   final int followedGames;
   final int leftGames;
+
+  /// Above zero means some stored move would not replay in its own position.
+  /// A bug report rather than a statistic, and the server counts it for the
+  /// same reason the seed does.
+  final int unplayable;
   final List<RepertoireDiffPosition> positions;
 
   const RepertoireDiff({
     required this.subject,
-    required this.color,
+    this.color,
     required this.coveredGames,
     required this.followedGames,
     required this.leftGames,
+    this.unplayable = 0,
     this.positions = const [],
   });
 
   factory RepertoireDiff.fromJson(Map<String, dynamic> json) {
     return RepertoireDiff(
       subject: json['subject'] as String,
-      color: json['color'] as String,
+      color: json['color'] as String?,
       coveredGames: jsonInt(json['coveredGames']),
       followedGames: jsonInt(json['followedGames']),
       leftGames: jsonInt(json['leftGames']),
+      unplayable: json['unplayable'] != null ? jsonInt(json['unplayable']) : 0,
       positions: (json['positions'] as List?)
               ?.map((e) =>
                   RepertoireDiffPosition.fromJson(e as Map<String, dynamic>))

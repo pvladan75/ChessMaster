@@ -12,10 +12,34 @@ import 'package:chess_app/features/archive/models/repertoire_diff.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 
+/// The colour as the API wants it: `w` or `b`, never `white`.
+///
+/// The screens hold `'white'`/`'black'` because those are what a segmented
+/// button shows, and the backend's `requireColor` accepts only the single
+/// letters — it answers 400 for anything else. Sent unconverted, the repertoire
+/// diff failed on every single load, and no widget test could see it because a
+/// faked API never validates what it was handed. Converted here, at the one
+/// place that knows what goes on the wire.
+String? _wireColor(String? color) {
+  if (color == null) return null;
+  final asked = color.trim().toLowerCase();
+  if (asked.isEmpty) return null;
+  if (asked == 'w' || asked == 'white') return 'w';
+  if (asked == 'b' || asked == 'black') return 'b';
+  return null;
+}
+
 class ArchiveApiService {
   ArchiveApiService._({http.Client? client}) : _client = client;
 
   static ArchiveApiService instance = ArchiveApiService._();
+
+  /// A real service over a fake transport, for tests that need to see the
+  /// request rather than replace it. The widget tests fake this class whole,
+  /// which is right for them and blind to anything the server would refuse.
+  @visibleForTesting
+  static ArchiveApiService withClient(http.Client client) =>
+      ArchiveApiService._(client: client);
 
   @visibleForTesting
   static void setMock(ArchiveApiService mock) {
@@ -94,9 +118,10 @@ class ArchiveApiService {
     int? judgeLimit,
     int? minRating,
   }) async {
+    final wire = _wireColor(color);
     final params = <String, String>{
       'subject': subject,
-      if (color != null) 'color': color,
+      if (wire != null) 'color': wire,
       if (fromPly != null) 'fromPly': fromPly.toString(),
       if (toPly != null) 'toPly': toPly.toString(),
       if (minGames != null) 'minGames': minGames.toString(),
@@ -200,7 +225,7 @@ class ArchiveApiService {
       },
       jsonEncode({
         'username': username,
-        if (color != null) 'color': color,
+        if (_wireColor(color) != null) 'color': _wireColor(color),
         if (minGames != null) 'minGames': minGames,
         if (dryRun != null) 'dryRun': dryRun,
       }),
@@ -216,9 +241,10 @@ class ArchiveApiService {
     String? color,
     int? limit,
   }) async {
+    final wire = _wireColor(color);
     final params = <String, String>{
       'username': username,
-      if (color != null) 'color': color,
+      if (wire != null) 'color': wire,
       if (limit != null) 'limit': limit.toString(),
     };
     final uri = Uri.parse('$backendUrl/games/repertoire/diff')
