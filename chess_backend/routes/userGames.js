@@ -104,7 +104,14 @@ const importLimiter = rateLimit({
 
 function fail(res, err, whatFailed) {
   if (err instanceof ArchiveImportUnavailable || err instanceof EndgameAuditUnavailable) {
-    return res.status(err.status).json({ error: err.message, reason: err.reason });
+    return res.status(err.status).json({
+      error: err.message,
+      reason: err.reason,
+      // Only 'already-running' carries these. A refusal the caller can act on
+      // beats one it can only display: without the id, a client whose audit
+      // outlived it had no way back to the run for the next hour.
+      ...(err.auditId ? { auditId: err.auditId, subject: err.subject } : {}),
+    });
   }
   if (err instanceof TypeError) {
     return res.status(400).json({ error: err.message });

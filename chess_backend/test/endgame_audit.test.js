@@ -150,7 +150,11 @@ function stubPool({ cached = null, games = [], running = [] } = {}) {
       return cached ? { rows: [cached], rowCount: 1 } : { rows: [], rowCount: 0 };
     }
     if (/INSERT INTO tablebase_cache/.test(flat)) return { rows: [], rowCount: 1 };
-    if (/SELECT id FROM endgame_audits/.test(flat)) {
+    // Deliberately loose about the column list. This branch matched
+    // `SELECT id FROM endgame_audits` byte for byte, so adding `subject` to the
+    // real query dropped the statement through to the catch-all below — which
+    // answers `rowCount: 1` with no rows, a shape no database ever produces.
+    if (/SELECT id.*FROM endgame_audits/.test(flat)) {
       return { rows: running, rowCount: running.length };
     }
     if (/INSERT INTO endgame_audits/.test(flat)) return { rows: [{ id: 8 }], rowCount: 1 };
@@ -222,10 +226,31 @@ test('an audit walks only the games that reached the tables, and closes', async 
 });
 
 test('a second audit for the same user is refused', async () => {
-  const auditor = createEndgameAuditor({ pool: stubPool({ running: [{ id: 2 }] }) });
+  const auditor = createEndgameAuditor({
+    pool: stubPool({ running: [{ id: 2, subject: 'neko-drugi' }] }),
+  });
   await assert.rejects(
     () => auditor.start({ userId: 5, subject: 'subjekat' }),
     (err) => err instanceof EndgameAuditUnavailable && err.status === 409,
+  );
+});
+
+test('the refusal names the run it is refusing in favour of', async () => {
+  // A client that crashed mid-audit met this refusal and nothing else for the
+  // full hour of STALE_RUN_MS: the screen could not start a run and could not
+  // find the one already going. The id makes the refusal followable.
+  //
+  // Still a refusal rather than a redirect, and the subject is why: the running
+  // audit may be for another handle, and handing back its id unasked would show
+  // that player's progress under this player's name.
+  const auditor = createEndgameAuditor({
+    pool: stubPool({ running: [{ id: 2, subject: 'neko-drugi' }] }),
+  });
+  await assert.rejects(
+    () => auditor.start({ userId: 5, subject: 'subjekat' }),
+    (err) => err.reason === 'already-running'
+      && err.auditId === 2
+      && err.subject === 'neko-drugi',
   );
 });
 

@@ -33,11 +33,19 @@ const MAX_MEN = 7;
 const STALE_RUN_MS = 60 * 60 * 1000;
 
 class EndgameAuditUnavailable extends Error {
-  constructor(message, { reason = 'error', status = 500 } = {}) {
+  constructor(message, {
+    reason = 'error', status = 500, auditId = null, subject = null,
+  } = {}) {
     super(message);
     this.name = 'EndgameAuditUnavailable';
     this.reason = reason;
     this.status = status;
+    // Carried only by 'already-running'. A refusal that names the run it is
+    // refusing in favour of can be followed; one that does not is a dead end,
+    // and a client that crashed mid-audit met exactly that for the full hour of
+    // STALE_RUN_MS — the screen offered nothing but the refusal.
+    this.auditId = auditId;
+    this.subject = subject;
   }
 }
 
@@ -294,12 +302,21 @@ function createEndgameAuditor({
 
     await reapStale(userId);
     const running = await pool.query(
-      `SELECT id FROM endgame_audits WHERE user_id = $1 AND status = 'running' LIMIT 1`,
+      `SELECT id, subject FROM endgame_audits
+        WHERE user_id = $1 AND status = 'running' LIMIT 1`,
       [userId],
     );
     if (running.rowCount > 0) {
+      // Still a refusal — one audit at a time per user, and the running one may
+      // be for another handle, so quietly handing back its id would show that
+      // player's progress under this player's name. But the refusal names it,
+      // so the caller can follow the run instead of being told only "no".
+      const inFlight = running.rows[0];
       throw new EndgameAuditUnavailable('Provera završnica je već u toku.', {
-        reason: 'already-running', status: 409,
+        reason: 'already-running',
+        status: 409,
+        auditId: inFlight.id,
+        subject: inFlight.subject,
       });
     }
 

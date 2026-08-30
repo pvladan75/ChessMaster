@@ -98,6 +98,77 @@ test('an HTTP error is not mistaken for an answer', async () => {
   await assert.rejects(() => tb.probe(PAWN_ENDING), TablebaseUnavailable);
 });
 
+// A second position, so a test can ask about two things without the cache
+// answering the second one for free.
+const ROOK_ENDING = '8/8/8/4k3/8/8/4P3/4K3 w - - 0 1';
+
+/// A clock a test can spend a minute on without waiting one. `sleep` is what
+/// the pacer calls to wait, so advancing time inside it is the whole trick.
+function fakeClock(start = 1000000) {
+  let t = start;
+  return { now: () => t, sleep: async (ms) => { t += ms; }, read: () => t };
+}
+
+test('a 429 is refused once and never knocked through', async () => {
+  // This is the defect, stated: `load` retried every failure twice, at once,
+  // with no gap. Lichess holds an address for a minute on a 429 and for up to
+  // an hour if the knocking goes on, and this server has one address for every
+  // child in the app.
+  let calls = 0;
+  const fetchImpl = async () => { calls += 1; return { ok: false, status: 429 }; };
+  const tb = createTablebase({ fetchImpl, retries: 2, ...fakeClock() });
+
+  await assert.rejects(() => tb.probe(PAWN_ENDING), TablebaseUnavailable);
+  assert.equal(calls, 1, 'a retried 429 is three 429s, and it looks like it works');
+});
+
+test('while Lichess is holding the address, nothing is sent at all', async () => {
+  let calls = 0;
+  const fetchImpl = async () => { calls += 1; return { ok: false, status: 429 }; };
+  const tb = createTablebase({ fetchImpl, retries: 2, ...fakeClock() });
+
+  await assert.rejects(() => tb.probe(PAWN_ENDING));
+  assert.equal(calls, 1);
+
+  // A different position, so nothing is answered from the cache.
+  await assert.rejects(
+    () => tb.probe(ROOK_ENDING),
+    (err) => err instanceof TablebaseUnavailable
+      && err.reason === 'rate-limited'
+      && err.retryable === false,
+  );
+  assert.equal(calls, 1, 'a request during a block is what extends the block');
+});
+
+test('two positions are asked about with daylight between them', async () => {
+  const stub = stubFetch(PAWN_ENDING_REPLY);
+  const clock = fakeClock();
+  const tb = createTablebase({
+    fetchImpl: stub.fetchImpl, minGapMs: 150, now: clock.now, sleep: clock.sleep,
+  });
+
+  await tb.probe(PAWN_ENDING);
+  const afterFirst = clock.read();
+  await tb.probe(ROOK_ENDING);
+
+  assert.equal(stub.calls(), 2);
+  assert.ok(
+    clock.read() - afterFirst >= 150,
+    'the endgame audit walks thousands of positions; ungapped, that is a scan',
+  );
+});
+
+test('a dropped connection is still retried, block or no block', async () => {
+  // The 429 rule must not have quietly turned every failure into a hard stop.
+  const stub = stubFetch(PAWN_ENDING_REPLY, { failures: 2 });
+  const tb = createTablebase({ fetchImpl: stub.fetchImpl, retries: 2, ...fakeClock() });
+
+  const result = await tb.probe(PAWN_ENDING);
+
+  assert.equal(result.category, 'win');
+  assert.equal(stub.calls(), 3);
+});
+
 test('a category the tables will not commit to is refused', () => {
   // 'maybe-win' and 'unknown' are the service saying it does not know. Reading
   // either as a result would put a guess where the mode promises certainty.

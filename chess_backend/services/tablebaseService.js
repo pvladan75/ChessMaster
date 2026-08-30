@@ -38,11 +38,31 @@ const WDL = {
   loss: -2,
 };
 
+/// How long to leave between two requests to Lichess.
+///
+/// Borrowed from `lichessPacing.MIN_REQUEST_GAP_MS`, and the borrowing is worth
+/// saying out loud: that number is documented for the *Explorer* routes, which
+/// are computed per request, while the tablebase is served from memory-mapped
+/// files and is more permissive. It is the only measured number we have, so it
+/// is the one used — but the gap is not what protects this service. The
+/// cooldown below is. A gap guessed slightly wrong costs some queueing; a 429
+/// knocked through costs an hour for every child in the app, because this
+/// server has one address.
+const { createPacer, MIN_REQUEST_GAP_MS, RATE_LIMIT_COOLDOWN_MS } = require('./lichessPacing');
+
 class TablebaseUnavailable extends Error {
-  constructor(message, cause) {
+  /// `retryable` is the half of this class that matters most.
+  ///
+  /// `load` used to retry every failure twice, immediately, with no gap — so a
+  /// 429 became three 429s, and `lichessPacing`'s header says exactly what that
+  /// does: it turns one lost minute into a lost hour, for everybody at once.
+  /// A refusal that says "wait" must never be retried; a timeout still should.
+  constructor(message, cause, { reason = 'error', retryable = true } = {}) {
     super(message);
     this.name = 'TablebaseUnavailable';
     this.cause = cause;
+    this.reason = reason;
+    this.retryable = retryable;
   }
 }
 
@@ -117,11 +137,26 @@ function createTablebase({
   cacheLimit = 5000,
   timeoutMs = 8000,
   retries = 2,
+  // `now` and `sleep` are injected for the same reason as in every other
+  // consumer of the pacer: a test has to be able to spend a minute of cooldown
+  // without waiting one.
+  minGapMs = MIN_REQUEST_GAP_MS,
+  cooldownMs = RATE_LIMIT_COOLDOWN_MS,
+  now = () => Date.now(),
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 } = {}) {
   const cache = new Map();
   // Two children on the same position, or one child whose client retried, must
   // not become two requests to a donated service.
   const inFlight = new Map();
+  // And the ones that do go out are spaced, and stop entirely for a minute
+  // after a 429. The endgame audit is what made this necessary: it walks every
+  // archived game that reached seven men, which on one real archive is 471
+  // games and thousands of positions, anonymously, as fast as the round trips
+  // allow. That is a scan of a donated service, and it was written without a
+  // gap for the same reason every bug in this codebase gets written — the fast
+  // version works, right up until it does not.
+  const pacer = createPacer({ minGapMs, cooldownMs, now, sleep });
   let requests = 0;
 
   function remember(fen, value) {
@@ -133,13 +168,34 @@ function createTablebase({
 
   async function fetchOnce(fen) {
     const url = `${baseUrl}?fen=${encodeURIComponent(fen)}`;
+
+    // Serving Lichess's block here rather than knocking through it. They hold
+    // an address for a minute, and for up to an hour if the knocking goes on,
+    // so a request sent during a block is not a wasted request — it is what
+    // extends the block.
+    const blockedFor = pacer.blockedForMs();
+    if (blockedFor > 0) {
+      throw new TablebaseUnavailable(
+        `Lichess privremeno ne prima upite za tablice. Probajte za ${
+          Math.ceil(blockedFor / 1000)} s.`,
+        null, { reason: 'rate-limited', retryable: false },
+      );
+    }
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const res = await fetchImpl(url, {
+      const res = await pacer.spaced(() => fetchImpl(url, {
         signal: controller.signal,
         headers: { 'User-Agent': 'chess-coach endgame drill' },
-      });
+      }));
+      if (res.status === 429) {
+        pacer.block();
+        throw new TablebaseUnavailable(
+          'Lichess je odbio upit zbog učestalosti; provera staje umesto da navaljuje.',
+          null, { reason: 'rate-limited', retryable: false },
+        );
+      }
       if (!res.ok) {
         throw new TablebaseUnavailable(`Tablica je odgovorila ${res.status}.`);
       }
@@ -157,6 +213,10 @@ function createTablebase({
         return await fetchOnce(fen);
       } catch (err) {
         last = err;
+        // A refusal that means "wait" is not retried. Retrying it is the whole
+        // failure this pacing exists to prevent, and it is invisible when it
+        // happens: three requests instead of one still looks like it works.
+        if (err instanceof TablebaseUnavailable && err.retryable === false) throw err;
       }
     }
     throw new TablebaseUnavailable(
