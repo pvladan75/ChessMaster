@@ -2291,3 +2291,32 @@ pošto mu treba korisničko ime.
    ekrana; proveriti da drill može da odigra potez iz poređenja, i da
    `unplayable` bude nula.
 
+
+## 61. Ulaz u arhivu i ime zasejanog repertoara — ✅ delimično, vlasnik projekta, 30.8.2026
+
+Batch 51 i 52. Dve stavke su viđene uživo i potvrđene; treća, provera završnica,
+**i dalje nije** — vidi stavku 54 i napomenu na kraju.
+
+1. ✅ **Arhiva ima ulaz koji preživljava uvoz.** `Trening → Moje partije` vodi
+   na `/archive`, arhiva od 4126 partija se vidi bez ponovnog uvoza, i sva
+   četiri prolaza (rupe u otvaranju, završnice, repertoar, profil) su odatle
+   dostupna. Ovo je bio kvar zbog kog je ekran bio neupotrebljiv: dugmad su
+   postojala samo u sekundama posle uvoza, a ponovni uvoz iste datoteke daje
+   `games_stored = 0` jer je svaka partija duplikat, pa se nisu vraćala.
+2. ✅ **Zasejani repertoar se vidi u listi, sa imenom.** `repertoire_moves`
+   pripada paru (korisnik, boja) i sejanje nije pisalo red u `repertoires`, pa
+   je 2376 poteza ležalo tamo gde ih niko ne vidi. Sada `ensureRepertoire`
+   upisuje „Iz mojih partija — beli" odnosno „— crni", pa se pojavljuje i crni
+   repertoar koji ranije nije imao nijednu karticu.
+
+**Šta ovde još nije potvrđeno, i namerno se ne štiklira:**
+
+3. [ ] **Provera završnica se pokreće i ne obara aplikaciju.** Ovo je original
+   kvar od 30.8.2026 i **nije ponovljen uživo posle popravki**. Dok se ne vidi
+   kako brojači rastu, ne znamo ni da li se aplikacija i dalje gasi, ni da li
+   tempiranje prema Lichess-u drži na 471 partiji. Stavka 54 ostaje otvorena u
+   celini.
+4. [ ] **Trag posle pada.** `CrashBreadcrumbService` hvata Dart izuzetke.
+   Original pad je bio gašenje procesa, koje nikad ne stigne do Dart rukovaoca
+   — ako se prozor opet zatvori a `crash.log` ostane prazan, to je nalaz, ne
+   propust: znači da uzrok nije Dart izuzetak.
