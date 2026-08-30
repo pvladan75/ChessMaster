@@ -26,6 +26,9 @@ const {
   createArchiveImporter, ArchiveImportUnavailable,
 } = require('../services/gameArchiveImport');
 const { leakReport, backfillNodes } = require('../services/openingLeaks');
+const {
+  createOpponentPrep, OpponentPrepUnavailable,
+} = require('../services/opponentPrep');
 const { openingJudge } = require('../services/openingJudgeService');
 const {
   createEndgameAuditor, EndgameAuditUnavailable,
@@ -35,6 +38,7 @@ const { playerProfile } = require('../services/playerProfile');
 
 const importer = createArchiveImporter({ pool });
 const auditor = createEndgameAuditor({ pool });
+const prep = createOpponentPrep({ pool, importer });
 
 // A ten-year archive exported from Lichess with clocks is about 9 MB. This is
 // generous room above that and still far below what would hurt a 960 MB
@@ -181,6 +185,50 @@ router.post(
     }
   },
 );
+
+// POST /games/prep/import  { username, vs?, color?, perfType?, rated?, max? }
+//
+// Section 7: the same importer pointed at somebody else. Lichess serves any
+// account's games to an unauthenticated caller, so mechanically this is the
+// route above with one flag flipped — and that flag, `subject_is_owner`, is the
+// only thing separating an opponent's games from the player's own inside
+// `user_games`. Everything that reads "the player's" goes through
+// `services/archiveScope.js` for exactly that reason.
+//
+// **This is the one route here that reads about a person who never opened the
+// app**, and most accounts in this product belong to children. The policy in
+// `services/opponentPrep.js` is in front of it, and it is off by default: the
+// question of who may be profiled is a product decision, not a default to
+// arrive at by leaving a parameter unused.
+//
+// The report needs no route of its own — `GET /games/openings/leaks?subject=`
+// already aggregates by subject, which is the whole reason this was worth
+// building after section 1 rather than before it.
+router.post('/prep/import', authenticateToken, importLimiter, async (req, res) => {
+  const body = req.body ?? {};
+  try {
+    const { importId, finished } = await prep.prepare({
+      userId: req.user.id,
+      subject: body.username,
+      filters: {
+        vs: body.vs,
+        color: body.color,
+        perfType: body.perfType,
+        rated: body.rated,
+        max: body.max,
+      },
+    });
+    detach(finished, importId);
+    return res.status(202).json({ importId });
+  } catch (err) {
+    // Both error types carry their own status and a Serbian message written for
+    // the person reading it — a refusal here is an answer, not a fault.
+    if (err instanceof OpponentPrepUnavailable || err instanceof ArchiveImportUnavailable) {
+      return res.status(err.status || 400).json({ error: err.message, reason: err.reason });
+    }
+    return fail(res, err, 'Priprema za protivnika nije mogla da počne.');
+  }
+});
 
 // GET /games/imports — the last runs, newest first.
 router.get('/imports', authenticateToken, async (req, res) => {

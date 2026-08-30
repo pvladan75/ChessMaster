@@ -37,6 +37,8 @@ const realtime = require('./services/realtime');
 const { mayJoinRoom, maySpeakInRoom } = require('./services/roomAccess');
 const { mayRecordRoom } = require('./services/recordingConsent');
 const { cleanupOldExports } = require('./services/retentionService');
+const { createOpponentPrep } = require('./services/opponentPrep');
+const { createArchiveImporter } = require('./services/gameArchiveImport');
 const { corsVerdict, parseAllowedOrigins } = require('./services/corsPolicy');
 
 const app = express();
@@ -734,9 +736,20 @@ async function startServer() {
     // recording that made them — unlike uploads/ audio, they are safe to age
     // out automatically before the droplet's disk fills silently.
     const retentionDays = Number(process.env.EXPORT_RETENTION_DAYS) || undefined;
-    const runCleanup = () =>
+    // An opponent's archive rides the same sweep. It is reproducible in one
+    // request, so there is no reason to keep it — and unlike the player's own
+    // games, which they uploaded and cannot re-derive, holding it is the whole
+    // exposure. `forgetOldOpponents` only ever deletes `subject_is_owner =
+    // FALSE` rows.
+    const opponents = createOpponentPrep({
+      pool, importer: createArchiveImporter({ pool }),
+    });
+    const runCleanup = () => Promise.all([
       cleanupOldExports(pool, retentionDays ? { maxAgeDays: retentionDays } : undefined)
-        .catch((err) => logger.error(`[RETENTION] Export cleanup failed: ${err.message}`));
+        .catch((err) => logger.error(`[RETENTION] Export cleanup failed: ${err.message}`)),
+      opponents.forgetOldOpponents()
+        .catch((err) => logger.error(`[RETENTION] Opponent cleanup failed: ${err.message}`)),
+    ]);
     runCleanup();
     setInterval(runCleanup, 24 * 60 * 60 * 1000);
   } catch (err) {

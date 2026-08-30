@@ -98,6 +98,78 @@ function createGameSplitter(onGame) {
   };
 }
 
+/// Lichess's own names for the formats a game can be played in. Checked against
+/// rather than passed through: an unrecognised `perfType` is not rejected by
+/// Lichess, it is **ignored**, so a typo would quietly widen the pull to every
+/// format and the caller would be told nothing.
+const PERF_TYPES = new Set([
+  'ultraBullet', 'bullet', 'blitz', 'rapid', 'classical', 'correspondence',
+]);
+
+/// The query that goes on the wire, as a pure function of what was asked.
+///
+/// Separate from the request so it can be asserted without a network, because
+/// every one of these parameters is a way to get a *smaller* answer than the
+/// caller thinks they asked for. A misspelled `color` that Lichess ignores
+/// returns both colours and looks exactly like a correct request.
+///
+/// `opening=true` is always on: it makes Lichess compute the `[ECO]` and
+/// `[Opening]` tags, which costs us nothing and spares a local ECO database.
+function buildArchiveQuery({ since = null, filters = {} } = {}) {
+  const params = new URLSearchParams({
+    moves: 'true',
+    tags: 'true',
+    clocks: 'true',
+    opening: 'true',
+    evals: 'false',
+    literate: 'false',
+  });
+  if (since) params.set('since', String(new Date(since).getTime()));
+
+  const bad = (message) => new ArchiveImportUnavailable(
+    message, { reason: 'bad-request', status: 400 },
+  );
+
+  // Head to head, in one request. The whole reason preparation is cheap.
+  if (filters.vs !== undefined && filters.vs !== null && filters.vs !== '') {
+    const vs = String(filters.vs).trim();
+    if (!vs) throw bad('Protivnik za poređenje nije imenovan.');
+    params.set('vs', vs);
+  }
+
+  if (filters.color !== undefined && filters.color !== null && filters.color !== '') {
+    // 'w'/'b' is what the rest of this codebase says; Lichess wants the words.
+    const asked = String(filters.color).trim().toLowerCase();
+    const colour = { w: 'white', b: 'black', white: 'white', black: 'black' }[asked];
+    if (!colour) throw bad('Boja mora biti „w" ili „b".');
+    params.set('color', colour);
+  }
+
+  if (filters.perfType !== undefined && filters.perfType !== null && filters.perfType !== '') {
+    const asked = String(filters.perfType).split(',').map((p) => p.trim()).filter(Boolean);
+    if (asked.length === 0) throw bad('Tempo igre nije imenovan.');
+    for (const perf of asked) {
+      if (!PERF_TYPES.has(perf)) throw bad(`Nepoznat tempo igre: ${perf}.`);
+    }
+    params.set('perfType', asked.join(','));
+  }
+
+  if (filters.rated !== undefined && filters.rated !== null) {
+    if (typeof filters.rated !== 'boolean') throw bad('„rated" mora biti tačno ili netačno.');
+    params.set('rated', String(filters.rated));
+  }
+
+  if (filters.max !== undefined && filters.max !== null && filters.max !== '') {
+    const max = Number(filters.max);
+    if (!Number.isInteger(max) || max < 1 || max > MAX_GAMES_PER_RUN) {
+      throw bad(`Broj partija mora biti ceo broj od 1 do ${MAX_GAMES_PER_RUN}.`);
+    }
+    params.set('max', String(max));
+  }
+
+  return params;
+}
+
 const INSERT_COLUMNS = [
   'user_id', 'source', 'external_id', 'subject', 'subject_is_owner',
   'played_at', 'subject_color', 'result', 'subject_score', 'subject_elo',
@@ -241,16 +313,8 @@ function createArchiveImporter({
 
   /// Opens the archive stream. Only ever one request, so the pacer here is
   /// about the address this server shares, not about pacing the download.
-  async function openLichessStream(subject, since) {
-    const params = new URLSearchParams({
-      moves: 'true',
-      tags: 'true',
-      clocks: 'true',
-      opening: 'true',
-      evals: 'false',
-      literate: 'false',
-    });
-    if (since) params.set('since', String(new Date(since).getTime()));
+  async function openLichessStream(subject, since, filters = {}) {
+    const params = buildArchiveQuery({ since, filters });
 
     const blockedFor = pacer.blockedForMs();
     if (blockedFor > 0) {
@@ -314,6 +378,7 @@ function createArchiveImporter({
   /// a success the database then refuses.
   async function run({
     importId, userId, subject, source, subjectIsOwner, since, pgnText, pgnStream,
+    filters = {},
   }) {
     const tally = createTally();
     let pending = [];
@@ -373,7 +438,7 @@ function createArchiveImporter({
       if (source === 'pgn') {
         await consume(pgnStream || [String(pgnText || '')]);
       } else {
-        const { res, done } = await openLichessStream(subject, since);
+        const { res, done } = await openLichessStream(subject, since, filters);
         try {
           await consume(res.body);
         } finally {
@@ -408,7 +473,7 @@ function createArchiveImporter({
   async function start({
     userId, subject, source = 'lichess', subjectIsOwner = true,
     since = undefined, pgnText = undefined, pgnStream = undefined,
-    incremental = true,
+    incremental = true, filters = {},
   }) {
     if (!Number.isInteger(userId)) throw new TypeError('userId is required');
     const handle = String(subject || '').trim();
@@ -449,7 +514,7 @@ function createArchiveImporter({
 
     const finished = run({
       importId, userId, subject: handle, source, subjectIsOwner,
-      since: resumeFrom, pgnText, pgnStream,
+      since: resumeFrom, pgnText, pgnStream, filters,
     });
 
     return { importId, since: resumeFrom, finished };
@@ -501,6 +566,7 @@ function createArchiveImporter({
 }
 
 module.exports = {
+  buildArchiveQuery,
   createArchiveImporter,
   createGameSplitter,
   ArchiveImportUnavailable,
