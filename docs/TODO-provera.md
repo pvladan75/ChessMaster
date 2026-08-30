@@ -1986,6 +1986,12 @@ gledano kako radi.
 Priprema: nalog na koji se prijavljuje mora imati Lichess korisničko ime koje se
 unosi ručno — veze naloga sa Lichess-om još nema.
 
+0. [ ] **Otpremanje fajla je glavni put** (`POST /games/import/file`,
+   multipart, polje `archive`). Korisnik sam skine PGN sa Lichess-a i preda ga
+   aplikaciji. Na fajlu od 8,7 MB (4126 partija) servis je izmeren van HTTP-a:
+   40 s, 209 MB RSS, nijedna partija preskočena. Ono što se **nije** videlo je
+   kako se to ponaša kroz multipart na dropletu i da li se privremeni fajl
+   zaista briše kad run završi.
 1. [ ] **`POST /games/import` vrati 202 i `importId` odmah**, ne posle četiri
    minuta. Ako čeka, ruta ne radi ono zbog čega je napisana.
 2. [ ] **Cela arhiva stigne.** Na kraju `GET /games/imports/:id` mora imati

@@ -2208,3 +2208,22 @@ nosi najjači test: ista arhiva pušta bajt po bajt i odjednom mora da da iste
 partije. **Dokazano mutacijom** — kad se rep pusti odmah, pada pet testova.
 Testovi: 556 → **569**, svi zeleni. Uživo još nije viđeno:
 [TODO-provera.md](TODO-provera.md), stavka 52.
+
+**Otpremanje fajla je glavni put — odluka vlasnika projekta, 30.8.2026.**
+Korisnik sam skine PGN sa Lichess-a i preda ga aplikaciji
+(`POST /games/import/file`, multipart, do 25 MB, čita se kao stream i briše kad
+run završi). Time nestaje cela klasa rizika koju povlačenje sa servera nosi —
+server ima jednu adresu za sve korisnike, pa je 429 koji zaradi jedan uvoz kvar
+za sve — i radi za Chess.com, ChessBase ili turnirski PGN bez integracije po
+izvoru. Cena je osvežavanje u jednom dodiru: ručni fajl nema `since`, pa drugi
+upload ponovo pročita celu arhivu i sve padne kao duplikati. To je rasipno, ne
+pogrešno, i jeftinije od druge greške.
+
+Povlačenje sa Lichess-a i dalje postoji i i dalje je testirano; **da li ostaje,
+otvoreno je** — to je jedini deo ovoga koji troši dozvolu zajedničku za svu decu
+u aplikaciji.
+
+Mereno na stvarnom fajlu od 8,7 MB, kroz stream: 4126 partija, 4126 redova,
+nijedna preskočena, brojevi se slažu, **40 s i 209 MB RSS u vrhu**. Na dropletu
+od 960 MB memorija je važnija od vremena, i zato upload ide na disk pa se čita
+nazad umesto da stoji kao jedan string. Testovi: **570**.

@@ -271,7 +271,9 @@ function createArchiveImporter({
   /// The tally is closed *before* the run is marked done, so a run that lost
   /// games throws here and is recorded as failed — rather than being written as
   /// a success the database then refuses.
-  async function run({ importId, userId, subject, source, subjectIsOwner, since, pgnText }) {
+  async function run({
+    importId, userId, subject, source, subjectIsOwner, since, pgnText, pgnStream,
+  }) {
     const tally = createTally();
     let pending = [];
     let stopped = false;
@@ -310,21 +312,29 @@ function createArchiveImporter({
     try {
       const splitter = createGameSplitter(take);
 
-      if (source === 'pgn') {
-        splitter.feed(String(pgnText || ''));
+      /// One reader for every source. An uploaded file, a Lichess response and
+      /// a pasted string differ only in where the chunks come from, and the
+      /// splitter has already been proven not to care where a chunk ends.
+      const consume = async (chunks) => {
+        const decoder = new TextDecoder();
+        for await (const chunk of chunks) {
+          splitter.feed(
+            typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true }),
+          );
+          await drain(false);
+        }
+        // Whatever the decoder was holding for a multi-byte character split
+        // across the last two chunks.
+        splitter.feed(decoder.decode());
         splitter.end();
+      };
+
+      if (source === 'pgn') {
+        await consume(pgnStream || [String(pgnText || '')]);
       } else {
         const { res, done } = await openLichessStream(subject, since);
         try {
-          const decoder = new TextDecoder();
-          for await (const chunk of res.body) {
-            splitter.feed(decoder.decode(chunk, { stream: true }));
-            await drain(false);
-          }
-          // Whatever the decoder was holding for a multi-byte character split
-          // across the last two chunks.
-          splitter.feed(decoder.decode());
-          splitter.end();
+          await consume(res.body);
         } finally {
           done();
         }
@@ -356,7 +366,8 @@ function createArchiveImporter({
   /// test or a caller that wants to wait; the route does not.
   async function start({
     userId, subject, source = 'lichess', subjectIsOwner = true,
-    since = undefined, pgnText = undefined, incremental = true,
+    since = undefined, pgnText = undefined, pgnStream = undefined,
+    incremental = true,
   }) {
     if (!Number.isInteger(userId)) throw new TypeError('userId is required');
     const handle = String(subject || '').trim();
@@ -397,7 +408,7 @@ function createArchiveImporter({
 
     const finished = run({
       importId, userId, subject: handle, source, subjectIsOwner,
-      since: resumeFrom, pgnText,
+      since: resumeFrom, pgnText, pgnStream,
     });
 
     return { importId, since: resumeFrom, finished };

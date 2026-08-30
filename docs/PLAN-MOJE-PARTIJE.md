@@ -149,7 +149,8 @@ explorer.
 | | |
 |---|---|
 | `POST /games/import` `{ username, since? }` | 202 `{ importId, since }`; the run continues after the response |
-| `POST /games/import/pgn` `{ pgn, username }` | the same pipeline with no network, bounded by the 2 MB JSON body limit |
+| `POST /games/import/file` multipart `archive` + `username` | **the primary path**: the player's own export, up to 25 MB, read as a stream and deleted when the run ends |
+| `POST /games/import/pgn` `{ pgn, username }` | a paste, bounded by the 2 MB JSON body limit |
 | `GET /games/imports` | the last runs, newest first |
 | `GET /games/imports/:id` | one run: four counters, `skipped_by_reason`, status, error |
 | `GET /games/stats` | games, with clocks, reached tablebase, subjects, oldest, newest, plies |
@@ -168,6 +169,24 @@ both carry somebody else's archive perfectly well — that is what section 6
 needs — but whether this app lets one account pull a profile of a named child is
 the decision named there, and it should not arrive by way of an unused
 parameter.
+
+**Upload is the primary path, decided 30.8.2026 by the project owner**, and the
+reasoning generalises: the player exports their own games from Lichess and hands
+the app the file. That removes the whole class of risk the pull carries — this
+server has one address for every user, so a 429 earned by one import is
+everybody's outage — and it works for Chess.com, ChessBase or a tournament PGN
+without an integration each. What it costs is the one-tap refresh: a manual file
+has no `since`, so a second upload re-reads the whole archive and lands as
+duplicates. That is wasteful rather than wrong, and it is the cheaper of the two
+failures.
+
+The pull is still there and still tested. Whether it stays is open — it is the
+only part of this that can spend an allowance shared by every child in the app.
+
+Measured on the real 8.7 MB export, read as a file stream: 4126 games, 4126 rows,
+none skipped, balanced, **40 seconds and a 209 MB peak RSS**. The memory figure
+matters more than the time on a 960 MB droplet, and it is the reason the upload
+goes to disk and is read back rather than held as one string.
 
 The splitter is the part that could lose data quietly, so it is the part with
 the strongest test: the same archive fed one byte at a time and all at once must

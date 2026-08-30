@@ -248,6 +248,24 @@ test('a pasted PGN takes the same path and needs no network', async () => {
   assert.equal(snapshot.skipped, 2);
 });
 
+test('an uploaded file arrives as a stream and takes the same path', async () => {
+  // The route hands `start` an fs read stream; the splitter has already been
+  // proven not to care where a chunk ends, so this asserts only that the file
+  // path reaches the same pipeline rather than growing a parser of its own.
+  const db = fakeDb();
+  const importer = createArchiveImporter({
+    pool: db,
+    fetchImpl: () => { throw new Error('an uploaded file must not reach the network'); },
+  });
+  const { finished } = await importer.start({
+    userId: 5, subject: 'subjekat', source: 'pgn', pgnStream: streamOf(ARCHIVE, 13),
+  });
+  const snapshot = await finished;
+  assert.equal(snapshot.read, 4);
+  assert.equal(snapshot.stored, 2);
+  assert.equal(snapshot.skipped, 2);
+});
+
 test('an unknown source and a missing handle are refused before anything runs', async () => {
   const db = fakeDb();
   const { importer } = importerOver(db, ARCHIVE);

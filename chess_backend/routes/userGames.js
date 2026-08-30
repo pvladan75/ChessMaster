@@ -12,7 +12,14 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const logger = require('../services/logger');
+const {
+  PGN_TMP_DIR, sweepLeftovers, removeQuietly,
+} = require('../services/scanTempFiles');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const {
@@ -20,6 +27,37 @@ const {
 } = require('../services/gameArchiveImport');
 
 const importer = createArchiveImporter({ pool });
+
+// A ten-year archive exported from Lichess with clocks is about 9 MB. This is
+// generous room above that and still far below what would hurt a 960 MB
+// droplet, since the file is written to disk and read back as a stream rather
+// than held in memory.
+const MAX_ARCHIVE_BYTES = 25 * 1024 * 1024;
+
+// The upload is deleted once the run that reads it finishes. Anything still
+// here at startup belongs to a run that died with its process — nodemon
+// restarting on a file save is enough — and a PGN left behind is a copy of
+// somebody's whole game history.
+sweepLeftovers(PGN_TMP_DIR, 'pgn_');
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination(req, file, cb) {
+      fs.mkdirSync(PGN_TMP_DIR, { recursive: true });
+      cb(null, PGN_TMP_DIR);
+    },
+    filename(req, file, cb) {
+      cb(null, `pgn_${Date.now()}_${crypto.randomBytes(6).toString('hex')}.pgn`);
+    },
+  }),
+  limits: { fileSize: MAX_ARCHIVE_BYTES },
+  fileFilter(req, file, cb) {
+    const looksPgn = path.extname(file.originalname).toLowerCase() === '.pgn'
+      || (file.mimetype || '').startsWith('text/')
+      || file.mimetype === 'application/x-chess-pgn';
+    cb(looksPgn ? null : new Error('Podržan je samo .pgn fajl.'), looksPgn);
+  },
+});
 
 // An import is one long stream from a service someone else pays to run, and a
 // second one for the same user is refused by the importer anyway. This cap is
@@ -101,6 +139,41 @@ router.post('/import/pgn', authenticateToken, importLimiter, async (req, res) =>
   }
 });
 
+// POST /games/import/file — multipart, field `archive`, plus `username`.
+//
+// The path the player takes when they export their own games from Lichess and
+// hand us the file. It reaches the database through exactly the same pipeline
+// as everything else — the splitter does not care whether a chunk came off a
+// socket or off a disk — so nothing here re-implements parsing or counting.
+//
+// The file is read as a stream and deleted when the run that reads it ends,
+// not when this response is sent: the run outlives the request by minutes.
+router.post(
+  '/import/file',
+  authenticateToken,
+  importLimiter,
+  upload.single('archive'),
+  async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'Nedostaje .pgn fajl.' });
+    const uploadedPath = req.file.path;
+    try {
+      const { importId, finished } = await importer.start({
+        userId: req.user.id,
+        subject: req.body?.username,
+        source: 'pgn',
+        subjectIsOwner: true,
+        pgnStream: fs.createReadStream(uploadedPath),
+      });
+      finished.catch(() => {}).finally(() => removeQuietly(uploadedPath));
+      detach(finished, importId);
+      return res.status(202).json({ importId, bytes: req.file.size });
+    } catch (err) {
+      removeQuietly(uploadedPath);
+      return fail(res, err, 'Uvoz partija nije mogao da počne.');
+    }
+  },
+);
+
 // GET /games/imports — the last runs, newest first.
 router.get('/imports', authenticateToken, async (req, res) => {
   try {
@@ -130,6 +203,23 @@ router.get('/stats', authenticateToken, async (req, res) => {
   } catch (err) {
     return fail(res, err, 'Statistika arhive nije dostupna.');
   }
+});
+
+/// Multer's own failures arrive here rather than as a 500 with no explanation:
+/// a file over the ceiling and a file that is not a PGN are both the caller's
+/// business, and both are things a person will hit by accident.
+// eslint-disable-next-line no-unused-vars
+router.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      error: `Fajl je veći od ${Math.round(MAX_ARCHIVE_BYTES / (1024 * 1024))} MB.`,
+    });
+  }
+  if (err) {
+    logger.error(`[ARHIVA] Otpremanje odbijeno: ${err.message}`);
+    return res.status(400).json({ error: err.message });
+  }
+  return next();
 });
 
 module.exports = router;

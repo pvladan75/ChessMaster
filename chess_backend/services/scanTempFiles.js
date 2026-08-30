@@ -16,6 +16,12 @@ const logger = require('./logger');
 
 const SCAN_TMP_DIR = path.join(os.tmpdir(), 'chess-scans');
 
+/// Uploaded PGN archives get their own directory rather than sharing the
+/// scanners'. Same short life and the same sweep, but a file left behind here
+/// is a copy of somebody's game history and not of a book, and the log line
+/// should be able to say which.
+const PGN_TMP_DIR = path.join(os.tmpdir(), 'chess-archives');
+
 /**
  * Deletes uploads orphaned by a process that died mid-scan.
  *
@@ -27,11 +33,11 @@ const SCAN_TMP_DIR = path.join(os.tmpdir(), 'chess-scans');
  * At startup nothing is in flight by definition, so everything still here is
  * orphaned and goes.
  */
-function sweepLeftovers(dir = SCAN_TMP_DIR) {
+function sweepLeftovers(dir = SCAN_TMP_DIR, prefix = 'scan_') {
   if (!fs.existsSync(dir)) return 0;
   let removed = 0;
   for (const name of fs.readdirSync(dir)) {
-    if (!name.startsWith('scan_')) continue;
+    if (!name.startsWith(prefix)) continue;
     try {
       fs.unlinkSync(path.join(dir, name));
       removed += 1;
@@ -55,4 +61,4 @@ function removeQuietly(filePath) {
   });
 }
 
-module.exports = { SCAN_TMP_DIR, sweepLeftovers, removeQuietly };
+module.exports = { SCAN_TMP_DIR, PGN_TMP_DIR, sweepLeftovers, removeQuietly };
