@@ -12,6 +12,7 @@ import 'package:chess_app/features/analysis_studio/services/opening_judge_servic
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/models/analysis_models.dart';
+import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 /// 1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3 — the Smith-Morra accepted, Black to
@@ -225,6 +226,10 @@ void main() {
     Size size = const Size(500, 1000),
     List<String> rootPath = const [],
     RepertoireFrontier? walk,
+
+    /// Moves already in the repertoire, keyed the way the server keys them.
+    /// Stands for a position the student built in an earlier session.
+    Map<String, List<RepertoireMove>> seed = const {},
     Future<List<AnalysisLine>> Function(String fen, int depth, int multiPV)?
         analyse,
   }) async {
@@ -232,7 +237,9 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    api = _FakeApi()..walk = walk;
+    api = _FakeApi()
+      ..walk = walk
+      ..kept.addAll(seed);
     judge = _FakeJudge(verdict: verdict, hasToken: hasToken);
     await tester.pumpWidget(MaterialApp(
       home: RepertoireBuildScreen(
@@ -567,8 +574,117 @@ void main() {
     expect(judge.asked, 2);
     expect(find.textContaining('Pokriveno 85%'), findsOneWidget);
     expect(find.textContaining('van toga još 3'), findsOneWidget);
-    // And the board has moved on to a position where it is Black to move again.
+
+    // A stop, not a step. These answers cost a request and they decide what the
+    // whole next wave looks like; they used to be counted and thrown away
+    // without ever being shown to the person who paid for them.
+    expect(find.text('Odgovori protivnika'), findsOneWidget);
+    expect(find.textContaining('Posle Nc6'), findsOneWidget);
+
+    await tester.tap(find.text('Sledeća pozicija'));
+    await tester.pumpAndSettle();
+
+    // And now the board has moved on to a position where it is Black to move.
     expect(find.text('Šta igrate crnim?'), findsOneWidget);
+  });
+
+  /// The arrows currently on the board.
+  List<EngineArrow> arrows(WidgetTester tester) => tester
+      .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
+      .engineArrows;
+
+  testWidgets(
+      'the opponent\'s answers are drawn on the board, with how often '
+      'each is played', (tester) async {
+    await pump(tester);
+
+    await play(tester, 'b8', 'c6');
+    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dalje'));
+    await tester.pumpAndSettle();
+
+    final drawn = arrows(tester);
+    expect(drawn.length, 1);
+    expect(drawn.single.from, 'g1');
+    expect(drawn.single.to, 'f3');
+    // Share, not the result percentage. Share is what decides whether a move
+    // has to be prepared for; putting "how those games went" on an arrow
+    // invites picking the biggest number, which is the wrong lesson.
+    expect(drawn.single.evalText, '50%');
+
+    // The line on screen includes the student's own move, because the board is
+    // standing one move further on than the position they were asked about.
+    expect(find.textContaining('Nc6'), findsWidgets);
+  });
+
+  testWidgets('the moves already chosen are drawn, and the main one is starred',
+      (tester) async {
+    await pump(tester);
+
+    await play(tester, 'b8', 'c6');
+    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.pumpAndSettle();
+
+    final first = arrows(tester);
+    expect(first.length, 1);
+    expect(first.single.from, 'b8');
+    expect(first.single.to, 'c6');
+    // The star, not a colour. Which move is the main one must never rest on
+    // hue alone — rank already carries stroke width, and this is a third
+    // channel again. The share comes from the book that is already open.
+    expect(first.single.evalText, '★ 60%');
+    expect(first.single.rank, 1);
+
+    // A second move kept here is an alternate: thinner, unstarred, and still
+    // carrying its own share.
+    await play(tester, 'd7', 'd6');
+    await tester.tap(find.text('Uzmi d6'));
+    await tester.pumpAndSettle();
+
+    final both = arrows(tester);
+    expect(both.length, 2);
+    expect(both.first.evalText, '★ 60%', reason: 'glavni ostaje glavni');
+    expect(both.last.to, 'd6');
+    expect(both.last.evalText, '30%');
+    expect(both.last.rank, 2);
+  });
+
+  testWidgets('a kept move without an open book is still drawn, with its star',
+      (tester) async {
+    // The resumed case: a position comes back with a move already in it and no
+    // book behind it. An arrow is not worth a Lichess request nobody asked for,
+    // and the star says the thing that matters without one.
+    await pump(tester, seed: {
+      smithMorra.split(' ').take(4).join(' '): const [
+        RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
+      ],
+    });
+
+    final drawn = arrows(tester);
+    expect(drawn.length, 1);
+    expect(drawn.single.evalText, '★');
+  });
+
+  testWidgets('nothing can be played onto the board while the answers are up',
+      (tester) async {
+    await pump(tester);
+
+    await play(tester, 'b8', 'c6');
+    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dalje'));
+    await tester.pumpAndSettle();
+
+    // The board is showing a position it is White's turn in. A move dragged
+    // there would be judged as the student's own, in a position that is not the
+    // one they were asked about.
+    expect(
+      tester
+          .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
+          .isAllowedToMove,
+      isFalse,
+    );
   });
 
   testWidgets('nothing is asked for until a move has been kept',
@@ -597,6 +713,26 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await play(tester, 'b8', 'c6');
+    expect(tester.takeException(), isNull);
+
+    // And so does the answers view, which is where the long sentences are: a
+    // paragraph about what the numbers mean, a row per reply, and a warning
+    // about the tail.
+    //
+    // Scrolled to rather than tapped blind. On a 640 px screen the controls sit
+    // below the board and are genuinely off screen — which is a fact about the
+    // layout worth knowing, not something to work around by widening the test.
+    await tester.ensureVisible(find.text('Uzmi Nc6'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    await tester.ensureVisible(find.text('Dalje'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dalje'));
+    await tester.pumpAndSettle();
+    expect(find.text('Odgovori protivnika'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

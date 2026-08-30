@@ -131,6 +131,21 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   OpponentReplies? _book;
   bool _lookedUp = false;
 
+  /// What the opponent answers the student's own move with.
+  ///
+  /// These were fetched and thrown away: `Dalje` spent a Lichess request on
+  /// them, counted what they covered, and moved on without ever putting them in
+  /// front of the person who paid for them. They are the whole reason the next
+  /// wave looks the way it does, so they are now shown — on the board, from the
+  /// position they are answers to, with how often each is played.
+  OpponentReplies? _answers;
+
+  /// The position the answers belong to: after the student's primary move.
+  /// Kept for the same reason `_linesFen` is — an answer drawn on the wrong
+  /// board is worse than no answer.
+  String? _answersFen;
+  String? _answersSan;
+
   /// How many questions this session has cost the student's Lichess allowance.
   /// On screen, because it is their allowance and they should not have to guess.
   int _asked = 0;
@@ -226,6 +241,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _verdictReason = null;
       _book = null;
       _lookedUp = false;
+      _answers = null;
+      _answersFen = null;
+      _answersSan = null;
       _lines = const [];
       _linesFen = null;
       _thinking = false;
@@ -245,7 +263,14 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// reads from move one rather than pretending the game began where the
   /// student stopped playing.
   String _lineText() {
-    final moves = [...widget.rootPath, ...?_node?.path];
+    final moves = [
+      ...widget.rootPath,
+      ...?_node?.path,
+      // The board is one move further on while the answers are up, and a
+      // breadcrumb that stopped short of it would name a position that is not
+      // the one being looked at.
+      if (_answers != null && _answersSan != null) _answersSan!,
+    ];
     if (moves.isEmpty) return '';
 
     // Where the numbering starts. With a root path the game began at move one;
@@ -442,6 +467,95 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   int _analysisDepth = AppSettingsService.instance.analysisDepth;
   int _analysisLines = AppSettingsService.instance.analysisLines;
 
+  /// What the board draws, and in which order of precedence.
+  ///
+  /// One layer at a time, never two. Three arrow sets answering three different
+  /// questions on one board is not richer, it is unreadable — and the badges
+  /// would then be percentages of different things sitting next to each other.
+  ///
+  /// Every arrow here is drawn for the position actually on the board. That is
+  /// not bookkeeping: an arrow from the previous position points at pieces that
+  /// have moved, which is the same bug the engine readout had.
+  List<EngineArrow> _boardArrows() {
+    // Standing after our own move, looking at what comes back.
+    if (_answers != null) return _replyArrows(_answers!);
+    // The engine, if it was asked about this position and answered.
+    final engine = _engineArrows();
+    if (engine.isNotEmpty) return engine;
+    // A move is on the board waiting to be judged, so the pieces are no longer
+    // where the kept moves start.
+    if (_proposalUci != null) return const [];
+    return _keptArrows();
+  }
+
+  /// A share, as a reader reads it. Below one percent is `<1%` rather than
+  /// `0%`, which would say "never played" about a move that is on screen
+  /// precisely because it was.
+  String _shareText(double share) {
+    final percent = share * 100;
+    if (percent <= 0) return '';
+    return percent < 1 ? '<1%' : '${percent.round()}%';
+  }
+
+  /// The opponent's answers, most played first.
+  ///
+  /// The number beside each is its **share** of games from that position, not
+  /// how those games ended. Share is what decides whether a move has to be
+  /// prepared for; the result percentage says how it went for people who are
+  /// not this student, and putting it on an arrow invites picking the biggest
+  /// number, which is the wrong lesson. It is still in the panel below, where
+  /// there is room to say what it means.
+  List<EngineArrow> _replyArrows(OpponentReplies answers) {
+    final arrows = <EngineArrow>[];
+    var rank = 1;
+    for (final reply in answers.replies) {
+      if (reply.uci.length < 4) continue;
+      arrows.add(EngineArrow(
+        from: reply.uci.substring(0, 2),
+        to: reply.uci.substring(2, 4),
+        evalText: _shareText(reply.share),
+        rank: rank,
+      ));
+      rank += 1;
+    }
+    return arrows;
+  }
+
+  /// The moves the student has already decided on here.
+  ///
+  /// The primary is marked with a star and drawn thickest — rank carries stroke
+  /// width as well as colour, and the star is a third channel again. Which move
+  /// is the main one must never rest on hue alone.
+  ///
+  /// The share comes from the book when the book happens to be open. It is not
+  /// fetched for this: an arrow is not worth a Lichess request the student did
+  /// not ask for, and the star says the thing that matters without one.
+  List<EngineArrow> _keptArrows() {
+    final book = _book;
+    final shares = <String, double>{
+      if (book != null)
+        for (final move in (book.all.isNotEmpty ? book.all : book.replies))
+          move.uci: move.share,
+    };
+
+    final arrows = <EngineArrow>[];
+    var rank = 1;
+    for (final move in _kept) {
+      if (move.uci.length < 4) continue;
+      final share = shares[move.uci];
+      final percent = share == null ? '' : _shareText(share);
+      arrows.add(EngineArrow(
+        from: move.uci.substring(0, 2),
+        to: move.uci.substring(2, 4),
+        evalText:
+            move.isPrimary ? (percent.isEmpty ? '★' : '★ $percent') : percent,
+        rank: rank,
+      ));
+      rank += 1;
+    }
+    return arrows;
+  }
+
   /// One arrow per engine line, carrying that line's evaluation.
   ///
   /// Only for the position on the board: lines from the previous one would
@@ -559,6 +673,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     var coveredSum = 0.0;
     var tailMoves = 0;
     var counted = 0;
+    OpponentReplies? shown;
+    String? shownFen;
+    String? shownSan;
 
     for (final move in kept) {
       final after = _fenAfter(node.fen, move.uci);
@@ -569,6 +686,15 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       final replies = lookup.replies;
       if (replies == null) continue;
       counted += 1;
+      // The first kept move is the primary — the server hands them back that
+      // way — so this is the line the student actually plays, and its answers
+      // are the ones worth putting on the board. The alternates are opened all
+      // the same; they are simply not what the board is showing.
+      if (shown == null) {
+        shown = replies;
+        shownFen = after;
+        shownSan = move.san;
+      }
       coveredSum += replies.coveredShare;
       tailMoves += replies.tailMoves;
       for (final reply in replies.replies) {
@@ -586,13 +712,24 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final covered = counted == 0 ? 0 : (coveredSum / counted * 100).round();
     setState(() {
       _busy = false;
+      _answers = shown;
+      _answersFen = shownFen;
+      _answersSan = shownSan;
       _note = counted == 0
           ? 'Nijedan odgovor nije stigao — pozicija ostaje nepokrivena.'
           : 'Dodato $added ${added == 1 ? "pozicija" : "pozicija"}. '
               'Pokriveno $covered% onoga što ćete sresti; '
               'van toga još $tailMoves ${tailMoves == 1 ? "potez" : "poteza"}.';
     });
-    await _advance();
+
+    // A stop, not a step. These answers cost a Lichess request and they decide
+    // what the whole next wave looks like; walking straight past them is how
+    // the student ended up building a tree whose shape nobody had seen.
+    if (shownFen == null) {
+      await _advance();
+      return;
+    }
+    _boardController.loadFen(shownFen);
   }
 
   String? _fenAfter(String fen, String uci) {
@@ -675,7 +812,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                     boardOrientation:
                         _forWhite ? PlayerColor.white : PlayerColor.black,
                     boardSize: inner,
-                    isAllowedToMove: !_busy && _proposalUci == null,
+                    // Nothing to play while the answers are up: the board is
+                    // showing a position it is the opponent's turn in, and a
+                    // move dragged there would be judged as the student's own.
+                    isAllowedToMove:
+                        !_busy && _proposalUci == null && _answers == null,
                     isDrawingMode: false,
                     drawingStartSquare: null,
                     arrows: const [],
@@ -684,7 +825,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                     // written beside it. Reading a move as "Nxd4" and finding
                     // it on the board is work a beginner should not have to do
                     // to see what the engine means.
-                    engineArrows: _engineArrows(),
+                    engineArrows: _boardArrows(),
                     onMove: _onMove,
                     onSquareTapForDrawing: (_) {},
                   ),
@@ -693,13 +834,19 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               const SizedBox(height: AppSpacing.md),
               _buildQuestion(context),
               const SizedBox(height: AppSpacing.sm),
-              if (_proposalSan != null) _buildVerdict(context),
-              if (_kept.isNotEmpty) _buildKept(context),
+              // One thing at a time. While the opponent's answers are on the
+              // board, the verdict, the kept moves, the engine and the book all
+              // belong to a position that is no longer the one being shown.
+              if (_answers != null) _buildAnswers(context, _answers!),
+              if (_answers == null && _proposalSan != null)
+                _buildVerdict(context),
+              if (_answers == null && _kept.isNotEmpty) _buildKept(context),
               // Open once the engine has been asked about *this* position —
               // including when it came back with nothing, because that is
               // exactly when the reader wants the depth dial and another go.
-              if (_thinking || _linesFen == _current) _buildEngine(context),
-              if (_book != null) _buildBook(context),
+              if (_answers == null && (_thinking || _linesFen == _current))
+                _buildEngine(context),
+              if (_answers == null && _book != null) _buildBook(context),
               if (_note != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Text(_note!,
@@ -734,7 +881,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           const SizedBox(height: AppSpacing.xxs),
         ],
         Text(
-          _forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?',
+          _answers != null
+              ? 'Posle $_answersSan — ovo igra protivnik'
+              : (_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?'),
           style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
         ),
         const SizedBox(height: AppSpacing.xxs),
@@ -742,7 +891,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           left == 0 ? 'Poslednja pozicija u ovom talasu.' : 'Još $left u redu.',
           style: AppText.caption.copyWith(color: context.colors.textMuted),
         ),
-        if (_node?.kind == 'unopened') ...[
+        if (_answers == null && _node?.kind == 'unopened') ...[
           const SizedBox(height: AppSpacing.xxs),
           Text(
             'Ovde ste već izabrali potez — ostalo je samo da uzmete odgovore.',
@@ -862,6 +1011,97 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// which is history and not an evaluation, and it says so. Kept moves wear
   /// their star here too, and the move just proposed is marked, so the
   /// comparison is with the thing actually being decided.
+  /// The opponent's answers, in words, beside the same arrows on the board.
+  ///
+  /// The board says *where*; this says *how often*, and names the part that was
+  /// left out. The tail is the point of printing it at all: "four moves
+  /// covered, 86% of what you will meet" is honest, and "prepared" without the
+  /// remainder is the sentence that lets somebody think a repertoire is
+  /// finished when it is not.
+  Widget _buildAnswers(BuildContext context, OpponentReplies answers) {
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpacing.sm),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: context.colors.surface.withValues(alpha: 0.5),
+        borderRadius: AppRadii.roundedSm,
+        border: Border.all(color: context.colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.alt_route, size: 16, color: context.colors.accent),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text('Odgovori protivnika',
+                    style: AppText.bodyBold
+                        .copyWith(color: context.colors.accent)),
+              ),
+              Text('${answers.total} partija',
+                  style:
+                      AppText.micro.copyWith(color: context.colors.textMuted)),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            'Broj uz strelicu je koliko se često taj potez igra — to odlučuje '
+            'da li morate da ga spremite. Drugi procenat je kako su te partije '
+            'prošle po vas.',
+            style: AppText.micro.copyWith(color: context.colors.textMuted),
+          ),
+          const SizedBox(height: 6),
+          if (answers.replies.isEmpty)
+            Text('Nijedan odgovor nije stigao iz baze.',
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted))
+          else
+            for (final reply in answers.replies) _answerRow(context, reply),
+          if (answers.tailMoves > 0) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Van pripreme još ${answers.tailMoves} '
+              '${answers.tailMoves == 1 ? "potez" : "poteza"} — '
+              '${(answers.tailShare * 100).round()}% partija. Njih ćete sresti '
+              'bez spremljenog odgovora.',
+              style: AppText.caption.copyWith(color: context.colors.warning),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _answerRow(BuildContext context, OpponentReply reply) {
+    final score = reply.scoreFor(white_: _forWhite);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 64,
+            child: Text(reply.san,
+                style:
+                    AppText.body.copyWith(color: context.colors.textPrimary)),
+          ),
+          SizedBox(
+            width: 52,
+            child: Text(_shareText(reply.share),
+                style: AppText.bodyBold
+                    .copyWith(color: context.colors.textPrimary)),
+          ),
+          Expanded(
+            child: Text(
+              '${score.round()}% po vas · ${reply.games} partija',
+              style: AppText.caption.copyWith(color: context.colors.textMuted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBook(BuildContext context) {
     final book = _book!;
     final moves = book.all.isNotEmpty ? book.all : book.replies;
@@ -974,7 +1214,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       runSpacing: 8,
       alignment: WrapAlignment.center,
       children: [
-        if (_proposalSan != null) ...[
+        if (_answers != null) ...[
+          FilledButton.icon(
+            onPressed: _busy ? null : _advance,
+            icon: const Icon(Icons.arrow_forward, size: 18),
+            label: const Text('Sledeća pozicija'),
+          ),
+        ] else if (_proposalSan != null) ...[
           FilledButton.icon(
             onPressed: _busy ? null : _keep,
             icon: const Icon(Icons.playlist_add, size: 18),

@@ -2391,9 +2391,34 @@ izmišljene otvaranja.
 (`truncated`), umesto da tiho vrati kraći odgovor. Knjiga se pita jednom po
 talasu, ne jednom po grani.
 
-**Šta ovim nije urađeno**, iako je traženo u istom razgovoru: strelice sa
-statistikom na tabli; redosled *unutar* sesije (novi čvorovi i dalje idu na kraj
-reda — `reach` uređuje samo ulazak i nastavak); drill po bloku iz jednog čvora;
+### Strelice sa statistikom — 31.8.2026
+
+Dva sloja, nikad oba odjednom. Tri skupa strelica koji odgovaraju na tri
+različita pitanja nisu bogatiji, nego nečitljivi — a značke bi bile procenti
+različitih stvari jedan pored drugog.
+
+- **Dok sam ja na potezu**: potezi koje sam već izabrao. Glavni nosi zvezdicu i
+  najdeblju liniju; `rank` u `EngineArrow` već nosi debljinu **i** boju, pa je
+  zvezdica treći kanal. Koji je potez glavni ne sme da počiva na nijansi.
+  Procenat dolazi iz knjige **ako je već otvorena** — strelica ne vredi
+  Lichess zahteva koji niko nije tražio.
+- **Posle mog izbora**: protivnikovi odgovori, sa table pomerene za moj potez.
+
+Broj uz strelicu je **udeo**, ne rezultat. Udeo odlučuje da li potez mora da se
+sprema; „kako su te partije prošle" na strelici poziva da se bira najveći broj,
+što je pogrešna pouka, i ostaje u panelu ispod gde ima mesta da se objasni.
+
+`Dalje` je sada **stanica, ne korak**. Odgovori su se dovlačili, brojali i
+bacali — ekran je trošio zahtev na njih i nikad ih nije pokazao onome ko ih je
+platio, iako oni odlučuju kako izgleda ceo sledeći talas. Sada se vide, pa se
+ide na `Sledeća pozicija`. Tabla je u tom stanju zaključana: pokazuje poziciju u
+kojoj je protivnik na potezu, a potez povučen tu bi bio ocenjen kao učenikov.
+
+**Šta ovim nije urađeno**, iako je traženo u istom razgovoru: redosled *unutar*
+sesije (novi čvorovi i dalje idu na kraj
+reda — `reach` uređuje samo ulazak i nastavak); orezivanje grane („ovo neću da
+spremam"), što je poluga koja zapravo drži stablo malim; drill po bloku iz
+jednog čvora;
 „vrlo poznat" čvor kao mesto odakle ponavljanje kreće; i ponavljanje cele linije
 od početka pre nego što se odgovori. Za drill vredi zabeležiti da je jedna
 stavka sa te liste **već bila tu**: potez koji nije glavni, a jeste učenikov, već

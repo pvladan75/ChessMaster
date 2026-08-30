@@ -2354,3 +2354,25 @@ da `ALTER TABLE repertoires ADD COLUMN root_path` prođe.
 8. [ ] **Telefon.** Sve gore na 360 dp: linija poteza može da bude duga, pa
    proveriti da ne izlazi iz ekrana u *release* build-u, gde nema žuto-crnih
    pruga.
+
+## 63. Strelice sa statistikom u izgradnji repertoara — 31.8.2026, nije viđeno uživo
+
+1. [ ] **Moji potezi se vide na tabli.** U poziciji u kojoj već imam izabran
+   potez, strelica mora da stoji na tabli, sa zvezdicom na glavnom. Proveriti da
+   se glavni razaznaje **bez gledanja u boju** — zvezdica i debljina linije.
+2. [ ] **Procenat uz moj potez.** Kad je knjiga otvorena (posle odigranog
+   poteza), uz strelicu stoji i udeo, npr. `★ 60%`. Kad knjiga nije otvorena
+   (pozicija se vraća iz ranije sesije), stoji samo `★` — i **brojač „upita:"
+   ne sme da se pomeri** zbog crtanja strelice.
+3. [ ] **`Dalje` staje umesto da preskoči.** Posle `Dalje` ekran mora da pokaže
+   „Odgovori protivnika", strelice protivnikovih poteza sa procentima, i dugme
+   `Sledeća pozicija`. Ranije je odmah prelazio na sledeću poziciju.
+4. [ ] **Tabla je zaključana u tom stanju.** Pokušati povući potez dok su
+   odgovori na tabli — ne sme da se odigra ništa.
+5. [ ] **Linija poteza uključuje moj potez.** U stanju odgovora linija iznad
+   table mora da se završava mojim potezom, jer je tabla pomerena za njega.
+6. [ ] **Rep je imenovan.** Ako ima nepokrivenih poteza, mora da piše koliko ih
+   je i koliko procenata partija nose — to je jedini pošten način da se kaže da
+   repertoar nije gotov.
+7. [ ] **Telefon, 360 dp.** Panel „Odgovori protivnika" ima dug pasus i red po
+   odgovoru. Proveriti u *release* build-u, gde nema žuto-crnih pruga.
