@@ -499,6 +499,59 @@ from that child's own mistakes** — `assignments`, `assignment_items` and
 `custom_puzzles` already exist to receive it. The parent report gains a
 before/after metric instead of activity counts.
 
+### Built 30.8.2026
+
+`services/homeworkFromArchive.js`, plus `POST /assignments/from-archive` and
+`GET /assignments/student/:id/archive`. `test/homework_from_archive.test.js`
+covers it (backend suite: 635 to 650).
+
+**The gate is `trainerOwnsStudent`, called and never rewritten.** Three
+hand-written copies of a similar condition in this codebase each forgot the
+accepted status, so an unanswered invitation already unlocked the sender's
+lessons; a test walks `routes/` and `services/` and fails if a fourth copy
+appears. The assignment itself is then created by `createCustomAssignment`,
+which checks the same gate again on its own — this file adds positions, it does
+not add a second way to hand out homework. Two tests hold that: one that a
+non-trainer is refused, one that the gate is asked **before** the student's
+games are read. Proved by mutation: disabling the check fails both.
+
+Two properties are structural rather than promised, which is why they are worth
+stating:
+
+- **A trainer can only build homework from an archive the student imported
+  themselves.** The import route is scoped to `req.user.id`, so no other account
+  can put games in a student's archive, and the query reads only rows where
+  `subject_is_owner` is true — a child's own games, never an opponent's profile
+  the child looked up to prepare for a match.
+- **What the trainer sees is positions and mistakes, not a browsable game
+  history.** The narrower read is the one the relationship actually needs.
+
+The set is **spread across themes** before it doubles up on any one: eight
+versions of the same fork is one lesson repeated, not homework. Endgame findings
+bucket by material rather than by motif, since they carry none — bucketing them
+by `theme` would put every one of them together under "bez teme".
+
+Ranking is done **within** each kind, never across. An engine mistake is
+measured in centipawns and a tablebase one in a change of result; one scale for
+both would mean inventing an exchange rate between "gave away 300 centipawns"
+and "turned a win into a draw", and every number after it would carry that
+invention silently.
+
+A mistake with no playable answer never becomes a task, and is counted as
+skipped with its reason. Without a solution nothing can judge the answer and the
+child is told "netačno" whatever they play.
+
+`dryRun: true` returns the chosen positions and writes nothing — what a trainer
+should see before a child does — and refunds the quota it would have spent.
+
+**The trend is a trend, and is named one.** `GET /assignments/student/:id/archive`
+returns twelve months of games, score and average rating, and it is deliberately
+*not* called a before-and-after: a real one needs a date to compare across — the
+day a student started working on something — and nothing in this schema records
+that. Shown as "before and after" it would credit a training plan with whatever
+the player happened to do that month. Recording that date is the smallest useful
+next step for the trainer panel.
+
 ## 7. Opponent preparation
 
 Lichess serves **any** account's games to an unauthenticated caller; there is no

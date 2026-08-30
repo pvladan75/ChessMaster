@@ -21,6 +21,12 @@ const { judgeAttempt } = require('../services/customPuzzleJudge');
 const { buildReview } = require('../services/assignmentReview');
 const notes = require('../services/assignmentNotes');
 const { markReviewed } = require('../services/trainerPanelService');
+const {
+  homeworkFromArchive, HomeworkRefused,
+} = require('../services/homeworkFromArchive');
+const { leakReport } = require('../services/openingLeaks');
+const { stats: mistakeStats, recurrence } = require('../services/mistakeReviews');
+const { monthlyTrend } = require('../services/playerProfile');
 
 /// How long a parent's link stays alive. Long enough to be useful, short enough
 /// that a forwarded link does not expose a child's record indefinitely.
@@ -46,6 +52,105 @@ async function tellStudent(req, assignment) {
     refId: assignment.id,
   });
 }
+
+/// The handle a student's own archive is filed under.
+///
+/// A trainer knows a student by account, not by Lichess name, and the reports
+/// are keyed by handle because one account can hold more than one archive. This
+/// picks the one the student imported as **their own** and has the most games
+/// in; an opponent's profile the student once looked up is never it.
+async function ownArchiveSubject(studentId) {
+  const { rows } = await pool.query(
+    `SELECT subject, COUNT(*)::int AS games
+       FROM user_games
+      WHERE user_id = $1 AND subject_is_owner = TRUE
+      GROUP BY subject ORDER BY games DESC LIMIT 1`,
+    [studentId],
+  );
+  return rows[0] || null;
+}
+
+// POST /assignments/from-archive
+//   { studentId, count?, kind?, title?, instructions?, dueAt?, dryRun? }
+//
+// Homework built from the student's own mistakes. What makes this different
+// from every other way of setting homework is that nobody chose the positions:
+// they are the ones that child actually got wrong.
+//
+// `dryRun: true` returns the chosen positions and writes nothing, which is what
+// a trainer should see before a child does.
+router.post('/from-archive', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (req, res) => {
+  const body = req.body ?? {};
+  try {
+    const outcome = await homeworkFromArchive(pool, {
+      trainerId: req.user.id,
+      studentId: Number(body.studentId),
+      title: body.title,
+      instructions: body.instructions ?? null,
+      dueAt: body.dueAt ?? null,
+      count: body.count,
+      kind: body.kind ?? null,
+      dryRun: body.dryRun === true,
+    });
+
+    if (outcome.dryRun) {
+      // Nothing was created, so nothing was spent.
+      await refundQuota(req);
+      return res.json(outcome);
+    }
+    await tellStudent(req, outcome.assignment);
+    return res.status(201).json(outcome);
+  } catch (err) {
+    await refundQuota(req);
+    if (err instanceof HomeworkRefused) {
+      return res.status(err.status).json({ error: err.message });
+    }
+    if (err instanceof TypeError) return res.status(400).json({ error: err.message });
+    logger.error(`[DOMACI] Iz arhive nije uspelo: ${err.message}`);
+    return res.status(500).json({ error: 'Domaći iz arhive nije mogao da se napravi.' });
+  }
+});
+
+// GET /assignments/student/:id/archive
+//
+// What the trainer can see of a student's archive: the counts, what keeps
+// recurring, and the opening leaks. Positions and numbers — not a browsable
+// game history, which is a wider read than the relationship needs.
+router.get('/student/:id/archive', authenticateToken, async (req, res) => {
+  const studentId = Number(req.params.id);
+  if (!Number.isInteger(studentId)) return res.status(400).json({ error: 'Loš id.' });
+
+  try {
+    if (!(await assignments.trainerOwnsStudent(pool, req.user.id, studentId))) {
+      return res.status(403).json({ error: 'Taj učenik nije na vašoj listi.' });
+    }
+    const archive = await ownArchiveSubject(studentId);
+    if (!archive) {
+      return res.json({ subject: null, games: 0, leaks: null, mistakes: null });
+    }
+    const [leaks, mistakes, repeats, trend] = await Promise.all([
+      leakReport(pool, studentId, { subject: archive.subject, limit: 10 }),
+      mistakeStats(pool, studentId),
+      recurrence(pool, studentId),
+      monthlyTrend(pool, studentId, archive.subject),
+    ]);
+    return res.json({
+      subject: archive.subject,
+      games: archive.games,
+      leaks,
+      mistakes,
+      recurrence: repeats,
+      // Named `trend` and not `beforeAfter`: a real before-and-after needs a
+      // date to compare across, and nothing here records when a student started
+      // working on something.
+      trend,
+    });
+  } catch (err) {
+    if (err instanceof RangeError) return res.status(400).json({ error: err.message });
+    logger.error(`[DOMACI] Arhiva učenika nije dostupna: ${err.message}`);
+    return res.status(500).json({ error: 'Arhiva učenika nije dostupna.' });
+  }
+});
 
 // POST /assignments — a trainer sets homework for one of their students.
 router.post('/', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (req, res) => {

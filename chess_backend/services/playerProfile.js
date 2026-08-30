@@ -214,6 +214,35 @@ async function clockProfile(pool, userId, subject, { sample = CLOCK_SAMPLE } = {
   };
 }
 
+/// Games and score by month, newest last.
+///
+/// This is a **trend**, and it is worth refusing to call it anything else. A
+/// real before-and-after needs a date to compare across — the day a student
+/// started working on something — and nothing in this schema records one. Shown
+/// as "before and after" it would credit a training plan with whatever the
+/// player happened to do that month, which is the kind of number that makes a
+/// report feel useful and be wrong.
+async function monthlyTrend(pool, userId, subject, { months = 12 } = {}) {
+  const { rows } = await pool.query(
+    `SELECT to_char(date_trunc('month', played_at), 'YYYY-MM') AS month,
+            COUNT(*)::int AS games,
+            SUM(subject_score)::numeric AS points,
+            AVG(subject_elo)::int AS avg_elo
+       FROM user_games
+      WHERE user_id = $1 AND subject = $2 AND played_at IS NOT NULL
+      GROUP BY 1 ORDER BY 1 DESC LIMIT $3`,
+    [userId, subject, months],
+  );
+  return rows
+    .map((row) => ({
+      month: row.month,
+      games: row.games,
+      score: Number(row.points) / row.games,
+      avgElo: row.avg_elo,
+    }))
+    .reverse();
+}
+
 async function playerProfile(pool, userId, { subject, clockSample } = {}) {
   if (!Number.isInteger(userId)) throw new TypeError('userId is required');
   const handle = String(subject || '').trim();
@@ -248,6 +277,7 @@ async function playerProfile(pool, userId, { subject, clockSample } = {}) {
 
 module.exports = {
   playerProfile,
+  monthlyTrend,
   clockProfile,
   subjectClocks,
   clockAfterMove,

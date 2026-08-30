@@ -2131,3 +2131,31 @@ je mereno lokalno, kroz produkcioni kod, ali nijednom uz stvarnu tablicu.
 6. [ ] **Dva broja se ne smeju prikazati kao nalaz**: red „ispod 30 s" (21
    partija) i „kratke partije idu lošije". Prvi je premali uzorak, drugi je
    pitanje a ne odgovor.
+
+## 58. Domaći iz učenikove arhive — 30.8.2026, nije viđeno uživo
+
+Jedina funkcija u ovom planu koja prelazi između naloga, i većina tih naloga su
+deca. Provera se radi sa **dva naloga** — trenerskim i učeničkim — i vezom koja
+je prihvaćena.
+
+1. [ ] **Nepovezani trener ne prolazi.** `POST /assignments/from-archive` sa
+   `studentId` deteta koje nije na listi mora da vrati 403, a u bazi ne sme da
+   ostane nijedan novi red u `custom_puzzles` ni u `assignments`.
+2. [ ] **Veza koja čeka odgovor ne prolazi.** Isto to sa vezom u stanju
+   `pending` — mora 403.
+3. [ ] **Prvo `dryRun`.** Sa `dryRun: true` trener vidi izabrane pozicije i
+   ništa se ne upisuje; kvota se vraća.
+4. [ ] **Zadatak stigne detetu.** Bez `dryRun`, učenik dobija obaveštenje i
+   zadatak se vidi u njegovoj listi, a pozicije nose uputstvo na srpskom
+   („U ovoj poziciji si odigrao … Nađi bolji potez.").
+5. [ ] **Skup nije osam istih zadataka.** Pogledati zadatih osam pozicija —
+   treba da pokrivaju različite teme, ne isti motiv osam puta.
+6. [ ] **Tuđa arhiva ne ulazi.** Ako učenik uveze protivnikove partije
+   (`subject_is_owner = false`), one ne smeju da se pojave ni u domaćem ni u
+   trenerskom pregledu.
+7. [ ] **Ponovno generisanje ne pravi duplikate pozicija** — `puzzle_id` se
+   izvodi iz same greške, pa drugi prolaz treba da ponovo upotrebi iste
+   pozicije.
+8. [ ] **Trenerski pregled**: `GET /assignments/student/:id/archive` daje
+   `leaks`, `mistakes`, `recurrence` i `trend`. Proveriti da `trend` nije nigde
+   prikazan kao „pre i posle" — to je pitanje za interfejs, a odgovor je ne.

@@ -10,8 +10,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
-  playerProfile, clockProfile, subjectClocks, clockAfterMove, incrementOf,
-  CLOCK_AT_MOVE, HURRIED_SECONDS,
+  playerProfile, monthlyTrend, clockProfile, subjectClocks, clockAfterMove,
+  incrementOf, CLOCK_AT_MOVE, HURRIED_SECONDS,
 } = require('../services/playerProfile');
 
 // Clock after each ply, in centiseconds. White is on the odd plies.
@@ -161,4 +161,19 @@ test('the reading is taken at move twenty', () => {
   // Named rather than inlined, so a change to it is a change somebody made
   // rather than a number that drifted.
   assert.equal(CLOCK_AT_MOVE, 20);
+});
+
+test('the monthly trend comes back oldest first, and is only a trend', async () => {
+  // The query asks newest-first so a LIMIT keeps the recent months; a chart
+  // wants them the other way round, and reversing at the wrong end is the kind
+  // of thing that draws an improving player as a declining one.
+  const pool = stubPool([
+    { month: '2026-08', games: 100, points: '55.0', avg_elo: 1950 },
+    { month: '2026-07', games: 80, points: '36.0', avg_elo: 1930 },
+  ]);
+  const trend = await monthlyTrend(pool, 5, 's');
+  assert.deepEqual(trend.map((m) => m.month), ['2026-07', '2026-08']);
+  assert.ok(Math.abs(trend[1].score - 0.55) < 1e-9);
+  assert.equal(trend[0].avgElo, 1930);
+  assert.equal(pool.calls[0].params[2], 12);
 });

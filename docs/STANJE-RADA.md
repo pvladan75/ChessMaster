@@ -2419,3 +2419,49 @@ funkcije sa sopstvenim testovima:
 
 Testovi: 623 → **635**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
 stavka 57.
+
+## Trenerski sloj i domaći iz arhive — sekcija 6, napisana 30.8.2026
+
+`services/homeworkFromArchive.js`, `POST /assignments/from-archive` i
+`GET /assignments/student/:id/archive`. Ovo je deo koji ceo plan pretvara iz
+funkcije za jednog igrača u funkciju za trenera: trener izabere učenika i dobije
+zadatak sastavljen od pozicija koje je to dete stvarno pogrešilo.
+
+**Kapija je `trainerOwnsStudent`, pozvana a ne prepisana.** Tri ručno pisane
+kopije slične provere u ovom kodu su sve zaboravile status, pa je neodgovoreni
+poziv već otključavao pošiljaočeve časove; test prolazi kroz `routes/` i
+`services/` i pada ako se pojavi četvrta kopija. Sam zadatak pravi
+`createCustomAssignment`, koji istu kapiju proverava još jednom — ovaj fajl
+dodaje pozicije, ne dodaje drugi način da se zada domaći. Dva testa to drže:
+jedan da se nepovezani trener odbija, drugi da se kapija pita **pre** nego što
+se učenikove partije pročitaju. **Dokazano mutacijom**: isključena provera obori
+oba.
+
+Dve osobine su strukturne, ne obećane:
+
+- **Trener može da pravi domaći samo iz arhive koju je učenik sam uvezao.** Ruta
+  za uvoz je vezana za `req.user.id`, pa niko drugi ne može da ubaci partije u
+  učenikovu arhivu, a upit čita samo redove sa `subject_is_owner = TRUE` —
+  dečije sopstvene partije, nikad tuđi profil koji je dete gledalo radi pripreme.
+- **Trener vidi pozicije i greške, ne pretraživu istoriju partija.** Uže čitanje
+  je ono koje odnos zaista traži.
+
+Skup se **razmiče po temama** pre nego što udvoji bilo koju: osam verzija istog
+viljuška je jedna lekcija ponovljena, ne domaći. Nalazi iz završnica se grupišu
+po materijalu jer temu nemaju — po `theme` bi svi završili zajedno pod „bez
+teme".
+
+Rangira se **unutar** vrste, nikad preko nje. Greška motora se meri
+centipešacima a ona iz tablica promenom ishoda; jedna skala za obe značila bi
+izmišljen kurs između „dao 300 centipešaka" i „pretvorio dobitak u remi", a
+svaki broj posle toga bi tu izmišljotinu nosio ćutke.
+
+**Trend je trend i tako se zove.** Ruta za trenera vraća dvanaest meseci partija,
+prolaznosti i prosečnog rejtinga, i namerno se **ne** zove „pre i posle": pravo
+pre-i-posle traži datum preko kojeg se poredi — dan kad je učenik počeo da radi
+na nečemu — a to šema nigde ne beleži. Prikazano kao „pre i posle" pripisalo bi
+planu treninga sve što je igrač tog meseca slučajno uradio. Zapisati taj datum
+je najmanji koristan sledeći korak za trenerski panel.
+
+Testovi: 635 → **650**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
+stavka 58.
