@@ -558,8 +558,47 @@ function createArchiveImporter({
     return rows[0];
   }
 
+  /// Whose games the archive holds, and how much of each.
+  ///
+  /// `archiveStats` answers "how much is here" in one number. This answers
+  /// "whose", which is what every screen below the archive needs as a
+  /// parameter — the leak report, the endgame audit, the repertoire diff and
+  /// the profile are all per-player and none of them can guess the handle.
+  ///
+  /// Without this list those four screens were reachable from exactly one
+  /// place: the import screen, in the seconds after an import finished, while
+  /// its `_run` was still in memory. Re-importing the same file did not bring
+  /// them back, because every game was then a duplicate and the screen's
+  /// condition asked whether anything had been *stored*.
+  ///
+  /// `reached_tablebase` is carried here rather than computed by the screen for
+  /// the same reason the import counters are: it is about one game in nine, and
+  /// an endgame audit over an archive that never reached seven men finds
+  /// nothing — which reads as "you play endgames perfectly" unless the number
+  /// is on screen before the audit runs.
+  async function archiveSubjects(userId) {
+    const { rows } = await pool.query(
+      `SELECT g.subject,
+              COUNT(*)::int AS games,
+              COUNT(*) FILTER (WHERE g.min_men <= 7)::int AS reached_tablebase,
+              COUNT(*) FILTER (WHERE g.clocks IS NOT NULL)::int AS with_clocks,
+              MIN(g.played_at) AS oldest,
+              MAX(g.played_at) AS newest,
+              (SELECT MAX(COALESCE(i.finished_at, i.started_at))
+                 FROM user_game_imports i
+                WHERE i.user_id = g.user_id AND i.subject = g.subject
+              ) AS last_import_at
+         FROM user_games g
+        WHERE g.user_id = $1 AND g.${OWN_GAMES_SQL}
+        GROUP BY g.user_id, g.subject
+        ORDER BY games DESC, g.subject ASC`,
+      [userId],
+    );
+    return rows;
+  }
+
   return {
-    start, getRun, listRuns, archiveStats,
+    start, getRun, listRuns, archiveStats, archiveSubjects,
     // Exposed for tests and for the endgame audit, which needs the same reaping.
     reapStale, lastPlayedAt,
   };

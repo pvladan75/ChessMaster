@@ -56,6 +56,20 @@ function stubPool({ games = GAMES } = {}) {
       const mine = visible.filter((g) => g.subject === params[1]);
       return { rows: mine.map(() => ({ '?column?': 1 })), rowCount: mine.length };
     }
+    // Checked before the summary below, because both statements open with the
+    // same `COUNT(*)::int AS games`. The grouped one is the per-subject list.
+    if (/AS last_import_at/.test(flat)) {
+      const bySubject = new Map();
+      for (const game of visible) {
+        const row = bySubject.get(game.subject)
+          || { subject: game.subject, games: 0, reached_tablebase: 0, with_clocks: 0 };
+        row.games += 1;
+        if (game.min_men <= 7) row.reached_tablebase += 1;
+        bySubject.set(game.subject, row);
+      }
+      const rows = [...bySubject.values()].sort((a, b) => b.games - a.games);
+      return { rows, rowCount: rows.length };
+    }
     if (/COUNT\(\*\)::int AS games/.test(flat)) {
       return {
         rows: [{
@@ -142,6 +156,22 @@ test('the archive summary counts the player\'s games and not their opponent\'s',
 
   assert.equal(summary.games, 1, '"your archive has N games" means yours');
   assert.equal(summary.subjects, 1);
+});
+
+test('the subject list names the player and not the opponent they prepared for', async () => {
+  // The archive screen's list, and the same trap as the summary above: without
+  // the condition an opponent pulled for match preparation would appear as one
+  // of "your archives", with four analysis screens hanging off their name.
+  const pool = stubPool();
+  const importer = createArchiveImporter({ pool });
+  const subjects = await importer.archiveSubjects(1);
+
+  assert.deepEqual(subjects.map((s) => s.subject), ['me']);
+  assert.equal(subjects[0].games, 1);
+  assert.equal(
+    subjects[0].reached_tablebase, 1,
+    'how many games the endgame audit can even look at, said before it runs',
+  );
 });
 
 test('the condition is written in one place and imported everywhere else', async () => {

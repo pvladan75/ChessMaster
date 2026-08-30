@@ -22,9 +22,12 @@ function nodeRow(over = {}) {
 }
 
 /// Answers by reading the statement, and records every write.
-function stubPool({ nodes = [], diff = [], hasPrimary = () => false } = {}) {
+function stubPool({
+  nodes = [], diff = [], hasPrimary = () => false, namingThrows = false,
+} = {}) {
   const calls = [];
   const inserted = [];
+  const named = [];
   const query = async (text, params = []) => {
     const flat = text.replace(/\s+/g, ' ').trim();
     calls.push({ text: flat, params });
@@ -43,9 +46,15 @@ function stubPool({ nodes = [], diff = [], hasPrimary = () => false } = {}) {
       inserted.push(row);
       return { rows: [row], rowCount: 1 };
     }
+    if (/INSERT INTO repertoires/.test(flat)) {
+      if (namingThrows) throw new Error('ime nije upisano');
+      const row = { id: named.length + 1, name: params[1], color: params[2] };
+      named.push(row);
+      return { rows: [row], rowCount: 1 };
+    }
     return { rows: [], rowCount: 0 };
   };
-  return { calls, inserted, query };
+  return { calls, inserted, named, query };
 }
 
 test('a SAN becomes the UCI the repertoire stores', () => {
@@ -179,6 +188,54 @@ test('a node whose move will not replay is counted, not dropped', async () => {
   const out = await seedFromArchive(pool, 5, { subject: 's', dryRun: true });
   assert.equal(out.unplayable, 1);
   assert.equal(out.moves, 0);
+});
+
+// The seed wrote 2376 moves on 30.8.2026 and the owner reported that nothing
+// had happened. He was right: `repertoire_moves` belongs to (user, colour) and
+// the list screen reads `repertoires`, which the seed never wrote. These four
+// hold the fix — a write nobody can reach is not a write.
+
+test('a seed of one colour names the repertoire it wrote into', async () => {
+  const pool = stubPool({ nodes: [nodeRow()] });
+  const out = await seedFromArchive(pool, 5, { subject: 's' });
+
+  assert.equal(out.repertoireName, 'Iz mojih partija — beli');
+  assert.equal(pool.named.length, 1);
+  assert.equal(pool.named[0].color, 'w');
+});
+
+test('a seed over both colours writes both names and claims neither', async () => {
+  const pool = stubPool({
+    nodes: [
+      nodeRow(),
+      nodeRow({ fen_key: AFTER_E4, color: 'b', san: 'e5' }),
+    ],
+  });
+  const out = await seedFromArchive(pool, 5, { subject: 's' });
+
+  // Both rows exist, so both colours appear in the list...
+  assert.deepEqual(pool.named.map((r) => r.color), ['b', 'w']);
+  // ...and there is no single answer to "written into which", so none is given.
+  assert.equal(out.repertoireName, null);
+});
+
+test('a dry run names nothing, as it writes nothing', async () => {
+  const pool = stubPool({ nodes: [nodeRow()] });
+  const out = await seedFromArchive(pool, 5, { subject: 's', dryRun: true });
+
+  assert.equal(pool.named.length, 0);
+  assert.equal(out.repertoireName, undefined);
+});
+
+test('a name that cannot be written does not take the seed down with it', async () => {
+  // Do the thing, then say it. The moves are already in when the naming runs,
+  // and this codebase has twice shipped the opposite: a message about the work
+  // killing the work.
+  const pool = stubPool({ nodes: [nodeRow()], namingThrows: true });
+  const out = await seedFromArchive(pool, 5, { subject: 's' });
+
+  assert.equal(out.added, 1);
+  assert.equal(out.repertoireName, null);
 });
 
 test('the diff separates following the plan from leaving it', async () => {

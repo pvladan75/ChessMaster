@@ -504,6 +504,22 @@ router.get('/profile', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /games/subjects — whose games the archive holds, one row per handle.
+//
+// The archive screen's list, and the reason it exists is a live failure: the
+// four analysis screens took a `subject` in the query string and there was no
+// screen that knew the handles, so the only door was the import screen and only
+// while its last run was still in memory. An empty archive answers with an
+// empty list, never a 404 — "you have imported nothing" is a state to render,
+// not an error to report.
+router.get('/subjects', authenticateToken, async (req, res) => {
+  try {
+    return res.json({ subjects: await importer.archiveSubjects(req.user.id) });
+  } catch (err) {
+    return fail(res, err, 'Spisak igrača iz arhive nije dostupan.');
+  }
+});
+
 // GET /games/stats — what the archive holds, before anything analyses it.
 router.get('/stats', authenticateToken, async (req, res) => {
   try {

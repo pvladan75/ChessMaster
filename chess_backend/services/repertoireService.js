@@ -61,6 +61,38 @@ async function createRepertoire(pool, userId, { name, color, rootFen }) {
   return result.rows[0];
 }
 
+/// The repertoire a seed writes into: made once, found every time after.
+///
+/// Not `createRepertoire`, which refuses a duplicate name. That is right for a
+/// person typing one in and wrong for a seed that runs again every time an
+/// archive is re-imported.
+///
+/// The row buys nothing the moves need — they belong to (user, colour) and the
+/// build and drill screens find them without it. It buys the *name*, which is
+/// what the list screen reads, and the list screen is the only place a player
+/// ever sees that a repertoire exists. A seed wrote 2376 moves on 30.8.2026 and
+/// the owner reported that nothing had happened; he was right, because nothing
+/// he could reach had.
+///
+/// `DO UPDATE` rather than `DO NOTHING` so `RETURNING` yields a row on the
+/// conflict too. It rewrites the name with the name, on purpose: the colour and
+/// the root are left alone, so an existing repertoire is found, never edited.
+async function ensureRepertoire(pool, userId, { name, color, rootFen }) {
+  const clean = typeof name === 'string' ? name.trim() : '';
+  if (clean === '') throw new RangeError('Repertoar mora imati ime.');
+  requireColor(color);
+  fenKey(rootFen);
+
+  const result = await pool.query(
+    `INSERT INTO repertoires (user_id, name, color, root_fen)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (user_id, name) DO UPDATE SET name = EXCLUDED.name
+     RETURNING id, name, color, root_fen, created_at`,
+    [userId, clean, color, rootFen.trim()],
+  );
+  return result.rows[0] || null;
+}
+
 async function listRepertoires(pool, userId) {
   const result = await pool.query(
     `SELECT r.id, r.name, r.color, r.root_fen, r.created_at,
@@ -271,6 +303,7 @@ async function weakNodes(pool, userId, { color, limit = 20 } = {}) {
 module.exports = {
   fenKey,
   createRepertoire,
+  ensureRepertoire,
   listRepertoires,
   nodeMoves,
   addMove,

@@ -22,9 +22,18 @@
 // mistake.
 
 const { Chess } = require('chess.js');
-const { addMove } = require('./repertoireService');
+const { addMove, ensureRepertoire } = require('./repertoireService');
 const { fenFromKey } = require('./openingLeaks');
 const logger = require('./logger');
+
+/// What a seeded repertoire is called, per colour, and where it starts.
+///
+/// Serbian because it is a name the player reads in a list. One name per
+/// colour, fixed, so a second seed finds the first one instead of making a
+/// duplicate — `repertoires` is unique on (user, name), which is what makes
+/// that work.
+const SEED_NAMES = { w: 'Iz mojih partija — beli', b: 'Iz mojih partija — crni' };
+const SEED_ROOT_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 /// A position has to have been reached this often before it is worth calling
 /// part of somebody's repertoire. Lower than the leak report's eight, because
@@ -183,11 +192,40 @@ async function seedFromArchive(pool, userId, {
   });
   await Promise.all(workers);
 
+  // The moves are written; now make them findable. Every colour that actually
+  // received one gets its named row, because a colour with no moves does not
+  // need a name and an empty repertoire in the list is worse than no entry.
+  //
+  // After the moves, never before: `ensureRepertoire` failing must not be able
+  // to take down a seed that has already succeeded. Do the thing, then say it.
+  const seededColors = [...new Set(plan.map((move) => move.color))].sort();
+  const named = [];
+  for (const color of seededColors) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const row = await ensureRepertoire(pool, userId, {
+        name: SEED_NAMES[color], color, rootFen: SEED_ROOT_FEN,
+      });
+      if (row) named.push(row.name);
+    } catch (err) {
+      logger.error(`[REPERTOAR] Ime repertoara nije upisano: ${err.message}`);
+    }
+  }
+
   logger.info(
     `[REPERTOAR] Zasejano iz arhive: ${added} poteza u ${positions.length} pozicija.`,
   );
   return {
-    dryRun: false, positions: positions.length, moves: plan.length, added, primary, unplayable,
+    dryRun: false,
+    positions: positions.length,
+    moves: plan.length,
+    added,
+    primary,
+    unplayable,
+    // One name only when one colour was seeded. A seed over both colours writes
+    // two rows and there is no single answer, and a name the caller then shows
+    // in "written into X" would be half a truth.
+    repertoireName: named.length === 1 ? named[0] : null,
   };
 }
 
