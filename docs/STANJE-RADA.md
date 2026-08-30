@@ -2382,3 +2382,40 @@ osećaj.
 
 Testovi: 610 → **623**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
 stavka 56.
+
+## Profil igrača van otvaranja — sekcija 5, napisana 30.8.2026
+
+`services/playerProfile.js` i `GET /games/profile`. Sve izlazi iz `user_games` —
+bez motora, bez tablica, bez mreže — a `min_men`, upisan pri uvozu, je ono što
+pitanje „dokle je partija stigla" pretvara u `GROUP BY` umesto u ponovno
+odigravanje.
+
+**Mereno na stvarnoj arhivi od 4126 partija, kroz produkcioni kod.** Po dužini:
+ispod 20. poteza 696 partija i **45,5%**, 20–40. potez 2196 i 51,3%, preko 40.
+poteza 1234 i 53,6%. Po fazi: rešeno pre završnice 3237 i 49,6%, stiglo u
+završnicu 418 i 50,5%, stiglo do tablica 471 i **61,5%**.
+
+Sat, na 3632 partije koje ga nose — prolaznost prema tome koliko je vremena
+ostalo posle 20. poteza: ispod 30 s → 21 partija, 23,8%; 30–60 s → 84, 48,2%;
+60–120 s → 1078, 50,9%; preko 120 s → 1858, 53,7%. Čist gradijent, i prvi broj u
+celom planu koji govori o tome **kako** igrač igra, a ne šta. Posle 10. poteza,
+37,9% poteza je odigrano za manje od tri sekunde.
+
+Dva upozorenja idu uz te brojke gde god se prikažu: red „ispod 30 s" ima 21
+partiju i ne sme da se čita kao nalaz, a to što kratke partije nose najlošiju
+prolaznost samo po sebi nije tvrdnja o otvaranju — to je mesto gde dalje treba
+gledati, a sekcija 1 je ta koja može da odgovori.
+
+Dve stvari ovde daju uverljivo pogrešne brojeve umesto greške, pa su obe čiste
+funkcije sa sopstvenim testovima:
+
+- **Koji unosi u nizu sata pripadaju igraču.** `clocks[i]` je sat posle poluteza
+  i+1, pa su igračevi svaki drugi, a koji drugi zavisi od boje. Obrnuto, to
+  prijavljuje protivnikovu vremensku nevolju kao igračevu i sve niže i dalje
+  izgleda razumno. Jedna definicija, u `subjectClocks`.
+- **Sat nije štoperica.** U partiji 3+2 potez odigran za sekundu ostavlja sat
+  **višim** nego pre, pa je potrošeno vreme `pre - posle + inkrement`.
+  Zaboravljen inkrement ne puca — kaže da igrač na 3+2 nikad ne žuri.
+
+Testovi: 623 → **635**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
+stavka 57.

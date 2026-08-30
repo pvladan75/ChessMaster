@@ -2111,3 +2111,23 @@ je mereno lokalno, kroz produkcioni kod, ali nijednom uz stvarnu tablicu.
 7. [ ] **Drill radi nad zasejanim repertoarom.** Postojeći trenažer repertoara
    mora da radi nad onim što je sejanje napravilo, bez ijedne izmene — ako ne
    radi, sejanje piše nešto što drill ne ume da pročita.
+
+## 57. Profil igrača van otvaranja — 30.8.2026, nije viđeno uživo
+
+1. [ ] **`GET /games/profile?username=` vraća brojeve koji se poklapaju sa
+   merenjem van baze.** Očekivano: po dužini 696 / 2196 / 1234 partije sa
+   45,5% / 51,3% / 53,6%; po fazi 3237 / 418 / 471 sa 49,6% / 50,5% / 61,5%.
+   Ako se razlikuju, ne veruj ni jednom broju dok se ne nađe zašto.
+2. [ ] **Sat.** `clock.atMove20` treba da da gradijent 23,8% → 48,2% → 50,9% →
+   53,7%, a `clock.hurriedShare` oko 0,379.
+3. [ ] **Uzorak je ograničen i prijavljen.** `clock.sampled` ne sme tiho da
+   bude manji od `gamesWithClocks` — ako jeste, to je granica uzorka i mora da
+   se vidi u interfejsu.
+4. [ ] **Brzina.** Sedam `GROUP BY` upita plus čitanje do 2000 nizova sa satom;
+   izmeriti koliko traje na dropletu. Nizovi su ono što ovde nosi bajtove.
+5. [ ] **Partije bez sata ne kvare profil** — starije od trenutka kad ih je
+   Lichess počeo beležiti moraju da se prebroje u `gamesWithClocks` a da ne uđu
+   u proseke.
+6. [ ] **Dva broja se ne smeju prikazati kao nalaz**: red „ispod 30 s" (21
+   partija) i „kratke partije idu lošije". Prvi je premali uzorak, drugi je
+   pitanje a ne odgovor.

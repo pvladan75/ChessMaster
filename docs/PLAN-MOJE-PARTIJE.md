@@ -441,6 +441,55 @@ Lichess export** — the sample file carries no `%clk` tags. Re-exporting with
 `clocks=true` turns 221 time-forfeit losses from a count into something
 analysable.
 
+### Built 30.8.2026
+
+`services/playerProfile.js` and `GET /games/profile`.
+`test/player_profile.test.js` covers it (backend suite: 623 to 635). Everything
+comes out of `user_games` alone — no engine, no tablebase, no network — and
+`min_men`, written at import, is what lets "which phase did this game reach" be
+a GROUP BY instead of a replay.
+
+**Measured on the real 4126-game archive, through the production code:**
+
+| | games | score |
+|---|---|---|
+| under move 20 | 696 | **45.5%** |
+| moves 20–40 | 2196 | 51.3% |
+| past move 40 | 1234 | 53.6% |
+| decided before the endgame | 3237 | 49.6% |
+| reached an endgame | 418 | 50.5% |
+| reached the tablebase range | 471 | **61.5%** |
+
+And the clock, over the 3632 games that carry one:
+
+| clock at move 20 | games | score |
+|---|---|---|
+| under 30s | 21 | 23.8% |
+| 30–60s | 84 | 48.2% |
+| 60–120s | 1078 | 50.9% |
+| over 120s | 1858 | 53.7% |
+
+A clean gradient, and the first number in this whole plan that is about *how*
+the player plays rather than *what*. 37.9% of moves after move ten are played in
+under three seconds. Two cautions that belong beside those numbers wherever they
+are shown: the under-30s row is 21 games and must not be read as a finding, and
+short games scoring worst is not by itself a claim about the opening — it is
+where to look next, and section 1 is the place that can answer it.
+
+Two things here produce plausible wrong numbers rather than errors, so both are
+pure functions with their own tests:
+
+- **Which entries on the clock array belong to the player.** `clocks[i]` is the
+  clock after ply i+1, so the player's are every other one and which every-other
+  depends on their colour. Reversed, it reports the opponent's time trouble as
+  the player's and everything downstream still looks sensible. One definition,
+  in `subjectClocks`, with `clockAfterMove` built on top of it rather than
+  indexing the array a second time.
+- **A clock is not a stopwatch.** In a 3+2 game a move played in one second
+  leaves the clock *higher* than before, so time spent is
+  `before - after + increment`. Forgetting the increment does not fail — it says
+  a 3+2 player never hurries and a 3+0 player always does.
+
 ## 6. Trainer-facing layer
 
 Everything above is single-player; this app is a coaching platform, and the

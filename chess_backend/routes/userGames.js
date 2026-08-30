@@ -31,6 +31,7 @@ const {
   createEndgameAuditor, EndgameAuditUnavailable,
 } = require('../services/endgameAudit');
 const { seedFromArchive, repertoireDiff } = require('../services/repertoireArchive');
+const { playerProfile } = require('../services/playerProfile');
 
 const importer = createArchiveImporter({ pool });
 const auditor = createEndgameAuditor({ pool });
@@ -367,6 +368,22 @@ router.get('/repertoire/diff', authenticateToken, async (req, res) => {
   } catch (err) {
     if (err instanceof RangeError) return res.status(400).json({ error: err.message });
     return fail(res, err, 'Poređenje sa repertoarom nije dostupno.');
+  }
+});
+
+// GET /games/profile?username=
+//
+// The weaknesses that are not about openings: colour, speed, game length, the
+// phase a game reached, the year, and what the clock does. All of it out of
+// `user_games` — no engine, no tablebase, no network.
+router.get('/profile', authenticateToken, async (req, res) => {
+  try {
+    return res.json(await playerProfile(pool, req.user.id, {
+      subject: req.query?.username,
+    }));
+  } catch (err) {
+    if (err instanceof RangeError) return res.status(400).json({ error: err.message });
+    return fail(res, err, 'Profil igrača nije dostupan.');
   }
 });
 
