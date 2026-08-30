@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/features/archive/models/player_profile.dart';
 import 'package:chess_app/features/archive/models/trainer_student_archive.dart';
 import 'package:chess_app/features/archive/models/archive_homework_response.dart';
 
 import 'package:chess_app/features/archive/models/archive_run.dart';
+import 'package:chess_app/features/archive/models/archive_subject.dart';
 import 'package:chess_app/features/archive/models/endgame_audit.dart';
 import 'package:chess_app/features/archive/models/endgame_mistake.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
@@ -121,6 +123,12 @@ class FakeArchiveApiService implements ArchiveApiService {
   }
 
   @override
+  Future<List<ArchiveSubject>> getSubjects() async => [];
+
+  @override
+  Future<List<ArchiveRun>> listImports() async => [];
+
+  @override
   Future<Map<String, int>> backfill() async => {'games': 10, 'nodes': 10};
 }
 
@@ -149,5 +157,59 @@ void main() {
 
     expect(find.text('test_user'), findsOneWidget);
     expect(find.byType(ElevatedButton), findsOneWidget);
+  });
+
+  testWidgets(
+      'shows analysis buttons when run is done and duplicate games exist',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('miguelruivo.flutter.plugins.filepicker'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'custom' || methodCall.method == 'pickFiles') {
+          return [
+            {
+              'name': 'test.pgn',
+              'path': '/test.pgn',
+              'size': 100,
+              'bytes': null,
+            }
+          ];
+        }
+        return null;
+      },
+    );
+
+    final mockApi = FakeArchiveApiService();
+    ArchiveApiService.setMock(mockApi);
+    mockApi.returnedImport = ArchiveRun(
+      id: 1,
+      source: 'file',
+      subject: 'test_user',
+      status: 'done',
+      gamesRead: 4126,
+      gamesStored: 0,
+      gamesDuplicate: 4126,
+      gamesSkipped: 0,
+      skippedByReason: {},
+      startedAt: '2026-08-30',
+    );
+    mockApi.returnedImportId = 1;
+
+    await tester.pumpWidget(buildScreen());
+
+    await tester.enterText(find.byType(TextField), 'test_user');
+    await tester.tap(find.byType(ElevatedButton).first);
+
+    for (int i = 0; i < 5; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pogledaj rupe u otvaranju'), findsOneWidget);
   });
 }

@@ -64,7 +64,7 @@ class TrainingHubScreen extends StatelessWidget {
                 onSelectBlunderGames: () =>
                     context.push(AppRoutes.blunderGames),
                 onSelectRepertoire: () => context.push(AppRoutes.repertoire),
-                onSelectMyGames: () => context.push(AppRoutes.archiveImport),
+                onSelectMyGames: () => context.push(AppRoutes.archiveHome),
                 onSelectMistakesDrill: () =>
                     context.push(AppRoutes.archiveMistakes),
                 // These three used to be a value on the working screen's state.

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:chess_app/routing/app_routes.dart';
 
 import 'package:chess_app/features/archive/models/repertoire_diff.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
@@ -102,8 +105,23 @@ class _RepertoireDiffScreenState extends State<RepertoireDiffScreen> {
         );
 
         if (!mounted) return;
-        AppFeedback.success(context,
-            'Upisano ${res.added ?? 0} novih poteza i postavljeno ${res.primary ?? 0} primarnih opcija.');
+        final name = res.repertoireName;
+        AppFeedback.show(
+          context,
+          () => SnackBar(
+            content: Text(name != null
+                ? 'Upisano u "$name": ${res.added ?? 0} poteza, ${res.primary ?? 0} opcija.'
+                : 'Upisano ${res.added ?? 0} novih poteza i postavljeno ${res.primary ?? 0} primarnih opcija.'),
+            backgroundColor: context.colors.success.withValues(alpha: 0.9),
+            action: name != null
+                ? SnackBarAction(
+                    label: 'Otvori',
+                    textColor: context.colors.canvas,
+                    onPressed: () => context.push(AppRoutes.repertoire),
+                  )
+                : null,
+          ),
+        );
         _load();
       }
     } catch (e) {

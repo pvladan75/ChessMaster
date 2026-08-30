@@ -222,5 +222,65 @@ void main() {
       expect(res.dryRun, true);
       expect(res.candidatesCount, 37);
     });
+
+    test('getSubjects parses BIGINT and dates', () async {
+      final client = _RecordingClient(
+        body: jsonEncode({
+          'subjects': [
+            {
+              'subject': 'pvladan',
+              'games': 4126,
+              'reached_tablebase': 471,
+              'with_clocks': '3632',
+              'oldest': '2015-03-11T19:22:04.000Z',
+              'newest': null,
+              'last_import_at': '2026-08-30T17:49:49.163Z'
+            }
+          ]
+        }),
+      );
+      final api = ArchiveApiService.withClient(client);
+
+      final subjects = await api.getSubjects();
+
+      expect(client.gets.single.path, '/games/subjects');
+      expect(subjects.length, 1);
+      expect(subjects.first.subject, 'pvladan');
+      expect(subjects.first.games, 4126);
+      expect(subjects.first.withClocks, 3632);
+      expect(subjects.first.oldest, '2015-03-11T19:22:04.000Z');
+      expect(subjects.first.newest, isNull);
+    });
+
+    test('listImports fetches runs', () async {
+      final client = _RecordingClient(
+        body: jsonEncode({
+          'runs': [
+            {
+              'id': '1',
+              'source': 'pgn',
+              'subject': 'pvladan',
+              'status': 'done',
+              'games_read': 4126,
+              'games_stored': 0,
+              'games_duplicate': 4126,
+              'games_skipped': 0,
+              'skipped_by_reason': {},
+              'error': null,
+              'started_at': '2026-08-30T17:40:00.000Z',
+              'finished_at': '2026-08-30T17:49:49.163Z'
+            }
+          ]
+        }),
+      );
+      final api = ArchiveApiService.withClient(client);
+
+      final runs = await api.listImports();
+
+      expect(client.gets.single.path, '/games/imports');
+      expect(runs.length, 1);
+      expect(runs.first.id, 1);
+      expect(runs.first.subject, 'pvladan');
+    });
   });
 }

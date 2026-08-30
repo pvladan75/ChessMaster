@@ -1,3 +1,5 @@
+import 'package:chess_app/features/archive/models/archive_run.dart';
+import 'package:chess_app/features/archive/models/archive_subject.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,6 +11,11 @@ import 'package:chess_app/features/archive/models/endgame_mistake.dart';
 import 'package:chess_app/theme/app_theme.dart';
 
 class MockArchiveApiService extends Fake implements ArchiveApiService {
+  @override
+  Future<List<ArchiveSubject>> getSubjects() async => [];
+  @override
+  Future<List<ArchiveRun>> listImports() async => [];
+
   MockArchiveApiService();
 
   @override

@@ -162,6 +162,7 @@ class RepertoireSeedResult {
   final List<RepertoireSeedPlanPosition>? plan;
   final int? added;
   final int? primary;
+  final String? repertoireName;
 
   const RepertoireSeedResult({
     required this.dryRun,
@@ -171,6 +172,7 @@ class RepertoireSeedResult {
     this.plan,
     this.added,
     this.primary,
+    this.repertoireName,
   });
 
   factory RepertoireSeedResult.fromJson(Map<String, dynamic> json) {
@@ -185,6 +187,7 @@ class RepertoireSeedResult {
           .toList(),
       added: json['added'] != null ? jsonInt(json['added']) : null,
       primary: json['primary'] != null ? jsonInt(json['primary']) : null,
+      repertoireName: json['repertoireName'] as String?,
     );
   }
 }

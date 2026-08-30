@@ -11,11 +11,17 @@ import 'package:chess_app/theme/app_theme.dart';
 import 'package:chess_app/features/archive/models/mistake_item.dart';
 import 'package:chess_app/features/archive/models/mistake_recurrence.dart';
 import 'package:chess_app/features/archive/models/archive_run.dart';
+import 'package:chess_app/features/archive/models/archive_subject.dart';
 import 'package:chess_app/features/archive/models/endgame_audit.dart';
 import 'package:chess_app/features/archive/models/endgame_mistake.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
 
 class FakeArchiveApiService implements ArchiveApiService {
+  @override
+  Future<List<ArchiveSubject>> getSubjects() async => [];
+  @override
+  Future<List<ArchiveRun>> listImports() async => [];
+
   @override
   Future<PlayerProfile> getPlayerProfile(String username) async =>
       throw UnimplementedError();

@@ -140,7 +140,8 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
             const SizedBox(height: AppSpacing.lg),
             if (_run != null) ...[
               ImportCounters(run: _run!),
-              if (_run!.status == 'done' && _run!.gamesStored > 0) ...[
+              if (_run!.status == 'done' &&
+                  (_run!.gamesStored + _run!.gamesDuplicate) > 0) ...[
                 const SizedBox(height: AppSpacing.md),
                 // Offered rather than jumped to. The four counters above are
                 // the answer this screen exists to give, and navigating past

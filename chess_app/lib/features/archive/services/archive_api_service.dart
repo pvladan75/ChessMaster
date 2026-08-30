@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/features/archive/models/archive_run.dart';
+import 'package:chess_app/features/archive/models/archive_subject.dart';
 import 'package:chess_app/features/archive/models/endgame_audit.dart';
 import 'package:chess_app/features/archive/models/endgame_mistake.dart';
 import 'package:chess_app/features/archive/models/json_int.dart';
@@ -108,6 +109,30 @@ class ArchiveApiService {
       return ArchiveRun.fromJson(jsonDecode(response.body));
     }
     throw Exception('Failed to get import: ${response.body}');
+  }
+
+  Future<List<ArchiveSubject>> getSubjects() async {
+    final uri = Uri.parse('$backendUrl/games/subjects');
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return ((json['subjects'] as List?) ?? [])
+          .map((e) => ArchiveSubject.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    }
+    throw Exception('Failed to get subjects: ${response.body}');
+  }
+
+  Future<List<ArchiveRun>> listImports() async {
+    final uri = Uri.parse('$backendUrl/games/imports');
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return ((json['runs'] as List?) ?? [])
+          .map((e) => ArchiveRun.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    }
+    throw Exception('Failed to list imports: ${response.body}');
   }
 
   Future<LeakReport> getLeaks({

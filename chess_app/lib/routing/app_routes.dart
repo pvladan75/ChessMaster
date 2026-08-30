@@ -143,6 +143,7 @@ abstract final class AppRoutes {
   /// turns it into rows. The entry point for the whole feature, because the
   /// report below is meaningless against an archive nobody has imported yet.
   static const String archiveImport = '/archive/import';
+  static const String archiveHome = '/archive';
 
   /// Where the same early choice keeps going badly. `subject` is the handle the
   /// archive was imported under and is required — the report is per-player, and
