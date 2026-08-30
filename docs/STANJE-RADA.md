@@ -2344,3 +2344,41 @@ dva identična nalaza dvaput.
 
 Testovi: 596 → **610**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
 stavka 55.
+
+## Repertoar iz arhive — sekcija 4, napisana 30.8.2026
+
+`services/repertoireArchive.js`, `POST /games/repertoire/seed` i
+`GET /games/repertoire/diff`. **Nijedna nova tabela** — obe polovine su spajanja,
+što je isplata za odluku od pre dva dana da `opening_nodes` koristi isti
+`fen_key` kao `repertoire_moves`.
+
+**Sejanje ide kroz `addMove`**, ne kroz direktan `INSERT`. Ta funkcija već drži
+pravilo koje bi ova mogla najlakše da pokvari: prvi potez u poziciju postaje
+`primary`, svaki sledeći `alternate`, a to čuva parcijalni unique indeks. Zato
+pozicija o kojoj je igrač već odlučio zadržava njegovu odluku i samo dobija
+alternative — sejanje koje bi pregazilo ručno građen repertoar bilo bi najgori
+mogući način da se ova funkcija uvede.
+
+**Mereno na stvarnoj arhivi**, uz podrazumevani prag od 5 partija i 15% udela za
+drugi odgovor: pri pragu 3 → 1306 pozicija i 2362 poteza; **pri 5 → 648 pozicija
+i 1132 poteza**; pri 8 → 372 i 592; pri 15 → 206 i 314. Nijedan potez nije
+odbijen kao neodigriv. Od 648 pozicija, njih 193 ima jedan odgovor u 90% ili
+više partija — to su rešeni delovi repertoara, ostalo je gde se još bira.
+
+1132 poteza po dva upita je 2264 obilaska baze, predugo za jedan zahtev, pa se
+pozicije pišu paralelno a potezi **unutar** jedne pozicije ostaju redom. To je
+uslov ispravnosti, ne štelovanje: dva poteza u istu poziciju istovremeno oba bi
+zatekla da nema `primary`, oba bi ga upisala, i parcijalni indeks bi oborio
+sejanje na pola — iz razloga koji sa igračem nema veze. Test tvrdi da dva poteza
+za istu poziciju nikad nisu u letu zajedno, i **dokazan je mutacijom**:
+grupisanje po potezu umesto po poziciji ga obori.
+
+`dryRun: true` vraća plan i ne upisuje ništa — to je ono što UI treba prvo da
+pokaže.
+
+Diff broji samo pozicije koje repertoar zaista pokriva. Pozicija o kojoj
+repertoar ćuti nije izlazak iz repertoara nego **rupa** — drugi izveštaj i drugi
+osećaj.
+
+Testovi: 610 → **623**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
+stavka 56.

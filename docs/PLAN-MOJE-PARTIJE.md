@@ -384,6 +384,52 @@ possible that hand-entry does not: **seed** a repertoire from what the player
 actually plays, and then **diff** it — "you left your own repertoire in 118
 games; here they are; drill exactly those nodes."
 
+### Built 30.8.2026
+
+`services/repertoireArchive.js`, plus `POST /games/repertoire/seed` and
+`GET /games/repertoire/diff`. `test/repertoire_archive.test.js` covers it
+(backend suite: 610 to 623). No new table at all — both halves are joins, which
+is the payoff for keying `opening_nodes` on the same `fen_key` as
+`repertoire_moves` two days ago.
+
+**The seed writes through `addMove`** rather than inserting directly. That
+function already holds the rule this feature could most easily break: the first
+move into a position becomes primary, every later one an alternate, held by a
+partial unique index. So a position the player has already decided about keeps
+their decision and merely gains alternatives — a seed that overwrote a
+hand-built repertoire would be the worst possible way to introduce this.
+
+**Measured on the real archive**, at the default floor of 5 games and a 15%
+share for a second answer:
+
+| minimum games | positions | moves |
+|---|---|---|
+| 3 | 1306 | 2362 |
+| **5 (default)** | **648** | **1132** |
+| 8 | 372 | 592 |
+| 15 | 206 | 314 |
+
+Zero moves failed to replay at any floor. 193 of the 648 positions have a single
+answer played in 90% or more of the games — those are the settled parts of the
+repertoire, and the rest is where the player is still choosing.
+
+1132 moves at two queries each is 2264 round trips, far too long to hold a
+request open for, so positions are written in parallel and the moves **inside**
+one position stay sequential. That is a correctness constraint, not a tuning
+choice: two moves into the same position at once would both find no primary,
+both try to insert one, and the partial index would fail the seed halfway
+through for a reason that has nothing to do with the player. A test asserts no
+two moves for one position are ever in flight together, and it was proved by
+mutation — regrouping per move instead of per position fails it.
+
+`dryRun: true` returns the plan and writes nothing, which is what the UI should
+show first.
+
+The diff counts only positions the repertoire actually covers. A position it
+says nothing about is not a deviation, it is a gap — a different report and a
+different feeling. The headline is three numbers: games that reached a prepared
+position, of which followed and left.
+
 ## 5. Weakness profile beyond the opening
 
 Aggregate the detectors that already exist across the corpus: which tactical

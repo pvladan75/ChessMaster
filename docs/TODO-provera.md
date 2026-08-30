@@ -2089,3 +2089,25 @@ je mereno lokalno, kroz produkcioni kod, ali nijednom uz stvarnu tablicu.
    provera koju kod ne može da uradi.
 7. [ ] **Ponovni upis istog nalaza ne pravi duplikat** (isti
    `user_id, game_id, ply`).
+
+## 56. Repertoar iz arhive — 30.8.2026, nije viđeno uživo
+
+1. [ ] **Prvo `dryRun`.** `POST /games/repertoire/seed` sa `dryRun: true` mora
+   da vrati plan i **ništa** ne upiše. Očekivano na arhivi od 4126 partija:
+   oko 648 pozicija i 1132 poteza pri podrazumevanom pragu.
+2. [ ] **Sejanje ne gazi ručni repertoar.** Napraviti jednu poziciju ručno sa
+   `primary` potezom, pa pustiti sejanje — taj `primary` mora da ostane, a novi
+   potezi da uđu kao `alternate`.
+3. [ ] **Koliko traje.** 1132 poteza je 2264 upita; izmeriti stvarno vreme na
+   dropletu. Ako pređe petnaestak sekundi, sejanje treba da pređe na obrazac
+   pozadinskog posla, isti kao uvoz i provera završnica.
+4. [ ] **Ponovno sejanje ništa ne kvari** — drugi prolaz treba da doda nula
+   novih poteza i ne promeni nijednu ulogu.
+5. [ ] **Diff daje rečenicu.** `GET /games/repertoire/diff` mora da vrati tri
+   broja: partije koje su stigle u pripremljenu poziciju, koliko ih je pratilo
+   pripremu i koliko je izašlo. Proveriti da zbir prve dve daje treću.
+6. [ ] **Rupa nije izlazak.** Pozicija koju repertoar ne pokriva ne sme da se
+   pojavi u diff-u.
+7. [ ] **Drill radi nad zasejanim repertoarom.** Postojeći trenažer repertoara
+   mora da radi nad onim što je sejanje napravilo, bez ijedne izmene — ako ne
+   radi, sejanje piše nešto što drill ne ume da pročita.

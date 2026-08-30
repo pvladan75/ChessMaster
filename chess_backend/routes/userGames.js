@@ -30,6 +30,7 @@ const { openingJudge } = require('../services/openingJudgeService');
 const {
   createEndgameAuditor, EndgameAuditUnavailable,
 } = require('../services/endgameAudit');
+const { seedFromArchive, repertoireDiff } = require('../services/repertoireArchive');
 
 const importer = createArchiveImporter({ pool });
 const auditor = createEndgameAuditor({ pool });
@@ -322,6 +323,50 @@ router.get('/endgame/mistakes', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     return fail(res, err, 'Nalazi iz završnica nisu dostupni.');
+  }
+});
+
+// POST /games/repertoire/seed  { username, color?, minGames?, dryRun? }
+//
+// Builds a repertoire out of what the player already plays. Writes through
+// `addMove`, which makes the first move into a position primary and every later
+// one an alternate — so a position the player has already decided about keeps
+// their decision. A seed that overwrote a hand-built repertoire would be the
+// worst possible introduction to this feature.
+//
+// `dryRun: true` returns the plan and writes nothing, which is the sensible
+// thing for the UI to show first.
+router.post('/repertoire/seed', authenticateToken, importLimiter, async (req, res) => {
+  const body = req.body ?? {};
+  try {
+    return res.json(await seedFromArchive(pool, req.user.id, {
+      subject: body.username,
+      color: body.color ?? null,
+      minGames: Number(body.minGames) > 0 ? Number(body.minGames) : undefined,
+      dryRun: body.dryRun === true,
+    }));
+  } catch (err) {
+    if (err instanceof RangeError) return res.status(400).json({ error: err.message });
+    return fail(res, err, 'Repertoar nije mogao da se zaseje iz arhive.');
+  }
+});
+
+// GET /games/repertoire/diff?username=&color=&limit=
+//
+// The games that reached a position the player had prepared and then did not
+// follow the preparation. Positions the repertoire says nothing about are not
+// deviations — those are a gap, which is a different report.
+router.get('/repertoire/diff', authenticateToken, async (req, res) => {
+  const q = req.query ?? {};
+  try {
+    return res.json(await repertoireDiff(pool, req.user.id, {
+      subject: q.username,
+      color: q.color ?? null,
+      limit: Number(q.limit),
+    }));
+  } catch (err) {
+    if (err instanceof RangeError) return res.status(400).json({ error: err.message });
+    return fail(res, err, 'Poređenje sa repertoarom nije dostupno.');
   }
 });
 
