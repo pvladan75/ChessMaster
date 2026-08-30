@@ -31,12 +31,12 @@ void main() {
       expect(request.headers['Content-Type'], 'application/json');
       expect(jsonDecode(request.body), {'username': 'tester'});
 
-      return http.Response(jsonEncode({'auditId': 'audit-123'}), 202);
+      return http.Response(jsonEncode({'auditId': '123'}), 202);
     });
 
     final service = ArchiveApiService.withClient(client);
     final id = await service.startEndgameAudit('tester');
-    expect(id, 'audit-123');
+    expect(id, '123');
   });
 
   test('getEndgameMistakes handles string ids and sends correct params',

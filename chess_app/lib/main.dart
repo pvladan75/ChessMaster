@@ -12,9 +12,27 @@ import 'package:chess_app/widgets/session_watch.dart';
 import 'package:chess_app/theme/app_colors.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
+import 'package:chess_app/services/crash_breadcrumb_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterError.onError = (details) {
+    CrashBreadcrumbService.instance.recordFlutterError(details);
+    FlutterError.presentError(details);
+  };
+
+  // `false`, not `true`. Returning true tells the engine the error is handled
+  // and stops it reaching the default handler that prints to stderr — so the
+  // breadcrumb would have bought a file and paid for it with the console. This
+  // whole service exists because a crash left nothing to read; silencing the
+  // one channel that still worked would be the opposite of the point.
+  PlatformDispatcher.instance.onError = (error, stack) {
+    CrashBreadcrumbService.instance.recordPlatformError(error, stack);
+    return false;
+  };
+
   await AppSettingsService.instance.init();
   // Routes build screens from the session, so it has to be loaded before the
   // first route is resolved.

@@ -298,7 +298,14 @@ class ArchiveApiService {
     );
     if (response.statusCode == 202) {
       final json = jsonDecode(response.body);
-      return json['auditId'] as String;
+      return jsonInt(json['auditId']).toString();
+    } else if (response.statusCode == 409) {
+      final json = jsonDecode(response.body);
+      if (json['reason'] == 'already-running') {
+        final auditId = jsonInt(json['auditId']).toString();
+        final subject = json['subject'] as String? ?? username;
+        throw EndgameAuditAlreadyRunningException(auditId, subject);
+      }
     }
     throw Exception('Failed to start endgame audit: ${response.body}');
   }
@@ -379,4 +386,15 @@ class ArchiveApiService {
     }
     throw Exception('Failed to create homework: ${response.body}');
   }
+}
+
+class EndgameAuditAlreadyRunningException implements Exception {
+  final String auditId;
+  final String subject;
+
+  EndgameAuditAlreadyRunningException(this.auditId, this.subject);
+
+  @override
+  String toString() =>
+      'EndgameAuditAlreadyRunningException: auditId=$auditId, subject=$subject';
 }

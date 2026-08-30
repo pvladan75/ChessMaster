@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/models/user_session.dart';
@@ -6,9 +7,9 @@ import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
 import 'package:chess_app/features/archive/models/endgame_audit.dart';
 import 'package:chess_app/features/archive/models/endgame_mistake.dart';
-import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/features/endgame_trainer/screens/endgame_trainer_screen.dart';
 import 'package:chess_app/features/endgame_trainer/models/endgame_puzzle.dart';
+import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 class EndgameAuditScreen extends StatefulWidget {
@@ -30,6 +31,8 @@ class _EndgameAuditScreenState extends State<EndgameAuditScreen> {
   EndgameAudit? _audit;
   List<EndgameMistake>? _mistakes;
   bool _loading = false;
+  String? _errorMsg;
+  Timer? _pollTimer;
 
   @override
   void initState() {
@@ -37,9 +40,16 @@ class _EndgameAuditScreenState extends State<EndgameAuditScreen> {
     _startAudit();
   }
 
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _startAudit() async {
     setState(() {
       _loading = true;
+      _errorMsg = null;
     });
 
     try {
@@ -48,10 +58,18 @@ class _EndgameAuditScreenState extends State<EndgameAuditScreen> {
       _auditId = id;
       _pollAudit();
     } catch (e) {
-      if (mounted) {
-        setState(() => _loading = false);
-        AppFeedback.error(
-            context, 'Došlo je do greške prilikom pokretanja provere.');
+      if (e is EndgameAuditAlreadyRunningException) {
+        if (mounted) {
+          _auditId = e.auditId;
+          _pollAudit();
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _errorMsg = 'Došlo je do greške prilikom pokretanja provere.';
+          });
+        }
       }
     }
   }
@@ -63,20 +81,25 @@ class _EndgameAuditScreenState extends State<EndgameAuditScreen> {
       if (mounted) {
         setState(() {
           _audit = audit;
+          _errorMsg = null;
         });
         if (audit.status == 'done') {
           _fetchMistakes();
         } else if (audit.status == 'failed') {
-          setState(() => _loading = false);
-          AppFeedback.error(context, 'Provera nije uspela.');
+          setState(() {
+            _loading = false;
+            _errorMsg = 'Provera nije uspela.';
+          });
         } else {
-          Future.delayed(const Duration(seconds: 1), _pollAudit);
+          _pollTimer = Timer(const Duration(seconds: 1), _pollAudit);
         }
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _loading = false);
-        AppFeedback.error(context, 'Došlo je do greške prilikom provere.');
+        setState(() {
+          _loading = false;
+          _errorMsg = 'Došlo je do greške prilikom provere.';
+        });
       }
     }
   }
@@ -93,9 +116,10 @@ class _EndgameAuditScreenState extends State<EndgameAuditScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _loading = false);
-        AppFeedback.error(
-            context, 'Došlo je do greške prilikom preuzimanja nalaza.');
+        setState(() {
+          _loading = false;
+          _errorMsg = 'Došlo je do greške prilikom preuzimanja nalaza.';
+        });
       }
     }
   }
@@ -175,6 +199,51 @@ class _EndgameAuditScreenState extends State<EndgameAuditScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    if (_errorMsg != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(_errorMsg!,
+                style: AppText.body.copyWith(color: context.colors.danger)),
+            const SizedBox(height: AppSpacing.md),
+            FilledButton(
+              onPressed: _startAudit,
+              child: const Text('Pokušaj ponovo'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_audit != null &&
+        _audit!.status != 'done' &&
+        _audit!.status != 'failed') {
+      return Column(
+        children: [
+          _buildCounters(_audit!),
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    _audit!.subject != widget.username
+                        ? 'Provera je već u toku za korisnika ${_audit!.subject}...'
+                        : 'Provera je u toku...',
+                    style: AppText.body
+                        .copyWith(color: context.colors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         if (_audit != null) _buildCounters(_audit!),
@@ -223,40 +292,39 @@ class _EndgameAuditScreenState extends State<EndgameAuditScreen> {
       );
     }
 
-    // Sorting between groups by how often it happened
     final sortedGroups = groups.keys.toList()
       ..sort((a, b) => groups[b]!.length.compareTo(groups[a]!.length));
 
+    final flatList = <dynamic>[];
+    for (final groupName in sortedGroups) {
+      flatList.add(groupName);
+      flatList.addAll(groups[groupName]!);
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(AppSpacing.md),
-      itemCount: sortedGroups.length,
+      itemCount: flatList.length,
       itemBuilder: (context, i) {
-        final groupName = sortedGroups[i];
-        final list = groups[groupName]!;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-              child: Text(
-                groupName,
-                style:
-                    AppText.title.copyWith(color: context.colors.textPrimary),
-              ),
+        final item = flatList[i];
+        if (item is String) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            child: Text(
+              item,
+              style: AppText.title.copyWith(color: context.colors.textPrimary),
             ),
-            ...list.map((m) => _buildMistakeCard(m)),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-        );
+          );
+        } else if (item is EndgameMistake) {
+          return _buildMistakeCard(item);
+        }
+        return const SizedBox.shrink();
       },
     );
   }
 
   Widget _buildMistakeCard(EndgameMistake m) {
     if (m.bestUci == null) {
-      return const SizedBox
-          .shrink(); // "best_uci can be null... do not offer them as puzzles"
+      return const SizedBox.shrink();
     }
 
     final whiteToMove = m.fenBefore.contains(' w ');
@@ -287,9 +355,6 @@ class _EndgameAuditScreenState extends State<EndgameAuditScreen> {
         : '';
     final gameInfo = '${m.opponent ?? "Nepoznat"}, $dateStr, ${m.result ?? ""}';
 
-    // Accessibility check: A token used as a background takes context.colors.canvas as its foreground.
-    // Here we use textPrimary on surfaceRaised.
-
     return Card(
       color: context.colors.surfaceRaised,
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -302,16 +367,10 @@ class _EndgameAuditScreenState extends State<EndgameAuditScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 120,
-                  height: 120,
-                  child: IgnorePointer(
-                    child: ChessBoard(
-                      controller: ChessBoardController()..loadFen(m.fenBefore),
-                      boardColor: BoardColor.green,
-                      boardOrientation: orientation,
-                    ),
-                  ),
+                BoardThumbnail(
+                  fen: m.fenBefore,
+                  size: 120,
+                  isWhiteBottom: whiteToMove,
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(

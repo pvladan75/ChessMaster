@@ -16,15 +16,33 @@ class MockArchiveApiService extends Fake implements ArchiveApiService {
   @override
   Future<List<ArchiveRun>> listImports() async => [];
 
+  bool throw409 = false;
+
   MockArchiveApiService();
 
   @override
   Future<String> startEndgameAudit(String username) async {
+    if (throw409) {
+      throw EndgameAuditAlreadyRunningException('456', 'other_guy');
+    }
     return '123';
   }
 
   @override
   Future<EndgameAudit> getEndgameAudit(String id) async {
+    if (id == '456') {
+      return EndgameAudit(
+        id: '456',
+        subject: 'other_guy',
+        status: 'running',
+        gamesTotal: 471,
+        gamesDone: 100,
+        positionsProbed: 1000,
+        cacheHits: 500,
+        positionsUnknown: 0,
+        mistakesFound: 5,
+      );
+    }
     return EndgameAudit(
       id: '123',
       subject: 'tester',
@@ -106,6 +124,28 @@ void main() {
     expect(find.text('Odigraj poziciju'), findsOneWidget);
     expect(find.text('Bacio remi'),
         findsNothing); // This is from the mistake with bestUci == null
+
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  });
+
+  testWidgets(
+      '409 with a different subject attaches and names the other handle',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+
+    final mockApi = MockArchiveApiService();
+    mockApi.throw409 = true;
+    ArchiveApiService.setMock(mockApi);
+
+    await tester.pumpWidget(createSubject());
+    await tester
+        .pump(); // Start audit fails with 409, sets errorMsg or polls. Wait, we need to pump and wait for the message to appear.
+    await tester.pump(const Duration(milliseconds: 500));
+    // Now it should be polling and rendering running state
+    expect(find.textContaining('Provera je već u toku za korisnika other_guy'),
+        findsOneWidget);
 
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
