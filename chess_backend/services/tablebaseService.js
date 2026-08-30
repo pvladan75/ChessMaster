@@ -27,6 +27,13 @@
 const DEFAULT_URL = process.env.LICHESS_TABLEBASE_URL
   || 'https://tablebase.lichess.ovh/standard';
 
+/// A local Syzygy sidecar, when one is running. Unset means there is none and
+/// every position goes to Lichess, which is the shape this service had for its
+/// whole life and still works.
+const DEFAULT_SIDECAR_URL = process.env.SYZYGY_SIDECAR_URL || null;
+
+const logger = require('./logger');
+
 /// Lichess's five words for an outcome, from the point of view of the side to
 /// move. Anything outside this map is a position the service will not commit
 /// to ('unknown', 'maybe-win', 'maybe-loss') and must not be turned into one.
@@ -38,17 +45,23 @@ const WDL = {
   loss: -2,
 };
 
-/// How long to leave between two requests to Lichess.
+const { createPacer, RATE_LIMIT_COOLDOWN_MS } = require('./lichessPacing');
+
+/// How long to leave between two requests to the tablebase.
 ///
-/// Borrowed from `lichessPacing.MIN_REQUEST_GAP_MS`, and the borrowing is worth
-/// saying out loud: that number is documented for the *Explorer* routes, which
-/// are computed per request, while the tablebase is served from memory-mapped
-/// files and is more permissive. It is the only measured number we have, so it
-/// is the one used — but the gap is not what protects this service. The
-/// cooldown below is. A gap guessed slightly wrong costs some queueing; a 429
-/// knocked through costs an hour for every child in the app, because this
-/// server has one address.
-const { createPacer, MIN_REQUEST_GAP_MS, RATE_LIMIT_COOLDOWN_MS } = require('./lichessPacing');
+/// **Measured, not borrowed.** This was 150 ms for one day — the Explorer's
+/// documented gap, taken because it was the only number we had, with a comment
+/// admitting the borrowing. Three real runs of the endgame audit on 30.8.2026
+/// died at 84, 98 and 96 probes with a 429, about 4.8 requests a second. So the
+/// tablebase allows a short burst and then throttles, and the Explorer's number
+/// does not transfer.
+///
+/// One second is what `lichessPacing`'s header says an anonymous caller gets,
+/// and it is now the number that has actually been tested against this
+/// endpoint. It makes a first full audit slow — hours over a large archive —
+/// which is affordable only because `tablebase_cache` is permanent and shared,
+/// so every run after the first is nearly free.
+const TABLEBASE_GAP_MS = 1000;
 
 class TablebaseUnavailable extends Error {
   /// `retryable` is the half of this class that matters most.
@@ -140,10 +153,14 @@ function createTablebase({
   // `now` and `sleep` are injected for the same reason as in every other
   // consumer of the pacer: a test has to be able to spend a minute of cooldown
   // without waiting one.
-  minGapMs = MIN_REQUEST_GAP_MS,
+  minGapMs = TABLEBASE_GAP_MS,
   cooldownMs = RATE_LIMIT_COOLDOWN_MS,
   now = () => Date.now(),
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  sidecarUrl = DEFAULT_SIDECAR_URL,
+  // Short on purpose. A local read that takes longer than this is not a local
+  // read, and waiting on it costs more than asking Lichess would.
+  sidecarTimeoutMs = 2000,
 } = {}) {
   const cache = new Map();
   // Two children on the same position, or one child whose client retried, must
@@ -158,6 +175,13 @@ function createTablebase({
   // version works, right up until it does not.
   const pacer = createPacer({ minGapMs, cooldownMs, now, sleep });
   let requests = 0;
+  // Where the answers came from. Reported rather than inferred: "the sidecar is
+  // running" and "the sidecar is answering" are different claims, and only the
+  // second one is worth anything.
+  let local = 0;
+  let declined = 0;
+  let unreachable = 0;
+  let sidecarWarned = false;
 
   function remember(fen, value) {
     cache.set(fen, value);
@@ -206,7 +230,56 @@ function createTablebase({
     }
   }
 
+  /// The local tables, when there are any. Null means "ask Lichess".
+  ///
+  /// Not paced, not retried, and deliberately so: this is a memory-mapped file
+  /// on the same machine, and pacing it would be pacing a disk read. Everything
+  /// the pacer protects — the shared address, the donated service — is on the
+  /// other branch.
+  ///
+  /// A 404 is the sidecar declining, which is a real answer and the reason it
+  /// can be trusted at all: it refuses castling, positions past its largest
+  /// table, tables missing from disk, and any verdict the fifty-move rule could
+  /// overturn. Those fall through to Lichess.
+  async function fromSidecar(fen) {
+    if (!sidecarUrl) return null;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), sidecarTimeoutMs);
+    try {
+      const res = await fetchImpl(`${sidecarUrl}?fen=${encodeURIComponent(fen)}`, {
+        signal: controller.signal,
+      });
+      if (res.status === 404) {
+        declined += 1;
+        return null;
+      }
+      if (!res.ok) throw new Error(`sidecar answered ${res.status}`);
+      local += 1;
+      return await res.json();
+    } catch (err) {
+      // Configured and unreachable is not the same as not configured, and it
+      // must not read the same. Falling back silently would leave every probe
+      // going to Lichess at one a second while the logs said nothing — the
+      // exact shape of every bug in this codebase. Said once, not per probe,
+      // because an audit would otherwise print it thousands of times.
+      if (!sidecarWarned) {
+        sidecarWarned = true;
+        logger.warn(
+          `[TABLICE] Lokalni sidecar (${sidecarUrl}) ne odgovara (${err.message}); `
+          + 'sve pozicije idu na Lichess, sporije. Ovo se prijavljuje jednom.',
+        );
+      }
+      unreachable += 1;
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function load(fen) {
+    const localAnswer = await fromSidecar(fen);
+    if (localAnswer) return localAnswer;
+
     let last;
     for (let attempt = 0; attempt <= retries; attempt += 1) {
       try {
@@ -257,13 +330,35 @@ function createTablebase({
 
   return {
     probe,
-    stats: () => ({ cached: cache.size, requests }),
-    clear: () => { cache.clear(); requests = 0; },
+    /// Milliseconds left of a Lichess block, or 0.
+    ///
+    /// Exposed so a caller can decide what a block means for *it*. The two
+    /// callers want opposite things: the live drill has a child waiting and
+    /// must say "try again in 40 seconds", while the endgame audit is a
+    /// background walk over hundreds of games and should simply wait. Deciding
+    /// that here would force one answer on both.
+    blockedForMs: () => pacer.blockedForMs(),
+    stats: () => ({
+      cached: cache.size,
+      requests,
+      local,
+      declined,
+      unreachable,
+      sidecar: sidecarUrl,
+    }),
+    clear: () => {
+      cache.clear();
+      requests = 0;
+      local = 0;
+      declined = 0;
+      unreachable = 0;
+    },
   };
 }
 
 module.exports = {
   createTablebase,
+  TABLEBASE_GAP_MS,
   bestReply,
   wdlOf,
   TablebaseUnavailable,

@@ -32,6 +32,14 @@ const MAX_MEN = 7;
 /// reasoning in gameArchiveImport.js.
 const STALE_RUN_MS = 60 * 60 * 1000;
 
+/// How many Lichess cooldowns one audit will sit through before giving up.
+///
+/// At a minute each this is twenty minutes of waiting spread over a run that
+/// already takes hours, which is cheap. The bound is what separates "busy" from
+/// "down": a service that is throttling comes back, and one that is broken
+/// would otherwise hold this run open all night.
+const MAX_RATE_LIMIT_WAITS = 20;
+
 class EndgameAuditUnavailable extends Error {
   constructor(message, {
     reason = 'error', status = 500, auditId = null, subject = null,
@@ -147,6 +155,8 @@ function createEndgameAuditor({
   pool,
   tablebase = require('./tablebaseService').tablebase,
   staleRunMs = STALE_RUN_MS,
+  // Injected so a test can sit out a cooldown without spending one.
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 } = {}) {
   if (!pool) throw new TypeError('createEndgameAuditor requires a pool');
 
@@ -259,8 +269,38 @@ function createEndgameAuditor({
       await saveProgress(auditId, counts);
 
       for (const game of games) {
-        // eslint-disable-next-line no-await-in-loop
-        const { findings, unknown } = await auditGame(game, cachedProbe);
+        // A rate limit is a wait, not a verdict.
+        //
+        // Measured on 30.8.2026: three runs died at 84, 98 and 96 probes with a
+        // 429, and each one threw away the remaining 455 games. The pacer
+        // already knows how long Lichess is holding the address, and this is a
+        // background walk with nobody watching a spinner — so it sleeps and
+        // carries on. Bounded, because a service that is down rather than busy
+        // must still end the run instead of waiting all night.
+        let waited = 0;
+        let result = null;
+        while (result === null) {
+          try {
+            // eslint-disable-next-line no-await-in-loop
+            result = await auditGame(game, cachedProbe);
+          } catch (err) {
+            const blocked = err instanceof TablebaseUnavailable
+              && err.reason === 'rate-limited'
+              && waited < MAX_RATE_LIMIT_WAITS;
+            if (!blocked) throw err;
+            waited += 1;
+            // A second past the cooldown, so the first request after it is not
+            // the one that renews the block.
+            const restMs = tablebase.blockedForMs() + 1000;
+            logger.info(
+              `[ZAVRŠNICE] Provera ${auditId}: Lichess ograničava, čeka se ${
+                Math.ceil(restMs / 1000)} s (${waited}/${MAX_RATE_LIMIT_WAITS}).`,
+            );
+            // eslint-disable-next-line no-await-in-loop
+            await sleep(restMs);
+          }
+        }
+        const { findings, unknown } = result;
         counts.unknown += unknown;
         // eslint-disable-next-line no-await-in-loop
         counts.mistakes += await writeFindings(userId, game.id, findings);
@@ -279,9 +319,21 @@ function createEndgameAuditor({
       );
       return counts;
     } catch (err) {
-      const message = err instanceof TablebaseUnavailable
-        ? 'Tablica nije dostupna, pa je provera zaustavljena umesto da nagađa.'
-        : `Provera završnica nije uspela: ${err.message}`;
+      // The reason, not just the fact. This said only "the table is not
+      // available" for every kind of failure, so a run killed by a 429 was
+      // indistinguishable from one killed by a dead host — and finding out
+      // which meant reproducing the whole thing by hand. The three answers read
+      // differently on purpose: one says wait, one says something is wrong, one
+      // says nobody judged the position.
+      let message;
+      if (err instanceof TablebaseUnavailable && err.reason === 'rate-limited') {
+        message = 'Lichess je ograničio broj upita i provera je stala. '
+          + 'Ono što je do sada nađeno je sačuvano — pokušajte kasnije.';
+      } else if (err instanceof TablebaseUnavailable) {
+        message = `Tablica nije dostupna, pa je provera zaustavljena umesto da nagađa: ${err.message}`;
+      } else {
+        message = `Provera završnica nije uspela: ${err.message}`;
+      }
       logger.error(`[ZAVRŠNICE] Provera ${auditId} pala: ${err.message}`);
       await saveProgress(auditId, counts, { status: 'failed', error: message })
         .catch((saveErr) => logger.error(
