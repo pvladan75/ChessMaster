@@ -2376,3 +2376,36 @@ da `ALTER TABLE repertoires ADD COLUMN root_path` prođe.
    repertoar nije gotov.
 7. [ ] **Telefon, 360 dp.** Panel „Odgovori protivnika" ima dug pasus i red po
    odgovoru. Proveriti u *release* build-u, gde nema žuto-crnih pruga.
+
+## 64. Red po dometu i odsecanje grane — 31.8.2026, nije viđeno uživo
+
+Sve u „Repertoar → otvori repertoar". Backend mora biti pokrenut jednom **posle**
+ove izmene, da tabela `repertoire_skips` nastane.
+
+1. [ ] **Nova linija pretiče staru stranputicu.** Ući u izgradnju gde u redu
+   stoji bar jedna plitka stranputica. Uzeti potez na glavnoj liniji i pritisnuti
+   `Dalje`, pa `Sledeća pozicija`. Sledeće pitanje mora da bude iz linije koja je
+   tek otvorena, ako je njen procenat veći — ne ona koja je u redu duže.
+2. [ ] **Isti red posle izlaska.** Zapamtiti prve tri linije u redu, izaći na
+   Nazad i vratiti se. Redosled mora biti isti, i **brojač „upita:" mora ostati
+   0** dok se ne odigra potez.
+3. [ ] **„Ne spremam ovo" postoji i nestaje na korenu.** Dugme se vidi na svakoj
+   poziciji osim na korenu repertoara — tamo ga ne sme biti.
+4. [ ] **Rez odnosi i ono ispod.** Odseći granu koja u redu ima potomke (liniju
+   po kojoj se već išlo dublje). Poruka mora da kaže koliko je pozicija izašlo iz
+   reda, i te pozicije se ne smeju kasnije pojaviti.
+5. [ ] **Odsečeno se broji odvojeno.** U zaglavlju mora da se pojavi
+   `odsečeno N (X%)`, a „bez odgovora %" ne sme da se pravi da je posao urađen —
+   procenat odsečenog je udeo partija koje se i dalje igraju.
+6. [ ] **Rez preživi izlazak.** Izaći na Nazad i vratiti se: odsečena grana se ne
+   sme vratiti u red sama od sebe. Ovo je jedina provera koja stvarno gleda bazu.
+7. [ ] **Vraćanje radi, i sa praznog ekrana.** Pritisnuti `Vrati odsečenu granu`
+   — grana se vraća u red na svoje mesto. Isto probati kad je rez ispraznio red i
+   vidi se ekran „Nema više pozicija": dugme mora biti i tamo.
+8. [ ] **Potez u odsečenoj poziciji nije izgubljen.** Ako je u odsečenoj poziciji
+   ranije izabran potez, drill i dalje sme da ga traži — odsecanje kaže dokle se
+   sprema, ne šta se zaboravlja.
+9. [ ] **Ugašen server ne laže o rezu.** Ugasiti backend i pritisnuti „Ne spremam
+   ovo": mora da piše da grana **nije** odsečena i pozicija ostaje na ekranu.
+10. [ ] **Telefon, 360 dp.** Traka sada ima peto dugme. Proveriti u *release*
+    build-u, gde nema žuto-crnih pruga.

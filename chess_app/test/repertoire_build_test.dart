@@ -28,6 +28,15 @@ class _FakeApi extends RepertoireApiService {
   final List<Map<String, Object?>> attempts = [];
   String? promoted;
 
+  /// The branches cut, and the ones put back, keyed the way the server keys
+  /// them.
+  final List<String> cut = [];
+  final List<String> restored = [];
+
+  /// A server that refuses the cut. The screen must say so rather than showing
+  /// a branch as gone when it is not.
+  bool cutFails = false;
+
   /// What the walk answers with. Null is the honest default here and stands for
   /// a server that did not answer — which is what the fake's MockClient does,
   /// and the path most of these tests happen to take.
@@ -92,6 +101,20 @@ class _FakeApi extends RepertoireApiService {
           verdict: move.verdict,
         ),
     ];
+    return true;
+  }
+
+  @override
+  Future<bool> skipNode({required String color, required String fen}) async {
+    if (cutFails) return false;
+    cut.add(_key(fen));
+    return true;
+  }
+
+  @override
+  Future<bool> unskipNode({required String color, required String fen}) async {
+    restored.add(_key(fen));
+    cut.remove(_key(fen));
     return true;
   }
 
@@ -226,6 +249,7 @@ void main() {
     Size size = const Size(500, 1000),
     List<String> rootPath = const [],
     RepertoireFrontier? walk,
+    bool cutFails = false,
 
     /// Moves already in the repertoire, keyed the way the server keys them.
     /// Stands for a position the student built in an earlier session.
@@ -239,6 +263,7 @@ void main() {
 
     api = _FakeApi()
       ..walk = walk
+      ..cutFails = cutFails
       ..kept.addAll(seed);
     judge = _FakeJudge(verdict: verdict, hasToken: hasToken);
     await tester.pumpWidget(MaterialApp(
@@ -857,5 +882,173 @@ void main() {
     expect(find.text('Šta igrate crnim?'), findsOneWidget);
     expect(
         find.textContaining('počinjete od početne pozicije'), findsOneWidget);
+  });
+
+  testWidgets('a line opened deep goes in front of a shallow one queued first',
+      (tester) async {
+    // The order is `reach` and nothing else — how often a game actually
+    // arrives at a position. New positions used to be appended, so the main
+    // line opened halfway through a session waited behind every sideline
+    // enqueued before it, and the same walk resumed tomorrow came back in the
+    // server's order instead. Two orders for one walk is the worse half: what
+    // gets learned is the shape of a session, not the shape of the tree.
+    await pump(tester,
+        walk: RepertoireFrontier(
+          open: [
+            FrontierNode(
+              fen: smithMorra,
+              path: const [],
+              reach: 1,
+              kind: 'undecided',
+            ),
+            FrontierNode(
+              fen: fenAfter(smithMorra, ['d6', 'Bc4']),
+              path: const ['d6', 'Bc4'],
+              reach: 0.2,
+              kind: 'undecided',
+            ),
+          ],
+        ));
+
+    await play(tester, 'b8', 'c6');
+    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dalje'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sledeća pozicija'));
+    await tester.pumpAndSettle();
+
+    // 5.Nf3 is played in half the games from a position reached in all of
+    // them: 0.50, against the sideline's 0.20. It was queued second and it is
+    // asked first. (The fake book names its moves in UCI, which is why the
+    // line reads `5.g1f3`.)
+    expect(find.text('4...Nc6 5.g1f3'), findsOneWidget);
+    expect(find.text('Još 1 u redu.'), findsOneWidget);
+  });
+
+  testWidgets('a cut branch takes everything under it out of the queue',
+      (tester) async {
+    // The one control in this loop that makes the tree smaller. If what is
+    // under the cut stayed in the queue, the tree would be exactly as big as
+    // before — which is how a control teaches people not to press it.
+    await pump(tester,
+        // On a phone, because this adds a fifth button to a row of Serbian
+        // labels and a release build clips an overflow without drawing a
+        // stripe. In a test build it throws, which is the point of the size.
+        size: const Size(360, 640),
+        walk: RepertoireFrontier(
+          open: [
+            FrontierNode(
+              fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
+              path: const ['Nc6', 'Nf3'],
+              reach: 0.6,
+              kind: 'undecided',
+            ),
+            FrontierNode(
+              fen: fenAfter(smithMorra, ['Nc6', 'Nf3', 'e6', 'Bc4']),
+              path: const ['Nc6', 'Nf3', 'e6', 'Bc4'],
+              reach: 0.3,
+              kind: 'undecided',
+            ),
+            FrontierNode(
+              fen: fenAfter(smithMorra, ['d6', 'Bc4']),
+              path: const ['d6', 'Bc4'],
+              reach: 0.2,
+              kind: 'undecided',
+            ),
+          ],
+        ));
+
+    expect(find.text('Još 2 u redu.'), findsOneWidget);
+    // Scrolled to rather than tapped blind: on a 640 px screen the controls sit
+    // below the board and are genuinely off screen.
+    await tester.ensureVisible(find.text('Ne spremam ovo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ne spremam ovo'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    expect(api.cut.single,
+        fenAfter(smithMorra, ['Nc6', 'Nf3']).split(' ').take(4).join(' '));
+    // The line below it went with it; the unrelated one did not.
+    expect(find.textContaining('iz reda izašlo još 1'), findsOneWidget);
+    expect(find.text('Poslednja pozicija u ovom talasu.'), findsOneWidget);
+    expect(find.textContaining('4...d6 5.Bc4'), findsOneWidget);
+    // Counted apart from "bez odgovora", and never taken off it: cutting is
+    // work refused, not work done, and those games are still going to be
+    // played.
+    expect(find.textContaining('odsečeno 1 (60%)'), findsOneWidget);
+  });
+
+  testWidgets('a cut branch can be put back', (tester) async {
+    // Cutting has to be as cheap to undo as to do. A prune nobody can reverse
+    // is not a decision, it is a risk, and people do not take it.
+    await pump(tester,
+        walk: RepertoireFrontier(
+          open: [
+            FrontierNode(
+              fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
+              path: const ['Nc6', 'Nf3'],
+              reach: 0.6,
+              kind: 'undecided',
+            ),
+            FrontierNode(
+              fen: fenAfter(smithMorra, ['d6', 'Bc4']),
+              path: const ['d6', 'Bc4'],
+              reach: 0.2,
+              kind: 'undecided',
+            ),
+          ],
+        ));
+
+    await tester.tap(find.text('Ne spremam ovo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vrati odsečenu granu'));
+    await tester.pumpAndSettle();
+
+    expect(api.restored.single,
+        fenAfter(smithMorra, ['Nc6', 'Nf3']).split(' ').take(4).join(' '));
+    expect(find.textContaining('Grana je vraćena'), findsOneWidget);
+    // Back in the queue, in its own place — not shoved in front of the
+    // position the student is in the middle of answering.
+    expect(find.text('Još 1 u redu.'), findsOneWidget);
+    expect(find.textContaining('odsečeno'), findsNothing);
+  });
+
+  testWidgets('the repertoire root is never offered as a branch to cut',
+      (tester) async {
+    // Cutting the root is not pruning, it is deleting the repertoire from
+    // inside the screen that builds it — and it is the one cut that leaves no
+    // way back in.
+    await pump(tester);
+
+    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('Ne spremam ovo'), findsNothing);
+  });
+
+  testWidgets('a cut the server refused is not shown as done', (tester) async {
+    // The oldest bug in this codebase, in its usual shape: a step that fails
+    // quietly and reports success. A branch that looks gone and comes back
+    // tomorrow is worse than one that was never cut.
+    await pump(tester,
+        cutFails: true,
+        walk: RepertoireFrontier(
+          open: [
+            FrontierNode(
+              fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
+              path: const ['Nc6', 'Nf3'],
+              reach: 0.6,
+              kind: 'undecided',
+            ),
+          ],
+        ));
+
+    await tester.tap(find.text('Ne spremam ovo'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Grana nije odsečena'), findsOneWidget);
+    expect(find.textContaining('odsečeno'), findsNothing);
+    // Still the position that was there: nothing moved on.
+    expect(find.text('4...Nc6 5.Nf3'), findsOneWidget);
   });
 }

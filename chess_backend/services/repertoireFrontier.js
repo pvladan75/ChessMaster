@@ -22,11 +22,17 @@
 //   * `unopened`  — your move, you have kept something, but at least one of
 //     your moves has no book behind it, so the line stops. Take the replies.
 //
+// And one kind that comes out of the walk without being a question: a position
+// the student **cut** (`repertoire_skips`). The walk stops there and hands it
+// back separately, because a cut branch must not read as progress. Dropping it
+// silently would let `openReach` fall — "less of your games run into an
+// unanswered position" — when nothing has been answered at all.
+//
 // Everything else is either answered or below the cut, and neither is a place
 // the student needs to be taken back to.
 
 const { Chess } = require('chess.js');
-const { fenKey } = require('./repertoireService');
+const { fenKey, skippedKeys } = require('./repertoireService');
 
 /// Ceilings, so a wide repertoire cannot turn one request into a minute of
 /// database time. Hit either and the answer says `truncated`, because a
@@ -126,12 +132,14 @@ async function frontier(pool, userId, {
   fenKey(rootFen);
 
   const kept = await keptByPosition(pool, userId, color);
+  const cut = await skippedKeys(pool, userId, color);
   const band = Number(minRating) || 0;
   const base = Array.isArray(rootPath)
     ? rootPath.filter((san) => typeof san === 'string' && san !== '')
     : [];
 
   const open = [];
+  const pruned = [];
   const seen = new Set([fenKey(rootFen)]);
   let level = [{ fen: rootFen, path: [], reach: 1 }];
   let ply = 0;
@@ -151,6 +159,14 @@ async function frontier(pool, userId, {
       // repertoire *goes* is the question, and stopping the count at the last
       // decided position would report the depth of the second-to-last wave.
       maxPly = Math.max(maxPly, node.path.length);
+      // Cut on purpose. Counted as cut and as nothing else: the walk stops
+      // here, so this is neither a question that is open nor a position the
+      // walk passed through, and a header whose numbers overlap is a header
+      // nobody can add up.
+      if (cut.has(fenKey(node.fen))) {
+        pruned.push(node);
+        continue;
+      }
       const mine = kept.get(fenKey(node.fen)) ?? [];
       if (mine.length === 0) {
         open.push({ ...node, kind: 'undecided' });
@@ -210,6 +226,7 @@ async function frontier(pool, userId, {
   // student is equally likely to meet are not equally urgent, and the one
   // closer to the start decides more games.
   open.sort((a, b) => (b.reach - a.reach) || (a.path.length - b.path.length));
+  pruned.sort((a, b) => (b.reach - a.reach) || (a.path.length - b.path.length));
 
   return {
     // The moves that led to the repertoire's own root, handed back once here
@@ -224,6 +241,17 @@ async function frontier(pool, userId, {
       reach: node.reach,
       kind: node.kind,
     })),
+    // The cut branches, handed back so they can be put back. A prune the
+    // student cannot find again is not a decision, it is a hole they made and
+    // then lost.
+    pruned: pruned.slice(0, limit).map((node) => ({
+      fen: node.fen,
+      fenKey: fenKey(node.fen),
+      path: node.path,
+      ply: node.path.length,
+      reach: node.reach,
+      kind: 'pruned',
+    })),
     summary: {
       decided,
       open: open.length,
@@ -234,6 +262,12 @@ async function frontier(pool, userId, {
       // position with no answer yet. The one number that says how finished it
       // is, and the only one that does not flatter a wide shallow tree.
       openReach: open.reduce((sum, node) => sum + node.reach, 0),
+      pruned: pruned.length,
+      // Reported beside `openReach` and never subtracted from it, because these
+      // two numbers say opposite things: one is work left, the other is work
+      // refused. Cutting a branch makes `openReach` fall, and only this number
+      // says the games in it are still going to be played.
+      prunedReach: pruned.reduce((sum, node) => sum + node.reach, 0),
       truncated,
     },
   };

@@ -31,6 +31,8 @@ const {
   removeMove,
   recordAttempt,
   weakNodes,
+  skipNode,
+  unskipNode,
 } = require('../services/repertoireService');
 const { frontier } = require('../services/repertoireFrontier');
 
@@ -112,6 +114,35 @@ router.delete('/node/move', authenticateToken, (req, res) => {
     res,
     removeMove(pool, req.user.id, { color, fen, uci }),
     'Potez nije mogao da se ukloni.',
+  );
+});
+
+// POST /repertoire/node/skip  { color, fen }
+//
+// "I am not preparing this." The only control in the build loop that makes the
+// tree smaller — every other one adds — so it is stored rather than left to be
+// said by closing the screen, which says the same thing for one session and
+// forgets it.
+//
+// It stops the walk at this position and nothing else. A move already kept here
+// stays kept and stays drilled: cutting is about how far to prepare, not about
+// unlearning what was decided.
+router.post('/node/skip', authenticateToken, (req, res) => {
+  const { color, fen } = req.body ?? {};
+  answer(
+    res,
+    skipNode(pool, req.user.id, { color, fen }),
+    'Grana nije mogla da se odseče.',
+  );
+});
+
+// DELETE /repertoire/node/skip?color=b&fen=...
+router.delete('/node/skip', authenticateToken, (req, res) => {
+  const { color, fen } = req.query;
+  answer(
+    res,
+    unskipNode(pool, req.user.id, { color, fen }),
+    'Grana nije mogla da se vrati.',
   );
 });
 

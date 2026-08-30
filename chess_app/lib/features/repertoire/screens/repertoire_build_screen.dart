@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -93,14 +91,21 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   late final OpeningJudgeService _judge =
       widget.judge ?? OpeningJudgeService.instance;
 
-  /// Positions still to be answered, and — the point of the type — the way each
-  /// one was reached.
+  /// Positions still to be answered, most-reached first — and, the point of the
+  /// type, the way each one was reached.
   ///
   /// The queue used to hold bare FENs, which is why this screen could never say
   /// where the student was: a board with no history and a count of an invisible
   /// list. The path costs one list per position and turns "Još 14 u redu" into
   /// a line the reader can find themselves in.
-  final Queue<_Pending> _queue = Queue<_Pending>();
+  ///
+  /// A list rather than a queue, because the order is not arrival order. New
+  /// positions used to be appended, so a main line opened halfway through a
+  /// session waited behind every sideline enqueued before it — and the same
+  /// walk, resumed tomorrow, came back in a different order, since the server
+  /// sorts by `reach`. Two orders for one walk is the worse half of that: the
+  /// student learns the shape of a session rather than the shape of the tree.
+  final List<_Pending> _queue = [];
 
   /// Every position that has already been queued, so a transposition does not
   /// come round twice. Keyed the way the server keys them: no move counters.
@@ -145,6 +150,22 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// board is worse than no answer.
   String? _answersFen;
   String? _answersSan;
+
+  /// The branches cut in this session: "I am not preparing this."
+  ///
+  /// Kept here as well as on the server so the header can say how many there
+  /// are without asking for the whole walk again. The walk is read once, on the
+  /// way in; re-reading it after every cut would be a request per press to
+  /// change one number.
+  final List<_Pending> _cutHere = [];
+
+  /// The last branch cut, and the only one the undo button offers back.
+  ///
+  /// One step is enough here and more would be a second list to keep straight:
+  /// cutting is a considered answer to a position on the board, not a stream of
+  /// keystrokes, and the ones before it are on the server where the whole list
+  /// can be shown when there is a screen for it.
+  _Pending? _lastCut;
 
   /// How many questions this session has cost the student's Lichess allowance.
   /// On screen, because it is their allowance and they should not have to guess.
@@ -202,7 +223,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     );
     if (!mounted) return;
     if (walk == null) {
-      _enqueue(widget.rootFen, const []);
+      _enqueue(widget.rootFen, const [], reach: 1);
       setState(() {
         _resuming = false;
         _note = 'Nije moglo da se pročita dokle ste stigli — počinjete od '
@@ -210,7 +231,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       });
     } else {
       for (final node in walk.open) {
-        _enqueue(node.fen, node.path, kind: node.kind);
+        _enqueue(node.fen, node.path, kind: node.kind, reach: node.reach);
       }
       setState(() {
         _frontier = walk;
@@ -225,11 +246,27 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     return parts.length >= 4 ? parts.sublist(0, 4).join(' ') : fen;
   }
 
-  void _enqueue(String fen, List<String> path, {String kind = 'undecided'}) {
+  /// Puts a position in the queue where its `reach` says it belongs.
+  ///
+  /// The same rule the server sorts by, applied to positions that arrive during
+  /// a session: most-reached first, and among equals the shallower one. Sorted
+  /// on insert rather than appended, so what opens deep in the main line
+  /// overtakes a sideline that was queued earlier — and so leaving the screen
+  /// and coming back does not reshuffle the walk.
+  void _enqueue(String fen, List<String> path,
+      {String kind = 'undecided', double reach = 0}) {
     final key = _keyOf(fen);
     if (_seen.contains(key)) return;
     _seen.add(key);
-    _queue.add(_Pending(fen: fen, path: path, kind: kind));
+    final node = _Pending(fen: fen, path: path, kind: kind, reach: reach);
+    var at = 0;
+    while (at < _queue.length &&
+        (_queue[at].reach > node.reach ||
+            (_queue[at].reach == node.reach &&
+                _queue[at].path.length <= node.path.length))) {
+      at += 1;
+    }
+    _queue.insert(at, node);
   }
 
   /// Moves to the next position in the queue, or to the "nothing left" state.
@@ -247,7 +284,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _lines = const [];
       _linesFen = null;
       _thinking = false;
-      _node = _queue.isEmpty ? null : _queue.removeFirst();
+      _node = _queue.isEmpty ? null : _queue.removeAt(0);
       _kept = const [];
     });
     final fen = _current;
@@ -703,7 +740,17 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           final before = _queue.length;
           // Two moves further from the root than the position we are standing
           // on: the student's own, and the opponent's answer to it.
-          _enqueue(next, [...node.path, move.san, reply.san]);
+          //
+          // The reach is this position's, multiplied by how often the opponent
+          // plays that reply — and only by that. The student's own move does
+          // not divide it: which of their moves they play is a decision, not a
+          // coin. Same arithmetic as the server's, so the queue built here and
+          // the queue derived tomorrow are the same queue.
+          _enqueue(
+            next,
+            [...node.path, move.san, reply.san],
+            reach: node.reach * reply.share,
+          );
           if (_queue.length > before) added += 1;
         }
       }
@@ -740,6 +787,108 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       if (uci.length > 4) 'promotion': uci.substring(4, 5),
     });
     return ok == false ? null : board.fen;
+  }
+
+  /// "I am not preparing this branch."
+  ///
+  /// The only control in this loop that makes the tree *smaller*. Every other
+  /// one adds: each wave of replies multiplies the queue, and a repertoire that
+  /// answers every sideline is one nobody finishes. Without it the only way to
+  /// say this is to close the screen, which says it for one session and then
+  /// forgets — and the same dead line is back tomorrow, on every device.
+  ///
+  /// Everything below the cut leaves the queue with it. A cut that left the
+  /// positions underneath it would make the tree exactly as big as it was,
+  /// which is how a control teaches people not to press it.
+  ///
+  /// The moves kept here are left alone, deliberately. Cutting says how far to
+  /// prepare, not what to forget, and the drill goes on asking for them.
+  Future<void> _cutBranch() async {
+    final node = _node;
+    if (node == null || _busy) return;
+
+    setState(() => _busy = true);
+    final done = await _api.skipNode(color: widget.color, fen: node.fen);
+    if (!mounted) return;
+    if (!done) {
+      setState(() {
+        _busy = false;
+        _note = 'Grana nije odsečena — server nije odgovorio.';
+      });
+      return;
+    }
+
+    // Everything below it goes too. A queued position is below this one exactly
+    // when its line starts with this line — the same test the server makes by
+    // simply not walking past a cut node.
+    final below = _queue.where((p) => _isBelow(p, node)).toList();
+    for (final gone in below) {
+      _queue.remove(gone);
+      // Out of `_seen` as well, not only out of the queue. One of these
+      // positions may also be reachable down a line that was *not* cut, and a
+      // key left behind would keep it out of the queue when it arrives that
+      // other way — cutting one branch would then quietly cut a second.
+      _seen.remove(_keyOf(gone.fen));
+    }
+
+    setState(() {
+      _busy = false;
+      _cutHere.add(node);
+      _lastCut = node;
+      _note = below.isEmpty
+          ? 'Grana je odsečena. Neće se više javljati.'
+          : 'Grana je odsečena — sa njom je iz reda izašlo još '
+              '${below.length} ${below.length == 1 ? "pozicija" : "pozicija"}.';
+    });
+    await _advance();
+  }
+
+  /// Whether a queued position lies under [root] — its line starts with that
+  /// one.
+  bool _isBelow(_Pending node, _Pending root) {
+    if (node.path.length <= root.path.length) return false;
+    for (var i = 0; i < root.path.length; i++) {
+      if (node.path[i] != root.path[i]) return false;
+    }
+    return true;
+  }
+
+  /// Puts the last cut branch back, and puts the student back on it.
+  ///
+  /// Cutting has to be as cheap to undo as it is to do, or it stops being a
+  /// decision and becomes a risk — and nobody prunes a tree they cannot
+  /// unprune. What was below the cut does not come back with it: those
+  /// positions are opened again by taking the replies, which is where they came
+  /// from in the first place.
+  Future<void> _restoreBranch() async {
+    final node = _lastCut;
+    if (node == null || _busy) return;
+
+    setState(() => _busy = true);
+    final done = await _api.unskipNode(color: widget.color, fen: node.fen);
+    if (!mounted) return;
+    if (!done) {
+      setState(() {
+        _busy = false;
+        _note = 'Grana nije vraćena — server nije odgovorio.';
+      });
+      return;
+    }
+
+    setState(() {
+      _busy = false;
+      _cutHere.remove(node);
+      _lastCut = null;
+      _note = 'Grana je vraćena u red.';
+      // Back into the queue in its own place, not at the front: it is worth
+      // exactly as much as its reach said it was before it was cut.
+      _seen.remove(_keyOf(node.fen));
+    });
+    _enqueue(node.fen, node.path, kind: node.kind, reach: node.reach);
+    // Only when there is nothing on the board. Undo returns the branch to the
+    // queue, in its own place; it does not shove aside the position the student
+    // is in the middle of answering.
+    if (_current == null) await _advance();
   }
 
   Future<void> _makePrimary(RepertoireMove move) async {
@@ -923,6 +1072,17 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       'otvoreno ${walk.open.length}',
       'bez odgovora $open%',
     ];
+    // Cut branches are counted apart and never taken off "bez odgovora".
+    // Cutting makes that number fall without a single question having been
+    // answered, so the share of games that run into a cut line is said out
+    // loud beside it — those games are still going to be played.
+    final cut = walk.pruned.length + _cutHere.length;
+    if (cut > 0) {
+      final reach = walk.prunedReach +
+          _cutHere.fold<double>(0, (sum, node) => sum + node.reach);
+      final percent = (reach * 100).clamp(0, 100).round();
+      parts.add('odsečeno $cut${percent > 0 ? " ($percent%)" : ""}');
+    }
     if (walk.truncated) parts.add('pregled skraćen');
     return parts.join(' · ');
   }
@@ -1255,7 +1415,27 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             icon: const Icon(Icons.skip_next, size: 18),
             label: const Text('Preskoči'),
           ),
+          // Told apart from "Preskoči" on purpose, and the labels have to carry
+          // the difference: skipping puts the position at the back of the same
+          // queue, cutting takes it and everything under it out of the walk for
+          // good — until it is put back.
+          //
+          // Never offered on the repertoire's own root. Cutting that is not
+          // pruning, it is deleting the repertoire from inside the screen that
+          // builds it, and it is the one cut that leaves no way back in.
+          if (_node != null && _node!.path.isNotEmpty)
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _cutBranch,
+              icon: const Icon(Icons.content_cut, size: 18),
+              label: const Text('Ne spremam ovo'),
+            ),
         ],
+        if (_lastCut != null && _answers == null && _proposalSan == null)
+          TextButton.icon(
+            onPressed: _busy ? null : _restoreBranch,
+            icon: const Icon(Icons.undo, size: 18),
+            label: const Text('Vrati odsečenu granu'),
+          ),
       ],
     );
   }
@@ -1428,6 +1608,15 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               ),
             ],
             const SizedBox(height: AppSpacing.lg),
+            // Here as well as in the controls, because a cut is exactly what
+            // can empty the queue — and an undo that disappears with the last
+            // position is an undo nobody can reach when they need it.
+            if (_lastCut != null)
+              TextButton.icon(
+                onPressed: _busy ? null : _restoreBranch,
+                icon: const Icon(Icons.undo, size: 18),
+                label: const Text('Vrati odsečenu granu'),
+              ),
             FilledButton(
               onPressed: () => Navigator.of(context).maybePop(),
               child: const Text('Nazad'),
@@ -1449,6 +1638,7 @@ class _Pending {
     required this.fen,
     required this.path,
     this.kind = 'undecided',
+    this.reach = 0,
   });
 
   final String fen;
@@ -1461,4 +1651,10 @@ class _Pending {
   /// `unopened` — kept, but the opponent's replies were never taken, so this
   /// came back not to be answered again but to be opened.
   final String kind;
+
+  /// How often a game played down this repertoire actually arrives here — the
+  /// product of the opponent's shares along the path. It is the queue's order,
+  /// and it is the same number the server sorts by, so a session's order and a
+  /// resumed walk's order are one order.
+  final double reach;
 }

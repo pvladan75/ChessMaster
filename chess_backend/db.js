@@ -935,6 +935,36 @@ async function initDB() {
     `);
     logger.info('Verified database table & indexes: repertoire_moves');
 
+    // The branches the student said out loud they are not going to prepare.
+    //
+    // This is the only lever that keeps an opening tree small. Every other
+    // control adds: a wave of replies doubles the queue, and a repertoire that
+    // answers everything is one nobody finishes. "I am not preparing this" is
+    // a decision like any other and deserves to be stored like one — otherwise
+    // the same dead sideline comes back on every device, forever, and the
+    // student learns to answer the screen by closing it.
+    //
+    // Keyed by position and not by line, for the same reason the moves are: a
+    // cut branch stays cut however the game transposes into it.
+    //
+    // It stops the *walk*, never the drill. A position may be decided and cut
+    // at the same time — "I play this here and improvise after it" — and the
+    // move kept there is still a move the student chose and still worth being
+    // asked for.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS repertoire_skips (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        color CHAR(1) NOT NULL CHECK (color IN ('w', 'b')),
+        fen_key TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, color, fen_key)
+      );
+      CREATE INDEX IF NOT EXISTS idx_repertoire_skips_side
+        ON repertoire_skips(user_id, color);
+    `);
+    logger.info('Verified database table & indexes: repertoire_skips');
+
     // Every first attempt, including the ones that were thrown away.
     //
     // This is the most valuable thing the build mode produces, and it is the

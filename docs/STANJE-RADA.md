@@ -2414,15 +2414,64 @@ platio, iako oni odlučuju kako izgleda ceo sledeći talas. Sada se vide, pa se
 ide na `Sledeća pozicija`. Tabla je u tom stanju zaključana: pokazuje poziciju u
 kojoj je protivnik na potezu, a potez povučen tu bi bio ocenjen kao učenikov.
 
-**Šta ovim nije urađeno**, iako je traženo u istom razgovoru: redosled *unutar*
-sesije (novi čvorovi i dalje idu na kraj
-reda — `reach` uređuje samo ulazak i nastavak); orezivanje grane („ovo neću da
-spremam"), što je poluga koja zapravo drži stablo malim; drill po bloku iz
-jednog čvora;
-„vrlo poznat" čvor kao mesto odakle ponavljanje kreće; i ponavljanje cele linije
-od početka pre nego što se odgovori. Za drill vredi zabeležiti da je jedna
-stavka sa te liste **već bila tu**: potez koji nije glavni, a jeste učenikov, već
-se ocenjuje kao tačan (`QUALITY.alternate = GRADES.good`).
+**Šta ovim nije urađeno**, iako je traženo u istom razgovoru: ~~redosled
+*unutar* sesije~~ i ~~orezivanje grane~~ — oba su urađena istog dana, odeljak
+ispod. Ostaje drill po bloku iz jednog čvora; „vrlo poznat" čvor kao mesto
+odakle ponavljanje kreće; i ponavljanje cele linije od početka pre nego što se
+odgovori. Za drill vredi zabeležiti da je jedna stavka sa te liste **već bila
+tu**: potez koji nije glavni, a jeste učenikov, već se ocenjuje kao tačan
+(`QUALITY.alternate = GRADES.good`).
+
+## Repertoar: red po dometu i odsecanje grane — 31.8.2026
+
+Dve poluge sa iste liste, obe nad ekranom za izgradnju.
+
+**Red sada ima jedan redosled, a ne dva.** Novi čvorovi su se dodavali na kraj
+liste, pa je glavna linija otvorena na sredini sesije čekala iza svake
+stranputice upisane pre nje — a ista šetnja, nastavljena sutradan, vraćala se
+poređana po `reach`, jer server tako računa. Dva redosleda za jednu šetnju su
+gori deo toga: uči se oblik sesije umesto oblika stabla. `_Pending` sada nosi
+`reach`, a `_enqueue` ubacuje na mesto koje mu taj broj daje — isti račun kao na
+serveru, uključujući i to da sopstveni potez **ne** deli domet.
+
+**„Ne spremam ovo" je jedina poluga koja stablo smanjuje.** Sve ostale ga
+uvećavaju: svaki talas odgovora umnoži red, a repertoar koji odgovara na svaku
+stranputicu je repertoar koji niko ne završi. Bez mesta gde se to zapiše, jedini
+način da se kaže bio je zatvoriti ekran — što isto to kaže za jednu sesiju i
+zaboravi, pa je ista mrtva linija tu sutra, na svakom uređaju.
+
+Nova tabela `repertoire_skips` (korisnik, boja, `fen_key`) i dve rute pod
+`/repertoire/node/skip`. Ključ je pozicija, ne linija, kao i kod poteza:
+odsečena grana ostaje odsečena kako god se partija u nju transponuje.
+
+Tri odluke oko toga:
+
+- **Sa granom izlazi i sve ispod nje.** Odsecanje koje ostavi pozicije ispod
+  ostavlja stablo tačno onoliko veliko koliko je bilo — tako se korisnik nauči
+  da dugme ne pritiska. Na serveru se to dešava samo od sebe (šetnja tu staje), a
+  ekran isto to radi nad redom koji već drži: pozicija je ispod ove tačno kad
+  njena linija počinje ovom.
+- **Odsečeno se broji odvojeno i nikad se ne oduzima od „bez odgovora".**
+  Odsecanje obara `openReach` a da nijedno pitanje nije odgovoreno, pa
+  `prunedReach` stoji pored njega i kaže da se te partije i dalje igraju. U
+  zaglavlju: `odsečeno 1 (60%)`.
+- **Potezi u odsečenoj poziciji ostaju.** Odsecanje govori dokle se sprema, ne
+  šta se zaboravlja; drill i dalje traži potez koji je tu izabran. Zato čvor koji
+  je odsečen ne ulazi ni u `decided` — šetnja je stala pre njega, a zaglavlje
+  čiji se brojevi preklapaju ne može da se sabere.
+
+Vraćanje je jedan potez unazad (`Vrati odsečenu granu`), i stoji i na ekranu
+„nema više pozicija", jer odsecanje je upravo ono što red ume da isprazni. Ono
+što je bilo ispod ne vraća se sa granom — te pozicije se otvaraju uzimanjem
+odgovora, odakle su i došle.
+
+Koren repertoara se **ne nudi** za odsecanje: to nije orezivanje nego brisanje
+repertoara iz ekrana koji ga gradi, i jedini je rez posle kojeg u stablo nema
+ulaza. Ako je koren ipak odsečen sa drugog uređaja, šetnja to prijavljuje kao
+odsečeno, a ne kao gotovo.
+
+Testovi: backend 723 → **730**, aplikacija 959 → **964**. Uživo nije viđeno:
+[TODO-provera.md](TODO-provera.md), stavka 64.
 
 ## Repertoar iz arhive — sekcija 4, napisana 30.8.2026
 

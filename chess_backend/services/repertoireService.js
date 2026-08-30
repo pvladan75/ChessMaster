@@ -325,6 +325,58 @@ async function weakNodes(pool, userId, { color, limit = 20 } = {}) {
   }));
 }
 
+/// "I am not preparing this" — stored, because it is a decision.
+///
+/// The one control in the build loop that makes the tree *smaller*. Everything
+/// else adds: each wave of replies multiplies the queue, and a repertoire that
+/// answers every sideline is a repertoire nobody finishes. Without somewhere to
+/// put this, the only way to say it is to close the screen — and then the same
+/// dead branch is back tomorrow, on every device.
+///
+/// Idempotent, so pressing it twice is not an error the student has to read
+/// about.
+async function skipNode(pool, userId, { color, fen }) {
+  requireColor(color);
+  const key = fenKey(fen);
+  const result = await pool.query(
+    `INSERT INTO repertoire_skips (user_id, color, fen_key)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (user_id, color, fen_key) DO UPDATE SET fen_key = EXCLUDED.fen_key
+     RETURNING id, fen_key, created_at`,
+    [userId, color, key],
+  );
+  return { skipped: true, ...result.rows[0] };
+}
+
+/// Puts a cut branch back. The same button, the other way round.
+///
+/// Cutting is cheap to do and must be cheap to undo, or it stops being a
+/// decision and becomes a risk: nobody prunes a tree they cannot unprune.
+async function unskipNode(pool, userId, { color, fen }) {
+  requireColor(color);
+  const key = fenKey(fen);
+  const result = await pool.query(
+    `DELETE FROM repertoire_skips
+      WHERE user_id = $1 AND color = $2 AND fen_key = $3`,
+    [userId, color, key],
+  );
+  return { skipped: false, removed: result.rowCount };
+}
+
+/// Every position this student has cut, for one colour, as a set.
+///
+/// One query for the whole walk. Asking per node would make the frontier
+/// quadratic in the thing it is measuring, which is the mistake `keptByPosition`
+/// exists to avoid.
+async function skippedKeys(pool, userId, color) {
+  requireColor(color);
+  const result = await pool.query(
+    `SELECT fen_key FROM repertoire_skips WHERE user_id = $1 AND color = $2`,
+    [userId, color],
+  );
+  return new Set(result.rows.map((row) => row.fen_key));
+}
+
 module.exports = {
   fenKey,
   pathText,
@@ -338,6 +390,9 @@ module.exports = {
   removeMove,
   recordAttempt,
   weakNodes,
+  skipNode,
+  unskipNode,
+  skippedKeys,
   COLORS,
   ROLES,
 };

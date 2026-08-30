@@ -11,6 +11,9 @@ const {
   removeMove,
   recordAttempt,
   weakNodes,
+  skipNode,
+  unskipNode,
+  skippedKeys,
 } = require('../services/repertoireService');
 
 const SMITH_MORRA =
@@ -232,3 +235,45 @@ test('a repertoire is a name for a starting point, and counts by colour',
     // two doors into the same graph honestly show the same number.
     assert.match(pool.calls[0].text, /m.user_id = r.user_id AND m.color = r.color/);
   });
+
+test('a cut branch is stored by position, and cutting twice is not an error',
+  async () => {
+    // Pressing it again is the same sentence said twice, not a fault to read
+    // about — and by position rather than by line, so a branch stays cut
+    // however the game transposes into it.
+    const pool = stubPool([[{ id: 3, fen_key: fenKey(SMITH_MORRA) }]]);
+    await skipNode(pool, 5, { color: 'b', fen: SMITH_MORRA });
+
+    assert.equal(pool.ran('INSERT INTO repertoire_skips'), 1);
+    assert.equal(pool.ran('ON CONFLICT'), 1);
+    assert.deepEqual(pool.calls[0].params, [5, 'b', fenKey(SMITH_MORRA)]);
+  });
+
+test('a cut branch can be put back', async () => {
+  // Cutting has to be as cheap to undo as to do. A prune nobody can reverse is
+  // not a decision, it is a risk, and people do not take it.
+  const pool = stubPool([[]]);
+  const back = await unskipNode(pool, 5, { color: 'b', fen: SMITH_MORRA });
+
+  assert.equal(pool.ran('DELETE FROM repertoire_skips'), 1);
+  assert.equal(back.skipped, false);
+});
+
+test('the cut branches are read in one query, as a set', async () => {
+  // One query for the whole walk. Asking per node would make the frontier
+  // quadratic in the thing it measures.
+  const pool = stubPool([[{ fen_key: 'a' }, { fen_key: 'b' }]]);
+  const cut = await skippedKeys(pool, 5, 'b');
+
+  assert.equal(pool.calls.length, 1);
+  assert.ok(cut.has('a') && cut.has('b'));
+});
+
+test('a cut needs a colour and a real position', async () => {
+  const pool = stubPool([[]]);
+  await assert.rejects(() => skipNode(pool, 5, { color: 'x', fen: SMITH_MORRA }),
+    RangeError);
+  await assert.rejects(() => skipNode(pool, 5, { color: 'b', fen: 'ovo nije fen' }),
+    RangeError);
+  assert.equal(pool.calls.length, 0, 'loš zahtev je stigao do baze');
+});

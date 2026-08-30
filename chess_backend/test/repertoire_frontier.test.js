@@ -29,13 +29,17 @@ function keyAfter(...ucis) {
 /// Keyed rather than a list of canned results in order: the walk asks once per
 /// level and the number of levels is what is being tested, so a stub that
 /// replays answers positionally would pass for the wrong reason.
-function stubPool({ moves = [], replies = [] } = {}) {
+function stubPool({ moves = [], replies = [], skips = [] } = {}) {
   let levels = 0;
   return {
     levels: () => levels,
     query: async (text, params) => {
       if (text.includes('FROM repertoire_moves')) {
         return { rows: moves, rowCount: moves.length };
+      }
+      if (text.includes('FROM repertoire_skips')) {
+        const rows = skips.map((fen_key) => ({ fen_key }));
+        return { rows, rowCount: rows.length };
       }
       if (text.includes('FROM opening_replies')) {
         levels += 1;
@@ -232,4 +236,61 @@ test('a move that no longer fits its position drops its branch, not the walk', a
 
   assert.equal(walk.open.length, 1);
   assert.deepEqual(walk.open[0].path, ['e4', 'c5']);
+});
+
+test('a cut branch leaves the queue and is handed back as cut', async () => {
+  // Cutting is the one control that makes the tree smaller, so it is also the
+  // one that could quietly make the repertoire *look* finished. The branch has
+  // to leave `open` — that is the point — and it has to arrive somewhere the
+  // student can see it again.
+  const pool = stubPool({
+    ...sicilianAndOpenGame(),
+    skips: [keyAfter('e2e4', 'e7e5')],
+  });
+  const walk = await frontier(pool, 7, { color: 'w', rootFen: START });
+
+  assert.deepEqual(walk.open.map((node) => node.path), [['e4', 'c5', 'Nf3', 'd6']]);
+  assert.equal(walk.summary.pruned, 1);
+  assert.deepEqual(walk.pruned.map((node) => node.path), [['e4', 'e5']]);
+  assert.equal(walk.pruned[0].kind, 'pruned');
+  // 1...e5 is played in 20% of games, and those games are still going to be
+  // played. `openReach` no longer counts them; this number does, and the two
+  // are never added together.
+  assert.equal(Math.round(walk.summary.prunedReach * 100), 20);
+  assert.equal(Math.round(walk.summary.openReach * 100), 30);
+});
+
+test('cutting a branch takes everything under it', async () => {
+  // The whole value of the lever. Cutting 1...c5 must not leave the positions
+  // below it in the queue — otherwise the student cuts a branch and the tree
+  // stays exactly as big, which is how a control teaches people not to use it.
+  const pool = stubPool({
+    ...sicilianAndOpenGame(),
+    skips: [keyAfter('e2e4', 'c7c5')],
+  });
+  const walk = await frontier(pool, 7, { color: 'w', rootFen: START });
+
+  assert.equal(
+    walk.open.some((node) => node.path.includes('c5')),
+    false,
+    'pozicija ispod odsečene grane je ostala u redu',
+  );
+  // And the move kept there stops being counted as a decision the walk passed
+  // through — three before the cut, two after. The row is still in
+  // `repertoire_moves` and still drilled: cutting says how far to prepare, not
+  // what to forget.
+  assert.equal(walk.summary.decided, 2);
+});
+
+test('a cut root is a walk with no questions and one cut', async () => {
+  // Nothing to answer and nothing pretending otherwise. The screen refuses to
+  // offer this cut, but a repertoire whose root was cut on another device must
+  // still read honestly rather than as "finished".
+  const pool = stubPool({ ...sicilianAndOpenGame(), skips: [fenKey(START)] });
+  const walk = await frontier(pool, 7, { color: 'w', rootFen: START });
+
+  assert.equal(walk.open.length, 0);
+  assert.equal(walk.summary.pruned, 1);
+  assert.equal(walk.summary.decided, 0);
+  assert.equal(walk.summary.prunedReach, 1);
 });

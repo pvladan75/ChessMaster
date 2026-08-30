@@ -124,6 +124,8 @@ class FrontierNode {
   /// `undecided` — nothing kept here yet, play something.
   /// `unopened` — decided, but the opponent's replies were never taken, so the
   /// line stops here until they are.
+  /// `pruned` — cut on purpose. Not a question at all: it arrives in its own
+  /// list so a branch that was refused can be found and put back.
   final String kind;
 
   int get ply => path.length;
@@ -148,15 +150,22 @@ class RepertoireFrontier {
   const RepertoireFrontier({
     this.rootPath = const [],
     this.open = const [],
+    this.pruned = const [],
     this.decided = 0,
     this.unopened = 0,
     this.maxPly = 0,
     this.openReach = 0,
+    this.prunedReach = 0,
     this.truncated = false,
   });
 
   final List<String> rootPath;
   final List<FrontierNode> open;
+
+  /// The branches the student said they are not preparing. Handed back so they
+  /// can be put back: a cut nobody can find again is a hole in the repertoire
+  /// rather than a decision about it.
+  final List<FrontierNode> pruned;
 
   /// Positions where the student has decided on at least one move.
   final int decided;
@@ -169,6 +178,13 @@ class RepertoireFrontier {
   /// no answer yet. The one number that says how finished it is — and the only
   /// one a wide shallow tree cannot flatter.
   final double openReach;
+
+  /// The share of games that run into a branch the student cut.
+  ///
+  /// Shown beside [openReach] and never folded into it. Cutting makes
+  /// [openReach] fall without a single question having been answered, and this
+  /// is the number that says those games are still going to be played.
+  final double prunedReach;
 
   /// True when the walk hit its ceiling. Said out loud rather than quietly
   /// returning a short answer, which is this codebase's oldest bug.
@@ -189,10 +205,15 @@ class RepertoireFrontier {
           .whereType<Map>()
           .map((e) => FrontierNode.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
+      pruned: ((json['pruned'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => FrontierNode.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
       decided: (summary['decided'] as num?)?.toInt() ?? 0,
       unopened: (summary['unopened'] as num?)?.toInt() ?? 0,
       maxPly: (summary['maxPly'] as num?)?.toInt() ?? 0,
       openReach: (summary['openReach'] as num?)?.toDouble() ?? 0,
+      prunedReach: (summary['prunedReach'] as num?)?.toDouble() ?? 0,
       truncated: summary['truncated'] as bool? ?? false,
     );
   }
@@ -449,6 +470,27 @@ class RepertoireApiService {
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/node/move')
         .replace(queryParameters: {'color': color, 'fen': fen, 'uci': uci});
+    return (await _send(() => _delete(uri))).res != null;
+  }
+
+  /// "I am not preparing this branch."
+  ///
+  /// The only control in the build loop that makes the tree smaller, so it is
+  /// stored rather than said by closing the screen — which says the same thing
+  /// for one session and forgets it. It stops the walk at this position; a move
+  /// already kept here stays kept and stays drilled.
+  Future<bool> skipNode({required String color, required String fen}) async {
+    final sent = await _send(() => _post('$backendUrl/repertoire/node/skip', {
+          'color': color,
+          'fen': fen,
+        }));
+    return sent.res != null;
+  }
+
+  /// Puts a cut branch back.
+  Future<bool> unskipNode({required String color, required String fen}) async {
+    final uri = Uri.parse('$backendUrl/repertoire/node/skip')
+        .replace(queryParameters: {'color': color, 'fen': fen});
     return (await _send(() => _delete(uri))).res != null;
   }
 
