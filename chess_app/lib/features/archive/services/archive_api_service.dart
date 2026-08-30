@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/features/archive/models/archive_run.dart';
+import 'package:chess_app/features/archive/models/endgame_audit.dart';
+import 'package:chess_app/features/archive/models/endgame_mistake.dart';
 import 'package:chess_app/features/archive/models/json_int.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
 import 'package:chess_app/features/archive/models/mistake_item.dart';
@@ -254,5 +256,43 @@ class ArchiveApiService {
       return RepertoireDiff.fromJson(jsonDecode(response.body));
     }
     throw Exception('Failed to fetch repertoire diff: ${response.body}');
+  }
+
+  Future<String> startEndgameAudit(String username) async {
+    final uri = Uri.parse('$backendUrl/games/endgame/audit');
+    final response = await _post(
+      uri,
+      {
+        'Authorization': 'Bearer $_token',
+        'Content-Type': 'application/json',
+      },
+      jsonEncode({'username': username}),
+    );
+    if (response.statusCode == 202) {
+      final json = jsonDecode(response.body);
+      return json['auditId'] as String;
+    }
+    throw Exception('Failed to start endgame audit: ${response.body}');
+  }
+
+  Future<EndgameAudit> getEndgameAudit(String id) async {
+    final uri = Uri.parse('$backendUrl/games/endgame/audits/$id');
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      return EndgameAudit.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to fetch endgame audit: ${response.body}');
+  }
+
+  Future<List<EndgameMistake>> getEndgameMistakes({int limit = 50}) async {
+    final uri = Uri.parse('$backendUrl/games/endgame/mistakes?limit=$limit');
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return ((json['mistakes'] as List?) ?? [])
+          .map((e) => EndgameMistake.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    }
+    throw Exception('Failed to fetch endgame mistakes: ${response.body}');
   }
 }

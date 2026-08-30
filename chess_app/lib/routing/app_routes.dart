@@ -157,6 +157,15 @@ abstract final class AppRoutes {
 
   static const String archiveRepertoire = '/archive/repertoire';
 
+  /// The endgames the tablebases say were thrown away. `subject` is the handle
+  /// the archive was imported under and is required, for the same reason the
+  /// leak report needs one: the audit is per-player and this screen cannot
+  /// guess which.
+  static const String archiveEndgames = '/archive/endgames';
+
+  static String archiveEndgamesPath(String subject) =>
+      '$archiveEndgames?subject=${Uri.encodeQueryComponent(subject)}';
+
   /// Internal design gallery for design review and visual component inspection.
   static const String designGallery = '/design-gallery';
 }

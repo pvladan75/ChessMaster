@@ -8,9 +8,19 @@ import 'package:chess_app/theme/app_theme.dart';
 import 'package:chess_app/features/archive/models/mistake_item.dart';
 import 'package:chess_app/features/archive/models/mistake_recurrence.dart';
 import 'package:chess_app/features/archive/models/archive_run.dart';
+import 'package:chess_app/features/archive/models/endgame_audit.dart';
+import 'package:chess_app/features/archive/models/endgame_mistake.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
 
 class FakeArchiveApiService implements ArchiveApiService {
+  @override
+  Future<String> startEndgameAudit(String username) async => 'fake-id';
+  @override
+  Future<EndgameAudit> getEndgameAudit(String id) async =>
+      throw UnimplementedError();
+  @override
+  Future<List<EndgameMistake>> getEndgameMistakes({int limit = 50}) async => [];
+
   @override
   Future<RepertoireDiff> getRepertoireDiff(
       {required String username, String? color, int? limit}) async {

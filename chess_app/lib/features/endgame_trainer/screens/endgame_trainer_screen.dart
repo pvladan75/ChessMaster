@@ -50,6 +50,7 @@ class EndgameTrainerScreen extends StatefulWidget {
     this.material,
     this.band,
     this.oppositeOnly = false,
+    this.fen,
     this.api,
   });
 
@@ -71,6 +72,10 @@ class EndgameTrainerScreen extends StatefulWidget {
   final String? material;
   final String? band;
   final bool oppositeOnly;
+
+  /// Optional exact starting position. When provided, the screen skips fetching
+  /// a puzzle and starts with this position instead.
+  final String? fen;
 
   /// Injected in tests. A widget test has no server, and the layout is exactly
   /// what needs testing here: a release build paints no overflow warning, so a
@@ -201,35 +206,49 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _hintSquare = null;
     });
 
-    final result = await _api.fetchNext(
-      type: widget.type,
-      mode: widget.mode,
-      maxPieces: widget.maxPieces,
-      minPawns: widget.minPawns,
-      material: widget.material,
-      band: widget.band,
-      oppositeOnly: widget.oppositeOnly,
-      excludeId: _solve?.puzzle.id,
-      includeOnline: AppSettingsService.instance.endgameIncludeOnline,
-    );
-    if (!mounted) return;
+    EndgamePuzzle? puzzle;
 
-    if (!result.hasPuzzle) {
-      setState(() {
-        _loading = false;
-        // The two are said differently on purpose. "Nothing matches" is a fact
-        // about the filters and retrying will not help; "unavailable" might
-        // pass. Reporting both as one error taught the user the wrong lesson.
-        _error = result.outcome == EndgameFetchOutcome.noneMatch
-            ? 'Nema završnice koja odgovara traženim uslovima.'
-            : 'Trenutno nije moguće dobaviti završnicu.';
-      });
-      return;
+    if (widget.fen != null) {
+      puzzle = EndgamePuzzle(
+        id: 'custom',
+        fen: widget.fen!,
+        type: widget.type ?? '',
+        mode: widget.mode ?? EndgameMode.win,
+        winningMoves: const [],
+        source: 'syzygy',
+        piecesOnBoard: 7, // Allow play out
+      );
+    } else {
+      final result = await _api.fetchNext(
+        type: widget.type,
+        mode: widget.mode,
+        maxPieces: widget.maxPieces,
+        minPawns: widget.minPawns,
+        material: widget.material,
+        band: widget.band,
+        oppositeOnly: widget.oppositeOnly,
+        excludeId: _solve?.puzzle.id,
+        includeOnline: AppSettingsService.instance.endgameIncludeOnline,
+      );
+      if (!mounted) return;
+
+      if (!result.hasPuzzle) {
+        setState(() {
+          _loading = false;
+          // The two are said differently on purpose. "Nothing matches" is a fact
+          // about the filters and retrying will not help; "unavailable" might
+          // pass. Reporting both as one error taught the user the wrong lesson.
+          _error = result.outcome == EndgameFetchOutcome.noneMatch
+              ? 'Nema završnice koja odgovara traženim uslovima.'
+              : 'Trenutno nije moguće dobaviti završnicu.';
+        });
+        return;
+      }
+      puzzle = result.puzzle!;
     }
 
-    final puzzle = result.puzzle!;
     setState(() {
-      _solve = EndgameSolveSession(puzzle);
+      _solve = EndgameSolveSession(puzzle!);
       _game = chess.Chess.fromFEN(puzzle.fen);
       // Always from the side that has to solve it. Looking at a rook ending
       // upside down is a needless obstacle for a child.
@@ -255,6 +274,10 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _keeping = false;
     });
     _boardController.loadFen(puzzle.fen);
+
+    if (widget.fen != null) {
+      _startDrill();
+    }
   }
 
   String? _sanFor(String fen, String from, String to, String promotion) {

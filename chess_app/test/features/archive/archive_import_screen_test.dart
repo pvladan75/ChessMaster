@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/features/archive/models/archive_run.dart';
+import 'package:chess_app/features/archive/models/endgame_audit.dart';
+import 'package:chess_app/features/archive/models/endgame_mistake.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
 import 'package:chess_app/features/archive/models/mistake_item.dart';
 import 'package:chess_app/features/archive/models/mistake_recurrence.dart';
@@ -11,6 +13,14 @@ import 'package:chess_app/features/archive/services/archive_api_service.dart';
 import 'package:chess_app/theme/app_theme.dart';
 
 class FakeArchiveApiService implements ArchiveApiService {
+  @override
+  Future<String> startEndgameAudit(String username) async => 'fake-id';
+  @override
+  Future<EndgameAudit> getEndgameAudit(String id) async =>
+      throw UnimplementedError();
+  @override
+  Future<List<EndgameMistake>> getEndgameMistakes({int limit = 50}) async => [];
+
   @override
   Future<List<MistakeItem>> fetchMistakesDue({int limit = 20}) async => [];
 
