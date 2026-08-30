@@ -160,6 +160,17 @@ test('the prompt shows the model the same object the guard checks', async () => 
   assert.ok(prompt.includes(JSON.stringify(facts, null, 2)));
 });
 
+test('the prompt demands percentages, because a child cannot read 0.38', async () => {
+  // Found by running this against the real model: with the rule merely
+  // permitted rather than required, it wrote „udeo 0.76" and
+  // „prolaznost 0.38" — every number correct, and unreadable for the people
+  // this app is for. The guard cannot catch prose that is true and useless.
+  const prompt = buildPrompt(factsFrom(REPORT));
+
+  assert.match(prompt, /uvek piši kao procenat/);
+  assert.match(prompt, /41\.3%/, 'and shows the conversion rather than describing it');
+});
+
 test('a verdict travels as the word it is, so the sentence need not judge', async () => {
   const facts = factsFrom(REPORT);
 

@@ -2245,11 +2245,20 @@ Priprema: `OPPONENT_PREP_ENABLED=true` u `.env`, i tek onda ostalo. Dok stoji na
 12. [ ] **AI opis: ime ne izlazi sa servera.** Ovo se ne vidi iz odgovora nego
     iz loga — proveriti da u zahtevu ka Gemini-ju nema handle-a. Test to tvrdi;
     uživo treba videti jednom.
-13. [ ] **Izmišljen broj ne prolazi.** Najvažnija provera cele sekcije, i jedina
-    koju kod ne može da uradi sam: pustiti opis nad stvarnim izveštajem
-    nekoliko puta i ručno uporediti **svaki** broj u rečenici sa tabelom. Ako
-    model zaokruži, `narrative` mora da bude `null` sa `reason:
-    'invented-numbers'`, a izveštaj da ostane.
+13. [x] **Izmišljen broj ne prolazi** — Claude, 30.8.2026, prvi prolaz nad
+    stvarnim modelom (`gemini-flash-latest`, osam poziva). Tri rečenice su
+    prošle i u sve tri je **svaki** broj ručno upoređen sa tabelom: udeo 76%,
+    prolaznost 38%, e5 na 51%, 12. polupotez a6 u 98% na 38%, 16. polupotez
+    Ng4 u 98% na 39%. Nijedan izmišljen. Ostaje da se ponovi nad **stvarnom**
+    arhivom umesto nad fiksiranim izveštajem, i sa Pro modelom kad bude
+    dostupan — ovo je jedan model, jedan izveštaj i osam poziva, što nije
+    dokaz nego prvi znak.
+
+    Nađeno pritom, i popravljeno: model je pisao „udeo 0.76" i
+    „prolaznost 0.38". Svaki broj tačan, i nečitljiv za dete. Prompt sada
+    **zahteva** procente umesto što ih dozvoljava, a test pada ako to pravilo
+    nestane. Zaštita od izmišljenih brojeva ne hvata prozu koja je tačna i
+    beskorisna.
 14. [ ] **Bez ključa nema rečenice, ali ima izveštaja.** Ukloniti
     `GEMINI_API_KEY` i proveriti da ruta i dalje vraća 200 sa
     `reason: 'model-unavailable'`.

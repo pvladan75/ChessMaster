@@ -74,9 +74,11 @@ presuda o potezu ("theory", "playable", "mistake"), "better" je bolji potez.
 
 PRAVILA:
 - Piši o „protivniku". Ime ne znaš i ne izmišljaj ga.
-- Svaki broj koji napišeš mora doslovno postojati u podacima gore. Prolaznost
-  smeš izraziti kao procenat (0.413 → 41.3%), ali ne smeš zaokruživati,
-  sabirati, prosečiti niti izvoditi bilo koji novi broj.
+- Svaki broj koji napišeš mora doslovno postojati u podacima gore. Ne smeš
+  zaokruživati, sabirati, prosečiti niti izvoditi bilo koji novi broj.
+- "score" i "share" **uvek piši kao procenat**, nikad kao decimalu: 0.413 je
+  „41.3%", 0.76 je „76%". Ovo čitaju deca — „prolaznost 0.38" im ne znači
+  ništa. Pomnoži sa sto i dodaj znak procenta; to je jedini račun koji smeš.
 - Ako nisi siguran u broj, izostavi ga. Rečenica bez broja je u redu.
 - Bez uvoda i bez zaključka. Samo opis.`;
 }
