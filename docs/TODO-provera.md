@@ -2199,3 +2199,58 @@ je prihvaćena.
 8. [ ] **Trenerski pregled**: `GET /assignments/student/:id/archive` daje
    `leaks`, `mistakes`, `recurrence` i `trend`. Proveriti da `trend` nije nigde
    prikazan kao „pre i posle" — to je pitanje za interfejs, a odgovor je ne.
+
+## 59. Priprema za protivnika i AI opis — 30.8.2026, nije viđeno uživo
+
+Prva stvar u projektu koja čita o **osobi koja nikad nije otvorila aplikaciju**,
+i zato jedina koja stiže isključena. Sve dole je pokriveno kodom (40 testova,
+sedam dokaza mutacijom) i nijednom pušteno.
+
+Priprema: `OPPONENT_PREP_ENABLED=true` u `.env`, i tek onda ostalo. Dok stoji na
+`false`, tačka 1 je jedina koja se može proveriti — i mora da prođe.
+
+1. [ ] **Isključeno znači odbijeno, ne prazno.** `POST /games/prep/import` bez
+   uključenog prekidača mora da vrati 403 i `reason: 'disabled'`. Prazan
+   izveštaj bi se čitao kao „protivnik nema slabosti", što je jedini odgovor
+   koji isključena funkcija ne sme da da.
+2. [ ] **Ništa se ne dohvata dok je isključeno.** Proveriti da u `user_games`
+   nije upisan nijedan red posle odbijenog poziva.
+3. [ ] **`subject_is_owner = FALSE` na svakom uvezenom redu**, i — odmah zatim —
+   da `GET /games/stats` i dalje broji samo igračeve partije. Ovo je provera
+   zbog koje je `services/archiveScope.js` i napisan.
+4. [ ] **`vs=` vraća samo međusobne partije.** Uvesti protivnika sa
+   `vs=<sopstveni handle>` i proveriti da je broj partija onaj koji Lichess
+   pokazuje na profilu, a ne ceo arhiv.
+5. [ ] **`opening=true` zaista donosi `[ECO]` i `[Opening]`.** Kolone `eco` i
+   `opening` u `user_games` ne smeju biti prazne posle ovog uvoza — arhiv od
+   29.8.2026 ih nema samo zato što je izvezen bez te zastavice.
+6. [ ] **Pogrešan `perfType` je odbijen, ne prećutan.** `perfType=bliz` mora da
+   vrati 400. Lichess bi ga ignorisao i vratio sve tempo-kontrole, što izgleda
+   isto kao ispravan odgovor.
+7. [ ] **Rejting prag odbija pre nego što išta upiše.** Sa
+   `OPPONENT_PREP_MIN_RATING` iznad protivnikovog rejtinga: 403, i nijedan red
+   u bazi. Provera posle uvoza bi značila da već držimo arhiv koji smo hteli da
+   odbijemo.
+8. [ ] **Odbijenica ne odaje rejting.** Poruka sme da imenuje prag, ne i broj
+   koji je taj čovek dobio.
+9. [ ] **Dnevni limit broji ljude, ne uvoze.** Dva uvoza istog protivnika su
+   jedan čovek.
+10. [ ] **Retencija briše samo protivnike.** Postaviti
+    `OPPONENT_PREP_RETENTION_DAYS=0` na dan kad ima i svojih i tuđih partija,
+    pa vratiti na 30 i proveriti da su igračeve netaknute. Igračev arhiv je
+    jedina stvar ovde koja se ne može ponovo dohvatiti.
+11. [ ] **Izveštaj o protivniku ide kroz postojeću rutu.**
+    `GET /games/openings/leaks?subject=<protivnik>` mora da radi bez ijedne nove
+    rute — to je bio ceo argument da se sekcija 7 gradi posle sekcije 1.
+12. [ ] **AI opis: ime ne izlazi sa servera.** Ovo se ne vidi iz odgovora nego
+    iz loga — proveriti da u zahtevu ka Gemini-ju nema handle-a. Test to tvrdi;
+    uživo treba videti jednom.
+13. [ ] **Izmišljen broj ne prolazi.** Najvažnija provera cele sekcije, i jedina
+    koju kod ne može da uradi sam: pustiti opis nad stvarnim izveštajem
+    nekoliko puta i ručno uporediti **svaki** broj u rečenici sa tabelom. Ako
+    model zaokruži, `narrative` mora da bude `null` sa `reason:
+    'invented-numbers'`, a izveštaj da ostane.
+14. [ ] **Bez ključa nema rečenice, ali ima izveštaja.** Ukloniti
+    `GEMINI_API_KEY` i proveriti da ruta i dalje vraća 200 sa
+    `reason: 'model-unavailable'`.
+

@@ -2506,3 +2506,80 @@ ostavlja vezanu za mesto na ekranu.
 Testovi u aplikaciji: 900 → **908**, 1 preskočen. `flutter analyze` i dalje 29
 `info`-a, bez novih. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
 stavke 52 i 53, pododeljci „Ekran".
+
+## Priprema za protivnika i AI opis — sekcija 7, napisana 30.8.2026
+
+`services/opponentPrep.js`, `services/narrativeGuard.js`,
+`services/prepNarrative.js`, `services/archiveScope.js`, i dve rute pod
+`/games/prep`. Testovi: 650 → **697**.
+
+Mehanički je ovo sekcija 1 uperena drugde. Lichess svakom daje partije bilo kog
+naloga, uvoznik već prima proizvoljno korisničko ime, a
+`GET /games/openings/leaks?subject=` već agregira po subjektu — **izveštaj nije
+dobio nijednu novu rutu**, što je bio ceo argument da se ovo gradi posle sekcije
+1 a ne pre nje.
+
+Zato je i opasno. To je jedina funkcija ovde koja čita o osobi koja nikad nije
+otvorila aplikaciju, a većina naloga u ovom proizvodu pripada deci. Priprema za
+klupski meč protiv imenovanog desetogodišnjaka je isti HTTP zahtev kao priprema
+za velemajstora, i kod ih ne razlikuje.
+
+**Prekidač je isključen.** `OPPONENT_PREP_ENABLED` je podrazumevano `false` i
+odbija glasno, imenom — prazan izveštaj bi se čitao kao „protivnik nema
+slabosti". Isti oblik kao `AGE_OF_CONSENT`: odluka je proizvodna i pravna, ne
+podrazumevana vrednost do koje se stigne tako što parametar ostane neiskorišćen.
+
+Vredi zapisati šta se **ne može** napisati: „odbij ako ovaj handle pripada detetu
+koje koristi aplikaciju" nije izvodljivo, jer ništa ne povezuje Lichess nalog sa
+nalogom ovde. Rejting prag je zamena za to, i nesavršena.
+
+### Ono što je moralo da stigne prvo
+
+Tri upita su odgovarala na pitanje **o igraču** a da to nisu rekla: zbir arhive
+je brojao sve redove pod korisnikom; vrata za greške iz motora su proveravala
+samo da `game_id` pripada pozivaocu, što tuđi arhiv takođe zadovoljava; a
+provera završnica prima korisničko ime i čita sve pod njim, pa bi tuđe greške
+završile u igračevom ponavljanju — „stalno visiš figure", sastavljeno od tuđih
+partija.
+
+Ništa nije pucalo i svaki odgovor je ostajao uverljiv. Zato `archiveScope.js`
+drži uslov na jednom mestu, kao `trainerOwnsStudent`, a test pada ako se pojavi
+ručno prepisana kopija. Dve koje su već postojale su prevedene na njega.
+
+### Šta se proverava, a šta se ne može
+
+Rejting prag se proverava **pre** nego što se išta upiše — provera posle značila
+bi da već držimo arhiv koji smo hteli da odbijemo. Rejting koji Lichess ne
+potvrđuje (provizoran, ili ga nema za traženi tempo) odbija umesto da propusti:
+prag koji se sam otvara kad upit padne nije prag. Odbijenica imenuje prag, nikad
+čovekov rejting. Uz to: dnevni limit različitih ljudi, i retencija na istom
+dnevnom prolazu kao MP4 izvozi — tuđi arhiv je jedan zahtev daleko, igračev je
+fajl koji je on otpremio.
+
+Graditelj upita je čista funkcija i izvezen je da bi mogao da se tvrdi bez
+mreže, jer je svaki njegov parametar način da se dobije **manji** odgovor nego
+što je traženo. Lichess ne odbija pogrešno napisan `perfType` — ignoriše ga, pa
+se uvoz tiho proširi na sve tempo-kontrole i izgleda identično ispravnom
+zahtevu.
+
+### Rečenica nad izveštajem
+
+`GET /games/prep/narrative`. Dva pravila, oba o tome šta napušta server.
+
+**Ime ne izlazi.** Subjekt se zameni rečju „protivnik" pre nego što se prompt
+sastavi. Model opisuje stil igre, ne osobu, pa ime ne doprinosi rečenici — a
+slanje imena i partijskog kartona treće strani je deo koji se ne može povući.
+
+**Brojevi se proveravaju, ne traže.** Plan je u pravu: prompt nije zaštita.
+Model ne laže — on zaokružuje, prosečuje i sabira, uslužno, u brojeve koje niko
+nije izračunao, a „oko 40%" se čita isto kao 41,3% pored njega. Svaki broj u
+izlazu mora doslovno postojati u ulazu, inače rečenica pada. Jedan ponovni
+pokušaj, sa imenovanim spornim brojem, pa kraj — petlja koja pita dok nešto ne
+prođe je petlja koja na kraju opere pogrešan broj u prihvaćen.
+
+Pada zatvoreno, ali u korisnom smeru: bez ključa, uz ispad modela ili uz odbijenu
+rečenicu ruta vraća 200, `narrative: null` i imenovan razlog. Tabela je bila
+odgovor; rečenica je uvek bila ukras, a ukras ne sme da obori ono što ukrašava.
+
+Uživo nije viđeno: [TODO-provera.md](TODO-provera.md), stavka 59.
+

@@ -236,6 +236,9 @@ Vratite ISKLJUČIVO ispravan JSON objekat (bez markdown oznaka poput \`\`\`json)
 }
 
 module.exports = {
+  // Exported so the preparation narrative can reuse the transient-503 retry and
+  // the model alias, rather than growing a second opinion about either.
+  generateContentWithRetry,
   explainPosition,
   generateFallbackExplanation,
   generateMoveComment,

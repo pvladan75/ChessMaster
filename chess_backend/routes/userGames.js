@@ -27,8 +27,12 @@ const {
 } = require('../services/gameArchiveImport');
 const { leakReport, backfillNodes } = require('../services/openingLeaks');
 const {
-  createOpponentPrep, OpponentPrepUnavailable,
+  createOpponentPrep, OpponentPrepUnavailable, policyFrom,
 } = require('../services/opponentPrep');
+const { createPrepNarrative } = require('../services/prepNarrative');
+const { isOwnSubject } = require('../services/archiveScope');
+const { GoogleGenAI } = require('@google/genai');
+const { generateContentWithRetry } = require('../geminiService');
 const { openingJudge } = require('../services/openingJudgeService');
 const {
   createEndgameAuditor, EndgameAuditUnavailable,
@@ -39,6 +43,22 @@ const { playerProfile } = require('../services/playerProfile');
 const importer = createArchiveImporter({ pool });
 const auditor = createEndgameAuditor({ pool });
 const prep = createOpponentPrep({ pool, importer });
+
+/// One call to the model, or a throw. Everything about *whether* the answer may
+/// be shown lives in `prepNarrative`; this only knows how to ask.
+const narrator = createPrepNarrative({
+  generate: async (prompt) => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY' || !apiKey.trim()) {
+      throw new Error('GEMINI_API_KEY missing');
+    }
+    const response = await generateContentWithRetry(
+      new GoogleGenAI({ apiKey }),
+      { model: 'gemini-flash-latest', contents: prompt },
+    );
+    return response.text;
+  },
+});
 
 // A ten-year archive exported from Lichess with clocks is about 9 MB. This is
 // generous room above that and still far below what would hurt a 960 MB
@@ -227,6 +247,55 @@ router.post('/prep/import', authenticateToken, importLimiter, async (req, res) =
       return res.status(err.status || 400).json({ error: err.message, reason: err.reason });
     }
     return fail(res, err, 'Priprema za protivnika nije mogla da počne.');
+  }
+});
+
+// GET /games/prep/narrative?subject=&color=&limit= — the report, said in words.
+//
+// The numbers are computed here and the sentence is checked against them, so
+// this route owns both halves on purpose: a narrative generated over a report
+// the client fetched separately could be checked only against what the client
+// said the report was.
+//
+// Fails open in the useful direction. A missing key, a model outage, a refused
+// sentence — all return the report's own summary with `narrative: null` and a
+// named reason. The table was always the answer; the sentence is decoration,
+// and decoration must not take the thing it decorates down with it.
+router.get('/prep/narrative', authenticateToken, async (req, res) => {
+  const q = req.query ?? {};
+  const handle = String(q.subject || '').trim();
+  if (!handle) return res.status(400).json({ error: 'Nedostaje korisničko ime.' });
+
+  try {
+    // Narrating your own report is an ordinary feature and needs no gate. Doing
+    // it about somebody else is the feature that has one — and it is the same
+    // gate as the pull, so turning preparation off also stops the sentences
+    // about people it already fetched.
+    const own = await isOwnSubject(pool, req.user.id, handle);
+    if (!own && !policyFrom().enabled) {
+      return res.status(403).json({
+        error: 'Priprema za protivnika nije uključena na ovom serveru.',
+        reason: 'disabled',
+      });
+    }
+
+    const report = await leakReport(pool, req.user.id, {
+      subject: handle,
+      color: q.color ?? null,
+      limit: q.limit,
+    });
+    const said = await narrator.narrate(report);
+
+    return res.json({
+      subject: handle,
+      color: report.color,
+      games: report.games,
+      positions: report.nodes.length,
+      ...said,
+    });
+  } catch (err) {
+    if (err instanceof RangeError) return res.status(400).json({ error: err.message });
+    return fail(res, err, 'Opis protivnika nije dostupan.');
   }
 });
 
