@@ -205,6 +205,41 @@ test('the diff separates following the plan from leaving it', async () => {
   assert.equal(position.fen.endsWith(' 0 1'), true);
 });
 
+test('every move in the diff carries a uci the drill can actually play', async () => {
+  // The diff exists to hand positions to the drill, and a drill plays a move in
+  // the notation a board takes. Deriving it in the client would mean a second
+  // replay of the same position in a second chess library, with its own opinion
+  // about an ambiguous SAN — and the two would disagree silently, on exactly
+  // the positions that are hardest to read. Found by the agent building the
+  // screen: the seed plan carried `uci` and this did not.
+  const pool = stubPool({
+    diff: [
+      { fen_key: AFTER_E4, color: 'b', san: 'e6', in_repertoire: true, games: 90, points: '45.0', ply: 2 },
+      { fen_key: AFTER_E4, color: 'b', san: 'c5', in_repertoire: false, games: 18, points: '6.0', ply: 2 },
+    ],
+  });
+  const out = await repertoireDiff(pool, 5, { subject: 's' });
+  const position = out.positions[0];
+
+  assert.equal(position.prepared[0].uci, 'e7e6');
+  assert.equal(position.played[0].uci, 'c7c5');
+  assert.equal(out.unplayable, 0);
+});
+
+test('a diff move that will not replay is counted rather than hidden', async () => {
+  // Above zero is a bug report, not a statistic: the node was written wrong.
+  // Same rule as the seed, and the reason both report the number.
+  const pool = stubPool({
+    diff: [
+      { fen_key: AFTER_E4, color: 'b', san: 'Qh8', in_repertoire: false, games: 4, points: '1.0', ply: 2 },
+    ],
+  });
+  const out = await repertoireDiff(pool, 5, { subject: 's' });
+
+  assert.equal(out.unplayable, 1);
+  assert.equal(out.positions[0].played[0].uci, null, 'null, not a guess');
+});
+
 test('a position that was always followed is not a deviation', async () => {
   const pool = stubPool({
     diff: [

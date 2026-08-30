@@ -233,6 +233,7 @@ async function repertoireDiff(pool, userId, {
   const byPosition = new Map();
   let followed = 0;
   let left = 0;
+  let unplayable = 0;
   for (const row of rows) {
     if (row.in_repertoire) followed += row.games;
     else left += row.games;
@@ -250,8 +251,20 @@ async function repertoireDiff(pool, userId, {
     };
     position.games += row.games;
     position.ply = Math.min(position.ply, row.ply);
+    // `uci` travels beside the SAN for the same reason the seed plan carries
+    // it: this report exists to hand positions to the drill, and a drill can
+    // play a move only in the notation a board takes. Deriving it in the client
+    // would mean a second replay of the same position, in a second chess
+    // library, with its own opinion about an ambiguous SAN — and the two would
+    // disagree silently, on exactly the positions that are hardest to read.
+    //
+    // Null when the SAN will not replay, which is a bug report rather than a
+    // value: the node was written wrong. Counted below.
+    const uci = uciOf(row.fen_key, row.san);
+    if (!uci) unplayable += 1;
     const entry = {
       san: row.san,
+      uci,
       games: row.games,
       score: Number(row.points) / row.games,
     };
@@ -281,6 +294,10 @@ async function repertoireDiff(pool, userId, {
     coveredGames: followed + left,
     followedGames: followed,
     leftGames: left,
+    // Above zero means some stored SAN would not replay in its own position.
+    // Reported rather than hidden, the same as in the seed: the number being
+    // non-zero is the bug report.
+    unplayable,
     positions,
   };
 }
