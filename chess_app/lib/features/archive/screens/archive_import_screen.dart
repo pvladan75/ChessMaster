@@ -151,6 +151,18 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
                   icon: const Icon(Icons.search),
                   label: const Text('Pogledaj rupe u otvaranju'),
                 ),
+                const SizedBox(height: AppSpacing.sm),
+                FilledButton.icon(
+                  onPressed: () => context.push(
+                      '${AppRoutes.archiveRepertoire}?subject=${Uri.encodeQueryComponent(_run!.subject)}'),
+                  icon: const Icon(Icons.account_tree_outlined),
+                  label: const Text('Repertoar iz partija'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor:
+                        context.colors.brand.withValues(alpha: 0.22),
+                    foregroundColor: context.colors.brand,
+                  ),
+                ),
               ],
               const SizedBox(height: AppSpacing.md),
               if (_isUploading) const CircularProgressIndicator(),

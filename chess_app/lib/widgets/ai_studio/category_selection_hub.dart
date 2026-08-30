@@ -13,6 +13,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
   final VoidCallback onSelectBlunderGames;
   final VoidCallback onSelectRepertoire;
   final VoidCallback onSelectMyGames;
+  final VoidCallback onSelectMistakesDrill;
 
   const CategorySelectionHubWidget({
     super.key,
@@ -25,6 +26,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
     required this.onSelectBlunderGames,
     required this.onSelectRepertoire,
     required this.onSelectMyGames,
+    required this.onSelectMistakesDrill,
   });
 
   /// The label above a group of cards.
@@ -72,6 +74,29 @@ class CategorySelectionHubWidget extends StatelessWidget {
         icon: const Icon(Icons.file_upload),
         label: const Text('Uvezi partije'),
         onPressed: onSelectMyGames,
+      ),
+    );
+  }
+
+  Widget _buildMistakesCard(AppColorTokens colors) {
+    return _CategoryCard(
+      accentColor: colors.danger,
+      icon: Icons.history_edu_outlined,
+      title: 'Moje greške',
+      description:
+          'Pregledajte i uvežbajte previde i greške iz svojih odigranih partija. '
+          'Pamti kad ste pogrešili i vraća poziciju na ponavljanje.',
+      action: FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: colors.danger.withValues(alpha: 0.22),
+          foregroundColor: colors.danger,
+          side: BorderSide(
+            color: colors.danger.withValues(alpha: 0.45),
+          ),
+        ),
+        icon: const Icon(Icons.play_arrow),
+        label: const Text('Vežbaj greške'),
+        onPressed: onSelectMistakesDrill,
       ),
     );
   }
@@ -330,6 +355,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
                           _buildRepertoireCard(colors),
                           const SizedBox(height: AppSpacing.lg),
                           _buildMyGamesCard(colors),
+                          const SizedBox(height: AppSpacing.lg),
+                          _buildMistakesCard(colors),
                           const SizedBox(height: AppSpacing.xxl),
                           _section(context, 'Taktika'),
                           _buildTacticsCard(colors),
@@ -361,6 +388,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
                 _buildRepertoireCard(colors),
                 const SizedBox(height: AppSpacing.lg),
                 _buildMyGamesCard(colors),
+                const SizedBox(height: AppSpacing.lg),
+                _buildMistakesCard(colors),
                 const SizedBox(height: AppSpacing.xxl),
                 _section(context, 'Taktika'),
                 _buildTacticsCard(colors),

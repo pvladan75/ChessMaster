@@ -2458,6 +2458,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       onSelectBlunderGames: () => context.push(AppRoutes.blunderGames),
       onSelectRepertoire: () => context.push(AppRoutes.repertoire),
       onSelectMyGames: () => context.push(AppRoutes.archiveImport),
+      onSelectMistakesDrill: () => context.push(AppRoutes.archiveMistakes),
     );
   }
 

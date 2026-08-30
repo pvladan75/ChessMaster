@@ -153,6 +153,10 @@ abstract final class AppRoutes {
   static String archiveLeaksPath(String subject) =>
       '$archiveLeaks?subject=${Uri.encodeQueryComponent(subject)}';
 
+  static const String archiveMistakes = '/archive/mistakes';
+
+  static const String archiveRepertoire = '/archive/repertoire';
+
   /// Internal design gallery for design review and visual component inspection.
   static const String designGallery = '/design-gallery';
 }

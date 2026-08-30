@@ -6,6 +6,9 @@ import 'package:chess_app/constants.dart';
 import 'package:chess_app/features/archive/models/archive_run.dart';
 import 'package:chess_app/features/archive/models/json_int.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
+import 'package:chess_app/features/archive/models/mistake_item.dart';
+import 'package:chess_app/features/archive/models/mistake_recurrence.dart';
+import 'package:chess_app/features/archive/models/repertoire_diff.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 
@@ -136,5 +139,94 @@ class ArchiveApiService {
       };
     }
     throw Exception('Failed to backfill: ${response.body}');
+  }
+
+  Future<List<MistakeItem>> fetchMistakesDue({int limit = 20}) async {
+    final uri = Uri.parse('$backendUrl/games/mistakes/due?limit=$limit');
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return ((json['items'] as List?) ?? [])
+          .map((e) => MistakeItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    }
+    throw Exception('Failed to fetch due mistakes: ${response.body}');
+  }
+
+  Future<GradeResponse> gradeMistake(String id, String grade) async {
+    final uri = Uri.parse('$backendUrl/games/mistakes/$id/grade');
+    final response = await _post(
+      uri,
+      {
+        'Authorization': 'Bearer $_token',
+        'Content-Type': 'application/json',
+      },
+      jsonEncode({'grade': grade}),
+    );
+    return GradeResponse.fromJson(jsonDecode(response.body));
+  }
+
+  Future<Map<String, int>> fetchMistakeStats() async {
+    final uri = Uri.parse('$backendUrl/games/mistakes/stats');
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return json.map((k, v) => MapEntry(k, jsonInt(v)));
+    }
+    throw Exception('Failed to fetch mistake stats: ${response.body}');
+  }
+
+  Future<MistakeRecurrence> fetchMistakeRecurrence() async {
+    final uri = Uri.parse('$backendUrl/games/mistakes/recurrence');
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      return MistakeRecurrence.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to fetch mistake recurrence: ${response.body}');
+  }
+
+  Future<RepertoireSeedResult> seedRepertoire({
+    required String username,
+    String? color,
+    int? minGames,
+    bool? dryRun,
+  }) async {
+    final uri = Uri.parse('$backendUrl/games/repertoire/seed');
+    final response = await _post(
+      uri,
+      {
+        'Authorization': 'Bearer $_token',
+        'Content-Type': 'application/json',
+      },
+      jsonEncode({
+        'username': username,
+        if (color != null) 'color': color,
+        if (minGames != null) 'minGames': minGames,
+        if (dryRun != null) 'dryRun': dryRun,
+      }),
+    );
+    if (response.statusCode == 200) {
+      return RepertoireSeedResult.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to seed repertoire: ${response.body}');
+  }
+
+  Future<RepertoireDiff> getRepertoireDiff({
+    required String username,
+    String? color,
+    int? limit,
+  }) async {
+    final params = <String, String>{
+      'username': username,
+      if (color != null) 'color': color,
+      if (limit != null) 'limit': limit.toString(),
+    };
+    final uri = Uri.parse('$backendUrl/games/repertoire/diff')
+        .replace(queryParameters: params);
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      return RepertoireDiff.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to fetch repertoire diff: ${response.body}');
   }
 }

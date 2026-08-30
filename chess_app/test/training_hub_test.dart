@@ -27,6 +27,7 @@ void main() {
             onSelectBlunderGames: () => calls.add('greske'),
             onSelectRepertoire: () => calls.add('repertoar'),
             onSelectMyGames: () => calls.add('moje partije'),
+            onSelectMistakesDrill: () => calls.add('greske drill'),
           ),
         ),
       ),
@@ -102,6 +103,7 @@ void main() {
             onSelectBlunderGames: () => calls.add('greske'),
             onSelectRepertoire: () => calls.add('repertoar'),
             onSelectMyGames: () => calls.add('moje partije'),
+            onSelectMistakesDrill: () => calls.add('greske drill'),
           ),
         ),
       ),
@@ -132,6 +134,7 @@ void main() {
           onSelectBlunderGames: () {},
           onSelectRepertoire: () {},
           onSelectMyGames: () {},
+          onSelectMistakesDrill: () {},
         ),
       ),
     ));
@@ -180,6 +183,7 @@ void main() {
           onSelectBlunderGames: () {},
           onSelectRepertoire: () {},
           onSelectMyGames: () {},
+          onSelectMistakesDrill: () {},
         ),
       ),
     ));

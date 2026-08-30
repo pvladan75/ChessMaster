@@ -2,12 +2,48 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/features/archive/models/archive_run.dart';
+import 'package:chess_app/features/archive/models/leak_report.dart';
+import 'package:chess_app/features/archive/models/mistake_item.dart';
+import 'package:chess_app/features/archive/models/mistake_recurrence.dart';
+import 'package:chess_app/features/archive/models/repertoire_diff.dart';
 import 'package:chess_app/features/archive/screens/archive_import_screen.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
-import 'package:chess_app/features/archive/models/leak_report.dart';
 import 'package:chess_app/theme/app_theme.dart';
 
 class FakeArchiveApiService implements ArchiveApiService {
+  @override
+  Future<List<MistakeItem>> fetchMistakesDue({int limit = 20}) async => [];
+
+  @override
+  Future<GradeResponse> gradeMistake(String id, String grade) async =>
+      const GradeResponse(ok: true);
+
+  @override
+  Future<Map<String, int>> fetchMistakeStats() async => {};
+
+  @override
+  Future<MistakeRecurrence> fetchMistakeRecurrence() async =>
+      const MistakeRecurrence();
+
+  @override
+  Future<RepertoireSeedResult> seedRepertoire(
+          {required String username,
+          String? color,
+          int? minGames,
+          bool? dryRun}) async =>
+      const RepertoireSeedResult(
+          dryRun: true, positionsCount: 0, movesCount: 0, unplayable: 0);
+
+  @override
+  Future<RepertoireDiff> getRepertoireDiff(
+          {required String username, String? color, int? limit}) async =>
+      RepertoireDiff(
+          subject: username,
+          color: color ?? 'white',
+          coveredGames: 0,
+          followedGames: 0,
+          leftGames: 0);
+
   @override
   Future<int> importFile(String filePath, String username) async => 1;
 

@@ -29,7 +29,9 @@ import 'package:chess_app/features/assignments/screens/student_progress_screen.d
 import 'package:chess_app/features/assignments/widgets/assignment_detail_gate.dart';
 import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
 import 'package:chess_app/features/archive/screens/archive_import_screen.dart';
+import 'package:chess_app/features/archive/screens/mistake_drill_screen.dart';
 import 'package:chess_app/features/archive/screens/opening_leak_report_screen.dart';
+import 'package:chess_app/features/archive/screens/repertoire_diff_screen.dart';
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
@@ -282,6 +284,18 @@ final List<RouteBase> appRouteTable = [
       final subject = state.uri.queryParameters['subject']?.trim() ?? '';
       if (subject.isEmpty) return const ArchiveImportScreen();
       return OpeningLeakReportScreen(subject: subject);
+    },
+  ),
+  GoRoute(
+    path: AppRoutes.archiveMistakes,
+    builder: (context, state) => const MistakeDrillScreen(),
+  ),
+  GoRoute(
+    path: AppRoutes.archiveRepertoire,
+    builder: (context, state) {
+      final subject = state.uri.queryParameters['subject'];
+      final color = state.uri.queryParameters['color'];
+      return RepertoireDiffScreen(subject: subject ?? '', color: color);
     },
   ),
   GoRoute(
