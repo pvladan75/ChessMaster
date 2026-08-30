@@ -64,6 +64,7 @@ class TrainingHubScreen extends StatelessWidget {
                 onSelectBlunderGames: () =>
                     context.push(AppRoutes.blunderGames),
                 onSelectRepertoire: () => context.push(AppRoutes.repertoire),
+                onSelectMyGames: () => context.push(AppRoutes.archiveImport),
                 // These three used to be a value on the working screen's state.
                 // They are places, so they have paths.
                 onSelectMatePuzzle: (depth) => context

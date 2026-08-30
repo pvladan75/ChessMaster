@@ -26,6 +26,7 @@ void main() {
             onSelectEndgameDraw: () => calls.add('zavrsnice:remi'),
             onSelectBlunderGames: () => calls.add('greske'),
             onSelectRepertoire: () => calls.add('repertoar'),
+            onSelectMyGames: () => calls.add('moje partije'),
           ),
         ),
       ),
@@ -61,6 +62,7 @@ void main() {
       'Srednje': 'osnovno:medium',
       'Teško': 'osnovno:hard',
       'Započni vežbanje dobitnih pozicija': 'dobijena',
+      'Uvezi partije': 'moje partije',
     };
 
     for (final entry in promises.entries) {
@@ -99,6 +101,7 @@ void main() {
             onSelectEndgameDraw: () => calls.add('zavrsnice:remi'),
             onSelectBlunderGames: () => calls.add('greske'),
             onSelectRepertoire: () => calls.add('repertoar'),
+            onSelectMyGames: () => calls.add('moje partije'),
           ),
         ),
       ),
@@ -128,6 +131,7 @@ void main() {
           onSelectEndgameDraw: () {},
           onSelectBlunderGames: () {},
           onSelectRepertoire: () {},
+          onSelectMyGames: () {},
         ),
       ),
     ));
@@ -175,6 +179,7 @@ void main() {
           onSelectEndgameDraw: () {},
           onSelectBlunderGames: () {},
           onSelectRepertoire: () {},
+          onSelectMyGames: () {},
         ),
       ),
     ));

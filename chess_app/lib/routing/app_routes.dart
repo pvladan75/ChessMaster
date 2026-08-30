@@ -139,6 +139,20 @@ abstract final class AppRoutes {
     return '$trainingDrill?$query';
   }
 
+  /// The player's own archive: they hand over a PGN export and the importer
+  /// turns it into rows. The entry point for the whole feature, because the
+  /// report below is meaningless against an archive nobody has imported yet.
+  static const String archiveImport = '/archive/import';
+
+  /// Where the same early choice keeps going badly. `subject` is the handle the
+  /// archive was imported under and is required — the report is per-player, and
+  /// this screen has no way to guess which player. It rides in the query rather
+  /// than the path so a handle with a slash in it cannot break the route.
+  static const String archiveLeaks = '/archive/leaks';
+
+  static String archiveLeaksPath(String subject) =>
+      '$archiveLeaks?subject=${Uri.encodeQueryComponent(subject)}';
+
   /// Internal design gallery for design review and visual component inspection.
   static const String designGallery = '/design-gallery';
 }

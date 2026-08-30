@@ -28,6 +28,8 @@ import 'package:chess_app/features/assignments/screens/my_assignments_screen.dar
 import 'package:chess_app/features/assignments/screens/student_progress_screen.dart';
 import 'package:chess_app/features/assignments/widgets/assignment_detail_gate.dart';
 import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
+import 'package:chess_app/features/archive/screens/archive_import_screen.dart';
+import 'package:chess_app/features/archive/screens/opening_leak_report_screen.dart';
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
@@ -266,6 +268,21 @@ final List<RouteBase> appRouteTable = [
   GoRoute(
     path: AppRoutes.repertoire,
     builder: (context, state) => const RepertoireListScreen(),
+  ),
+  GoRoute(
+    path: AppRoutes.archiveImport,
+    builder: (context, state) => const ArchiveImportScreen(),
+  ),
+  GoRoute(
+    path: AppRoutes.archiveLeaks,
+    builder: (context, state) {
+      // Reached only from the import screen, which knows the handle it just
+      // imported under. A report for nobody is an empty list wearing the same
+      // shape as a clean archive, so this refuses rather than guesses.
+      final subject = state.uri.queryParameters['subject']?.trim() ?? '';
+      if (subject.isEmpty) return const ArchiveImportScreen();
+      return OpeningLeakReportScreen(subject: subject);
+    },
   ),
   GoRoute(
     path: AppRoutes.endgamePicker,

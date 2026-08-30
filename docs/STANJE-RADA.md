@@ -2465,3 +2465,44 @@ je najmanji koristan sledeći korak za trenerski panel.
 
 Testovi: 635 → **650**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
 stavka 58.
+
+## Dva ekrana nad arhivom — agent za dizajn, 30.8.2026, pregledano istog dana
+
+`chess_app/lib/features/archive/`: uvoz i izveštaj o otvaranjima, nad
+backendom iz sekcija 0 i 1, koji ovaj posao nije menjao. Do njih se stiže
+preko nove kartice **„Moje partije"** u sekciji Otvaranje na raskrsnici
+treninga; uvoz predaje izveštaju korisničko ime pod kojim je run išao, pa
+izveštaj nema svoje polje za unos i ne može da se otvori nad arhivom koje
+nema.
+
+Tri stvari koje je pregled uhvatio, i vrede zapisane jer se sve tri čitaju kao
+uspeh dok se ne pogledaju:
+
+- **Agent je prijavio „902 testa, sve zeleno" dok je jedan njegov test padao.**
+  `find.text('2. polupotez')` traži tačno podudaranje, a ekran crta
+  „2. polupotez · uspeh 45,0%". Broj u prijavi je bio tačan, boja nije.
+- **`user_game_imports.id` je `BIGSERIAL`, a node-postgres `int8` vraća kao
+  string.** `json['importId'] as int` bi pukao na prvom pravom uvozu, i nijedan
+  widget test to ne može uhvatiti jer lažni servis vraća `int`. Broj sada ide
+  kroz `jsonInt`, koji prima i jedno i drugo. Isti oblik greške kao svi ostali
+  u ovom projektu: korak koji tiho preskoči i javi uspeh.
+- **Četiri brojača se nisu crtala ni u jednom testu.** `_run` ostaje `null` dok
+  ne prođe birač fajlova, koji widget test ne može da pokrene, pa je tvrdnja
+  „u `Wrap` su da se ne preliju" bila neproverena. Izdvojeni su u
+  `ImportCounters` i dokazani mutacijom: kao `Row` prelivaju se za 358 px
+  prazni i 860 px sa razlozima preskakanja.
+
+Suđenje je **isključeno dok se ne zatraži**. Agent je model i ekran napisao za
+presude, ali `judge=true` nije nikada slao — značke i rečenica „Bolje je bilo…"
+postojale su samo u lažnom servisu. Sada ide na dugme „Presudi poteze", jer
+troši korisnikov Lichess token, a brojevi su potpuni i bez njega. I to je
+dokazano mutacijom.
+
+Tabla u redu je `BoardThumbnail`, a ne `SkinnedChessBoard` kako je brief tražio
+— za pregled od 80 px koji se ne dodiruje to je lakše, ali jeste izmena
+deljenog widgeta: dodat mu je `isWhiteBottom`, koji okreće mrežu a boju polja
+ostavlja vezanu za mesto na ekranu.
+
+Testovi u aplikaciji: 900 → **908**, 1 preskočen. `flutter analyze` i dalje 29
+`info`-a, bez novih. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
+stavke 52 i 53, pododeljci „Ekran".

@@ -27,12 +27,15 @@ class BoardThumbnail extends StatelessWidget {
   /// Same, for the pieces standing on it.
   final PieceSkin? pieceSkin;
 
+  final bool isWhiteBottom;
+
   const BoardThumbnail({
     super.key,
     required this.fen,
     this.size = 40,
     this.skin,
     this.pieceSkin,
+    this.isWhiteBottom = true,
   });
 
   List<List<String?>> _parseBoard() {
@@ -79,9 +82,11 @@ class BoardThumbnail extends StatelessWidget {
               crossAxisCount: 8),
           itemCount: 64,
           itemBuilder: (context, index) {
-            final r = index ~/ 8;
-            final c = index % 8;
-            final isLight = (r + c) % 2 == 0;
+            final rRaw = index ~/ 8;
+            final cRaw = index % 8;
+            final r = isWhiteBottom ? rRaw : 7 - rRaw;
+            final c = isWhiteBottom ? cRaw : 7 - cRaw;
+            final isLight = (rRaw + cRaw) % 2 == 0;
             final piece =
                 chessPieceWidget(grid[r][c], size: tileSize, skin: pieceSkin);
             return Container(

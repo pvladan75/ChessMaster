@@ -2015,6 +2015,26 @@ unosi ručno — veze naloga sa Lichess-om još nema.
    dropletu od 960 MB — `moves` i `clocks` su nizovi po partiji, a ovo je prva
    tabela koja raste sa istorijom korisnika, ne sa njegovim radom u aplikaciji.
 
+### Ekran za uvoz (30.8.2026, nije viđeno uživo)
+
+Dodat 30.8.2026, zajedno sa izveštajem ispod. Do njega se stiže preko kartice
+„Moje partije" u treningu, u sekciji Otvaranje.
+
+- [ ] **Četiri brojača stoje na telefonu od 360 dp i sabiraju se.** Test to
+  tvrdi nad izdvojenim `ImportCounters` i dokazan je mutacijom (kao `Row`
+  prelivaju se za 358 px prazni i 860 px sa razlozima), ali nijednom nije
+  viđeno kroz pravi uvoz.
+- [ ] **`preskočeno` nije go broj.** Uvesti PGN u koji je namerno ubačena
+  partija u nekoj varijanti i partija bez poteza, pa proveriti da piše
+  „preskočeno 2: 1 nije standardni šah, 1 bez poteza".
+- [ ] **`importId` prolazi.** `user_game_imports.id` je `BIGSERIAL`, a
+  node-postgres `int8` vraća kao **string**; klijent zato broj čita kroz
+  `jsonInt`. Ovo je jedina stvar ovde koja bi pukla na prvom pravom uvozu i
+  nijedan widget test je ne može uhvatiti, jer lažni servis vraća `int`.
+- [ ] **Anketa na 2 s ne ostaje da radi** kad se ekran napusti usred uvoza.
+- [ ] **Dugme „Pogledaj rupe u otvaranju"** se pojavi tek kad je run `done` i
+  vodi na izveštaj sa istim korisničkim imenom pod kojim je uvoz išao.
+
 ## 53. Izveštaj o otvaranjima — 30.8.2026, nije viđeno uživo
 
 Prva analiza koja se oslanja na uvezenu arhivu. Sve dole je mereno van baze, na
@@ -2039,6 +2059,26 @@ PGN fajlu, kroz isti kod koji ide u produkciju — ali nijednom kroz Postgres.
 7. [ ] **Nalaz ima smisla za igrača.** Jedina provera koju kod ne može da
    uradi: da li je pozicija koju izveštaj proglasi navikom zaista mesto gde
    vlasnik projekta misli da igra loše.
+
+### Ekran izveštaja (30.8.2026, nije viđeno uživo)
+
+- [ ] **Tabla u redu je okrenuta prema boji.** Crtana je kroz `BoardThumbnail`,
+  kome je dodat `isWhiteBottom`; proveriti da red za crnog nije nacrtan naopako
+  i da polja nisu zamenila boje.
+- [ ] **Suđenje se ne pokreće samo od sebe.** Izveštaj se otvara samo sa
+  brojevima, a `judge=true` ide tek na dugme „Presudi poteze" — troši
+  korisnikov Lichess token. Test to tvrdi i dokazan je mutacijom; uživo treba
+  videti da se posle klika zaista pojavi presuda i da dugme nestane.
+- [ ] **Bez tokena izveštaj ostaje.** Kliknuti „Presudi poteze" bez tokena u
+  Podešavanjima: brojevi moraju ostati, a poruka o tokenu se pojaviti pored
+  njih, ne umesto njih.
+- [ ] **`unknown` se ne crta kao greška.** Nema značke „Sumnjiv potez" nad
+  pozicijom koju niko nije ocenio.
+- [ ] **Boja nije jedini kanal.** Svaka značka nosi i ikonu i srpski naziv
+  („Glavna teorija", „Sumnjiv potez"); vlasnik projekta je daltonista i ovo je
+  provera koju samo on može da uradi.
+- [ ] **Dugme za dopunu** se pojavi kad je `gamesWithoutNodes > 0` i nestane
+  posle dopune.
 
 ## 54. Provera završnica preko Syzygy tablica — 30.8.2026, nije viđeno uživo
 

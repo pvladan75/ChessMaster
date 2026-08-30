@@ -12,6 +12,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
   final VoidCallback onSelectEndgameDraw;
   final VoidCallback onSelectBlunderGames;
   final VoidCallback onSelectRepertoire;
+  final VoidCallback onSelectMyGames;
 
   const CategorySelectionHubWidget({
     super.key,
@@ -23,6 +24,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
     required this.onSelectEndgameDraw,
     required this.onSelectBlunderGames,
     required this.onSelectRepertoire,
+    required this.onSelectMyGames,
   });
 
   /// The label above a group of cards.
@@ -42,6 +44,34 @@ class CategorySelectionHubWidget extends StatelessWidget {
           color: context.colors.textMuted,
           letterSpacing: 1.2,
         ),
+      ),
+    );
+  }
+
+  /// The player's own archive, which is the only card here whose material the
+  /// player brings. Everything else on this hub is a set somebody made for
+  /// them; this one is four thousand of their own games and the positions they
+  /// keep answering the same wrong way.
+  Widget _buildMyGamesCard(AppColorTokens colors) {
+    return _CategoryCard(
+      accentColor: colors.info,
+      icon: Icons.inventory_2_outlined,
+      title: 'Moje partije',
+      description:
+          'Uvezite PGN izvoz svojih partija i aplikacija pokazuje gde vam '
+          'otvaranje stalno curi: pozicije do kojih stižete često, potez koji '
+          'u njima igrate iznova i koliko vam je bodova doneo.',
+      action: FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: colors.info.withValues(alpha: 0.22),
+          foregroundColor: colors.info,
+          side: BorderSide(
+            color: colors.info.withValues(alpha: 0.45),
+          ),
+        ),
+        icon: const Icon(Icons.file_upload),
+        label: const Text('Uvezi partije'),
+        onPressed: onSelectMyGames,
       ),
     );
   }
@@ -298,6 +328,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
                         children: [
                           _section(context, 'Otvaranje'),
                           _buildRepertoireCard(colors),
+                          const SizedBox(height: AppSpacing.lg),
+                          _buildMyGamesCard(colors),
                           const SizedBox(height: AppSpacing.xxl),
                           _section(context, 'Taktika'),
                           _buildTacticsCard(colors),
@@ -327,6 +359,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
                 // Single-column layout on mobile / narrow screens (< 840px)
                 _section(context, 'Otvaranje'),
                 _buildRepertoireCard(colors),
+                const SizedBox(height: AppSpacing.lg),
+                _buildMyGamesCard(colors),
                 const SizedBox(height: AppSpacing.xxl),
                 _section(context, 'Taktika'),
                 _buildTacticsCard(colors),

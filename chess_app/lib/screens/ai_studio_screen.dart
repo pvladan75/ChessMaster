@@ -2457,6 +2457,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           context.push('${AppRoutes.endgamePicker}?mode=draw'),
       onSelectBlunderGames: () => context.push(AppRoutes.blunderGames),
       onSelectRepertoire: () => context.push(AppRoutes.repertoire),
+      onSelectMyGames: () => context.push(AppRoutes.archiveImport),
     );
   }
 
