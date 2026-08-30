@@ -187,6 +187,26 @@ Win32Window::MessageHandler(HWND hwnd,
       }
       return 0;
 
+    // The smallest the window may be dragged, in logical pixels, scaled to the
+    // monitor's DPI.
+    //
+    // Below this the layout stops fitting and starts overlapping: the studio's
+    // side panels climb onto the board, and the library cards run off the right
+    // edge. In a release build none of that is drawn -- it is simply clipped,
+    // and a button past the edge cannot be pressed. Refusing the size is
+    // cheaper than making every screen survive a 250 px window nobody wants.
+    //
+    // 900x640: 900 keeps the three-column studio from collapsing onto itself,
+    // 640 keeps the navigation strip under the board on screen.
+    case WM_GETMINMAXINFO: {
+      auto* info = reinterpret_cast<MINMAXINFO*>(lparam);
+      const double scale = static_cast<double>(
+          FlutterDesktopGetDpiForHWND(hwnd)) / 96.0;
+      info->ptMinTrackSize.x = static_cast<LONG>(900 * scale);
+      info->ptMinTrackSize.y = static_cast<LONG>(640 * scale);
+      return 0;
+    }
+
     case WM_DPICHANGED: {
       auto newRectSize = reinterpret_cast<RECT*>(lparam);
       LONG newWidth = newRectSize->right - newRectSize->left;

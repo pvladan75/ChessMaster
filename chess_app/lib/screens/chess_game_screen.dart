@@ -2820,8 +2820,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
     // In landscape the left column is the board and nothing else, so it may
     // take nearly the whole height — a little less when the eval bar is above
     // it, which is the only other thing sharing that column.
+    // Sirina koju u „wide" rasporedu pojedu dve bocne kolone: leva (lekcije)
+    // i desna (kontrole), obe fiksnih 300, plus razdelnik i disanje oko table.
+    const sideColumns = 300.0 + 300.0 + 20.0;
+
     final boardSize = (isWide
-            ? min(media.size.height * 0.62, media.size.width * 0.42)
+            // Tabla se meri po prostoru koji joj je stvarno ostao, ne po celom
+            // prozoru. Ranije je bilo `media.size.width * 0.42`, sto je iznad
+            // praga od 840 uvek trazilo vise nego sto srednja kolona ima:
+            // 0.42W > W - 620 vazi za svako W ispod ~1069, pa je studio na
+            // svakoj sirini izmedju 840 i tog broja prelivao. U release gradnji
+            // se to ne vidi - tabla se prosto isece s desne strane.
+            ? min(media.size.height * 0.62,
+                max(240.0, media.size.width - sideColumns) * 0.96)
             : isLandscape
                 ? min(media.size.height * (_showEvalBar ? 0.84 : 0.94),
                     media.size.width * 0.46)

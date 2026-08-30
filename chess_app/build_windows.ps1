@@ -187,7 +187,18 @@ Invoke-Build
 # zavrsila, pa ga sada radi sama - jednom, glasno, i proverava ishod.
 
 Write-Host "--- [2/4] Font sa ikonama ---" -ForegroundColor Cyan
-if (-not (Test-Path $font)) {
+if ($Mode -eq "debug") {
+    # Ikone se tree-shake-uju samo u release gradnji. Debug prepisuje ceo font
+    # iz Flutter SDK-a takav kakav je, sa datumom SDK-a - 1,6 MB od pre nekoliko
+    # meseci umesto 32 KB od maloprvasnje gradnje.
+    #
+    # Provera ispod je zato u debug-u uvek padala, i to nepopravljivo: obrise
+    # font, sagradi ponovo, dobije isti stari datum iz kesa, pa prijavi gresku.
+    # `-Mode debug` se time nije mogao zavrsiti - a to je jedina gradnja u kojoj
+    # se prelivanje uopste vidi, dakle bas ona koja treba za pregled izgleda.
+    Write-Host "  Debug ne tree-shake-uje ikone; font se prepisuje ceo. Nema sta da zastari." -ForegroundColor DarkGray
+}
+elseif (-not (Test-Path $font)) {
     Write-Host "  Fonta nema u izlazu; nema sta da zastari." -ForegroundColor DarkGray
 } elseif ((Get-Item $font).LastWriteTime -lt $pocetak) {
     Write-Host "! Font je od $((Get-Item $font).LastWriteTime), a gradnja je pocela $pocetak." -ForegroundColor Yellow
