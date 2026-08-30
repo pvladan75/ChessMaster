@@ -45,7 +45,8 @@ void main() {
     expect(PgnParser.sanitizeForLoadPgn(plain), plain);
   });
 
-  test('header dates like "2026.08.01" are not mistaken for elided numbers', () {
+  test('header dates like "2026.08.01" are not mistaken for elided numbers',
+      () {
     const withDate = '[Date "2026.08.01"]\n\n1. e4 e5';
     expect(PgnParser.sanitizeForLoadPgn(withDate), withDate);
   });

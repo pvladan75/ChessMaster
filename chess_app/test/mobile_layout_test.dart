@@ -94,7 +94,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('the title is prefilled from the suggested weak themes', (tester) async {
+    testWidgets('the title is prefilled from the suggested weak themes',
+        (tester) async {
       await _setScreen(tester, _phone);
 
       await tester.pumpWidget(_host(
@@ -161,12 +162,14 @@ void main() {
   });
 
   group('theme labels', () {
-    testWidgets('the longest Serbian motif name does not overflow its row', (tester) async {
+    testWidgets('the longest Serbian motif name does not overflow its row',
+        (tester) async {
       await _setScreen(tester, _smallPhone);
 
       // Approximates the progress screen's row at its tightest: the longest
       // label the app can produce, on the narrowest screen it supports.
-      final longest = themeLabels.values.reduce((a, b) => a.length >= b.length ? a : b);
+      final longest =
+          themeLabels.values.reduce((a, b) => a.length >= b.length ? a : b);
 
       await tester.pumpWidget(_host(
         Scaffold(
@@ -176,12 +179,17 @@ void main() {
               children: [
                 Expanded(
                   flex: 5,
-                  child: Text(longest, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                  child: Text(longest,
+                      style: const TextStyle(fontSize: 13),
+                      overflow: TextOverflow.ellipsis),
                 ),
                 const SizedBox(width: 8),
-                const Expanded(flex: 4, child: LinearProgressIndicator(value: 0.5)),
+                const Expanded(
+                    flex: 4, child: LinearProgressIndicator(value: 0.5)),
                 const SizedBox(width: 10),
-                const SizedBox(width: 74, child: Text('100% (99)', textAlign: TextAlign.right)),
+                const SizedBox(
+                    width: 74,
+                    child: Text('100% (99)', textAlign: TextAlign.right)),
               ],
             ),
           ),

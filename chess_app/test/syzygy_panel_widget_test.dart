@@ -16,7 +16,9 @@ const _kqVsKrJson = '''
 ''';
 
 void main() {
-  testWidgets('SyzygyPanelWidget shows the tablebase verdict and best move, and taps invoke the callback', (tester) async {
+  testWidgets(
+      'SyzygyPanelWidget shows the tablebase verdict and best move, and taps invoke the callback',
+      (tester) async {
     final result = SyzygyResult.fromJson(
       '7r/8/4k3/8/3K4/8/8/3Q4 w - - 0 1',
       jsonDecode(_kqVsKrJson) as Map<String, dynamic>,
@@ -41,7 +43,8 @@ void main() {
     // it as a "loss" for Black, the side to move after it).
     expect(result.moves.first.san, 'Qg4+');
 
-    expect(find.textContaining('Pobeda'), findsWidgets); // verdict chip: "Pobeda · DTZ 29"
+    expect(find.textContaining('Pobeda'),
+        findsWidgets); // verdict chip: "Pobeda · DTZ 29"
     expect(find.textContaining('Qg4+'), findsOneWidget);
     expect(find.textContaining('Qa4'), findsOneWidget);
 
@@ -51,11 +54,13 @@ void main() {
     expect(tappedUci, 'd1g4');
   });
 
-  testWidgets('SyzygyPanelWidget renders nothing when not eligible', (tester) async {
+  testWidgets('SyzygyPanelWidget renders nothing when not eligible',
+      (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          body: SyzygyPanelWidget(isEligible: false, isLoading: false, result: null),
+          body: SyzygyPanelWidget(
+              isEligible: false, isLoading: false, result: null),
         ),
       ),
     );

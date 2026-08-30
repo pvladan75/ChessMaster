@@ -22,7 +22,8 @@ void main() {
       );
       expect(doubled.affectedSquares, containsAll(['c2', 'c3']));
 
-      final isolated = result.findings.where((f) => f.factors.contains(PositionalFactor.isolatedPawn));
+      final isolated = result.findings
+          .where((f) => f.factors.contains(PositionalFactor.isolatedPawn));
       expect(isolated.any((f) => f.affectedSquares.contains('a2')), isTrue);
       expect(isolated.any((f) => f.affectedSquares.contains('c2')), isTrue);
     });
@@ -32,7 +33,9 @@ void main() {
       final result = service.evaluate(fen: fen);
 
       final passed = result.findings.firstWhere(
-        (f) => f.factors.contains(PositionalFactor.passedPawn) && f.affectedSquares.contains('a5'),
+        (f) =>
+            f.factors.contains(PositionalFactor.passedPawn) &&
+            f.affectedSquares.contains('a5'),
         orElse: () => throw StateError('expected a5 flagged as a passed pawn'),
       );
       expect(passed.description, contains('Prolazni pešak'));
@@ -71,7 +74,8 @@ void main() {
 
       final weakness = result.findings.firstWhere(
         (f) => f.factors.contains(PositionalFactor.colorComplexWeakness),
-        orElse: () => throw StateError('expected a color-complex-weakness finding'),
+        orElse: () =>
+            throw StateError('expected a color-complex-weakness finding'),
       );
       expect(weakness.description, contains('svetlopoljnog lovca'));
     });
@@ -112,34 +116,45 @@ void main() {
       expect(outpost.affectedSquares, contains('d5'));
     });
 
-    test('9. Detects a damaged pawn shield and an open file next to the king', () {
+    test('9. Detects a damaged pawn shield and an open file next to the king',
+        () {
       const fen = '4k3/8/8/8/8/8/8/4K2R w - - 0 1';
       final result = service.evaluate(fen: fen);
 
-      final shieldFindings = result.findings.where((f) => f.factors.contains(PositionalFactor.kingShield));
-      expect(shieldFindings.any((f) => f.description.contains('pešačkog štita')), isTrue);
-      expect(shieldFindings.any((f) => f.description.contains('otvorena')), isTrue);
+      final shieldFindings = result.findings
+          .where((f) => f.factors.contains(PositionalFactor.kingShield));
+      expect(
+          shieldFindings.any((f) => f.description.contains('pešačkog štita')),
+          isTrue);
+      expect(shieldFindings.any((f) => f.description.contains('otvorena')),
+          isTrue);
     });
 
-    test('10. explainMove diffs positional findings the same way tactical does', () {
+    test('10. explainMove diffs positional findings the same way tactical does',
+        () {
       // Before: White knight on b1 (undeveloped, no outpost). After: it
       // jumps to the permanent d5 outpost from test 8.
       const beforeFen = '4k3/8/8/8/2P1P3/8/8/1N2K3 w - - 0 1';
       const afterFen = '4k3/8/8/3N4/2P1P3/8/8/4K3 b - - 0 1';
 
-      final diff = service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
+      final diff =
+          service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
 
       final created = diff.created.firstWhere(
         (f) => f.factors.contains(PositionalFactor.knightOutpost),
-        orElse: () => throw StateError('expected a newly-created outpost finding'),
+        orElse: () =>
+            throw StateError('expected a newly-created outpost finding'),
       );
       expect(created.affectedSquares, contains('d5'));
     });
 
-    test('11. describeMoveDiff and candidateCommentLines format findings consistently', () {
+    test(
+        '11. describeMoveDiff and candidateCommentLines format findings consistently',
+        () {
       const beforeFen = '4k3/8/8/8/2P1P3/8/8/1N2K3 w - - 0 1';
       const afterFen = '4k3/8/8/3N4/2P1P3/8/8/4K3 b - - 0 1';
-      final diff = service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
+      final diff =
+          service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
 
       final comment = service.describeMoveDiff(diff);
       final candidates = service.candidateCommentLines(diff);
@@ -148,7 +163,9 @@ void main() {
       expect(candidates.any((c) => c.contains('uporištu')), isTrue);
     });
 
-    test('12. describeMoveDiff drops routine "open file near king" churn when shield loss also fires', () {
+    test(
+        '12. describeMoveDiff drops routine "open file near king" churn when shield loss also fires',
+        () {
       // A king losing its whole pawn shield trivially also gets an "open
       // file next to the king" finding on the same move — that fluid signal
       // shouldn't be narrated on top of the much bigger shield-loss story
@@ -158,7 +175,8 @@ void main() {
       const beforeFen = '4k3/8/8/8/8/8/5PPP/6K1 w - - 0 1';
       const afterFen = '4k3/8/8/8/8/8/8/6K1 b - - 0 1';
 
-      final diff = service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
+      final diff =
+          service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
       final comment = service.describeMoveDiff(diff);
 
       expect(comment, contains('pešačkog štita'));

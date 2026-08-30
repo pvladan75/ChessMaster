@@ -29,7 +29,8 @@ AnimatedMovePiece _overlay({double boardSize = 400}) => AnimatedMovePiece(
     );
 
 void main() {
-  testWidgets('lays out where the parent offers unbounded height', (tester) async {
+  testWidgets('lays out where the parent offers unbounded height',
+      (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -43,10 +44,12 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(tester.getSize(find.byType(AnimatedMovePiece)), const Size(400, 400));
+    expect(
+        tester.getSize(find.byType(AnimatedMovePiece)), const Size(400, 400));
   });
 
-  testWidgets('takes exactly the board size, not the space on offer', (tester) async {
+  testWidgets('takes exactly the board size, not the space on offer',
+      (tester) async {
     // A parent far larger than the board must not stretch the overlay: the
     // squares it positions pieces over are computed from boardSize, so any
     // other size would put the sprite on the wrong square.
@@ -61,6 +64,7 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(tester.getSize(find.byType(AnimatedMovePiece)), const Size(320, 320));
+    expect(
+        tester.getSize(find.byType(AnimatedMovePiece)), const Size(320, 320));
   });
 }

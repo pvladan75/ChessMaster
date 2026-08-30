@@ -166,9 +166,16 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
                   label: const Text('Repertoar iz partija'),
                   style: FilledButton.styleFrom(
                     backgroundColor:
-                        context.colors.brand.withValues(alpha: 0.22),
+                        context.colors.brand.withValues(alpha: 0.08),
                     foregroundColor: context.colors.brand,
                   ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                FilledButton.icon(
+                  onPressed: () =>
+                      context.push(AppRoutes.archiveProfilePath(_run!.subject)),
+                  icon: const Icon(Icons.person_outline),
+                  label: const Text('Profil i navike'),
                 ),
               ],
               const SizedBox(height: AppSpacing.md),

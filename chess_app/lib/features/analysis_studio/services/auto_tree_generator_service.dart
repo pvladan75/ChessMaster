@@ -21,8 +21,7 @@ class AutoAnalysisParams {
     this.candidateCount = 2,
     int? engineDepth,
     this.deltaCutoff = 1.5,
-  }) : engineDepth =
-            engineDepth ?? AppSettingsService.instance.analysisDepth;
+  }) : engineDepth = engineDepth ?? AppSettingsService.instance.analysisDepth;
 }
 
 /// How the generator asks for an evaluated position.

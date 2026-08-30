@@ -155,6 +155,11 @@ abstract final class AppRoutes {
 
   static const String archiveMistakes = '/archive/mistakes';
 
+  static const String archiveProfile = '/archive/profile';
+
+  static String archiveProfilePath(String subject) =>
+      '$archiveProfile?subject=${Uri.encodeQueryComponent(subject)}';
+
   static const String archiveRepertoire = '/archive/repertoire';
 
   /// The endgames the tablebases say were thrown away. `subject` is the handle

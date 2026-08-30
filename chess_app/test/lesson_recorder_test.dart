@@ -31,7 +31,8 @@ void main() {
       expect(recorder.elapsedMs(), 0);
 
       recorder.record('move', {'san': 'e4'});
-      expect(recorder.eventCount, 0, reason: 'events before start must be dropped');
+      expect(recorder.eventCount, 0,
+          reason: 'events before start must be dropped');
     });
   });
 
@@ -53,7 +54,8 @@ void main() {
       expect(recorder.eventCount, 2);
 
       recorder.start(initialEventType: 'init', initialData: {'fen': 'other'});
-      expect(recorder.eventCount, 1, reason: 'a new recording must not inherit old events');
+      expect(recorder.eventCount, 1,
+          reason: 'a new recording must not inherit old events');
       expect(recorder.totalPausedMs, 0);
     });
   });
@@ -129,7 +131,8 @@ void main() {
       final atPause = recorder.elapsedMs();
 
       clock.advance(const Duration(minutes: 10));
-      expect(recorder.elapsedMs(), atPause, reason: 'paused time must not accrue');
+      expect(recorder.elapsedMs(), atPause,
+          reason: 'paused time must not accrue');
     });
   });
 
@@ -141,7 +144,8 @@ void main() {
       recorder.pause();
       recorder.record('move', {'san': 'e4'});
 
-      expect(recorder.eventCount, 1, reason: 'only the init event should remain');
+      expect(recorder.eventCount, 1,
+          reason: 'only the init event should remain');
     });
 
     test('a repeated pause does not move the boundary', () {
@@ -191,7 +195,8 @@ void main() {
       expect(timeline.length, 2);
       expect(timeline.last.timestampMs, 5000);
       expect(recorder.isActive, isFalse);
-      expect(recorder.eventCount, 0, reason: 'the recorder must be ready to record again');
+      expect(recorder.eventCount, 0,
+          reason: 'the recorder must be ready to record again');
     });
 
     test('the returned timeline is not emptied by the reset', () {
@@ -229,7 +234,8 @@ void main() {
       expect(recorder.pauses.single.durationMs, 30000);
     });
 
-    test('a second pause is measured against the same origin, not the first', () {
+    test('a second pause is measured against the same origin, not the first',
+        () {
       final clock = FakeClock();
       final recorder = started(clock);
 
@@ -286,7 +292,8 @@ void main() {
 
       final recorded = recorder.stop();
       const wallClockMs = 42000; // 5 + 30 + 7
-      final cutMs = recorded.pauses.fold<int>(0, (sum, p) => sum + p.durationMs);
+      final cutMs =
+          recorded.pauses.fold<int>(0, (sum, p) => sum + p.durationMs);
 
       // This is the whole point of the exercise: whatever is left of the audio
       // after the cut has to match the timeline the board plays against.

@@ -6,7 +6,8 @@ import 'package:chess_app/core/models/move_cursor.dart';
 MoveNode _chain(MoveNode root, List<String> sans) {
   var node = root;
   for (final san in sans) {
-    final child = MoveNode(san: san, fen: node.fen, from: '', to: '', parent: node);
+    final child =
+        MoveNode(san: san, fen: node.fen, from: '', to: '', parent: node);
     node.children.add(child);
     node = child;
   }
@@ -17,7 +18,8 @@ MoveNode _rootAt(String fen) => MoveNode(san: '', fen: fen, from: '', to: '');
 
 const _startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 // Same position but Black to move, with the fullmove counter at 12.
-const _blackToMoveFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 12';
+const _blackToMoveFen =
+    'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 12';
 
 void main() {
   test('white moves carry their number, black moves after them do not', () {
@@ -51,7 +53,8 @@ void main() {
   });
 
   test('numbering continues from the root position fullmove counter', () {
-    final root = _rootAt('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 7');
+    final root =
+        _rootAt('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 7');
     final last = _chain(root, ['e4', 'e5']);
 
     expect(formatMoveWithNumber(last.parent!, root), '7. e4');

@@ -7,8 +7,11 @@ import 'package:chess_app/move_tree.dart';
 // PgnExporterService.exportToPgn(AnalysisNode) and gets read back on the
 // room screen via MoveTree.parsePgn. This guards that handoff.
 void main() {
-  test('AnalysisNode -> PGN -> MoveTree round-trip preserves moves, variation and comment', () {
-    final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+  test(
+      'AnalysisNode -> PGN -> MoveTree round-trip preserves moves, variation and comment',
+      () {
+    final root = AnalysisNode(
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
     final e4 = root.addChild(
       childFen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP2PP/RNBQKBNR b KQkq e3 0 1',
       san: 'e4',

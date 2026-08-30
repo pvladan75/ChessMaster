@@ -26,9 +26,17 @@ class _SequencedFakeEngine {
     required int multiPV,
     Duration timeout = const Duration(seconds: 10),
   }) async {
-    final eval = callIndex < evalSequence.length ? evalSequence[callIndex] : '0.00';
+    final eval =
+        callIndex < evalSequence.length ? evalSequence[callIndex] : '0.00';
     callIndex++;
-    return [AnalysisLine.fromPv(multipv: 1, depth: depth, eval: eval, pvString: pvOverride ?? '', startingFen: fen)];
+    return [
+      AnalysisLine.fromPv(
+          multipv: 1,
+          depth: depth,
+          eval: eval,
+          pvString: pvOverride ?? '',
+          startingFen: fen)
+    ];
   }
 }
 
@@ -40,7 +48,8 @@ void main() {
       service = GameAnalysisWalkerService();
     });
 
-    test('1. Computes mover-relative swing correctly for both White and Black', () async {
+    test('1. Computes mover-relative swing correctly for both White and Black',
+        () async {
       // Position0 (White to move): eval +0.20.
       // White plays e4 -> Position1 (Black to move): eval -3.00. Eval is
       // White-relative, so this means White handed Black a swing to +3
@@ -82,7 +91,9 @@ void main() {
       expect(moments.first.evalAfterForMover, greaterThan(50));
     });
 
-    test('3. annotateNodeChain writes eval into each node and respects overwriteExisting', () async {
+    test(
+        '3. annotateNodeChain writes eval into each node and respects overwriteExisting',
+        () async {
       final root = AnalysisNode(fen: '3r2k1/8/8/8/8/8/8/3Q2K1 w - - 0 1');
       final child = root.addChild(
         childFen: '3r2k1/8/8/3Q4/8/8/8/6K1 b - - 0 1',
@@ -109,19 +120,31 @@ void main() {
       expect(child.comment, 'moj ručni komentar');
     });
 
-    test('4. tagBlunders marks only the requested side and inserts the engine\'s alternative', () async {
+    test(
+        '4. tagBlunders marks only the requested side and inserts the engine\'s alternative',
+        () async {
       // Position0 (White to move, best line here would be a quiet e4 as far
       // as the fake engine is concerned): eval +0.20.
       // White plays a4 (a genuine blunder relative to the fake engine's
       // 'e2e4' suggestion) -> Position1: eval -3.00 (a big swing for White).
       // Black then plays a small, non-blunder move.
-      final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-      final whiteChild = root.addChild(childFen: 'rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq a3 0 1', san: 'a4', uci: 'a2a4');
-      final blackChild = whiteChild.addChild(childFen: 'rnbqkbnr/1ppppppp/8/8/p7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 2', san: 'a5', uci: 'a7a5');
+      final root = AnalysisNode(
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      final whiteChild = root.addChild(
+          childFen:
+              'rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq a3 0 1',
+          san: 'a4',
+          uci: 'a2a4');
+      final blackChild = whiteChild.addChild(
+          childFen: 'rnbqkbnr/1ppppppp/8/8/p7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 2',
+          san: 'a5',
+          uci: 'a7a5');
 
       final result = await service.annotateNodeChain(
         startNode: root,
-        analyzer: _SequencedFakeEngine(['+0.20', '-3.00', '-2.90'], pvOverride: 'e2e4 e7e5').analyze,
+        analyzer: _SequencedFakeEngine(['+0.20', '-3.00', '-2.90'],
+                pvOverride: 'e2e4 e7e5')
+            .analyze,
       );
 
       // Only White's move (index 0) is a blunder beyond the 2.0 threshold;
@@ -153,13 +176,20 @@ void main() {
       expect(altChild.nag, '!');
     });
 
-    test('5. tagBlunders dampens ordinary swings in an already-decided position but still flags a drastic one', () async {
+    test(
+        '5. tagBlunders dampens ordinary swings in an already-decided position but still flags a drastic one',
+        () async {
       // White is already crushing (+15) before the move in both cases —
       // simplifying into a won position naturally costs a few pawns of raw
       // eval without the outcome actually changing, so an ordinary swing
       // (here -3, above the normal 2.0 threshold) should NOT be flagged.
-      final quietRoot = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-      quietRoot.addChild(childFen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1', san: 'e4', uci: 'e2e4');
+      final quietRoot = AnalysisNode(
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      quietRoot.addChild(
+          childFen:
+              'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1',
+          san: 'e4',
+          uci: 'e2e4');
 
       final quietResult = await service.annotateNodeChain(
         startNode: quietRoot,
@@ -176,8 +206,13 @@ void main() {
       // Same starting advantage, but the move gives back most of it (+15 ->
       // +6) — a real mistake even though White is still winning afterward,
       // so it should still be flagged.
-      final drasticRoot = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-      drasticRoot.addChild(childFen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1', san: 'e4', uci: 'e2e4');
+      final drasticRoot = AnalysisNode(
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      drasticRoot.addChild(
+          childFen:
+              'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1',
+          san: 'e4',
+          uci: 'e2e4');
 
       final drasticResult = await service.annotateNodeChain(
         startNode: drasticRoot,

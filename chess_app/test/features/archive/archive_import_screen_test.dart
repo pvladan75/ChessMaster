@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:chess_app/features/archive/models/player_profile.dart';
+import 'package:chess_app/features/archive/models/trainer_student_archive.dart';
+import 'package:chess_app/features/archive/models/archive_homework_response.dart';
 
 import 'package:chess_app/features/archive/models/archive_run.dart';
 import 'package:chess_app/features/archive/models/endgame_audit.dart';
@@ -13,6 +16,30 @@ import 'package:chess_app/features/archive/services/archive_api_service.dart';
 import 'package:chess_app/theme/app_theme.dart';
 
 class FakeArchiveApiService implements ArchiveApiService {
+  ArchiveRun? returnedImport;
+  int? returnedImportId;
+
+  @override
+  Future<PlayerProfile> getPlayerProfile(String username) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<TrainerStudentArchive> getTrainerStudentArchive(
+          String studentId) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<ArchiveHomeworkResponse> createHomeworkFromArchive({
+    required String studentId,
+    int? count,
+    String? kind,
+    String? title,
+    String? instructions,
+    String? dueAt,
+    bool? dryRun,
+  }) async =>
+      throw UnimplementedError();
+
   @override
   Future<String> startEndgameAudit(String username) async => 'fake-id';
   @override

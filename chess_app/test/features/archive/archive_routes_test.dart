@@ -25,6 +25,11 @@ void main() {
     expect(AppRoutes.archiveEndgamesPath('me'), contains('subject=me'));
   });
 
+  test('the profile is reachable and refuses an empty handle', () {
+    expect(AppRoutes.archiveProfile, '/archive/profile');
+    expect(AppRoutes.archiveProfilePath('me'), contains('subject=me'));
+  });
+
   Future<void> pumpAt(WidgetTester tester, String location) async {
     final router = GoRouter(
       initialLocation: location,

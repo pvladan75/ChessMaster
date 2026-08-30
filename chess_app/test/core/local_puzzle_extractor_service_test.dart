@@ -14,9 +14,13 @@ class _SequencedFakeEngine {
     required int multiPV,
     Duration timeout = const Duration(seconds: 10),
   }) async {
-    final eval = callIndex < evalSequence.length ? evalSequence[callIndex] : '0.00';
+    final eval =
+        callIndex < evalSequence.length ? evalSequence[callIndex] : '0.00';
     callIndex++;
-    return [AnalysisLine.fromPv(multipv: 1, depth: depth, eval: eval, pvString: '', startingFen: fen)];
+    return [
+      AnalysisLine.fromPv(
+          multipv: 1, depth: depth, eval: eval, pvString: '', startingFen: fen)
+    ];
   }
 }
 
@@ -28,7 +32,9 @@ void main() {
       service = LocalPuzzleExtractorService();
     });
 
-    test('1. Extracts a puzzle from a hanging-queen blunder and labels it via TacticalMotifDetector', () async {
+    test(
+        '1. Extracts a puzzle from a hanging-queen blunder and labels it via TacticalMotifDetector',
+        () async {
       // White plays Qd1-d5 straight into the Black Rook on d8 — a pure
       // blunder (matches the "created" hanging-queen test already covered
       // in tactical_motif_detector_test.dart).
@@ -51,7 +57,9 @@ void main() {
       expect(map['fen'], puzzle.fen);
     });
 
-    test('2. Does not extract a puzzle when the swing stays under the threshold', () async {
+    test(
+        '2. Does not extract a puzzle when the swing stays under the threshold',
+        () async {
       final puzzles = await service.extractPuzzles(
         startingFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         uciMoves: ['e2e4'],
@@ -68,7 +76,8 @@ void main() {
       final puzzles = await service.extractPuzzles(
         startingFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         uciMoves: ['e2e4', 'e7e5', 'g1f3'],
-        analyzer: _SequencedFakeEngine(['0.00', '-3.00', '3.50', '-2.50']).analyze,
+        analyzer:
+            _SequencedFakeEngine(['0.00', '-3.00', '3.50', '-2.50']).analyze,
         blunderThreshold: 2.0,
         maxPuzzles: 2,
       );

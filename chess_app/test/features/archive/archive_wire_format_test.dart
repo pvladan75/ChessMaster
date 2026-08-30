@@ -166,5 +166,61 @@ void main() {
       expect(diff.positions.single.played.single.uci, isNull);
       expect(diff.unplayable, 1, reason: 'counted, not hidden');
     });
+
+    test('profile parsing works', () async {
+      final client = _RecordingClient(
+        body: jsonEncode({
+          'byColor': [],
+          'bySpeed': [],
+          'byTermination': [],
+          'byLength': [],
+          'byPhase': [],
+          'byYear': [],
+          'byOpening': [],
+        }),
+      );
+      final api = ArchiveApiService.withClient(client);
+
+      final profile = await api.getPlayerProfile('testuser');
+      expect(profile.byColor, isEmpty);
+      expect(client.gets.single.path, '/games/profile');
+      expect(client.gets.single.queryParameters['username'], 'testuser');
+    });
+
+    test('trainer archive parsing works', () async {
+      final client = _RecordingClient(
+        body: jsonEncode({
+          'subject': 'testuser',
+          'games': '4126', // postgres BIGINT
+        }),
+      );
+      final api = ArchiveApiService.withClient(client);
+
+      final archive = await api.getTrainerStudentArchive('123');
+      expect(archive.subject, 'testuser');
+      expect(archive.games, 4126);
+      expect(client.gets.single.path, '/assignments/student/123/archive');
+    });
+
+    test('create homework sends correct payload', () async {
+      final client = _RecordingClient(
+        body: jsonEncode({
+          'dryRun': true,
+          'candidates': '37',
+        }),
+      );
+      final api = ArchiveApiService.withClient(client);
+
+      final res = await api.createHomeworkFromArchive(
+        studentId: '123',
+        dryRun: true,
+      );
+
+      final sent = jsonDecode(client.postBodies.single as String);
+      expect(sent['studentId'], '123');
+      expect(sent['dryRun'], true);
+      expect(res.dryRun, true);
+      expect(res.candidatesCount, 37);
+    });
   });
 }

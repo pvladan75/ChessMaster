@@ -10,7 +10,10 @@ import 'package:chess_app/features/archive/models/json_int.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
 import 'package:chess_app/features/archive/models/mistake_item.dart';
 import 'package:chess_app/features/archive/models/mistake_recurrence.dart';
+import 'package:chess_app/features/archive/models/player_profile.dart';
 import 'package:chess_app/features/archive/models/repertoire_diff.dart';
+import 'package:chess_app/features/archive/models/trainer_student_archive.dart';
+import 'package:chess_app/features/archive/models/archive_homework_response.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 
@@ -294,5 +297,61 @@ class ArchiveApiService {
           .toList();
     }
     throw Exception('Failed to fetch endgame mistakes: ${response.body}');
+  }
+
+  Future<PlayerProfile> getPlayerProfile(String username) async {
+    final uri = Uri.parse('$backendUrl/games/profile?username=$username');
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      return PlayerProfile.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to fetch player profile: ${response.body}');
+  }
+
+  Future<TrainerStudentArchive> getTrainerStudentArchive(
+      String studentId) async {
+    final uri = Uri.parse('$backendUrl/assignments/student/$studentId/archive');
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      return TrainerStudentArchive.fromJson(jsonDecode(response.body));
+    }
+    throw Exception(
+        'Failed to fetch trainer student archive: ${response.body}');
+  }
+
+  Future<ArchiveHomeworkResponse> createHomeworkFromArchive({
+    required String studentId,
+    int? count,
+    String? kind,
+    String? title,
+    String? instructions,
+    String? dueAt,
+    bool? dryRun,
+  }) async {
+    final uri = Uri.parse('$backendUrl/assignments/from-archive');
+    final response = await _post(
+      uri,
+      {
+        'Authorization': 'Bearer $_token',
+        'Content-Type': 'application/json',
+      },
+      jsonEncode({
+        'studentId': studentId,
+        if (count != null) 'count': count,
+        if (kind != null) 'kind': kind,
+        if (title != null) 'title': title,
+        if (instructions != null) 'instructions': instructions,
+        if (dueAt != null) 'dueAt': dueAt,
+        if (dryRun != null) 'dryRun': dryRun,
+      }),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return ArchiveHomeworkResponse.fromJson(jsonDecode(response.body));
+    } else if (response.statusCode == 400 || response.statusCode == 403) {
+      final decoded = jsonDecode(response.body);
+      final msg = decoded['error'] ?? decoded['message'] ?? 'Greška';
+      throw Exception(msg);
+    }
+    throw Exception('Failed to create homework: ${response.body}');
   }
 }

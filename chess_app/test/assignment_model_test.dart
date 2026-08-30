@@ -35,7 +35,8 @@ void main() {
     test('accuracy is null before anything is attempted', () {
       final assignment = Assignment.fromJson(assignmentJson(attempted: 0));
 
-      expect(assignment.accuracy, isNull, reason: '0% would read as "gets everything wrong"');
+      expect(assignment.accuracy, isNull,
+          reason: '0% would read as "gets everything wrong"');
       expect(assignment.progress, 0);
     });
 
@@ -46,14 +47,16 @@ void main() {
       expect(assignment.accuracy, isNull);
     });
 
-    test('completion is reached either by the stamp or by finishing every item', () {
+    test('completion is reached either by the stamp or by finishing every item',
+        () {
       expect(
         Assignment.fromJson(assignmentJson(total: 5, attempted: 5)).isComplete,
         isTrue,
       );
       expect(
         Assignment.fromJson(
-          assignmentJson(total: 5, attempted: 2, completedAt: '2026-08-15T10:00:00Z'),
+          assignmentJson(
+              total: 5, attempted: 2, completedAt: '2026-08-15T10:00:00Z'),
         ).isComplete,
         isTrue,
       );
@@ -64,7 +67,8 @@ void main() {
     });
 
     test('a finished assignment is never flagged overdue', () {
-      final past = DateTime.now().subtract(const Duration(days: 3)).toIso8601String();
+      final past =
+          DateTime.now().subtract(const Duration(days: 3)).toIso8601String();
 
       final done = Assignment.fromJson(
         assignmentJson(total: 5, attempted: 5, dueAt: past),
@@ -79,7 +83,8 @@ void main() {
     });
 
     test('an assignment without a deadline is never overdue', () {
-      expect(Assignment.fromJson(assignmentJson(attempted: 1)).isOverdue, isFalse);
+      expect(
+          Assignment.fromJson(assignmentJson(attempted: 1)).isOverdue, isFalse);
     });
   });
 
@@ -102,7 +107,8 @@ void main() {
     });
 
     test('an unrecognised kind falls back to puzzles', () {
-      final unknown = Assignment.fromJson({...assignmentJson(), 'kind': 'something_new'});
+      final unknown =
+          Assignment.fromJson({...assignmentJson(), 'kind': 'something_new'});
       expect(unknown.kind, AssignmentKind.puzzles);
     });
 
@@ -142,7 +148,8 @@ void main() {
         ],
       });
 
-      expect(detail.resumeStepIndex, 2, reason: 'must not restart a half-read lesson');
+      expect(detail.resumeStepIndex, 2,
+          reason: 'must not restart a half-read lesson');
     });
 
     test('a fully read lesson resumes on its last step, not past the end', () {
@@ -163,7 +170,8 @@ void main() {
     });
 
     test('a lesson with no items resumes at zero', () {
-      final detail = AssignmentDetail.fromJson({...lessonJson(), 'items': [], 'steps': []});
+      final detail = AssignmentDetail.fromJson(
+          {...lessonJson(), 'items': [], 'steps': []});
       expect(detail.resumeStepIndex, 0);
     });
   });
@@ -173,7 +181,12 @@ void main() {
       final detail = AssignmentDetail.fromJson({
         ...assignmentJson(total: 3, attempted: 1),
         'items': [
-          {'puzzle_id': 'a', 'position': 0, 'attempted_at': '2026-08-15T10:00:00Z', 'solved': true},
+          {
+            'puzzle_id': 'a',
+            'position': 0,
+            'attempted_at': '2026-08-15T10:00:00Z',
+            'solved': true
+          },
           {'puzzle_id': 'b', 'position': 1},
           {'puzzle_id': 'c', 'position': 2},
         ],
@@ -185,7 +198,8 @@ void main() {
     });
 
     test('an assignment with no items yields nothing pending', () {
-      final detail = AssignmentDetail.fromJson({...assignmentJson(), 'items': []});
+      final detail =
+          AssignmentDetail.fromJson({...assignmentJson(), 'items': []});
       expect(detail.pending, isEmpty);
     });
   });
@@ -215,8 +229,10 @@ void main() {
       expect(progress.assignmentsOverdue, 1);
     });
 
-    test('a student with no attempts reports no data rather than zero accuracy', () {
-      final progress = StudentProgress.fromJson({'totalAttempts': 0, 'accuracy': null});
+    test('a student with no attempts reports no data rather than zero accuracy',
+        () {
+      final progress =
+          StudentProgress.fromJson({'totalAttempts': 0, 'accuracy': null});
 
       expect(progress.hasData, isFalse);
       expect(progress.accuracy, isNull);

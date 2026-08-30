@@ -32,6 +32,7 @@ import 'package:chess_app/features/archive/screens/archive_import_screen.dart';
 import 'package:chess_app/features/archive/screens/mistake_drill_screen.dart';
 import 'package:chess_app/features/archive/screens/endgame_audit_screen.dart';
 import 'package:chess_app/features/archive/screens/opening_leak_report_screen.dart';
+import 'package:chess_app/features/archive/screens/player_profile_screen.dart';
 import 'package:chess_app/features/archive/screens/repertoire_diff_screen.dart';
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
@@ -303,6 +304,14 @@ final List<RouteBase> appRouteTable = [
   GoRoute(
     path: AppRoutes.archiveMistakes,
     builder: (context, state) => const MistakeDrillScreen(),
+  ),
+  GoRoute(
+    path: AppRoutes.archiveProfile,
+    builder: (context, state) {
+      final subject = state.uri.queryParameters['subject']?.trim() ?? '';
+      if (subject.isEmpty) return const ArchiveImportScreen();
+      return PlayerProfileScreen(username: subject);
+    },
   ),
   GoRoute(
     path: AppRoutes.archiveRepertoire,

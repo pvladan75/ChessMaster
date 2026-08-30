@@ -2,7 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/core/services/board_control_rules.dart';
 
 void main() {
-  test('the room host may navigate even though their account is not a trainer', () {
+  test('the room host may navigate even though their account is not a trainer',
+      () {
     // The reported bug, exactly: a trainer creates a room, so the server seats
     // them 'trener' while their account is still the 'korisnik' everyone
     // registers as. boardControl defaults to 'trainer_only'. Reading the

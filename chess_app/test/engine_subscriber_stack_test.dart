@@ -23,8 +23,10 @@ void main() {
 
     String? lastNotified;
 
-    void Function(String, String, String, int, int, bool, String) evalCallbackFor(String tag) {
-      return (evaluation, bestMove, continuation, multipv, depth, isFinal, analyzedFen) {
+    void Function(String, String, String, int, int, bool, String)
+        evalCallbackFor(String tag) {
+      return (evaluation, bestMove, continuation, multipv, depth, isFinal,
+          analyzedFen) {
         lastNotified = tag;
       };
     }
@@ -115,8 +117,10 @@ void main() {
       final b = _FakeScreen('B');
       String? multiPvTag;
 
-      service.attach(a, onMultiPV: (Map<int, AnalysisLine> lines) => multiPvTag = 'A');
-      service.attach(b, onMultiPV: (Map<int, AnalysisLine> lines) => multiPvTag = 'B');
+      service.attach(a,
+          onMultiPV: (Map<int, AnalysisLine> lines) => multiPvTag = 'A');
+      service.attach(b,
+          onMultiPV: (Map<int, AnalysisLine> lines) => multiPvTag = 'B');
 
       service.onMultiPVUpdated!(<int, AnalysisLine>{});
       expect(multiPvTag, 'B');

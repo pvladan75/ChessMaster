@@ -11,6 +11,9 @@ import '../services/assignment_api_service.dart';
 import '../widgets/assign_lesson_dialog.dart';
 import '../widgets/create_assignment_dialog.dart';
 import '../widgets/parent_report_dialog.dart';
+import '../widgets/trainer_student_archive_view.dart';
+import 'package:chess_app/features/archive/services/archive_api_service.dart';
+import 'package:chess_app/features/archive/models/trainer_student_archive.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 /// A trainer's view of one student: how they are doing, what has been set, and
@@ -38,6 +41,8 @@ class StudentProgressScreen extends StatefulWidget {
 class _StudentProgressScreenState extends State<StudentProgressScreen> {
   late final AssignmentApiService _api;
   StudentProgress? _progress;
+  TrainerStudentArchive? _archive;
+  String? _archiveError;
   List<Assignment> _assignments = const [];
   bool _loading = true;
   int _days = 30;
@@ -50,16 +55,27 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _archiveError = null;
+    });
     final results = await Future.wait([
       _api.fetchProgress(studentId: widget.studentId, days: _days),
       _api.fetchGiven(studentId: widget.studentId),
+      ArchiveApiService.instance
+          .getTrainerStudentArchive(widget.studentId.toString())
+          .then((value) => value as TrainerStudentArchive?)
+          .catchError((e) {
+        _archiveError = e.toString();
+        return null;
+      }),
     ]);
     if (!mounted) return;
 
     setState(() {
       _progress = results[0] as StudentProgress?;
       _assignments = results[1] as List<Assignment>;
+      _archive = results[2] as TrainerStudentArchive?;
       _loading = false;
     });
   }
@@ -148,74 +164,93 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.colors.canvas,
-      appBar: AppBar(
-        title: Text(widget.studentName),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.summarize),
-            tooltip: 'Izveštaj za roditelja',
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => ParentReportDialog(
-                api: _api,
-                studentId: widget.studentId,
-                studentName: widget.studentName,
-              ),
-            ),
-          ),
-          PopupMenuButton<int>(
-            tooltip: 'Period',
-            initialValue: _days,
-            onSelected: (value) {
-              setState(() => _days = value);
-              _refresh();
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 7, child: Text('Poslednjih 7 dana')),
-              PopupMenuItem(value: 30, child: Text('Poslednjih 30 dana')),
-              PopupMenuItem(value: 90, child: Text('Poslednjih 90 dana')),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: context.colors.canvas,
+        appBar: AppBar(
+          title: Text(widget.studentName),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Platforma'),
+              Tab(text: 'Partije'),
             ],
-            icon: const Icon(Icons.date_range),
           ),
-        ],
-      ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton.extended(
-            heroTag: 'assign-lesson',
-            onPressed: _assignLesson,
-            icon: const Icon(Icons.menu_book),
-            label: const Text('Zadaj lekciju'),
-          ),
-          const SizedBox(height: 10),
-          FloatingActionButton.extended(
-            heroTag: 'assign-puzzles',
-            onPressed: _createAssignment,
-            icon: const Icon(Icons.add_task),
-            label: const Text('Zadaj vežbu'),
-          ),
-        ],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _refresh,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 96),
-                children: [
-                  _buildSummary(),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildThemes(),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildAssignments(),
-                ],
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.summarize),
+              tooltip: 'Izveštaj za roditelja',
+              onPressed: () => showDialog(
+                context: context,
+                builder: (_) => ParentReportDialog(
+                  api: _api,
+                  studentId: widget.studentId,
+                  studentName: widget.studentName,
+                ),
               ),
             ),
+            PopupMenuButton<int>(
+              tooltip: 'Period',
+              initialValue: _days,
+              onSelected: (value) {
+                setState(() => _days = value);
+                _refresh();
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 7, child: Text('Poslednjih 7 dana')),
+                PopupMenuItem(value: 30, child: Text('Poslednjih 30 dana')),
+                PopupMenuItem(value: 90, child: Text('Poslednjih 90 dana')),
+              ],
+              icon: const Icon(Icons.date_range),
+            ),
+          ],
+        ),
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            FloatingActionButton.extended(
+              heroTag: 'assign-lesson',
+              onPressed: _assignLesson,
+              icon: const Icon(Icons.menu_book),
+              label: const Text('Zadaj lekciju'),
+            ),
+            const SizedBox(height: 10),
+            FloatingActionButton.extended(
+              heroTag: 'assign-puzzles',
+              onPressed: _createAssignment,
+              icon: const Icon(Icons.add_task),
+              label: const Text('Zadaj vežbu'),
+            ),
+          ],
+        ),
+        body: TabBarView(
+          children: [
+            _loading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 96),
+                      children: [
+                        _buildSummary(),
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildThemes(),
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildAssignments(),
+                      ],
+                    ),
+                  ),
+            TrainerStudentArchiveView(
+              studentId: widget.studentId,
+              archive: _archive,
+              error: _archiveError,
+              onRefresh: _refresh,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

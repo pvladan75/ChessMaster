@@ -59,7 +59,8 @@ void main() {
       await analyze(_fenA, depth: 14, multiPV: 3);
       await analyze(_fenA, depth: 14, multiPV: 3);
 
-      expect(engine.calls.length, 1, reason: 'the whole point is not paying twice');
+      expect(engine.calls.length, 1,
+          reason: 'the whole point is not paying twice');
       expect(cache.hits, 2);
       expect(cache.misses, 1);
     });
@@ -120,7 +121,8 @@ void main() {
       completer.complete(lines('e2e4'));
       final results = await Future.wait([first, second]);
 
-      expect(engine.calls.length, 1, reason: 'a race must not start two searches');
+      expect(engine.calls.length, 1,
+          reason: 'a race must not start two searches');
       expect(results[0].first.bestMoveLan, results[1].first.bestMoveLan);
     });
 

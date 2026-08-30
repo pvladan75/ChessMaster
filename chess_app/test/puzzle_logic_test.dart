@@ -48,7 +48,8 @@ void main() {
       expect(engine.isFullySolved, isFalse);
     });
 
-    test('3. Handles pawn promotion UCI case-insensitivity (c2c1q vs c2c1Q)', () {
+    test('3. Handles pawn promotion UCI case-insensitivity (c2c1q vs c2c1Q)',
+        () {
       final Map<String, dynamic> solutions = {
         'c2c1q': 'CHECKMATE',
       };
@@ -60,7 +61,9 @@ void main() {
       expect(engine.isFullySolved, isTrue);
     });
 
-    test('4. Detects variation branch points when opponent has multiple defensive moves', () {
+    test(
+        '4. Detects variation branch points when opponent has multiple defensive moves',
+        () {
       // Puzzle: f1h3 user move, opponent can defend with e4d3 or e4f3
       final Map<String, dynamic> multiBranchSolutions = {
         'f1h3': {
@@ -86,7 +89,8 @@ void main() {
       final oppRes = engine.playOpponentResponse();
       expect(oppRes, equals('e4d3'));
       expect(engine.branchPoints.length, equals(1));
-      expect(engine.branchPoints.first.remainingOpponentMoves, contains('e4f3'));
+      expect(
+          engine.branchPoints.first.remainingOpponentMoves, contains('e4f3'));
 
       // Complete line 1
       final res2 = engine.playUserMove('h3f5');
@@ -99,7 +103,8 @@ void main() {
       expect(hasBranch, isTrue);
     });
 
-    test('5. Solves 100% of puzzle when all defensive branches are completed', () {
+    test('5. Solves 100% of puzzle when all defensive branches are completed',
+        () {
       final Map<String, dynamic> multiBranchSolutions = {
         'f1h3': {
           'e4d3': {
@@ -116,7 +121,7 @@ void main() {
       // Line 1
       engine.playUserMove('f1h3');
       engine.playOpponentResponse(); // e4d3
-      engine.playUserMove('h3f5');   // Mat
+      engine.playUserMove('h3f5'); // Mat
       expect(engine.completedVariations, equals(1));
 
       // Rewind to branch point for Line 2
@@ -126,7 +131,7 @@ void main() {
       final nextOpp = engine.playOpponentResponse(); // e4f3
       expect(nextOpp, equals('e4f3'));
 
-      final res2 = engine.playUserMove('h3g2');     // Mat
+      final res2 = engine.playUserMove('h3g2'); // Mat
       expect(res2, equals(MoveValidationResult.checkmate));
       expect(engine.completedVariations, equals(2));
       expect(engine.isFullySolved, isTrue);

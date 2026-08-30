@@ -47,8 +47,10 @@ class _FakeEngine {
 
 void main() {
   group('Analysis Studio Phase 3 Unit Tests', () {
-    test('1. PgnExporterService exports basic main line with NAG and comments', () {
-      final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    test('1. PgnExporterService exports basic main line with NAG and comments',
+        () {
+      final root = AnalysisNode(
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
       final e4 = root.addChild(
         childFen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP2PP/RNBQKBNR b KQkq e3 0 1',
         san: 'e4',
@@ -59,7 +61,8 @@ void main() {
       e4.eval = 0.35;
 
       final e5 = e4.addChild(
-        childFen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',
+        childFen:
+            'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',
         san: 'e5',
         uci: 'e7e5',
       );
@@ -71,7 +74,8 @@ void main() {
     });
 
     test('2. PgnExporterService formats nested variations in parentheses', () {
-      final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      final root = AnalysisNode(
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
       final e4 = root.addChild(
         childFen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP2PP/RNBQKBNR b KQkq e3 0 1',
         san: 'e4',
@@ -79,13 +83,15 @@ void main() {
       );
 
       final e5 = e4.addChild(
-        childFen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',
+        childFen:
+            'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',
         san: 'e5',
         uci: 'e7e5',
       );
 
       final c5 = e4.addChild(
-        childFen: 'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2',
+        childFen:
+            'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2',
         san: 'c5',
         uci: 'c7c5',
       );
@@ -102,7 +108,8 @@ void main() {
       expect(estimated, equals(30));
     });
 
-    test('3b. Analyzed-position count matches what progress actually reports', () async {
+    test('3b. Analyzed-position count matches what progress actually reports',
+        () async {
       final service = AutoTreeGeneratorService();
 
       // Root plus each ply below the last: 1 + 2 + 4 + 8 = 15 engine calls.
@@ -115,7 +122,8 @@ void main() {
       final engine = _FakeEngine();
       int? reportedTotal;
       await service.generateTree(
-        startNode: AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'),
+        startNode: AnalysisNode(
+            fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'),
         params: AutoAnalysisParams(
           pliesDepth: 3,
           candidateCount: 2,
@@ -126,13 +134,17 @@ void main() {
         onProgress: (processed, total, _) => reportedTotal = total,
       );
 
-      expect(engine.callCount, equals(service.calculateAnalyzedPositions(3, 2)));
+      expect(
+          engine.callCount, equals(service.calculateAnalyzedPositions(3, 2)));
       expect(reportedTotal, equals(engine.callCount));
     });
 
-    test('4. AutoTreeGeneratorService generates candidate branches synchronously', () async {
+    test(
+        '4. AutoTreeGeneratorService generates candidate branches synchronously',
+        () async {
       final service = AutoTreeGeneratorService();
-      final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      final root = AnalysisNode(
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
       final engine = _FakeEngine();
 
       final params = AutoAnalysisParams(
@@ -152,14 +164,19 @@ void main() {
       expect(root.children.length, 2);
       expect(root.children.first.moveSan, isNotNull);
       for (final child in root.children) {
-        expect(child.children.length, 2, reason: 'each ply-1 node expands once more');
+        expect(child.children.length, 2,
+            reason: 'each ply-1 node expands once more');
       }
-      expect(engine.callCount, 3, reason: 'root plus two ply-1 nodes are analyzed');
+      expect(engine.callCount, 3,
+          reason: 'root plus two ply-1 nodes are analyzed');
     });
 
-    test('5. AutoTreeGeneratorService prunes candidates beyond the delta cutoff', () async {
+    test(
+        '5. AutoTreeGeneratorService prunes candidates beyond the delta cutoff',
+        () async {
       final service = AutoTreeGeneratorService();
-      final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      final root = AnalysisNode(
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
       // Second candidate is 3 pawns worse than the best, beyond a 1.0 cutoff.
       final engine = _FakeEngine(evaluations: ['+0.30', '-2.70']);
 
@@ -179,7 +196,8 @@ void main() {
 
     test('6. AutoTreeGeneratorService cancel stops recursion', () async {
       final service = AutoTreeGeneratorService();
-      final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      final root = AnalysisNode(
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
       // Cancels as soon as the engine is consulted the first time.
       final engine = _FakeEngine(onCall: (count) {
         if (count == 1) service.cancel();

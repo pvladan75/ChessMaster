@@ -65,7 +65,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
           'u njima igrate iznova i koliko vam je bodova doneo.',
       action: FilledButton.icon(
         style: FilledButton.styleFrom(
-          backgroundColor: colors.info.withValues(alpha: 0.22),
+          backgroundColor: colors.info.withValues(alpha: 0.08),
           foregroundColor: colors.info,
           side: BorderSide(
             color: colors.info.withValues(alpha: 0.45),
@@ -112,7 +112,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
           'izbora. Repertoar ostaje sačuvan i dopunjuje se vremenom.',
       action: FilledButton.icon(
         style: FilledButton.styleFrom(
-          backgroundColor: colors.brand.withValues(alpha: 0.22),
+          backgroundColor: colors.brand.withValues(alpha: 0.08),
           foregroundColor: colors.brand,
           side: BorderSide(
             color: colors.brand.withValues(alpha: 0.45),
@@ -135,7 +135,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
           'koju najslabije rešavate. Rejting se prati po svakom motivu posebno.',
       action: FilledButton.icon(
         style: FilledButton.styleFrom(
-          backgroundColor: colors.info.withValues(alpha: 0.22),
+          backgroundColor: colors.info.withValues(alpha: 0.08),
           foregroundColor: colors.info,
           side: BorderSide(
             color: colors.info.withValues(alpha: 0.45),

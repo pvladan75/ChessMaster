@@ -14,15 +14,18 @@ void main() {
     });
 
     test('2. Verify standard initial FEN parsing', () {
-      const startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+      const startFen =
+          'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
       final info = PositionInfoService.analyzeFen(startFen);
 
       expect(info.pieceCount, 32);
       expect(info.isEndgame, isFalse);
     });
 
-    test('3. Verify AnalysisNode tree root creation with default eval status', () {
-      final root = AnalysisNode(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    test('3. Verify AnalysisNode tree root creation with default eval status',
+        () {
+      final root = AnalysisNode(
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
       expect(root.isRoot, isTrue);
       expect(root.eval, isNull);
     });
