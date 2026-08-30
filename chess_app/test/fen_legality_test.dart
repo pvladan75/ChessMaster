@@ -48,6 +48,45 @@ void main() {
         contains('nije na potezu'));
   });
 
+  test('vise od osam pesaka nije partija', () {
+    expect(fenIllegalReason('4k3/8/8/8/8/PPPPPPPP/PP6/4K3 w - - 0 1'),
+        contains('Previse pesaka'));
+    // Osam je granica, ne greska.
+    expect(fenIllegalReason('4k3/8/8/8/8/8/PPPPPPPP/4K3 w - - 0 1'), isNull);
+  });
+
+  test('vise od sesnaest figura kaze bas to, iako bi i promocije to uhvatile',
+      () {
+    // Ovo pravilo **nije samostalno**: iscrpna provera svih kombinacija pokazuje
+    // da je 16 vec najveci zbir koji prolazi ogranicenje pesaka i racun
+    // promocija, pa sedamnaesta figura uvek prekrsi i nesto drugo.
+    //
+    // Ostaje zato sto se javlja prvo i kaze razumljiviju recenicu: „Previse
+    // figura" je jasnije od racuna o promocijama kad neko prosto postavi vojsku
+    // i jos jedan top. Zato se ovde tvrdi **poruka**, ne samo odbijanje — inace
+    // bi se pravilo moglo obrisati a da nijedan test ne primeti.
+    expect(fenIllegalReason('4k3/8/8/8/R7/8/PPPPPPPP/RNBQKBNR w - - 0 1'),
+        contains('Previse figura'));
+  });
+
+  test('osam pesaka i tri dame ne mogu zajedno', () {
+    // Ovo je slucaj koji nijedan pojedinacni broj ne hvata: pesaka je tacno
+    // osam, dama je tri, figura ukupno manje od sesnaest — a dve dame viska
+    // morale su da dodju od pesaka kojih vise nema.
+    final razlog = fenIllegalReason('4k3/8/8/8/QQ6/8/PPPPPPPP/Q3K3 w - - 0 1');
+    expect(razlog, isNotNull);
+    expect(razlog, contains('promocija'));
+  });
+
+  test('promocija je moguca kad je pesaka manje', () {
+    // Tri dame, ali samo pet pesaka: dve su promovisane, sto se poklapa.
+    //
+    // Prvi pokusaj ovog primera imao je dame na a4/b4 i crnog kralja na e8 —
+    // a a4 gadja e8 po dijagonali, pa je pozicija bila nemoguca iz sasvim
+    // drugog razloga. Provera je bila u pravu, primer nije.
+    expect(fenIllegalReason('k7/8/8/8/6QQ/8/PPPPP3/6QK w - - 0 1'), isNull);
+  });
+
   test('prazan i pokvaren zapis se odbijaju bez pucanja', () {
     expect(fenIllegalReason(''), isNotNull);
     expect(fenIllegalReason('   '), isNotNull);

@@ -37,6 +37,41 @@ String? fenIllegalReason(String fen) {
   if (beli > 1) return 'Na tabli je vise od jednog belog kralja.';
   if (crni > 1) return 'Na tabli je vise od jednog crnog kralja.';
 
+  // Koliko cega ima na tabli. Broji se samo prvo polje FEN-a; cifre su prazna
+  // polja i ne uticu.
+  int koliko(String slovo) => slovo.allMatches(tabla).length;
+
+  for (final strana in const [
+    ('beli', 'PNBRQK'),
+    ('crni', 'pnbrqk'),
+  ]) {
+    final ime = strana.$1;
+    final slova = strana.$2;
+    final pesaci = koliko(slova[0]);
+    final ukupno = slova.split('').fold<int>(0, (n, c) => n + koliko(c));
+
+    // Osam pesaka je sve sa cim se krece; deveti niotkuda ne dolazi.
+    if (pesaci > 8) return 'Previse pesaka za $ime: $pesaci.';
+    // Sesnaest figura je cela vojska. Vise od toga nije partija.
+    if (ukupno > 16) return 'Previse figura za $ime: $ukupno.';
+
+    // I ono sto povezuje ta dva broja: svaka figura preko pocetnog sastava
+    // morala je da nastane promocijom, a promocija trosi pesaka. Zato dama
+    // viska i osam pesaka ne mogu zajedno — bez ovoga bi 8 pesaka i 3 dame
+    // prosle, jer ni jedan ni drugi broj sam po sebi nije prevelik.
+    final viska = [
+      (koliko(slova[4]) - 1), // dama
+      (koliko(slova[3]) - 2), // topovi
+      (koliko(slova[2]) - 2), // lovci
+      (koliko(slova[1]) - 2), // skakaci
+    ].map((n) => n > 0 ? n : 0).fold<int>(0, (a, b) => a + b);
+
+    if (viska > 8 - pesaci) {
+      return 'Za $ime nema dovoljno pesaka za toliko promocija '
+          '($pesaci na tabli, a potrebno je $viska promocija).';
+    }
+  }
+
   // Pesak na prvom ili poslednjem redu ne moze da nastane u partiji: do osmog
   // reda stize samo da bi se odmah promovisao.
   final redovi = tabla.split('/');
