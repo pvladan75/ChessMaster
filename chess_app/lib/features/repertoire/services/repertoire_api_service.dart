@@ -50,6 +50,7 @@ class RepertoireSummary {
     required this.color,
     required this.rootFen,
     required this.moves,
+    this.rootPath = const [],
   });
 
   final int id;
@@ -58,6 +59,14 @@ class RepertoireSummary {
   /// 'w' or 'b' — the side this repertoire is built for.
   final String color;
   final String rootFen;
+
+  /// The moves that led to the root, in SAN — how the student got to the
+  /// position they said "build from here" about.
+  ///
+  /// Empty for every repertoire made before this was stored, and for one
+  /// started from a pasted position, where there is no line to tell. The
+  /// breadcrumb then reads from the root rather than inventing an opening.
+  final List<String> rootPath;
 
   /// How many moves the whole graph for this colour holds. Honest rather than
   /// flattering: two doors into one graph show the same number.
@@ -72,8 +81,121 @@ class RepertoireSummary {
         color: json['color'] as String? ?? 'w',
         rootFen:
             json['rootFen'] as String? ?? json['root_fen'] as String? ?? '',
+        rootPath: sanPath(json['rootPath'] ?? json['root_path']),
         moves: (json['moves'] as num?)?.toInt() ?? 0,
       );
+}
+
+/// A path of SAN moves, whether the server sent a list or the stored string.
+///
+/// One reader for both shapes because both are real: `root_path` is stored as
+/// one space-separated string and a frontier node's path arrives as a list.
+List<String> sanPath(Object? raw) {
+  if (raw is List) {
+    return raw.whereType<String>().where((san) => san.isNotEmpty).toList();
+  }
+  if (raw is String && raw.trim().isNotEmpty) {
+    return raw.trim().split(RegExp(r'\s+'));
+  }
+  return const [];
+}
+
+/// One position the student still owes an answer to.
+class FrontierNode {
+  const FrontierNode({
+    required this.fen,
+    required this.path,
+    required this.reach,
+    required this.kind,
+  });
+
+  final String fen;
+
+  /// The moves from the repertoire's root to here. Joined with the root's own
+  /// path for a breadcrumb that reads from move one.
+  final List<String> path;
+
+  /// How often a game played down this repertoire actually arrives here — the
+  /// product of the opponent's shares along the way. It is the order the
+  /// positions come in, and it is why a main line at ply eight is offered
+  /// before a third-choice sideline at ply two.
+  final double reach;
+
+  /// `undecided` — nothing kept here yet, play something.
+  /// `unopened` — decided, but the opponent's replies were never taken, so the
+  /// line stops here until they are.
+  final String kind;
+
+  int get ply => path.length;
+  bool get isUnopened => kind == 'unopened';
+
+  factory FrontierNode.fromJson(Map<String, dynamic> json) => FrontierNode(
+        fen: json['fen'] as String? ?? '',
+        path: sanPath(json['path']),
+        reach: (json['reach'] as num?)?.toDouble() ?? 0,
+        kind: json['kind'] as String? ?? 'undecided',
+      );
+}
+
+/// The whole shape of a repertoire: where its root is, what is still open, and
+/// how much of it is finished.
+///
+/// Derived on the server from the moves already kept and the books already
+/// fetched — so it costs no Lichess request, and it is the same on every
+/// device. This is what replaced a queue that lived in one screen's memory and
+/// died with it.
+class RepertoireFrontier {
+  const RepertoireFrontier({
+    this.rootPath = const [],
+    this.open = const [],
+    this.decided = 0,
+    this.unopened = 0,
+    this.maxPly = 0,
+    this.openReach = 0,
+    this.truncated = false,
+  });
+
+  final List<String> rootPath;
+  final List<FrontierNode> open;
+
+  /// Positions where the student has decided on at least one move.
+  final int decided;
+
+  /// Of the open ones, how many are lines that were decided and then left.
+  final int unopened;
+  final int maxPly;
+
+  /// The share of games reaching this repertoire that run into a position with
+  /// no answer yet. The one number that says how finished it is — and the only
+  /// one a wide shallow tree cannot flatter.
+  final double openReach;
+
+  /// True when the walk hit its ceiling. Said out loud rather than quietly
+  /// returning a short answer, which is this codebase's oldest bug.
+  final bool truncated;
+
+  bool get isEmpty => open.isEmpty && decided == 0;
+
+  factory RepertoireFrontier.fromJson(Map<String, dynamic> json) {
+    final root = json['root'] is Map
+        ? Map<String, dynamic>.from(json['root'] as Map)
+        : const <String, dynamic>{};
+    final summary = json['summary'] is Map
+        ? Map<String, dynamic>.from(json['summary'] as Map)
+        : const <String, dynamic>{};
+    return RepertoireFrontier(
+      rootPath: sanPath(root['path']),
+      open: ((json['open'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => FrontierNode.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      decided: (summary['decided'] as num?)?.toInt() ?? 0,
+      unopened: (summary['unopened'] as num?)?.toInt() ?? 0,
+      maxPly: (summary['maxPly'] as num?)?.toInt() ?? 0,
+      openReach: (summary['openReach'] as num?)?.toDouble() ?? 0,
+      truncated: summary['truncated'] as bool? ?? false,
+    );
+  }
 }
 
 /// One question the drill is about to ask.
@@ -229,11 +351,13 @@ class RepertoireApiService {
     required String name,
     required String color,
     required String rootFen,
+    List<String> rootPath = const [],
   }) async {
     final sent = await _send(() => _post('$backendUrl/repertoire', {
           'name': name,
           'color': color,
           'rootFen': rootFen,
+          'rootPath': rootPath,
         }));
     final res = sent.res;
     if (res == null) return (made: null, error: sent.error);
@@ -242,6 +366,33 @@ class RepertoireApiService {
           Map<String, dynamic>.from(jsonDecode(res.body) as Map)),
       error: null,
     );
+  }
+
+  /// Where the student actually is: what is still open, in the order it is
+  /// worth answering.
+  ///
+  /// Costs nothing at Lichess — it is read from the moves already kept and the
+  /// books already fetched. Null when the server could not be reached, which
+  /// the caller must tell apart from an empty walk: "nothing is open" and "we
+  /// could not find out" are different, and only one of them means finished.
+  Future<RepertoireFrontier?> frontier({
+    required String color,
+    required String rootFen,
+    List<String> rootPath = const [],
+    int? minRating,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/frontier').replace(
+      queryParameters: {
+        'color': color,
+        'rootFen': rootFen,
+        if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
+        if (minRating != null) 'minRating': '$minRating',
+      },
+    );
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    return RepertoireFrontier.fromJson(
+        Map<String, dynamic>.from(jsonDecode(res.body) as Map));
   }
 
   /// What the student already plays in this position, primary first.

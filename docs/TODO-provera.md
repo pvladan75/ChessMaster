@@ -2320,3 +2320,37 @@ Batch 51 i 52. Dve stavke su viđene uživo i potvrđene; treća, provera završ
    Original pad je bio gašenje procesa, koje nikad ne stigne do Dart rukovaoca
    — ako se prozor opet zatvori a `crash.log` ostane prazan, to je nalaz, ne
    propust: znači da uzrok nije Dart izuzetak.
+
+## 62. Putanja i izvedena granica u repertoaru — 31.8.2026, nije viđeno uživo
+
+Sve ispod se proverava u „Repertoar → otvori repertoar", nad repertoarom koji
+već ima nešto izgrađeno. Backend mora biti pokrenut jednom **posle** ove izmene,
+da `ALTER TABLE repertoires ADD COLUMN root_path` prođe.
+
+1. [ ] **Linija piše iznad table.** Otvoriti repertoar napravljen *posle* ove
+   izmene (igranjem poteza od početne pozicije, pa „gradi odavde"). Iznad
+   pitanja „Šta igrate belim/crnim?" mora da stoji cela linija od prvog poteza,
+   numerisana kao u knjizi.
+2. [ ] **Stari repertoar ne laže.** Otvoriti repertoar napravljen *pre* ove
+   izmene — `root_path` mu je prazan, pa numeracija ide iz FEN-a korena
+   (`4...Nc6 5.Nf3`). Ne sme da se pojavi „1." ako partija tu nije počela.
+3. [ ] **Nastavlja se tamo gde je stalo.** Ući u izgradnju, uzeti odgovore za
+   jednu poziciju, izaći na Nazad, pa opet ući. Mora da ponudi iste pozicije, u
+   istom redosledu, i **brojač „upita:" mora da ostane 0** dok se ne odigra
+   potez — ako skoči, granica se ne izvodi nego se ponovo kupuje.
+4. [ ] **Glavna linija ide prva.** Pri povratku prva ponuđena pozicija treba da
+   bude ona sa najvećim `reach`, ne najplića. Proveriti da dublja pozicija na
+   glavnoj liniji pretekne pliću stranputicu.
+5. [ ] **Pozicija koja čeka odgovore to i kaže.** Izabrati potez i izaći **ne**
+   pritisnuvši „dalje". Pri povratku ta pozicija mora da se vrati sa rečenicom
+   „ovde ste već izabrali potez — ostalo je samo da uzmete odgovore", a ne kao
+   prazno pitanje.
+6. [ ] **Ugašen server ne izgleda kao gotov posao.** Ugasiti backend i otvoriti
+   izgradnju: mora da se vidi koren i rečenica „počinjete od početne pozicije
+   repertoara", nikako ekran „Nema više pozicija u redu".
+7. [ ] **Brojevi u zaglavlju imaju smisla.** „odlučeno / otvoreno / bez odgovora
+   %" — na praznom repertoaru „bez odgovora" je 100%, i mora da pada kako se
+   grade linije koje se zaista sreću.
+8. [ ] **Telefon.** Sve gore na 360 dp: linija poteza može da bude duga, pa
+   proveriti da ne izlazi iz ekrana u *release* build-u, gde nema žuto-crnih
+   pruga.

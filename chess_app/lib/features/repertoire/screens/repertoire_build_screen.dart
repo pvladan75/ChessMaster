@@ -45,6 +45,7 @@ class RepertoireBuildScreen extends StatefulWidget {
     required this.name,
     required this.color,
     required this.rootFen,
+    this.rootPath = const [],
     this.minRating,
     this.api,
     this.judge,
@@ -58,6 +59,14 @@ class RepertoireBuildScreen extends StatefulWidget {
   final String color;
 
   final String rootFen;
+
+  /// The moves that led to [rootFen], in SAN.
+  ///
+  /// A repertoire may start anywhere, so without this the breadcrumb would
+  /// begin mid-air: a Smith-Morra repertoire whose root is move four would read
+  /// as though the game started there. Empty for a repertoire built from a
+  /// pasted position, where there is no line to tell.
+  final List<String> rootPath;
 
   /// The rating band the opponent's replies are counted in. A child meets the
   /// moves of their own opponents, not a grandmaster's.
@@ -84,16 +93,30 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   late final OpeningJudgeService _judge =
       widget.judge ?? OpeningJudgeService.instance;
 
-  /// Positions still to be answered, oldest first — the waves the student asked
-  /// for. A queue and not a stack: going wide before deep is what keeps the
-  /// common replies covered before the rare ones.
-  final Queue<String> _queue = Queue<String>();
+  /// Positions still to be answered, and — the point of the type — the way each
+  /// one was reached.
+  ///
+  /// The queue used to hold bare FENs, which is why this screen could never say
+  /// where the student was: a board with no history and a count of an invisible
+  /// list. The path costs one list per position and turns "Još 14 u redu" into
+  /// a line the reader can find themselves in.
+  final Queue<_Pending> _queue = Queue<_Pending>();
 
   /// Every position that has already been queued, so a transposition does not
   /// come round twice. Keyed the way the server keys them: no move counters.
   final Set<String> _seen = {};
 
-  String? _current;
+  _Pending? _node;
+
+  /// The position on the board. A getter so the FEN reads the same everywhere
+  /// it did before the queue learned to carry paths.
+  String? get _current => _node?.fen;
+
+  /// The walk this screen resumed from, kept for the header. Null until the
+  /// server has answered, and after a server that did not.
+  RepertoireFrontier? _frontier;
+  bool _resuming = true;
+
   List<RepertoireMove> _kept = const [];
 
   String? _proposalUci;
@@ -141,8 +164,45 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   @override
   void initState() {
     super.initState();
-    _enqueue(widget.rootFen);
-    _advance();
+    _resume();
+  }
+
+  /// Picks the walk back up where it was, rather than starting again.
+  ///
+  /// The queue is not stored anywhere and never was — the server rebuilds it
+  /// from the moves already kept and the books already fetched, which costs no
+  /// Lichess request at all. That is what makes closing this screen safe: come
+  /// back tomorrow, or on the other machine, and the same positions are
+  /// waiting, in the same order.
+  ///
+  /// A server that does not answer falls back to the root. It has to be the
+  /// root and not an empty screen: "we could not find out" must never be shown
+  /// as "there is nothing left to do".
+  Future<void> _resume() async {
+    final walk = await _api.frontier(
+      color: widget.color,
+      rootFen: widget.rootFen,
+      rootPath: widget.rootPath,
+      minRating: widget.minRating,
+    );
+    if (!mounted) return;
+    if (walk == null) {
+      _enqueue(widget.rootFen, const []);
+      setState(() {
+        _resuming = false;
+        _note = 'Nije moglo da se pročita dokle ste stigli — počinjete od '
+            'početne pozicije repertoara.';
+      });
+    } else {
+      for (final node in walk.open) {
+        _enqueue(node.fen, node.path, kind: node.kind);
+      }
+      setState(() {
+        _frontier = walk;
+        _resuming = false;
+      });
+    }
+    await _advance();
   }
 
   String _keyOf(String fen) {
@@ -150,11 +210,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     return parts.length >= 4 ? parts.sublist(0, 4).join(' ') : fen;
   }
 
-  void _enqueue(String fen) {
+  void _enqueue(String fen, List<String> path, {String kind = 'undecided'}) {
     final key = _keyOf(fen);
     if (_seen.contains(key)) return;
     _seen.add(key);
-    _queue.add(fen);
+    _queue.add(_Pending(fen: fen, path: path, kind: kind));
   }
 
   /// Moves to the next position in the queue, or to the "nothing left" state.
@@ -169,13 +229,49 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _lines = const [];
       _linesFen = null;
       _thinking = false;
-      _current = _queue.isEmpty ? null : _queue.removeFirst();
+      _node = _queue.isEmpty ? null : _queue.removeFirst();
       _kept = const [];
     });
     final fen = _current;
     if (fen == null) return;
     _boardController.loadFen(fen);
     await _loadKept();
+  }
+
+  /// The line that leads to the board in front of the student, numbered the way
+  /// a book numbers it.
+  ///
+  /// The repertoire's own root path first, so a repertoire built from move four
+  /// reads from move one rather than pretending the game began where the
+  /// student stopped playing.
+  String _lineText() {
+    final moves = [...widget.rootPath, ...?_node?.path];
+    if (moves.isEmpty) return '';
+
+    // Where the numbering starts. With a root path the game began at move one;
+    // without one, the root FEN is the only thing that knows.
+    var number = 1;
+    var whiteToMove = true;
+    if (widget.rootPath.isEmpty) {
+      final parts = widget.rootFen.trim().split(RegExp(r'\s+'));
+      whiteToMove = parts.length < 2 || parts[1] == 'w';
+      number = parts.length >= 6 ? (int.tryParse(parts[5]) ?? 1) : 1;
+    }
+
+    final out = StringBuffer();
+    for (final san in moves) {
+      if (whiteToMove) {
+        out.write('$number.$san ');
+      } else {
+        // A line that opens on Black's move says so, once: `4...Nc6`, not a
+        // move hanging off nothing.
+        if (out.isEmpty) out.write('$number...');
+        out.write('$san ');
+        number += 1;
+      }
+      whiteToMove = !whiteToMove;
+    }
+    return out.toString().trimRight();
   }
 
   Future<void> _loadKept() async {
@@ -455,7 +551,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// Opens the opponent's side of every move kept here, then moves on.
   Future<void> _openReplies() async {
     final kept = _kept;
-    if (_current == null || kept.isEmpty) return;
+    final node = _node;
+    if (node == null || kept.isEmpty) return;
 
     setState(() => _busy = true);
     var added = 0;
@@ -464,7 +561,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     var counted = 0;
 
     for (final move in kept) {
-      final after = _fenAfter(_current!, move.uci);
+      final after = _fenAfter(node.fen, move.uci);
       if (after == null) continue;
       final lookup = await _judge.replies(after, minRating: widget.minRating);
       if (!mounted) return;
@@ -478,7 +575,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         final next = _fenAfter(after, reply.uci);
         if (next != null) {
           final before = _queue.length;
-          _enqueue(next);
+          // Two moves further from the root than the position we are standing
+          // on: the student's own, and the opponent's answer to it.
+          _enqueue(next, [...node.path, move.san, reply.san]);
           if (_queue.length > before) added += 1;
         }
       }
@@ -546,6 +645,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   }
 
   Widget _buildBody() {
+    // Told apart on purpose. "Still working out where you were" and "there is
+    // nothing left to do" look identical if both render the finished screen,
+    // and only one of them is good news.
+    if (_resuming) {
+      return const Center(child: CircularProgressIndicator());
+    }
     if (_current == null) return _buildDone();
 
     return LayoutBuilder(
@@ -612,9 +717,22 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
   Widget _buildQuestion(BuildContext context) {
     final left = _queue.length;
+    final line = _lineText();
+    final walk = _frontier;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (line.isNotEmpty) ...[
+          // Where this board came from. Without it the screen is a position
+          // with no history and a count of an invisible list, which is exactly
+          // how it felt to use: the moves were being kept and nothing on screen
+          // said which line they belonged to.
+          Text(
+            line,
+            style: AppText.caption.copyWith(color: context.colors.accent),
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+        ],
         Text(
           _forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?',
           style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
@@ -624,8 +742,40 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           left == 0 ? 'Poslednja pozicija u ovom talasu.' : 'Još $left u redu.',
           style: AppText.caption.copyWith(color: context.colors.textMuted),
         ),
+        if (_node?.kind == 'unopened') ...[
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            'Ovde ste već izabrali potez — ostalo je samo da uzmete odgovore.',
+            style: AppText.caption.copyWith(color: context.colors.textMuted),
+          ),
+        ],
+        if (walk != null) ...[
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            _progressText(walk),
+            style: AppText.micro.copyWith(color: context.colors.textMuted),
+          ),
+        ],
       ],
     );
+  }
+
+  /// How finished the repertoire is, in the one number that cannot flatter it.
+  ///
+  /// Not "how many positions you have" — a wide, one-move-deep tree scores well
+  /// on that and loses games. This is the share of games arriving in the
+  /// repertoire that run into a position with no answer yet, which starts at
+  /// 100% and only falls when something the student will actually meet gets an
+  /// answer.
+  String _progressText(RepertoireFrontier walk) {
+    final open = (walk.openReach * 100).clamp(0, 100).round();
+    final parts = <String>[
+      'odlučeno ${walk.decided}',
+      'otvoreno ${walk.open.length}',
+      'bez odgovora $open%',
+    ];
+    if (walk.truncated) parts.add('pregled skraćen');
+    return parts.join(' · ');
   }
 
   Widget _buildVerdict(BuildContext context) {
@@ -1041,4 +1191,28 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       ),
     );
   }
+}
+
+/// One position waiting for an answer, and the way it was reached.
+///
+/// The path is the whole reason this type exists. A queue of bare FENs cannot
+/// tell anybody where they are, and "where am I in this tree" was the first
+/// thing the screen was asked for and could not do.
+class _Pending {
+  const _Pending({
+    required this.fen,
+    required this.path,
+    this.kind = 'undecided',
+  });
+
+  final String fen;
+
+  /// SAN from the repertoire's root to here. Joined with the repertoire's own
+  /// root path to read from move one.
+  final List<String> path;
+
+  /// `undecided` — nothing kept here yet.
+  /// `unopened` — kept, but the opponent's replies were never taken, so this
+  /// came back not to be answered again but to be opened.
+  final String kind;
 }

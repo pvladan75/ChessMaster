@@ -66,6 +66,11 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         name: item.name,
         color: item.color,
         rootFen: at ?? item.rootFen,
+        // Only when we are opening the repertoire's own root. `at` is some
+        // other position the reader jumped to, and the stored line does not
+        // lead there — a breadcrumb built from it would name the wrong moves,
+        // which is worse than showing none.
+        rootPath: at == null ? item.rootPath : const [],
         api: widget.api,
         judge: widget.judge,
       ),

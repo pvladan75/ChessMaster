@@ -44,7 +44,27 @@ function requireColor(color) {
   return color;
 }
 
-async function createRepertoire(pool, userId, { name, color, rootFen }) {
+/// The moves that led to a repertoire's root, stored as one string and read
+/// back as a list.
+///
+/// Text and not an array column, because this is never queried — it is carried
+/// whole to the screen that draws the breadcrumb and nowhere else. Null is a
+/// real answer and means "we do not know how this root was reached", which is
+/// the truth for every repertoire made before the column existed.
+function pathText(path) {
+  if (!Array.isArray(path)) return null;
+  const clean = path
+    .filter((san) => typeof san === 'string' && san.trim() !== '')
+    .map((san) => san.trim());
+  return clean.length === 0 ? null : clean.join(' ');
+}
+
+function pathList(text) {
+  if (typeof text !== 'string' || text.trim() === '') return [];
+  return text.trim().split(/\s+/);
+}
+
+async function createRepertoire(pool, userId, { name, color, rootFen, rootPath }) {
   const clean = typeof name === 'string' ? name.trim() : '';
   if (clean === '') throw new RangeError('Repertoar mora imati ime.');
   requireColor(color);
@@ -53,12 +73,13 @@ async function createRepertoire(pool, userId, { name, color, rootFen }) {
   fenKey(rootFen);
 
   const result = await pool.query(
-    `INSERT INTO repertoires (user_id, name, color, root_fen)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, name, color, root_fen, created_at`,
-    [userId, clean, color, rootFen.trim()],
+    `INSERT INTO repertoires (user_id, name, color, root_fen, root_path)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id, name, color, root_fen, root_path, created_at`,
+    [userId, clean, color, rootFen.trim(), pathText(rootPath)],
   );
-  return result.rows[0];
+  const row = result.rows[0];
+  return row ? { ...row, rootPath: pathList(row.root_path) } : row;
 }
 
 /// The repertoire a seed writes into: made once, found every time after.
@@ -95,7 +116,7 @@ async function ensureRepertoire(pool, userId, { name, color, rootFen }) {
 
 async function listRepertoires(pool, userId) {
   const result = await pool.query(
-    `SELECT r.id, r.name, r.color, r.root_fen, r.created_at,
+    `SELECT r.id, r.name, r.color, r.root_fen, r.root_path, r.created_at,
             (SELECT COUNT(*) FROM repertoire_moves m
               WHERE m.user_id = r.user_id AND m.color = r.color) AS moves
        FROM repertoires r
@@ -108,6 +129,10 @@ async function listRepertoires(pool, userId) {
     name: row.name,
     color: row.color,
     rootFen: row.root_fen,
+    // Empty for every repertoire made before the column existed. The screen
+    // reads that as "start the breadcrumb at the root", which is exactly what
+    // it knew before and no worse.
+    rootPath: pathList(row.root_path),
     createdAt: row.created_at,
     // Moves are counted per colour, not per repertoire, because that is where
     // they live. Two repertoires for Black show the same number, and that is
@@ -302,6 +327,8 @@ async function weakNodes(pool, userId, { color, limit = 20 } = {}) {
 
 module.exports = {
   fenKey,
+  pathText,
+  pathList,
   createRepertoire,
   ensureRepertoire,
   listRepertoires,

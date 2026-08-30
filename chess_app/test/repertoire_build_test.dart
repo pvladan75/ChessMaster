@@ -27,7 +27,24 @@ class _FakeApi extends RepertoireApiService {
   final List<Map<String, Object?>> attempts = [];
   String? promoted;
 
+  /// What the walk answers with. Null is the honest default here and stands for
+  /// a server that did not answer — which is what the fake's MockClient does,
+  /// and the path most of these tests happen to take.
+  RepertoireFrontier? walk;
+  int frontierCalls = 0;
+
   String _key(String fen) => fen.split(' ').take(4).join(' ');
+
+  @override
+  Future<RepertoireFrontier?> frontier({
+    required String color,
+    required String rootFen,
+    List<String> rootPath = const [],
+    int? minRating,
+  }) async {
+    frontierCalls += 1;
+    return walk;
+  }
 
   @override
   Future<List<RepertoireMove>> movesAt({
@@ -206,6 +223,8 @@ void main() {
     OpeningVerdict verdict = OpeningVerdict.theory,
     bool hasToken = true,
     Size size = const Size(500, 1000),
+    List<String> rootPath = const [],
+    RepertoireFrontier? walk,
     Future<List<AnalysisLine>> Function(String fen, int depth, int multiPV)?
         analyse,
   }) async {
@@ -213,13 +232,14 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    api = _FakeApi();
+    api = _FakeApi()..walk = walk;
     judge = _FakeJudge(verdict: verdict, hasToken: hasToken);
     await tester.pumpWidget(MaterialApp(
       home: RepertoireBuildScreen(
         name: 'Smit-Mora, crni',
         color: 'b',
         rootFen: smithMorra,
+        rootPath: rootPath,
         api: api,
         judge: judge,
         // No engine binary in a test, and no ten-second wait for one.
@@ -578,5 +598,128 @@ void main() {
 
     await play(tester, 'b8', 'c6');
     expect(tester.takeException(), isNull);
+  });
+
+  /// The position after a line of SAN moves. Computed rather than pasted: a
+  /// hand-written FEN is a chance to assert against a board that does not
+  /// exist, and the screen would then be right while the test was wrong.
+  String fenAfter(String from, List<String> sans) {
+    final board = chess.Chess.fromFEN(from);
+    for (final san in sans) {
+      board.move(san);
+    }
+    return board.fen;
+  }
+
+  testWidgets('the screen says which line the board belongs to',
+      (tester) async {
+    // The moves that led to the repertoire's own root, so the line reads from
+    // move one. Without them a Smith-Morra repertoire would open on `4...` and
+    // name nothing before it — which is the confusion this screen was built
+    // with: a position, no history, and a count of an invisible list.
+    await pump(tester, rootPath: const [
+      'e4',
+      'c5',
+      'd4',
+      'cxd4',
+      'c3',
+      'dxc3',
+      'Nxc3',
+    ]);
+
+    expect(find.text('1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3'), findsOneWidget);
+  });
+
+  testWidgets('without a stored root path the line is numbered from the board',
+      (tester) async {
+    // A repertoire built from a pasted position has no opening to tell, so the
+    // numbering comes from the FEN — Black to move, move four. Guessing move
+    // one instead would put moves on screen that nobody played.
+    await pump(tester,
+        walk: RepertoireFrontier(
+          decided: 1,
+          open: [
+            FrontierNode(
+              fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
+              path: const ['Nc6', 'Nf3'],
+              reach: 0.4,
+              kind: 'undecided',
+            ),
+          ],
+        ));
+
+    expect(find.text('4...Nc6 5.Nf3'), findsOneWidget);
+  });
+
+  testWidgets('a walk is picked up where it stopped, not at the root',
+      (tester) async {
+    // The queue is not stored anywhere: the server rebuilds it from the moves
+    // already kept and the books already fetched. Closing the screen used to
+    // throw the walk away and start again at the root, re-spending the Lichess
+    // allowance on replies that had already been paid for.
+    await pump(tester,
+        rootPath: const ['e4', 'c5', 'd4', 'cxd4', 'c3', 'dxc3', 'Nxc3'],
+        walk: RepertoireFrontier(
+          decided: 3,
+          openReach: 0.55,
+          open: [
+            FrontierNode(
+              fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
+              path: const ['Nc6', 'Nf3'],
+              reach: 0.4,
+              kind: 'undecided',
+            ),
+            FrontierNode(
+              fen: fenAfter(smithMorra, ['d6', 'Bc4']),
+              path: const ['d6', 'Bc4'],
+              reach: 0.15,
+              kind: 'undecided',
+            ),
+          ],
+        ));
+
+    expect(api.frontierCalls, 1);
+    // Most-reached first: the screen opens on the line the student will meet
+    // most often, and the other one is waiting behind it.
+    expect(find.text('1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3 Nc6 5.Nf3'),
+        findsOneWidget);
+    expect(find.text('Još 1 u redu.'), findsOneWidget);
+    expect(find.textContaining('bez odgovora 55%'), findsOneWidget);
+  });
+
+  testWidgets('a line that was decided and then left says what it needs',
+      (tester) async {
+    await pump(tester,
+        walk: RepertoireFrontier(
+          decided: 2,
+          unopened: 1,
+          open: [
+            FrontierNode(
+              fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
+              path: const ['Nc6', 'Nf3'],
+              reach: 0.4,
+              kind: 'unopened',
+            ),
+          ],
+        ));
+
+    // Coming back to a position that already has a move in it reads as a
+    // mistake unless the screen says why it is here.
+    expect(find.textContaining('ostalo je samo da uzmete odgovore'),
+        findsOneWidget);
+  });
+
+  testWidgets(
+      'a walk that could not be read falls back to the root, and says so',
+      (tester) async {
+    // "We could not find out where you were" must never be shown as "there is
+    // nothing left to do". The root is a real question, so the screen works;
+    // the sentence is there so nobody reads a restart as progress.
+    await pump(tester);
+
+    expect(api.frontierCalls, 1);
+    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(
+        find.textContaining('počinjete od početne pozicije'), findsOneWidget);
   });
 }

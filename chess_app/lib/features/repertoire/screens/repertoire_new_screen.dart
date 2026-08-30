@@ -299,6 +299,11 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
       name: _name.text.trim(),
       color: _color,
       rootFen: _game.fen,
+      // Only from the real starting position. A repertoire begun from a pasted
+      // FEN has moves in `_line` too, but they start from that FEN — writing
+      // them down as the game's opening would put a breadcrumb on the screen
+      // that names moves nobody played.
+      rootPath: _root == kStartFen ? List<String>.from(_line) : const [],
     );
     if (!mounted) return;
 

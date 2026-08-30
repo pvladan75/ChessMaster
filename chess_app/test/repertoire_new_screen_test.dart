@@ -24,20 +24,29 @@ class _FakeApi extends RepertoireApiService {
   String? lastFen;
   String? lastColor;
   String? lastName;
+  List<String>? lastPath;
 
   @override
   Future<({RepertoireSummary? made, String? error})> create({
     required String name,
     required String color,
     required String rootFen,
+    List<String> rootPath = const [],
   }) async {
     lastName = name;
     lastColor = color;
     lastFen = rootFen;
+    lastPath = rootPath;
     if (error != null) return (made: null, error: error);
     return (
       made: RepertoireSummary(
-          id: 1, name: name, color: color, rootFen: rootFen, moves: 0),
+        id: 1,
+        name: name,
+        color: color,
+        rootFen: rootFen,
+        rootPath: rootPath,
+        moves: 0,
+      ),
       error: null,
     );
   }

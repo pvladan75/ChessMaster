@@ -32,6 +32,7 @@ const {
   recordAttempt,
   weakNodes,
 } = require('../services/repertoireService');
+const { frontier } = require('../services/repertoireFrontier');
 
 /// One place where a bad request becomes a 400 and everything else becomes a
 /// 500 with a line in the log. Without it every handler grows its own copy and
@@ -53,12 +54,17 @@ function answer(res, work, whatFailed) {
   );
 }
 
-// POST /repertoire  { name, color, rootFen }
+// POST /repertoire  { name, color, rootFen, rootPath }
+//
+// `rootPath` is how the student got to the root — the SAN moves they played on
+// the board before pressing "build from here". Stored so the breadcrumb can
+// read from move one instead of pretending the game began wherever they
+// stopped.
 router.post('/', authenticateToken, (req, res) => {
-  const { name, color, rootFen } = req.body ?? {};
+  const { name, color, rootFen, rootPath } = req.body ?? {};
   answer(
     res,
-    createRepertoire(pool, req.user.id, { name, color, rootFen }),
+    createRepertoire(pool, req.user.id, { name, color, rootFen, rootPath }),
     'Repertoar nije mogao da se napravi.',
   );
 });
@@ -122,6 +128,29 @@ router.post('/attempt', authenticateToken, (req, res) => {
       color, fen, uci, san, verdict, kept: !!kept, lookedUp: !!lookedUp,
     }),
     'Pokušaj nije mogao da se zabeleži.',
+  );
+});
+
+// GET /repertoire/frontier?color=b&rootFen=...&rootPath=e4+c5&minRating=1600
+//
+// Where the student is, rebuilt from what they have already decided and the
+// books already fetched. This is what makes closing the build screen safe: the
+// queue was never a fact worth storing, and deriving it costs no Lichess
+// request at all — so resuming is free, and free on any device.
+router.get('/frontier', authenticateToken, (req, res) => {
+  const { color, rootFen, rootPath, minRating, limit } = req.query;
+  answer(
+    res,
+    frontier(pool, req.user.id, {
+      color,
+      rootFen,
+      rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
+        ? rootPath.trim().split(/\s+/)
+        : [],
+      minRating: Number(minRating) || 0,
+      limit: Math.min(Math.max(Number(limit) || 200, 1), 500),
+    }),
+    'Pregled repertoara nije mogao da se izračuna.',
   );
 });
 

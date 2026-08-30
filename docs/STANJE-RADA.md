@@ -728,7 +728,11 @@ ovo.
    - ~~**Uvežbavanje**~~ — urađeno 24.8.2026, nije viđeno uživo (stavka 30).
      Kroz postojeći SM-2, ali sa svojom tabelom `repertoire_reviews`; zašto ne
      kroz proširen `review_items`, piše u odeljku „Repertoar: drill".
-   - **Radar pokrivenosti** — poslednji. Najlepši je i najmanje uči.
+   - ~~**Putanja i izvedena granica**~~ — urađeno 31.8.2026, nije viđeno uživo.
+     Ekran za izgradnju sada kaže u kojoj je liniji i nastavlja tamo gde je
+     stao. Odeljak „Repertoar: gde sam u stablu".
+   - **Radar pokrivenosti** — poslednji. Najlepši je i najmanje uči, ali mu je
+     ceo račun već tu: `GET /repertoire/frontier` vraća i `openReach`.
 
    Tri odluke koje važe za sve delove: repertoar živi **na serveru**, ne u
    lokalnoj bazi, jer ga trener zadaje i gleda, a reinstalacija ne sme da
@@ -2344,6 +2348,56 @@ dva identična nalaza dvaput.
 
 Testovi: 596 → **610**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
 stavka 55.
+
+## Repertoar: gde sam u stablu — izvedena granica, 31.8.2026
+
+Vlasnik je prijavio da je gradnja repertoara zbunjujuća: ne zna gde je u stablu,
+dokle je stigao, nema pregled. Nije bila stvar ukusa — ekran to nije ni mogao da
+kaže.
+
+**Red je držao gole FEN-ove.** Putanja do pozicije nigde nije postojala, pa je
+jedina orijentacija bila „Još N u redu", dužina liste koja se ne vidi. Red sada
+nosi i putanju (`_Pending`), a zaglavlje ispisuje liniju numerisanu kao u
+knjizi: `1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3`.
+
+**Red je živeo u memoriji ekrana.** Zatvaranje ekrana ga je bacalo; povratak je
+kretao od korena i **ponovo trošio Lichess kvotu** na odgovore koji su već
+plaćeni. Nov `services/repertoireFrontier.js` ga **izvodi** iz dve tabele koje
+već postoje — `repertoire_moves` (šta je učenik odlučio) i `opening_replies`
+(šta protivnik igra, upisano kad je pozicija prvi put otvorena). Nijedan zahtev
+ka Lichessu; isto na svakom uređaju. Red nikad nije bio činjenica vredna
+čuvanja, nego posledica.
+
+Dve vrste otvorenih pozicija izlaze iz šetnje, i obe su pitanje koje ekran već
+ume da postavi: `undecided` (ništa nije izabrano) i `unopened` (izabrano je, ali
+odgovori nikad nisu uzeti, pa linija staje).
+
+**Redosled je `reach`, a ne širina ni dubina.** `reach` je proizvod protivnikovih
+udela duž putanje — koliko često partija zaista stigne dovde. Glavna linija na
+osmom polupotezu (0.5 × 0.6 = 0.30) pretiče treću po redu stranputicu na drugom
+(0.20), i pretiče je sve dok joj sopstvena verovatnoća ne padne dovoljno. To je
+ono što je vlasnik tražio kao „prvo u dubinu, pa se postepeno širi", samo
+izračunato umesto pogođeno. Sopstveni potezi ne dele `reach`: koji od svojih
+poteza igra je odluka, ne novčić.
+
+**`repertoires.root_path`** (novo, `ALTER ... ADD COLUMN IF NOT EXISTS`) pamti
+poteze kojima se stiglo do korena. Bez njega putanja počinje u vazduhu:
+repertoar građen od četvrtog poteza čita se kao da je partija tu i počela. Prazan
+je za svaki repertoar napravljen ranije i za onaj iz zalepljene pozicije — tada
+se numeracija čita iz samog FEN-a (`4...Nc6 5.Nf3`), što je istina umesto
+izmišljene otvaranja.
+
+Šetnja ima tavanice (`MAX_NODES` 4000, `MAX_PLY` 60) i **kaže** kad ih dodirne
+(`truncated`), umesto da tiho vrati kraći odgovor. Knjiga se pita jednom po
+talasu, ne jednom po grani.
+
+**Šta ovim nije urađeno**, iako je traženo u istom razgovoru: strelice sa
+statistikom na tabli; redosled *unutar* sesije (novi čvorovi i dalje idu na kraj
+reda — `reach` uređuje samo ulazak i nastavak); drill po bloku iz jednog čvora;
+„vrlo poznat" čvor kao mesto odakle ponavljanje kreće; i ponavljanje cele linije
+od početka pre nego što se odgovori. Za drill vredi zabeležiti da je jedna
+stavka sa te liste **već bila tu**: potez koji nije glavni, a jeste učenikov, već
+se ocenjuje kao tačan (`QUALITY.alternate = GRADES.good`).
 
 ## Repertoar iz arhive — sekcija 4, napisana 30.8.2026
 

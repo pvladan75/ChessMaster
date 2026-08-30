@@ -894,6 +894,15 @@ async function initDB() {
       );
       CREATE INDEX IF NOT EXISTS idx_repertoires_user
         ON repertoires(user_id, created_at DESC);
+      -- The moves that led to the root, in SAN, space separated.
+      --
+      -- A repertoire may start anywhere — the student plays to a position and
+      -- says "build from here" — and until this column existed, how they got
+      -- there was thrown away. That made the breadcrumb lie: a walk beginning
+      -- at move four read as though it began at move one. Nullable, because
+      -- every repertoire made before this line has no honest value to give and
+      -- guessing one would be worse than admitting it.
+      ALTER TABLE repertoires ADD COLUMN IF NOT EXISTS root_path TEXT;
     `);
     logger.info('Verified database table & indexes: repertoires');
 
