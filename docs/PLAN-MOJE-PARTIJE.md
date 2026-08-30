@@ -337,6 +337,46 @@ missing:
 `review_items` gives SM-2 for free, but it is keyed to `saved_lessons`, so this
 needs a second item type rather than a new algorithm.
 
+### Built 30.8.2026
+
+`services/mistakeReviews.js` and `routes/mistakeDrill.js`, mounted at
+`/games/mistakes`. `test/mistake_reviews.test.js` covers it (backend suite: 596
+to 610). No new table: the endgame audit is already filling `mistake_reviews`,
+and this is the half that teaches from it.
+
+**The SM-2 arithmetic is not re-implemented.** `schedule()` in
+spacedRepetitionService.js is a pure function over `ease_factor`, `repetitions`
+and `lapses`, and this table names those columns identically on purpose — which
+was the whole argument for a parallel table over a nullable `lesson_id`. A test
+grades an item and asserts the written values equal what `schedule()` returns,
+so a second copy of the interval logic cannot appear without failing.
+
+Rows arrive from two directions. The endgame audit writes its own, server-side,
+from the tables. Engine findings come **from the client** through
+`POST /games/mistakes`, because a whole-archive engine pass is roughly 273k
+positions and an overnight desktop job, which has no business on a 960 MB
+droplet. That door checks what it is handed rather than trusting it: every
+`game_id` is re-checked against the caller's own games, since a game id arriving
+from a client is a number somebody could have guessed.
+
+The answer to a batch is a **tally**, not an `ok` — handed in, stored, already
+known, rejected with named reasons (`no-game`, `no-ply`, `no-position`,
+`no-move`, `no-swing`, `game-not-yours`) — and it refuses to return if those do
+not add up. Same shape and same reason as the importer's.
+
+`GET /games/mistakes/recurrence` is the ranking that makes the drill worth
+doing: one missed fork is a bad evening, the same motif missed forty times is a
+weakness. Engine mistakes bucket by tactical motif; tablebase ones bucket by
+**material signature**, because the measurement in section 2 showed the exact
+endgame positions never repeat while the material repeats constantly. "You keep
+losing rook and pawn endings" is a sentence a player can act on; "you lost this
+exact position once" is not.
+
+Two bugs the tests caught, both the quiet kind: `Number(null)` is 0, so a
+finding with no swing at all was passing a `Number.isFinite` check and would
+have been stored as a mistake that cost nothing; and a rejection index
+recovered with `indexOf` names the first of two identical findings twice.
+
 ## 4. Repertoire seed and diff
 
 The repertoire builder and drill already exist. The archive makes two things

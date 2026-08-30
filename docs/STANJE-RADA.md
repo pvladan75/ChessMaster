@@ -2305,3 +2305,42 @@ bi jedino obećanje ove funkcije, da je presuda ovde činjenica, u nagađanje.
 
 Testovi: 584 → **596**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
 stavka 54.
+
+## Ponavljanje sopstvenih grešaka — sekcija 3, napisana 30.8.2026
+
+`services/mistakeReviews.js` i `routes/mistakeDrill.js` na `/games/mistakes`.
+Nova tabela nije trebala: provera završnica već puni `mistake_reviews`, a ovo je
+polovina koja iz toga uči.
+
+**SM-2 nije prepisan.** `schedule()` iz `spacedRepetitionService.js` je čista
+funkcija nad `ease_factor`, `repetitions` i `lapses`, a ova tabela te kolone
+zove isto — što je i bio ceo argument za paralelnu tabelu umesto nullable
+`lesson_id`. Test oceni stavku i tvrdi da su upisane vrednosti jednake onome što
+`schedule()` vrati, pa druga kopija računice ne može da se pojavi a da test
+ostane zelen.
+
+Redovi stižu sa dve strane. Provera završnica upisuje svoje, na serveru, iz
+tablica. Nalazi motora stižu **sa klijenta**, kroz `POST /games/mistakes`, jer
+je prolaz motorom kroz celu arhivu oko 273k pozicija i noćni posao na desktopu —
+na dropletu od 960 MB tome nije mesto. Ta vrata proveravaju šta im se preda:
+svaki `game_id` se ponovo proverava prema partijama samog pozivaoca, jer je
+`game_id` sa klijenta broj koji je neko mogao i da pogodi.
+
+Odgovor na paket je **tally**, ne `ok` — predato, upisano, već postojalo,
+odbijeno sa imenovanim razlozima (`no-game`, `no-ply`, `no-position`, `no-move`,
+`no-swing`, `game-not-yours`) — i puca ako se ne slažu. Isti oblik i isti razlog
+kao kod uvoznika.
+
+`GET /games/mistakes/recurrence` je rangiranje zbog kojeg drill uopšte vredi:
+jedan propušten viljušak je loše veče, isti motiv propušten četrdeset puta je
+slabost. Greške motora se grupišu po taktičkom motivu, a one iz tablica po
+**potpisu materijala** — jer je merenje iz sekcije 2 pokazalo da se tačne
+pozicije završnica nikad ne ponavljaju, a materijal se ponavlja stalno.
+
+Dva baga koja su testovi uhvatili, oba tiha: `Number(null)` je 0, pa je nalaz
+bez swinga prolazio `Number.isFinite` proveru i bio bi upisan kao greška koja
+nije koštala ništa; i indeks odbijenice izvučen preko `indexOf` imenuje prvi od
+dva identična nalaza dvaput.
+
+Testovi: 596 → **610**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
+stavka 55.

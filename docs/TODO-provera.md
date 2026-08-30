@@ -2066,3 +2066,26 @@ je mereno lokalno, kroz produkcioni kod, ali nijednom uz stvarnu tablicu.
    mora da završi kao `failed` sa razlogom, a ne kao `done`.
 7. [ ] **Server ostaje odazivan** dok deset minuta traje pozadinski posao u
    istom procesu. Isto pitanje kao kod uvoza, i još nije odgovoreno.
+
+## 55. Ponavljanje sopstvenih grešaka — 30.8.2026, nije viđeno uživo
+
+1. [ ] **Nalazi iz provere završnica su odmah na redu za ponavljanje.**
+   `GET /games/mistakes/due` treba da ih vrati bez ijednog dodatnog koraka —
+   provera završnica ih upisuje sa `due_at` na sada.
+2. [ ] **Ocena pomera rok.** Oceniti istu stavku sa „good" pa proveriti da je
+   `due_at` otišao unapred i `interval_days` porastao; pa „again" na drugoj i
+   provera da se vratila u isti dan.
+3. [ ] **Isti SM-2 kao lekcije.** Ista ocena nad stavkom sa istim
+   `ease_factor`/`repetitions` mora da da isti interval kao u ponavljanju
+   lekcija. Ovo test već tvrdi, ali vredi videti brojeve jednom uživo.
+4. [ ] **Tuđa partija se ne može podmetnuti.** `POST /games/mistakes` sa
+   `gameId` koji nije korisnikov mora da vrati `game-not-yours` u tally-ju, a
+   ne da upiše red.
+5. [ ] **Tally se slaže.** Poslati paket u kome je nekoliko nalaza namerno
+   pokvarenih i proveriti da `read = stored + duplicate + rejected` i da su
+   razlozi imenovani.
+6. [ ] **`recurrence` daje rečenicu koja ima smisla.** Za arhivu vlasnika
+   projekta, da li „stalno gubiš topovske završnice" odgovara utisku? Ovo je
+   provera koju kod ne može da uradi.
+7. [ ] **Ponovni upis istog nalaza ne pravi duplikat** (isti
+   `user_id, game_id, ply`).
