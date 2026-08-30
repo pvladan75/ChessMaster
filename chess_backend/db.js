@@ -1234,6 +1234,48 @@ async function initDB() {
     `);
     logger.info('Verified database table & indexes: mistake_reviews');
 
+    // One row per early decision the subject made: the position they faced and
+    // the move they chose. Section 1 of docs/PLAN-MOJE-PARTIJE.md is a GROUP BY
+    // over this table and nothing else — no engine, no network.
+    //
+    // Keyed on the **position**, not on the line that reached it, and
+    // deliberately the same `fen_key` the repertoire tables use: the first four
+    // FEN fields, so the same board at move 8 and at move 10 is one position.
+    // Two reasons. Transpositions are most of the point — a player's Sicilian
+    // reached through the Smith-Morra and through 1.e4 c5 is the same habit —
+    // and keying it identically makes section 4's repertoire diff a join
+    // instead of a second convention that has to be kept in step.
+    //
+    // Only the first twenty plies exist here, and that is a rule rather than a
+    // setting. Measured over a 4126-game archive: at ply 12 those games sit on
+    // 2749 distinct positions with the most frequent recurring 52 times; by ply
+    // 20 there are 3869 and the record-holder recurs 8 times. Past that every
+    // game is nearly unique and a per-position score stops being a statistic.
+    // Storing no further is what stops a report from being asked for one.
+    //
+    // `subject_color` and `subject_score` are copied from the game rather than
+    // joined. The parent row never changes once imported, and the aggregation
+    // is the one query in this feature that has to be fast.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS opening_nodes (
+        id BIGSERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        game_id BIGINT NOT NULL REFERENCES user_games(id) ON DELETE CASCADE,
+        subject VARCHAR(120) NOT NULL,
+        subject_color CHAR(1) NOT NULL CHECK (subject_color IN ('w', 'b')),
+        subject_score NUMERIC(2, 1) NOT NULL CHECK (subject_score IN (0, 0.5, 1)),
+        ply SMALLINT NOT NULL CHECK (ply BETWEEN 1 AND 20),
+        fen_key TEXT NOT NULL,
+        san VARCHAR(12) NOT NULL,
+        UNIQUE (game_id, ply)
+      );
+      CREATE INDEX IF NOT EXISTS idx_opening_nodes_group
+        ON opening_nodes(user_id, subject, subject_color, fen_key);
+      CREATE INDEX IF NOT EXISTS idx_opening_nodes_game
+        ON opening_nodes(game_id);
+    `);
+    logger.info('Verified database table & indexes: opening_nodes');
+
   } catch (err) {
     logger.error('Database migration/connection error:', err);
     throw err;

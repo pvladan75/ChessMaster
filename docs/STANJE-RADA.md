@@ -2227,3 +2227,41 @@ Mereno na stvarnom fajlu od 8,7 MB, kroz stream: 4126 partija, 4126 redova,
 nijedna preskočena, brojevi se slažu, **40 s i 209 MB RSS u vrhu**. Na dropletu
 od 960 MB memorija je važnija od vremena, i zato upload ide na disk pa se čita
 nazad umesto da stoji kao jedan string. Testovi: **570**.
+
+## Izveštaj o otvaranjima — sekcija 1, napisana 30.8.2026
+
+`opening_nodes` u `db.js`, `services/openingLeaks.js` i
+`GET /games/openings/leaks`. Jedan red po ranoj odluci subjekta — pozicija pred
+njim i potez koji je izabrao — upisuje ga uvoznik u istom prolazu u kom ionako
+računa `min_men`, pa ne košta ništa dodatno.
+
+Ključ je `fen_key`, **isti onaj koji koriste `repertoire_moves`**: transpozicije
+su veći deo poente, a isti ključ znači da je diff repertoara (sekcija 4)
+spajanje tabela a ne drugi dogovor koji neko mora da održava. Test tvrdi da se
+dva `fenKey`-a slažu, jer dva zapisa istog ključa ne bi pukla — dali bi **prazan
+diff**, što se čita kao „nikad nisi izašao iz repertoara".
+
+Prozor drži skladište: dublje od 20. poluteza se ništa ne upisuje, a traženje
+dubljeg izveštaja je `RangeError`, ne tiho uži odgovor. Partije kojima čvorovi
+nisu upisani se broje i vraćaju kao `gamesWithoutNodes` — prazan izveštaj inače
+izgleda isto kao igrač bez slabosti. `POST /games/openings/backfill` ih dopuni
+ponovnim odigravanjem UCI poteza koji već stoje u redu.
+
+**Mereno na stvarnoj arhivi od 4126 partija, kroz produkcioni kod:** 18934
+različite pozicije u prozoru, 298 dostignutih bar 8 puta, **78 označenih** ispod
+42%. Najjači nalaz je tačno oblik koji je plan predvideo — crnim, jedna pozicija
+dostignuta 121 put, prolaznost 41,3%, i isti potez odigran 92 puta. Još dva: 53
+partije na 38,7% sa istim potezom 52 puta, i 48 partija na 39,6% sa istim
+potezom 47 puta.
+
+Ta brojka zatvara i pitanje dozvole. Suđenje je opciono (`&judge=true` uz
+korisnikov `X-Lichess-Token`, koji ruta sudije ionako zahteva) i sudi glavni
+potez u prvih N pozicija: **deset zahteva za izveštaj od deset, 78 da se osudi
+svaki nalaz** — oko dvanaest sekundi kroz postojeći pacer. Šaka zahteva, ne
+skeniranje, pa lični tokeni po korisniku nisu potrebni da bi ovo bilo isplativo.
+Token koji nedostaje ili je odbijen **ne obara izveštaj**: brojevi su izračunati
+pre nego što se bilo šta pita Lichess, a svaki čvor pojedinačno pada na
+`unknown`.
+
+Testovi: 570 → **584**. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
+stavka 53.

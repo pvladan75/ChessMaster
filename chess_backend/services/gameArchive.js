@@ -32,6 +32,23 @@ const SKIP = Object.freeze({
 
 const RESULTS = new Set(['1-0', '0-1', '1/2-1/2']);
 
+/// How deep the opening report is allowed to look, and therefore how deep
+/// anything is recorded. Twenty plies, because past about move ten every game
+/// in a real archive is nearly unique and a per-position score stops being a
+/// statistic — see docs/PLAN-MOJE-PARTIJE.md. Not storing more is what keeps
+/// the rule from being re-argued as a setting.
+const NODE_WINDOW_PLIES = 20;
+
+/// The first four FEN fields: placement, side to move, castling, en passant.
+///
+/// **Must stay identical to `fenKey` in repertoireService.js.** It is the join
+/// between a player's habits and the repertoire they meant to have, and two
+/// spellings of the same key would silently produce an empty diff rather than
+/// an error. A test asserts the two agree.
+function fenKey(fen) {
+  return String(fen).trim().split(/\s+/).slice(0, 4).join(' ');
+}
+
 /// chess.js fills absent headers with placeholders ('?', '????.??.??') rather
 /// than leaving them out, so "missing" has to be recognised rather than assumed.
 function headerOrNull(value) {
@@ -160,12 +177,19 @@ function normaliseGame(pgnText, { subject, source, subjectIsOwner = true } = {})
   // the moves in UCI, the fewest men the game ever reached, and the ply it
   // first entered tablebase range.
   const uciMoves = [];
+  // One row per early decision the subject made: what they faced, what they
+  // chose. Collected on the same walk, since the board is already here.
+  const nodes = [];
   let minMen = menInFen(startFen);
   // 0 rather than null when the game *starts* inside tablebase range — a
   // position set up from a FEN. Null has to keep meaning "never got there".
   let tbEntryPly = minMen <= 7 ? 0 : null;
   history.forEach((move, index) => {
     uciMoves.push(`${move.from}${move.to}${move.promotion || ''}`);
+    const ply = index + 1;
+    if (ply <= NODE_WINDOW_PLIES && move.color === color) {
+      nodes.push({ ply, fen_key: fenKey(move.before), san: move.san });
+    }
     const men = menInFen(move.after);
     if (men < minMen) minMen = men;
     if (tbEntryPly === null && men <= 7) tbEntryPly = index + 1;
@@ -200,6 +224,7 @@ function normaliseGame(pgnText, { subject, source, subjectIsOwner = true } = {})
 
   return {
     ok: true,
+    nodes,
     row: {
       source,
       external_id: externalId(headers, startFen, uciMoves),
@@ -273,6 +298,8 @@ function createTally() {
 
 module.exports = {
   SKIP,
+  NODE_WINDOW_PLIES,
+  fenKey,
   normaliseGame,
   createTally,
   speedFromTimeControl,

@@ -25,6 +25,8 @@ const { authenticateToken } = require('../middleware/auth');
 const {
   createArchiveImporter, ArchiveImportUnavailable,
 } = require('../services/gameArchiveImport');
+const { leakReport, backfillNodes } = require('../services/openingLeaks');
+const { openingJudge } = require('../services/openingJudgeService');
 
 const importer = createArchiveImporter({ pool });
 
@@ -193,6 +195,81 @@ router.get('/imports/:id', authenticateToken, async (req, res) => {
     return res.json(run);
   } catch (err) {
     return fail(res, err, 'Stanje uvoza nije dostupno.');
+  }
+});
+
+// GET /games/openings/leaks?subject=&color=&fromPly=&toPly=&minGames=&maxScore=&speed=&limit=
+// Optional: &judge=true with header X-Lichess-Token
+//
+// The counting half costs nothing — no engine, no network — and it is the
+// whole report. Judging is an extra opinion on the move the player keeps
+// choosing, it costs requests against the caller's own Lichess allowance, and
+// it is therefore asked for rather than assumed.
+//
+// A missing or refused token does not take the report down with it. The
+// numbers were computed before anything was asked of Lichess, and this codebase
+// has twice shipped a bug where the message about the work killed the work.
+router.get('/openings/leaks', authenticateToken, async (req, res) => {
+  const q = req.query ?? {};
+  try {
+    const report = await leakReport(pool, req.user.id, {
+      subject: q.subject,
+      color: q.color ?? null,
+      fromPly: q.fromPly,
+      toPly: q.toPly,
+      minGames: q.minGames,
+      maxScore: q.maxScore,
+      speed: q.speed ?? null,
+      limit: q.limit,
+    });
+
+    if (String(q.judge) === 'true') {
+      report.judge = await annotate(report.nodes, {
+        token: req.get('X-Lichess-Token') || '',
+        minRating: q.minRating ?? null,
+        limit: Number(q.judgeLimit) > 0 ? Number(q.judgeLimit) : 10,
+      });
+    }
+    return res.json(report);
+  } catch (err) {
+    if (err instanceof RangeError) return res.status(400).json({ error: err.message });
+    return fail(res, err, 'Izveštaj o otvaranjima nije dostupan.');
+  }
+});
+
+/// Asks the judge about the move the player chose most often in each of the
+/// worst positions, and counts what that cost. The count is the point as much
+/// as the verdicts are: it is how anyone finds out whether this report is a
+/// handful of requests or a scan.
+async function annotate(nodes, { token, minRating, limit }) {
+  if (!token) return { requested: true, judged: 0, requests: 0, reason: 'no-token' };
+  let judged = 0;
+  for (const node of nodes.slice(0, limit)) {
+    const favourite = node.moves[0];
+    if (!favourite) continue;
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      node.judgement = await openingJudge.judge(node.fen, favourite.san, {
+        token, minRating,
+      });
+      judged += 1;
+    } catch (err) {
+      // `unknown` is a fourth answer here for the same reason it is one in the
+      // judge itself: a move nobody has evaluated, shown as a mistake, is an
+      // answer that looks computed and is a guess.
+      node.judgement = { verdict: 'unknown', reason: err.reason || 'error' };
+    }
+  }
+  return { requested: true, judged, nodes: Math.min(nodes.length, limit) };
+}
+
+// POST /games/openings/backfill — fills opening_nodes for games imported before
+// that table existed. Idempotent; safe to run twice.
+router.post('/openings/backfill', authenticateToken, importLimiter, async (req, res) => {
+  try {
+    return res.json(await backfillNodes(pool, req.user.id));
+  } catch (err) {
+    return fail(res, err, 'Dopuna otvaranja nije uspela.');
   }
 });
 

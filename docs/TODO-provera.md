@@ -2014,3 +2014,28 @@ unosi ručno — veze naloga sa Lichess-om još nema.
 8. [ ] **Veličina.** Posle uvoza pogledati koliko je `user_games` zauzeo na
    dropletu od 960 MB — `moves` i `clocks` su nizovi po partiji, a ovo je prva
    tabela koja raste sa istorijom korisnika, ne sa njegovim radom u aplikaciji.
+
+## 53. Izveštaj o otvaranjima — 30.8.2026, nije viđeno uživo
+
+Prva analiza koja se oslanja na uvezenu arhivu. Sve dole je mereno van baze, na
+PGN fajlu, kroz isti kod koji ide u produkciju — ali nijednom kroz Postgres.
+
+1. [ ] **`GET /games/openings/leaks?subject=...` vrati nalaze.** Očekivano na
+   arhivi od 4126 partija: oko 78 označenih pozicija, najjača sa 121 partijom i
+   prolaznošću oko 41%. Ako vrati prazno a `games` je veliko, pogledati
+   `gamesWithoutNodes` — to znači da čvorovi nisu upisani, ne da nema slabosti.
+2. [ ] **`gamesWithoutNodes` je 0 posle uvoza**, i različit od nule za partije
+   uvezene pre nego što je `opening_nodes` postojala. Za njih
+   `POST /games/openings/backfill`, pa opet provera da je palo na nulu.
+3. [ ] **Prozor se ne da proširiti.** `&toPly=30` mora da vrati 400 sa
+   objašnjenjem, a ne kraći izveštaj.
+4. [ ] **Brzina upita.** Ovo je prvi `GROUP BY` nad tabelom koja po korisniku
+   ima desetine hiljada redova; izmeriti koliko traje na dropletu, ne samo da
+   li radi.
+5. [ ] **Suđenje bez tokena ne obara izveštaj.** `&judge=true` bez
+   `X-Lichess-Token` mora da vrati brojeve i `judge.reason = 'no-token'`.
+6. [ ] **Suđenje sa tokenom** — proveriti da je deset zahteva zaista deset, i
+   da `unknown` ostaje `unknown` umesto da se prikaže kao greška.
+7. [ ] **Nalaz ima smisla za igrača.** Jedina provera koju kod ne može da
+   uradi: da li je pozicija koju izveštaj proglasi navikom zaista mesto gde
+   vlasnik projekta misli da igra loše.

@@ -49,8 +49,12 @@ function streamOf(text, size = 64) {
 
 /// A pool that answers by reading the statement. Ordered results would break
 /// the moment a query is added, and this importer issues five different ones.
-function fakeDb({ newest = null, running = [], insertedOf = (n) => n } = {}) {
+/// `keep` decides which of the offered games the insert claims to have stored,
+/// so a test can make one a duplicate and see what happens to the other's
+/// opening nodes.
+function fakeDb({ newest = null, running = [], keep = (ids) => ids } = {}) {
   const calls = [];
+  const nodeRows = [];
   const query = async (text, params = []) => {
     const flat = text.replace(/\s+/g, ' ').trim();
     calls.push({ text: flat, params });
@@ -66,10 +70,25 @@ function fakeDb({ newest = null, running = [], insertedOf = (n) => n } = {}) {
     if (/INSERT INTO user_game_imports/.test(flat)) {
       return { rows: [{ id: 77, started_at: new Date() }], rowCount: 1 };
     }
+    if (/INSERT INTO opening_nodes/.test(flat)) {
+      for (let i = 0; i < params.length; i += 8) {
+        nodeRows.push({
+          gameId: params[i + 1], subject: params[i + 2], color: params[i + 3],
+          score: params[i + 4], ply: params[i + 5], fenKey: params[i + 6],
+          san: params[i + 7],
+        });
+      }
+      return { rows: [], rowCount: params.length / 8 };
+    }
     if (/INSERT INTO user_games/.test(flat)) {
       const offered = params.length / COLUMNS;
-      const stored = insertedOf(offered);
-      return { rows: Array.from({ length: stored }, () => ({ id: 1 })), rowCount: stored };
+      const externalIds = [];
+      for (let i = 0; i < offered; i += 1) externalIds.push(params[i * COLUMNS + 2]);
+      const kept = keep(externalIds);
+      return {
+        rows: kept.map((external_id, i) => ({ id: 1000 + externalIds.indexOf(external_id), external_id })),
+        rowCount: kept.length,
+      };
     }
     if (/UPDATE user_game_imports/.test(flat)) return { rows: [], rowCount: 1 };
     if (/SELECT \* FROM user_game_imports/.test(flat)) {
@@ -79,6 +98,7 @@ function fakeDb({ newest = null, running = [], insertedOf = (n) => n } = {}) {
   };
   return {
     calls,
+    nodeRows,
     query,
     connect: async () => ({ query, release() {} }),
     lastUpdate() {
@@ -166,7 +186,7 @@ test('games the database already had are counted as duplicates, not lost', async
   // ON CONFLICT DO NOTHING returns fewer rows than were offered, and the
   // difference is the only honest source of the duplicate count. Counting it
   // anywhere else would be guessing at what the database did.
-  const db = fakeDb({ insertedOf: () => 0 });
+  const db = fakeDb({ keep: () => [] });
   const { importer } = importerOver(db, ARCHIVE);
   const { finished } = await importer.start({ userId: 5, subject: 'subjekat' });
   const snapshot = await finished;
@@ -278,6 +298,41 @@ test('an unknown source and a missing handle are refused before anything runs', 
     (err) => err.status === 400,
   );
   assert.equal(db.calls.length, 0, 'nothing should have been written');
+});
+
+test('the opening decisions of a stored game are written with it', async () => {
+  // A report over an archive whose nodes were never filled comes back empty,
+  // which reads exactly like a player with no weaknesses.
+  const db = fakeDb();
+  const { importer } = importerOver(db, ARCHIVE);
+  const { finished } = await importer.start({ userId: 5, subject: 'subjekat' });
+  await finished;
+
+  assert.ok(db.nodeRows.length > 0, 'no opening nodes were written at all');
+  // Both usable games are the subject as White: plies 1, 3 and 5 for the first
+  // (e4 c5 Nf3 d6), ply 1 for the second (d4 d5).
+  assert.deepEqual(db.nodeRows.map((n) => `${n.ply}:${n.san}`), ['1:e4', '3:Nf3', '1:d4']);
+  for (const node of db.nodeRows) {
+    assert.equal(node.subject, 'subjekat');
+    assert.equal(node.color, 'w');
+    assert.match(node.fenKey, /^[^ ]+ [wb] [KQkq-]+ [a-h1-8-]+$/);
+  }
+});
+
+test('nodes follow the game that was actually stored, not its position in the batch', async () => {
+  // The insert returns only the rows it inserted. Lining those up with the
+  // offered list by index is right until the first duplicate and then quietly
+  // files one game's opening under another game's id.
+  const db = fakeDb({ keep: (ids) => ids.slice(1) });
+  const { importer } = importerOver(db, ARCHIVE);
+  const { finished } = await importer.start({ userId: 5, subject: 'subjekat' });
+  const snapshot = await finished;
+
+  assert.equal(snapshot.stored, 1);
+  assert.equal(snapshot.duplicate, 1);
+  // Only the second game's node survives, and it must carry the second game's
+  // id (1001) and its own move — not the first game's.
+  assert.deepEqual(db.nodeRows.map((n) => `${n.gameId}:${n.san}`), ['1001:d4']);
 });
 
 test('rows are written in batches, with every column bound', async () => {

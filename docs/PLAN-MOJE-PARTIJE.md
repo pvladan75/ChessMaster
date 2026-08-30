@@ -222,6 +222,47 @@ second best; here is what the masters play."* The judge's fourth verdict,
 `unknown`, must survive into the report — a node nobody has evaluated, shown as
 a mistake, is the failure this codebase keeps meeting.
 
+### Built 30.8.2026
+
+`opening_nodes` in `db.js`, `services/openingLeaks.js`, and
+`GET /games/openings/leaks`. `test/opening_leaks.test.js` covers it (backend
+suite: 570 to 584).
+
+One row per early decision the subject made — the position faced, the move
+chosen — written by the importer on the same walk that already computes
+`min_men`, so it costs nothing extra. Keyed on `fen_key`, **the same
+first-four-FEN-fields key `repertoire_moves` uses**: transpositions are most of
+the point, and keying it identically makes section 4 a join rather than a second
+convention to keep in step. A test asserts the two keys agree, because two
+spellings would not error — they would produce an empty diff, which reads as
+"you never left your repertoire".
+
+The window is enforced by the storage: nothing past ply 20 is written, and
+asking the report for more is a `RangeError` rather than a quietly narrower
+answer. Games whose nodes were never written are counted and returned as
+`gamesWithoutNodes`, since an empty report otherwise reads exactly like a player
+with no weaknesses; `POST /games/openings/backfill` fills them by replaying the
+UCI already on the row.
+
+**Measured on the real 4126-game archive, through the production extractor:**
+18934 distinct positions in the window, 298 reached at least 8 times, and
+**78 flagged** under 42%. The strongest finding is the shape the plan predicted —
+as Black, one position reached 121 times, scored 41.3%, and the same move played
+in 92 of them. Two more: 53 games at 38.7% with the same move 52 times, and 48
+games at 39.6% with the same move 47 times.
+
+That number also settles the allowance question. Judging is optional
+(`&judge=true` with the caller's own `X-Lichess-Token`, which the judge route
+already requires) and annotates the dominant move of the top N positions:
+**ten requests for a top-10 report, seventy-eight to judge every leak** — about
+twelve seconds through the existing pacer. A handful of requests, not a scan, so
+no per-user token plumbing is needed to make this affordable.
+
+A missing or refused token does not take the report down with it: the numbers
+are computed before anything is asked of Lichess, and each node falls back to
+`unknown` on its own. This codebase has twice shipped a bug where the message
+about the work killed the work.
+
 ## 2. Syzygy endgame audit
 
 Scan every position with ≤7 men and compare the tablebase verdict before and

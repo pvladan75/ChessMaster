@@ -158,10 +158,10 @@ function createArchiveImporter({
     return rows[0]?.newest || null;
   }
 
-  async function writeBatch(userId, rows) {
-    if (rows.length === 0) return { stored: 0, duplicate: 0 };
+  async function writeBatch(userId, entries) {
+    if (entries.length === 0) return { stored: 0, duplicate: 0 };
     const params = [];
-    const tuples = rows.map((row) => {
+    const tuples = entries.map(({ row }) => {
       const values = rowValues(userId, row);
       const start = params.length;
       params.push(...values);
@@ -171,13 +171,53 @@ function createArchiveImporter({
       `INSERT INTO user_games (${INSERT_COLUMNS.join(', ')})
        VALUES ${tuples.join(', ')}
        ON CONFLICT (user_id, source, external_id, subject) DO NOTHING
-       RETURNING id`,
+       RETURNING id, external_id`,
       params,
     );
-    // Everything the insert did not return was already there. This is the only
-    // place duplicates are counted, and counting them anywhere else would mean
-    // guessing at what the database did.
-    return { stored: result.rowCount, duplicate: rows.length - result.rowCount };
+
+    // Matched by external_id rather than by position. A multi-row INSERT does
+    // return rows in the order it inserted them, but only the ones it actually
+    // inserted — so lining the two lists up by index is right until the first
+    // duplicate, and then quietly attaches one game's opening to another's.
+    const idFor = new Map(result.rows.map((r) => [r.external_id, r.id]));
+    const stored = entries.filter(({ row }) => idFor.has(row.external_id));
+    await writeNodes(userId, stored, idFor);
+
+    // Everything the insert did not return was already there — and its nodes
+    // were written when it was. This is the only place duplicates are counted,
+    // and counting them anywhere else would mean guessing at what the database
+    // did.
+    return { stored: result.rowCount, duplicate: entries.length - result.rowCount };
+  }
+
+  /// The early decisions of the games that were just stored, for section 1.
+  ///
+  /// Written in the same pass rather than by a later job: a report over an
+  /// archive whose nodes were never filled would come back empty, which reads
+  /// exactly like a player with no weaknesses.
+  async function writeNodes(userId, stored, idFor) {
+    const params = [];
+    const tuples = [];
+    for (const { row, nodes } of stored) {
+      const gameId = idFor.get(row.external_id);
+      for (const node of nodes || []) {
+        const values = [
+          userId, gameId, row.subject, row.subject_color, row.subject_score,
+          node.ply, node.fen_key, node.san,
+        ];
+        const start = params.length;
+        params.push(...values);
+        tuples.push(`(${values.map((_, i) => `$${start + i + 1}`).join(', ')})`);
+      }
+    }
+    if (tuples.length === 0) return;
+    await pool.query(
+      `INSERT INTO opening_nodes
+         (user_id, game_id, subject, subject_color, subject_score, ply, fen_key, san)
+       VALUES ${tuples.join(', ')}
+       ON CONFLICT (game_id, ply) DO NOTHING`,
+      params,
+    );
   }
 
   async function saveProgress(importId, tally, { status, error } = {}) {
@@ -306,7 +346,7 @@ function createArchiveImporter({
         tally.skipped(outcome.reason);
         return;
       }
-      pending.push(outcome.row);
+      pending.push({ row: outcome.row, nodes: outcome.nodes });
     };
 
     try {
