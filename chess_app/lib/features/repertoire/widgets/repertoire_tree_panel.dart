@@ -16,12 +16,19 @@ import 'package:chess_app/theme/app_typography.dart';
 /// positions. They go onto the cards because the widget already draws
 /// `eval` — no new drawing, and no verdict either: a number beside a move is
 /// information, and the judgement on this screen stays the opening judge's.
+/// [showCut] draws the branches the student said they are not preparing.
+/// Off by default: a cut stops the walk but the card stayed, so ten cuts left
+/// ten dead leaves widening a drawing that is read to find the holes. The count
+/// is beside the toggle, so nothing disappears silently — a cut is a decision
+/// and has to stay findable.
 AnalysisNode repertoireTreeToNodes(
   RepertoireTree tree, {
   Map<String, RepertoireNote> notes = const {},
+  bool showCut = false,
 }) {
   final root = AnalysisNode(fen: tree.rootFen);
   void add(AnalysisNode parent, RepertoireTreeMove move) {
+    if (!showCut && move.state == 'cut') return;
     final node = parent.addChild(
       childFen: move.fen,
       san: move.san,
@@ -70,6 +77,25 @@ String? markOfRepertoireMove(RepertoireTreeMove move) {
   return parts.isEmpty ? null : ' ${parts.join(" ")}';
 }
 
+/// How many moves in the drawing lead into a branch that was cut.
+///
+/// Counted over the whole tree rather than taken from the drawing, so the
+/// number is right whether or not those cards are being drawn.
+int countCutMoves(RepertoireTree tree) {
+  var cut = 0;
+  void walk(RepertoireTreeMove move) {
+    if (move.state == 'cut') cut += 1;
+    for (final child in move.children) {
+      walk(child);
+    }
+  }
+
+  for (final child in tree.children) {
+    walk(child);
+  }
+  return cut;
+}
+
 /// The node standing at a position, or null.
 ///
 /// First match wins where a position is reachable two ways, which is the same
@@ -99,7 +125,12 @@ class RepertoireTreePanel extends StatelessWidget {
     required this.root,
     required this.active,
     required this.onSelect,
+    this.onPromote,
+    this.onDelete,
     this.truncatedAt,
+    this.cutHidden = 0,
+    this.showCut = false,
+    this.onToggleCut,
   });
 
   final AnalysisNode root;
@@ -110,9 +141,24 @@ class RepertoireTreePanel extends StatelessWidget {
   /// whose move it is.
   final void Function(AnalysisNode node) onSelect;
 
+  /// The two edits in the card's own context menu — long press, or right
+  /// click. The widget draws them whatever happens; passing nothing is how the
+  /// repertoire spent a day offering "Unapredi u glavnu liniju" and "Obriši ovu
+  /// varijantu" bound to a `?.call` that went nowhere, which is exactly what it
+  /// looked like from the outside: a menu that does nothing.
+  final void Function(AnalysisNode node)? onPromote;
+  final void Function(AnalysisNode node)? onDelete;
+
   /// Set when the drawing was cut short at a depth, so the panel can say so
   /// instead of looking like the whole repertoire.
   final int? truncatedAt;
+
+  /// How many cut branches there are, and whether they are being drawn. A cut
+  /// is a decision, so it is never silently gone: the number is on screen with
+  /// the switch that brings them back.
+  final int cutHidden;
+  final bool showCut;
+  final VoidCallback? onToggleCut;
 
   @override
   Widget build(BuildContext context) {
@@ -123,9 +169,19 @@ class RepertoireTreePanel extends StatelessWidget {
           'Uz protivnikov potez stoji koliko se često igra. ★ je vaš glavni '
           'potez, ? pozicija bez vaše odluke, … odluka bez uzetih odgovora, '
           '✂ odsečena grana. Broj u zagradi je ocena motora — dubina i datum '
-          'stoje u panelu uz tablu. Dodirnite potez da tabla ode tamo.',
+          'stoje u panelu uz tablu. Dodirnite potez da tabla ode tamo, a '
+          'dugim pritiskom (ili desnim klikom) otvorite izmene.',
           style: AppText.micro.copyWith(color: context.colors.textMuted),
         ),
+        if (cutHidden > 0 && onToggleCut != null)
+          TextButton.icon(
+            onPressed: onToggleCut,
+            icon: Icon(showCut ? Icons.visibility_off : Icons.content_cut,
+                size: 16),
+            label: Text(showCut
+                ? 'Sakrij odsečene grane ($cutHidden)'
+                : 'Prikaži odsečene grane ($cutHidden)'),
+          ),
         if (truncatedAt != null) ...[
           const SizedBox(height: AppSpacing.xxs),
           Text(
@@ -138,6 +194,8 @@ class RepertoireTreePanel extends StatelessWidget {
           rootNode: root,
           activeNode: active,
           onSelectNode: onSelect,
+          onPromoteNode: onPromote,
+          onDeleteNode: onDelete,
         ),
       ],
     );

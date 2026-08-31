@@ -691,21 +691,71 @@ void main() {
     expect(api.kept, isEmpty, reason: 'odbijen potez ne ulazi u repertoar');
   });
 
-  testWidgets('"Ne znam" opens the same book, and that one is written down',
+  testWidgets('the statistics stand there without being asked for',
       (tester) async {
-    await pump(tester);
+    // The loop stopped being a quiz. A repertoire is built from the statistics,
+    // the evaluation and the builder's own will, so the book is not behind an
+    // admission that they do not know — and it costs nothing, because it is
+    // read from what somebody's session already paid for.
+    await pump(
+      tester,
+      book: const StoredBook(
+        fen: 'x',
+        opened: true,
+        replies: [
+          StoredReply(
+              uci: 'b8c6', san: 'Nc6', games: 900, share: 0.6, covered: true),
+        ],
+      ),
+    );
 
-    await tester.tap(find.text('Ne znam'));
-    await tester.pumpAndSettle();
     expect(find.text('Šta se ovde igra'), findsOneWidget);
-    expect(judge.asked, 1);
+    expect(find.text('Ne znam'), findsNothing);
+    expect(judge.asked, 0, reason: 'lista koja se sama pojavi ne sme da košta');
 
     await play(tester, 'b8', 'c6');
+    // Scrolled to first: the list adds a panel above the controls, so the
+    // button that was on screen before it is now below the fold.
+    await tester.ensureVisible(find.text('Uzmi Nc6'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Uzmi Nc6'));
     await tester.pumpAndSettle();
 
-    expect(api.attempts.single['lookedUp'], true,
-        reason: 'pozicija rešena gledanjem nije isto što i rešena mišljenjem');
+    // And nothing is written down as a confession any more: with the list on
+    // screen from the start, "answered by looking" cannot be told from
+    // "answered by thinking", so claiming to know the difference would be a
+    // number that means nothing.
+    expect(api.attempts.single['lookedUp'], false);
+  });
+
+  testWidgets('a move can be played straight out of the statistics',
+      (tester) async {
+    // Choosing from the list is building, not a shortcut past anything: it goes
+    // through the same judging and the same decision as a move dragged on the
+    // board.
+    await pump(
+      tester,
+      book: const StoredBook(
+        fen: 'x',
+        opened: true,
+        replies: [
+          StoredReply(
+              uci: 'b8c6', san: 'Nc6', games: 900, share: 0.6, covered: true),
+        ],
+      ),
+    );
+
+    await tester.ensureVisible(find.text('Igraj').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Igraj').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Uzmi Nc6'), findsOneWidget);
+    await tester.ensureVisible(find.text('Uzmi Nc6'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.pumpAndSettle();
+    expect(api.kept.values.single.single.san, 'Nc6');
   });
 
   testWidgets('going on opens the opponent\'s replies and says what is covered',
@@ -1451,6 +1501,9 @@ void main() {
     );
 
     expect(find.textContaining('Iz sačuvane knjige'), findsOneWidget);
+    // Two free lists on one screen, and they must not read the same: this one
+    // is what the opponent answers with, the other is what is played here.
+    expect(find.textContaining('Statistika iz sačuvane baze'), findsOneWidget);
     expect(find.text('Nf3'), findsWidgets);
     // Prepared already: the useful action is to go there. Past the cut: the
     // useful action is to prepare it.
@@ -1474,10 +1527,15 @@ void main() {
       book: const StoredBook(fen: 'x'),
     );
 
-    expect(find.textContaining('još niko nije otvarao'), findsOneWidget);
+    // Once for the position on the board, once for the one after the move
+    // kept here — and each says which it means.
+    expect(find.textContaining('Ovu poziciju još niko nije otvarao'),
+        findsOneWidget);
+    expect(find.textContaining('Poziciju posle Nc6 još niko nije otvarao'),
+        findsOneWidget);
     expect(judge.asked, 0);
 
-    await tester.tap(find.text('Otvori knjigu (1 upit)'));
+    await tester.tap(find.text('Otvori knjigu posle Nc6 (1 upit)'));
     await tester.pumpAndSettle();
 
     // Exactly one, and only because it was asked for.

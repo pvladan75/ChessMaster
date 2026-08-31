@@ -2,6 +2,7 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_judge_panel_widget.dart';
@@ -20,6 +21,8 @@ import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/engine_analysis_dials.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
+import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 
 /// Building a repertoire by being asked, not by being told.
 ///
@@ -135,6 +138,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   RepertoireTree? _tree;
   AnalysisNode? _treeRoot;
 
+  /// Whether the drawing includes the branches that were cut. Off by default:
+  /// a cut stops the walk, and a card that stays behind only widens a picture
+  /// that is read to find the holes.
+  bool _showCut = false;
+
   _Pending? _node;
 
   /// The position on the board. A getter so the FEN reads the same everywhere
@@ -153,12 +161,23 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   OpeningJudgement? _verdict;
   String? _verdictReason;
 
-  /// The book, once the student has said they do not know. Opening it is
-  /// allowed and is written down — a position answered by looking is not the
-  /// same as one answered by thinking, and the drill should know the
-  /// difference.
+  /// The book with the result percentages, fetched once a move has been
+  /// played. It costs a request and carries what the stored book cannot: how
+  /// those games actually went.
   OpponentReplies? _book;
-  bool _lookedUp = false;
+
+  /// What is played in the position **on the board**, out of the stored book.
+  ///
+  /// Always on screen, whoever is to move. Building a repertoire is a decision
+  /// made from the statistics, the evaluation and the builder's own will — not
+  /// a guess that gets marked — so there is nothing here to hide until somebody
+  /// admits they do not know. It costs no Lichess request: `opening_replies`
+  /// holds whatever anybody's session already paid for.
+  StoredBook? _here;
+
+  /// The position that list belongs to. A list drawn for the previous board
+  /// names moves that cannot be played on this one.
+  String? _hereFor;
 
   /// What the opponent answers the student's own move with.
   ///
@@ -357,7 +376,19 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     setState(() {
       _tree = tree;
       _notes = notes;
-      _treeRoot = repertoireTreeToNodes(tree, notes: notes);
+      _treeRoot = repertoireTreeToNodes(tree, notes: notes, showCut: _showCut);
+    });
+  }
+
+  /// Draws the cut branches, or stops drawing them. The tree is rebuilt from
+  /// the answer already in hand — no request, and nothing is re-read to change
+  /// what is on screen.
+  void _toggleCut() {
+    final tree = _tree;
+    if (tree == null) return;
+    setState(() {
+      _showCut = !_showCut;
+      _treeRoot = repertoireTreeToNodes(tree, notes: _notes, showCut: _showCut);
     });
   }
 
@@ -456,10 +487,164 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     await _loadStoredBook();
   }
 
+  /// The card's move as this screen holds it: the position it is played from,
+  /// and the move itself.
+  ///
+  /// Null for a card whose parent is missing — the root has no move — and that
+  /// is the one case both edits below simply decline.
+  ({AnalysisNode from, String uci, String san})? _moveOf(AnalysisNode node) {
+    final from = node.parent;
+    final uci = node.moveUci;
+    final san = node.moveSan;
+    if (from == null || uci == null || san == null) return null;
+    return (from: from, uci: uci, san: san);
+  }
+
+  /// "Unapredi u glavnu liniju" on a card.
+  ///
+  /// Only means something for the student's own moves: one primary per
+  /// position is a rule about *their* decisions, and the opponent's move is not
+  /// theirs to promote. Said out loud rather than ignored — a menu item that
+  /// quietly does nothing is what this menu was for a day.
+  Future<void> _promoteFromTree(AnalysisNode node) async {
+    final move = _moveOf(node);
+    if (move == null || _busy) return;
+    if (!_isMine(move.from.fen)) {
+      setState(() => _note = 'To je protivnikov potez — glavni potez biraju '
+          'samo vaši.');
+      return;
+    }
+    final kept = await _keptAt(move.from);
+    if (kept == null) return;
+    final mine = kept.where((m) => m.uci == move.uci).firstOrNull;
+    if (mine == null) {
+      setState(() => _note = '${move.san} više nije u repertoaru.');
+      return;
+    }
+    await _makePrimary(mine);
+  }
+
+  /// "Obriši ovu varijantu" on a card, which means two different things.
+  ///
+  /// On the student's own move it is a removal, with the sweep of everything
+  /// that becomes unreachable and the question about the decisions among them.
+  /// On the opponent's it is the **cut**: their moves are not rows anybody
+  /// chose, so there is nothing to delete — what somebody means by it is "I am
+  /// not preparing this", which is a decision and is stored as one.
+  Future<void> _deleteFromTree(AnalysisNode node) async {
+    final move = _moveOf(node);
+    if (move == null || _busy) return;
+
+    if (!_isMine(move.from.fen)) {
+      // The board goes there first: cutting is about the position in front of
+      // you, the undo names it, and the queue below it is cleared by the same
+      // method the button uses.
+      await _show(_Pending(fen: node.fen, path: _pathTo(node)));
+      if (!mounted) return;
+      await _cutBranch();
+      return;
+    }
+
+    final kept = await _keptAt(move.from);
+    if (kept == null) return;
+    final mine = kept.where((m) => m.uci == move.uci).firstOrNull;
+    if (mine == null) {
+      setState(() => _note = '${move.san} više nije u repertoaru.');
+      return;
+    }
+    await _remove(mine);
+  }
+
+  /// Takes the board to the position a card's move is played from, and hands
+  /// back what is kept there.
+  ///
+  /// The edits below run through the same methods the buttons under the board
+  /// do — one removal, one promotion, one orphan sweep — and those read
+  /// `_kept`, which belongs to the position on the board. So the board goes
+  /// there first. Null when the jump did not land, and the caller stops.
+  Future<List<RepertoireMove>?> _keptAt(AnalysisNode from) async {
+    if (from.fen != _current || _standingAfter != null) {
+      await _show(_Pending(fen: from.fen, path: _pathTo(from)));
+      if (!mounted) return null;
+    }
+    return _kept;
+  }
+
   /// Whether the student is the one to move here.
   bool _isMine(String fen) {
     final parts = fen.trim().split(RegExp(r'\s+'));
     return parts.length >= 2 && parts[1] == widget.color;
+  }
+
+  /// The line the board is standing in: the root, everything down to the
+  /// board, and then the main line onwards to its end.
+  ///
+  /// It runs *past* the board on purpose. A palette whose forward buttons are
+  /// dead the moment you open it is not navigation — the same rule
+  /// [MoveTreeCursor] keeps, following first children to the end of the line
+  /// rather than stopping where the cursor happens to be.
+  List<AnalysisNode> _lineNodes() {
+    final active = _activeNode;
+    if (active == null) return const [];
+    final line = <AnalysisNode>[];
+    AnalysisNode? at = active;
+    while (at != null) {
+      line.insert(0, at);
+      at = at.parent;
+    }
+    var deepest = active;
+    while (deepest.children.isNotEmpty) {
+      deepest = deepest.children.first;
+      line.add(deepest);
+    }
+    return line;
+  }
+
+  /// Where the board stands in that line: everything above it.
+  int _lineIndex() {
+    final active = _activeNode;
+    if (active == null) return 0;
+    var above = 0;
+    AnalysisNode? at = active.parent;
+    while (at != null) {
+      above += 1;
+      at = at.parent;
+    }
+    return above;
+  }
+
+  /// The strip under the board, over the line the board is in.
+  ///
+  /// The same four buttons as the lesson viewer, the review session and the
+  /// endgame walk, driven by the same cursor — this screen was the one place
+  /// that had a board and no palette under it.
+  /// The one cursor this screen is walked by — the strip's buttons and the
+  /// arrow keys read it from here rather than each building their own, so
+  /// there is no second copy to fall out of step.
+  MoveCursor _moveCursor() {
+    final line = _lineNodes();
+    return LinearMoveCursor(
+      fens: [for (final node in line) node.fen],
+      index: _lineIndex(),
+      // Through the same door a tap on the tree uses, so walking the line and
+      // tapping a card cannot end in two different states — the opponent's
+      // move puts the board on it, mine stands the board after it.
+      onSeek: (to) {
+        final nodes = _lineNodes();
+        if (to < 0 || to >= nodes.length) return;
+        _jumpTo(nodes[to]);
+      },
+    );
+  }
+
+  Widget _buildNavigation(BuildContext context) {
+    final line = _lineNodes();
+    if (line.length < 2) return const SizedBox.shrink();
+    return MoveNavigationControls(
+      cursor: _moveCursor(),
+      centerLabel: 'Potez ${_lineIndex()} od ${line.length - 1}',
+      iconSize: 20,
+    );
   }
 
   /// The moves from the repertoire's root down to a node.
@@ -514,7 +699,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _verdict = null;
       _verdictReason = null;
       _book = null;
-      _lookedUp = false;
+      _here = null;
+      _hereFor = null;
       _answers = null;
       _answersFen = null;
       _answersSan = null;
@@ -564,7 +750,64 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final moves = await _api.movesAt(color: widget.color, fen: fen);
     if (!mounted) return;
     setState(() => _kept = moves);
+    await _loadHereBook();
     await _loadStoredBook();
+  }
+
+  /// What is played in the position on the board.
+  ///
+  /// Free, like everything that reads what somebody has already paid for. This
+  /// is the list the repertoire is now built from, so it is not behind a button
+  /// and not behind an admission.
+  Future<void> _loadHereBook() async {
+    final fen = _current;
+    if (fen == null) {
+      if (!mounted) return;
+      setState(() {
+        _here = null;
+        _hereFor = null;
+      });
+      return;
+    }
+    final book = await _api.storedBook(
+      color: widget.color,
+      fen: fen,
+      minRating: widget.minRating,
+    );
+    if (!mounted || _current != fen) return;
+    setState(() {
+      _here = book;
+      _hereFor = fen;
+    });
+  }
+
+  /// One request, and only because the reader pressed for it: the position
+  /// nobody has ever opened. What comes back is stored by the route, so it is
+  /// free for everybody from now on.
+  Future<void> _openHereBook() async {
+    final fen = _current;
+    if (fen == null || _busy) return;
+    setState(() => _busy = true);
+    final lookup = await _judge.replies(fen, minRating: widget.minRating);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _asked += 1;
+      if (!lookup.isAvailable) {
+        _note = 'Knjiga nije dostupna (${lookup.reason}).';
+      }
+    });
+    await _loadHereBook();
+  }
+
+  /// Plays a move from the list as the reader's own proposal, so it goes
+  /// through the same judging and the same decision as one dragged on the
+  /// board. Choosing from the statistics is building; it is not a shortcut past
+  /// anything.
+  void _playFromBook(String uci) {
+    if (uci.length < 4) return;
+    _onMove(uci.substring(0, 2), uci.substring(2, 4),
+        uci.length > 4 ? uci.substring(4, 5) : '');
   }
 
   /// Reads the opponent's book for the position after the main move here.
@@ -684,12 +927,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     // candidates is the work, and a verdict on one move says whether that move
     // is sound — not whether something better was sitting next to it. There is
     // nothing left to spoil once the move has been played.
-    await _loadBook(marksLookedUp: false);
+    await _loadBook();
   }
 
   /// The moves played from the position in front of the student, and how those
   /// games went. Fetched once per position; the counter says what it cost.
-  Future<void> _loadBook({required bool marksLookedUp}) async {
+  Future<void> _loadBook() async {
     final fen = _current;
     if (fen == null || _book != null) return;
     // Without a token there is no book to fetch, and the verdict panel already
@@ -704,7 +947,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _busy = false;
       _asked += 1;
       _book = lookup.replies;
-      if (marksLookedUp) _lookedUp = true;
       if (!lookup.isAvailable) {
         _note = 'Knjiga nije dostupna (${lookup.reason}).';
       }
@@ -740,7 +982,10 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       san: san,
       verdict: verdict,
       kept: true,
-      lookedUp: _lookedUp,
+      // Nothing is a confession any more: the statistics stand beside the
+      // board from the moment the position opens, so "answered by looking" is
+      // not a thing that can be told from "answered by thinking".
+      lookedUp: false,
     );
     if (!mounted) return;
     setState(() {
@@ -767,7 +1012,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       san: _proposalSan,
       verdict: _verdict?.verdict.name,
       kept: false,
-      lookedUp: _lookedUp,
+      lookedUp: false,
     );
     _clearProposal();
   }
@@ -784,8 +1029,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   }
 
   /// Opens the book for the position in front of the student.
-  Future<void> _showBook() => _loadBook(marksLookedUp: true);
-
   /// What the engine makes of this position, at the reader's depth and with as
   /// many lines as they asked for.
   /// This board's analysis dials — see [EngineAnalysisDials]. Up to 50 plies
@@ -1687,7 +1930,19 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           ),
         ],
       ),
-      body: SafeArea(child: _buildBody()),
+      // The strip is the buttons; the arrows are the same four actions without
+      // the mouse. They arrive together on every screen that has a board, and a
+      // test reads the sources to keep it that way — the sixth screen is
+      // exactly where one gets forgotten, and only somebody reaching for the
+      // keyboard would ever find out.
+      body: MoveKeyboardShortcuts(
+        cursor: _moveCursor(),
+        onChanged: () {},
+        // Never while a move is waiting to be judged or the wave's answers are
+        // up: an arrow key would walk away from a decision that is half made.
+        enabled: !_busy && _proposalUci == null && _answers == null,
+        child: SafeArea(child: _buildBody()),
+      ),
     );
   }
 
@@ -1765,7 +2020,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       root: root,
       active: active,
       onSelect: _jumpTo,
+      onPromote: _promoteFromTree,
+      onDelete: _deleteFromTree,
       truncatedAt: _tree?.truncated == true ? _tree?.maxPly : null,
+      cutHidden: _tree == null ? 0 : countCutMoves(_tree!),
+      showCut: _showCut,
+      onToggleCut: _toggleCut,
     );
   }
 
@@ -1805,12 +2065,15 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               ),
             ),
           ),
+          // The palette first, then the strip: one walks the line, the other
+          // shows what branches off it.
+          _buildNavigation(context),
           // Where you came from, where you are, and what comes next. The
           // part of the tree you need while answering a position, and the
           // only part readable at 360 dp — where the canvas below is one
           // scroll away rather than the thing you read.
           if (active != null) ...[
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.xxs),
             RepertoireLineStrip(active: active, onSelect: _jumpTo),
           ],
           const SizedBox(height: AppSpacing.md),
@@ -1822,11 +2085,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           if (_answers != null) _buildAnswers(context, _answers!),
           if (!_afterMyMove && _proposalSan != null) _buildVerdict(context),
           if (!_afterMyMove && _kept.isNotEmpty) _buildKept(context),
-          // One thing at a time: while the wave's answers are up they are the
-          // same list, drawn for the board that is showing.
-          // While the wave's answers are up they are the same list, drawn for
-          // the board that is showing. Standing after a tapped move, this
-          // panel *is* the answer to the tap.
+          // What is played here, always: the list the repertoire is built
+          // from, and the reason there is nothing left behind a button.
+          if (!_afterMyMove) _buildHereBook(context),
+          // One thing at a time. While the wave's answers are up they are the
+          // same list, drawn for the board that is showing; standing after a
+          // tapped move, this panel *is* the answer to the tap.
           if (_answers == null) _buildStoredReplies(context),
           // Open once the engine has been asked about *this* position —
           // including when it came back with nothing, because that is
@@ -2039,6 +2303,97 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   ///
   /// Every row leads somewhere: a reply already in the preparation takes the
   /// board there, and one from past the cut offers to prepare it.
+  /// What is played in the position on the board, and a way to play it.
+  ///
+  /// The panel the build loop now runs on. It used to be behind "Ne znam",
+  /// because the loop was a quiz and the book was the answer sheet; the
+  /// repertoire is built from the statistics and the evaluation now, so there
+  /// is nothing left for it to spoil.
+  Widget _buildHereBook(BuildContext context) {
+    final book = _here;
+    if (book == null || _hereFor != _current) return const SizedBox.shrink();
+    final kept = {for (final move in _kept) move.uci};
+
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpacing.sm),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: context.colors.surface.withValues(alpha: 0.5),
+        borderRadius: AppRadii.roundedSm,
+        border: Border.all(color: context.colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.insights, size: 16, color: context.colors.accent),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text('Šta se ovde igra',
+                    style: AppText.bodyBold
+                        .copyWith(color: context.colors.accent)),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            book.opened
+                ? 'Statistika iz sačuvane baze — ne troši upit. ★ je potez '
+                    'koji već držite ovde.'
+                : 'Ovu poziciju još niko nije otvarao.',
+            style: AppText.micro.copyWith(color: context.colors.textMuted),
+          ),
+          if (!book.opened)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: OutlinedButton.icon(
+                onPressed: _busy ? null : _openHereBook,
+                icon: const Icon(Icons.menu_book, size: 18),
+                label: const Text('Otvori knjigu (1 upit)'),
+              ),
+            )
+          else
+            for (final move in book.replies)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 74,
+                      child: Text(
+                        kept.contains(move.uci) ? '${move.san} ★' : move.san,
+                        style: (kept.contains(move.uci)
+                                ? AppText.bodyBold
+                                : AppText.body)
+                            .copyWith(color: context.colors.textPrimary),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 52,
+                      child: Text(_shareText(move.share),
+                          style: AppText.caption
+                              .copyWith(color: context.colors.textPrimary)),
+                    ),
+                    Expanded(
+                      child: Text('${move.games} partija',
+                          style: AppText.caption
+                              .copyWith(color: context.colors.textMuted)),
+                    ),
+                    OutlinedButton(
+                      onPressed: _busy || _proposalUci != null
+                          ? null
+                          : () => _playFromBook(move.uci),
+                      child: const Text('Igraj'),
+                    ),
+                  ],
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStoredReplies(BuildContext context) {
     final book = _stored;
     final after = _storedFor;
@@ -2077,7 +2432,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           Text(
             book.opened
                 ? 'Iz sačuvane knjige — ne troši upit.'
-                : 'Ovu poziciju još niko nije otvarao.',
+                : 'Poziciju posle ${looking.san} još niko nije otvarao.',
             style: AppText.micro.copyWith(color: context.colors.textMuted),
           ),
           if (!book.opened)
@@ -2086,7 +2441,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               child: OutlinedButton.icon(
                 onPressed: _busy ? null : _openStoredBook,
                 icon: const Icon(Icons.menu_book, size: 18),
-                label: const Text('Otvori knjigu (1 upit)'),
+                label: Text('Otvori knjigu posle ${looking.san} (1 upit)'),
               ),
             )
           else
@@ -2477,14 +2832,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             label: const Text('Odbaci'),
           ),
         ] else ...[
-          OutlinedButton.icon(
-            // Before deciding, this is a confession and is written down as one.
-            // After a move is played the same list arrives by itself and costs
-            // the student nothing in the schedule.
-            onPressed: _busy || _book != null ? null : _showBook,
-            icon: const Icon(Icons.menu_book, size: 18),
-            label: const Text('Ne znam'),
-          ),
           OutlinedButton.icon(
             onPressed: _busy || _thinking ? null : _askEngine,
             icon: const Icon(Icons.psychology_outlined, size: 18),

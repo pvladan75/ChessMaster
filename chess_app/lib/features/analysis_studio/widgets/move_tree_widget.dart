@@ -237,6 +237,18 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
     );
   }
 
+  /// The move number of the position a line is standing in, read off its FEN.
+  ///
+  /// Not counted from the root's depth: a tree that begins at move four used to
+  /// number its first move as one, which is a small lie and the one the owner
+  /// met while building a repertoire from a position deep in the Advance
+  /// French. The counter is in the FEN, which is the only thing that knows.
+  int _numberAt(String fen) {
+    final parts = fen.split(' ');
+    if (parts.length < 6) return 1;
+    return int.tryParse(parts[5]) ?? 1;
+  }
+
   List<Widget> _buildTreeSpans(
       BuildContext context, AnalysisNode current, int moveNumber) {
     final List<Widget> widgets = [];
@@ -248,7 +260,8 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
     final isWhiteMove = current.fen.contains(' w ');
     final isSelected = mainChild.id == widget.activeNode.id;
 
-    final moveNumStr = isWhiteMove ? '$moveNumber. ' : '';
+    final number = _numberAt(current.fen);
+    final moveNumStr = isWhiteMove ? '$number. ' : '';
 
     widgets.add(
       InkWell(
@@ -334,7 +347,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       style: AppText.caption
                           .copyWith(color: context.colors.accentAlt)),
                   Text(
-                    '${isWhiteMove ? "$moveNumber..." : ""}${varChild.moveSan ?? ""}${varChild.nag ?? ""}',
+                    '${isWhiteMove ? "$number..." : ""}${varChild.moveSan ?? ""}${varChild.nag ?? ""}',
                     style: AppText.body.copyWith(
                       fontWeight: varChild.id == widget.activeNode.id
                           ? FontWeight.bold

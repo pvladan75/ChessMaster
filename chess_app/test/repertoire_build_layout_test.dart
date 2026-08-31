@@ -12,6 +12,7 @@ import 'package:chess_app/features/repertoire/services/repertoire_api_service.da
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 
 /// 1.e4 e6 2.d4 d5 3.e5 — the French Advance, Black to move, and the root of
 /// the repertoire in every test here.
@@ -28,6 +29,58 @@ class _FakeApi extends RepertoireApiService {
   _FakeApi() : super(client: MockClient((_) async => http.Response('{}', 500)));
 
   int treeCalls = 0;
+
+  /// Whether the branch below the student's move was cut.
+  bool cutTree = false;
+
+  /// What the tree's context menu asked the server to do.
+  final List<String> promoted = [];
+  final List<String> removed = [];
+  final List<String> cut = [];
+
+  @override
+  Future<bool> makePrimary({
+    required String color,
+    required String fen,
+    required String uci,
+  }) async {
+    promoted.add(uci);
+    return true;
+  }
+
+  @override
+  Future<bool> removeMove({
+    required String color,
+    required String fen,
+    required String uci,
+  }) async {
+    removed.add(uci);
+    return true;
+  }
+
+  @override
+  Future<bool> skipNode({required String color, required String fen}) async {
+    cut.add(fen);
+    return true;
+  }
+
+  @override
+  Future<({List<String> keys, int drafts, int decisions})?> orphansOfRemoving({
+    required String color,
+    required String fen,
+    required String uci,
+    int? minRating,
+  }) async =>
+      (keys: const <String>[], drafts: 0, decisions: 0);
+
+  @override
+  Future<List<RepertoireMove>> movesAt({
+    required String color,
+    required String fen,
+  }) async =>
+      fen == advance
+          ? const [RepertoireMove(uci: 'c7c5', san: 'c5', role: 'primary')]
+          : const [];
 
   /// Which positions the stored book was read for. A read is free — it comes
   /// out of what somebody's session already paid for — but *which* position it
@@ -68,13 +121,6 @@ class _FakeApi extends RepertoireApiService {
       );
 
   @override
-  Future<List<RepertoireMove>> movesAt({
-    required String color,
-    required String fen,
-  }) async =>
-      const [];
-
-  @override
   Future<RepertoireTree?> repertoireTree({
     required String color,
     required String rootFen,
@@ -83,6 +129,31 @@ class _FakeApi extends RepertoireApiService {
     int maxPly = 16,
   }) async {
     treeCalls += 1;
+    if (cutTree) {
+      return const RepertoireTree(
+        rootFen: advance,
+        rootPath: ['e4', 'e6', 'd4', 'd5', 'e5'],
+        children: [
+          RepertoireTreeMove(
+            uci: 'c7c5',
+            san: 'c5',
+            fen: afterC5,
+            mine: true,
+            role: 'primary',
+            children: [
+              RepertoireTreeMove(
+                uci: 'c2c3',
+                san: 'c3',
+                fen: afterC3,
+                mine: false,
+                share: 0.64,
+                state: 'cut',
+              ),
+            ],
+          ),
+        ],
+      );
+    }
     return const RepertoireTree(
       rootFen: advance,
       rootPath: ['e4', 'e6', 'd4', 'd5', 'e5'],
@@ -139,12 +210,13 @@ void main() {
     Size size, {
     Future<List<AnalysisLine>> Function(String fen, int depth, int multiPV)?
         analyse,
+    bool cutTree = false,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    api = _FakeApi();
+    api = _FakeApi()..cutTree = cutTree;
     await tester.pumpWidget(MaterialApp(
       home: RepertoireBuildScreen(
         name: 'French Defense: Advance — crni',
@@ -267,6 +339,77 @@ void main() {
     expect(find.text('Šta igrate crnim?'), findsOneWidget);
   });
 
+  testWidgets('the context menu on your own move actually does something',
+      (tester) async {
+    // It offered "Unapredi u glavnu liniju" and "Obriši ovu varijantu" for a
+    // day with nothing behind either: the shared widget calls
+    // `onPromoteNode?.call`, and this panel passed neither, so the `?.`
+    // swallowed the tap. A menu item that quietly does nothing is worse than no
+    // menu item.
+    await pump(tester, const Size(1400, 900));
+
+    // The tree card, not the strip chip beside the board: the strip carries the
+    // same move without its number and has no menu of its own.
+    await tester.longPress(find.text('3... c5 ★'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Unapredi u Glavnu Liniju (Main Line)'));
+    await tester.pumpAndSettle();
+
+    expect(api.promoted, ['c7c5']);
+  });
+
+  testWidgets('deleting the opponent\'s move is the cut, not a removal',
+      (tester) async {
+    // Their moves are not rows anybody chose, so there is nothing to delete.
+    // What somebody means by it is "I am not preparing this", which is a
+    // decision and is stored as one.
+    await pump(tester, const Size(1400, 900));
+
+    await tester.longPress(find.text('4. c3 64% ?'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Obriši Ovu Varijantu'));
+    await tester.pumpAndSettle();
+
+    expect(api.cut, [afterC3]);
+    expect(api.removed, isEmpty);
+  });
+
+  testWidgets('a cut branch is not drawn, and says how many are hidden',
+      (tester) async {
+    // A cut stops the walk, but the card stayed: ten cuts left ten dead leaves
+    // widening a drawing that is read to find the holes. Hidden, never gone —
+    // a cut is a decision and has to stay findable.
+    api = _FakeApi();
+    await pump(tester, const Size(1400, 900), cutTree: true);
+
+    expect(find.text('4. c3 64% ✂'), findsNothing);
+    expect(find.text('Prikaži odsečene grane (1)'), findsOneWidget);
+
+    await tester.tap(find.text('Prikaži odsečene grane (1)'));
+    await tester.pumpAndSettle();
+    expect(find.text('4. c3 64% ✂'), findsWidgets);
+  });
+
+  testWidgets('the cards are numbered from where the game really is',
+      (tester) async {
+    // The repertoire starts after 3.e5, so its first card is Black's third
+    // move. Numbered from the card's depth it read as move one, which is a
+    // small lie with no upside; the FEN carries the true counter.
+    await pump(tester, const Size(1400, 900));
+
+    expect(find.textContaining('3... c5'), findsWidgets);
+    expect(find.textContaining('4. c3'), findsWidgets);
+  });
+
+  testWidgets('there is a navigation palette under the board', (tester) async {
+    await pump(tester, const Size(1400, 900));
+
+    expect(find.byType(MoveNavigationControls), findsOneWidget);
+    // It runs past the board to the end of the line, or its forward buttons
+    // would be dead the moment the screen opens.
+    expect(find.text('Potez 0 od 2'), findsOneWidget);
+  });
+
   testWidgets('a jump to the position already on the board changes nothing',
       (tester) async {
     // The guard. Re-showing a position clears everything that belonged to it,
@@ -292,6 +435,11 @@ void main() {
       ],
     );
 
+    // Scrolled to first: the panels above the controls grew, so a button that
+    // used to be on screen is now below the fold and a tap would land on
+    // whatever is at those coordinates.
+    await tester.ensureVisible(find.text('Pitaj motor'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Pitaj motor'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Dodirnite liniju'), findsOneWidget);

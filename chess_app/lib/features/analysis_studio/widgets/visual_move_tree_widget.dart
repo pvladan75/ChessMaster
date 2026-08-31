@@ -359,6 +359,23 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     }
   }
 
+  /// The move number a card carries, in the form a book writes it: `4.` for
+  /// White's move and `4...` for Black's.
+  ///
+  /// Taken from the FEN of the position the move led to, which is the only
+  /// place that knows where the counting started. Empty for the root, which is
+  /// a position rather than a move.
+  String _moveNumberOf(AnalysisNode node) {
+    if (node.isRoot) return '';
+    final parts = node.fen.split(' ');
+    if (parts.length < 6) return '';
+    final fullmove = int.tryParse(parts[5]);
+    if (fullmove == null) return '';
+    // Black's move increments the counter, so the number belonging to it is
+    // the one before.
+    return node.fen.contains(' b ') ? '$fullmove. ' : '${fullmove - 1}... ';
+  }
+
   /// Formats a node's stored eval (White's-perspective pawns, with mate
   /// lines encoded as ±(1000 - movesToMate) — see AutoTreeGeneratorService)
   /// back into the usual "+2.80" / "-1.35" / "M3" / "-M4" notation.
@@ -667,6 +684,12 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     Color borderColor;
     Color textColor = context.colors.textPrimary;
 
+    // Whose move the card is: the position *after* it has the other side to
+    // move. Read off the FEN rather than off the depth, so it is right for a
+    // tree that starts from any position — a repertoire for Black begins on
+    // White's move as often as not.
+    final isWhitesMove = !node.isRoot && node.fen.contains(' b ');
+
     if (isSelected) {
       bgColor = context.colors.accent.withValues(alpha: 0.22);
       borderColor = context.colors.accent;
@@ -676,10 +699,20 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
       textColor = context.colors.textSecondary;
     } else if (isMainLine) {
       bgColor = context.colors.surfaceRaised;
-      borderColor = context.colors.accent.withValues(alpha: 0.5);
+      // The fill still says main line or variation; the *outline* says which
+      // side played the move, in the same two tokens the rest of the app uses
+      // for White and Black. Two channels, and the one carrying the side is a
+      // light edge against a dark one rather than one hue against another —
+      // the difference has to survive a reader who does not separate hues.
+      borderColor = context.colors.sideWhite;
     } else {
       bgColor = context.colors.accentAlt.withValues(alpha: 0.15);
-      borderColor = context.colors.accentAlt.withValues(alpha: 0.4);
+      borderColor = context.colors.sideWhite.withValues(alpha: 0.75);
+    }
+    if (!isSelected && !node.isRoot && !isWhitesMove) {
+      borderColor = isMainLine
+          ? context.colors.sideBlack
+          : context.colors.sideBlack.withValues(alpha: 0.75);
     }
 
     String label;
@@ -687,7 +720,11 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     if (node.isRoot) {
       label = '🏁';
     } else {
-      label = '${node.moveSan ?? ""}${node.nag ?? ""}';
+      // Numbered from the position the line really starts in, not from the
+      // card's depth: a repertoire rooted at move four used to draw its first
+      // card as move one, which is a small lie with no upside. The FEN carries
+      // the true counter, so it is read from there.
+      label = '${_moveNumberOf(node)}${node.moveSan ?? ""}${node.nag ?? ""}';
       if (node.eval != null) {
         final val = node.eval!;
         label += ' (${_formatEval(val)})';

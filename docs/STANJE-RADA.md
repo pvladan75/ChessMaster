@@ -2694,6 +2694,61 @@ izmena nad istim ekranom, nijedna nije pokrenuta.
 Backend treba pokrenuti jednom zbog `ALTER TABLE repertoire_moves ADD COLUMN
 source` i zbog nove tabele `repertoire_notes`.
 
+## Gradnja prestaje da bude kviz — 31.8.2026
+
+Vlasnik je prošao kroz ekran uživo i javio šest stvari. Jedna od njih je
+promenila zamisao, ne raspored: **repertoar se više ne gradi tako što korisnik
+pogađa poteze, nego na osnovu statistike, ocene i svoje slobodne volje.**
+
+**Statistika stoji uz tablu, uvek.** Panel „Šta se ovde igra" pokazuje šta se u
+poziciji na tabli igra — iz sačuvane baze, dakle **bez ijednog Lichess upita** —
+i svaki red ima „Igraj", koji potez pusti kroz isto suđenje i istu odluku kao
+potez povučen po tabli. Poziciju koju niko nikad nije otvarao i dalje otvara
+dugme sa cenom u natpisu („1 upit").
+
+**Dugmeta „Ne znam" više nema.** Ono je postojalo da bi se **zapisalo** da je
+neko gledao (`looked_up`), a taj podatak je drillu govorio koje pozicije da pita
+prve. Sa listom na ekranu od početka, „rešeno gledanjem" se ne razlikuje od
+„rešeno mišljenjem", pa se `lookedUp` više ne upisuje kao `true` — broj koji ne
+znači ništa gori je od broja koga nema. Kolona ostaje, drill se povlači na
+odbijene pokušaje, koji i dalje znače tačno ono što su značili.
+
+Ostalih pet nalaza, sve na istom ekranu:
+
+**Desni klik u stablu nije radio ništa.** To je bila greška, ne odluka:
+`AnalysisMoveTreeWidget` zove `onPromoteNode?.call` i `onDeleteNode?.call`, a
+`RepertoireTreePanel` nije prosleđivao nijedan — `?.` je gutao dodir. Meni je
+ceo dan nudio dve stavke vezane ni za šta. Sada: na **mom** potezu „Unapredi"
+menja glavni potez, a „Obriši" je uklanjanje sa punim čišćenjem nedohvatljivog i
+pitanjem o odlukama; na **protivnikovom** potezu „Obriši" je **rez** — njegovi
+potezi nisu ničiji izbor, pa nema šta da se briše, a ono što neko time misli je
+„ovo ne spremam".
+
+**Odsečene grane se više ne crtaju.** Rez zaustavlja šetnju, ali je kartica
+ostajala: deset rezova je ostavljalo deset mrtvih listova koji šire crtež koji
+se čita da bi se videle rupe. Sakrivene, nikad obrisane — iznad stabla stoji
+„Prikaži odsečene grane (N)", jer je rez odluka i mora da ostane pronađiv.
+
+**Navigaciona paleta ispod table.** Ista četiri dugmeta kao na još pet ekrana,
+preko istog `MoveCursor`-a, i linija ide **kroz** tablu do kraja glavne linije —
+paleta čija su dugmad unapred mrtva čim se ekran otvori nije navigacija. Test
+`move_keys_everywhere_test.dart` je odmah pao i tražio strelice uz traku; dobile
+su ih. Taj test je uradio tačno ono zbog čega je pisan.
+
+**Kartice su numerisane od prave pozicije.** Repertoar koji počinje posle 3.e5
+crtao je svoju prvu karticu kao potez jedan. Broj se sada čita iz FEN-a kartice
+— jedino mesto koje zna gde je brojanje počelo — pa piše `3... c5` i `4. c3`.
+Isto važi i za PGN prikaz istog panela, gde je laž bila ista.
+
+**Ivica kartice kaže čija je strana.** Ne ispuna: ispuna i dalje govori glavna
+linija/varijanta. Ivica ide na `sideWhite`/`sideBlack`, dakle **svetla ivica
+prema tamnoj**, ne jedna nijansa protiv druge — razlika mora da preživi čitaoca
+koji ne razdvaja nijanse. Izabrana kartica zadržava svoj akcenat i sjaj, jer
+izbor mora da ostane nepogrešiv.
+
+Testovi: aplikacija 1008 → **1014**. Uživo nije viđeno: stavka 76 u
+[TODO-provera.md](TODO-provera.md).
+
 ## Dodir na svoj potez u stablu — 31.8.2026
 
 Vlasnik je pitao ima li logike iza toga što u stablu ne može da klikne na svoje

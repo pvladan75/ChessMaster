@@ -2715,3 +2715,30 @@ Traži **vaš Lichess token** (isti kao sudija), jer troši vašu kvotu.
    kaže sudija otvaranja; ocena motora nigde ne nosi „dobar"/„loš".
 11. [ ] **Telefon, 360 dp.** Panel motora, dugme sa brojem i dijalog spiska —
    proveriti u *release* build-u da ništa nije odsečeno.
+
+## 76. Gradnja bez kviza, i stablo koje se može menjati — 31.8.2026, nije viđeno uživo
+
+1. [ ] **„Šta se ovde igra" stoji samo od sebe**, na svakoj poziciji, i brojač
+   „upita:" se ne miče dok se krećete kroz pozicije koje je neko otvarao.
+2. [ ] **„Igraj" iz liste** ponudi potez na isti način kao potez povučen po
+   tabli — sa sudijom i sa „Uzmi X".
+3. [ ] **Dugmeta „Ne znam" nema.** Neotvorenu poziciju i dalje otvara „Otvori
+   knjigu (1 upit)", i brojač poraste tačno za jedan.
+4. [ ] **Dva panela se razlikuju.** „Šta se ovde igra" (pozicija na tabli) i
+   „Posle X — šta igra protivnik" (posle vašeg glavnog poteza) ne smeju da
+   izgledaju isto ni da nose isto dugme.
+5. [ ] **Desni klik na moj potez u stablu.** „Unapredi u glavnu liniju" zaista
+   promeni glavni potez (zvezdica se pomeri), „Obriši ovu varijantu" ga ukloni.
+6. [ ] **Desni klik na protivnikov potez.** „Obriši ovu varijantu" odseče granu
+   (ista poruka kao „Ne spremam ovo"), a „Unapredi" kaže da to nije vaš potez.
+7. [ ] **Odsečena grana nestane iz crteža**, a iznad stabla piše „Prikaži
+   odsečene grane (N)". Klik je vrati, klik ih opet sakrije.
+8. [ ] **Paleta ispod table.** Strelice napred/nazad/početak/kraj rade, i
+   **tastatura** takođe (←, →, Home, End).
+9. [ ] **Numeracija počinje od prave pozicije.** Repertoar građen od četvrtog
+   poteza crta `4. c3`, ne `1. c3`.
+10. [ ] **Ivice kartica.** Potezi belog i crnog imaju različito svetle ivice;
+    izabrana kartica se i dalje razaznaje bez ikakve sumnje.
+11. [ ] **Telefon, 360 dp, release build.** Ekran je dobio dva panela i paletu
+    više — proveriti da se dugmad ispod table i dalje dohvate skrolom i da se
+    ništa ne seče.
