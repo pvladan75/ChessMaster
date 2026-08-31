@@ -319,6 +319,10 @@ void main() {
     // main move of the position the question belongs to.
     expect(api.bookReads, contains(afterC5));
     expect(find.textContaining('Posle c5'), findsWidgets);
+    // And this is where preparing the opponent's replies lives now: on the
+    // position they are played from, rather than in a second list stacked under
+    // the position before it.
+    expect(find.text('Idi'), findsOneWidget);
   });
 
   testWidgets('and there is a way back to the question', (tester) async {

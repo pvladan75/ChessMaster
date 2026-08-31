@@ -1477,11 +1477,13 @@ void main() {
     expect(find.textContaining('Uklonjeno i'), findsNothing);
   });
 
-  testWidgets('the replies stand beside the board, and cost nothing',
+  testWidgets('one list beside the board, for the side to move',
       (tester) async {
-    // They decide what the next wave looks like, so they stopped being
-    // something you only see after pressing `Dalje`. And they cost nothing:
-    // one token serves every child using this app.
+    // Two of them were on screen at once — what is played here, and what the
+    // opponent answers the main move with — which is two lists about two
+    // different positions stacked under one board. The second one now lives on
+    // the position it is about, one step forward. And it costs nothing: one
+    // token serves every child using this app.
     await pump(
       tester,
       seed: {
@@ -1500,15 +1502,10 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('Iz sačuvane knjige'), findsOneWidget);
-    // Two free lists on one screen, and they must not read the same: this one
-    // is what the opponent answers with, the other is what is played here.
-    expect(find.textContaining('Statistika iz sačuvane baze'), findsOneWidget);
+    // The board's own position, and only that.
+    expect(find.text('Šta se ovde igra'), findsOneWidget);
+    expect(find.textContaining('Posle Nc6'), findsNothing);
     expect(find.text('Nf3'), findsWidgets);
-    // Prepared already: the useful action is to go there. Past the cut: the
-    // useful action is to prepare it.
-    expect(find.text('Idi'), findsOneWidget);
-    expect(find.text('Spremi'), findsOneWidget);
     // And the judge was never asked anything for this.
     expect(judge.asked, 0);
   });
@@ -1527,15 +1524,11 @@ void main() {
       book: const StoredBook(fen: 'x'),
     );
 
-    // Once for the position on the board, once for the one after the move
-    // kept here — and each says which it means.
     expect(find.textContaining('Ovu poziciju još niko nije otvarao'),
-        findsOneWidget);
-    expect(find.textContaining('Poziciju posle Nc6 još niko nije otvarao'),
         findsOneWidget);
     expect(judge.asked, 0);
 
-    await tester.tap(find.text('Otvori knjigu posle Nc6 (1 upit)'));
+    await tester.tap(find.text('Otvori knjigu (1 upit)'));
     await tester.pumpAndSettle();
 
     // Exactly one, and only because it was asked for.

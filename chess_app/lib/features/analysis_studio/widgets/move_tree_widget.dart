@@ -159,10 +159,9 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       maxDisplayCutoff: widget.maxEvalDisplayCutoff,
                     )
                   : SingleChildScrollView(
-                      child: Wrap(
-                        spacing: 4.0,
-                        runSpacing: 6.0,
-                        children: _buildTreeSpans(context, widget.rootNode, 1),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _buildNotation(context),
                       ),
                     ),
             ),
@@ -249,130 +248,174 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
     return int.tryParse(parts[5]) ?? 1;
   }
 
-  List<Widget> _buildTreeSpans(
-      BuildContext context, AnalysisNode current, int moveNumber) {
-    final List<Widget> widgets = [];
+  /// The notation, laid out the way a notation pane lays it out: the main line
+  /// as running text, and every variation on its own indented line under the
+  /// move it branches from.
+  ///
+  /// What was here before was one flat `Wrap` of boxed chips — every move a
+  /// little card, variations inline among them, and each variation printed
+  /// **one move deep** and then abandoned. So a branch appeared as `(Be7 11%)`
+  /// floating between two main-line moves, with no way to see what followed it
+  /// and nothing to say where the line it belonged to went. The owner's word
+  /// for it was that he could not make it out, and he was right: the structure
+  /// was not being drawn at all, only the moves.
+  ///
+  /// Three things this fixes, and they are the same thing: a variation is a
+  /// **line**, so it is followed to its end; it belongs *under* the move it
+  /// leaves, so the main line resumes on the line below it; and depth is shown
+  /// by indentation rather than by a colour, so nesting is visible at a glance.
+  List<Widget> _buildNotation(BuildContext context) =>
+      _notationBlocks(context, widget.rootNode, null, 0);
 
-    if (current.children.isEmpty) return widgets;
+  /// One block per run of moves, plus a block for every variation under it.
+  ///
+  /// [firstChild] enters on a move other than the main one, which is how a
+  /// variation starts. Everything below it is then its own main line, so a
+  /// variation of a variation comes out one indent further in without any
+  /// special case.
+  List<Widget> _notationBlocks(BuildContext context, AnalysisNode from,
+      AnalysisNode? firstChild, int depth) {
+    final blocks = <Widget>[];
+    var run = <Widget>[];
+    var parent = from;
+    var next =
+        firstChild ?? (from.children.isEmpty ? null : from.children.first);
+    // Whether the next move printed opens a line, which is the only case where
+    // Black's move carries its number — `12...Bh5` at the head of a variation,
+    // and a bare `Bh5` in the middle of one.
+    var opensLine = true;
 
-    // Main line child (0th child)
-    final mainChild = current.children.first;
-    final isWhiteMove = current.fen.contains(' w ');
-    final isSelected = mainChild.id == widget.activeNode.id;
+    while (next != null) {
+      run.add(_notationMove(context, parent, next, depth, opensLine));
+      opensLine = false;
 
-    final number = _numberAt(current.fen);
-    final moveNumStr = isWhiteMove ? '$number. ' : '';
+      final onMainLine = identical(next, parent.children.first);
+      if (onMainLine && parent.children.length > 1) {
+        // The run so far ends here: the variations belong under the move that
+        // was just printed, and the main line picks up beneath them.
+        blocks.add(_notationLine(context, run, depth));
+        run = <Widget>[];
+        for (final variation in parent.children.skip(1)) {
+          blocks.addAll(_notationBlocks(context, parent, variation, depth + 1));
+        }
+        opensLine = true;
+      }
 
-    widgets.add(
-      InkWell(
-        onTap: () => widget.onSelectNode(mainChild),
-        onLongPress: () => _showNodeContextMenu(context, mainChild),
-        borderRadius: AppRadii.roundedXs,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 6, vertical: AppSpacing.xxs),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? context.colors.accent.withValues(alpha: 0.22)
-                : context.colors.surfaceRaised,
-            borderRadius: AppRadii.roundedXs,
-            border: isSelected
-                ? Border.all(color: context.colors.accent, width: 1.5)
-                : null,
-          ),
-          child: RichText(
-            text: TextSpan(
-              style:
-                  AppText.bodyLarge.copyWith(color: context.colors.textPrimary),
-              children: [
-                if (moveNumStr.isNotEmpty)
-                  TextSpan(
-                      text: moveNumStr,
-                      style: AppText.caption
-                          .copyWith(color: context.colors.textSecondary)),
-                TextSpan(
-                  text: mainChild.moveSan ?? '',
-                  style: TextStyle(
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected
-                        ? context.colors.accent
-                        : context.colors.textPrimary,
-                  ),
-                ),
-                if (mainChild.nag != null)
-                  TextSpan(
-                    text: ' ${mainChild.nag!}',
-                    style: TextStyle(
-                        color: context.colors.warning,
-                        fontWeight: FontWeight.bold),
-                  ),
-                if (mainChild.comment.isNotEmpty)
-                  TextSpan(
-                    text: ' {${mainChild.comment}}',
-                    style: AppText.caption.copyWith(
-                        color: context.colors.info,
-                        fontStyle: FontStyle.italic),
-                  ),
-              ],
+      parent = next;
+      next = parent.children.isEmpty ? null : parent.children.first;
+    }
+
+    if (run.isNotEmpty) blocks.add(_notationLine(context, run, depth));
+    return blocks;
+  }
+
+  /// One line of the notation, indented by how deep the variation is.
+  ///
+  /// The rule the eye reads: the further in, the deeper. A rule kept by an edge
+  /// and a margin rather than by a colour, so it survives a reader who does not
+  /// separate hues — and so nesting past two levels stays legible, which colour
+  /// alone cannot do at any depth.
+  Widget _notationLine(BuildContext context, List<Widget> moves, int depth) {
+    final line = Wrap(
+      spacing: 1,
+      runSpacing: 1,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: moves,
+    );
+    if (depth == 0) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: line,
+      );
+    }
+    return Padding(
+      padding: EdgeInsets.only(left: 10.0 * depth, top: 1, bottom: 1),
+      child: Container(
+        padding: const EdgeInsets.only(left: 6),
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(
+              color: context.colors.accentAlt.withValues(alpha: 0.55),
+              width: 2,
             ),
+          ),
+        ),
+        child: line,
+      ),
+    );
+  }
+
+  /// One move, as text rather than as a card.
+  ///
+  /// Only the move the board is standing on wears a background; everything else
+  /// is plain, because a page where every move is a box is a page with no
+  /// shape. Tap moves the board, a long press (or a right click) opens the same
+  /// context menu the graphical tree has.
+  Widget _notationMove(BuildContext context, AnalysisNode parent,
+      AnalysisNode node, int depth, bool opensLine) {
+    final isSelected = node.id == widget.activeNode.id;
+    final isWhiteMove = parent.fen.contains(' w ');
+    final number = _numberAt(parent.fen);
+    final numberText = isWhiteMove
+        ? '$number. '
+        : opensLine
+            ? '$number... '
+            : '';
+
+    final base = depth == 0 ? AppText.body : AppText.caption;
+    final color = isSelected
+        ? context.colors.accent
+        : depth == 0
+            ? context.colors.textPrimary
+            : context.colors.textSecondary;
+
+    return InkWell(
+      onTap: () => widget.onSelectNode(node),
+      onLongPress: () => _showNodeContextMenu(context, node),
+      onSecondaryTap: () => _showNodeContextMenu(context, node),
+      borderRadius: AppRadii.roundedXs,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: context.colors.accent.withValues(alpha: 0.22),
+                borderRadius: AppRadii.roundedXs,
+              )
+            : null,
+        child: RichText(
+          text: TextSpan(
+            style: base.copyWith(color: color),
+            children: [
+              if (numberText.isNotEmpty)
+                TextSpan(
+                  text: numberText,
+                  style: base.copyWith(color: context.colors.textMuted),
+                ),
+              TextSpan(
+                text: node.moveSan ?? '',
+                style: base.copyWith(
+                  color: color,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                ),
+              ),
+              if (node.nag != null)
+                TextSpan(
+                  text: node.nag!,
+                  style: base.copyWith(
+                      color: context.colors.warning,
+                      fontWeight: FontWeight.bold),
+                ),
+              if (node.comment.isNotEmpty)
+                TextSpan(
+                  text: ' {${node.comment}}',
+                  style: AppText.micro.copyWith(
+                      color: context.colors.info, fontStyle: FontStyle.italic),
+                ),
+            ],
           ),
         ),
       ),
     );
-
-    // Render variations (children at index >= 1)
-    if (current.children.length > 1) {
-      for (int i = 1; i < current.children.length; i++) {
-        final varChild = current.children[i];
-        widgets.add(
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 6, vertical: AppSpacing.xxs),
-            decoration: BoxDecoration(
-              color: context.colors.accentAlt.withValues(alpha: 0.10),
-              borderRadius: AppRadii.roundedXs,
-              border: Border.all(
-                color: context.colors.accentAlt.withValues(alpha: 0.4),
-                width: 0.8,
-              ),
-            ),
-            child: InkWell(
-              onTap: () => widget.onSelectNode(varChild),
-              onLongPress: () => _showNodeContextMenu(context, varChild),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('(',
-                      style: AppText.caption
-                          .copyWith(color: context.colors.accentAlt)),
-                  Text(
-                    '${isWhiteMove ? "$number..." : ""}${varChild.moveSan ?? ""}${varChild.nag ?? ""}',
-                    style: AppText.body.copyWith(
-                      fontWeight: varChild.id == widget.activeNode.id
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: varChild.id == widget.activeNode.id
-                          ? context.colors.warning
-                          : context.colors.accentAlt,
-                    ),
-                  ),
-                  Text(')',
-                      style: AppText.caption
-                          .copyWith(color: context.colors.accentAlt)),
-                ],
-              ),
-            ),
-          ),
-        );
-      }
-    }
-
-    // Continue down main line recursively
-    final nextMoveNum = isWhiteMove ? moveNumber : moveNumber + 1;
-    widgets.addAll(_buildTreeSpans(context, mainChild, nextMoveNum));
-
-    return widgets;
   }
 
   void _showNodeContextMenu(BuildContext context, AnalysisNode node) {

@@ -818,9 +818,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// they never asked for — one token serves every child using this app.
   Future<void> _loadStoredBook() async {
     final fen = _current;
-    // The move being looked at: the one that was tapped in the tree, or the
-    // main move here when nobody tapped anything.
-    final looking = _standingAfter ?? _mainMoveHere;
+    // Only while the board is standing after one of the student's own moves.
+    // On their own turn the panel below the board is about the position they
+    // are looking at, and a second list about the position after it was the
+    // clutter the owner reported.
+    final looking = _standingAfter;
     if (fen == null || looking == null) {
       if (!mounted) return;
       setState(() {
@@ -1094,11 +1096,27 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// Moves and how often they are played, as arrows. One drawing for the wave's
   /// answers and for the stored book, because they are the same picture of the
   /// same thing and two copies would drift.
+  /// How many book arrows a board can carry before it stops being readable.
+  ///
+  /// The list underneath keeps every move; the board is a picture of where the
+  /// weight is. Ten arrows with `<1%` on them, crossing each other over the
+  /// pieces, is not that picture — it was on the owner's screen, and the moves
+  /// that mattered were the two he could no longer find.
+  static const _maxBookArrows = 4;
+
+  /// Below this a move is in the list and not on the board. A one-in-a-hundred
+  /// reply is a decision to make deliberately, not something to trip over.
+  static const _minArrowShare = 0.02;
+
   List<EngineArrow> _shareArrows(List<({String uci, double share})> moves) {
+    final worth = [
+      for (final move in moves)
+        if (move.uci.length >= 4 && move.share >= _minArrowShare) move,
+    ]..sort((a, b) => b.share.compareTo(a.share));
+
     final arrows = <EngineArrow>[];
     var rank = 1;
-    for (final move in moves) {
-      if (move.uci.length < 4) continue;
+    for (final move in worth.take(_maxBookArrows)) {
       arrows.add(EngineArrow(
         from: move.uci.substring(0, 2),
         to: move.uci.substring(2, 4),
@@ -2085,13 +2103,16 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           if (_answers != null) _buildAnswers(context, _answers!),
           if (!_afterMyMove && _proposalSan != null) _buildVerdict(context),
           if (!_afterMyMove && _kept.isNotEmpty) _buildKept(context),
-          // What is played here, always: the list the repertoire is built
-          // from, and the reason there is nothing left behind a button.
-          if (!_afterMyMove) _buildHereBook(context),
-          // One thing at a time. While the wave's answers are up they are the
-          // same list, drawn for the board that is showing; standing after a
-          // tapped move, this panel *is* the answer to the tap.
-          if (_answers == null) _buildStoredReplies(context),
+          // **One** statistics panel, and it is the one for the side to move
+          // on the board. Two of them were on screen at once — what is played
+          // here, and what the opponent answers the main move with — which is
+          // two lists about two different positions stacked under one board.
+          // The second is now where it belongs: one step forward, on the
+          // position it is actually about.
+          if (_answers == null)
+            _standingAfter == null
+                ? _buildHereBook(context)
+                : _buildStoredReplies(context),
           // Open once the engine has been asked about *this* position —
           // including when it came back with nothing, because that is
           // exactly when the reader wants the depth dial and another go —
@@ -2397,11 +2418,10 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   Widget _buildStoredReplies(BuildContext context) {
     final book = _stored;
     final after = _storedFor;
-    // The move the panel is about: the one tapped in the tree, or the main
-    // move here. Never a mixture — the rows below carry that move's name into
-    // the path they build, and naming the wrong one would file a position
-    // under a line it is not on.
-    final looking = _standingAfter ?? _mainMoveHere;
+    // The move the board is standing after. The rows below carry its name into
+    // the path they build, so naming the wrong one would file a position under
+    // a line it is not on.
+    final looking = _standingAfter;
     if (book == null || after == null || looking == null) {
       return const SizedBox.shrink();
     }
