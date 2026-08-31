@@ -1041,6 +1041,95 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     await _loadTree();
   }
 
+  /// Builds the trunk from the position on the board.
+  ///
+  /// The answer to "thirty questions before it looks like an opening". What it
+  /// writes is a draft — drawn, walked through, never drilled until confirmed —
+  /// and it follows any move already here instead of overwriting it, so running
+  /// it again from further down is the same action as starting.
+  Future<void> _buildSpine() async {
+    final fen = _current;
+    if (fen == null || _busy) return;
+
+    final depth = await showDialog<int>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Napravi kičmu odavde'),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+            child: Text(
+              'Upisuje najigraniji potez za obe strane, koliko poteza kažete. '
+              'To su predlozi, ne vaše odluke — vežba ih neće pitati dok ih ne '
+              'potvrdite. Staje ranije ako linija postane retka.',
+              style: AppText.caption.copyWith(color: context.colors.textMuted),
+            ),
+          ),
+          for (final option in const [4, 6, 8, 10, 12])
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop(option),
+              child: Text('$option poteza'),
+            ),
+        ],
+      ),
+    );
+    if (depth == null || !mounted) return;
+
+    setState(() {
+      _busy = true;
+      _note = 'Pravim kičmu — ovo troši $depth do ${depth * 2} upita.';
+    });
+    final out = await _api.buildSpine(
+      color: widget.color,
+      rootFen: fen,
+      depth: depth,
+      minRating: widget.minRating,
+    );
+    if (!mounted) return;
+    final result = out.result;
+    if (result == null) {
+      setState(() {
+        _busy = false;
+        _note = out.error ?? 'Kičma nije napravljena.';
+      });
+      return;
+    }
+
+    // The line is built from where the spine *started*, so it is read before
+    // the walk is re-read and the board moves on.
+    final note = _spineNote(result, from: _node?.path ?? const []);
+    setState(() {
+      _busy = false;
+      _asked += result.path.length;
+    });
+    // The queue and the picture both changed, and neither costs an allowance.
+    await _resume();
+    if (!mounted) return;
+    // Said *after* the reload, not before it. `_resume` writes its own note
+    // when the walk cannot be read, and setting this first meant the one thing
+    // the reader had just asked for was the one thing they did not get told.
+    setState(() => _note = note);
+  }
+
+  /// What the spine did, in one sentence that never claims more than it did.
+  String _spineNote(SpineResult result, {required List<String> from}) {
+    if (result.path.isEmpty) {
+      return 'Ništa nije upisano — već na ovoj poziciji je linija pretanka '
+          '(ispod ${result.minGames} partija).';
+    }
+    final line = numberedLine(
+      [...widget.rootPath, ...from, ...result.path],
+      from: widget.rootPath.isEmpty ? widget.rootFen : null,
+    );
+    final wrote = 'Upisano ${result.written} '
+        '${result.written == 1 ? "predlog" : "predloga"}';
+    final tail = result.ranTheWholeWay
+        ? '.'
+        : ' — stalo jer je dalje pretanko (${result.games} partija, prag '
+            '${result.minGames}).';
+    return '$wrote$tail Kičma: $line. Potvrdite ono sa čim se slažete.';
+  }
+
   /// Says yes to a generated move.
   ///
   /// The act the whole draft idea rests on. A move somebody generated is drawn
@@ -1779,6 +1868,14 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           // where it belongs: the ten positions just built are what somebody
           // sits down to drill, and from the list screen the whole repertoire
           // is the only thing that can be asked for.
+          // The trunk, from wherever the board is standing. Offered on every
+          // position rather than only at the root, because "continue from here"
+          // and "start here" are the same action.
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _buildSpine,
+            icon: const Icon(Icons.auto_awesome, size: 18),
+            label: const Text('Napravi kičmu'),
+          ),
           if (widget.onDrillHere != null && _node != null)
             OutlinedButton.icon(
               onPressed: _busy ? null : () => widget.onDrillHere!(_node!.fen),

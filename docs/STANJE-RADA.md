@@ -2680,6 +2680,44 @@ te poteze zaista igra na toj tabli.
 Testovi: backend 751 → **758**, aplikacija 989 → **992**. Uživo nije viđeno:
 [TODO-provera.md](TODO-provera.md), stavka 68.
 
+## Auto-kičma — korak 3 iz plana, 31.8.2026
+
+`services/repertoireSpine.js` i `POST /repertoire/spine`. Deblo u jednom
+potezu: najigraniji potez za obe strane, onoliko poteza koliko se traži.
+Odgovor na „tridesetak pitanja pre nego što išta liči na otvaranje".
+
+**Sve što upiše je nacrt** (`source = 'auto'`), pa drill to ne pita dok se ne
+potvrdi. Zbog ove funkcije kolona i postoji — bez nje bi kičma bila sejanje iz
+arhive sa boljim potezima.
+
+**Nikad ne gazi odluku.** Ako pozicija već ima potez, kičma ga prati umesto da
+pita knjigu — što je čini bezbednom za ponovno pokretanje i čini „nastavi
+odavde" istom radnjom kao „počni ovde". Test to tvrdi tako što proverava da
+knjiga **nije ni pitana** o poziciji o kojoj je učenik već odlučio.
+
+**Staje kad linija postane tanka, i kaže gde i zašto.** Prag je 100 partija, a
+ne sudijskih 5: taj broj odgovara na pitanje „da li se ovo uopšte igra", a ovaj
+na „da li je ovo još glavna linija". Odgovor uvek nosi `stopped: {reason, ply,
+games}` — `depth` kad je prošla ceo put, `thin` kad je stala, `illegal` kad
+upisan potez više ne može da se odigra. Tiho skraćen odgovor je greška koju ovaj
+projekat najčešće pravi, pa ova funkcija ne ume da ga vrati.
+
+**Sinhrono, namerno.** Dva upita po potezu na 150 ms je nekoliko sekundi;
+pozadinski posao koji je ovaj projekat imao obrisan je juče jer je trajao
+predugo i pukao. Dubina je ograničena na 12 poteza, a ruta ima svoj limiter
+(šest kičmi u minutu) jer je svaka od njih rafal nad tokenom koji dele sva deca.
+
+Svaka knjiga koju usput otvori se upisuje u `opening_replies` — svejedno je
+morala da se dovuče, a upisana čini drill i izvedeni red besplatnim posle toga.
+
+Usput nađen i popravljen jedan red greške u samom ekranu: poruka o tome šta je
+kičma uradila pisala se **pre** ponovnog čitanja šetnje, a `_resume` upisuje
+svoju poruku kad šetnja ne može da se pročita — pa je jedina stvar koju je
+čitalac tražio bila jedina koju ne bi video.
+
+Testovi: backend 737 → **749**, aplikacija 985 → **989**. Uživo nije viđeno:
+[TODO-provera.md](TODO-provera.md), stavka 72.
+
 ## Nacrt nije odluka — korak 2 iz plana, 31.8.2026
 
 `repertoire_moves.source` (`'chosen'` podrazumevano, `'auto'` za ono što

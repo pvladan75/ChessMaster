@@ -257,7 +257,8 @@ Three, and they are decisions rather than details.
 2. ~~**`source` and confirming.**~~ — done 31.8.2026. The column, every read in
    the drill honouring it, `draft` counted apart from `decided` in the map, and
    both confirm routes. The rating band was decided and wired at the same time.
-3. **The spine.** R1, with the games floor and the never-overwrite rule.
+3. ~~**The spine.**~~ — done 31.8.2026, with the games floor and the
+   never-overwrite rule. Synchronous, capped at 12 moves.
 4. **Pruning by reachability.** R2 and A2, which pairs with 3 — a spine you
    cannot rebuild after changing your mind is a spine you use once.
 5. **The replies panel beside the board.** R3 and A3.

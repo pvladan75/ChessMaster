@@ -2616,3 +2616,31 @@ Backend mora biti pokrenut jednom **posle** ove izmene, da prođe
    auto-kičma (korak 3). Do tada je dovoljno da ništa ne piše „predlog".
 6. [ ] **Zaglavlje broji nacrte odvojeno.** Kad ih bude, u redu „odlučeno · …"
    pojavljuje se i „nacrt N", i taj broj se ne sabira sa „odlučeno".
+
+## 72. Auto-kičma — 31.8.2026, nije viđeno uživo
+
+Traži **vaš Lichess token** (isti kao sudija), jer troši vašu kvotu.
+
+1. [ ] **Dugme postoji na svakoj poziciji.** U izgradnji, „Napravi kičmu" →
+   dijalog sa 4 / 6 / 8 / 10 / 12 poteza i rečenicom da su to predlozi.
+2. [ ] **Prazan repertoar dobije deblo.** Napraviti nov repertoar i pustiti
+   kičmu na 6 poteza: red poraste, stablo dobije granu, i poruka ispiše celu
+   liniju numerisanu kao u knjizi.
+3. [ ] **Sve što je upisala piše „predlog".** U „Vaši potezi ovde" svaki takav
+   potez ima „predlog — nije još vaš izbor" i dugme „Potvrdi".
+4. [ ] **Vežba ih ne pita.** Odmah posle kičme otvoriti vežbu: ne sme da traži
+   nijedan potez koji niste potvrdili. Ako pita — filter po `source` ne radi.
+5. [ ] **Potvrda menja to.** Potvrditi jedan potez pa otvoriti vežbu: sada sme
+   da ga pita.
+6. [ ] **Ponovno pokretanje ne gazi.** Odigrati svoj potez na nekoj poziciji
+   (svesno **drugi** od predloženog), pa pustiti kičmu ponovo od korena: vaš
+   potez mora da ostane, i kičma mora da nastavi kroz njega.
+7. [ ] **Staje i kaže zašto.** Pustiti kičmu na 12 poteza u nekoj retkoj liniji:
+   poruka mora da kaže da je stalo jer je pretanko, sa brojem partija i pragom.
+8. [ ] **Bez tokena kaže da nema tokena**, ne „greška na serveru".
+9. [ ] **Brojač upita raste.** „upita:" u zaglavlju mora da poraste otprilike
+   dvostruko od broja poteza koje je napisala.
+10. [ ] **Traka rejtinga se poštuje.** Ista pozicija na 1400 i na 2000 ume da
+    da različitu kičmu — proveriti bar da se prvi potez ili procenti razlikuju.
+11. [ ] **Telefon, 360 dp.** Traka kontrola sada ima sedam dugmadi. Proveriti u
+    *release* build-u, gde nema žuto-crnih pruga.

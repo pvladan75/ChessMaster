@@ -43,6 +43,22 @@ const {
 } = require('../services/repertoireService');
 const { frontier } = require('../services/repertoireFrontier');
 const { drillLine, tree: repertoireTree } = require('../services/repertoireLine');
+const {
+  buildSpine, MAX_SPINE_DEPTH, MIN_SPINE_GAMES,
+} = require('../services/repertoireSpine');
+const { OpeningJudgeUnavailable } = require('../services/openingJudgeService');
+const rateLimit = require('express-rate-limit');
+
+// A spine is up to two dozen book requests in one call, against a token that
+// serves every child using this app. Judging is capped at 40 a minute for a
+// person clicking; this is capped at six because each one is a burst.
+const spineLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 6,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Previše kičmi u kratkom roku. Sačekajte minut.' },
+});
 
 /// One place where a bad request becomes a 400 and everything else becomes a
 /// 500 with a line in the log. Without it every handler grows its own copy and
@@ -138,6 +154,43 @@ router.post('/node/move', authenticateToken, (req, res) => {
     res,
     addMove(pool, req.user.id, { color, fen, uci, san, verdict }),
     'Potez nije mogao da se sačuva.',
+  );
+});
+
+// POST /repertoire/spine  { color, rootFen, depth, minRating, minGames }
+// Header: X-Lichess-Token
+//
+// The trunk: the most played move for both sides, `depth` of the student's
+// moves deep. Everything it writes is `source = 'auto'` — a draft the drill
+// never asks about until somebody confirms it — and it never overwrites a
+// position that already has a move, which is what makes it safe to re-run and
+// makes "continue from here" the same operation as "start here".
+//
+// Synchronous on purpose. Two paced requests per move is a few seconds, and the
+// one background job this project had was deleted for taking too long and
+// falling over.
+router.post('/spine', authenticateToken, spineLimiter, (req, res) => {
+  const body = req.body ?? {};
+  answer(
+    res,
+    buildSpine(pool, req.user.id, {
+      color: body.color,
+      rootFen: body.rootFen,
+      depth: body.depth,
+      minRating: body.minRating,
+      minGames: body.minGames,
+      token: req.get('X-Lichess-Token') || '',
+    }).catch((err) => {
+      // The book is the one thing this cannot do without, and "no token" is a
+      // sentence the caller can act on rather than a five hundred.
+      if (err instanceof OpeningJudgeUnavailable) {
+        const wrapped = new RangeError(err.message);
+        wrapped.reason = err.reason;
+        throw wrapped;
+      }
+      throw err;
+    }),
+    'Kičma nije mogla da se napravi.',
   );
 });
 

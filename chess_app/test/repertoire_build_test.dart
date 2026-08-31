@@ -40,6 +40,10 @@ class _FakeApi extends RepertoireApiService {
   /// The generated moves that were confirmed.
   final List<String> confirmed = [];
 
+  /// What a spine run answers with, and how deep it was asked for.
+  SpineResult? spine;
+  int? spineDepth;
+
   /// The opponent's moves added to the preparation from past the covered wave.
   final List<String> prepared = [];
   bool prepareFails = false;
@@ -116,6 +120,20 @@ class _FakeApi extends RepertoireApiService {
     if (cutFails) return false;
     cut.add(_key(fen));
     return true;
+  }
+
+  @override
+  Future<({SpineResult? result, String? error})> buildSpine({
+    required String color,
+    required String rootFen,
+    int depth = 8,
+    int? minRating,
+    int? minGames,
+  }) async {
+    spineDepth = depth;
+    final out = spine;
+    if (out == null) return (result: null, error: 'Server nije odgovorio.');
+    return (result: out, error: null);
   }
 
   @override
@@ -1224,5 +1242,74 @@ void main() {
 
     expect(find.text('Potvrdi'), findsNothing);
     expect(find.text('glavni'), findsOneWidget);
+  });
+
+  testWidgets('the spine writes a trunk and says it is only a draft',
+      (tester) async {
+    // The answer to "thirty questions before it looks like an opening". What it
+    // writes must never read as something the student decided.
+    await pump(tester);
+    api.spine = const SpineResult(
+      written: 2,
+      path: ['Nc6', 'Nf3', 'e6', 'd4'],
+    );
+
+    await tester.tap(find.text('Napravi kičmu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('6 poteza'));
+    await tester.pumpAndSettle();
+
+    expect(api.spineDepth, 6);
+    expect(find.textContaining('Upisano 2 predloga'), findsOneWidget);
+    expect(
+        find.textContaining('Potvrdite ono sa čim se slažete'), findsOneWidget);
+  });
+
+  testWidgets('a spine that stopped early says where and why', (tester) async {
+    // Top-1 at ply twenty is sometimes forty games. A spine that came back
+    // short without a word would be every silent truncation this codebase has
+    // had to fix.
+    await pump(tester);
+    api.spine = const SpineResult(
+      written: 1,
+      path: ['Nc6', 'Nf3'],
+      reason: 'thin',
+      games: 40,
+      minGames: 100,
+    );
+
+    await tester.tap(find.text('Napravi kičmu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('4 poteza'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('stalo jer je dalje pretanko'), findsOneWidget);
+    expect(find.textContaining('40 partija'), findsOneWidget);
+  });
+
+  testWidgets('a spine that wrote nothing does not claim a line',
+      (tester) async {
+    await pump(tester);
+    api.spine = const SpineResult(reason: 'thin', minGames: 100);
+
+    await tester.tap(find.text('Napravi kičmu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('4 poteza'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Ništa nije upisano'), findsOneWidget);
+  });
+
+  testWidgets('a spine the server refused says so', (tester) async {
+    await pump(tester);
+    // `spine` left null: the fake answers the way a server that did not reply
+    // does.
+    await tester.tap(find.text('Napravi kičmu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('4 poteza'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Server nije odgovorio'), findsOneWidget);
+    expect(find.textContaining('Upisano'), findsNothing);
   });
 }

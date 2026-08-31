@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/services/app_logger.dart';
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 
 /// One move the student decided to play in a position.
@@ -445,6 +446,51 @@ class RepertoireTree {
   }
 }
 
+/// What one run of the auto-spine did.
+class SpineResult {
+  const SpineResult({
+    this.written = 0,
+    this.followed = 0,
+    this.path = const [],
+    this.reason = 'depth',
+    this.games = 0,
+    this.minGames = 100,
+  });
+
+  /// Moves the spine wrote, all of them drafts.
+  final int written;
+
+  /// Positions it walked through because they already had a move — a decision
+  /// or a draft from an earlier run. Never overwritten.
+  final int followed;
+
+  final List<String> path;
+
+  /// Why it stopped: `depth` when it ran the whole way, `thin` when the line
+  /// ran out of games, `illegal` when a stored move would not replay.
+  final String reason;
+
+  /// How many games the move that stopped it had, when it was `thin`.
+  final int games;
+  final int minGames;
+
+  bool get ranTheWholeWay => reason == 'depth';
+
+  factory SpineResult.fromJson(Map<String, dynamic> json) {
+    final stopped = json['stopped'] is Map
+        ? Map<String, dynamic>.from(json['stopped'] as Map)
+        : const <String, dynamic>{};
+    return SpineResult(
+      written: (json['written'] as num?)?.toInt() ?? 0,
+      followed: (json['followed'] as num?)?.toInt() ?? 0,
+      path: sanPath(json['path']),
+      reason: stopped['reason'] as String? ?? 'depth',
+      games: (stopped['games'] as num?)?.toInt() ?? 0,
+      minGames: (json['minGames'] as num?)?.toInt() ?? 100,
+    );
+  }
+}
+
 /// One question the drill is about to ask.
 class DrillItem {
   const DrillItem({
@@ -881,6 +927,46 @@ class RepertoireApiService {
           'fen': fen,
         }));
     return sent.res != null;
+  }
+
+  /// The trunk, in one action: the most played move for both sides.
+  ///
+  /// Everything it writes is a draft the drill will not ask about until it is
+  /// confirmed, and it never overwrites a position that already has a move —
+  /// which is what makes it safe to run again from anywhere.
+  ///
+  /// Carries the reader's own Lichess token, like the judge and the book: it is
+  /// their allowance being spent, up to two requests per move of depth.
+  Future<({SpineResult? result, String? error})> buildSpine({
+    required String color,
+    required String rootFen,
+    int depth = 8,
+    int? minRating,
+    int? minGames,
+  }) async {
+    final sent = await _send(() {
+      final uri = Uri.parse('$backendUrl/repertoire/spine');
+      final body = jsonEncode({
+        'color': color,
+        'rootFen': rootFen,
+        'depth': depth,
+        if (minRating != null) 'minRating': minRating,
+        if (minGames != null) 'minGames': minGames,
+      });
+      final headers = {
+        ..._headers,
+        'X-Lichess-Token': AppSettingsService.instance.lichessApiToken.trim(),
+      };
+      return _client?.post(uri, headers: headers, body: body) ??
+          http.post(uri, headers: headers, body: body);
+    });
+    final res = sent.res;
+    if (res == null) return (result: null, error: sent.error);
+    return (
+      result: SpineResult.fromJson(
+          Map<String, dynamic>.from(jsonDecode(res.body) as Map)),
+      error: null,
+    );
   }
 
   /// A generated move becomes a decision.
