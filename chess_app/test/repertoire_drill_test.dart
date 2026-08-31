@@ -54,6 +54,26 @@ class _FakeApi extends RepertoireApiService {
   int graded = 0;
   bool? lastPractice;
 
+  /// Every position that was graded, and whether it was written down. A run
+  /// through a branch must score the positions that were due and leave the
+  /// rest alone, so this is the thing worth asserting on.
+  final List<({String fen, bool practice})> answers = [];
+
+  /// The branches the picker is offered.
+  List<DrillBranch> branches = const [];
+  int branchCalls = 0;
+
+  @override
+  Future<List<DrillBranch>> drillBranches({
+    required String color,
+    required String rootFen,
+    List<String> rootPath = const [],
+    int? minRating,
+  }) async {
+    branchCalls += 1;
+    return branches;
+  }
+
   @override
   Future<DrillLine?> drillLine({
     required String color,
@@ -102,6 +122,7 @@ class _FakeApi extends RepertoireApiService {
     graded += 1;
     lastPractice = practice;
     lastRevealedFlag = revealed;
+    answers.add((fen: fen, practice: practice));
     final outcome = outcomeFor ?? (uci == primaryUci ? 'primary' : 'unknown');
     return DrillAnswer(
       outcome: outcome,
@@ -491,5 +512,138 @@ void main() {
     expect(find.textContaining('ocena se ne upisuje'), findsOneWidget);
     // And no promise of a return date, because nothing was stored.
     expect(find.textContaining('Vraća se za'), findsNothing);
+  });
+
+  group('branches and sparring', () {
+    /// The branch opens on the position this drill actually asks about: the
+    /// Smith-Morra accepted, Black to move. A branch whose first position is
+    /// the *opponent's* turn would be a run the student cannot play.
+    const branchFen = smithMorra;
+    final branchKey = smithMorra.split(' ').take(4).join(' ');
+
+    _FakeApi withBranch({List<String> dueKeys = const []}) => _FakeApi()
+      ..branches = [
+        DrillBranch(
+          fen: branchFen,
+          san: 'e4 c5',
+          path: const ['e4', 'c5'],
+          positions: 4,
+          due: dueKeys.length,
+          known: 1,
+          dueKeys: dueKeys,
+        ),
+      ];
+
+    Future<void> openPicker(WidgetTester tester) async {
+      await tester.tap(find.byTooltip('Izaberi granu'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> startRun(WidgetTester tester) async {
+      await openPicker(tester);
+      await tester.tap(find.byTooltip('Odigraj granu do kraja'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the drill can be pointed at one branch from inside it',
+        (tester) async {
+      // `fromFen` worked from the day it was written, but only somebody coming
+      // through the build screen or the radar could reach it: opening the drill
+      // gave you the whole colour and no way to say otherwise.
+      final api = withBranch();
+      await pump(tester, api, rootFen: smithMorra);
+
+      await openPicker(tester);
+      expect(find.text('Ceo repertoar'), findsOneWidget);
+      expect(find.text('e4 c5'), findsOneWidget);
+      expect(find.textContaining('dospelo 0 od 4'), findsOneWidget);
+
+      await tester.tap(find.text('e4 c5'));
+      await tester.pumpAndSettle();
+
+      expect(api.lastFromFen, branchFen);
+    });
+
+    testWidgets('and pointed back at the whole repertoire', (tester) async {
+      final api = withBranch();
+      await pump(tester, api, rootFen: smithMorra, fromFen: branchFen);
+
+      await openPicker(tester);
+      await tester.tap(find.text('Ceo repertoar'));
+      await tester.pumpAndSettle();
+
+      expect(api.lastFromFen, isNull);
+    });
+
+    testWidgets('a run opens on the branch and says so', (tester) async {
+      final api = withBranch();
+      await pump(tester, api, rootFen: smithMorra);
+      await startRun(tester);
+
+      // The board opens on the branch rather than on whatever was due
+      // elsewhere, and the row says a run is happening — a board that simply
+      // keeps answering looks the same as the ordinary drill, and the two are
+      // graded differently.
+      expect(find.textContaining('Sparing: e4 c5'), findsOneWidget);
+    });
+
+    testWidgets('a position that was due is written down', (tester) async {
+      final api = withBranch(dueKeys: [branchKey]);
+      await pump(tester, api, rootFen: smithMorra);
+      await startRun(tester);
+
+      await play(tester, 'b8', 'c6');
+      await tester.pumpAndSettle();
+      // The run waits before playing on, so the reply can be seen. A bare
+      // delay schedules no frame, which is why it has to be pumped out by hand
+      // or the binding reports a timer outliving the tree.
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(api.answers.single.fen, branchFen);
+      expect(api.answers.single.practice, false,
+          reason: 'pozicija koja je dospela ide u raspored');
+    });
+
+    testWidgets('and one that was not is only practised', (tester) async {
+      // The rule the whole run rests on. A branch replayed with every position
+      // scored would push the schedule out on the strength of moves nobody had
+      // to remember cold — the same reason the rehearsal's prefix is not
+      // graded, and the reason a run is safe to play twice in an evening.
+      final api = withBranch();
+      await pump(tester, api, rootFen: smithMorra);
+      await startRun(tester);
+
+      await play(tester, 'b8', 'c6');
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(api.answers.single.practice, true);
+    });
+
+    testWidgets('a branch that runs out says so and ends the run',
+        (tester) async {
+      // A wrong or unprepared position stops the run where it happened: that
+      // position is the whole reason the run was worth playing, and hurrying
+      // past it at the same speed as the rest is the one moment the screen
+      // should not.
+      final api = _FakeApi(outcomeFor: 'unprepared')
+        ..branches = [
+          const DrillBranch(
+            fen: branchFen,
+            san: 'e4 c5',
+            path: ['e4', 'c5'],
+            positions: 4,
+            due: 0,
+          ),
+        ];
+      await pump(tester, api, rootFen: smithMorra);
+      await startRun(tester);
+
+      await play(tester, 'b8', 'c6');
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Dovde ide grana'), findsOneWidget);
+      expect(find.text('Druga grana'), findsOneWidget);
+    });
   });
 }

@@ -43,7 +43,9 @@ const {
   deleteRepertoire,
 } = require('../services/repertoireService');
 const { frontier } = require('../services/repertoireFrontier');
-const { drillLine, tree: repertoireTree } = require('../services/repertoireLine');
+const {
+  drillLine, drillBranches, tree: repertoireTree,
+} = require('../services/repertoireLine');
 const {
   buildSpine, MAX_SPINE_DEPTH, MIN_SPINE_GAMES,
 } = require('../services/repertoireSpine');
@@ -585,6 +587,33 @@ router.get('/drill/line', authenticateToken, (req, res) => {
       ahead: ahead === '1' || ahead === 'true',
     }),
     'Linija za vežbanje nije mogla da se sastavi.',
+  );
+});
+
+// GET /repertoire/drill/branches?color=b&rootFen=...&rootPath=e4+c5&minRating=1600
+//
+// The opponent's first answers, each with how many positions in it are waiting.
+// This is what a session is chosen by: a repertoire is a handful of branches,
+// and the ten positions that hang together are the ones worth meeting in a row
+// — mixing every position in the colour into one queue is right for a schedule
+// and wrong for sitting down to practise.
+//
+// `dueKeys` comes with each branch so a run through it can grade the positions
+// that are due and leave the rest alone. Costs no Lichess request, like
+// everything that reads what was built.
+router.get('/drill/branches', authenticateToken, (req, res) => {
+  const { color, rootFen, rootPath, minRating } = req.query;
+  answer(
+    res,
+    drillBranches(pool, req.user.id, {
+      color,
+      rootFen,
+      rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
+        ? rootPath.trim().split(/\s+/)
+        : [],
+      minRating: Number(minRating) || 0,
+    }),
+    'Grane za vežbanje nisu mogle da se pročitaju.',
   );
 });
 

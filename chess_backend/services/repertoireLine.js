@@ -373,4 +373,117 @@ async function drillLine(pool, userId, {
   };
 }
 
-module.exports = { drillLine, walkLines, tree, chainTo, subtree };
+/// The opponent's first answers, each with how much of it is waiting.
+///
+/// A repertoire is a handful of branches — what they play against your first
+/// move — and that is the unit somebody sits down to practise: "today the lines
+/// against 3...Bc5". Mixing every position in the colour into one queue is
+/// right for a schedule and wrong for a session, because the ten positions that
+/// hang together are the ones worth meeting in a row.
+///
+/// The branch is keyed by the **pair** of moves that opens it — the student's
+/// own and the reply — because a repertoire may keep more than one first move,
+/// and then "2...d6" names two different branches. Same rule the coverage map
+/// keeps, and for the same reason.
+///
+/// Only decisions are walked (`onlyChosen`). A drill never asks about a move
+/// nobody chose, so counting drafts here would promise questions that will
+/// never be asked.
+///
+/// No Lichess request, like everything that reads what was built.
+async function drillBranches(pool, userId, {
+  color, rootFen, rootPath = [], minRating = 0, now = new Date(),
+} = {}) {
+  const { nodes, truncated } = await walkLines(pool, userId, {
+    color, rootFen, minRating, onlyChosen: true,
+  });
+
+  const groups = new Map();
+  for (const node of nodes.values()) {
+    // The root belongs to no branch: it is the position every branch leaves
+    // from, and counting it into one of them would make that one look bigger.
+    if (node.moves.length < 2) continue;
+    const key = `${node.moves[0].uci}-${node.moves[1].uci}`;
+    let group = groups.get(key);
+    if (group === undefined) {
+      group = {
+        key,
+        // The two moves that open it, so a screen can name the branch the way
+        // the coverage map names it.
+        path: node.path.slice(0, 2),
+        san: node.moves.slice(0, 2).map((m) => m.san).join(' '),
+        fen: null,
+        share: 0,
+        keys: [],
+      };
+      groups.set(key, group);
+    }
+    // The branch's own starting position: after the student's move and the
+    // reply to it. Exactly one node sits at that ply per branch, and it is
+    // where a run of the branch begins.
+    if (node.ply === 2) {
+      group.fen = node.fen;
+      group.share = Number(node.share ?? 0);
+    }
+    group.keys.push(node.key);
+  }
+
+  const everyKey = [...new Set([...groups.values()].flatMap((g) => g.keys))];
+  const reviews = everyKey.length === 0
+    ? { rows: [] }
+    : await pool.query(
+      `SELECT fen_key, due_at, repetitions FROM repertoire_reviews
+        WHERE user_id = $1 AND color = $2 AND fen_key = ANY($3)`,
+      [userId, color, everyKey],
+    );
+  const byKey = new Map(reviews.rows.map((row) => [row.fen_key, row]));
+
+  const base = Array.isArray(rootPath)
+    ? rootPath.filter((san) => typeof san === 'string' && san !== '')
+    : [];
+
+  const branches = [];
+  for (const group of groups.values()) {
+    if (group.fen === null) continue;
+    let due = 0;
+    let known = 0;
+    const dueKeys = [];
+    for (const key of group.keys) {
+      const row = byKey.get(key);
+      // Never reviewed is due: it is the most overdue thing there is, and a
+      // branch that has never been opened must not read as finished.
+      if (row === undefined || new Date(row.due_at) <= now) {
+        due += 1;
+        dueKeys.push(key);
+        continue;
+      }
+      if (Number(row.repetitions) >= KNOWN_REPETITIONS) known += 1;
+    }
+    branches.push({
+      key: group.key,
+      fen: group.fen,
+      path: group.path,
+      san: group.san,
+      share: group.share,
+      positions: group.keys.length,
+      due,
+      known,
+      // The positions in this branch that are actually due, so a run through it
+      // can grade those and leave the rest alone. A whole branch replayed with
+      // every position graded would push the schedule out on the strength of
+      // moves nobody had to remember cold — the same rule that keeps the line
+      // walk's prefix ungraded.
+      dueKeys,
+    });
+  }
+
+  // Most waiting first, and among equals the bigger branch: that is the order
+  // they are worth sitting down to, not the order they were built.
+  branches.sort((a, b) => (b.due - a.due) || (b.positions - a.positions));
+
+  return { root: { fen: rootFen, path: base }, branches, truncated };
+}
+
+module.exports = {
+  drillLine, drillBranches, walkLines, tree, chainTo, subtree,
+};

@@ -10,6 +10,7 @@ import 'package:chess_app/features/repertoire/line_text.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
@@ -126,6 +127,31 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// month on the strength of it.
   bool _ahead = false;
 
+  /// The branch this session is walking, or null for the whole repertoire.
+  ///
+  /// Chosen here as well as handed in from the build screen: a repertoire is a
+  /// handful of branches — what they play against your first move — and a
+  /// session is one of them. One queue over the whole colour is right for a
+  /// schedule and wrong for sitting down, because the ten positions that hang
+  /// together are the ones worth meeting in a row.
+  late String? _branchFen = widget.fromFen;
+  String? _branchSan;
+
+  /// The sparring run: one branch played from its start, the opponent
+  /// answering by itself, to the end of what was prepared.
+  ///
+  /// **Only the positions that were due are graded.** A whole branch replayed
+  /// with every position scored would push the schedule out on the strength of
+  /// moves nobody had to remember cold — the same rule that keeps the line
+  /// walk's prefix ungraded, and the reason this is safe to press twice.
+  bool _sparring = false;
+  Set<String> _sparDue = const {};
+  int _sparPlayed = 0;
+  int _sparMissed = 0;
+
+  /// Set when the run is over, and it is the only thing that says so.
+  String? _sparNote;
+
   DrillAnswer? _answer;
   String? _playedSan;
 
@@ -146,6 +172,159 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   void initState() {
     super.initState();
     _loadNext();
+  }
+
+  /// The branches, and what to do with one.
+  ///
+  /// Two actions per row on purpose: the queue and the run are different
+  /// things. The queue asks what is due in that branch, in the order the
+  /// schedule wants; the run plays the branch from its start, which is what
+  /// somebody means by "let me see if I still know this line".
+  Future<void> _pickBranch() async {
+    final root = widget.rootFen;
+    if (root == null || _busy) return;
+    setState(() => _busy = true);
+    final branches = await _api.drillBranches(
+      color: widget.color,
+      rootFen: root,
+      rootPath: widget.rootPath,
+      minRating: widget.minRating,
+    );
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    if (branches.isEmpty) {
+      AppFeedback.info(context,
+          'Još nema grana — repertoar ima samo koren ili nijednu odluku.');
+      return;
+    }
+
+    final picked =
+        await showModalBottomSheet<({DrillBranch? branch, bool spar})>(
+      context: context,
+      backgroundColor: context.colors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxs),
+              child: Text('Šta vežbate?',
+                  style: AppText.bodyBold
+                      .copyWith(color: sheet.colors.textPrimary)),
+            ),
+            ListTile(
+              dense: true,
+              leading: Icon(Icons.all_inclusive,
+                  size: 18, color: sheet.colors.accent),
+              title: Text('Ceo repertoar', style: AppText.bodyLarge),
+              subtitle: Text('Sve grane pomešane, redom kojim raspored traži.',
+                  style: AppText.micro.copyWith(color: sheet.colors.textMuted)),
+              onTap: () => Navigator.pop(sheet, (branch: null, spar: false)),
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final branch in branches)
+                    ListTile(
+                      dense: true,
+                      title: Text(branch.san, style: AppText.bodyLarge),
+                      subtitle: Text(
+                        'dospelo ${branch.due} od ${branch.positions}'
+                        '${branch.known > 0 ? " · zna ${branch.known}" : ""}',
+                        style: AppText.micro
+                            .copyWith(color: sheet.colors.textMuted),
+                      ),
+                      // The run, beside the queue rather than instead of it.
+                      trailing: IconButton(
+                        tooltip: 'Odigraj granu do kraja',
+                        icon: const Icon(Icons.play_circle_outline),
+                        onPressed: () =>
+                            Navigator.pop(sheet, (branch: branch, spar: true)),
+                      ),
+                      onTap: () =>
+                          Navigator.pop(sheet, (branch: branch, spar: false)),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted || picked == null) return;
+    if (picked.spar && picked.branch != null) {
+      await _spar(picked.branch!);
+      return;
+    }
+    setState(() {
+      _branchFen = picked.branch?.fen;
+      _branchSan = picked.branch?.san;
+      _sparring = false;
+      _sparNote = null;
+    });
+    await _loadNext(keepAhead: false);
+  }
+
+  /// Plays one branch from its start, to the end of what was prepared.
+  ///
+  /// No rehearsal and no queue: the board goes to the position the branch opens
+  /// in and stays on the line. The opponent answers by itself out of the stored
+  /// book, weighted by how often each reply is actually played — so the same
+  /// branch runs differently twice, which is the point of sparring rather than
+  /// reciting.
+  Future<void> _spar(DrillBranch branch) async {
+    setState(() {
+      _branchFen = branch.fen;
+      _branchSan = branch.san;
+      _sparring = true;
+      _sparDue = branch.dueKeys.toSet();
+      _sparPlayed = 0;
+      _sparMissed = 0;
+      _sparNote = null;
+      _loading = false;
+      _ahead = false;
+      _line = null;
+      _prefix = const [];
+      _prefixAt = 0;
+      _rehearsalFen = null;
+      _prefixNote = null;
+      _answer = null;
+      _playedSan = null;
+      _replySan = null;
+      _replyCovered = true;
+      _revealed = null;
+      _lineFen = null;
+      _fen = branch.fen;
+      _played
+        ..clear()
+        ..addAll(branch.path);
+    });
+    _boardController.loadFen(branch.fen);
+  }
+
+  /// The run is over: what happened, in one sentence.
+  ///
+  /// Said out loud rather than left to be inferred from a board that stopped
+  /// moving — and it names the mistakes, because a run with three of them and a
+  /// run with none must not end the same way.
+  void _endSpar(String why) {
+    setState(() {
+      _sparNote = _sparMissed == 0
+          ? '$why Odigrano $_sparPlayed, bez greške.'
+          : '$why Odigrano $_sparPlayed, greške: $_sparMissed.';
+      _sparring = false;
+    });
   }
 
   /// Practises a branch that is not due yet. Nothing is written down.
@@ -183,7 +362,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         rootFen: root,
         rootPath: widget.rootPath,
         minRating: widget.minRating,
-        fromFen: widget.fromFen,
+        fromFen: _branchFen,
         ahead: _ahead,
       );
       if (!mounted) return;
@@ -373,9 +552,11 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       uci: uci,
       revealed: _revealed != null,
       minRating: widget.minRating,
-      // Ahead of schedule means judged and not stored — the same rule the
-      // rehearsal keeps, and the reason practising early is allowed at all.
-      practice: _ahead,
+      // Judged and not stored, in two cases that are the same rule twice:
+      // ahead of schedule, and a position met on the way through a branch that
+      // was not itself due. A run scored at every position would push the
+      // schedule out on the strength of moves nobody had to remember cold.
+      practice: _ahead || (_sparring && !_sparDue.contains(fenKeyOf(fen))),
     );
     if (!mounted) return;
 
@@ -419,6 +600,37 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _lineFen = boardFen;
     });
     _boardController.loadFen(boardFen);
+
+    if (_sparring) await _sparStep(graded, boardFen);
+  }
+
+  /// One step of a run: count it, and either carry on or stop.
+  ///
+  /// Carrying on is automatic and only after a right answer. A wrong one stops
+  /// the run where it happened — that position is the whole reason the run was
+  /// worth playing, and scrolling past it at the same speed as the rest would
+  /// be the one moment the screen should not hurry.
+  Future<void> _sparStep(DrillAnswer graded, String boardFen) async {
+    final right = graded.outcome == 'primary' || graded.outcome == 'alternate';
+    setState(() {
+      _sparPlayed += 1;
+      if (!right) _sparMissed += 1;
+    });
+
+    if (graded.outcome == 'unprepared') {
+      _endSpar('Dovde ide grana — dalje nema vašeg poteza.');
+      return;
+    }
+    if (!right) return;
+    if (graded.reply == null) {
+      _endSpar('Grana odigrana do kraja.');
+      return;
+    }
+
+    // Long enough to see what came back, short enough to feel like a game.
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    if (!mounted || !_sparring || _lineFen != boardFen) return;
+    _continueAt(boardFen);
   }
 
   bool _isPromotion(chess.Chess board, String from, String to) {
@@ -458,6 +670,15 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         title: Text('Vežbanje — ${widget.name}'),
         elevation: 0,
         actions: [
+          // The branches, from the drill itself. `fromFen` worked from the day
+          // it was written, but only somebody who came through the build screen
+          // or the radar could reach it — opening the drill gave you the whole
+          // colour and no way to say otherwise.
+          IconButton(
+            onPressed: _busy ? null : _pickBranch,
+            icon: const Icon(Icons.account_tree_outlined),
+            tooltip: 'Izaberi granu',
+          ),
           const BoardCoordinatesButton(),
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.md),
@@ -510,6 +731,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
+              _buildSparLine(context),
               _buildPrompt(context),
               const SizedBox(height: 10),
               _buildControls(context),
@@ -517,6 +739,39 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           ),
         );
       },
+    );
+  }
+
+  /// The run's own line: which branch, how far, and how it ended.
+  ///
+  /// One row, and it is the only place that says a run is happening — a board
+  /// that simply keeps answering looks the same as the ordinary drill, and the
+  /// two are graded differently.
+  Widget _buildSparLine(BuildContext context) {
+    final note = _sparNote;
+    if (!_sparring && note == null) return const SizedBox.shrink();
+    final branch = _branchSan ?? 'grana';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: Row(
+        children: [
+          Icon(note == null ? Icons.sports_kabaddi : Icons.flag_outlined,
+              size: 16,
+              color: note == null
+                  ? context.colors.accent
+                  : context.colors.success),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              note ??
+                  'Sparing: $branch · odigrano $_sparPlayed'
+                      '${_sparMissed > 0 ? ", greške: $_sparMissed" : ""}',
+              style:
+                  AppText.caption.copyWith(color: context.colors.textPrimary),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -735,6 +990,19 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             icon: const Icon(Icons.skip_next, size: 18),
             label: const Text('Druga linija'),
           ),
+        ] else if (_sparNote != null) ...[
+          // The run is over. Another branch is the useful next thing, and the
+          // queue is still there for whatever is due elsewhere.
+          FilledButton.icon(
+            onPressed: _busy ? null : _pickBranch,
+            icon: const Icon(Icons.account_tree_outlined, size: 18),
+            label: const Text('Druga grana'),
+          ),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : () => _loadNext(keepAhead: false),
+            icon: const Icon(Icons.arrow_forward, size: 18),
+            label: const Text('Nazad na red'),
+          ),
         ] else if (graded == null) ...[
           OutlinedButton.icon(
             onPressed: _busy || _revealed != null ? null : _reveal,
@@ -774,7 +1042,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     // branch the same two questions are asked about that branch alone, which is
     // why the counts come from the walk rather than from the whole colour.
     final nothingBuilt = _stats.positions == 0;
-    final inBranch = widget.fromFen != null;
+    final inBranch = _branchFen != null;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),

@@ -2694,6 +2694,52 @@ izmena nad istim ekranom, nijedna nije pokrenuta.
 Backend treba pokrenuti jednom zbog `ALTER TABLE repertoire_moves ADD COLUMN
 source` i zbog nove tabele `repertoire_notes`.
 
+## Grana kao sesija, i sparing kroz nju — 1.9.2026
+
+Vlasnik je razložio kako bi dril mogao da radi, u četiri režima, i rekao šta bi
+njemu odgovaralo: **Line-Walk / sparing sa elementima drila po granama**. Pet od
+šest stvari sa tog spiska je već radilo — SM-2 po pozicijama, šetnja linijom pre
+pitanja, `fromFen` za jednu granu, protivnik biran **težinski po `games`**,
+alternativa priznata uz rečenicu „Glavni potez vam je X", i kontrolne tačke koje
+se **računaju** (najdublja pozicija koju znaš napamet) umesto da se postavljaju
+rukom. Nedostajala su dva ulaza, i oni su sad napravljeni.
+
+**Grana je postala ulaz u dril.** `GET /repertoire/drill/branches` vraća
+protivnikove prve odgovore, svaki sa `positions`, `due`, `known` i **`dueKeys`**.
+Grana se ključa **parom** poteza koji je otvara — mojim i njegovim — jer
+repertoar sme da drži više prvih poteza, pa „2...d6" tada imenuje dve različite
+grane; isto pravilo koje radar već koristi. Šeta se samo kroz odluke
+(`onlyChosen`), jer dril ne pita za poteze koje niko nije izabrao. Pozicija koja
+nikad nije ponavljana **računa se kao dospela**: to je najdospelija stvar koja
+postoji, a grana koju niko nije otvarao ne sme da izgleda gotovo.
+
+Do sada je `fromFen` radio od dana kad je napisan, ali je do njega mogao samo
+onaj ko dolazi sa ekrana za izgradnju ili sa radara. Sada u zaglavlju drila stoji
+ikonica grane: „Ceo repertoar" ili jedna grana, sa brojem dospelih uz svaku.
+
+**Sparing: odigraj granu do kraja.** Iz istog lista, dugme ▶ na grani. Tabla ode
+na poziciju kojom grana počinje, protivnik odgovara sam (težinski, pa ista grana
+dvaput ne teče isto), i ide se dok ima pripremljenog poteza.
+
+Jedno pravilo drži ceo režim: **ocenjuju se samo pozicije koje su bile dospele**,
+ostale se igraju kao vežba i ne upisuju. Grana preigrana sa svakom pozicijom
+ocenjenom gurala bi raspored napred na osnovu poteza koje niko nije morao da zna
+napamet — isto pravilo zbog kojeg se ni prefiks u šetnji linijom ne ocenjuje, i
+razlog zbog kojeg sparing sme da se pusti dvaput iste večeri.
+
+Greška **zaustavlja trku tamo gde se desila**: ta pozicija je ceo razlog zbog
+kojeg se trka igra, i proletanje kroz nju istom brzinom kao kroz ostalo je jedini
+trenutak u kome ekran ne sme da žuri. Na kraju stoji jedna rečenica: „Grana
+odigrana do kraja. Odigrano 9, greške: 1."
+
+Ostalo nenapravljeno, svesno: **dril „slepih mrlja"** (`weakNodes` i
+`disagreements` postoje kao podaci, ali nisu ulaz u dril) i **biranje grane po
+tome gde ima najviše dospelog** — težinski protivnik je poštena simulacija, a
+skretanje ka onome što je dospelo vraća sparing u kviz.
+
+Testovi: backend 773 → **779**, aplikacija 1026 → **1032**. Uživo nije viđeno:
+stavka 80 u [TODO-provera.md](TODO-provera.md).
+
 ## Otvaranje se bira sa spiska, ne samo kucanjem — 1.9.2026
 
 Vlasnik je pitao može li da izabere repertoar **po nazivu otvaranja i po

@@ -2792,3 +2792,24 @@ Traži **vaš Lichess token** (isti kao sudija), jer troši vašu kvotu.
    bez treptaja „Učitavanje…".
 6. [ ] **Telefon, 360 dp, release build.** Duga imena varijanti se seku sa „…",
    ne prelivaju.
+
+## 80. Grana kao sesija i sparing — 1.9.2026, nije viđeno uživo
+
+1. [ ] **Ikonica grane u zaglavlju drila** otvara spisak: „Ceo repertoar" i
+   grane, svaka sa „dospelo N od M".
+2. [ ] **Izbor grane sužava dril.** Posle izbora pitanja dolaze samo iz te
+   grane; „Ceo repertoar" vraća sve.
+3. [ ] **▶ pokreće sparing.** Tabla ode na početak grane, iznad piše
+   „Sparing: e4 c5 · odigrano N".
+4. [ ] **Protivnik odgovara sam**, i ne uvek isto — pustiti istu granu dvaput i
+   videti da li se negde razišla.
+5. [ ] **Tačan potez vodi dalje sam od sebe**, posle kratke pauze u kojoj se
+   vidi protivnikov odgovor.
+6. [ ] **Greška zaustavlja trku** i ostaje na toj poziciji, sa „Pokaži" i
+   „Nastavi liniju".
+7. [ ] **Kraj grane kaže šta je bilo**: „Grana odigrana do kraja. Odigrano N,
+   greške: M." i nudi „Druga grana" / „Nazad na red".
+8. [ ] **Raspored se ne pomera bez razloga.** Pustiti sparing kroz granu u
+   kojoj ništa nije dospelo, pa proveriti da se brojevi dospelog nisu promenili.
+9. [ ] **Telefon, 360 dp, release build.** List sa granama i red „Sparing…" —
+   ništa da se ne seče.

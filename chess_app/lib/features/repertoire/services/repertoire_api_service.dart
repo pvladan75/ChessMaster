@@ -746,6 +746,58 @@ class DisagreementReport {
       );
 }
 
+/// One of the opponent's first answers, and how much of it is waiting.
+///
+/// The unit a practice session is chosen by. A repertoire is a handful of
+/// branches — what they play against your first move — and the ten positions
+/// that hang together are the ones worth meeting in a row; one queue over the
+/// whole colour is right for a schedule and wrong for sitting down.
+class DrillBranch {
+  const DrillBranch({
+    required this.fen,
+    required this.san,
+    this.path = const [],
+    this.share = 0,
+    this.positions = 0,
+    this.due = 0,
+    this.known = 0,
+    this.dueKeys = const [],
+  });
+
+  /// Where a run through this branch begins: after your move and their reply.
+  final String fen;
+
+  /// The two moves that open it — "e4 c5" — which is how the coverage map
+  /// names branches too.
+  final String san;
+
+  final List<String> path;
+  final double share;
+
+  final int positions;
+  final int due;
+  final int known;
+
+  /// The positions in it that are actually due. A run through the branch
+  /// grades those and leaves the rest alone: replaying a whole branch with
+  /// every position graded would push the schedule out on the strength of
+  /// moves nobody had to remember cold.
+  final List<String> dueKeys;
+
+  factory DrillBranch.fromJson(Map<String, dynamic> json) => DrillBranch(
+        fen: json['fen'] as String? ?? '',
+        san: json['san'] as String? ?? '',
+        path: sanPath(json['path']),
+        share: (json['share'] as num?)?.toDouble() ?? 0,
+        positions: (json['positions'] as num?)?.toInt() ?? 0,
+        due: (json['due'] as num?)?.toInt() ?? 0,
+        known: (json['known'] as num?)?.toInt() ?? 0,
+        dueKeys: ((json['dueKeys'] as List?) ?? const [])
+            .whereType<String>()
+            .toList(),
+      );
+}
+
 /// One question the drill is about to ask.
 class DrillItem {
   const DrillItem({
@@ -1597,6 +1649,35 @@ class RepertoireApiService {
     if (res == null) return null;
     return DisagreementReport.fromJson(
         Map<String, dynamic>.from(jsonDecode(res.body) as Map));
+  }
+
+  /// The opponent's first answers, each with how much of it is waiting.
+  ///
+  /// Free, like everything that reads what was built. Empty when the server
+  /// could not be reached, which the caller shows as "the whole repertoire"
+  /// rather than as "you have no branches".
+  Future<List<DrillBranch>> drillBranches({
+    required String color,
+    required String rootFen,
+    List<String> rootPath = const [],
+    int? minRating,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/drill/branches').replace(
+      queryParameters: {
+        'color': color,
+        'rootFen': rootFen,
+        if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
+        if (minRating != null) 'minRating': '$minRating',
+      },
+    );
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return const [];
+    final data = jsonDecode(res.body);
+    if (data is! Map || data['branches'] is! List) return const [];
+    return (data['branches'] as List)
+        .whereType<Map>()
+        .map((e) => DrillBranch.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
   Future<http.Response> _get(Uri uri) =>

@@ -2,7 +2,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Chess } = require('chess.js');
 
-const { drillLine, tree } = require('../services/repertoireLine');
+const {
+  drillLine, drillBranches, tree,
+} = require('../services/repertoireLine');
 const { fenKey } = require('../services/repertoireService');
 
 const START = new Chess().fen();
@@ -60,6 +62,7 @@ const SICILIAN = {
 /// a positional stub would pass for the wrong reason.
 function stubPool({
   moves = [], replies = [], skips = [], due = [], fresh = [], known = [],
+  reviews = [],
   stats = { positions: 3, seen: 0, due: 0, known: 0 },
 } = {}) {
   const calls = [];
@@ -107,6 +110,13 @@ function stubPool({
         if (flat.includes('repetitions >= $4')) {
           const within = params[2];
           return known.filter((row) => within.includes(row.fen_key));
+        }
+        // The branch tally reads every review row at once rather than asking
+        // per branch: a repertoire is a few hundred positions and the walk
+        // touches most of them.
+        if (flat.includes('SELECT fen_key, due_at, repetitions')) {
+          const within = params[2];
+          return reviews.filter((row) => within.includes(row.fen_key));
         }
         throw new Error(`Neočekivan upit: ${flat}`);
       })();
@@ -334,4 +344,119 @@ test('a rehearsal does not walk through a move nobody chose', async () => {
   assert.equal(line.question.fenKey, fenKey(START));
   const within = pool.paramsOf('mistakes DESC')[2];
   assert.equal(within.includes(DEEP), false, 'vežba je prošla kroz nacrt');
+});
+
+/// 1.e4 with two answers — c5 and e5 — each with a move of the student's after
+/// it. Two branches, which is the whole point of the tally.
+const TWO_BRANCHES = {
+  moves: [
+    { fen_key: fenKey(START), uci: 'e2e4', san: 'e4', role: 'primary' },
+    {
+      fen_key: keyAfter('e2e4', 'c7c5'),
+      uci: 'g1f3', san: 'Nf3', role: 'primary',
+    },
+    {
+      fen_key: keyAfter('e2e4', 'e7e5'),
+      uci: 'g1f3', san: 'Nf3', role: 'primary',
+    },
+  ],
+  replies: [
+    {
+      fen_key: keyAfter('e2e4'),
+      uci: 'c7c5', san: 'c5', games: 500, share: '0.50000',
+    },
+    {
+      fen_key: keyAfter('e2e4'),
+      uci: 'e7e5', san: 'e5', games: 300, share: '0.30000',
+    },
+  ],
+};
+
+test('branches are the opponent\'s first answers, counted apart', async () => {
+  const pool = stubPool(TWO_BRANCHES);
+  const answer = await drillBranches(pool, 7, { color: 'w', rootFen: START });
+
+  assert.equal(answer.branches.length, 2);
+  const names = answer.branches.map((b) => b.san).sort();
+  assert.deepEqual(names, ['e4 c5', 'e4 e5']);
+  // The root belongs to no branch: it is the position every branch leaves
+  // from, and counting it into one would make that one look bigger.
+  for (const branch of answer.branches) {
+    assert.equal(branch.positions, 1);
+  }
+});
+
+test('a position never reviewed counts as due', async () => {
+  // The most overdue thing there is. A branch nobody has ever opened must not
+  // read as finished.
+  const pool = stubPool(TWO_BRANCHES);
+  const answer = await drillBranches(pool, 7, { color: 'w', rootFen: START });
+
+  for (const branch of answer.branches) {
+    assert.equal(branch.due, 1);
+    assert.deepEqual(branch.dueKeys.length, 1);
+  }
+});
+
+test('a review in the future is not due, and a known one is counted', async () => {
+  const later = new Date('2026-12-01T00:00:00Z');
+  const pool = stubPool({
+    ...TWO_BRANCHES,
+    reviews: [
+      {
+        fen_key: keyAfter('e2e4', 'c7c5'),
+        due_at: later.toISOString(),
+        repetitions: 5,
+      },
+    ],
+  });
+  const answer = await drillBranches(pool, 7, {
+    color: 'w', rootFen: START, now: new Date('2026-09-01T00:00:00Z'),
+  });
+
+  const sicilian = answer.branches.find((b) => b.san === 'e4 c5');
+  assert.equal(sicilian.due, 0);
+  assert.equal(sicilian.known, 1);
+  assert.deepEqual(sicilian.dueKeys, []);
+
+  // And the other branch is untouched by that: they are counted apart.
+  const open = answer.branches.find((b) => b.san === 'e4 e5');
+  assert.equal(open.due, 1);
+});
+
+test('the branch carries where it starts and how often it is played', async () => {
+  const pool = stubPool(TWO_BRANCHES);
+  const answer = await drillBranches(pool, 7, { color: 'w', rootFen: START });
+
+  const sicilian = answer.branches.find((b) => b.san === 'e4 c5');
+  // Where a run through the branch begins: after the student's move and the
+  // reply to it.
+  assert.equal(fenKey(sicilian.fen), keyAfter('e2e4', 'c7c5'));
+  assert.equal(sicilian.share, 0.5);
+});
+
+test('most waiting first', async () => {
+  const later = new Date('2026-12-01T00:00:00Z');
+  const pool = stubPool({
+    ...TWO_BRANCHES,
+    reviews: [
+      {
+        fen_key: keyAfter('e2e4', 'c7c5'),
+        due_at: later.toISOString(),
+        repetitions: 5,
+      },
+    ],
+  });
+  const answer = await drillBranches(pool, 7, {
+    color: 'w', rootFen: START, now: new Date('2026-09-01T00:00:00Z'),
+  });
+
+  // The order they are worth sitting down to, not the order they were built.
+  assert.equal(answer.branches[0].san, 'e4 e5');
+});
+
+test('a repertoire with nothing under the root has no branches', async () => {
+  const pool = stubPool({ moves: [], replies: [] });
+  const answer = await drillBranches(pool, 7, { color: 'w', rootFen: START });
+  assert.deepEqual(answer.branches, []);
 });
