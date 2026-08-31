@@ -2760,3 +2760,19 @@ Traži **vaš Lichess token** (isti kao sudija), jer troši vašu kvotu.
    table i dalje ima sve poteze.
 6. [ ] **Telefon, 360 dp, release build.** List za izbor grane i poruke
    `AppFeedback`-a ne smeju ništa da preklope ni da iseku.
+
+## 78. Izbor grane na svim ekranima — 1.9.2026, nije viđeno uživo
+
+1. [ ] **Repertoar.** Na poziciji sa više nastavaka „napred" (dugme i strelica
+   desno) otvori „Odavde ide više linija — kojom?"; izbor vodi tablu tom granom.
+2. [ ] **Analiza.** Isto na poziciji sa varijantama — do sada se u varijantu
+   moglo ući samo klikom u stablu.
+3. [ ] **Soba za lekciju i AI Studio.** Isto, tamo gde partija ima varijante.
+4. [ ] **Lekcije i ponavljanja se nisu promenili.** Tamo nema grana; „napred"
+   ide bez ikakvog pitanja.
+5. [ ] **Zatvaranje lista ne pomera tablu.** Otvoriti izbor pa ga zatvoriti
+   klikom pored — pozicija mora da ostane ista.
+6. [ ] **„Na kraj" ne pita.** Dugme „|>" ide do kraja linije bez pitanja na
+   usputnim račvanjima.
+7. [ ] **Miš i tastatura se slažu.** Isto ponašanje na dugmetu i na strelici
+   desno.

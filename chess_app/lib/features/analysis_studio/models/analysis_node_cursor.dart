@@ -49,6 +49,25 @@ class AnalysisNodeCursor implements MoveCursor {
     onSelect(curr);
   }
 
+  /// Every move out of this node, in the order the tree holds them — the main
+  /// line first. The label is the one the tree's own cards carry, marks
+  /// included, so the choice reads the same wherever it is made.
+  @override
+  List<MoveBranch> get forwardBranches => [
+        for (var i = 0; i < currentNode.children.length; i++)
+          MoveBranch(
+            label: '${currentNode.children[i].moveSan ?? ""}'
+                '${currentNode.children[i].nag ?? ""}',
+            isMain: i == 0,
+          ),
+      ];
+
+  @override
+  void takeBranch(int index) {
+    if (index < 0 || index >= currentNode.children.length) return next();
+    onSelect(currentNode.children[index]);
+  }
+
   /// Walks up from [node] to the nearest ancestor that is itself a branch
   /// point (has more than one child) — i.e. the node the current line
   /// diverged from. If the path back to the root never branches, that's

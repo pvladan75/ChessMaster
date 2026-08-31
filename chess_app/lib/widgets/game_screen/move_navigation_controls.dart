@@ -3,6 +3,7 @@ import 'package:chess_app/theme/app_radii.dart';
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/core/models/move_cursor.dart';
+import 'package:chess_app/widgets/game_screen/branch_choice_sheet.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 
 /// First/prev/next/last toolbar for walking a line of moves, with an optional
@@ -49,6 +50,29 @@ class MoveNavigationControls extends StatelessWidget {
     this.iconSize,
   });
 
+  /// One step forward — and a question first where that step has more than one
+  /// meaning.
+  ///
+  /// The rule holds for every screen with this strip, because the alternative
+  /// is the one the owner met: at a fork the strip took the first child every
+  /// time, so the other lines could not be reached by navigation at all. A
+  /// model that does not branch answers with an empty list and is never asked.
+  ///
+  /// "Go to the end" is deliberately left alone: it means the end of *this*
+  /// line, and a question at every fork on the way would make it unusable.
+  Future<void> _forward(BuildContext context) async {
+    final branches = cursor.forwardBranches;
+    if (branches.length < 2) {
+      cursor.next();
+      return;
+    }
+    final picked = await showBranchChoice(context, branches);
+    // Closing the sheet leaves the board where it was. Being asked and saying
+    // nothing is not the same as choosing the main line.
+    if (picked == null) return;
+    cursor.takeBranch(picked);
+  }
+
   @override
   Widget build(BuildContext context) {
     final canGoBack = canNavigate && cursor.canGoBack;
@@ -82,7 +106,7 @@ class MoveNavigationControls extends StatelessWidget {
           ),
         IconButton(
           icon: Icon(Icons.chevron_right, size: iconSize),
-          onPressed: canGoForward ? cursor.next : null,
+          onPressed: canGoForward ? () => _forward(context) : null,
           tooltip: 'Sledeći potez',
         ),
         IconButton(

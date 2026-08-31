@@ -10,6 +10,17 @@ class _FakeCursor extends MoveCursor {
   int index = 0;
   bool atEnd = false;
 
+  /// What lies forward. Two of them make this a fork, which is the one case
+  /// where the arrow key has to ask rather than move.
+  List<MoveBranch> branches = const [];
+  int? taken;
+
+  @override
+  List<MoveBranch> get forwardBranches => branches;
+
+  @override
+  void takeBranch(int index) => taken = index;
+
   @override
   bool get canGoBack => index > 0;
   @override
@@ -117,6 +128,61 @@ void main() {
 
     expect(cursor.index, 0);
     expect(changes, 0);
+  });
+
+  testWidgets('at a fork the right arrow asks instead of walking',
+      (tester) async {
+    // The rule, and the reason it is not written on one screen: at a fork
+    // "forward" has more than one meaning, and a strip that takes the first
+    // child every time is a strip on which the other lines cannot be reached at
+    // all. The mouse and the keyboard must not disagree about that — one
+    // opening a chooser and the other silently taking the main line is worse
+    // than either behaviour on its own.
+    await pump(tester);
+    cursor.branches = const [
+      MoveBranch(label: 'Nf3', isMain: true),
+      MoveBranch(label: 'Bc4'),
+    ];
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+
+    expect(cursor.index, 0, reason: 'na račvanju se ne ide bez pitanja');
+    expect(find.text('Odavde ide više linija — kojom?'), findsOneWidget);
+
+    await tester.tap(find.text('Bc4'));
+    await tester.pumpAndSettle();
+    expect(cursor.taken, 1);
+  });
+
+  testWidgets('closing the chooser leaves the board where it was',
+      (tester) async {
+    // Being asked and saying nothing is not the same as choosing the main line.
+    await pump(tester);
+    cursor.branches = const [
+      MoveBranch(label: 'Nf3', isMain: true),
+      MoveBranch(label: 'Bc4'),
+    ];
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pumpAndSettle();
+
+    expect(cursor.taken, isNull);
+    expect(cursor.index, 0);
+  });
+
+  testWidgets('one way forward is not a question', (tester) async {
+    // A model that does not branch answers with an empty list and is never
+    // asked — which is every replayed line in this app.
+    await pump(tester);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Odavde ide više linija — kojom?'), findsNothing);
+    expect(cursor.index, 1);
   });
 
   testWidgets('a text field keeps the arrows while it has the focus',

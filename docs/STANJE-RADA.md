@@ -2694,6 +2694,41 @@ izmena nad istim ekranom, nijedna nije pokrenuta.
 Backend treba pokrenuti jednom zbog `ALTER TABLE repertoire_moves ADD COLUMN
 source` i zbog nove tabele `repertoire_notes`.
 
+## Izbor grane je sada pravilo cele aplikacije — 1.9.2026
+
+Traženo od vlasnika, i tačno na mestu: na račvanju „napred" ima više od jednog
+značenja, a traka je uvek uzimala prvo dete — pa se do ostalih grana
+navigacijom **nije moglo stići uopšte**. To nije bila mana jednog ekrana nego
+mana pravila, pa je i popravka na nivou pravila.
+
+**`MoveCursor` je dobio dva člana**: `forwardBranches` (šta vodi napred odavde)
+i `takeBranch(i)`. Oba imaju telo, ne apstraktnu deklaraciju, i to je odluka:
+model koji se ne grana je ispravan **bez ičega** — vrati praznu listu i nikad ne
+dobije pitanje. Obrnuto bi značilo da svaki nov kursor mora da zna za račvanja
+da bi se uopšte kompajlirao, a to je strana na kojoj se pravi pogrešan odgovor.
+
+**Pitanje postavlja traka i tastatura, na jednom mestu.**
+`showBranchChoice` (`widgets/game_screen/branch_choice_sheet.dart`) je jedan
+list za sve; `MoveNavigationControls` ga otvara na dugmetu „napred", a
+`MoveKeyboardShortcuts` na strelici desno. Njih dvoje **ne smeju da se
+razilaze**: račvanje koje otvara izbor pod mišem a pod tastaturom ćutke uzima
+glavnu liniju gore je nego bilo koje od ta dva ponašanja samo za sebe.
+
+Ko je time dobio izbor grane, bez ijedne izmene na svom ekranu: **Analiza**
+(`AnalysisNodeCursor`), **soba za lekciju i AI Studio** (`MoveTreeCursor`), i
+**repertoar**, koji je usput prestao da nosi svoju kopiju — ekran je prešao sa
+spljoštene liste (`LinearMoveCursor`) na kursor nad stablom, pa mu je pravilo
+stiglo samo od sebe. Lekcije i ponavljanja koriste `LinearMoveCursor`, koji
+nema grane i ostaje tačno onakav kakav je bio.
+
+Dve stvari koje su namerno ostale: **„na kraj" ne pita** — to znači kraj *ove*
+linije, a pitanje na svakom račvanju usput bi ga učinilo neupotrebljivim; i
+**zatvaranje lista ne pomera tablu**, jer biti pitan i ćutati nije isto što i
+izabrati glavnu liniju.
+
+Testovi: aplikacija 1015 → **1018**. Uživo nije viđeno: stavka 78 u
+[TODO-provera.md](TODO-provera.md).
+
 ## Drugi prolaz uživo: jedna lista, jedan zahtev, jedan izbor — 1.9.2026
 
 Vlasnik je prošao kroz izmene i javio četiri stvari. Sve četiri su bile tačne i

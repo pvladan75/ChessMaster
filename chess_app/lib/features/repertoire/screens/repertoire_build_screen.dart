@@ -7,6 +7,7 @@ import 'package:chess_app/core/services/eval_parsing.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_judge_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
 import 'package:chess_app/features/repertoire/line_text.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
@@ -644,78 +645,21 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// The one cursor this screen is walked by — the strip's buttons and the
   /// arrow keys read it from here rather than each building their own, so
   /// there is no second copy to fall out of step.
-  MoveCursor _moveCursor() {
-    final line = _lineNodes();
-    return LinearMoveCursor(
-      fens: [for (final node in line) node.fen],
-      index: _lineIndex(),
-      // Through the same door a tap on the tree uses, so walking the line and
-      // tapping a card cannot end in two different states — the opponent's
-      // move puts the board on it, mine stands the board after it.
-      onSeek: (to) {
-        final nodes = _lineNodes();
-        if (to < 0 || to >= nodes.length) return;
-        // One step forward out of a position that branches: which branch was
-        // never a question the palette could ask, so it always took the first
-        // child and the other lines were unreachable by navigation at all.
-        // Now it asks — and only here, where there is a real choice to make.
-        final here = _activeNode;
-        if (to == _lineIndex() + 1 &&
-            here != null &&
-            here.children.length > 1) {
-          _askWhichBranch(here);
-          return;
-        }
-        _jumpTo(nodes[to]);
-      },
-    );
-  }
-
-  /// Which line to follow out of a position that branches.
   ///
-  /// A sheet rather than a silent choice: at a branching node "forward" has
-  /// more than one meaning, and picking the first child every time is what made
-  /// every other branch unreachable by the palette. Each row says how often the
-  /// opponent plays it and what state the position after it is in, which is the
-  /// same thing the tree's cards say — the choice is made with the same facts
-  /// wherever it is made.
-  Future<void> _askWhichBranch(AnalysisNode from) async {
-    final picked = await showModalBottomSheet<AnalysisNode>(
-      context: context,
-      backgroundColor: context.colors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (sheet) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xs),
-              child: Text('Odavde ide više linija — kojom?',
-                  style: AppText.bodyBold
-                      .copyWith(color: sheet.colors.textPrimary)),
-            ),
-            for (final child in from.children)
-              ListTile(
-                dense: true,
-                leading: Icon(Icons.arrow_forward,
-                    size: 18, color: sheet.colors.accent),
-                title: Text('${child.moveSan ?? ""}${child.nag ?? ""}',
-                    style: AppText.bodyLarge
-                        .copyWith(color: sheet.colors.textPrimary)),
-                onTap: () => Navigator.pop(sheet, child),
-              ),
-            const SizedBox(height: AppSpacing.sm),
-          ],
-        ),
-      ),
-    );
-    if (!mounted || picked == null) return;
-    await _jumpTo(picked);
-  }
+  /// The tree's own cursor rather than a flattened list, and that is what buys
+  /// the fork: [AnalysisNodeCursor] knows what leads forward from a position,
+  /// so the strip asks which line instead of walking into the first child. The
+  /// rule holds on every screen with a branching model now, rather than being
+  /// written here a second time.
+  ///
+  /// Selecting goes through the same door a tap on a card uses, so walking the
+  /// line and tapping the tree cannot end in two different states: the
+  /// opponent's move puts the board on it, one of mine stands the board after
+  /// it.
+  MoveCursor _moveCursor() => AnalysisNodeCursor(
+        currentNode: _activeNode ?? AnalysisNode(fen: widget.rootFen),
+        onSelect: _jumpTo,
+      );
 
   Widget _buildNavigation(BuildContext context) {
     final line = _lineNodes();

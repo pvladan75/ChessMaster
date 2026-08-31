@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:chess_app/core/models/move_cursor.dart';
+import 'package:chess_app/widgets/game_screen/branch_choice_sheet.dart';
 
 /// Arrow keys for the move strip, wrapped around a screen that has one.
 ///
@@ -45,6 +46,24 @@ class MoveKeyboardShortcuts extends StatelessWidget {
     onChanged();
   }
 
+  /// The arrow key asks the same question the strip's forward button asks.
+  ///
+  /// The two must not disagree: they are the same action, and a fork that opens
+  /// a chooser under the mouse and silently takes the main line under the
+  /// keyboard is worse than either behaviour on its own.
+  Future<void> _forward(BuildContext context) async {
+    if (!enabled || !cursor.canGoForward) return;
+    final branches = cursor.forwardBranches;
+    if (branches.length < 2) {
+      _step(cursor.next, true);
+      return;
+    }
+    final picked = await showBranchChoice(context, branches);
+    if (picked == null) return;
+    cursor.takeBranch(picked);
+    onChanged();
+  }
+
   @override
   Widget build(BuildContext context) {
     return CallbackShortcuts(
@@ -52,7 +71,7 @@ class MoveKeyboardShortcuts extends StatelessWidget {
         const SingleActivator(LogicalKeyboardKey.arrowLeft): () =>
             _step(cursor.previous, cursor.canGoBack),
         const SingleActivator(LogicalKeyboardKey.arrowRight): () =>
-            _step(cursor.next, cursor.canGoForward),
+            _forward(context),
         const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
             _step(cursor.first, cursor.canGoBack),
         const SingleActivator(LogicalKeyboardKey.arrowDown): () =>

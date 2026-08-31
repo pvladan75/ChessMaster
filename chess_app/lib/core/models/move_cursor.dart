@@ -30,6 +30,48 @@ abstract class MoveCursor {
   /// The position the cursor is standing on, or null when there is no line to
   /// stand on at all.
   String? get currentFen;
+
+  /// The moves that lead forward from here.
+  ///
+  /// One entry means "forward" has one meaning and nobody should be asked
+  /// anything. **More than one is a fork**, and a strip that walks into the
+  /// first of them every time is a strip on which the other lines cannot be
+  /// reached at all — which is exactly what the owner found in the repertoire:
+  /// a position with two replies and no way to navigate into the second.
+  ///
+  /// Empty is also an answer, and it means the same as one: nothing to choose.
+  /// A model with no branches (a replayed game, a lesson) says so by leaving
+  /// this empty and never sees a question.
+  ///
+  /// Given a body rather than left abstract so that a cursor written for one
+  /// screen — or for a test — does not have to know about forks to compile. A
+  /// model that branches overrides it; one that does not is right by default,
+  /// which is the way round that cannot produce a wrong answer.
+  List<MoveBranch> get forwardBranches => const [];
+
+  /// Takes the branch at [index] of [forwardBranches]. Out of range is
+  /// [next], because a stale index must move the board rather than break it.
+  void takeBranch(int index) => next();
+}
+
+/// One of the moves leading forward from a position, as a chooser shows it.
+///
+/// The label is whatever the screen already writes on that move — SAN, and the
+/// marks it carries there — so the choice is made with the same facts and in
+/// the same words as everywhere else that move appears.
+class MoveBranch {
+  const MoveBranch({required this.label, this.detail, this.isMain = false});
+
+  final String label;
+
+  /// A second line, where the screen has something worth saying about the
+  /// branch: how often it is played, what state it leads to. Optional, because
+  /// most models have nothing to add.
+  final String? detail;
+
+  /// The move that would have been taken without asking. Marked rather than
+  /// preselected: the point is that the others are reachable.
+  final bool isMain;
 }
 
 /// A cursor over a [MoveTree], selecting nodes through [onSelect].
@@ -79,6 +121,18 @@ class MoveTreeCursor implements MoveCursor {
     }
     onSelect(curr);
   }
+
+  @override
+  List<MoveBranch> get forwardBranches => [
+        for (var i = 0; i < currentNode.children.length; i++)
+          MoveBranch(label: currentNode.children[i].san, isMain: i == 0),
+      ];
+
+  @override
+  void takeBranch(int index) {
+    if (index < 0 || index >= currentNode.children.length) return next();
+    onSelect(currentNode.children[index]);
+  }
 }
 
 /// A cursor over a line replayed into a list of positions: [fens] holds the
@@ -122,6 +176,15 @@ class LinearMoveCursor implements MoveCursor {
 
   @override
   void last() => onSeek(_lastIndex);
+
+  /// A replayed line does not branch: there is one move forward and it is the
+  /// next position in the list. Left empty so nobody is ever asked a question
+  /// with one answer.
+  @override
+  List<MoveBranch> get forwardBranches => const [];
+
+  @override
+  void takeBranch(int index) => next();
 }
 
 /// Formats [node]'s SAN with its move number relative to [rootNode], the way
