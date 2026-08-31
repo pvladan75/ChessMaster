@@ -139,6 +139,85 @@ class FrontierNode {
       );
 }
 
+/// How far one of the opponent's first answers has been taken.
+///
+/// A branch is named by the opponent's choice rather than the student's — the
+/// Advance, the Exchange, the Two Knights — because in a repertoire the
+/// student's own first move is already decided, and what splits the work is
+/// what the other side does about it.
+class CoverageBranch {
+  const CoverageBranch({
+    required this.key,
+    required this.path,
+    required this.fen,
+    required this.share,
+    this.decided = 0,
+    this.open = 0,
+    this.undecided = 0,
+    this.unopened = 0,
+    this.pruned = 0,
+    this.openWithin = 0,
+    this.prunedWithin = 0,
+    this.maxPly = 0,
+  });
+
+  /// The two moves that open the branch, as one string.
+  final String key;
+
+  /// Those two moves — the student's, then the opponent's answer.
+  final List<String> path;
+
+  /// The position the branch starts from, so it can be built or drilled from
+  /// the map without going looking for it.
+  final String fen;
+
+  /// How often the opponent goes this way at all. Kept apart from everything
+  /// below it: a branch played in one game in twenty is not urgent however
+  /// unfinished it is, and one played in half of them is urgent even when it is
+  /// nearly done.
+  final double share;
+
+  final int decided;
+  final int open;
+  final int undecided;
+  final int unopened;
+  final int pruned;
+
+  /// What share of the games that come down *this* branch run into a position
+  /// with no answer — measured against the branch, never against the whole
+  /// repertoire, where a rare sideline would read as almost finished merely
+  /// because few games go there.
+  final double openWithin;
+
+  /// And what share runs into a branch that was cut. Never added to the one
+  /// above and never subtracted from it: those games are still played.
+  final double prunedWithin;
+
+  /// How deep the repertoire goes here, in plies from the repertoire's root.
+  final int maxPly;
+
+  /// What is answered: everything that is neither open nor refused.
+  double get coveredWithin =>
+      (1 - openWithin - prunedWithin).clamp(0, 1).toDouble();
+
+  bool get isFinished => openWithin <= 0 && prunedWithin <= 0 && decided > 0;
+
+  factory CoverageBranch.fromJson(Map<String, dynamic> json) => CoverageBranch(
+        key: json['key'] as String? ?? '',
+        path: sanPath(json['path']),
+        fen: json['fen'] as String? ?? '',
+        share: (json['share'] as num?)?.toDouble() ?? 0,
+        decided: (json['decided'] as num?)?.toInt() ?? 0,
+        open: (json['open'] as num?)?.toInt() ?? 0,
+        undecided: (json['undecided'] as num?)?.toInt() ?? 0,
+        unopened: (json['unopened'] as num?)?.toInt() ?? 0,
+        pruned: (json['pruned'] as num?)?.toInt() ?? 0,
+        openWithin: (json['openWithin'] as num?)?.toDouble() ?? 0,
+        prunedWithin: (json['prunedWithin'] as num?)?.toDouble() ?? 0,
+        maxPly: (json['maxPly'] as num?)?.toInt() ?? 0,
+      );
+}
+
 /// The whole shape of a repertoire: where its root is, what is still open, and
 /// how much of it is finished.
 ///
@@ -151,6 +230,7 @@ class RepertoireFrontier {
     this.rootPath = const [],
     this.open = const [],
     this.pruned = const [],
+    this.branches = const [],
     this.decided = 0,
     this.unopened = 0,
     this.maxPly = 0,
@@ -166,6 +246,11 @@ class RepertoireFrontier {
   /// can be put back: a cut nobody can find again is a hole in the repertoire
   /// rather than a decision about it.
   final List<FrontierNode> pruned;
+
+  /// The coverage map: how far each of the opponent's first answers has been
+  /// taken, most played first. Out of the same walk — there is no second
+  /// request behind it, and no second set of numbers to disagree with these.
+  final List<CoverageBranch> branches;
 
   /// Positions where the student has decided on at least one move.
   final int decided;
@@ -192,6 +277,15 @@ class RepertoireFrontier {
 
   bool get isEmpty => open.isEmpty && decided == 0;
 
+  /// True while the first move itself is still undecided. The root belongs to
+  /// no branch — it is the position every branch leaves from — so a repertoire
+  /// stuck here has an empty map and one question, and the map has to say which
+  /// of the two kinds of empty it is looking at.
+  bool get rootOpen => open.any((node) => node.path.isEmpty);
+
+  /// How deep the repertoire goes, in whole moves.
+  int get depthInMoves => (maxPly / 2).ceil();
+
   factory RepertoireFrontier.fromJson(Map<String, dynamic> json) {
     final root = json['root'] is Map
         ? Map<String, dynamic>.from(json['root'] as Map)
@@ -208,6 +302,10 @@ class RepertoireFrontier {
       pruned: ((json['pruned'] as List?) ?? const [])
           .whereType<Map>()
           .map((e) => FrontierNode.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      branches: ((json['branches'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => CoverageBranch.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
       decided: (summary['decided'] as num?)?.toInt() ?? 0,
       unopened: (summary['unopened'] as num?)?.toInt() ?? 0,

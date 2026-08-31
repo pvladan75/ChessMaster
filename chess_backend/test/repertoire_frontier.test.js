@@ -294,3 +294,65 @@ test('a cut root is a walk with no questions and one cut', async () => {
   assert.equal(walk.summary.decided, 0);
   assert.equal(walk.summary.prunedReach, 1);
 });
+
+test('the walk says how far each of the opponent\'s answers has been taken',
+  async () => {
+    // The coverage map, out of the walk that was already running. A branch is
+    // one of the opponent's first answers, because the student's own first
+    // move is already decided and it is the opponent's choice that names the
+    // thing — the Advance, the Exchange, the Two Knights.
+    const pool = stubPool(sicilianAndOpenGame());
+    const walk = await frontier(pool, 7, { color: 'w', rootFen: START });
+
+    assert.deepEqual(walk.branches.map((b) => b.key), ['e4 c5', 'e4 e5']);
+    // Most played first: that is the order they are worth finishing in, not
+    // the order they were built in.
+    assert.equal(walk.branches[0].share, 0.5);
+    assert.equal(walk.branches[0].maxPly, 4);
+    assert.equal(walk.branches[0].decided, 1);
+    assert.equal(walk.branches[0].open, 1);
+  });
+
+test('a rare sideline does not read as nearly finished', async () => {
+  // The number that would have been wrong if it were measured against the
+  // whole repertoire. 1...e5 is entirely unanswered — there is one decided
+  // position in it and its replies were never taken — but it is played in a
+  // fifth of games, so against the whole it would look four-fifths done.
+  const pool = stubPool(sicilianAndOpenGame());
+  const walk = await frontier(pool, 7, { color: 'w', rootFen: START });
+
+  const openGame = walk.branches.find((b) => b.key === 'e4 e5');
+  assert.equal(Math.round(openGame.openReach * 100), 20);
+  assert.equal(Math.round(openGame.openWithin * 100), 100);
+
+  // And the Sicilian, where one of two waves is answered.
+  const sicilian = walk.branches.find((b) => b.key === 'e4 c5');
+  assert.equal(Math.round(sicilian.openWithin * 100), 60);
+});
+
+test('a cut branch shows on the map as cut, not as done', async () => {
+  // The map must never turn a refusal into progress. `openWithin` falls to
+  // zero because there is nothing open there any more, and the only honest
+  // reading of that comes from the number beside it.
+  const pool = stubPool({
+    ...sicilianAndOpenGame(),
+    skips: [keyAfter('e2e4', 'e7e5')],
+  });
+  const walk = await frontier(pool, 7, { color: 'w', rootFen: START });
+
+  const openGame = walk.branches.find((b) => b.key === 'e4 e5');
+  assert.equal(openGame.open, 0);
+  assert.equal(openGame.pruned, 1);
+  assert.equal(Math.round(openGame.prunedWithin * 100), 100);
+});
+
+test('a repertoire with nothing decided has no map yet', async () => {
+  // The root is in no branch — it is the position every branch leaves from —
+  // so an empty repertoire is one open question and an empty map, which is
+  // exactly the truth about it.
+  const pool = stubPool();
+  const walk = await frontier(pool, 7, { color: 'b', rootFen: START });
+
+  assert.deepEqual(walk.branches, []);
+  assert.equal(walk.open.length, 1);
+});

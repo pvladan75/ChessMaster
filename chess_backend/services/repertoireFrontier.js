@@ -30,6 +30,13 @@
 //
 // Everything else is either answered or below the cut, and neither is a place
 // the student needs to be taken back to.
+//
+// The same walk also answers "how far have I got, and where", per branch. A
+// branch is one of the opponent's first answers — the Advance, the Exchange,
+// the Two Knights — because in a repertoire the student's own first move is
+// already decided and it is the opponent's choice that names the thing. The
+// tallies are collected here rather than in a second walk, since every number
+// the map needs is passing through this loop anyway.
 
 const { Chess } = require('chess.js');
 const { fenKey, skippedKeys } = require('./repertoireService');
@@ -140,6 +147,37 @@ async function frontier(pool, userId, {
 
   const open = [];
   const pruned = [];
+  // One tally per opponent first answer, keyed by the pair of moves that opens
+  // it — the student's own move and the reply — because a repertoire may keep
+  // more than one first move and "2...d6" then means two different branches.
+  const branches = new Map();
+
+  /// The tally a node belongs to, made on first sight.
+  const tallyFor = (node) => {
+    if (node.branch === undefined) return null;
+    let tally = branches.get(node.branch.key);
+    if (tally === undefined) {
+      tally = {
+        key: node.branch.key,
+        path: node.branch.path,
+        fen: node.branch.fen,
+        // How often the opponent goes this way at all. Kept apart from
+        // everything below it: a branch played in one game in twenty is not
+        // urgent however unfinished it is, and a branch played in half of them
+        // is urgent even when it is nearly done.
+        share: node.branch.share,
+        decided: 0,
+        undecided: 0,
+        unopened: 0,
+        pruned: 0,
+        openReach: 0,
+        prunedReach: 0,
+        maxPly: 0,
+      };
+      branches.set(node.branch.key, tally);
+    }
+    return tally;
+  };
   const seen = new Set([fenKey(rootFen)]);
   let level = [{ fen: rootFen, path: [], reach: 1 }];
   let ply = 0;
@@ -159,20 +197,31 @@ async function frontier(pool, userId, {
       // repertoire *goes* is the question, and stopping the count at the last
       // decided position would report the depth of the second-to-last wave.
       maxPly = Math.max(maxPly, node.path.length);
+      const tally = tallyFor(node);
+      if (tally !== null) tally.maxPly = Math.max(tally.maxPly, node.path.length);
       // Cut on purpose. Counted as cut and as nothing else: the walk stops
       // here, so this is neither a question that is open nor a position the
       // walk passed through, and a header whose numbers overlap is a header
       // nobody can add up.
       if (cut.has(fenKey(node.fen))) {
         pruned.push(node);
+        if (tally !== null) {
+          tally.pruned += 1;
+          tally.prunedReach += node.reach;
+        }
         continue;
       }
       const mine = kept.get(fenKey(node.fen)) ?? [];
       if (mine.length === 0) {
         open.push({ ...node, kind: 'undecided' });
+        if (tally !== null) {
+          tally.undecided += 1;
+          tally.openReach += node.reach;
+        }
         continue;
       }
       decided += 1;
+      if (tally !== null) tally.decided += 1;
       for (const move of mine) {
         const after = step(node.fen, move.uci);
         if (after === null) continue;
@@ -205,10 +254,21 @@ async function frontier(pool, userId, {
           truncated = true;
           break;
         }
+        const path = [...branch.node.path, branch.after.san, landed.san];
+        const reach = branch.node.reach * (reply.share > 0 ? reply.share : 0);
         next.push({
           fen: landed.fen,
-          path: [...branch.node.path, branch.after.san, landed.san],
-          reach: branch.node.reach * (reply.share > 0 ? reply.share : 0),
+          path,
+          reach,
+          // Children of the root open a branch; everything deeper inherits the
+          // one it is in. A transposition keeps the branch it was first reached
+          // through, which is the same first-wins rule the queue itself keeps.
+          branch: branch.node.branch ?? {
+            key: `${branch.after.san} ${landed.san}`,
+            path: [branch.after.san, landed.san],
+            fen: landed.fen,
+            share: reach,
+          },
         });
       }
       if (truncated) break;
@@ -216,6 +276,11 @@ async function frontier(pool, userId, {
     for (const node of dangling) {
       unopened += 1;
       open.push({ ...node, kind: 'unopened' });
+      const tally = tallyFor(node);
+      if (tally !== null) {
+        tally.unopened += 1;
+        tally.openReach += node.reach;
+      }
     }
 
     level = next;
@@ -225,6 +290,9 @@ async function frontier(pool, userId, {
   // Most-reached first, and among equals the shallower one: two positions a
   // student is equally likely to meet are not equally urgent, and the one
   // closer to the start decides more games.
+  // The root itself is in no branch — it is the position every branch leaves
+  // from — so a repertoire with nothing decided at the root has an empty map
+  // and one open question, which is exactly the truth about it.
   open.sort((a, b) => (b.reach - a.reach) || (a.path.length - b.path.length));
   pruned.sort((a, b) => (b.reach - a.reach) || (a.path.length - b.path.length));
 
@@ -252,6 +320,25 @@ async function frontier(pool, userId, {
       reach: node.reach,
       kind: 'pruned',
     })),
+    // The coverage map: how far each of the opponent's first answers has been
+    // taken. Most played first, because that is the order they are worth
+    // finishing in — not the order they were built.
+    branches: [...branches.values()]
+      .sort((a, b) => b.share - a.share)
+      .map((tally) => ({
+        ...tally,
+        open: tally.undecided + tally.unopened,
+        // What share of the games that come down *this* branch run into a
+        // position with no answer. Divided by the branch's own share on
+        // purpose: measured against the whole repertoire, a rare sideline
+        // would read as almost finished merely because few games go there.
+        openWithin: tally.share > 0
+          ? Math.min(1, tally.openReach / tally.share)
+          : 0,
+        prunedWithin: tally.share > 0
+          ? Math.min(1, tally.prunedReach / tally.share)
+          : 0,
+      })),
     summary: {
       decided,
       open: open.length,

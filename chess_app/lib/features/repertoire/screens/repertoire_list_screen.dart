@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
+import 'package:chess_app/features/repertoire/screens/repertoire_coverage_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_drill_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_new_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
@@ -85,6 +86,33 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   /// build screen: building spends the reader's Lichess allowance and drilling
   /// spends nothing, and two things that cost so differently should not look
   /// like one button with a switch on it.
+  /// The map of a repertoire: how far each of the opponent's answers has been
+  /// taken.
+  ///
+  /// Reached from here rather than from inside the build screen, because it is
+  /// about the repertoire and not about a position in it. Both ways out of the
+  /// map lead back through this screen, which is the one place that knows how
+  /// to open either door.
+  void _coverage(RepertoireSummary item) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => RepertoireCoverageScreen(
+        name: item.name,
+        color: item.color,
+        rootFen: item.rootFen,
+        rootPath: item.rootPath,
+        api: widget.api,
+        onBuildAt: (fen) {
+          Navigator.of(context).pop();
+          _open(item, at: fen);
+        },
+        onDrillAt: (fen) {
+          Navigator.of(context).pop();
+          _drill(item, from: fen);
+        },
+      ),
+    ));
+  }
+
   void _drill(RepertoireSummary item, {String? from}) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => RepertoireDrillScreen(
@@ -177,7 +205,15 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                   icon: const Icon(Icons.fitness_center),
                   onPressed: () => _drill(item),
                 ),
-                const Icon(Icons.chevron_right),
+                // In place of the chevron, which said only "this row opens".
+                // Tapping the row still opens the build screen; this is the
+                // second thing anybody wants from a repertoire and it was
+                // costing a decoration to leave out.
+                IconButton(
+                  tooltip: 'Pokrivenost',
+                  icon: const Icon(Icons.radar),
+                  onPressed: () => _coverage(item),
+                ),
               ],
             ),
             onTap: () => _open(item),

@@ -714,10 +714,11 @@ ovo.
    nema „Odigraj do kraja" ni igranu kaznu. Kad se bude radilo, izdvojiti alate
    nad pozicijom u zajedničku komponentu umesto spajanja ekrana.
 
-7. **Trenažer repertoara**, po delovima. Skica je u
-   [repertoire_trainer_spec.md](repertoire_trainer_spec.md); dogovoreno je da
-   se gradi odozdo, jer je celina najveća stavka koja je do sada predložena i
-   takmiči se sa objavljivanjem.
+7. ~~**Trenažer repertoara**~~ — **svi delovi su urađeni 31.8.2026**, nijedan
+   nije viđen uživo (stavke 29, 30, 62–66 u [TODO-provera.md](TODO-provera.md)).
+   Skica je u [repertoire_trainer_spec.md](repertoire_trainer_spec.md); gradilo
+   se odozdo, jer je celina bila najveća stavka koja je do tada predložena i
+   takmičila se sa objavljivanjem.
 
    - ~~**Sudija** — jedan endpoint i panel u Analizi~~ — urađeno i provereno
      uživo 24.8.2026. Vredi sam za sebe i bez ijednog repertoara, i dokazuje
@@ -731,8 +732,9 @@ ovo.
    - ~~**Putanja i izvedena granica**~~ — urađeno 31.8.2026, nije viđeno uživo.
      Ekran za izgradnju sada kaže u kojoj je liniji i nastavlja tamo gde je
      stao. Odeljak „Repertoar: gde sam u stablu".
-   - **Radar pokrivenosti** — poslednji. Najlepši je i najmanje uči, ali mu je
-     ceo račun već tu: `GET /repertoire/frontier` vraća i `openReach`.
+   - ~~**Radar pokrivenosti**~~ — urađeno 31.8.2026, nije viđeno uživo.
+     Ispalo je tačno onako kako je i procenjeno: nijedan nov račun i nijedna
+     nova ruta, samo `branches` iz iste šetnje. Odeljak „Radar pokrivenosti".
 
    Tri odluke koje važe za sve delove: repertoar živi **na serveru**, ne u
    lokalnoj bazi, jer ga trener zadaje i gleda, a reinstalacija ne sme da
@@ -2521,6 +2523,43 @@ Kad linija ne može da se sastavi, ekran pada na staro pitanje bez ponavljanja i
 
 Testovi: backend 730 → **738**, aplikacija 964 → **971**. Uživo nije viđeno:
 [TODO-provera.md](TODO-provera.md), stavka 65.
+
+## Radar pokrivenosti — poslednji deo trenažera, 31.8.2026
+
+Mapa repertoara umesto mesta u njemu, i poslednja stavka iz skice
+(`repertoire_trainer_spec.md`, „Vizuelna Mapa Pokrivenosti"). Procena da „mu je
+ceo račun već tu" se pokazala tačnom: **nijedna nova ruta i nijedan nov upit** —
+`frontier()` sada uz sve ostalo vraća i `branches`, iz iste petlje kroz koju su
+ti brojevi ionako prolazili.
+
+**Grana se imenuje po protivnikovom izboru**, ne po svom. U repertoaru je svoj
+prvi potez već odlučen; posao deli ono što druga strana uradi povodom njega — pa
+je ključ grane par poteza (moj, njegov), a ne samo njegov: repertoar sme da drži
+više prvih poteza, i tada „2...d6" znači dve različite grane. Ime linije
+(„Sicilian Defense") dolazi iz `OpeningBookService`, lokalno i bez tokena.
+
+**Tri broja, i nikad se ne sabiraju.** Koliko se grana igra, koliko je od nje
+spremljeno, i koliko je odsečeno. Prvi kaže da li je grana bitna, drugi koliko je
+gotova, treći je odbijen posao — traka koja bi odsečeni deo ubrojala u spremljeni
+pretvorila bi „ovo neću da spremam" u napredak.
+
+**Procenat je u odnosu na granu, ne na ceo repertoar** (`openWithin`). Ovo je
+broj koji bi inače bio pogrešan: linija koja se igra u 10% partija i u kojoj
+nema nijednog odgovora, merena prema celini, čita se kao 90% gotova.
+
+Ekran ne kaže **ništa** samo bojom: svaki udeo je ispisan procentom, a svako
+stanje nosi ikonicu (kvačica / peščani sat / makaze). To je pravilo ovog projekta
+i uslov za prijem, ne ukras — ekran čije značenje živi u nijansi je ekran koji
+deo njegovih čitalaca ne može da koristi.
+
+Mapa je i raskrsnica: iz svake grane vode „Gradi ovde" i „Vežbaj granu", pa se
+poslednja tri dela trenažera (granica, rez, linijski drill) prvi put sreću na
+jednom ekranu. Ulaz je ikonica radara u spisku repertoara, **na mestu strelice
+udesno** — strelica je govorila samo „ovaj red se otvara", što red i inače radi
+dodirom.
+
+Testovi: backend 738 → **742**, aplikacija 971 → **979**. Uživo nije viđeno:
+[TODO-provera.md](TODO-provera.md), stavka 66.
 
 ## Repertoar iz arhive — sekcija 4, napisana 30.8.2026
 

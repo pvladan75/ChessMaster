@@ -2445,3 +2445,33 @@ dugu tri-četiri poteza.
     ekran koji izgleda kao da je sve naučeno.
 11. [ ] **Telefon, 360 dp.** Linija iznad table može da bude duga. Proveriti u
     *release* build-u, gde nema žuto-crnih pruga.
+
+## 66. Radar pokrivenosti — 31.8.2026, nije viđeno uživo
+
+Spisak repertoara → ikonica radara u redu (na mestu gde je ranije bila strelica
+udesno).
+
+1. [ ] **Grane se vide, najigranija prva.** Svaka nosi liniju numerisanu kao u
+   knjizi, ime otvaranja ako ga knjiga zna, i „igra se u X% partija".
+2. [ ] **Tri broja, i sva tri pišu.** „spremljeno X% · bez odgovora Y%", i
+   „odsečeno Z%" samo ako je nečega odsečeno. Zbir spremljeno + bez odgovora +
+   odsečeno mora biti 100% po grani.
+3. [ ] **Retka grana se ne hvali.** Napraviti granu koja se igra u malom
+   procentu i ne dirati je: mora da piše „spremljeno 0%", a ne visok procenat
+   zato što kroz nju ide malo partija.
+4. [ ] **Odsečena grana nije gotova grana.** Odseći granu (stavka 64) i otvoriti
+   mapu: mora da stoji „odsečeno 100%" i makaze, nikako kvačica i „spremljeno".
+5. [ ] **Bez boje se sve razaznaje.** Pogledati ekran i proveriti da se stanje
+   svake grane čita iz ikonice i teksta — kvačica, peščani sat, makaze — i da
+   nijedna informacija ne postoji samo kao boja.
+6. [ ] **Obe vrata rade.** „Gradi ovde" otvara izgradnju baš u toj grani;
+   „Vežbaj granu" otvara vežbu koja pita samo pozicije iz nje.
+7. [ ] **Grana bez ijedne odluke nema dugme za vežbu.** Tamo nema šta da se
+   pita, pa se dugme ne nudi.
+8. [ ] **Prazan repertoar i ugašen server izgledaju različito.** Nov repertoar
+   bez ijednog poteza → „Prvi potez još nije izabran". Ugašen backend → „Mapa
+   nije mogla da se pročita", nikako prazna mapa.
+9. [ ] **Dubina ima smisla.** „do N. poteza posle korena" mora da raste kako se
+   grana produbljuje.
+10. [ ] **Telefon, 360 dp.** Linija grane može da bude duga i ispod nje stoje dva
+    dugmeta. Proveriti u *release* build-u, gde nema žuto-crnih pruga.
