@@ -2682,18 +2682,78 @@ Testovi: backend 751 → **758**, aplikacija 989 → **992**. Uživo nije viđen
 
 ## Gde se staje 31.8.2026 uveče — repertoar
 
-Koraci **1–5 iz [PLAN-REPERTOAR.md](PLAN-REPERTOAR.md) su gotovi**: raspored sa
-stablom uz tablu, `source` i potvrda, auto-kičma, orezivanje po dohvatljivosti,
-i odgovori protivnika uz tablu. Ostaje **samo korak 6** (ocena motora na čvoru),
-i sve odluke u njemu su donete — pisane su na kraju plana, u odeljku „Step 6,
-decided".
+**Svih šest koraka iz [PLAN-REPERTOAR.md](PLAN-REPERTOAR.md) je gotovo**:
+raspored sa stablom uz tablu, `source` i potvrda, auto-kičma, orezivanje po
+dohvatljivosti, odgovori protivnika uz tablu, i ocena motora na čvoru. Plan
+nema više otvorenih koraka.
 
-Ništa od koraka 1–5 **nije viđeno uživo**. Stavke su 70, 71, 72, 73 i 74 u
-[TODO-provera.md](TODO-provera.md), i vrede više od šestog koraka: pet izmena nad
-istim ekranom, nijedna nije pokrenuta.
+Ništa od toga **nije viđeno uživo**. Stavke su 70–75 u
+[TODO-provera.md](TODO-provera.md), i vrede više od bilo kog novog posla: šest
+izmena nad istim ekranom, nijedna nije pokrenuta.
 
 Backend treba pokrenuti jednom zbog `ALTER TABLE repertoire_moves ADD COLUMN
-source`.
+source` i zbog nove tabele `repertoire_notes`.
+
+## Ocena motora na čvoru — korak 6 iz plana, 31.8.2026
+
+`repertoire_notes`, `PUT /repertoire/note`, `GET /repertoire/notes` i
+`GET /repertoire/disagreements`. Motor je i pre ovoga bio na ekranu za
+izgradnju; ono što je nedostajalo je da njegov odgovor **ostane** na poziciji.
+
+**Broj je podatak, nije presuda.** Ekran već ima sudiju — sudiju otvaranja, koji
+odgovara na „da li je ovaj potez zdrav, sudeći po partijama koje su ljudi
+odigrali", i to je za repertoar bolje pitanje, jer je repertoar o onome što će
+se protiv vas zaista igrati. Drugo mišljenje iz drugog pojma „dobrog", odštampano
+na istoj kartici, način je na koji ekran počne da protivreči sam sebi pred
+detetom. Zato **nema zastavice ni na jednom potezu**; umesto nje postoji
+**spisak**: „Gde se motor ne slaže", sortiran po tome koliko neslaganje košta,
+kroz koji se prolazi namerno.
+
+**Ocena je po korisniku.** Red iz knjige je činjenica o poziciji i zato se deli
+(`opening_replies`); ocena je činjenica o poziciji *i* verziji motora, dubini i
+mašini. Deljena tabela bi morala da ima sve troje u ključu da bi išta značila, a
+ovako se ne bi slagala ni sa kim.
+
+**Plića ocena nikad ne pregazi dublju.** Prolaz kroz celu liniju ide na dubini
+koja je na točkiću; ručno pokrenuta pretraga na dubini 30 nad jednom pozicijom
+ne sme da se spljošti sutrašnjim prolazom na 18. Isto pravilo koje
+`AnalysisNode.evalDepth` drži u klijentu, ovde ga drži baza (`WHERE
+EXCLUDED.eval_depth >= repertoire_notes.eval_depth`), a odgovor vraća **red koji
+je pobedio**, ne onaj koji je poslat — ekran crta ono što je sačuvano.
+
+**Dubina i datum se vide.** Ocena bez dubine je broj koji stari nevidljivo:
+dubina 12 od pre dve nedelje i dubina 30 od pre minut izgledaju isto napisane kao
+`+0.35`.
+
+**„Evaluiraj celu liniju (N pozicija)"**, sa brojem u natpisu. Ne troši nijedan
+Lichess upit — samo vreme i toplu bateriju — pa cena mora da se vidi pre nego što
+se pritisne, a prolaz može da se zaustavi. Zaustavljanje se čita **između**
+pozicija: pretraga koja je već krenula se dovrši i sačuva, jer bacanje odgovora
+koji je plaćen ne pomaže nikome. `N` je koliko će zaista biti računato, a ne
+dužina linije: pozicije koje već imaju ocenu bar te dubine se preskaču.
+
+Prolaz ocenjuje **i protivnikove poteze**, jer je veličina neslaganja ocena pre
+poteza minus ocena posle njega. Gde druge ocene nema, red je i dalje na spisku (
+motor očigledno igra nešto drugo) sa `?` umesto broja — a `?` nije nula.
+
+Dve kolone preko onoga što je plan nabrojao, i obe su odluka: `best_uci`, jer se
+potezi porede po UCI-ju a ne po SAN-u koji ispisuju dve različite šahovske
+biblioteke; i `mate_in`, jer forsiran mat sačuvan samo kao veliki broj pešaka
+čita se kao ocena. `eval_cp` i dalje nosi mat sažet u centipešake, da sve što
+sortira i oduzima ima jedan broj.
+
+Ocene se čitaju **jednom, uz crtež** (`GET /repertoire/notes`), i sedaju na
+kartice stabla — `VisualMoveTreeWidget` već crta `eval`, pa to nije nov crtež
+nego broj koji stiže tamo gde je mesto za njega već postojalo.
+
+**Jedno mesto na koje treba paziti**, zapisano jer je to oblik koji
+`tablebaseService` odbija za trenera završnica: ocenu računa klijent a čuva je
+server, dakle server je ne može proveriti. Ovde je to prihvatljivo iz jednog
+razloga — niko ne vara sam sebe za ocenu motora, i ovaj broj ništa ne ocenjuje.
+Ako ikad počne išta da ocenjuje, taj razlog pada i računanje mora da se preseli.
+
+Testovi: backend 761 → **773**, aplikacija 995 → **1006**. Uživo nije viđeno:
+[TODO-provera.md](TODO-provera.md), stavka 75.
 
 ## Protivnikovi odgovori uz tablu — korak 5 iz plana, 31.8.2026
 

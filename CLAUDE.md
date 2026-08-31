@@ -20,14 +20,14 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 995 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1006 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 761 tests, all green
+cd chess_backend && npm test          # node --test, 773 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-Both counts measured 31.8.2026, after the first live pass through the
-repertoire trainer and the two removals it led to. They are here so a suite that quietly stops running half of itself is
+Both counts measured 31.8.2026, after the last step of the repertoire rebuild
+(engine notes on the node). They are here so a suite that quietly stops running half of itself is
 visible; if the number you get is lower, find out why before carrying on.
 
 The one skip is the golden screenshot group, skipped unconditionally in

@@ -98,6 +98,18 @@ class RepertoireSummary {
       );
 }
 
+/// A position as the store keys it: the first four FEN fields, no move
+/// counters.
+///
+/// The same rule the server keeps, and it has to be the same one — the same
+/// board reached at move 12 and at move 16 is one position to a repertoire, and
+/// a client that keyed on the whole FEN would look up notes that are there and
+/// find nothing.
+String fenKeyOf(String fen) {
+  final parts = fen.trim().split(RegExp(r'\s+'));
+  return parts.length >= 4 ? parts.sublist(0, 4).join(' ') : fen.trim();
+}
+
 /// A path of SAN moves, whether the server sent a list or the stored string.
 ///
 /// One reader for both shapes because both are real: `root_path` is stored as
@@ -554,6 +566,183 @@ class StoredBook {
             .whereType<Map>()
             .map((e) => StoredReply.fromJson(Map<String, dynamic>.from(e)))
             .toList(),
+      );
+}
+
+/// What the engine said about one position in this repertoire.
+///
+/// Information, never a verdict. The build screen already has a judge — the
+/// opening judge, which answers "is this move sound, judged by the games real
+/// people played", and for a repertoire that is the better question. A second
+/// opinion from a different notion of "good" on the same card is how a screen
+/// starts contradicting itself in front of a child. What the number is for is
+/// [RepertoireDisagreement]: one list, gone through deliberately.
+class RepertoireNote {
+  const RepertoireNote({
+    required this.fenKey,
+    required this.evalCp,
+    this.mateIn,
+    this.evalDepth = 0,
+    this.bestUci,
+    this.bestLineSan,
+    this.updatedAt,
+  });
+
+  final String fenKey;
+
+  /// White-relative centipawns. A mate is collapsed into it as well, so
+  /// anything that sorts or subtracts has one number to use.
+  final int evalCp;
+
+  /// Signed moves to mate, positive when White mates. Null for an ordinary
+  /// evaluation, and kept apart from [evalCp] because a forced mate written as
+  /// a large number of pawns reads as an evaluation, which it is not.
+  final int? mateIn;
+
+  /// The depth it was found at. On screen beside the number, always: an eval
+  /// without its depth is a number that ages invisibly.
+  final int evalDepth;
+
+  final String? bestUci;
+  final String? bestLineSan;
+  final DateTime? updatedAt;
+
+  /// The evaluation as it is read: `+0.35`, `-1.20`, `M4`, `-M4`.
+  String get text {
+    final mate = mateIn;
+    if (mate != null) return mate < 0 ? '-M${-mate}' : 'M$mate';
+    final pawns = evalCp / 100;
+    return pawns > 0
+        ? '+${pawns.toStringAsFixed(2)}'
+        : pawns.toStringAsFixed(2);
+  }
+
+  /// The same number in the units the tree's cards draw: White-relative pawns,
+  /// with a mate as ±(1000 − moves), which is what
+  /// `VisualMoveTreeWidget._formatEval` reads back as `M4`. Written here rather
+  /// than at the call site so there is one place that knows the convention.
+  double get treeEval {
+    final mate = mateIn;
+    if (mate != null) return (mate > 0 ? 1000 - mate : -1000 - mate).toDouble();
+    return evalCp / 100;
+  }
+
+  factory RepertoireNote.fromJson(Map<String, dynamic> json) => RepertoireNote(
+        fenKey: json['fenKey'] as String? ?? '',
+        evalCp: (json['evalCp'] as num?)?.toInt() ?? 0,
+        mateIn: (json['mateIn'] as num?)?.toInt(),
+        evalDepth: (json['evalDepth'] as num?)?.toInt() ?? 0,
+        bestUci: json['bestUci'] as String?,
+        bestLineSan: json['bestLineSan'] as String?,
+        updatedAt: json['updatedAt'] is String
+            ? DateTime.tryParse(json['updatedAt'] as String)
+            : null,
+      );
+}
+
+/// One position where the engine plays something other than what was chosen.
+///
+/// The whole point of storing evals: no flag on any card, one list sorted by
+/// how much the disagreement costs. A position the engine was never asked about
+/// is not in the list at all — "not asked" and "agrees" are different answers.
+class RepertoireDisagreement {
+  const RepertoireDisagreement({
+    required this.fen,
+    required this.path,
+    required this.mineUci,
+    required this.mineSan,
+    this.mineSource = 'chosen',
+    required this.engineUci,
+    this.engineSan,
+    this.engineLine,
+    this.evalDepth = 0,
+    this.loss,
+  });
+
+  final String fen;
+
+  /// SAN from the repertoire's root down to this position.
+  final List<String> path;
+
+  final String mineUci;
+  final String mineSan;
+
+  /// `chosen` or `auto`. A draft is exactly what somebody wants a second look
+  /// at before confirming it, so it is in the list and says so.
+  final String mineSource;
+
+  final String engineUci;
+  final String? engineSan;
+  final String? engineLine;
+
+  final int evalDepth;
+
+  /// How much the engine thinks the move gives up, in centipawns from the
+  /// student's own side. Null when the position after their move has never been
+  /// evaluated — and null is not zero, which would read as "no difference".
+  final int? loss;
+
+  bool get isDraft => mineSource == 'auto';
+
+  /// The loss in pawns, as a reader reads it.
+  String get lossText {
+    final value = loss;
+    if (value == null) return '?';
+    return (value / 100).toStringAsFixed(2);
+  }
+
+  factory RepertoireDisagreement.fromJson(Map<String, dynamic> json) {
+    final mine = json['mine'] is Map
+        ? Map<String, dynamic>.from(json['mine'] as Map)
+        : const <String, dynamic>{};
+    final engine = json['engine'] is Map
+        ? Map<String, dynamic>.from(json['engine'] as Map)
+        : const <String, dynamic>{};
+    return RepertoireDisagreement(
+      fen: json['fen'] as String? ?? '',
+      path: sanPath(json['path']),
+      mineUci: mine['uci'] as String? ?? '',
+      mineSan: mine['san'] as String? ?? '',
+      mineSource: mine['source'] as String? ?? 'chosen',
+      engineUci: engine['uci'] as String? ?? '',
+      engineSan: engine['san'] as String?,
+      engineLine: engine['line'] as String?,
+      evalDepth: (json['evalDepth'] as num?)?.toInt() ?? 0,
+      loss: (json['loss'] as num?)?.toInt(),
+    );
+  }
+}
+
+/// The review list, and the two numbers that say what a short one means.
+class DisagreementReport {
+  const DisagreementReport({
+    this.positions = 0,
+    this.evaluated = 0,
+    this.rows = const [],
+    this.truncated = false,
+  });
+
+  /// Positions in this branch the student has a move in.
+  final int positions;
+
+  /// How many of those the engine has ever been asked about. Without it, a
+  /// short list reads as "the engine agrees with almost everything", when it
+  /// may only mean nobody has run it yet.
+  final int evaluated;
+
+  final List<RepertoireDisagreement> rows;
+  final bool truncated;
+
+  factory DisagreementReport.fromJson(Map<String, dynamic> json) =>
+      DisagreementReport(
+        positions: (json['positions'] as num?)?.toInt() ?? 0,
+        evaluated: (json['evaluated'] as num?)?.toInt() ?? 0,
+        rows: ((json['disagreements'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((e) =>
+                RepertoireDisagreement.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+        truncated: json['truncated'] as bool? ?? false,
       );
 }
 
@@ -1335,6 +1524,81 @@ class RepertoireApiService {
         Map<String, dynamic>.from(jsonDecode(res.body) as Map));
   }
 
+  /// Every eval this student has for that side, keyed by position.
+  ///
+  /// One call per tree draw rather than one per card, and free — it reads what
+  /// was already computed and spends no Lichess allowance and no engine time.
+  Future<Map<String, RepertoireNote>> notes({required String color}) async {
+    final uri = Uri.parse('$backendUrl/repertoire/notes')
+        .replace(queryParameters: {'color': color});
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return const {};
+    final data = jsonDecode(res.body);
+    if (data is! Map || data['notes'] is! List) return const {};
+    final notes = (data['notes'] as List)
+        .whereType<Map>()
+        .map((e) => RepertoireNote.fromJson(Map<String, dynamic>.from(e)));
+    return {for (final note in notes) note.fenKey: note};
+  }
+
+  /// Stores what the engine said about one position.
+  ///
+  /// The answer is the note that is now on the node, which is not always the
+  /// one just sent: a shallower search never overwrites a deeper one, and the
+  /// screen has to draw what is stored rather than what it asked for.
+  Future<RepertoireNote?> putNote({
+    required String color,
+    required String fen,
+    required int evalCp,
+    int? mateIn,
+    int evalDepth = 0,
+    String? bestUci,
+    String? bestLineSan,
+  }) async {
+    final sent = await _send(() => _put('$backendUrl/repertoire/note', {
+          'color': color,
+          'fen': fen,
+          'evalCp': evalCp,
+          if (mateIn != null) 'mateIn': mateIn,
+          'evalDepth': evalDepth,
+          if (bestUci != null) 'bestUci': bestUci,
+          if (bestLineSan != null) 'bestLineSan': bestLineSan,
+        }));
+    final res = sent.res;
+    if (res == null) return null;
+    final data = jsonDecode(res.body);
+    if (data is! Map || data['note'] is! Map) return null;
+    return RepertoireNote.fromJson(
+        Map<String, dynamic>.from(data['note'] as Map));
+  }
+
+  /// Where the engine plays something other than what was chosen, worst first.
+  ///
+  /// Derived from the notes already stored, so it costs nothing at Lichess and
+  /// nothing in engine time. [fromFen] narrows it to one branch — the ten
+  /// positions built yesterday are what somebody sits down to go through.
+  Future<DisagreementReport?> disagreements({
+    required String color,
+    required String rootFen,
+    List<String> rootPath = const [],
+    int? minRating,
+    String? fromFen,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/disagreements').replace(
+      queryParameters: {
+        'color': color,
+        'rootFen': rootFen,
+        if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
+        if (minRating != null) 'minRating': '$minRating',
+        if (fromFen != null) 'fromFen': fromFen,
+      },
+    );
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    return DisagreementReport.fromJson(
+        Map<String, dynamic>.from(jsonDecode(res.body) as Map));
+  }
+
   Future<http.Response> _get(Uri uri) =>
       _client?.get(uri, headers: _headers) ?? http.get(uri, headers: _headers);
 
@@ -1347,6 +1611,13 @@ class RepertoireApiService {
     final encoded = jsonEncode(body);
     return _client?.post(uri, headers: _headers, body: encoded) ??
         http.post(uri, headers: _headers, body: encoded);
+  }
+
+  Future<http.Response> _put(String url, Map<String, dynamic> body) {
+    final uri = Uri.parse(url);
+    final encoded = jsonEncode(body);
+    return _client?.put(uri, headers: _headers, body: encoded) ??
+        http.put(uri, headers: _headers, body: encoded);
   }
 
   /// One place where a failed call becomes a reason, not merely a null.

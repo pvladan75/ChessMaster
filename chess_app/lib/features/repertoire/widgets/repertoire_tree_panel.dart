@@ -11,7 +11,15 @@ import 'package:chess_app/theme/app_typography.dart';
 /// One node per ply, parents linked, the student's primary first in each list
 /// so the widget's "main line" rule lands on the move they settled on rather
 /// than on whichever move happened to be stored first.
-AnalysisNode repertoireTreeToNodes(RepertoireTree tree) {
+///
+/// [notes] are the engine's evaluations, keyed the way the store keys
+/// positions. They go onto the cards because the widget already draws
+/// `eval` — no new drawing, and no verdict either: a number beside a move is
+/// information, and the judgement on this screen stays the opening judge's.
+AnalysisNode repertoireTreeToNodes(
+  RepertoireTree tree, {
+  Map<String, RepertoireNote> notes = const {},
+}) {
   final root = AnalysisNode(fen: tree.rootFen);
   void add(AnalysisNode parent, RepertoireTreeMove move) {
     final node = parent.addChild(
@@ -20,6 +28,11 @@ AnalysisNode repertoireTreeToNodes(RepertoireTree tree) {
       uci: move.uci,
     );
     node.nag = markOfRepertoireMove(move);
+    final note = notes[fenKeyOf(move.fen)];
+    if (note != null) {
+      node.eval = note.treeEval;
+      node.evalDepth = note.evalDepth;
+    }
     for (final child in move.children) {
       add(node, child);
     }
@@ -109,7 +122,8 @@ class RepertoireTreePanel extends StatelessWidget {
         Text(
           'Uz protivnikov potez stoji koliko se često igra. ★ je vaš glavni '
           'potez, ? pozicija bez vaše odluke, … odluka bez uzetih odgovora, '
-          '✂ odsečena grana. Dodirnite potez da tabla ode tamo.',
+          '✂ odsečena grana. Broj u zagradi je ocena motora — dubina i datum '
+          'stoje u panelu uz tablu. Dodirnite potez da tabla ode tamo.',
           style: AppText.micro.copyWith(color: context.colors.textMuted),
         ),
         if (truncatedAt != null) ...[

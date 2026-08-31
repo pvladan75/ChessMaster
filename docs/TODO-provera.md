@@ -2682,3 +2682,32 @@ Traži **vaš Lichess token** (isti kao sudija), jer troši vašu kvotu.
    ovaj panel se ne prikazuje.
 7. [ ] **Telefon, 360 dp.** Red ima potez, procenat, broj partija i dugme.
    Proveriti u *release* build-u.
+
+## 75. Ocena motora na čvoru — 31.8.2026, nije viđeno uživo
+
+1. [ ] **Ocena ostaje.** U izgradnji pritisnuti „Pitaj motor", sačekati, otići
+   na drugu poziciju i vratiti se: uz tablu piše „Sačuvano: +0.35 · dubina 20 ·
+   datum". Zatvoriti ekran i otvoriti ga ponovo — i dalje piše.
+2. [ ] **Dubina i datum se vide.** Oboje u istom redu sa ocenom, i datum je
+   današnji.
+3. [ ] **Plića ocena ne gazi dublju.** Postaviti dubinu na 30, pitati motor;
+   pa na 12 i pitati opet. Broj i „dubina 30" moraju ostati.
+4. [ ] **„Evaluiraj celu liniju (N pozicija)".** N je broj pozicija bez ocene
+   te dubine, a ne dužina linije. Posle prolaza dugme kaže „Cela linija je
+   ocenjena" i ne može da se pritisne.
+5. [ ] **Prolaz može da se zaustavi.** Tokom prolaza piše „Ocenjujem liniju:
+   3/9" i stoji „Zaustavi". Pritisak zaustavi prolaz, a poruka kaže posle koje
+   je pozicije stao.
+6. [ ] **Brojač „upita:" se ne miče.** Ni za jedan, ni pri pojedinačnom pitanju
+   ni tokom celog prolaza — ovo je lokalni motor.
+7. [ ] **Ocene su na karticama stabla.** Posle prolaza kartice u grafičkom
+   stablu nose broj u zagradi.
+8. [ ] **„Gde se motor ne slaže".** Otvara spisak sortiran po ceni neslaganja;
+   dodir na red vodi tablu na tu poziciju. Red koji nosi „nacrt" je potez koji
+   je napisala kičma, a ne vi.
+9. [ ] **Tri različite tišine.** Pre bilo kakvog računanja spisak kaže „motor
+   još nije pitan"; kad se sve slaže, kaže da se slaže i sa koliko od koliko.
+10. [ ] **Nema druge presude na kartici.** Uz potez i dalje stoji samo ono što
+   kaže sudija otvaranja; ocena motora nigde ne nosi „dobar"/„loš".
+11. [ ] **Telefon, 360 dp.** Panel motora, dugme sa brojem i dijalog spiska —
+   proveriti u *release* build-u da ništa nije odsečeno.

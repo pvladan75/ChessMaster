@@ -51,6 +51,9 @@ const { OpeningJudgeUnavailable } = require('../services/openingJudgeService');
 const {
   orphansOfRemoving, pruneKeys,
 } = require('../services/repertoirePrune');
+const {
+  putNote, notesFor, disagreements,
+} = require('../services/repertoireNotes');
 const rateLimit = require('express-rate-limit');
 
 // A spine is up to two dozen book requests in one call, against a token that
@@ -257,6 +260,90 @@ router.get('/book', authenticateToken, (req, res) => {
       color, fen, minRating: Number(minRating) || 0,
     }),
     'Knjiga nije mogla da se pročita.',
+  );
+});
+
+// PUT /repertoire/note  { color, fen, evalCp, mateIn, evalDepth, bestUci,
+//                        bestLineSan }
+//
+// What the engine said about one position. Information and nothing else: the
+// build screen's verdict comes from the opening judge — "is this sound, judged
+// by games real people played" — and a second opinion from a different notion
+// of "good" on the same card is how a screen starts contradicting itself in
+// front of a child. What the number is for is `/disagreements` below.
+//
+// A shallower answer never overwrites a deeper one, and the reply says which of
+// the two is stored — "yours was kept because it was deeper" and "nothing
+// happened" look identical from outside and are not.
+//
+// The eval is computed on the client, which is the shape `tablebaseService`
+// refuses for the endgame drill. It is acceptable here for one reason worth
+// writing down: nobody cheats themselves out of an engine eval, and this number
+// grades nothing. If it ever starts grading anything, that reasoning is void.
+router.put('/note', authenticateToken, (req, res) => {
+  const body = req.body ?? {};
+  answer(
+    res,
+    putNote(pool, req.user.id, {
+      color: body.color,
+      fen: body.fen,
+      evalCp: body.evalCp,
+      mateIn: body.mateIn ?? null,
+      evalDepth: body.evalDepth ?? 0,
+      bestUci: body.bestUci ?? null,
+      bestLineSan: body.bestLineSan ?? null,
+    }),
+    'Ocena nije mogla da se sačuva.',
+  );
+});
+
+// GET /repertoire/notes?color=b[&keys=a,b,c]
+//
+// Every eval this student has for that side, in one call — the tree draws a
+// hundred cards and a request per card is a request per card. `keys` narrows it
+// for a caller that knows which positions it needs.
+router.get('/notes', authenticateToken, (req, res) => {
+  const { color, keys } = req.query;
+  answer(
+    res,
+    notesFor(pool, req.user.id, {
+      color,
+      keys: typeof keys === 'string' && keys.trim() !== ''
+        ? keys.split(',').map((key) => key.trim()).filter((key) => key !== '')
+        : null,
+    }),
+    'Ocene nisu mogle da se pročitaju.',
+  );
+});
+
+// GET /repertoire/disagreements?color=b&rootFen=...&rootPath=e4+c5
+//     [&fromFen=...&minRating=1600&limit=50]
+//
+// The review list: where the engine's move is not the one that was chosen,
+// worst first. This is what the evals are *for* — no flag on any card, one list
+// gone through deliberately.
+//
+// Derived from the notes and the moves, so no new judgement is made anywhere
+// and no Lichess request is spent. A position the engine has never been asked
+// about is not in the list: "not asked" and "agrees" are different answers, and
+// the counts beside the list say which one a short list means.
+router.get('/disagreements', authenticateToken, (req, res) => {
+  const { color, rootFen, rootPath, minRating, fromFen, limit } = req.query;
+  answer(
+    res,
+    disagreements(pool, req.user.id, {
+      color,
+      rootFen,
+      rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
+        ? rootPath.trim().split(/\s+/)
+        : [],
+      minRating: Number(minRating) || 0,
+      fromFen: typeof fromFen === 'string' && fromFen.trim() !== ''
+        ? fromFen
+        : null,
+      limit: Number(limit) || undefined,
+    }),
+    'Spisak neslaganja nije mogao da se sastavi.',
   );
 });
 

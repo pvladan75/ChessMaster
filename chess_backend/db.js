@@ -1074,6 +1074,54 @@ async function initDB() {
     `);
     logger.info('Verified database table & indexes: repertoire_reviews');
 
+    // What the engine makes of a position in this student's repertoire.
+    //
+    // Information, never a verdict. The build screen already has a judge — the
+    // opening judge, which answers "is this move sound, judged by games real
+    // people played", and for a repertoire that is the better question. A
+    // second opinion from a different notion of "good", printed on the same
+    // card, is how a screen starts contradicting itself in front of a child.
+    // What the number is for instead is a *list*: the positions where the
+    // engine most disagrees with the move that was chosen, gone through
+    // deliberately.
+    //
+    // Per user, and that is the whole reason this is not shared the way
+    // `opening_replies` is. A book row is a fact about a position; an eval is
+    // a fact about a position *and* an engine version, a depth and a machine.
+    // A shared table would need all three in the key to mean anything, and
+    // would otherwise agree with nobody.
+    //
+    // `eval_cp` is White-relative centipawns, and `mate_in` is signed plies-
+    // to-mate — positive when White mates — because a forced mate written as a
+    // large number of pawns is a number that reads as an evaluation. When
+    // `mate_in` is set, `eval_cp` is the same thing collapsed, and the screen
+    // shows the mate.
+    //
+    // `best_uci` is stored beside `best_line_san` on purpose: the disagreement
+    // list compares the engine's move with the student's, and comparing two
+    // SAN strings produced by two different chess libraries is exactly the
+    // silent mismatch this codebase keeps meeting.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS repertoire_notes (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        color CHAR(1) NOT NULL CHECK (color IN ('w', 'b')),
+        fen_key TEXT NOT NULL,
+        eval_cp INTEGER,
+        mate_in INTEGER,
+        eval_depth INTEGER NOT NULL DEFAULT 0,
+        best_uci VARCHAR(6),
+        best_line_san TEXT,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, color, fen_key)
+      );
+      CREATE INDEX IF NOT EXISTS idx_repertoire_notes_side
+        ON repertoire_notes(user_id, color);
+      ALTER TABLE repertoire_notes ADD COLUMN IF NOT EXISTS mate_in INTEGER;
+      ALTER TABLE repertoire_notes ADD COLUMN IF NOT EXISTS best_uci VARCHAR(6);
+    `);
+    logger.info('Verified database table & indexes: repertoire_notes');
+
     // What the opponent actually plays in a position, kept from the lookup the
     // build mode already paid for.
     //

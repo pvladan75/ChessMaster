@@ -264,12 +264,13 @@ Three, and they are decisions rather than details.
    old move in place as an alternate and nothing is stranded at all.
 5. ~~**The replies panel beside the board.**~~ — done 31.8.2026, out of the
    stored book, so it costs nothing and can simply sit there.
-6. **Engine notes on the node.** R4 and `repertoire_notes`. **The only step
-   left**, and every decision in it is made — see "Step 6, decided" below.
-   Nothing in it is one-way except the new table, so the lead keeps it.
+6. ~~**Engine notes on the node.**~~ — done 31.8.2026, as decided below: the
+   table, both reads, the whole-line pass with its count on the button, and the
+   review list instead of a second verdict on any card.
 
 Steps 1 and 2 are independent of each other and of everything else; 3–6 depend
-on 2. **Steps 1 to 5 are done** (31.8.2026); step 6 is the only one left.
+on 2. **All six are done** (31.8.2026), and none of them has been watched
+running — see `TODO-provera.md`, items 70 to 75.
 
 ---
 
@@ -304,11 +305,28 @@ and a warm phone, so the price has to be visible before it is pressed.
 - `repertoire_notes (user_id, color, fen_key, eval_cp, eval_depth,
   best_line_san, updated_at)`, with `ADD COLUMN`-style guards like every other
   table here.
+
+  **Two columns beyond that list, both added while building it.** `best_uci`,
+  because the review list compares the engine's move with the student's and
+  comparing two SAN strings spelled by two different chess libraries is exactly
+  the silent mismatch this codebase keeps meeting; and `mate_in`, signed, because
+  a forced mate stored only as a large number of pawns is a number that reads as
+  an evaluation. `eval_cp` still carries the mate collapsed, so everything that
+  sorts or subtracts has one number to use.
 - `PUT /repertoire/note` — one position. `GET /repertoire/notes?color&keys` —
   many, for drawing the tree.
 - `GET /repertoire/disagreements?color&rootFen&fromFen` — the review list: the
   positions where the stored eval's best move is not the one that was chosen,
   worst first. Derived from the notes and the moves; no new judgement anywhere.
+
+  **The size of a disagreement needs two notes**, the one on the position and
+  the one on the position after the student's move, which is why the whole-line
+  pass evaluates the opponent's turns as well. Where the second is missing the
+  row is still in the list — the engine plainly plays something else — carrying
+  `loss: null`, which is not the same as zero and is sorted below everything
+  measured. The answer also says how many positions in the branch have ever been
+  put to the engine: without that number a short list reads as "the engine
+  agrees with almost everything", when it may only mean nobody has run it yet.
 - The tree card already carries `eval` and `evalDepth`, so drawing costs
   nothing new. The depth and the date must be visible: an eval without its depth
   is a number that ages invisibly.

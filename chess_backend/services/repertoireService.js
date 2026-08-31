@@ -590,6 +590,7 @@ async function skippedKeys(pool, userId, color) {
 
 module.exports = {
   fenKey,
+  requireColor,
   pathText,
   pathList,
   createRepertoire,
