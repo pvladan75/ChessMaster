@@ -2590,8 +2590,8 @@ se vrati tek za mesec dana zato što je nekome bilo zabavno. Ekran to i kaže, a
 `intervalDays` je `null`, pa ne može ni slučajno da obeća datum koji niko nije
 sačuvao.
 
-**„Kada će mi se pojaviti druge opcije protivnika?"** — kako stvari sada stoje,
-neće. Talas pokriva 80% odigranog, najviše četiri poteza; u toj poziciji su to
+**„Kada će mi se pojaviti druge opcije protivnika?"** — u trenutku prijave,
+nikada; sada mogu, jedan po jedan, odeljak „Rep se sada može spremiti". Talas pokriva 80% odigranog, najviše četiri poteza; u toj poziciji su to
 bili c3 (64%) i Nf3 (19%), a ostalih 28 poteza je rep koji nosi 16% partija.
 Panel ih pošteno broji, ali nema načina da se jedan od njih **doda** u pripremu.
 Sreću se samo u drillu, koji vuče i nepokrivene poteze. To je prava rupa i nije
@@ -2631,15 +2631,54 @@ Testovi: backend 742 → **751**, aplikacija 979 → **989**. Uživo nije viđen
 
 ### Šta je ostalo posle ovog prolaza
 
-- **Rep protivnikovih poteza se ne može spremiti.** Nema dugmeta „spremi i ovaj
-  potez" u panelu „Odgovori protivnika". Prag od 80% je dobra podrazumevana
-  vrednost i loš zid.
+- ~~**Rep protivnikovih poteza se ne može spremiti.**~~ — urađeno istog dana,
+  odeljak „Rep se sada može spremiti".
 - **`minRating` niko ne postavlja.** Provučen je kroz sve ekrane repertoara i
   uvek je `null`, pa svako dete vidi poteze svih rejtinga. Odluka iz plana
   („rang se bira prema učeniku") još nema polje.
 - **Odsečena grana se posle sesije ne može naći.** Server vraća ceo spisak,
   aplikacija koristi samo njegovu dužinu; „Vrati odsečenu granu" je jedan korak
   i živi koliko i ekran.
+
+## Rep se sada može spremiti — 31.8.2026
+
+Talas pokriva 80% odigranog, najviše četiri poteza, i **imenuje ostatak**. To je
+dobra podrazumevana vrednost i loš zid: vlasnik ga je sreo na prvoj liniji — dva
+odgovora spremljena, dvadeset osam preostalih koji nose šestinu partija, i
+nijedan način da se kaže „i taj". Rep je bio prebrojan i nedostupan.
+
+`repertoire_extra_replies` (nova tabela) i `POST/DELETE /repertoire/node/reply`.
+U panelu „Odgovori protivnika" ispod rečenice o repu stoji „Spremi i neki od
+njih"; otvara spisak nepokrivenih poteza sa dugmetom uz svaki.
+
+**Po učeniku, ne preko `covered`.** Kolona `opening_replies.covered` je
+zajednička — ti redovi su o poziciji i rangu, nikad o osobi — pa bi njeno
+prebacivanje za jedno dete tiho prepisalo šetnju koju prate sva ostala. Nova
+tabela je ogledalo `repertoire_skips`: jedna kaže „ovu granu neću", druga „i ovaj
+potez hoću".
+
+**Šetnja to mora da prati.** `coveredReplies` sada uzima pokrivene poteze **plus
+one koje je ovaj učenik imenovao**. Bez toga bi pozicija bila postavljena jednom
+i nestala čim se ekran zatvori, jer red nije sačuvan nego izveden — što je cela
+poenta granice. Pravilo da se rep inače ne prati ostaje: praćenje celog repa bi
+red napunilo potezima koje niko nije stavio u njega.
+
+**Ulazi u red po dometu, kao i sve ostalo.** Biranje govori da potez mora da se
+spremi, ne da je odjednom čest: potez koji se igra u jednoj partiji od dvadeset
+čeka iza onih koje se igraju.
+
+Spisak je sklopljen dok se ne zatraži — deset poteza po jedan procenat ispod
+svake pozicije zatrpalo bi odgovore koji odlučuju kako izgleda sledeći talas — i
+crta se iz onoga što je knjiga već vratila, bez ijednog novog zahteva.
+
+Jedan nalaz iz testova, o testovima: lažna knjiga je vraćala **iste** poteze bez
+obzira ko je na potezu, pa je red repa nudio crni potez u poziciji u kojoj je
+beli na potezu. Ništa nije puklo — potez je bio nelegalan, `_fenAfter` je vratio
+null i pozicija tiho nije ušla u red. Lažnjak sada zna čija je knjiga, jer ekran
+te poteze zaista igra na toj tabli.
+
+Testovi: backend 751 → **758**, aplikacija 989 → **992**. Uživo nije viđeno:
+[TODO-provera.md](TODO-provera.md), stavka 68.
 
 ## Repertoar iz arhive — sekcija 4, napisana 30.8.2026
 

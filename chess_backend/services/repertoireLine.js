@@ -96,7 +96,7 @@ async function walkLines(pool, userId, {
     }
 
     const keys = [...new Set(branches.map((b) => fenKey(b.after.fen)))];
-    const book = await coveredReplies(pool, keys, band);
+    const book = await coveredReplies(pool, userId, color, keys, band);
 
     const next = [];
     for (const branch of branches) {

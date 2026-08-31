@@ -91,20 +91,30 @@ async function keptByPosition(pool, userId, color) {
 
 /// The book for a whole level of the walk, in one query.
 ///
-/// Only the covered moves. The table also holds the tail — everything the
-/// explorer returned past the 80% cut — and the drill draws from all of it on
-/// purpose, so the student meets the edge of what they prepared. A *frontier*
-/// must not: following the tail would grow the queue by moves the build loop
-/// never enqueued, and hand back a walk that does not match the one the student
-/// was actually on.
-async function coveredReplies(pool, keys, minRating) {
+/// The covered moves, plus the ones this student asked for by name. The table
+/// also holds the rest of the tail — everything the explorer returned past the
+/// 80% cut — and the drill draws from all of it on purpose, so the student
+/// meets the edge of what they prepared. A *frontier* must not: following the
+/// whole tail would grow the queue by moves the build loop never enqueued, and
+/// hand back a walk that does not match the one the student was actually on.
+///
+/// The exception is the point of `repertoire_extra_replies`. A move the student
+/// pressed "prepare this too" on **was** enqueued, so the walk has to follow it
+/// — otherwise the position is asked once, and closing the screen loses it. It
+/// is also why that decision is stored per student rather than by flipping
+/// `covered`, which is everybody's.
+async function coveredReplies(pool, userId, color, keys, minRating) {
   if (keys.length === 0) return new Map();
   const result = await pool.query(
-    `SELECT fen_key, uci, san, games, share
-       FROM opening_replies
-      WHERE min_rating = $1 AND fen_key = ANY($2) AND covered = TRUE
-      ORDER BY games DESC`,
-    [minRating, keys],
+    `SELECT r.fen_key, r.uci, r.san, r.games, r.share
+       FROM opening_replies r
+      WHERE r.min_rating = $1 AND r.fen_key = ANY($2)
+        AND (r.covered = TRUE OR EXISTS (
+              SELECT 1 FROM repertoire_extra_replies e
+               WHERE e.user_id = $3 AND e.color = $4
+                 AND e.fen_key = r.fen_key AND e.uci = r.uci))
+      ORDER BY r.games DESC`,
+    [minRating, keys, userId, color],
   );
   const map = new Map();
   for (const row of result.rows) {
@@ -230,7 +240,7 @@ async function frontier(pool, userId, {
     }
 
     const keys = [...new Set(branches.map((b) => fenKey(b.after.fen)))];
-    const book = await coveredReplies(pool, keys, band);
+    const book = await coveredReplies(pool, userId, color, keys, band);
 
     const next = [];
     const dangling = new Set();

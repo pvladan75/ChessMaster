@@ -363,6 +363,44 @@ async function unskipNode(pool, userId, { color, fen }) {
   return { skipped: false, removed: result.rowCount };
 }
 
+/// "Prepare this opponent move too" — one reply past the coverage cut.
+///
+/// The build loop stops at 80% of what is played, up to four moves, and names
+/// the remainder. That is a good default and a bad wall, and this is the way
+/// through it: the tail is countable, and now it is reachable.
+///
+/// Stored per student rather than by flipping `opening_replies.covered`, which
+/// is shared by everybody — one child's decision must not rewrite the walk
+/// every other child follows.
+async function addExtraReply(pool, userId, { color, fen, uci, san = null }) {
+  requireColor(color);
+  const key = fenKey(fen);
+  if (!uci) throw new RangeError('Potez nije prosleđen.');
+
+  const result = await pool.query(
+    `INSERT INTO repertoire_extra_replies (user_id, color, fen_key, uci, san)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (user_id, color, fen_key, uci) DO UPDATE SET san = EXCLUDED.san
+     RETURNING id, fen_key, uci, san, created_at`,
+    [userId, color, key, uci, san],
+  );
+  return { prepared: true, ...result.rows[0] };
+}
+
+/// Takes one back out of the preparation. Same button, the other way round.
+async function removeExtraReply(pool, userId, { color, fen, uci }) {
+  requireColor(color);
+  const key = fenKey(fen);
+  if (!uci) throw new RangeError('Potez nije prosleđen.');
+
+  const result = await pool.query(
+    `DELETE FROM repertoire_extra_replies
+      WHERE user_id = $1 AND color = $2 AND fen_key = $3 AND uci = $4`,
+    [userId, color, key, uci],
+  );
+  return { prepared: false, removed: result.rowCount };
+}
+
 /// Every position this student has cut, for one colour, as a set.
 ///
 /// One query for the whole walk. Asking per node would make the frontier
@@ -393,6 +431,8 @@ module.exports = {
   skipNode,
   unskipNode,
   skippedKeys,
+  addExtraReply,
+  removeExtraReply,
   COLORS,
   ROLES,
 };

@@ -819,6 +819,38 @@ class RepertoireApiService {
     return sent.res != null;
   }
 
+  /// "Prepare this opponent move too" — one reply past the coverage cut.
+  ///
+  /// [fen] is the position the opponent answers *from*, after the student's own
+  /// move. The wave covers 80% of what is played and names the remainder; this
+  /// is the way through that wall, one move at a time, and the walk follows it
+  /// afterwards so the position is still there tomorrow.
+  Future<bool> prepareReply({
+    required String color,
+    required String fen,
+    required String uci,
+    String? san,
+  }) async {
+    final sent = await _send(() => _post('$backendUrl/repertoire/node/reply', {
+          'color': color,
+          'fen': fen,
+          'uci': uci,
+          'san': san,
+        }));
+    return sent.res != null;
+  }
+
+  /// Takes one back out of the preparation.
+  Future<bool> unprepareReply({
+    required String color,
+    required String fen,
+    required String uci,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/node/reply')
+        .replace(queryParameters: {'color': color, 'fen': fen, 'uci': uci});
+    return (await _send(() => _delete(uri))).res != null;
+  }
+
   /// Puts a cut branch back.
   Future<bool> unskipNode({required String color, required String fen}) async {
     final uri = Uri.parse('$backendUrl/repertoire/node/skip')

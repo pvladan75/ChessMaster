@@ -169,6 +169,17 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// change one number.
   final List<_Pending> _cutHere = [];
 
+  /// The opponent's moves prepared by hand in this session, past the cut.
+  ///
+  /// Kept so the row can say it is done without asking the server again — the
+  /// walk already knows, and this screen only needs to stop offering a button
+  /// that has been pressed.
+  final Set<String> _preparedUcis = {};
+
+  /// Whether the tail is showing. Folded away by default: ten moves at one per
+  /// cent each under every position would bury the answers that matter.
+  bool _showTail = false;
+
   /// The last branch cut, and the only one the undo button offers back.
   ///
   /// One step is enough here and more would be a second list to keep straight:
@@ -291,6 +302,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _answers = null;
       _answersFen = null;
       _answersSan = null;
+      _showTail = false;
+      _preparedUcis.clear();
       _lines = const [];
       _linesFen = null;
       _thinking = false;
@@ -833,6 +846,61 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     await _advance();
   }
 
+  /// "Prepare this one too" — one opponent move from past the covered wave.
+  ///
+  /// The wave stops at 80% of what is played, up to four moves, and names the
+  /// remainder. That is a good default and a bad wall: the owner met it on his
+  /// first line, with twenty-eight moves left over carrying a sixth of the
+  /// games and no way at all to say "that one as well".
+  ///
+  /// It is written down on the server rather than only queued here, and that is
+  /// the whole difference between this and a position the screen shows once.
+  /// The frontier follows only covered replies — deliberately, or the queue
+  /// would fill with moves nobody enqueued — so a hand-picked one has to be
+  /// stored, or closing the screen would lose it.
+  Future<void> _prepareReply(OpponentReply reply) async {
+    final from = _answersFen;
+    final san = _answersSan;
+    final node = _node;
+    if (from == null || san == null || node == null || _busy) return;
+
+    setState(() => _busy = true);
+    final done = await _api.prepareReply(
+      color: widget.color,
+      fen: from,
+      uci: reply.uci,
+      san: reply.san,
+    );
+    if (!mounted) return;
+    if (!done) {
+      setState(() {
+        _busy = false;
+        _note = 'Potez nije dodat u pripremu — server nije odgovorio.';
+      });
+      return;
+    }
+
+    final next = _fenAfter(from, reply.uci);
+    final before = _queue.length;
+    if (next != null) {
+      // Ordered by reach like everything else. Choosing it deliberately says it
+      // must be prepared, not that it is suddenly common — a move played in one
+      // game in twenty waits behind the ones that are not.
+      _enqueue(
+        next,
+        [...node.path, san, reply.san],
+        reach: node.reach * reply.share,
+      );
+    }
+    setState(() {
+      _busy = false;
+      _preparedUcis.add(reply.uci);
+      _note = _queue.length > before
+          ? 'U pripremi je i ${reply.san}. Vratiće se u red i sutra.'
+          : '${reply.san} je već u pripremi.';
+    });
+  }
+
   /// Whether a queued position lies under [root] — its line starts with that
   /// one.
   bool _isBelow(_Pending node, _Pending root) {
@@ -1217,7 +1285,83 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               'bez spremljenog odgovora.',
               style: AppText.caption.copyWith(color: context.colors.warning),
             ),
+            // The way through the wall. Folded away rather than always open:
+            // ten moves at one per cent each under every position would bury
+            // the answers that decide the shape of the next wave.
+            if (_tailOf(answers).isNotEmpty)
+              TextButton.icon(
+                onPressed:
+                    _busy ? null : () => setState(() => _showTail = !_showTail),
+                icon: Icon(_showTail ? Icons.expand_less : Icons.expand_more,
+                    size: 18),
+                label: Text(_showTail
+                    ? 'Sakrij ostale poteze'
+                    : 'Spremi i neki od njih'),
+              ),
+            if (_showTail)
+              for (final reply in _tailOf(answers)) _tailRow(context, reply),
           ],
+        ],
+      ),
+    );
+  }
+
+  /// The opponent's moves the wave left outside, most played first.
+  ///
+  /// Out of what the book already returned — no request is made for this. The
+  /// book keeps a dozen moves and the rest of a long tail is a fraction of a
+  /// per cent each, which is not a decision anybody needs offered to them.
+  List<OpponentReply> _tailOf(OpponentReplies answers) {
+    // Both tests, and on purpose. `covered` is the flag the server sets while
+    // it applies the rule, and the covered list is what it applied the rule to;
+    // an answer missing one of the two still comes out right, and a move that
+    // is already being prepared never appears as something to add.
+    final covered = {for (final reply in answers.replies) reply.uci};
+    return [
+      for (final reply in answers.all)
+        if (!reply.covered && !covered.contains(reply.uci)) reply,
+    ];
+  }
+
+  Widget _tailRow(BuildContext context, OpponentReply reply) {
+    final prepared = _preparedUcis.contains(reply.uci);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 64,
+            child: Text(reply.san,
+                style:
+                    AppText.body.copyWith(color: context.colors.textPrimary)),
+          ),
+          SizedBox(
+            width: 52,
+            child: Text(_shareText(reply.share),
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted)),
+          ),
+          Expanded(
+            child: Text('${reply.games} partija',
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted)),
+          ),
+          if (prepared)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check, size: 16, color: context.colors.success),
+                const SizedBox(width: 4),
+                Text('u pripremi',
+                    style: AppText.micro
+                        .copyWith(color: context.colors.textMuted)),
+              ],
+            )
+          else
+            OutlinedButton(
+              onPressed: _busy ? null : () => _prepareReply(reply),
+              child: const Text('Spremi'),
+            ),
         ],
       ),
     );

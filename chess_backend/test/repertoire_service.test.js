@@ -14,6 +14,8 @@ const {
   skipNode,
   unskipNode,
   skippedKeys,
+  addExtraReply,
+  removeExtraReply,
 } = require('../services/repertoireService');
 
 const SMITH_MORRA =
@@ -274,6 +276,50 @@ test('a cut needs a colour and a real position', async () => {
   await assert.rejects(() => skipNode(pool, 5, { color: 'x', fen: SMITH_MORRA }),
     RangeError);
   await assert.rejects(() => skipNode(pool, 5, { color: 'b', fen: 'ovo nije fen' }),
+    RangeError);
+  assert.equal(pool.calls.length, 0, 'loš zahtev je stigao do baze');
+});
+
+test('an opponent move past the cut can be added to the preparation',
+  async () => {
+    // The wave covers 80% of what is played and names the remainder. That is a
+    // good default and a bad wall: the tail was countable and unreachable.
+    const pool = stubPool([[{ id: 4, fen_key: fenKey(SMITH_MORRA), uci: 'g1f3' }]]);
+    await addExtraReply(pool, 5, {
+      color: 'b', fen: SMITH_MORRA, uci: 'g1f3', san: 'Nf3',
+    });
+
+    assert.equal(pool.ran('INSERT INTO repertoire_extra_replies'), 1);
+    // Per student. `opening_replies.covered` is shared by everybody, and
+    // flipping it for one child would rewrite the walk every other child
+    // follows.
+    assert.deepEqual(pool.calls[0].params,
+      [5, 'b', fenKey(SMITH_MORRA), 'g1f3', 'Nf3']);
+  });
+
+test('adding the same move twice is not an error', async () => {
+  const pool = stubPool([[{ id: 4 }]]);
+  await addExtraReply(pool, 5, { color: 'b', fen: SMITH_MORRA, uci: 'g1f3' });
+  assert.equal(pool.ran('ON CONFLICT'), 1);
+});
+
+test('a move can be taken back out of the preparation', async () => {
+  const pool = stubPool([[]]);
+  const out = await removeExtraReply(pool, 5, {
+    color: 'b', fen: SMITH_MORRA, uci: 'g1f3',
+  });
+
+  assert.equal(pool.ran('DELETE FROM repertoire_extra_replies'), 1);
+  assert.equal(out.prepared, false);
+});
+
+test('preparing a move needs a colour, a position and a move', async () => {
+  const pool = stubPool([[]]);
+  await assert.rejects(
+    () => addExtraReply(pool, 5, { color: 'x', fen: SMITH_MORRA, uci: 'g1f3' }),
+    RangeError);
+  await assert.rejects(
+    () => addExtraReply(pool, 5, { color: 'b', fen: SMITH_MORRA }),
     RangeError);
   assert.equal(pool.calls.length, 0, 'loš zahtev je stigao do baze');
 });

@@ -37,6 +37,10 @@ class _FakeApi extends RepertoireApiService {
   /// a branch as gone when it is not.
   bool cutFails = false;
 
+  /// The opponent's moves added to the preparation from past the covered wave.
+  final List<String> prepared = [];
+  bool prepareFails = false;
+
   /// What the walk answers with. Null is the honest default here and stands for
   /// a server that did not answer — which is what the fake's MockClient does,
   /// and the path most of these tests happen to take.
@@ -108,6 +112,18 @@ class _FakeApi extends RepertoireApiService {
   Future<bool> skipNode({required String color, required String fen}) async {
     if (cutFails) return false;
     cut.add(_key(fen));
+    return true;
+  }
+
+  @override
+  Future<bool> prepareReply({
+    required String color,
+    required String fen,
+    required String uci,
+    String? san,
+  }) async {
+    if (prepareFails) return false;
+    prepared.add(uci);
     return true;
   }
 
@@ -186,6 +202,12 @@ class _FakeJudge implements OpeningJudgeService {
   Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async {
     asked += 1;
     if (!hasToken) return const OpponentRepliesLookup.unavailable('no-token');
+    // Whose book this is. Asked about the position on the board it is Black's
+    // moves; asked about the position after Black has moved it is White's — and
+    // the fake has to keep that straight, because the screen plays these moves
+    // on that board. It did not, once, and the tail row offered a black move in
+    // a white-to-move position.
+    final whiteToMove = fen.split(' ').length > 1 && fen.split(' ')[1] == 'w';
     return OpponentRepliesLookup.ok(OpponentReplies(
       total: 1000,
       replies: [
@@ -194,34 +216,52 @@ class _FakeJudge implements OpeningJudgeService {
       ],
       // What the student reads when choosing: more than the covered few, with
       // how those games went.
-      all: const [
-        OpponentReply(
-            uci: 'b8c6',
-            san: 'Nc6',
-            games: 600,
-            share: 0.6,
-            white: 200,
-            draws: 100,
-            black: 300,
-            covered: true),
-        OpponentReply(
-            uci: 'd7d6',
-            san: 'd6',
-            games: 300,
-            share: 0.3,
-            white: 150,
-            draws: 60,
-            black: 90,
-            covered: true),
-        OpponentReply(
-            uci: 'a7a6',
-            san: 'a6',
-            games: 100,
-            share: 0.1,
-            white: 60,
-            draws: 10,
-            black: 30),
-      ],
+      all: whiteToMove
+          ? const [
+              OpponentReply(
+                  uci: 'g1f3',
+                  san: 'g1f3',
+                  games: 500,
+                  share: 0.5,
+                  white: 250,
+                  draws: 100,
+                  black: 150,
+                  covered: true),
+              // The tail: legal in this position, uncovered, and the thing
+              // "Spremi" is for. Legal matters — in the Smith-Morra accepted
+              // White has no d-pawn, and a tail move that cannot be played
+              // would silently never join the queue.
+              OpponentReply(uci: 'f1c4', san: 'Bc4', games: 90, share: 0.09),
+              OpponentReply(uci: 'c1f4', san: 'Bf4', games: 60, share: 0.06),
+            ]
+          : const [
+              OpponentReply(
+                  uci: 'b8c6',
+                  san: 'Nc6',
+                  games: 600,
+                  share: 0.6,
+                  white: 200,
+                  draws: 100,
+                  black: 300,
+                  covered: true),
+              OpponentReply(
+                  uci: 'd7d6',
+                  san: 'd6',
+                  games: 300,
+                  share: 0.3,
+                  white: 150,
+                  draws: 60,
+                  black: 90,
+                  covered: true),
+              OpponentReply(
+                  uci: 'a7a6',
+                  san: 'a6',
+                  games: 100,
+                  share: 0.1,
+                  white: 60,
+                  draws: 10,
+                  black: 30),
+            ],
       coveredShare: 0.85,
       tailMoves: 3,
       tailShare: 0.15,
@@ -250,6 +290,7 @@ void main() {
     List<String> rootPath = const [],
     RepertoireFrontier? walk,
     bool cutFails = false,
+    bool prepareFails = false,
 
     /// Moves already in the repertoire, keyed the way the server keys them.
     /// Stands for a position the student built in an earlier session.
@@ -264,6 +305,7 @@ void main() {
     api = _FakeApi()
       ..walk = walk
       ..cutFails = cutFails
+      ..prepareFails = prepareFails
       ..kept.addAll(seed);
     judge = _FakeJudge(verdict: verdict, hasToken: hasToken);
     await tester.pumpWidget(MaterialApp(
@@ -1050,5 +1092,80 @@ void main() {
     expect(find.textContaining('odsečeno'), findsNothing);
     // Still the position that was there: nothing moved on.
     expect(find.text('4...Nc6 5.Nf3'), findsOneWidget);
+  });
+
+  testWidgets('a move past the covered wave can be prepared by hand',
+      (tester) async {
+    // The wall. The wave covers 80% of what is played, up to four moves, and
+    // names the remainder — which was countable and unreachable: twenty-eight
+    // moves carrying a sixth of the games, and no way to say "that one too".
+    await pump(tester);
+
+    await play(tester, 'b8', 'c6');
+    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dalje'));
+    await tester.pumpAndSettle();
+
+    // Folded away by default: ten moves at one per cent each under every
+    // position would bury the answers that decide the next wave.
+    expect(find.text('Bc4'), findsNothing);
+    await tester.tap(find.text('Spremi i neki od njih'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bc4'), findsOneWidget);
+    await tester.tap(find.text('Spremi').first);
+    await tester.pumpAndSettle();
+
+    // Written down on the server, not only queued here: the frontier follows
+    // covered replies only, so a hand-picked one that was not stored would be
+    // lost the moment the screen closed.
+    expect(api.prepared, ['f1c4']);
+    expect(find.textContaining('U pripremi je i Bc4'), findsOneWidget);
+    expect(find.text('u pripremi'), findsOneWidget);
+  });
+
+  testWidgets('a prepared move joins the queue in its own place',
+      (tester) async {
+    // Choosing it deliberately says it must be prepared, not that it has
+    // suddenly become common. It waits behind the lines that are.
+    await pump(tester);
+
+    await play(tester, 'b8', 'c6');
+    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dalje'));
+    await tester.pumpAndSettle();
+    // One position came out of the covered wave.
+    expect(find.text('Još 1 u redu.'), findsOneWidget);
+
+    await tester.tap(find.text('Spremi i neki od njih'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Spremi').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Još 2 u redu.'), findsOneWidget);
+  });
+
+  testWidgets('a preparation the server refused is not shown as done',
+      (tester) async {
+    // The oldest shape of bug here: a step that fails quietly and reports
+    // success. A move that looks prepared and is gone tomorrow is worse than
+    // one that was never offered.
+    await pump(tester, prepareFails: true);
+
+    await play(tester, 'b8', 'c6');
+    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dalje'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Spremi i neki od njih'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Spremi').first);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('nije dodat u pripremu'), findsOneWidget);
+    expect(find.text('u pripremi'), findsNothing);
+    expect(find.text('Još 1 u redu.'), findsOneWidget);
   });
 }

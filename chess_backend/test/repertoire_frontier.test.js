@@ -29,11 +29,14 @@ function keyAfter(...ucis) {
 /// Keyed rather than a list of canned results in order: the walk asks once per
 /// level and the number of levels is what is being tested, so a stub that
 /// replays answers positionally would pass for the wrong reason.
-function stubPool({ moves = [], replies = [], skips = [] } = {}) {
+function stubPool({ moves = [], replies = [], skips = [], extras = [] } = {}) {
   let levels = 0;
+  const calls = [];
   return {
+    calls,
     levels: () => levels,
     query: async (text, params) => {
+      calls.push({ text: text.replace(/\s+/g, ' ').trim(), params });
       if (text.includes('FROM repertoire_moves')) {
         return { rows: moves, rowCount: moves.length };
       }
@@ -44,8 +47,15 @@ function stubPool({ moves = [], replies = [], skips = [] } = {}) {
       if (text.includes('FROM opening_replies')) {
         levels += 1;
         const [band, keys] = params;
+        // `covered` is modelled, because the walk following an uncovered move
+        // is exactly what one of these tests is about. Rows say nothing by
+        // default, which means covered — that is what every older fixture here
+        // meant when it was written.
         const rows = replies.filter(
-          (r) => Number(r.min_rating ?? 0) === band && keys.includes(r.fen_key),
+          (r) => Number(r.min_rating ?? 0) === band
+            && keys.includes(r.fen_key)
+            && (r.covered !== false
+              || extras.some((e) => e.fen_key === r.fen_key && e.uci === r.uci)),
         );
         return { rows, rowCount: rows.length };
       }
@@ -356,3 +366,68 @@ test('a repertoire with nothing decided has no map yet', async () => {
   assert.deepEqual(walk.branches, []);
   assert.equal(walk.open.length, 1);
 });
+
+/// The same repertoire, plus a tail move: 1...d5 is played in 5% of games and
+/// falls outside the 80% the wave covers.
+function withTail() {
+  const base = sicilianAndOpenGame();
+  return {
+    moves: base.moves,
+    replies: [
+      ...base.replies,
+      {
+        fen_key: keyAfter('e2e4'),
+        uci: 'd7d5', san: 'd5', games: 50, share: '0.05000', covered: false,
+      },
+    ],
+  };
+}
+
+test('a move outside the covered wave is not walked into', async () => {
+  // The default, and it has to stay the default: following the whole tail would
+  // grow the queue by moves the build loop never enqueued, and hand back a walk
+  // that does not match the one the student was on.
+  const pool = stubPool(withTail());
+  const walk = await frontier(pool, 7, { color: 'w', rootFen: START });
+
+  assert.equal(
+    walk.open.some((node) => node.path.includes('d5')),
+    false,
+    'rep je ušao u red bez pitanja',
+  );
+});
+
+test('a move the student asked for by name is walked into', async () => {
+  // "Prepare this one too". The wave covers 80% and names the remainder, which
+  // is a good default and a bad wall — the tail was countable and unreachable.
+  //
+  // The walk has to follow it, or the position would be asked once and lost the
+  // moment the screen closed: the queue is derived, not stored.
+  const pool = stubPool({
+    ...withTail(),
+    extras: [{ fen_key: keyAfter('e2e4'), uci: 'd7d5' }],
+  });
+  const walk = await frontier(pool, 7, { color: 'w', rootFen: START });
+
+  const added = walk.open.find((node) => node.path.includes('d5'));
+  assert.ok(added, 'potez dodat u pripremu nije u redu');
+  assert.deepEqual(added.path, ['e4', 'd5']);
+  assert.equal(added.kind, 'undecided');
+  // Ordered like everything else: it is played in a twentieth of games and it
+  // waits behind the lines that are not.
+  assert.equal(Math.round(added.reach * 100), 5);
+});
+
+test('the extra replies are read for this student, not for everybody',
+  async () => {
+    // `opening_replies.covered` is shared — the rows are about a position and a
+    // rating band, never about a person. One child pressing "prepare this too"
+    // must not rewrite the walk every other child follows.
+    const pool = stubPool(sicilianAndOpenGame());
+    await frontier(pool, 7, { color: 'w', rootFen: START });
+
+    const book = pool.calls.find((c) => c.text.includes('FROM opening_replies'));
+    assert.match(book.text, /repertoire_extra_replies/);
+    assert.equal(book.params[2], 7);
+    assert.equal(book.params[3], 'w');
+  });

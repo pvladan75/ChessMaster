@@ -2506,3 +2506,34 @@ Prva tri iz prvog prolaza vlasnika kroz trenažer (31.8.2026).
     dugmadi stoji rečenica da je tamo protivnik na potezu.
 11. [ ] **Ugašen server.** Stablo mora da kaže da nije moglo da se pročita, ne
     da je repertoar prazan.
+
+## 68. Spremanje poteza iz repa — 31.8.2026, nije viđeno uživo
+
+Backend mora biti pokrenut jednom **posle** ove izmene, da nastane tabela
+`repertoire_extra_replies`.
+
+1. [ ] **Spisak se otvara i sklapa.** U izgradnji, posle „Dalje", ispod rečenice
+   „Van pripreme još N poteza" stoji „Spremi i neki od njih". Klik otvara spisak
+   nepokrivenih poteza sa procentom i brojem partija; ponovni klik ga sklapa.
+2. [ ] **„Spremi" radi i kaže šta je uradio.** Klik na dugme uz jedan potez →
+   poruka „U pripremi je i X" i red se produži za jedan.
+3. [ ] **Ulazi po dometu, ne na vrh.** Ako je potez redak, ne sme odmah da bude
+   sledeće pitanje — proveriti da brojač „Još N u redu" poraste, ali da sledeća
+   pozicija ostane ona sa većim procentom.
+4. [ ] **Preživljava izlazak — ovo je jedina provera koja stvarno gleda bazu.**
+   Spremiti jedan potez iz repa, izaći na Nazad, pa ponovo ući u izgradnju: ta
+   pozicija mora i dalje da bude u redu. Ako nestane, šetnja ne prati dodate
+   poteze.
+5. [ ] **Dodat potez se vidi i na stablu i na radaru.** Otvoriti stablo: nova
+   grana mora da postoji sa `?`. Na radaru „bez odgovora %" te grane raste, jer
+   je pripremljeno više nego ranije a odgovora još nema.
+6. [ ] **Dvaput isti potez nije greška.** Ako se isti potez spremi dvaput (npr.
+   posle povratka na istu poziciju), ne sme da se pojavi greška — samo poruka da
+   je već u pripremi.
+7. [ ] **Ugašen server ne laže.** Ugasiti backend i pritisnuti „Spremi": mora da
+   piše da potez **nije** dodat, i red ne sme da poraste.
+8. [ ] **Tuđa priprema ostaje tuđa.** Ovo se ne može proveriti sa jednim
+   nalogom, ali vredi zapamtiti: dodavanje je po korisniku, i ne sme da promeni
+   šta drugi nalog vidi kao pokriveno.
+9. [ ] **Telefon, 360 dp.** Red repa ima potez, procenat, broj partija i dugme.
+   Proveriti u *release* build-u, gde nema žuto-crnih pruga.

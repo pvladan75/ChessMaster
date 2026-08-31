@@ -965,6 +965,37 @@ async function initDB() {
     `);
     logger.info('Verified database table & indexes: repertoire_skips');
 
+    // The opponent's moves this student decided to prepare beyond the cut.
+    //
+    // The build loop covers what 80% of games play, up to four moves, and says
+    // how much is left outside. That is a good default and a bad wall: the
+    // owner met it on his first line — two answers prepared, twenty-eight left
+    // over carrying a sixth of the games, and no way at all to say "that one
+    // too". The tail was countable and unreachable.
+    //
+    // Per student, and that is the whole reason this table exists. `covered` on
+    // `opening_replies` is shared by everybody — the rows are about a position
+    // and a rating band, never about a person — so flipping it for one child
+    // would quietly rewrite what every other child's walk follows.
+    //
+    // The mirror image of `repertoire_skips`: one says "not this branch", this
+    // one says "this one as well".
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS repertoire_extra_replies (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        color CHAR(1) NOT NULL CHECK (color IN ('w', 'b')),
+        fen_key TEXT NOT NULL,
+        uci VARCHAR(6) NOT NULL,
+        san VARCHAR(12),
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, color, fen_key, uci)
+      );
+      CREATE INDEX IF NOT EXISTS idx_repertoire_extra_replies_side
+        ON repertoire_extra_replies(user_id, color);
+    `);
+    logger.info('Verified database table & indexes: repertoire_extra_replies');
+
     // Every first attempt, including the ones that were thrown away.
     //
     // This is the most valuable thing the build mode produces, and it is the

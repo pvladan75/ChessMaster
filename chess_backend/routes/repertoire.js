@@ -33,6 +33,8 @@ const {
   weakNodes,
   skipNode,
   unskipNode,
+  addExtraReply,
+  removeExtraReply,
 } = require('../services/repertoireService');
 const { frontier } = require('../services/repertoireFrontier');
 const { drillLine, tree: repertoireTree } = require('../services/repertoireLine');
@@ -144,6 +146,34 @@ router.delete('/node/skip', authenticateToken, (req, res) => {
     res,
     unskipNode(pool, req.user.id, { color, fen }),
     'Grana nije mogla da se vrati.',
+  );
+});
+
+// POST /repertoire/node/reply  { color, fen, uci, san }
+//
+// "Prepare this opponent move too." The wave covers 80% of what is played, up
+// to four moves, and names the remainder; this is the way through that wall,
+// one move at a time.
+//
+// `fen` is the position the opponent answers *from* — after the student's own
+// move — and `uci` is their reply. Stored per student, never by flipping
+// `opening_replies.covered`, which is shared by everybody.
+router.post('/node/reply', authenticateToken, (req, res) => {
+  const { color, fen, uci, san } = req.body ?? {};
+  answer(
+    res,
+    addExtraReply(pool, req.user.id, { color, fen, uci, san }),
+    'Potez nije mogao da se doda u pripremu.',
+  );
+});
+
+// DELETE /repertoire/node/reply?color=b&fen=...&uci=g1f3
+router.delete('/node/reply', authenticateToken, (req, res) => {
+  const { color, fen, uci } = req.query;
+  answer(
+    res,
+    removeExtraReply(pool, req.user.id, { color, fen, uci }),
+    'Potez nije mogao da se izbaci iz pripreme.',
   );
 });
 
