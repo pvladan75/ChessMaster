@@ -2680,6 +2680,21 @@ te poteze zaista igra na toj tabli.
 Testovi: backend 751 → **758**, aplikacija 989 → **992**. Uživo nije viđeno:
 [TODO-provera.md](TODO-provera.md), stavka 68.
 
+## Izgradnja repertoara se prepravlja — plan, 31.8.2026
+
+Vlasnik je posle prvog ozbiljnog korišćenja rekao da je gradnja konfuzna, i
+predložio četiri pravila (auto-kičma, orezivanje pri promeni poteza, spisak
+protivnikovih odgovora uz tablu, motor samo na dugme). Plan je u
+[PLAN-REPERTOAR.md](PLAN-REPERTOAR.md), zajedno sa tri izmene iz pregleda —
+najvažnija je da **auto-potez nikad ne sme da izgleda kao odluka**, jer je to
+tačno greška zbog koje je sejanje iz arhive obrisano isti dan.
+
+Tu je i odgovor na „stablo je na drugom ekranu": stablo postaje **panel na
+ekranu za izgradnju**, onako kako Analiza to već radi — `AnalysisMoveTreeWidget`
+ima i prekidač PGN/graf i ceo ekran i zatvaranje na dodir čvora.
+
+Ništa od toga još nije napisano. Redosled poslova je na kraju plana.
+
 ## Dva uklanjanja, na zahtev vlasnika — 31.8.2026
 
 Oba su prijavljena pri prvom ozbiljnom korišćenju, i oba su tačna.
