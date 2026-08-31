@@ -1,3 +1,4 @@
+import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
@@ -36,6 +37,30 @@ class _FakeApi extends RepertoireApiService {
   int reveals = 0;
   bool? lastRevealedFlag;
 
+  /// The line handed back, and null for a server that did not answer — which
+  /// the screen must tell apart from a line with no question in it.
+  DrillLine? line;
+  int lineCalls = 0;
+  String? lastFromFen;
+
+  /// How many answers were graded. The rehearsal must add nothing to this: a
+  /// prefix is replayed many times a day, and grading it would push those
+  /// positions out on repetitions nobody had to remember cold.
+  int graded = 0;
+
+  @override
+  Future<DrillLine?> drillLine({
+    required String color,
+    required String rootFen,
+    List<String> rootPath = const [],
+    int? minRating,
+    String? fromFen,
+  }) async {
+    lineCalls += 1;
+    lastFromFen = fromFen;
+    return line;
+  }
+
   @override
   Future<({DrillItem? item, DrillStats stats})> nextDrill(
       {required String color}) async {
@@ -65,6 +90,7 @@ class _FakeApi extends RepertoireApiService {
     bool revealed = false,
     int? minRating,
   }) async {
+    graded += 1;
     lastRevealedFlag = revealed;
     final outcome = outcomeFor ?? (uci == primaryUci ? 'primary' : 'unknown');
     return DrillAnswer(
@@ -86,6 +112,9 @@ void main() {
     void Function(String fen)? onBuildHere,
     Size size = const Size(500, 1000),
     Key? key,
+    String? rootFen,
+    List<String> rootPath = const [],
+    String? fromFen,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
@@ -96,6 +125,9 @@ void main() {
         key: key,
         name: 'Smit-Mora, crni',
         color: 'b',
+        rootFen: rootFen,
+        rootPath: rootPath,
+        fromFen: fromFen,
         api: api,
         onBuildHere: onBuildHere,
       ),
@@ -228,6 +260,160 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await play(tester, 'b8', 'c6');
+    expect(tester.takeException(), isNull);
+  });
+
+  /// The position after a line of SAN moves from the start of a game.
+  ///
+  /// Computed rather than pasted, like the frontier's tests: a hand-written FEN
+  /// is a chance to assert against a position that does not exist, and the
+  /// screen would then be right while the test was wrong.
+  String fenAfter(List<String> sans) {
+    final board = chess.Chess();
+    for (final san in sans) {
+      board.move(san);
+    }
+    return board.fen;
+  }
+
+  /// 1.e4 c5 2.d4 cxd4 3.c3 — the Smith-Morra, with Black to move at every
+  /// point the student is asked anything. The question is what to do about
+  /// 3.c3, and everything before it is rehearsal.
+  DrillLine morraLine({bool startKnown = false, List<String>? startPath}) =>
+      DrillLine(
+        rootPath: const ['e4'],
+        startFen: fenAfter(['e4']),
+        startPath: startPath ?? const [],
+        startKnown: startKnown,
+        prefix: const [
+          LineMove(uci: 'c7c5', san: 'c5', mine: true),
+          LineMove(uci: 'd2d4', san: 'd4', mine: false),
+          LineMove(uci: 'c5d4', san: 'cxd4', mine: true),
+          LineMove(uci: 'c2c3', san: 'c3', mine: false),
+        ],
+        question: DrillItem(
+          fen: fenAfter(['e4', 'c5', 'd4', 'cxd4', 'c3']),
+          fresh: true,
+          repetitions: 0,
+          moves: 1,
+          path: const ['c5', 'd4', 'cxd4', 'c3'],
+        ),
+        stats: const DrillStats(positions: 6, due: 1, known: 2, fresh: 3),
+      );
+
+  testWidgets('the question arrives at the end of the line that leads to it',
+      (tester) async {
+    // The drill used to put up a bare board four moves into something with no
+    // way to tell how it arose. A repertoire is played forwards, and this is
+    // the difference between remembering a line and recognising a photograph
+    // of its end.
+    final api = _FakeApi()..line = morraLine();
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    expect(api.lineCalls, 1);
+    expect(find.text('Ponovite liniju'), findsOneWidget);
+    expect(find.text('1.e4'), findsOneWidget);
+    expect(find.textContaining('potez 1 od 2'), findsOneWidget);
+
+    await play(tester, 'c7', 'c5');
+
+    // The student's move and the opponent's answer, both on the board and both
+    // in the line above it.
+    expect(find.text('1.e4 c5 2.d4'), findsOneWidget);
+    expect(find.textContaining('potez 2 od 2'), findsOneWidget);
+
+    await play(tester, 'c5', 'd4');
+
+    // And now the question, at the end of the line rather than on its own.
+    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('1.e4 c5 2.d4 cxd4 3.c3'), findsOneWidget);
+    // Nothing along the way was graded.
+    expect(api.graded, 0, reason: 'ponavljanje je ocenjeno');
+  });
+
+  testWidgets('a wrong move in the rehearsal is named, not marked',
+      (tester) async {
+    // The rule the whole line drill rests on. A prefix is replayed many times a
+    // day on the way to whatever is due below it, so grading it would push
+    // those positions' intervals out on rehearsals nobody had to remember cold.
+    final api = _FakeApi()..line = morraLine();
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    await play(tester, 'e7', 'e5');
+
+    expect(find.textContaining('U ovoj liniji ide c5'), findsOneWidget);
+    expect(api.graded, 0, reason: 'ponavljanje je ocenjeno');
+    // The line's own move went on the board anyway: carrying on from a move
+    // that is not in the line would be rehearsing a different line.
+    expect(find.text('1.e4 c5 2.d4'), findsOneWidget);
+  });
+
+  testWidgets('the rehearsal can be skipped', (tester) async {
+    // Worth having and not a toll gate.
+    final api = _FakeApi()..line = morraLine();
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    await tester.tap(find.text('Preskoči ponavljanje'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('1.e4 c5 2.d4 cxd4 3.c3'), findsOneWidget);
+  });
+
+  testWidgets('a rehearsal that starts where the student knows says so',
+      (tester) async {
+    // Twelve plies of rehearsal to reach one question is how a drill stops
+    // being opened — and a short one is something the student earned, so it is
+    // a different sentence from "we start at the beginning".
+    final api = _FakeApi()
+      ..line = morraLine(startKnown: true, startPath: const ['c5', 'd4']);
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    expect(find.textContaining('dokle znate napamet'), findsOneWidget);
+  });
+
+  testWidgets('a line that could not be read falls back, and says so',
+      (tester) async {
+    // "We could not work out the line" must not be shown as "here is your
+    // question, cold" with nothing said. The drill still works; the sentence is
+    // there so a broken walk is noticed rather than lived with.
+    final api = _FakeApi();
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    expect(api.lineCalls, 1);
+    expect(api.loads, 1);
+    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.textContaining('bez ponavljanja'), findsOneWidget);
+  });
+
+  testWidgets('an empty branch says it is the branch that is empty',
+      (tester) async {
+    // The block. "Nothing here" about one branch and "nothing at all" are
+    // different sentences, and the student asked about a branch.
+    final api = _FakeApi()
+      ..line = const DrillLine(
+        reason: 'nothing-built',
+        stats: DrillStats(positions: 0, due: 0, known: 0, fresh: 0),
+      );
+    await pump(tester, api,
+        rootFen: fenAfter(['e4']),
+        rootPath: const ['e4'],
+        fromFen: fenAfter(['e4', 'c5', 'd4']));
+
+    expect(api.lastFromFen, fenAfter(['e4', 'c5', 'd4']));
+    expect(find.text('U ovoj grani nema šta da se vežba.'), findsOneWidget);
+  });
+
+  testWidgets('the rehearsal fits a 360 dp phone', (tester) async {
+    // A release build paints no overflow stripes; in a test build it throws.
+    final api = _FakeApi()..line = morraLine();
+    await pump(tester, api,
+        size: const Size(360, 640),
+        rootFen: fenAfter(['e4']),
+        rootPath: const ['e4']);
+    expect(tester.takeException(), isNull);
+
+    await play(tester, 'c7', 'c5');
     expect(tester.takeException(), isNull);
   });
 }

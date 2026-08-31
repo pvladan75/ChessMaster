@@ -4,6 +4,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_judge_panel_widget.dart';
+import 'package:chess_app/features/repertoire/line_text.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/app_settings_service.dart';
@@ -48,6 +49,7 @@ class RepertoireBuildScreen extends StatefulWidget {
     this.api,
     this.judge,
     this.analyse,
+    this.onDrillHere,
   });
 
   final String name;
@@ -73,6 +75,14 @@ class RepertoireBuildScreen extends StatefulWidget {
   /// Injected in tests, which have neither a server nor a Lichess token.
   final RepertoireApiService? api;
   final OpeningJudgeService? judge;
+
+  /// Called with the position in front of the student, so the screen above can
+  /// open the drill over that branch alone.
+  ///
+  /// A callback rather than a push from here, the same way the drill screen
+  /// hands a position back to be built: the two screens stay strangers, and
+  /// whoever opened them decides what happens between them.
+  final void Function(String fen)? onDrillHere;
 
   /// Runs the engine on one position and answers with the lines. The local
   /// Stockfish by default — injected in tests, which have no engine binary and
@@ -308,32 +318,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       // the one being looked at.
       if (_answers != null && _answersSan != null) _answersSan!,
     ];
-    if (moves.isEmpty) return '';
-
-    // Where the numbering starts. With a root path the game began at move one;
-    // without one, the root FEN is the only thing that knows.
-    var number = 1;
-    var whiteToMove = true;
-    if (widget.rootPath.isEmpty) {
-      final parts = widget.rootFen.trim().split(RegExp(r'\s+'));
-      whiteToMove = parts.length < 2 || parts[1] == 'w';
-      number = parts.length >= 6 ? (int.tryParse(parts[5]) ?? 1) : 1;
-    }
-
-    final out = StringBuffer();
-    for (final san in moves) {
-      if (whiteToMove) {
-        out.write('$number.$san ');
-      } else {
-        // A line that opens on Black's move says so, once: `4...Nc6`, not a
-        // move hanging off nothing.
-        if (out.isEmpty) out.write('$number...');
-        out.write('$san ');
-        number += 1;
-      }
-      whiteToMove = !whiteToMove;
-    }
-    return out.toString().trimRight();
+    // With a root path the game began at move one; without one, the root FEN is
+    // the only thing that knows where the counting starts.
+    return numberedLine(
+      moves,
+      from: widget.rootPath.isEmpty ? widget.rootFen : null,
+    );
   }
 
   Future<void> _loadKept() async {
@@ -1428,6 +1418,16 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               onPressed: _busy ? null : _cutBranch,
               icon: const Icon(Icons.content_cut, size: 18),
               label: const Text('Ne spremam ovo'),
+            ),
+          // The branch in front of the student, practised on its own. This is
+          // where it belongs: the ten positions just built are what somebody
+          // sits down to drill, and from the list screen the whole repertoire
+          // is the only thing that can be asked for.
+          if (widget.onDrillHere != null && _node != null)
+            OutlinedButton.icon(
+              onPressed: _busy ? null : () => widget.onDrillHere!(_node!.fen),
+              icon: const Icon(Icons.fitness_center, size: 18),
+              label: const Text('Vežbaj ovu granu'),
             ),
         ],
         if (_lastCut != null && _answers == null && _proposalSan == null)

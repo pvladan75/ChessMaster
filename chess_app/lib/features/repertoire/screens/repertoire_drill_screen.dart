@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 // look identical.
 import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 
+import 'package:chess_app/features/repertoire/line_text.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -31,11 +32,23 @@ import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 /// is really played, and the uncovered moves are in the draw. Landing in a
 /// position nobody prepared is not a failure of the drill — it is the one thing
 /// a book cannot do, and it opens the door back into building.
+///
+/// **A line, not a photograph.** With a [rootFen] the question arrives at the
+/// end of the line that leads to it: the student plays their own moves from the
+/// start and the opponent's answers come back, until the board is standing in
+/// the position that is due. The replay begins at the deepest position they
+/// already know cold — twelve plies of rehearsal to reach one question is how a
+/// drill stops being opened — and **the rehearsed moves are not graded**,
+/// because a prefix is played many times a day on the way to whatever is due
+/// below it.
 class RepertoireDrillScreen extends StatefulWidget {
   const RepertoireDrillScreen({
     super.key,
     required this.name,
     required this.color,
+    this.rootFen,
+    this.rootPath = const [],
+    this.fromFen,
     this.minRating,
     this.api,
     this.onBuildHere,
@@ -45,6 +58,19 @@ class RepertoireDrillScreen extends StatefulWidget {
 
   /// 'w' or 'b' — the side whose decisions are being asked about.
   final String color;
+
+  /// The repertoire's starting position. Without it the drill still works, one
+  /// bare position at a time — which is what it did before lines existed, and
+  /// what it falls back to when the walk cannot be read.
+  final String? rootFen;
+
+  /// The moves that led to [rootFen], so the line reads from move one.
+  final List<String> rootPath;
+
+  /// One branch to practise, rather than the whole repertoire. The ten
+  /// positions built yesterday are what somebody sits down to drill, and the
+  /// rest of the repertoire is in the way.
+  final String? fromFen;
 
   final int? minRating;
   final RepertoireApiService? api;
@@ -71,6 +97,26 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// Set once the student has asked to be shown the answer. The next answer is
   /// then graded as recognised rather than remembered.
   RepertoireMove? _revealed;
+
+  /// The line being rehearsed, null when the drill is asking bare positions.
+  DrillLine? _line;
+
+  /// The moves left to replay, and how far through them the student is.
+  List<LineMove> _prefix = const [];
+  int _prefixAt = 0;
+
+  /// The board during the rehearsal. Null once it is over, and then the board
+  /// shows the question itself.
+  String? _rehearsalFen;
+
+  /// The moves of the rehearsal already played, for the breadcrumb.
+  final List<String> _played = [];
+
+  /// What to say about the last rehearsed move. The rehearsal is not graded, so
+  /// this is a reminder rather than a verdict.
+  String? _prefixNote;
+
+  bool get _rehearsing => _prefixAt < _prefix.length;
 
   DrillAnswer? _answer;
   String? _playedSan;
@@ -103,23 +149,169 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _replyCovered = true;
       _revealed = null;
       _lineFen = null;
+      _line = null;
+      _prefix = const [];
+      _prefixAt = 0;
+      _rehearsalFen = null;
+      _prefixNote = null;
+      _played.clear();
     });
+
+    // A line when there is a repertoire to walk, and a bare position when there
+    // is not. The fallback says so out loud rather than quietly turning into
+    // the old screen: a walk that could not be read is a fault to notice, and
+    // the drill is still worth having while somebody notices it.
+    final root = widget.rootFen;
+    if (root != null) {
+      final line = await _api.drillLine(
+        color: widget.color,
+        rootFen: root,
+        rootPath: widget.rootPath,
+        minRating: widget.minRating,
+        fromFen: widget.fromFen,
+      );
+      if (!mounted) return;
+      if (line != null) {
+        _startLine(line);
+        return;
+      }
+    }
+
     final next = await _api.nextDrill(color: widget.color);
     if (!mounted) return;
     setState(() {
       _loading = false;
       _stats = next.stats;
       _fen = next.item?.fen;
+      _prefixNote = root == null
+          ? null
+          : 'Linija nije mogla da se sastavi — pitanje ide bez ponavljanja.';
     });
     final fen = _fen;
     if (fen != null) _boardController.loadFen(fen);
+  }
+
+  /// Puts up the line: the board at its start, the question waiting at the end.
+  void _startLine(DrillLine line) {
+    final question = line.question;
+    setState(() {
+      _loading = false;
+      _line = line;
+      _stats = line.stats;
+      _fen = question?.fen;
+      _prefix = line.prefix;
+      _prefixAt = 0;
+      _rehearsalFen = line.prefix.isEmpty ? null : line.startFen;
+      _prefixNote = null;
+    });
+    final fen = _rehearsalFen ?? _fen;
+    if (fen != null) _boardController.loadFen(fen);
+  }
+
+  /// One move of the rehearsal — played, never graded.
+  ///
+  /// This is the rule the whole line drill rests on. The prefix is replayed
+  /// many times a day on the way to whatever is due below it, and grading it
+  /// would push those positions' intervals out on the strength of rehearsals
+  /// the student never had to remember cold. Only the position at the end of
+  /// the line is answered.
+  ///
+  /// A wrong move is not a failure either: the line's own move is played
+  /// instead, and named. Carrying on from a move that is not in the line would
+  /// be rehearsing a different line.
+  void _rehearse(String from, String to, String promotion) {
+    final at = _rehearsalFen;
+    if (at == null || _busy || !_rehearsing) return;
+
+    final want = _prefix[_prefixAt];
+    final board = chess.Chess.fromFEN(at);
+    final isPromotion = _isPromotion(board, from, to);
+    final piece = promotion.isEmpty ? 'q' : promotion;
+    final ok = board.move({
+      'from': from,
+      'to': to,
+      if (isPromotion) 'promotion': piece,
+    });
+    if (ok == false) {
+      _boardController.loadFen(at);
+      return;
+    }
+    final uci = isPromotion ? '$from$to$piece' : '$from$to';
+    final right = uci == want.uci;
+
+    // The line's move goes on the board whatever was played, so the board is
+    // never one move away from the line it is rehearsing.
+    final walker = chess.Chess.fromFEN(at);
+    walker.move({
+      'from': want.uci.substring(0, 2),
+      'to': want.uci.substring(2, 4),
+      if (want.uci.length > 4) 'promotion': want.uci.substring(4, 5),
+    });
+    var cursor = _prefixAt + 1;
+    final played = <String>[want.san];
+
+    // And then the opponent's answers, until it is the student's move again.
+    while (cursor < _prefix.length && !_prefix[cursor].mine) {
+      final reply = _prefix[cursor];
+      walker.move({
+        'from': reply.uci.substring(0, 2),
+        'to': reply.uci.substring(2, 4),
+        if (reply.uci.length > 4) 'promotion': reply.uci.substring(4, 5),
+      });
+      played.add(reply.san);
+      cursor += 1;
+    }
+
+    setState(() {
+      _played.addAll(played);
+      _prefixAt = cursor;
+      _prefixNote = right
+          ? null
+          : 'U ovoj liniji ide ${want.san}. Ponavljanje se ne ocenjuje.';
+      _rehearsalFen = cursor < _prefix.length ? walker.fen : null;
+    });
+    _boardController.loadFen(_rehearsalFen ?? _fen ?? walker.fen);
+  }
+
+  /// Straight to the question, for somebody who does not want the rehearsal.
+  void _skipRehearsal() {
+    if (!_rehearsing) return;
+    setState(() {
+      _played.addAll(_prefix.skip(_prefixAt).map((m) => m.san));
+      _prefixAt = _prefix.length;
+      _rehearsalFen = null;
+      _prefixNote = null;
+    });
+    final fen = _fen;
+    if (fen != null) _boardController.loadFen(fen);
+  }
+
+  /// The line up to whatever is on the board, numbered the way a book does it.
+  String _lineText() {
+    final line = _line;
+    if (line == null) return '';
+    final moves = [
+      ...line.rootPath,
+      ...line.startPath,
+      ..._played,
+    ];
+    return numberedLine(
+      moves,
+      from: line.rootPath.isEmpty ? widget.rootFen : null,
+    );
   }
 
   /// Continues the line from a position the drill walked into, rather than
   /// jumping somewhere else. Landing in an unprepared position is the point of
   /// the uncovered replies, so it stays on the board and offers the way out.
   void _continueAt(String fen) {
+    // The two moves that got here go into the line, or the breadcrumb would
+    // name a position two moves behind the board.
+    final mine = _playedSan;
+    final reply = _replySan;
     setState(() {
+      if (mine != null) _played.add(mine);
+      if (reply != null) _played.add(reply);
       _fen = fen;
       _answer = null;
       _playedSan = null;
@@ -132,6 +324,10 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   }
 
   Future<void> _onMove(String from, String to, String promotion) async {
+    if (_rehearsing) {
+      _rehearse(from, to, promotion);
+      return;
+    }
     final fen = _fen;
     if (fen == null || _busy || _answer != null) return;
 
@@ -279,6 +475,9 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                     controller: _boardController,
                     boardOrientation: _orientation,
                     boardSize: inner,
+                    // Locked once the answer is in, and open during the
+                    // rehearsal — the rehearsal is played by the student, which
+                    // is the whole difference between it and a cutscene.
                     isAllowedToMove: !_busy && _answer == null,
                     isDrawingMode: false,
                     drawingStartSquare: null,
@@ -300,12 +499,55 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     );
   }
 
+  /// Where the board came from, when there is a line behind it.
+  Widget _buildLine(BuildContext context) {
+    final line = _lineText();
+    if (line.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
+      child: Text(line,
+          style: AppText.caption.copyWith(color: context.colors.accent)),
+    );
+  }
+
   Widget _buildPrompt(BuildContext context) {
     final graded = _answer;
+    if (_rehearsing) {
+      final line = _line!;
+      // Which of the student's moves this is, and how many there are. Counted
+      // over their own moves only: the opponent's answers are not asked for.
+      final mine = _prefix.where((m) => m.mine).length;
+      final done = _prefix.take(_prefixAt).where((m) => m.mine).length;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildLine(context),
+          Text('Ponovite liniju', style: AppText.bodyBold),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            line.startKnown
+                // Earned, and said so: the rehearsal is short because the
+                // opening moves are already known cold.
+                ? 'Počinjemo odatle dokle znate napamet — potez ${done + 1} od '
+                    '$mine do pitanja.'
+                : 'Od početka repertoara — potez ${done + 1} od $mine do '
+                    'pitanja.',
+            style: AppText.caption.copyWith(color: context.colors.textMuted),
+          ),
+          if (_prefixNote != null) ...[
+            const SizedBox(height: AppSpacing.xxs),
+            Text(_prefixNote!,
+                style: AppText.caption.copyWith(color: context.colors.warning)),
+          ],
+        ],
+      );
+    }
+
     if (graded == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildLine(context),
           Text(_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?',
               style: AppText.bodyBold),
           const SizedBox(height: AppSpacing.xxs),
@@ -319,6 +561,11 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                   : context.colors.warning,
             ),
           ),
+          if (_prefixNote != null) ...[
+            const SizedBox(height: AppSpacing.xxs),
+            Text(_prefixNote!,
+                style: AppText.caption.copyWith(color: context.colors.warning)),
+          ],
         ],
       );
     }
@@ -420,7 +667,20 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       runSpacing: 8,
       alignment: WrapAlignment.center,
       children: [
-        if (graded == null) ...[
+        if (_rehearsing) ...[
+          // For somebody who wants the question and not the walk to it. The
+          // rehearsal is worth having and must not be a toll gate.
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _skipRehearsal,
+            icon: const Icon(Icons.fast_forward, size: 18),
+            label: const Text('Preskoči ponavljanje'),
+          ),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _loadNext,
+            icon: const Icon(Icons.skip_next, size: 18),
+            label: const Text('Druga linija'),
+          ),
+        ] else if (graded == null) ...[
           OutlinedButton.icon(
             onPressed: _busy || _revealed != null ? null : _reveal,
             icon: const Icon(Icons.visibility_outlined, size: 18),
@@ -455,8 +715,11 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   }
 
   Widget _buildEmpty(BuildContext context) {
-    // Two different empty states, and only one of them is good news.
+    // Two different empty states, and only one of them is good news. In a
+    // branch the same two questions are asked about that branch alone, which is
+    // why the counts come from the walk rather than from the whole colour.
     final nothingBuilt = _stats.positions == 0;
+    final inBranch = widget.fromFen != null;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -468,7 +731,9 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             const SizedBox(height: AppSpacing.md),
             Text(
               nothingBuilt
-                  ? 'Još nema šta da se vežba.'
+                  ? (inBranch
+                      ? 'U ovoj grani nema šta da se vežba.'
+                      : 'Još nema šta da se vežba.')
                   : 'Ništa nije na redu.',
               style: AppText.bodyBold,
               textAlign: TextAlign.center,
@@ -476,8 +741,11 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             const SizedBox(height: 6),
             Text(
               nothingBuilt
-                  ? 'Prvo izgradite nekoliko pozicija — vežba pita ono što ste '
-                      'vi izabrali.'
+                  ? (inBranch
+                      ? 'Ova grana je odsečena ili u njoj još nema vaših '
+                          'poteza.'
+                      : 'Prvo izgradite nekoliko pozicija — vežba pita ono što '
+                          'ste vi izabrali.')
                   : 'Sve što ste izgradili vraća se na red kad dođe vreme. '
                       'Do sada znate ${_stats.known} od ${_stats.positions} '
                       'pozicija.',

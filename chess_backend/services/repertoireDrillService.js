@@ -39,17 +39,34 @@ const QUALITY = {
 
 const OUTCOMES = ['primary', 'alternate', 'unknown'];
 
+/// How many successful repetitions make a position "known".
+///
+/// One number, used twice and for the same reason: it is what the empty screen
+/// counts as known, and it is where the line drill starts its replay. A line
+/// rehearsed from move one every time is a line nobody rehearses twice, so the
+/// replay begins at the deepest position that has got this far.
+const KNOWN_REPETITIONS = 3;
+
 /// The next position to be asked about, or null when nothing is waiting.
 ///
 /// Due reviews first, oldest first, so a backlog is worked off in the order it
 /// built up. Then positions never drilled at all — and among those, the ones
 /// where the student's first instinct was wrong, because those are what the
 /// attempts table was written for.
-async function nextItem(pool, userId, { color, now = new Date() } = {}) {
+///
+/// `only` narrows the choice to a set of positions and is how one branch gets
+/// drilled on its own: the ordering rule stays here, in one place, rather than
+/// being written a second time by whoever wants a subset of it. Null means the
+/// whole colour, which is what it has always meant.
+async function nextItem(pool, userId, { color, now = new Date(), only = null } = {}) {
+  const within = Array.isArray(only) ? only : null;
+  if (within !== null && within.length === 0) return null;
+
   const due = await pool.query(
     `SELECT r.fen_key, r.due_at, r.repetitions, r.interval_days
        FROM repertoire_reviews r
       WHERE r.user_id = $1 AND r.color = $2 AND r.due_at <= $3
+        AND ($4::text[] IS NULL OR r.fen_key = ANY($4))
         AND EXISTS (
           SELECT 1 FROM repertoire_moves m
            WHERE m.user_id = r.user_id AND m.color = r.color
@@ -57,7 +74,7 @@ async function nextItem(pool, userId, { color, now = new Date() } = {}) {
         )
       ORDER BY r.due_at ASC
       LIMIT 1`,
-    [userId, color, now],
+    [userId, color, now, within],
   );
   if (due.rowCount > 0) {
     return itemFrom(pool, userId, color, due.rows[0].fen_key, {
@@ -78,6 +95,7 @@ async function nextItem(pool, userId, { color, now = new Date() } = {}) {
           GROUP BY fen_key
        ) a ON a.fen_key = m.fen_key
       WHERE m.user_id = $1 AND m.color = $2 AND m.role = 'primary'
+        AND ($3::text[] IS NULL OR m.fen_key = ANY($3))
         AND NOT EXISTS (
           SELECT 1 FROM repertoire_reviews r
            WHERE r.user_id = m.user_id AND r.color = m.color
@@ -85,7 +103,7 @@ async function nextItem(pool, userId, { color, now = new Date() } = {}) {
         )
       ORDER BY mistakes DESC, m.added_at ASC
       LIMIT 1`,
-    [userId, color],
+    [userId, color, within],
   );
   if (fresh.rowCount === 0) return null;
 
@@ -303,18 +321,31 @@ async function rememberReplies(pool, { fen, minRating = 0, moves }) {
 }
 
 /// How much is waiting, for the badge and for "ništa nije na redu".
-async function drillStats(pool, userId, { color, now = new Date() } = {}) {
+///
+/// `only` narrows it to a branch, the same way `nextItem` narrows its choice —
+/// so "4 od 11 u ovoj grani" is counted by the same query that counts the whole
+/// colour, rather than by a second one written beside it.
+async function drillStats(pool, userId, { color, now = new Date(), only = null } = {}) {
+  const within = Array.isArray(only) ? only : null;
+  if (within !== null && within.length === 0) {
+    return { positions: 0, due: 0, known: 0, fresh: 0 };
+  }
   const result = await pool.query(
     `SELECT
        (SELECT COUNT(*)::int FROM repertoire_moves
-         WHERE user_id = $1 AND color = $2 AND role = 'primary') AS positions,
+         WHERE user_id = $1 AND color = $2 AND role = 'primary'
+           AND ($4::text[] IS NULL OR fen_key = ANY($4))) AS positions,
        (SELECT COUNT(*)::int FROM repertoire_reviews
-         WHERE user_id = $1 AND color = $2) AS seen,
+         WHERE user_id = $1 AND color = $2
+           AND ($4::text[] IS NULL OR fen_key = ANY($4))) AS seen,
        (SELECT COUNT(*)::int FROM repertoire_reviews
-         WHERE user_id = $1 AND color = $2 AND due_at <= $3) AS due,
+         WHERE user_id = $1 AND color = $2 AND due_at <= $3
+           AND ($4::text[] IS NULL OR fen_key = ANY($4))) AS due,
        (SELECT COUNT(*)::int FROM repertoire_reviews
-         WHERE user_id = $1 AND color = $2 AND repetitions >= 3) AS known`,
-    [userId, color, now],
+         WHERE user_id = $1 AND color = $2
+           AND ($4::text[] IS NULL OR fen_key = ANY($4))
+           AND repetitions >= ${KNOWN_REPETITIONS}) AS known`,
+    [userId, color, now, within],
   );
   const row = result.rows[0] ?? {};
   const positions = row.positions ?? 0;
@@ -338,4 +369,5 @@ module.exports = {
   drillStats,
   QUALITY,
   OUTCOMES,
+  KNOWN_REPETITIONS,
 };

@@ -226,6 +226,7 @@ class DrillItem {
     required this.fresh,
     required this.repetitions,
     required this.moves,
+    this.path = const [],
   });
 
   /// The full position, six fields — the repertoire keeps four, and the server
@@ -240,12 +241,119 @@ class DrillItem {
   /// not travel with the question.
   final int moves;
 
+  /// The moves from the repertoire's root to this position, in SAN. Empty for
+  /// a question asked on its own, where nothing knows how the board arose —
+  /// which is the thing the line drill exists to fix.
+  final List<String> path;
+
   factory DrillItem.fromJson(Map<String, dynamic> json) => DrillItem(
         fen: json['fen'] as String? ?? '',
         fresh: json['fresh'] as bool? ?? true,
         repetitions: (json['repetitions'] as num?)?.toInt() ?? 0,
         moves: (json['moves'] as num?)?.toInt() ?? 0,
+        path: sanPath(json['path']),
       );
+}
+
+/// One move of a line being rehearsed.
+class LineMove {
+  const LineMove({required this.uci, required this.san, required this.mine});
+
+  final String uci;
+  final String san;
+
+  /// Whose move it is. The student is asked for their own and the opponent's
+  /// are played back at them.
+  final bool mine;
+
+  factory LineMove.fromJson(Map<String, dynamic> json) => LineMove(
+        uci: json['uci'] as String? ?? '',
+        san: json['san'] as String? ?? '',
+        mine: json['mine'] as bool? ?? false,
+      );
+}
+
+/// A line to play through, and the question waiting at the end of it.
+///
+/// The drill used to put up a bare board four moves into something with no way
+/// to tell how it arose. A repertoire is played forwards, and this is the
+/// difference between remembering a line and recognising a photograph of it.
+///
+/// **The rehearsed moves are not graded.** A prefix is played many times a day
+/// on the way to whatever is due below it; grading it would push those
+/// positions' intervals out on rehearsals nobody had to remember cold. Only
+/// [question] is answered, and only it is scheduled.
+class DrillLine {
+  const DrillLine({
+    this.rootPath = const [],
+    this.startFen,
+    this.startPath = const [],
+    this.startKnown = false,
+    this.prefix = const [],
+    this.question,
+    this.reason,
+    this.stats = const DrillStats(positions: 0, due: 0, known: 0, fresh: 0),
+    this.truncated = false,
+  });
+
+  /// The moves that led to the repertoire's own root, so the line reads from
+  /// move one instead of beginning mid-air.
+  final List<String> rootPath;
+
+  /// Where the rehearsal begins: the deepest position on the way to the
+  /// question that the student already knows cold. Null when nothing is due.
+  final String? startFen;
+  final List<String> startPath;
+
+  /// True when the replay was shortened because the student has earned it,
+  /// false when it simply begins where the repertoire does. Two different
+  /// sentences, and only one of them is something they did.
+  final bool startKnown;
+
+  /// The moves between the start and the question, in order.
+  final List<LineMove> prefix;
+
+  /// The position to be answered. Null when nothing is waiting — and [reason]
+  /// says which kind of nothing.
+  final DrillItem? question;
+
+  /// `nothing-due` or `nothing-built`. Only one of them is good news.
+  final String? reason;
+
+  final DrillStats stats;
+
+  /// True when the walk hit its ceiling, said out loud rather than quietly
+  /// handing back a shorter line.
+  final bool truncated;
+
+  bool get hasQuestion => question != null;
+
+  factory DrillLine.fromJson(Map<String, dynamic> json) {
+    final root = json['root'] is Map
+        ? Map<String, dynamic>.from(json['root'] as Map)
+        : const <String, dynamic>{};
+    final start = json['start'] is Map
+        ? Map<String, dynamic>.from(json['start'] as Map)
+        : null;
+    final question = json['question'] is Map
+        ? Map<String, dynamic>.from(json['question'] as Map)
+        : null;
+    return DrillLine(
+      rootPath: sanPath(root['path']),
+      startFen: start?['fen'] as String?,
+      startPath: sanPath(start?['path']),
+      startKnown: start?['known'] as bool? ?? false,
+      prefix: ((json['prefix'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => LineMove.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      question: question == null ? null : DrillItem.fromJson(question),
+      reason: json['reason'] as String?,
+      stats: DrillStats.fromJson(
+          Map<String, dynamic>.from((json['stats'] as Map?) ?? const {})),
+      truncated: json['truncated'] as bool? ?? false,
+    );
+  }
 }
 
 /// How much is waiting, and whether there is anything at all.
@@ -540,6 +648,38 @@ class RepertoireApiService {
       stats: DrillStats.fromJson(
           Map<String, dynamic>.from((data['stats'] as Map?) ?? const {})),
     );
+  }
+
+  /// A line to rehearse and the question at the end of it.
+  ///
+  /// Costs nothing at Lichess, like everything that reads what was built.
+  /// [fromFen] narrows it to one branch — the ten positions built yesterday are
+  /// what somebody sits down to practise, and the rest of the repertoire is in
+  /// the way.
+  ///
+  /// Null when the server could not be reached, which the caller must tell
+  /// apart from a line with no question in it: "we could not find out" and
+  /// "nothing is due" are different, and only one of them means rest.
+  Future<DrillLine?> drillLine({
+    required String color,
+    required String rootFen,
+    List<String> rootPath = const [],
+    int? minRating,
+    String? fromFen,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/drill/line').replace(
+      queryParameters: {
+        'color': color,
+        'rootFen': rootFen,
+        if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
+        if (minRating != null) 'minRating': '$minRating',
+        if (fromFen != null) 'fromFen': fromFen,
+      },
+    );
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    return DrillLine.fromJson(
+        Map<String, dynamic>.from(jsonDecode(res.body) as Map));
   }
 
   /// Asks to be shown the answer. Its own call, so looking is a decision the

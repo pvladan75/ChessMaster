@@ -35,6 +35,7 @@ const {
   unskipNode,
 } = require('../services/repertoireService');
 const { frontier } = require('../services/repertoireFrontier');
+const { drillLine } = require('../services/repertoireLine');
 
 /// One place where a bad request becomes a 400 and everything else becomes a
 /// 500 with a line in the log. Without it every handler grows its own copy and
@@ -212,6 +213,38 @@ router.get('/drill/next', authenticateToken, (req, res) => {
       drillStats(pool, req.user.id, { color }),
     ]).then(([item, stats]) => ({ item, stats })),
     'Sledeća pozicija nije mogla da se pročita.',
+  );
+});
+
+// GET /repertoire/drill/line?color=b&rootFen=...&rootPath=e4+c5&minRating=1600
+//     [&fromFen=...]
+//
+// A line to rehearse and the question at the end of it, instead of a bare board
+// four moves into something with no way to tell how it got there.
+//
+// The replay starts at the deepest position the student already knows cold, not
+// at move one — twelve plies of rehearsal to reach one question is how a drill
+// stops being opened. `fromFen` narrows the whole thing to one branch, which is
+// what makes it usable the day after a build session.
+//
+// The moves in `prefix` are played, never graded. Only the position at the end
+// is answered, through the same `/drill/answer` as before.
+router.get('/drill/line', authenticateToken, (req, res) => {
+  const { color, rootFen, rootPath, minRating, fromFen } = req.query;
+  answer(
+    res,
+    drillLine(pool, req.user.id, {
+      color,
+      rootFen,
+      rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
+        ? rootPath.trim().split(/\s+/)
+        : [],
+      minRating: Number(minRating) || 0,
+      fromFen: typeof fromFen === 'string' && fromFen.trim() !== ''
+        ? fromFen
+        : null,
+    }),
+    'Linija za vežbanje nije mogla da se sastavi.',
   );
 });
 

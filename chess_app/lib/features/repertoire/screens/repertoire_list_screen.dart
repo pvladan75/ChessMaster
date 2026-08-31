@@ -73,6 +73,10 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         rootPath: at == null ? item.rootPath : const [],
         api: widget.api,
         judge: widget.judge,
+        // Straight from the position on the board into practising that branch.
+        // Building and drilling are still two doors — this one is opened from
+        // inside, over the ten positions that were just made.
+        onDrillHere: (fen) => _drill(item, from: fen),
       ),
     ));
   }
@@ -81,11 +85,17 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   /// build screen: building spends the reader's Lichess allowance and drilling
   /// spends nothing, and two things that cost so differently should not look
   /// like one button with a switch on it.
-  void _drill(RepertoireSummary item) {
+  void _drill(RepertoireSummary item, {String? from}) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => RepertoireDrillScreen(
         name: item.name,
         color: item.color,
+        // The repertoire's own root and the moves that led to it, so the drill
+        // can put the question at the end of the line that reaches it instead
+        // of on a bare board four moves into something.
+        rootFen: item.rootFen,
+        rootPath: item.rootPath,
+        fromFen: from,
         api: widget.api,
         // Landing in an unprepared position is the drill working as intended,
         // so the way on is building that very position — not a dead end and

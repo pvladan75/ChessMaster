@@ -2409,3 +2409,39 @@ ove izmene, da tabela `repertoire_skips` nastane.
    ovo": mora da piše da grana **nije** odsečena i pozicija ostaje na ekranu.
 10. [ ] **Telefon, 360 dp.** Traka sada ima peto dugme. Proveriti u *release*
     build-u, gde nema žuto-crnih pruga.
+
+## 65. Vežba kao linija, blok i početak od poznatog — 31.8.2026, nije viđeno uživo
+
+Sve u „Repertoar → dugme sa tegom" nad repertoarom koji ima bar jednu liniju
+dugu tri-četiri poteza.
+
+1. [ ] **Pitanje stiže na kraju linije.** Umesto gole table mora da piše
+   „Ponovite liniju", iznad table cela linija numerisana kao u knjizi, i „potez 1
+   od N do pitanja".
+2. [ ] **Protivnik odgovara sam.** Posle vašeg poteza protivnikov odgovor se
+   odigra bez pitanja, i linija iznad table poraste za oba poteza.
+3. [ ] **Ponavljanje se ne ocenjuje.** Namerno odigrati **pogrešan** potez u
+   ponavljanju: mora da piše „U ovoj liniji ide X. Ponavljanje se ne ocenjuje.",
+   potez linije ode na tablu, i **ne sme** da se pojavi ocena („Tačno", „Nije
+   to", „Vraća se za...").
+4. [ ] **Na kraju linije je pravo pitanje.** Kad se prefiks potroši, ekran kaže
+   „Šta igrate belim/crnim?" i tek taj potez se ocenjuje.
+5. [ ] **Kreće od poznatog.** Uvežbati jednu poziciju do tri tačna ponavljanja
+   (vraća se za nekoliko minuta, pa opet), pa uzeti liniju koja ide ispod nje:
+   ponavljanje mora da počne **od te pozicije**, uz rečenicu „odatle dokle znate
+   napamet", a ne od početka repertoara.
+6. [ ] **Preskakanje radi.** Dugme „Preskoči ponavljanje" vodi pravo na pitanje,
+   a linija iznad table i dalje pokazuje ceo put.
+7. [ ] **Blok iz jednog čvora.** U izgradnji, na nekoj poziciji, pritisnuti
+   „Vežbaj ovu granu": vežba sme da pita **samo** pozicije iz te grane. Proveriti
+   da pozicija iz druge grane ne dođe na red.
+8. [ ] **Prazna grana to i kaže.** Isto dugme na poziciji ispod koje još nema
+   ničega: mora da piše „U ovoj grani nema šta da se vežba", nikako „Još nema šta
+   da se vežba".
+9. [ ] **Odsečena grana se ne ponavlja.** Odseći granu (stavka 64), pa otvoriti
+   vežbu: nijedna pozicija ispod reza ne sme da bude pitanje.
+10. [ ] **Ugašen server ne ćuti.** Ugasiti backend i otvoriti vežbu: ili prazan
+    ekran sa razlogom, ili staro pitanje uz rečenicu „bez ponavljanja" — nikako
+    ekran koji izgleda kao da je sve naučeno.
+11. [ ] **Telefon, 360 dp.** Linija iznad table može da bude duga. Proveriti u
+    *release* build-u, gde nema žuto-crnih pruga.

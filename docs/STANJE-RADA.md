@@ -2414,13 +2414,12 @@ platio, iako oni odlučuju kako izgleda ceo sledeći talas. Sada se vide, pa se
 ide na `Sledeća pozicija`. Tabla je u tom stanju zaključana: pokazuje poziciju u
 kojoj je protivnik na potezu, a potez povučen tu bi bio ocenjen kao učenikov.
 
-**Šta ovim nije urađeno**, iako je traženo u istom razgovoru: ~~redosled
-*unutar* sesije~~ i ~~orezivanje grane~~ — oba su urađena istog dana, odeljak
-ispod. Ostaje drill po bloku iz jednog čvora; „vrlo poznat" čvor kao mesto
-odakle ponavljanje kreće; i ponavljanje cele linije od početka pre nego što se
-odgovori. Za drill vredi zabeležiti da je jedna stavka sa te liste **već bila
-tu**: potez koji nije glavni, a jeste učenikov, već se ocenjuje kao tačan
-(`QUALITY.alternate = GRADES.good`).
+**Šta ovim nije urađeno** — ništa više. Svih pet stavki sa te liste je
+urađeno 31.8.2026: redosled unutar sesije i orezivanje grane u odeljku ispod,
+a preostale tri (blok iz jednog čvora, „vrlo poznat" čvor, ponavljanje linije od
+početka) u odeljku „Repertoar: vežba je linija". Jedna sa te liste je i pre
+toga **već bila tu**: potez koji nije glavni, a jeste učenikov, već se ocenjuje
+kao tačan (`QUALITY.alternate = GRADES.good`).
 
 ## Repertoar: red po dometu i odsecanje grane — 31.8.2026
 
@@ -2472,6 +2471,56 @@ odsečeno, a ne kao gotovo.
 
 Testovi: backend 723 → **730**, aplikacija 959 → **964**. Uživo nije viđeno:
 [TODO-provera.md](TODO-provera.md), stavka 64.
+
+## Repertoar: vežba je linija, a ne fotografija — 31.8.2026
+
+Poslednje tri stavke sa liste iz razgovora o granici, i ispalo je da su jedna
+stvar. Drill je do sada spuštao učenika na golu tablu četiri poteza duboko u
+nešto, bez ijednog traga kako se tu stiglo. Pitanje je bilo dobro, način dolaska
+nije: repertoar se igra unapred, a pamćenje koje vredi ide **duž** linije, ne
+prepoznaje sliku njenog kraja.
+
+`services/repertoireLine.js` i `GET /repertoire/drill/line`. **Nijedna nova
+tabela** — šetnja je ista ona nad `repertoire_moves` i `opening_replies` koju
+granica već radi, i to doslovno ista: `step`, `keptByPosition` i
+`coveredReplies` su izvezeni iz `repertoireFrontier.js` umesto da se prepišu.
+
+- **Ponavljanje cele linije pre pitanja.** Učenik odigra svoje poteze od početka
+  linije, protivnikovi odgovori mu se vrate, i tabla stigne do pozicije koja je
+  na redu.
+- **Kreće od mesta koje već zna napamet**, ne od prvog poteza. Prag je
+  `KNOWN_REPETITIONS = 3` — isti broj koji prazan ekran već zove „znate". Dvanaest
+  poluporeza ponavljanja do jednog pitanja je način da se drill prestane
+  otvarati.
+- **Blok iz jednog čvora** (`fromFen`): grana se vežba sama. Dugme je u ekranu za
+  izgradnju, na poziciji koja je pred učenikom — deset pozicija napravljenih juče
+  je ono na šta neko sedne, a sa spiska repertoara može da se traži samo ceo
+  repertoar.
+
+**Ponovljeni potezi se ne ocenjuju**, i na tome stoji ceo dizajn. Prefiks se
+igra više puta dnevno usput ka onome što je ispod njega; da se ocenjuje, SM-2 bi
+tim pozicijama gurao interval na osnovu ponavljanja koja niko nije morao da se
+seti hladno, i raspored bi tiho postao izmišljotina. Ocenjuje se **samo** pozicija
+na kraju linije, kroz isti `POST /drill/answer` kao pre.
+
+Dva pravila koja su ispala usput:
+
+- **Pogrešan potez u ponavljanju se imenuje, ne ocenjuje.** Potez linije ipak ode
+  na tablu — nastavak iz poteza koji nije u liniji bio bi vežbanje druge linije.
+- **Odgovor i dalje ne putuje sa pitanjem.** Prefiks jeste u odgovoru servera, jer
+  su to potezi koji se ponavljaju, ali potez koji se traži nije nigde u JSON-u;
+  test to tvrdi i **dokazan je mutacijom**.
+
+Redosled unutar bloka nije prepisan: `nextItem` i `drillStats` su dobili
+parametar `only`, pa jedno te isto pravilo („dospelo prvo, pa nikad vežbano sa
+najviše promašaja") važi i za celu boju i za jednu granu.
+
+Kad linija ne može da se sastavi, ekran pada na staro pitanje bez ponavljanja i
+**to kaže** — pokvarena šetnja je stvar koja se primeti, a ne stvar sa kojom se
+živi.
+
+Testovi: backend 730 → **738**, aplikacija 964 → **971**. Uživo nije viđeno:
+[TODO-provera.md](TODO-provera.md), stavka 65.
 
 ## Repertoar iz arhive — sekcija 4, napisana 30.8.2026
 

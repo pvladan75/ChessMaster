@@ -273,4 +273,16 @@ async function frontier(pool, userId, {
   };
 }
 
-module.exports = { frontier, MAX_NODES, MAX_PLY };
+// The three pieces of the walk are exported as well as the walk itself. The
+// line drill needs the same two queries and the same "advance one move" over a
+// different question, and a second copy of any of them is a second place for
+// the rule to drift — which is how three hand-written copies of one subquery
+// all managed to forget the same status check.
+module.exports = {
+  frontier,
+  step,
+  keptByPosition,
+  coveredReplies,
+  MAX_NODES,
+  MAX_PLY,
+};
