@@ -189,10 +189,34 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// like.
   StoredBook? _stored;
 
-  /// The position the stored book belongs to: after the primary move. Kept for
-  /// the same reason the engine keeps its own — a list drawn for the previous
-  /// board names moves that cannot be played on this one.
+  /// The position the stored book belongs to: after the move being looked at.
+  /// Kept for the same reason the engine keeps its own — a list drawn for the
+  /// previous board names moves that cannot be played on this one.
   String? _storedFor;
+
+  /// Set when somebody tapped one of *their own* moves in the tree: the board
+  /// is standing after it, looking at what comes back.
+  ///
+  /// The position after my move has the opponent to move, so this screen has no
+  /// question to ask about it — which is why a tap used to be bounced back to
+  /// the position the move was chosen from, and looked from the outside like a
+  /// card that does nothing. What somebody means by tapping their own move is
+  /// "show me what comes back", and that answer is already stored and free.
+  ///
+  /// [_node] stays where it was: the queue and the question belong to the
+  /// position the move was played *from*, and only the board moves on. That is
+  /// the same arrangement the wave's answers use, and it carries the same
+  /// obligation — nothing belonging to [_node] may be drawn while it holds.
+  ({String uci, String san, String fen})? _standingAfter;
+
+  /// True while the board is one move further on than [_node] — the wave's
+  /// answers, or a tap on one of the student's own moves.
+  ///
+  /// One getter rather than two conditions repeated down the build method: a
+  /// panel that forgot the second one would be a verdict, a book or an engine
+  /// line drawn for a board that is not showing, which is a bug this screen has
+  /// met more than once.
+  bool get _afterMyMove => _answers != null || _standingAfter != null;
 
   /// The opponent's moves prepared by hand in this session, past the cut.
   ///
@@ -344,29 +368,92 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   }
 
   /// The node the board is standing on, for the tree to highlight.
+  ///
+  /// The *board*, not the question: standing after a move tapped in the tree,
+  /// the card that lights up is that move. A picture that highlighted the
+  /// position behind the board would be pointing somewhere else than the pieces
+  /// are.
   AnalysisNode? get _activeNode {
     final root = _treeRoot;
-    final fen = _current;
+    final fen = _standingAfter?.fen ?? _current;
     if (root == null || fen == null) return null;
     return findNodeByFen(root, fen) ?? root;
   }
 
   /// Takes the board to a position in the tree.
   ///
-  /// A tap on a card whose position is the opponent's to move lands on its
-  /// parent instead — the position where that move was *chosen*, which is the
-  /// only one this screen can ask a question about, and what somebody tapping
-  /// their own move means by it.
+  /// Two kinds of card, and they mean two different things:
   ///
-  /// The queue is left alone. The board shows a position; the queue is where
-  /// the next question comes from, and those were never the same thing.
+  ///   * **The opponent's move.** The position after it is one this screen can
+  ///     ask a question about, so the board simply goes there.
+  ///   * **One of the student's own.** The position after it has the opponent
+  ///     to move and carries no question — but "show me what comes back" is
+  ///     plainly what tapping it means, and that answer is already stored and
+  ///     costs nothing. So the board stands after the move and the replies are
+  ///     drawn beneath it.
+  ///
+  /// The second used to be bounced to the card's parent, which on the line you
+  /// are standing in is the position you are already on: the tap looked like a
+  /// card that does nothing, and it quietly threw away the engine lines and the
+  /// verdict on the way. A jump that lands where the board already is now does
+  /// nothing at all, which is the honest version of that.
+  ///
+  /// The queue is left alone either way. The board shows a position; the queue
+  /// is where the next question comes from, and those were never the same
+  /// thing.
   Future<void> _jumpTo(AnalysisNode node) async {
-    var target = node;
-    if (!_isMine(target.fen) && target.parent != null) {
-      target = target.parent!;
+    if (_isMine(node.fen)) {
+      // Already here, and nothing standing in front of it: a jump that redraws
+      // this position would only clear what the reader just computed.
+      if (node.fen == _current && !_afterMyMove) return;
+      await _show(_Pending(fen: node.fen, path: _pathTo(node)));
+      return;
     }
-    if (!_isMine(target.fen)) return;
-    await _show(_Pending(fen: target.fen, path: _pathTo(target)));
+
+    final from = node.parent;
+    final uci = node.moveUci;
+    final san = node.moveSan;
+    // A card whose parent is not a position the student moves in is not one of
+    // their moves at all — a drawing this screen did not build. Left alone
+    // rather than guessed at.
+    if (from == null || uci == null || san == null || !_isMine(from.fen)) {
+      return;
+    }
+    await _standAfter(from, fen: node.fen, uci: uci, san: san);
+  }
+
+  /// Puts the board after one of the student's own moves.
+  ///
+  /// The question stays on the position the move was played from, because that
+  /// is what the queue is about; only the board moves on. Everything belonging
+  /// to the old board is cleared through [_show] first when the position it was
+  /// played from is not the one already showing.
+  Future<void> _standAfter(
+    AnalysisNode from, {
+    required String fen,
+    required String uci,
+    required String san,
+  }) async {
+    if (from.fen != _current) {
+      await _show(_Pending(fen: from.fen, path: _pathTo(from)));
+      if (!mounted) return;
+    }
+    setState(() {
+      // A move on the board, a verdict or an engine line belongs to the
+      // position that is no longer the one being shown.
+      _proposalUci = null;
+      _proposalSan = null;
+      _verdict = null;
+      _verdictReason = null;
+      _book = null;
+      _lines = const [];
+      _linesFen = null;
+      _showTail = false;
+      _standingAfter = (uci: uci, san: san, fen: fen);
+    });
+    _boardController.loadFen(fen);
+    // Free: it comes out of what anybody's build session already paid for.
+    await _loadStoredBook();
   }
 
   /// Whether the student is the one to move here.
@@ -431,6 +518,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _answers = null;
       _answersFen = null;
       _answersSan = null;
+      _standingAfter = null;
       _showTail = false;
       _preparedUcis.clear();
       _lines = const [];
@@ -455,10 +543,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final moves = [
       ...widget.rootPath,
       ...?_node?.path,
-      // The board is one move further on while the answers are up, and a
+      // The board is one move further on while the answers are up, or while
+      // the reader is standing after a move they tapped in the tree. A
       // breadcrumb that stopped short of it would name a position that is not
       // the one being looked at.
       if (_answers != null && _answersSan != null) _answersSan!,
+      if (_standingAfter != null) _standingAfter!.san,
     ];
     // With a root path the game began at move one; without one, the root FEN is
     // the only thing that knows where the counting starts.
@@ -485,8 +575,10 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// they never asked for — one token serves every child using this app.
   Future<void> _loadStoredBook() async {
     final fen = _current;
-    final primary = _kept.isEmpty ? null : _kept.first;
-    if (fen == null || primary == null) {
+    // The move being looked at: the one that was tapped in the tree, or the
+    // main move here when nobody tapped anything.
+    final looking = _standingAfter ?? _mainMoveHere;
+    if (fen == null || looking == null) {
       if (!mounted) return;
       setState(() {
         _stored = null;
@@ -494,8 +586,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       });
       return;
     }
-    final after = _fenAfter(fen, primary.uci);
-    if (after == null) return;
+    final after = looking.fen;
     final book = await _api.storedBook(
       color: widget.color,
       fen: after,
@@ -508,6 +599,18 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _stored = book;
       _storedFor = after;
     });
+  }
+
+  /// The student's main move in the position on the board, and where it leads.
+  ///
+  /// Null when nothing is kept here yet, which is most of the walk.
+  ({String uci, String san, String fen})? get _mainMoveHere {
+    final fen = _current;
+    final primary = _kept.isEmpty ? null : _kept.first;
+    if (fen == null || primary == null) return null;
+    final after = _fenAfter(fen, primary.uci);
+    if (after == null) return null;
+    return (uci: primary.uci, san: primary.san, fen: after);
   }
 
   /// Opens the book for a position nobody has looked at yet. One request, and
@@ -704,6 +807,16 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   List<EngineArrow> _boardArrows() {
     // Standing after our own move, looking at what comes back.
     if (_answers != null) return _replyArrows(_answers!);
+    // The same thing from the stored book, after a move tapped in the tree.
+    if (_standingAfter != null) {
+      final book = _stored;
+      // Drawn only for the board it was asked about, like every other layer
+      // here: arrows from the previous position point at pieces that moved.
+      if (book == null || _storedFor != _standingAfter!.fen) return const [];
+      return _shareArrows([
+        for (final reply in book.replies) (uci: reply.uci, share: reply.share),
+      ]);
+    }
     // The engine, if it was asked about this position and answered.
     final engine = _engineArrows();
     if (engine.isNotEmpty) return engine;
@@ -730,15 +843,23 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// not this student, and putting it on an arrow invites picking the biggest
   /// number, which is the wrong lesson. It is still in the panel below, where
   /// there is room to say what it means.
-  List<EngineArrow> _replyArrows(OpponentReplies answers) {
+  List<EngineArrow> _replyArrows(OpponentReplies answers) => _shareArrows([
+        for (final reply in answers.replies)
+          (uci: reply.uci, share: reply.share),
+      ]);
+
+  /// Moves and how often they are played, as arrows. One drawing for the wave's
+  /// answers and for the stored book, because they are the same picture of the
+  /// same thing and two copies would drift.
+  List<EngineArrow> _shareArrows(List<({String uci, double share})> moves) {
     final arrows = <EngineArrow>[];
     var rank = 1;
-    for (final reply in answers.replies) {
-      if (reply.uci.length < 4) continue;
+    for (final move in moves) {
+      if (move.uci.length < 4) continue;
       arrows.add(EngineArrow(
-        from: reply.uci.substring(0, 2),
-        to: reply.uci.substring(2, 4),
-        evalText: _shareText(reply.share),
+        from: move.uci.substring(0, 2),
+        to: move.uci.substring(2, 4),
+        evalText: _shareText(move.share),
         rank: rank,
       ));
       rank += 1;
@@ -1669,7 +1790,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                 // showing a position it is the opponent's turn in, and a
                 // move dragged there would be judged as the student's own.
                 isAllowedToMove:
-                    !_busy && _proposalUci == null && _answers == null,
+                    !_busy && _proposalUci == null && !_afterMyMove,
                 isDrawingMode: false,
                 drawingStartSquare: null,
                 arrows: const [],
@@ -1699,23 +1820,26 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           // board, the verdict, the kept moves, the engine and the book all
           // belong to a position that is no longer the one being shown.
           if (_answers != null) _buildAnswers(context, _answers!),
-          if (_answers == null && _proposalSan != null) _buildVerdict(context),
-          if (_answers == null && _kept.isNotEmpty) _buildKept(context),
+          if (!_afterMyMove && _proposalSan != null) _buildVerdict(context),
+          if (!_afterMyMove && _kept.isNotEmpty) _buildKept(context),
           // One thing at a time: while the wave's answers are up they are the
           // same list, drawn for the board that is showing.
+          // While the wave's answers are up they are the same list, drawn for
+          // the board that is showing. Standing after a tapped move, this
+          // panel *is* the answer to the tap.
           if (_answers == null) _buildStoredReplies(context),
           // Open once the engine has been asked about *this* position —
           // including when it came back with nothing, because that is
           // exactly when the reader wants the depth dial and another go —
           // and whenever there is a stored evaluation to show, which is the
           // whole point of storing one.
-          if (_answers == null &&
+          if (!_afterMyMove &&
               (_thinking ||
                   _evaluating ||
                   _linesFen == _current ||
                   _noteHere != null))
             _buildEngine(context),
-          if (_answers == null && _book != null) _buildBook(context),
+          if (!_afterMyMove && _book != null) _buildBook(context),
           if (_note != null) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(_note!,
@@ -1757,7 +1881,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         Text(
           _answers != null
               ? 'Posle $_answersSan — ovo igra protivnik'
-              : (_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?'),
+              : _standingAfter != null
+                  ? 'Posle ${_standingAfter!.san} — šta igra protivnik'
+                  : (_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?'),
           style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
         ),
         const SizedBox(height: AppSpacing.xxs),
@@ -1765,7 +1891,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           left == 0 ? 'Poslednja pozicija u ovom talasu.' : 'Još $left u redu.',
           style: AppText.caption.copyWith(color: context.colors.textMuted),
         ),
-        if (_answers == null && _node?.kind == 'unopened') ...[
+        if (!_afterMyMove && _node?.kind == 'unopened') ...[
           const SizedBox(height: AppSpacing.xxs),
           Text(
             'Ovde ste već izabrali potez — ostalo je samo da uzmete odgovore.',
@@ -1916,8 +2042,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   Widget _buildStoredReplies(BuildContext context) {
     final book = _stored;
     final after = _storedFor;
-    final primary = _kept.isEmpty ? null : _kept.first;
-    if (book == null || after == null || primary == null) {
+    // The move the panel is about: the one tapped in the tree, or the main
+    // move here. Never a mixture — the rows below carry that move's name into
+    // the path they build, and naming the wrong one would file a position
+    // under a line it is not on.
+    final looking = _standingAfter ?? _mainMoveHere;
+    if (book == null || after == null || looking == null) {
       return const SizedBox.shrink();
     }
 
@@ -1937,7 +2067,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               Icon(Icons.alt_route, size: 16, color: context.colors.accent),
               const SizedBox(width: 6),
               Expanded(
-                child: Text('Posle ${primary.san} — šta igra protivnik',
+                child: Text('Posle ${looking.san} — šta igra protivnik',
                     style: AppText.bodyBold
                         .copyWith(color: context.colors.accent)),
               ),
@@ -1961,7 +2091,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             )
           else
             for (final reply in book.replies)
-              _storedRow(context, reply, after: after, mine: primary.san),
+              _storedRow(context, reply, after: after, mine: looking.san),
         ],
       ),
     );
@@ -2320,6 +2450,21 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             icon: const Icon(Icons.arrow_forward, size: 18),
             label: const Text('Sledeća pozicija'),
           ),
+        ] else if (_standingAfter != null) ...[
+          // Back to the position the move was played from — the one that
+          // carries the question, and the only one this screen can be asked
+          // about. Without it the only way out of a tapped move is another tap
+          // in the tree, which is a corner rather than a state.
+          FilledButton.icon(
+            onPressed: _busy ? null : () => _show(_node),
+            icon: const Icon(Icons.arrow_back, size: 18),
+            label: Text('Nazad na ${_standingAfter!.san}'),
+          ),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _advance,
+            icon: const Icon(Icons.skip_next, size: 18),
+            label: const Text('Sledeća pozicija'),
+          ),
         ] else if (_proposalSan != null) ...[
           FilledButton.icon(
             onPressed: _busy ? null : _keep,
@@ -2388,7 +2533,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               label: const Text('Vežbaj ovu granu'),
             ),
         ],
-        if (_lastCut != null && _answers == null && _proposalSan == null)
+        if (_lastCut != null && !_afterMyMove && _proposalSan == null)
           TextButton.icon(
             onPressed: _busy ? null : _restoreBranch,
             icon: const Icon(Icons.undo, size: 18),

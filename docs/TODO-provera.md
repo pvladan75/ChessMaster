@@ -2580,8 +2580,10 @@ Backend mora biti pokrenut jednom **posle** ove izmene, da nastane tabela
    (★, procenat, ?, …, ✂). Dodir na stavku vodi tamo.
 4. [ ] **Dodir na protivnikov potez vodi tablu na tu poziciju**, i linija iznad
    table se produži.
-5. [ ] **Dodir na svoj potez vodi na poziciju pre njega** — tamo gde je taj
-   potez izabran — a ne u poziciju u kojoj je protivnik na potezu.
+5. [ ] **Dodir na svoj potez stavlja tablu posle njega**, a ispod stoji
+   „Posle X — šta igra protivnik" iz sačuvane knjige. Brojač „upita:" se ne sme
+   pomeriti. Dugme „Nazad na X" vraća pitanje na poziciju iz koje je potez
+   odigran.
 6. [ ] **Red nije poremećen.** Posle skakanja po stablu, „Preskoči" i „Dalje"
    i dalje rade, i „Još N u redu" se nije promenio zbog samog skakanja.
 7. [ ] **Crtež prati tablu.** Posle „Uzmi" i „Dalje", stablo se osveži i nova
@@ -2594,6 +2596,8 @@ Backend mora biti pokrenut jednom **posle** ove izmene, da nastane tabela
 10. [ ] **Nema više zasebnog ekrana za stablo.** U spisku repertoara u ⋮ meniju
     nema stavke „Stablo poteza", i u zaglavlju „Pokrivenost" nema ikonice
     stabla — jer je stablo tamo gde se gradi.
+11. [ ] **Dodir na poziciju na kojoj tabla već stoji ne briše ništa.** Pitati
+    motor, sačekati linije, pa dodirnuti tu istu karticu: linije ostaju.
 
 ## 71. Nacrt, potvrda i rejting traka — 31.8.2026, nije viđeno uživo
 

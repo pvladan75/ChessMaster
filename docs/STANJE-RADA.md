@@ -2694,6 +2694,36 @@ izmena nad istim ekranom, nijedna nije pokrenuta.
 Backend treba pokrenuti jednom zbog `ALTER TABLE repertoire_moves ADD COLUMN
 source` i zbog nove tabele `repertoire_notes`.
 
+## Dodir na svoj potez u stablu — 31.8.2026
+
+Vlasnik je pitao ima li logike iza toga što u stablu ne može da klikne na svoje
+poteze. Imala je, i bila je preuska.
+
+Kartica nosi poziciju **posle** poteza. Posle protivnikovog poteza na potezu sam
+ja, pa tabla prosto ode tamo. Posle **mog** poteza na potezu je protivnik, a to
+je pozicija o kojoj ovaj ekran nema šta da pita — pa se dodir vraćao na
+roditelja, poziciju iz koje je potez izabran. U liniji u kojoj stojite to je
+pozicija na kojoj **već jeste**: dodir je izgledao kao kartica koja ne radi
+ništa, a usput je kroz `_show` brisao linije motora i ocenu sudije.
+
+Sada dodir na svoj potez **postavi tablu posle njega** i ispod nacrta ono što
+protivnik odatle igra — iz sačuvane knjige, dakle bez ijednog Lichess upita.
+To je ono što neko i misli kad dodirne svoj potez. Pitanje ostaje na poziciji iz
+koje je potez odigran (`_node` se ne pomera), tačno kao u stanju posle „Dalje";
+`_afterMyMove` je jedan uslov umesto dva ponovljena kroz ceo `build`, jer panel
+koji zaboravi drugi je ocena ili knjiga nacrtana za tablu koja se ne vidi.
+
+Izlaz je dugme **„Nazad na X"**. Bez njega je jedini izlaz iz dodirnutog poteza
+još jedan dodir u stablu, što je ćošak a ne stanje.
+
+I zaštita: **skok na poziciju koja je već na tabli sada ne radi ništa.**
+Ponovno prikazivanje pozicije briše sve što joj je pripadalo, pa je dodir koji
+sleti tamo gde tabla već stoji ranije bacao linije motora koje je čitalac upravo
+sačekao. Test je dokazan mutacijom — bez te jedne linije pada.
+
+Testovi: aplikacija 1006 → **1008**. Uživo nije viđeno: stavka 70 u
+[TODO-provera.md](TODO-provera.md).
+
 ## Ocena motora na čvoru — korak 6 iz plana, 31.8.2026
 
 `repertoire_notes`, `PUT /repertoire/note`, `GET /repertoire/notes` i

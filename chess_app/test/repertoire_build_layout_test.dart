@@ -10,6 +10,7 @@ import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
+import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 /// 1.e4 e6 2.d4 d5 3.e5 — the French Advance, Black to move, and the root of
@@ -27,6 +28,28 @@ class _FakeApi extends RepertoireApiService {
   _FakeApi() : super(client: MockClient((_) async => http.Response('{}', 500)));
 
   int treeCalls = 0;
+
+  /// Which positions the stored book was read for. A read is free — it comes
+  /// out of what somebody's session already paid for — but *which* position it
+  /// was asked about is the whole question when the board stands after a move.
+  final List<String> bookReads = [];
+
+  @override
+  Future<StoredBook?> storedBook({
+    required String color,
+    required String fen,
+    int? minRating,
+  }) async {
+    bookReads.add(fen);
+    return const StoredBook(
+      fen: afterC5,
+      opened: true,
+      replies: [
+        StoredReply(
+            uci: 'c2c3', san: 'c3', games: 640, share: 0.64, covered: true),
+      ],
+    );
+  }
 
   @override
   Future<RepertoireFrontier?> frontier({
@@ -111,7 +134,12 @@ void main() {
 
   late _FakeApi api;
 
-  Future<void> pump(WidgetTester tester, Size size) async {
+  Future<void> pump(
+    WidgetTester tester,
+    Size size, {
+    Future<List<AnalysisLine>> Function(String fen, int depth, int multiPV)?
+        analyse,
+  }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -125,7 +153,7 @@ void main() {
         rootPath: const ['e4', 'e6', 'd4', 'd5', 'e5'],
         api: api,
         judge: _SilentJudge(),
-        analyse: (fen, depth, multiPV) async => const [],
+        analyse: analyse ?? (fen, depth, multiPV) async => const [],
       ),
     ));
     await tester.pumpAndSettle();
@@ -199,17 +227,79 @@ void main() {
     expect(board.turn, chess.Color.BLACK);
   });
 
-  testWidgets('tapping your own move goes to where you chose it',
+  testWidgets('tapping your own move stands the board after it',
       (tester) async {
-    // A card for the student's own move lands on a position the opponent is to
-    // move in, which this screen cannot ask a question about. The useful jump
-    // is the position *before* it — where that decision was made.
+    // The position after my own move has the opponent to move, so this screen
+    // has no question to ask about it. It used to bounce the tap back to the
+    // position the move was chosen from — which, on the line you are standing
+    // in, is where you already are: the card looked dead. What tapping your own
+    // move means is "show me what comes back", and that list is already stored.
     await pump(tester, const Size(1400, 900));
+    api.bookReads.clear();
 
     await tester.tap(find.textContaining('c5 ★').first);
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
+    // The breadcrumb names the board, not the position behind it.
+    expect(find.text('1.e4 e6 2.d4 d5 3.e5 c5'), findsOneWidget);
+    // And the book was read for the position after the move, not after the
+    // main move of the position the question belongs to.
+    expect(api.bookReads, contains(afterC5));
+    expect(find.textContaining('Posle c5'), findsWidgets);
+  });
+
+  testWidgets('and there is a way back to the question', (tester) async {
+    // Without it the only way out of a tapped move is another tap in the tree,
+    // which is a corner rather than a state.
+    await pump(tester, const Size(1400, 900));
+    await tester.tap(find.textContaining('c5 ★').first);
+    await tester.pumpAndSettle();
+
+    // Scrolled into view first: the controls sit under the board, and a tap on
+    // a widget below the fold lands on whatever is at those coordinates.
+    await tester.ensureVisible(find.text('Nazad na c5'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nazad na c5'));
+    await tester.pumpAndSettle();
+
     expect(find.text('1.e4 e6 2.d4 d5 3.e5'), findsOneWidget);
+    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+  });
+
+  testWidgets('a jump to the position already on the board changes nothing',
+      (tester) async {
+    // The guard. Re-showing a position clears everything that belonged to it,
+    // so a tap that lands where the board already is used to throw away the
+    // engine lines the reader had just waited for.
+    await pump(
+      tester,
+      const Size(1400, 900),
+      analyse: (fen, depth, multiPV) async => [
+        AnalysisLine(
+          multipv: 1,
+          depth: 20,
+          evaluation: '+0.35',
+          bestMoveLan: 'c7c5',
+          bestMoveSan: 'c5',
+          continuationLan: 'c7c5',
+          continuationSan: 'c5 c3',
+          sanMoveList: const ['c5'],
+          fenList: const [],
+          fromSquare: 'c7',
+          toSquare: 'c5',
+        )
+      ],
+    );
+
+    await tester.tap(find.text('Pitaj motor'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Dodirnite liniju'), findsOneWidget);
+
+    // The root card is the position the board is standing on.
+    await tester.tap(find.text('🏁').first);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Dodirnite liniju'), findsOneWidget);
   });
 }
