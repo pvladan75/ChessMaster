@@ -27,8 +27,10 @@ no new table, no change to what any position means.
 5. Let the board grow past 420 on wide windows.
 6. Delete `RepertoireTreeScreen`, its route wiring in the list screen, and its
    test file — moving any assertion that still means something onto the panel.
-7. Tests: one widget test per layout (360 × 640 and 1400 × 900), each asserting
-   `tester.takeException()` is null.
+7. Tests: **one new file**, `chess_app/test/repertoire_build_layout_test.dart`,
+   with a test per layout (360 × 640 and 1400 × 900), each asserting
+   `tester.takeException()` is null. That exact path is allowed for in the
+   harness; a test file by another name will fail the untracked-tree gate.
 
 ## Method
 
