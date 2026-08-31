@@ -264,7 +264,62 @@ Three, and they are decisions rather than details.
    old move in place as an alternate and nothing is stranded at all.
 5. ~~**The replies panel beside the board.**~~ — done 31.8.2026, out of the
    stored book, so it costs nothing and can simply sit there.
-6. **Engine notes on the node.** R4 and `repertoire_notes`.
+6. **Engine notes on the node.** R4 and `repertoire_notes`. **The only step
+   left**, and every decision in it is made — see "Step 6, decided" below.
+   Nothing in it is one-way except the new table, so the lead keeps it.
 
 Steps 1 and 2 are independent of each other and of everything else; 3–6 depend
-on 2.
+on 2. **Steps 1 to 5 are done** (31.8.2026); step 6 is the only one left.
+
+---
+
+## Step 6, decided — 31.8.2026
+
+The owner's answers, so nothing here has to be worked out again.
+
+**1. What the number is for: reference, plus a review list.**
+
+The eval and the engine's best line sit on the node as *information* — no
+verdict. The build screen already has one: the opening judge, which answers "is
+this move sound, judged by real games", and that is the better question for a
+repertoire because a repertoire is about what people actually play against you.
+A second opinion from a different notion of "good" is how a screen starts
+contradicting itself in front of a child.
+
+What replaces the flag is a **list**: "positions in this branch where the engine
+disagrees most with the move I chose", sorted by the size of the disagreement,
+gone through deliberately. Same information, no second judge on the card.
+
+**2. Storage: per user.** `repertoire_notes` keyed by `(user_id, color,
+fen_key)`. An eval is a fact about a position the way a book row is, but it
+depends on engine version, depth and machine — a shared table would need all
+three in the key to mean anything, and would then agree with nobody.
+
+**3. A whole-line pass: yes.** A button reading **"Evaluiraj celu liniju (N
+pozicija)"**, with the count in the label. It costs no Lichess quota, only time
+and a warm phone, so the price has to be visible before it is pressed.
+
+### What that makes the work
+
+- `repertoire_notes (user_id, color, fen_key, eval_cp, eval_depth,
+  best_line_san, updated_at)`, with `ADD COLUMN`-style guards like every other
+  table here.
+- `PUT /repertoire/note` — one position. `GET /repertoire/notes?color&keys` —
+  many, for drawing the tree.
+- `GET /repertoire/disagreements?color&rootFen&fromFen` — the review list: the
+  positions where the stored eval's best move is not the one that was chosen,
+  worst first. Derived from the notes and the moves; no new judgement anywhere.
+- The tree card already carries `eval` and `evalDepth`, so drawing costs
+  nothing new. The depth and the date must be visible: an eval without its depth
+  is a number that ages invisibly.
+- The engine stays exactly where it is — local, on a button, never in the
+  background. That rule is older than this plan.
+
+### The one thing to be careful about
+
+The eval is computed on the client and stored by the server, which is the shape
+`tablebaseService` refuses for the endgame drill: a verdict that arrives from a
+client is one the server cannot check. It is acceptable here and it is worth
+writing down why — nobody cheats themselves out of an engine eval, and this
+number never grades anything. If it ever starts grading anything, that reasoning
+is void and the computation has to move.

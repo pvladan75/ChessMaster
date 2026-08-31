@@ -2680,6 +2680,21 @@ te poteze zaista igra na toj tabli.
 Testovi: backend 751 → **758**, aplikacija 989 → **992**. Uživo nije viđeno:
 [TODO-provera.md](TODO-provera.md), stavka 68.
 
+## Gde se staje 31.8.2026 uveče — repertoar
+
+Koraci **1–5 iz [PLAN-REPERTOAR.md](PLAN-REPERTOAR.md) su gotovi**: raspored sa
+stablom uz tablu, `source` i potvrda, auto-kičma, orezivanje po dohvatljivosti,
+i odgovori protivnika uz tablu. Ostaje **samo korak 6** (ocena motora na čvoru),
+i sve odluke u njemu su donete — pisane su na kraju plana, u odeljku „Step 6,
+decided".
+
+Ništa od koraka 1–5 **nije viđeno uživo**. Stavke su 70, 71, 72, 73 i 74 u
+[TODO-provera.md](TODO-provera.md), i vrede više od šestog koraka: pet izmena nad
+istim ekranom, nijedna nije pokrenuta.
+
+Backend treba pokrenuti jednom zbog `ALTER TABLE repertoire_moves ADD COLUMN
+source`.
+
 ## Protivnikovi odgovori uz tablu — korak 5 iz plana, 31.8.2026
 
 `GET /repertoire/book` i panel „Posle X — šta igra protivnik", koji sada stoji
