@@ -2694,6 +2694,39 @@ izmena nad istim ekranom, nijedna nije pokrenuta.
 Backend treba pokrenuti jednom zbog `ALTER TABLE repertoire_moves ADD COLUMN
 source` i zbog nove tabele `repertoire_notes`.
 
+## Otvaranje se bira sa spiska, ne samo kucanjem — 1.9.2026
+
+Vlasnik je pitao može li da izabere repertoar **po nazivu otvaranja i po
+varijanti u njemu**. Biranje po imenu je postojalo od ranije, ali samo kao
+polje za pretragu: ekran se otvarao kao prazna kutija sa lupom, što služi jedino
+onome ko već zna kako se zove ono što traži. Tražena je druga polovina.
+
+**`OpeningBookEntry` sada zna svoja dva nivoa.** ECO ime je jedan string koji
+nosi oboje — „Sicilian Defense: Najdorf Variation, English Attack" — pa je
+`family` ono pre dvotačke, a `variation` ostatak. Sopstvena glavna linija
+otvaranja nema ništa posle dvotačke i **imenuje se** („Osnovna linija"), jer
+prazan red u spisku varijanti čita se kao greška, a „samo otvaranje" je stvaran
+izbor.
+
+**Dva spiska u `OpeningPicker`-u**: `families()` daje 149 otvaranja po
+abecedi, `variationsOf(ime)` linije unutar jednog — **najkraća prva**, jer
+najkraća linija *jeste* otvaranje na koje se misli kad se imenuje, a abecedno bi
+spisak otvorilo na onome što počinje slovom A. Kucanje i dalje radi i **seče
+popreko**: ko ukuca „Najdorf" misli na Najdorf, ne na Najdorf unutar otvaranja
+koje je slučajno bio otvorio.
+
+Usput popravljeno: picker je **odmah pokazivao spisak** ako je baza već
+učitana, umesto da za jedan kadar treperi „Učitavanje…". To je i ono što je
+omogućilo test — `compute()` pravi izolat, a časovnik u widget testu je lažni,
+pa se `.then` na taj future iz test-zone nikad ne isporuči. Isti razlog, dva
+dobitka.
+
+Dugme je preimenovano u **„Izaberi otvaranje"**, jer „Nađi" opisuje samo
+pretragu.
+
+Testovi: aplikacija 1018 → **1026**. Uživo nije viđeno: stavka 79 u
+[TODO-provera.md](TODO-provera.md).
+
 ## Izbor grane je sada pravilo cele aplikacije — 1.9.2026
 
 Traženo od vlasnika, i tačno na mestu: na račvanju „napred" ima više od jednog

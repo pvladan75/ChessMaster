@@ -10,6 +10,26 @@ class OpeningBookEntry {
   final String pgn;
 
   OpeningBookEntry({required this.eco, required this.name, required this.pgn});
+
+  /// The opening this line belongs to: everything before the colon in the ECO
+  /// name. "Sicilian Defense: Najdorf Variation, English Attack" is a line of
+  /// the **Sicilian Defense**, and that is the level somebody browses at — a
+  /// flat list of 3800 names is a list nobody reads.
+  String get family {
+    final at = name.indexOf(':');
+    return at < 0 ? name.trim() : name.substring(0, at).trim();
+  }
+
+  /// What distinguishes this line inside its opening — the rest of the name.
+  ///
+  /// The opening's own main line has nothing after the colon, and it is named
+  /// rather than left blank: an empty row in a list of variations reads as a
+  /// bug, and "the opening itself" is a real choice somebody makes.
+  String get variation {
+    final at = name.indexOf(':');
+    final rest = at < 0 ? '' : name.substring(at + 1).trim();
+    return rest.isEmpty ? 'Osnovna linija' : rest;
+  }
 }
 
 class _ParseResult {
@@ -88,6 +108,36 @@ class OpeningBookService {
   OpeningBookEntry? lookupByFen(String fen) {
     if (!_loaded) return null;
     return _fenIndex[normalizeFen(fen)];
+  }
+
+  /// Every opening in the book, by name, alphabetically.
+  ///
+  /// This is what makes the picker usable by somebody who cannot spell the
+  /// thing they want: the search field answers "what is it called", and this
+  /// answers "what is there". A repertoire starts by choosing an opening, and
+  /// asking a trainer to type a name they are trying to look up is the same
+  /// mistake as asking a child to play out seven moves to say "Smith-Morra".
+  List<String> families() {
+    if (!_loaded) return const [];
+    final names = <String>{for (final entry in _entries) entry.family};
+    final list = names.toList()..sort();
+    return list;
+  }
+
+  /// The lines of one opening, shortest first.
+  ///
+  /// Shortest first because the shortest line *is* the opening — the main line
+  /// somebody means when they name it — and the long ones are the branches off
+  /// it. Alphabetical would open the list on whatever begins with A.
+  List<OpeningBookEntry> variationsOf(String family) {
+    if (!_loaded) return const [];
+    final lines = _entries.where((e) => e.family == family).toList()
+      ..sort((a, b) {
+        final lenDiff = a.pgn.length.compareTo(b.pgn.length);
+        if (lenDiff != 0) return lenDiff;
+        return a.name.compareTo(b.name);
+      });
+    return lines;
   }
 
   /// Case-insensitive substring search over opening/variation names.

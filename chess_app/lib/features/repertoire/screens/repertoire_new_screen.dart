@@ -213,7 +213,8 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: OpeningPicker(
-              hint: 'Nađite otvaranje po imenu — pozicija i ime dolaze s njim.',
+              hint: 'Izaberite otvaranje sa spiska, pa varijantu u njemu — '
+                  'ili ukucajte naziv. Pozicija i ime dolaze s njim.',
               onPicked: (entry) {
                 Navigator.of(ctx).pop();
                 _applyOpening(entry.name, entry.pgn);
@@ -483,7 +484,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
         OutlinedButton.icon(
           onPressed: _saving ? null : _pickOpening,
           icon: const Icon(Icons.search, size: 18),
-          label: const Text('Nađi otvaranje'),
+          label: const Text('Izaberi otvaranje'),
         ),
         TextButton.icon(
           onPressed: _saving ? null : _pasteFen,

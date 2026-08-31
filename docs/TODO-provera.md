@@ -2776,3 +2776,19 @@ Traži **vaš Lichess token** (isti kao sudija), jer troši vašu kvotu.
    usputnim račvanjima.
 7. [ ] **Miš i tastatura se slažu.** Isto ponašanje na dugmetu i na strelici
    desno.
+
+## 79. Biranje otvaranja sa spiska — 1.9.2026, nije viđeno uživo
+
+1. [ ] **„Izaberi otvaranje" otvara spisak.** Odmah, bez kucanja, stoji spisak
+   otvaranja po abecedi (od „Alekhine Defense").
+2. [ ] **Otvaranje se otvara u svoje varijante.** Klik na otvaranje daje spisak
+   njegovih linija, prva je „Osnovna linija", a iznad stoji ime sa strelicom
+   nazad.
+3. [ ] **Izbor varijante popuni ekran.** Tabla ode na tu poziciju, linija se
+   ispiše, ime repertoara se predloži, boja se postavi po strani na potezu.
+4. [ ] **Kucanje seče popreko.** Ukucati „Najdorf" dok je otvoreno neko drugo
+   otvaranje: rezultati su svi Najdorf redovi, a povratna strelica nestaje.
+5. [ ] **Drugi put je odmah.** Zatvoriti i ponovo otvoriti izbor — spisak je tu
+   bez treptaja „Učitavanje…".
+6. [ ] **Telefon, 360 dp, release build.** Duga imena varijanti se seku sa „…",
+   ne prelivaju.

@@ -217,7 +217,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Nađi otvaranje'));
+    await tester.tap(find.text('Izaberi otvaranje'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('1. e4 c5 2. d4 cxd4'), findsOneWidget);
@@ -240,7 +240,7 @@ void main() {
       openingPicker: () => ('Nešto', '1. e4 c5 2. Qh9 d4'),
     );
 
-    await tester.tap(find.text('Nađi otvaranje'));
+    await tester.tap(find.text('Izaberi otvaranje'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('1. e4 c5'), findsOneWidget);
