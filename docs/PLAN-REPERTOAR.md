@@ -221,11 +221,22 @@ has, and free on any position anybody has opened before.
 
 Three, and they are decisions rather than details.
 
-1. **The rating band.** `minRating` is threaded through every repertoire screen
-   and set by nothing, so every child sees the moves of every rating. Under this
-   plan the spine *is* the band's opinion, which makes the gap urgent rather
-   than untidy. Related: Top-1 among masters and Top-1 among 1600s are often
-   different moves, and which database the spine reads is a product decision.
+1. ~~**The rating band.**~~ — decided 31.8.2026 by the owner: **1600 by
+   default**, selectable. The ladder is Lichess's own Explorer buckets, and only
+   those — `RATING_BUCKETS = [0, 1000, 1200, 1400, 1600, 1800, 2000, 2200,
+   2500]`, and the service refuses anything else by name, so 1500 and 2100 were
+   not available to offer. In the app: 1400 / 1600 / 1800 / 2000.
+
+   A band is a floor and the answer unions everything above it, so 1600 means
+   "1600 and up". That is kept rather than narrowed to a single bucket for a
+   reason that is not about taste: `opening_replies` is keyed on the floor and
+   **shared between users**, so changing what a floor means without changing the
+   key would leave one key holding two different answers.
+
+   **Masters is deliberately not a rung.** It is a different database answering
+   a different question — "what is theory" against "what will I meet" — and
+   putting it at the top of the ladder would quietly change what the number
+   means. It belongs with the spine, as a switch beside the band.
 2. **Does the drill ever ask about `auto` moves?** The plan says no. A defensible
    alternative is that it asks, but the first answer is a *choice* rather than a
    test — the position is offered, whatever you play is kept, and it becomes
@@ -243,9 +254,9 @@ Three, and they are decisions rather than details.
    briefed for it timed out. Two columns rather than three; the strip, the
    navigation and the board cap are all in. See `STANJE-RADA.md`, "Stablo je
    sada pored table".
-2. **`source` and confirming.** The column, the drill and map honouring it, the
-   confirm actions. This must land *before* the spine, or the spine reintroduces
-   the bug the seed was deleted for.
+2. ~~**`source` and confirming.**~~ — done 31.8.2026. The column, every read in
+   the drill honouring it, `draft` counted apart from `decided` in the map, and
+   both confirm routes. The rating band was decided and wired at the same time.
 3. **The spine.** R1, with the games floor and the never-overwrite rule.
 4. **Pruning by reachability.** R2 and A2, which pairs with 3 — a spine you
    cannot rebuild after changing your mind is a spine you use once.

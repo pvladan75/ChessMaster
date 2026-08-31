@@ -22,7 +22,7 @@ several rules below.
 ```bash
 cd chess_app && flutter test          # 983 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 733 tests, all green
+cd chess_backend && npm test          # node --test, 737 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 

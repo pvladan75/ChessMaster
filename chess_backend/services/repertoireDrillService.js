@@ -81,6 +81,7 @@ async function nextItem(pool, userId, {
           SELECT 1 FROM repertoire_moves m
            WHERE m.user_id = r.user_id AND m.color = r.color
              AND m.fen_key = r.fen_key AND m.role = 'primary'
+             AND m.source = 'chosen'
         )
       ORDER BY r.due_at ASC
       LIMIT 1`,
@@ -109,6 +110,7 @@ async function nextItem(pool, userId, {
           GROUP BY fen_key
        ) a ON a.fen_key = m.fen_key
       WHERE m.user_id = $1 AND m.color = $2 AND m.role = 'primary'
+        AND m.source = 'chosen'
         AND ($3::text[] IS NULL OR m.fen_key = ANY($3))
         AND NOT EXISTS (
           SELECT 1 FROM repertoire_reviews r
@@ -144,7 +146,8 @@ async function itemFrom(pool, userId, color, key, { fresh, repetitions }) {
   const counts = await pool.query(
     `SELECT COUNT(*)::int AS moves
        FROM repertoire_moves
-      WHERE user_id = $1 AND color = $2 AND fen_key = $3`,
+      WHERE user_id = $1 AND color = $2 AND fen_key = $3
+        AND source = 'chosen'`,
     [userId, color, key],
   );
   return {
@@ -178,9 +181,13 @@ async function answer(pool, userId, {
   const key = fenKey(fen);
   if (!uci) throw new RangeError('Potez nije prosleđen.');
 
+  // Only what the student chose. A position holding nothing but generated
+  // moves has no answer to be right or wrong about, and saying so is the
+  // honest outcome — the screen turns it into an offer to confirm the line.
   const moves = await pool.query(
     `SELECT uci, san, role FROM repertoire_moves
-      WHERE user_id = $1 AND color = $2 AND fen_key = $3`,
+      WHERE user_id = $1 AND color = $2 AND fen_key = $3
+        AND source = 'chosen'`,
     [userId, color, key],
   );
   if (moves.rowCount === 0) {
@@ -255,6 +262,7 @@ async function revealPrimary(pool, userId, { color, fen }) {
   const result = await pool.query(
     `SELECT uci, san, role FROM repertoire_moves
       WHERE user_id = $1 AND color = $2 AND fen_key = $3
+        AND source = 'chosen'
       ORDER BY (role = 'primary') DESC, added_at ASC`,
     [userId, color, key],
   );
@@ -375,6 +383,7 @@ async function drillStats(pool, userId, { color, now = new Date(), only = null }
     `SELECT
        (SELECT COUNT(*)::int FROM repertoire_moves
          WHERE user_id = $1 AND color = $2 AND role = 'primary'
+           AND source = 'chosen'
            AND ($4::text[] IS NULL OR fen_key = ANY($4))) AS positions,
        (SELECT COUNT(*)::int FROM repertoire_reviews
          WHERE user_id = $1 AND color = $2

@@ -2594,3 +2594,25 @@ Backend mora biti pokrenut jednom **posle** ove izmene, da nastane tabela
 10. [ ] **Nema više zasebnog ekrana za stablo.** U spisku repertoara u ⋮ meniju
     nema stavke „Stablo poteza", i u zaglavlju „Pokrivenost" nema ikonice
     stabla — jer je stablo tamo gde se gradi.
+
+## 71. Nacrt, potvrda i rejting traka — 31.8.2026, nije viđeno uživo
+
+Backend mora biti pokrenut jednom **posle** ove izmene, da prođe
+`ALTER TABLE repertoire_moves ADD COLUMN source`.
+
+1. [ ] **Postojeći potezi su i dalje vaši.** Otvoriti repertoar napravljen
+   ranije: nijedan potez ne sme da piše „predlog — nije još vaš izbor", i drill
+   mora da radi kao pre. Kolona ima podrazumevanu vrednost `chosen`, i ovo je
+   provera da je to zaista tako u vašoj bazi.
+2. [ ] **Traka rejtinga postoji i pamti se.** U zaglavlju spiska repertoara,
+   ikonica sa ljudima → 1400 / 1600 / 1800 / 2000, sa kvačicom na 1600.
+   Promeniti na 1800, izaći iz aplikacije i vratiti se: izbor je zapamćen.
+3. [ ] **Traka menja knjigu.** Sa 1400 pa sa 2000, na istoj poziciji otvoriti
+   „Ne znam": spisak poteza i procenti moraju da se razlikuju. Ako su isti,
+   traka nije stigla do zahteva.
+4. [ ] **Brojač upita.** Promena trake znači novu knjigu, pa prvi zahtev u novoj
+   traci troši upit; drugi put na istoj poziciji ne sme.
+5. [ ] **Nacrt se vidi kao nacrt.** Ovo se može proveriti tek kad postoji
+   auto-kičma (korak 3). Do tada je dovoljno da ništa ne piše „predlog".
+6. [ ] **Zaglavlje broji nacrte odvojeno.** Kad ih bude, u redu „odlučeno · …"
+   pojavljuje se i „nacrt N", i taj broj se ne sabira sa „odlučeno".

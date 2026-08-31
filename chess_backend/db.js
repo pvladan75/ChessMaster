@@ -932,6 +932,23 @@ async function initDB() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_repertoire_moves_primary
         ON repertoire_moves(user_id, color, fen_key)
         WHERE role = 'primary';
+      -- Who decided this move: the student, or a generator.
+      --
+      -- The archive seed was deleted on 31.8.2026 because it wrote moves
+      -- nobody had chosen into the same graph as decisions, where nothing could
+      -- tell them apart — and the drill went on to ask the student to recall
+      -- them, and marked them correct. The auto-spine writes moves the student
+      -- did not choose too. Better moves, identical hole, so this time the
+      -- difference is stored.
+      --
+      -- 'chosen' is the default and is right for every row that existed before
+      -- this column: the only writer up to now was the build screen, and the
+      -- seed's leftovers have their own cleanup.
+      --
+      -- Read as a rule: an 'auto' move is drawn, walked through and offered for
+      -- confirmation, and it is never asked about by the drill.
+      ALTER TABLE repertoire_moves
+        ADD COLUMN IF NOT EXISTS source VARCHAR(8) NOT NULL DEFAULT 'chosen';
     `);
     logger.info('Verified database table & indexes: repertoire_moves');
 

@@ -21,6 +21,10 @@
 const COLORS = ['w', 'b'];
 const ROLES = ['primary', 'alternate'];
 
+/// Who decided a move. `auto` is a draft: drawn and walked through, never
+/// asked about by the drill until somebody confirms it.
+const SOURCES = ['chosen', 'auto'];
+
 /// The first four FEN fields: placement, side to move, castling, en passant.
 ///
 /// The move counters are dropped on purpose. The same position reached at move
@@ -115,7 +119,7 @@ async function nodeMoves(pool, userId, { color, fen }) {
   requireColor(color);
   const key = fenKey(fen);
   const result = await pool.query(
-    `SELECT uci, san, role, verdict, added_at
+    `SELECT uci, san, role, verdict, source, added_at
        FROM repertoire_moves
       WHERE user_id = $1 AND color = $2 AND fen_key = $3
       ORDER BY (role = 'primary') DESC, added_at ASC`,
@@ -126,6 +130,9 @@ async function nodeMoves(pool, userId, { color, fen }) {
     san: row.san,
     role: row.role,
     verdict: row.verdict,
+    // `chosen` or `auto`. The build screen shows both — a draft you cannot see
+    // is a draft you cannot confirm — and marks which is which.
+    source: row.source,
     addedAt: row.added_at,
   }));
 }
@@ -136,10 +143,15 @@ async function nodeMoves(pool, userId, { color, fen }) {
 /// Keeping the same move twice is not an error - it refreshes the verdict and
 /// leaves the role alone, so re-judging an old position cannot silently demote
 /// what the student chose.
-async function addMove(pool, userId, { color, fen, uci, san, verdict = null }) {
+async function addMove(pool, userId, {
+  color, fen, uci, san, verdict = null, source = 'chosen',
+}) {
   requireColor(color);
   const key = fenKey(fen);
   if (!uci || !san) throw new RangeError('Potez nije prosleđen.');
+  if (!SOURCES.includes(source)) {
+    throw new RangeError(`Izvor poteza mora biti ${SOURCES.join(' ili ')}.`);
+  }
 
   const existing = await pool.query(
     `SELECT 1 FROM repertoire_moves
@@ -149,12 +161,21 @@ async function addMove(pool, userId, { color, fen, uci, san, verdict = null }) {
   const role = existing.rowCount > 0 ? 'alternate' : 'primary';
 
   const result = await pool.query(
-    `INSERT INTO repertoire_moves (user_id, color, fen_key, uci, san, role, verdict)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO repertoire_moves
+       (user_id, color, fen_key, uci, san, role, verdict, source)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      ON CONFLICT (user_id, color, fen_key, uci)
-     DO UPDATE SET verdict = EXCLUDED.verdict
-     RETURNING uci, san, role, verdict, added_at`,
-    [userId, color, key, uci, san, role, verdict],
+     DO UPDATE SET verdict = EXCLUDED.verdict,
+       /* A move played by hand over a generated one is a decision, and the row
+          stops being a draft. Never the other way round: a generator must not
+          be able to turn somebody's decision back into a suggestion.
+          Block comment rather than a line one: a line comment survives up until
+          something flattens the query onto one line, and then it eats the rest
+          of it. */
+       source = CASE WHEN EXCLUDED.source = 'chosen'
+                     THEN 'chosen' ELSE repertoire_moves.source END
+     RETURNING uci, san, role, verdict, source, added_at`,
+    [userId, color, key, uci, san, role, verdict, source],
   );
   return result.rows[0];
 }
@@ -331,6 +352,49 @@ async function unskipNode(pool, userId, { color, fen }) {
   return { skipped: false, removed: result.rowCount };
 }
 
+/// A generated move becomes a decision.
+///
+/// Confirming is an act, and that is the whole reason the auto-spine is safe to
+/// offer: until somebody says "yes, this one", a generated move is scaffolding
+/// — drawn, walked through, and never asked about by the drill. Without this
+/// the spine would be the archive seed again, wearing better moves.
+///
+/// Without `uci`, every draft in the position. With it, one move.
+async function confirmNode(pool, userId, { color, fen, uci = null }) {
+  requireColor(color);
+  const key = fenKey(fen);
+  const result = await pool.query(
+    `UPDATE repertoire_moves
+        SET source = 'chosen'
+      WHERE user_id = $1 AND color = $2 AND fen_key = $3
+        AND source = 'auto'
+        AND ($4::text IS NULL OR uci = $4)`,
+    [userId, color, key, uci],
+  );
+  return { confirmed: result.rowCount };
+}
+
+/// A whole line at once — every position along it.
+///
+/// One statement rather than one per position: a line half confirmed is a line
+/// the student would have to walk twice, and a loop of updates is exactly where
+/// a dropped connection leaves one.
+async function confirmLine(pool, userId, { color, fens }) {
+  requireColor(color);
+  if (!Array.isArray(fens) || fens.length === 0) {
+    throw new RangeError('Linija nije prosleđena.');
+  }
+  const keys = fens.map(fenKey);
+  const result = await pool.query(
+    `UPDATE repertoire_moves
+        SET source = 'chosen'
+      WHERE user_id = $1 AND color = $2 AND source = 'auto'
+        AND fen_key = ANY($3)`,
+    [userId, color, keys],
+  );
+  return { confirmed: result.rowCount, positions: keys.length };
+}
+
 /// The moves in this colour that nobody was ever asked about.
 ///
 /// Every move kept by hand goes through `recordAttempt(kept: true)` the moment
@@ -494,9 +558,12 @@ module.exports = {
   skippedKeys,
   addExtraReply,
   removeExtraReply,
+  confirmNode,
+  confirmLine,
   importedMoves,
   forgetImportedMoves,
   deleteRepertoire,
   COLORS,
   ROLES,
+  SOURCES,
 };

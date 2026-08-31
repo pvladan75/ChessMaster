@@ -37,6 +37,9 @@ class _FakeApi extends RepertoireApiService {
   /// a branch as gone when it is not.
   bool cutFails = false;
 
+  /// The generated moves that were confirmed.
+  final List<String> confirmed = [];
+
   /// The opponent's moves added to the preparation from past the covered wave.
   final List<String> prepared = [];
   bool prepareFails = false;
@@ -112,6 +115,27 @@ class _FakeApi extends RepertoireApiService {
   Future<bool> skipNode({required String color, required String fen}) async {
     if (cutFails) return false;
     cut.add(_key(fen));
+    return true;
+  }
+
+  @override
+  Future<bool> confirmNode({
+    required String color,
+    required String fen,
+    String? uci,
+  }) async {
+    confirmed.add(uci ?? '*');
+    final list = kept[_key(fen)] ?? [];
+    kept[_key(fen)] = [
+      for (final move in list)
+        RepertoireMove(
+          uci: move.uci,
+          san: move.san,
+          role: move.role,
+          verdict: move.verdict,
+          source: (uci == null || move.uci == uci) ? 'chosen' : move.source,
+        ),
+    ];
     return true;
   }
 
@@ -1167,5 +1191,38 @@ void main() {
     expect(find.textContaining('nije dodat u pripremu'), findsOneWidget);
     expect(find.text('u pripremi'), findsNothing);
     expect(find.text('Još 1 u redu.'), findsOneWidget);
+  });
+
+  testWidgets('a generated move is marked as a draft and can be confirmed',
+      (tester) async {
+    // The act the whole draft idea rests on. Until somebody says yes, a move
+    // nobody chose is scaffolding — drawn and walked through, never drilled.
+    // The archive seed had no such act, which is exactly why it was deleted.
+    await pump(tester, seed: {
+      smithMorra.split(' ').take(4).join(' '): const [
+        RepertoireMove(
+            uci: 'b8c6', san: 'Nc6', role: 'primary', source: 'auto'),
+      ],
+    });
+
+    expect(find.textContaining('nije još vaš izbor'), findsOneWidget);
+    await tester.tap(find.text('Potvrdi'));
+    await tester.pumpAndSettle();
+
+    expect(api.confirmed, ['b8c6']);
+    expect(find.textContaining('nije još vaš izbor'), findsNothing);
+    expect(find.text('glavni'), findsOneWidget);
+  });
+
+  testWidgets('a move the student chose is not offered for confirmation',
+      (tester) async {
+    await pump(tester, seed: {
+      smithMorra.split(' ').take(4).join(' '): const [
+        RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
+      ],
+    });
+
+    expect(find.text('Potvrdi'), findsNothing);
+    expect(find.text('glavni'), findsOneWidget);
   });
 }

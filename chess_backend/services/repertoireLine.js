@@ -61,14 +61,14 @@ const {
 /// Cut branches are not walked. A line the student refused to prepare is not a
 /// line to be rehearsed down.
 async function walkLines(pool, userId, {
-  color, rootFen, minRating = 0, maxPly = MAX_PLY,
+  color, rootFen, minRating = 0, maxPly = MAX_PLY, onlyChosen = false,
 } = {}) {
   if (color !== 'w' && color !== 'b') {
     throw new RangeError(`Boja mora biti "w" ili "b", a ne "${color}".`);
   }
   fenKey(rootFen);
 
-  const kept = await keptByPosition(pool, userId, color);
+  const kept = await keptByPosition(pool, userId, color, { onlyChosen });
   const cut = await skippedKeys(pool, userId, color);
   const band = Number(minRating) || 0;
 
@@ -275,6 +275,10 @@ async function drillLine(pool, userId, {
 } = {}) {
   const { nodes, root, truncated } = await walkLines(pool, userId, {
     color, rootFen, minRating,
+    // A rehearsal replays decisions. A line through a move nobody chose is not
+    // the student's line, and playing it would teach a move they have not
+    // agreed to.
+    onlyChosen: true,
   });
 
   const base = Array.isArray(rootPath)

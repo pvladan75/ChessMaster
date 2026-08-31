@@ -1041,6 +1041,32 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     await _loadTree();
   }
 
+  /// Says yes to a generated move.
+  ///
+  /// The act the whole draft idea rests on. A move somebody generated is drawn
+  /// and walked through and never drilled; this is what turns it into a
+  /// decision, and it is deliberately something the student does rather than
+  /// something that happens to them.
+  Future<void> _confirm(RepertoireMove move) async {
+    final fen = _current;
+    if (fen == null || _busy) return;
+    setState(() => _busy = true);
+    final done = await _api.confirmNode(
+      color: widget.color,
+      fen: fen,
+      uci: move.uci,
+    );
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _note = done ? null : 'Potez nije potvrđen — server nije odgovorio.';
+    });
+    if (done) {
+      await _loadKept();
+      await _loadTree();
+    }
+  }
+
   Future<void> _makePrimary(RepertoireMove move) async {
     final fen = _current;
     if (fen == null) return;
@@ -1299,6 +1325,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       'odlučeno ${walk.decided}',
       'otvoreno ${walk.open.length}',
       'bez odgovora $open%',
+      if (walk.draft > 0) 'nacrt ${walk.draft}',
     ];
     // Cut branches are counted apart and never taken off "bez odgovora".
     // Cutting makes that number fall without a single question having been
@@ -1373,11 +1400,26 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
-                        move.isPrimary ? 'glavni' : 'dodirnite za glavni',
-                        style: AppText.micro
-                            .copyWith(color: context.colors.textMuted),
+                        move.isDraft
+                            ? 'predlog — nije još vaš izbor'
+                            : (move.isPrimary
+                                ? 'glavni'
+                                : 'dodirnite za glavni'),
+                        style: AppText.micro.copyWith(
+                          color: move.isDraft
+                              ? context.colors.warning
+                              : context.colors.textMuted,
+                        ),
                       ),
                     ),
+                    // Saying yes is an act. Until it happens the drill leaves
+                    // this move alone, which is what makes offering generated
+                    // moves safe at all.
+                    if (move.isDraft)
+                      TextButton(
+                        onPressed: _busy ? null : () => _confirm(move),
+                        child: const Text('Potvrdi'),
+                      ),
                     IconButton(
                       tooltip: 'Ukloni',
                       icon: const Icon(Icons.close, size: 16),

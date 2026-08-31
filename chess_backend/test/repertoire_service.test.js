@@ -19,6 +19,8 @@ const {
   importedMoves,
   forgetImportedMoves,
   deleteRepertoire,
+  confirmNode,
+  confirmLine,
 } = require('../services/repertoireService');
 
 const SMITH_MORRA =
@@ -107,11 +109,14 @@ test('keeping the same move twice refreshes the verdict and leaves the role',
     const insert = pool.calls[1].text;
     assert.match(insert, /ON CONFLICT/);
     assert.match(insert, /DO UPDATE SET verdict/);
-    // The update clause sets the verdict and stops there — `role` appears
-    // afterwards only in RETURNING, which is why this matches the clause
-    // rather than the word.
-    assert.match(insert, /DO UPDATE SET verdict = EXCLUDED\.verdict RETURNING/,
+    // The update clause may touch the verdict and the source and nothing
+    // else. `role` appears after it only inside RETURNING, and never with an
+    // `=` after it, which is what this looks for.
+    assert.doesNotMatch(insert, /DO UPDATE SET[\s\S]*role\s*=/,
       'ponovno suđenje ne sme da promeni ono što je korisnik izabrao');
+    // And a generated move can be promoted to a decision by being played, but
+    // never the other way round.
+    assert.match(insert, /source = CASE WHEN EXCLUDED\.source = 'chosen'/);
   });
 
 test('promoting demotes the old primary first, in one transaction', async () => {
@@ -372,5 +377,52 @@ test('deleting a repertoire takes the door and never the moves', async () => {
 test('a repertoire that is not named by a number is a bad request', async () => {
   const pool = stubPool([[]]);
   await assert.rejects(() => deleteRepertoire(pool, 5, 'sve'), RangeError);
+  assert.equal(pool.calls.length, 0);
+});
+
+test('confirming turns a generated move into a decision, never back',
+  async () => {
+    // The act that makes generating moves safe to offer at all. Until somebody
+    // says "yes, this one", a generated move is scaffolding — drawn, walked
+    // through, and never asked about by the drill.
+    const pool = stubPool([[]]);
+    await confirmNode(pool, 5, { color: 'b', fen: SMITH_MORRA });
+
+    const sql = pool.calls[0].text;
+    assert.match(sql, /SET source = 'chosen'/);
+    // Only drafts. Confirming must be unable to touch a decision, in either
+    // direction.
+    assert.match(sql, /AND source = 'auto'/);
+  });
+
+test('confirming one move names it, and confirming a position does not',
+  async () => {
+    const one = stubPool([[]]);
+    await confirmNode(one, 5, { color: 'b', fen: SMITH_MORRA, uci: 'b8c6' });
+    assert.equal(one.calls[0].params[3], 'b8c6');
+
+    const all = stubPool([[]]);
+    await confirmNode(all, 5, { color: 'b', fen: SMITH_MORRA });
+    assert.equal(all.calls[0].params[3], null);
+  });
+
+test('a line is confirmed in one statement', async () => {
+  // A line half confirmed is a line the student would have to walk twice, and
+  // a loop of updates is exactly where a dropped connection leaves one.
+  const pool = stubPool([[]]);
+  const out = await confirmLine(pool, 5, {
+    color: 'b',
+    fens: [SMITH_MORRA, SMITH_MORRA],
+  });
+
+  assert.equal(pool.calls.length, 1);
+  assert.match(pool.calls[0].text, /fen_key = ANY\(\$3\)/);
+  assert.equal(out.positions, 2);
+});
+
+test('an empty line is a bad request rather than a silent no-op', async () => {
+  const pool = stubPool([[]]);
+  await assert.rejects(
+    () => confirmLine(pool, 5, { color: 'b', fens: [] }), RangeError);
   assert.equal(pool.calls.length, 0);
 });

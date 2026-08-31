@@ -35,6 +35,8 @@ const {
   unskipNode,
   addExtraReply,
   removeExtraReply,
+  confirmNode,
+  confirmLine,
   importedMoves,
   forgetImportedMoves,
   deleteRepertoire,
@@ -136,6 +138,37 @@ router.post('/node/move', authenticateToken, (req, res) => {
     res,
     addMove(pool, req.user.id, { color, fen, uci, san, verdict }),
     'Potez nije mogao da se sačuva.',
+  );
+});
+
+// POST /repertoire/node/confirm  { color, fen, uci? }
+//
+// A generated move becomes a decision. Without `uci`, every draft in the
+// position; with it, one move.
+//
+// Confirming is an act, and that is what makes generating moves safe to offer
+// at all: until somebody says "yes, this one", a generated move is scaffolding
+// — drawn, walked through, and never asked about by the drill. The archive seed
+// had no such act, which is why it was deleted.
+router.post('/node/confirm', authenticateToken, (req, res) => {
+  const { color, fen, uci } = req.body ?? {};
+  answer(
+    res,
+    confirmNode(pool, req.user.id, { color, fen, uci: uci ?? null }),
+    'Potez nije mogao da se potvrdi.',
+  );
+});
+
+// POST /repertoire/line/confirm  { color, fens: [...] }
+//
+// A whole line at once. One statement, because a line half confirmed is a line
+// the student would have to walk twice.
+router.post('/line/confirm', authenticateToken, (req, res) => {
+  const { color, fens } = req.body ?? {};
+  answer(
+    res,
+    confirmLine(pool, req.user.id, { color, fens }),
+    'Linija nije mogla da se potvrdi.',
   );
 });
 

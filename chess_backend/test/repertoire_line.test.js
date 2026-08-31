@@ -79,7 +79,13 @@ function stubPool({
             known: stats.known,
           }];
         }
-        if (flat.includes('SELECT fen_key, uci, san, role')) return moves;
+        if (flat.includes('SELECT fen_key, uci, san, role')) {
+          // `onlyChosen` is params[2]. Modelled, because whether the rehearsal
+          // walks through a generated move is exactly what one test asks.
+          return params[2] === true
+            ? moves.filter((m) => (m.source ?? 'chosen') === 'chosen')
+            : moves;
+        }
         if (flat.includes('FROM repertoire_skips')) {
           return skips.map((fen_key) => ({ fen_key }));
         }
@@ -309,4 +315,23 @@ test('the depth is a parameter, and reaching it is said out loud', async () => {
   const afterC5 = drawn.children[0].children[0];
   assert.deepEqual(afterC5.children.map((n) => n.san), ['Nf3']);
   assert.deepEqual(afterC5.children[0].children, []);
+});
+
+test('a rehearsal does not walk through a move nobody chose', async () => {
+  // A line through a generated move is not the student's line, and replaying it
+  // would teach a move they have not agreed to. The picture shows drafts; the
+  // drill does not rehearse them.
+  const pool = stubPool({
+    moves: SICILIAN.moves.map((m) => (
+      m.fen_key === MIDDLE ? { ...m, source: 'auto' } : m)),
+    replies: SICILIAN.replies,
+    fresh: [{ fen_key: fenKey(START), mistakes: 0 }],
+  });
+  const line = await drillLine(pool, 7, { color: 'w', rootFen: START });
+
+  // 2.Nf3 was generated, so nothing below it is reachable as a rehearsal and
+  // the question is the root itself.
+  assert.equal(line.question.fenKey, fenKey(START));
+  const within = pool.paramsOf('mistakes DESC')[2];
+  assert.equal(within.includes(DEEP), false, 'vežba je prošla kroz nacrt');
 });

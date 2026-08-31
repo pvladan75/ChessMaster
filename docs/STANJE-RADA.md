@@ -2680,6 +2680,62 @@ te poteze zaista igra na toj tabli.
 Testovi: backend 751 → **758**, aplikacija 989 → **992**. Uživo nije viđeno:
 [TODO-provera.md](TODO-provera.md), stavka 68.
 
+## Nacrt nije odluka — korak 2 iz plana, 31.8.2026
+
+`repertoire_moves.source` (`'chosen'` podrazumevano, `'auto'` za ono što
+generator napiše), i sve što iz toga sledi. Ovo je morala da bude izmena **pre**
+auto-kičme, jer bi kičma bez nje bila sejanje iz arhive sa boljim potezima:
+potezi koje niko nije izabrao, nerazlučivi od odluka, koje drill traži da se
+setiš i priznaje kao tačne.
+
+Pravilo je jedno i drži se na četiri mesta: **auto-potez se crta, kroz njega se
+šeta, nudi se na potvrdu — i drill ga ne pita.** Filtrirano je u `nextItem` (oba
+upita), `drillStats`, `revealPrimary` i u ocenjivanju odgovora. Pozicija u kojoj
+postoje samo generisani potezi vraća `unprepared`, što je pošteno: tamo nema šta
+da bude tačno ili netačno.
+
+**Potvrda je čin.** `POST /repertoire/node/confirm` (jedan potez ili cela
+pozicija) i `POST /repertoire/line/confirm` (cela linija, jednim `UPDATE`-om —
+linija potvrđena do pola je linija koju bi učenik prošao dvaput). U ekranu za
+izgradnju nacrt piše „predlog — nije još vaš izbor" i uz njega stoji „Potvrdi".
+Odigran potez preko generisanog takođe ga pretvara u odluku; obrnuto nikad —
+generator ne sme da nečiju odluku vrati u predlog.
+
+**Šetnja i slika prate nacrte, vežba ne.** Red i stablo idu kroz `auto` poteze —
+nacrt do koga se ne može doći je nacrt koji se ne može potvrditi — dok
+`walkLines` za linijski drill uzima samo `chosen`, jer linija kroz potez koji
+niko nije izabrao nije učenikova linija. Isti `keptByPosition`, jedan parametar.
+
+Radar broji odvojeno: `decided` su odluke, `draft` su pozicije čiji su svi potezi
+generisani. Nikad se ne sabiraju — mapa koja bi kičmu zvala „spremljeno" bila bi
+ista laž koju je sejanje pričalo, samo sa boljim izvorom.
+
+### Rejting protivnika — odlučeno 1600, i zašto ne 1500/2100
+
+Vlasnik je izabrao **1600 kao podrazumevano**, uz izbor trake. Njegov predlog
+šireg raspona (1500 / 1800 / 2100) nije izvodljiv i to nije stvar ukusa:
+Lichess Explorer poznaje tačno određene korpe — `[0, 1000, 1200, 1400, 1600,
+1800, 2000, 2200, 2500]` — a `ratingBucketsFrom` odbija sve ostalo imenujući
+dozvoljene vrednosti. 1500 i 2100 ne postoje.
+
+U aplikaciji su zato **1400 / 1600 / 1800 / 2000**, u zaglavlju spiska
+repertoara, i podešavanje se pamti (`app_repertoire_min_rating`). Do sada je
+`minRating` bio provučen kroz svaki ekran repertoara i **nije ga postavljao
+niko** — svako dete je gledalo poteze svih rejtinga.
+
+Traka je prag, ne opseg: 1600 znači „1600 pa naviše". Tako ostaje, i razlog nije
+estetski — `opening_replies` je ključan po pragu i **deli se između korisnika**,
+pa bi promena značenja praga bez promene ključa ostavila jedan ključ sa dva
+različita odgovora.
+
+**Majstori namerno nisu prečka na tim merdevinama.** To je druga baza koja
+odgovara na drugo pitanje — „šta je teorija" naspram „šta ću sresti" — i stavljena
+na vrh trake tiho bi promenila šta broj znači. Ide uz kičmu, kao prekidač pored
+trake.
+
+Testovi: backend 733 → **737**, aplikacija 983 → **985**. Uživo nije viđeno:
+[TODO-provera.md](TODO-provera.md), stavka 71.
+
 ## Stablo je sada pored table — korak 1 iz plana, 31.8.2026
 
 Prvi korak iz [PLAN-REPERTOAR.md](PLAN-REPERTOAR.md). `RepertoireTreeScreen`

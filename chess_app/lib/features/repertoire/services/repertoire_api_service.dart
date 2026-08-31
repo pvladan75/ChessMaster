@@ -14,6 +14,7 @@ class RepertoireMove {
     required this.san,
     required this.role,
     this.verdict,
+    this.source = 'chosen',
   });
 
   final String uci;
@@ -27,13 +28,23 @@ class RepertoireMove {
   /// What the judge said when the move was kept, if it was judged.
   final String? verdict;
 
+  /// `chosen` or `auto`. A generated move is a draft: drawn, walked through,
+  /// offered for confirmation, and never asked about by the drill until
+  /// somebody says yes to it.
+  ///
+  /// The archive seed had no such distinction, which is why moves nobody had
+  /// chosen ended up indistinguishable from decisions — and why it was deleted.
+  final String source;
+
   bool get isPrimary => role == 'primary';
+  bool get isDraft => source == 'auto';
 
   factory RepertoireMove.fromJson(Map<String, dynamic> json) => RepertoireMove(
         uci: json['uci'] as String? ?? '',
         san: json['san'] as String? ?? '',
         role: json['role'] as String? ?? 'alternate',
         verdict: json['verdict'] as String?,
+        source: json['source'] as String? ?? 'chosen',
       );
 }
 
@@ -156,6 +167,7 @@ class CoverageBranch {
     this.undecided = 0,
     this.unopened = 0,
     this.pruned = 0,
+    this.draft = 0,
     this.openWithin = 0,
     this.prunedWithin = 0,
     this.maxPly = 0,
@@ -182,6 +194,9 @@ class CoverageBranch {
   final int undecided;
   final int unopened;
   final int pruned;
+
+  /// Positions in this branch that are still a generated draft.
+  final int draft;
 
   /// What share of the games that come down *this* branch run into a position
   /// with no answer — measured against the branch, never against the whole
@@ -212,6 +227,7 @@ class CoverageBranch {
         undecided: (json['undecided'] as num?)?.toInt() ?? 0,
         unopened: (json['unopened'] as num?)?.toInt() ?? 0,
         pruned: (json['pruned'] as num?)?.toInt() ?? 0,
+        draft: (json['draft'] as num?)?.toInt() ?? 0,
         openWithin: (json['openWithin'] as num?)?.toDouble() ?? 0,
         prunedWithin: (json['prunedWithin'] as num?)?.toDouble() ?? 0,
         maxPly: (json['maxPly'] as num?)?.toInt() ?? 0,
@@ -232,6 +248,7 @@ class RepertoireFrontier {
     this.pruned = const [],
     this.branches = const [],
     this.decided = 0,
+    this.draft = 0,
     this.unopened = 0,
     this.maxPly = 0,
     this.openReach = 0,
@@ -254,6 +271,12 @@ class RepertoireFrontier {
 
   /// Positions where the student has decided on at least one move.
   final int decided;
+
+  /// Positions whose every move was generated and none confirmed. Counted apart
+  /// from [decided] and never added into it: a repertoire that called a
+  /// generated spine "prepared" would be telling the seed's lie with a better
+  /// source.
+  final int draft;
 
   /// Of the open ones, how many are lines that were decided and then left.
   final int unopened;
@@ -308,6 +331,7 @@ class RepertoireFrontier {
           .map((e) => CoverageBranch.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
       decided: (summary['decided'] as num?)?.toInt() ?? 0,
+      draft: (summary['draft'] as num?)?.toInt() ?? 0,
       unopened: (summary['unopened'] as num?)?.toInt() ?? 0,
       maxPly: (summary['maxPly'] as num?)?.toInt() ?? 0,
       openReach: (summary['openReach'] as num?)?.toDouble() ?? 0,
@@ -856,6 +880,40 @@ class RepertoireApiService {
           'color': color,
           'fen': fen,
         }));
+    return sent.res != null;
+  }
+
+  /// A generated move becomes a decision.
+  ///
+  /// Without [uci], every draft in the position; with it, one move. Confirming
+  /// is an act on purpose: until somebody says "yes, this one", a generated
+  /// move is scaffolding, and the drill leaves it alone.
+  Future<bool> confirmNode({
+    required String color,
+    required String fen,
+    String? uci,
+  }) async {
+    final sent =
+        await _send(() => _post('$backendUrl/repertoire/node/confirm', {
+              'color': color,
+              'fen': fen,
+              if (uci != null) 'uci': uci,
+            }));
+    return sent.res != null;
+  }
+
+  /// A whole line at once, in one statement — a line half confirmed is a line
+  /// the student would have to walk twice.
+  Future<bool> confirmLine({
+    required String color,
+    required List<String> fens,
+  }) async {
+    if (fens.isEmpty) return false;
+    final sent =
+        await _send(() => _post('$backendUrl/repertoire/line/confirm', {
+              'color': color,
+              'fens': fens,
+            }));
     return sent.res != null;
   }
 

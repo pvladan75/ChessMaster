@@ -431,3 +431,28 @@ test('the extra replies are read for this student, not for everybody',
     assert.equal(book.params[2], 7);
     assert.equal(book.params[3], 'w');
   });
+
+test('a position whose only moves were generated is a draft, not a decision',
+  async () => {
+    // The archive seed's whole failure, and the reason this column exists: a
+    // move nobody chose must never be counted as one. The map says "odlučeno"
+    // about decisions and keeps the drafts in a number of their own.
+    const base = sicilianAndOpenGame();
+    const pool = stubPool({
+      ...base,
+      moves: base.moves.map((m) => (
+        m.fen_key === keyAfter('e2e4', 'c7c5')
+          ? { ...m, source: 'auto' }
+          : m)),
+    });
+    const walk = await frontier(pool, 7, { color: 'w', rootFen: START });
+
+    assert.equal(walk.summary.draft, 1);
+    // Three positions had moves before; one of them is now a draft.
+    assert.equal(walk.summary.decided, 2);
+    const sicilian = walk.branches.find((b) => b.key === 'e4 c5');
+    assert.equal(sicilian.draft, 1);
+    // And the walk still goes through it — a draft you cannot reach is a draft
+    // you cannot confirm.
+    assert.ok(walk.open.some((node) => node.path.includes('Nf3')));
+  });

@@ -72,18 +72,26 @@ function step(fen, uci) {
 /// One query rather than one per node. A repertoire is a few hundred rows at
 /// the outside and the walk touches most of them; asking the database node by
 /// node would make the request quadratic in the thing it is measuring.
-async function keptByPosition(pool, userId, color) {
+///
+/// `onlyChosen` leaves out the generated ones. The queue and the picture follow
+/// everything — a draft you cannot reach is a draft you cannot confirm — while
+/// the drill's line walk follows decisions only, because a line through a move
+/// nobody chose is not the student's line.
+async function keptByPosition(pool, userId, color, { onlyChosen = false } = {}) {
   const result = await pool.query(
-    `SELECT fen_key, uci, san, role
+    `SELECT fen_key, uci, san, role, source
        FROM repertoire_moves
       WHERE user_id = $1 AND color = $2
+        AND ($3 = FALSE OR source = 'chosen')
       ORDER BY (role = 'primary') DESC, added_at ASC`,
-    [userId, color],
+    [userId, color, onlyChosen],
   );
   const map = new Map();
   for (const row of result.rows) {
     const list = map.get(row.fen_key) ?? [];
-    list.push({ uci: row.uci, san: row.san, role: row.role });
+    list.push({
+      uci: row.uci, san: row.san, role: row.role, source: row.source,
+    });
     map.set(row.fen_key, list);
   }
   return map;
@@ -177,6 +185,7 @@ async function frontier(pool, userId, {
         // is urgent even when it is nearly done.
         share: node.branch.share,
         decided: 0,
+        draft: 0,
         undecided: 0,
         unopened: 0,
         pruned: 0,
@@ -193,6 +202,7 @@ async function frontier(pool, userId, {
   let ply = 0;
   let nodes = 1;
   let decided = 0;
+  let draft = 0;
   let unopened = 0;
   let maxPly = 0;
   let truncated = false;
@@ -230,8 +240,22 @@ async function frontier(pool, userId, {
         }
         continue;
       }
-      decided += 1;
-      if (tally !== null) tally.decided += 1;
+      // Decided by the student, or still a draft somebody generated. Counted
+      // apart and never added together: a map that called a spine "prepared"
+      // would be the seed's lie with a better source.
+      const chosen = mine.some((move) => move.source !== 'auto');
+      if (chosen) {
+        decided += 1;
+      } else {
+        draft += 1;
+      }
+      if (tally !== null) {
+        if (chosen) {
+          tally.decided += 1;
+        } else {
+          tally.draft += 1;
+        }
+      }
       for (const move of mine) {
         const after = step(node.fen, move.uci);
         if (after === null) continue;
@@ -351,6 +375,9 @@ async function frontier(pool, userId, {
       })),
     summary: {
       decided,
+      // Positions whose every move was generated and none confirmed. Its own
+      // number, beside `decided` rather than inside it.
+      draft,
       open: open.length,
       undecided: open.length - unopened,
       unopened,

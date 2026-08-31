@@ -8,6 +8,7 @@ import 'package:chess_app/features/repertoire/screens/repertoire_new_screen.dart
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 /// The repertoires a student has started, and the door to a new one.
@@ -73,6 +74,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         // lead there — a breadcrumb built from it would name the wrong moves,
         // which is worse than showing none.
         rootPath: at == null ? item.rootPath : const [],
+        minRating: AppSettingsService.instance.repertoireMinRating,
         api: widget.api,
         judge: widget.judge,
         // Straight from the position on the board into practising that branch.
@@ -201,6 +203,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         color: item.color,
         rootFen: item.rootFen,
         rootPath: item.rootPath,
+        minRating: AppSettingsService.instance.repertoireMinRating,
         api: widget.api,
         onBuildAt: (fen) {
           Navigator.of(context).pop();
@@ -225,6 +228,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         rootFen: item.rootFen,
         rootPath: item.rootPath,
         fromFen: from,
+        minRating: AppSettingsService.instance.repertoireMinRating,
         api: widget.api,
         // Landing in an unprepared position is the drill working as intended,
         // so the way on is building that very position — not a dead end and
@@ -241,7 +245,38 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.canvas,
-      appBar: AppBar(title: const Text('Repertoar'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('Repertoar'),
+        elevation: 0,
+        actions: [
+          // The band the book answers from, on the screen that owns every
+          // repertoire rather than buried in Settings: it decides what "the
+          // most played move" means, which is the sentence the whole build
+          // loop is built on.
+          PopupMenuButton<int>(
+            tooltip: 'Rejting protivnika',
+            icon: const Icon(Icons.groups_outlined),
+            onSelected: (band) async {
+              await AppSettingsService.instance.setRepertoireMinRating(band);
+              if (!context.mounted) return;
+              setState(() {});
+              AppFeedback.info(
+                  context, 'Knjiga sada odgovara iz partija od $band naviše.');
+            },
+            itemBuilder: (context) => [
+              for (final band in kRepertoireRatingBands)
+                PopupMenuItem(
+                  value: band,
+                  child: Text(
+                    band == AppSettingsService.instance.repertoireMinRating
+                        ? '$band+ ✓'
+                        : '$band+',
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _create,
         icon: const Icon(Icons.add),
