@@ -47,17 +47,27 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.account_tree,
-                        color: context.colors.accent, size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Stablo Varijanti',
-                      style: AppText.bodyLargeBold
-                          .copyWith(color: context.colors.textPrimary),
-                    ),
-                  ],
+                // Flexible, and the title ellipsised: this header is a Row of
+                // a title and four controls, and at 360 dp it overflowed by
+                // 180 px — invisible in a release build, which paints no
+                // stripes. It had never been pumped at phone width until the
+                // repertoire screen put this panel under a board.
+                Flexible(
+                  child: Row(
+                    children: [
+                      Icon(Icons.account_tree,
+                          color: context.colors.accent, size: 18),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'Stablo Varijanti',
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.bodyLargeBold
+                              .copyWith(color: context.colors.textPrimary),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 Row(
                   children: [

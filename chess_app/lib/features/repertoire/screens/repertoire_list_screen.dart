@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_coverage_screen.dart';
-import 'package:chess_app/features/repertoire/screens/repertoire_tree_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_drill_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_new_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
@@ -195,27 +194,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     }
   }
 
-  /// The same walk as a picture, in the tree the Analysis board already uses.
-  void _tree(RepertoireSummary item) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => RepertoireTreeScreen(
-        name: item.name,
-        color: item.color,
-        rootFen: item.rootFen,
-        rootPath: item.rootPath,
-        api: widget.api,
-        onBuildAt: (fen) {
-          Navigator.of(context).pop();
-          _open(item, at: fen);
-        },
-        onDrillAt: (fen) {
-          Navigator.of(context).pop();
-          _drill(item, from: fen);
-        },
-      ),
-    ));
-  }
-
   void _coverage(RepertoireSummary item) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => RepertoireCoverageScreen(
@@ -231,10 +209,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         onDrillAt: (fen) {
           Navigator.of(context).pop();
           _drill(item, from: fen);
-        },
-        onTree: () {
-          Navigator.of(context).pop();
-          _tree(item);
         },
       ),
     ));
@@ -344,9 +318,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                       case 'coverage':
                         _coverage(item);
                         break;
-                      case 'tree':
-                        _tree(item);
-                        break;
                       case 'imported':
                         _cleanImported(item);
                         break;
@@ -361,13 +332,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                       child: ListTile(
                         leading: Icon(Icons.radar),
                         title: Text('Pokrivenost'),
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'tree',
-                      child: ListTile(
-                        leading: Icon(Icons.account_tree_outlined),
-                        title: Text('Stablo poteza'),
                       ),
                     ),
                     PopupMenuItem(

@@ -239,9 +239,10 @@ Three, and they are decisions rather than details.
 
 ## Order of work
 
-1. **Layout.** The tree panel into the build screen, two/three columns, the
-   strip, the board cap. No data change, immediately useful, and it makes
-   everything below visible while it is being built.
+1. ~~**Layout.**~~ — done 31.8.2026, by the lead after the batch that was
+   briefed for it timed out. Two columns rather than three; the strip, the
+   navigation and the board cap are all in. See `STANJE-RADA.md`, "Stablo je
+   sada pored table".
 2. **`source` and confirming.** The column, the drill and map honouring it, the
    confirm actions. This must land *before* the spine, or the spine reintroduces
    the bug the seed was deleted for.

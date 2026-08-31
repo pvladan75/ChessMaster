@@ -4,12 +4,15 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_judge_panel_widget.dart';
+import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/repertoire/line_text.dart';
+import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
@@ -120,6 +123,16 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// Every position that has already been queued, so a transposition does not
   /// come round twice. Keyed the way the server keys them: no move counters.
   final Set<String> _seen = {};
+
+  /// The repertoire as a picture, and the same thing converted for the tree
+  /// widget. Beside the board rather than on another screen: it was a screen
+  /// for one day, which is one day of it being useless — seeing what you were
+  /// building meant leaving the board and coming back.
+  ///
+  /// Costs no Lichess allowance, like everything that reads what was built, so
+  /// it can be re-read whenever the store changes.
+  RepertoireTree? _tree;
+  AnalysisNode? _treeRoot;
 
   _Pending? _node;
 
@@ -260,6 +273,69 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       });
     }
     await _advance();
+    // Read after the queue rather than beside it: the walk decides what is on
+    // the board, and a picture that arrives first would highlight a position
+    // nobody is standing on yet.
+    await _loadTree();
+  }
+
+  /// Re-reads the picture. Called after anything that changes the store, and
+  /// never on a plain advance: the tree only moves when the moves do.
+  Future<void> _loadTree() async {
+    final tree = await _api.repertoireTree(
+      color: widget.color,
+      rootFen: widget.rootFen,
+      rootPath: widget.rootPath,
+      minRating: widget.minRating,
+    );
+    if (!mounted || tree == null) return;
+    setState(() {
+      _tree = tree;
+      _treeRoot = repertoireTreeToNodes(tree);
+    });
+  }
+
+  /// The node the board is standing on, for the tree to highlight.
+  AnalysisNode? get _activeNode {
+    final root = _treeRoot;
+    final fen = _current;
+    if (root == null || fen == null) return null;
+    return findNodeByFen(root, fen) ?? root;
+  }
+
+  /// Takes the board to a position in the tree.
+  ///
+  /// A tap on a card whose position is the opponent's to move lands on its
+  /// parent instead — the position where that move was *chosen*, which is the
+  /// only one this screen can ask a question about, and what somebody tapping
+  /// their own move means by it.
+  ///
+  /// The queue is left alone. The board shows a position; the queue is where
+  /// the next question comes from, and those were never the same thing.
+  Future<void> _jumpTo(AnalysisNode node) async {
+    var target = node;
+    if (!_isMine(target.fen) && target.parent != null) {
+      target = target.parent!;
+    }
+    if (!_isMine(target.fen)) return;
+    await _show(_Pending(fen: target.fen, path: _pathTo(target)));
+  }
+
+  /// Whether the student is the one to move here.
+  bool _isMine(String fen) {
+    final parts = fen.trim().split(RegExp(r'\s+'));
+    return parts.length >= 2 && parts[1] == widget.color;
+  }
+
+  /// The moves from the repertoire's root down to a node.
+  List<String> _pathTo(AnalysisNode node) {
+    final moves = <String>[];
+    AnalysisNode? at = node;
+    while (at != null && at.moveSan != null) {
+      moves.insert(0, at.moveSan!);
+      at = at.parent;
+    }
+    return moves;
   }
 
   String _keyOf(String fen) {
@@ -291,7 +367,15 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   }
 
   /// Moves to the next position in the queue, or to the "nothing left" state.
-  Future<void> _advance() async {
+  Future<void> _advance() => _show(_queue.isEmpty ? null : _queue.removeAt(0));
+
+  /// Puts one position on the board, or the finished screen when there is none.
+  ///
+  /// Everything belonging to the previous position is cleared here, in one
+  /// place. A verdict, a book, an engine line or a set of answers that outlived
+  /// the board it was about is a bug this screen has met more than once, and it
+  /// is only ever avoided by there being a single door.
+  Future<void> _show(_Pending? node) async {
     setState(() {
       _proposalUci = null;
       _proposalSan = null;
@@ -307,7 +391,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _lines = const [];
       _linesFen = null;
       _thinking = false;
-      _node = _queue.isEmpty ? null : _queue.removeAt(0);
+      _node = node;
       _kept = const [];
     });
     final fen = _current;
@@ -462,7 +546,10 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _busy = false;
       _note = saved ? null : 'Potez nije sačuvan — server nije odgovorio.';
     });
-    if (saved) await _loadKept();
+    if (saved) {
+      await _loadKept();
+      await _loadTree();
+    }
     _clearProposal();
   }
 
@@ -775,6 +862,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     // A stop, not a step. These answers cost a Lichess request and they decide
     // what the whole next wave looks like; walking straight past them is how
     // the student ended up building a tree whose shape nobody had seen.
+    // A wave of replies is new branches, so the picture moved too.
+    await _loadTree();
     if (shownFen == null) {
       await _advance();
       return;
@@ -844,6 +933,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               '${below.length} ${below.length == 1 ? "pozicija" : "pozicija"}.';
     });
     await _advance();
+    await _loadTree();
   }
 
   /// "Prepare this one too" — one opponent move from past the covered wave.
@@ -899,6 +989,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           ? 'U pripremi je i ${reply.san}. Vratiće se u red i sutra.'
           : '${reply.san} je već u pripremi.';
     });
+    await _loadTree();
   }
 
   /// Whether a queued position lies under [root] — its line starts with that
@@ -947,6 +1038,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     // queue, in its own place; it does not shove aside the position the student
     // is in the middle of answering.
     if (_current == null) await _advance();
+    await _loadTree();
   }
 
   Future<void> _makePrimary(RepertoireMove move) async {
@@ -954,6 +1046,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (fen == null) return;
     await _api.makePrimary(color: widget.color, fen: fen, uci: move.uci);
     await _loadKept();
+    await _loadTree();
   }
 
   Future<void> _remove(RepertoireMove move) async {
@@ -961,6 +1054,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (fen == null) return;
     await _api.removeMove(color: widget.color, fen: fen, uci: move.uci);
     await _loadKept();
+    await _loadTree();
   }
 
   @override
@@ -999,73 +1093,149 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Minus the padding below, not the raw width: BoardWithCoordinates
-        // takes `size` as the whole thing, gutter included, so handing it the
-        // outer width overflows by exactly the padding — 24 px, invisible in a
-        // release build.
-        final boardSize = (constraints.maxWidth - 24).clamp(200.0, 420.0);
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: BoardWithCoordinates(
-                  size: boardSize,
-                  orientation:
-                      _forWhite ? PlayerColor.white : PlayerColor.black,
-                  builder: (inner) => ChessBoardWithOverlay(
-                    controller: _boardController,
-                    boardOrientation:
-                        _forWhite ? PlayerColor.white : PlayerColor.black,
-                    boardSize: inner,
-                    // Nothing to play while the answers are up: the board is
-                    // showing a position it is the opponent's turn in, and a
-                    // move dragged there would be judged as the student's own.
-                    isAllowedToMove:
-                        !_busy && _proposalUci == null && _answers == null,
-                    isDrawingMode: false,
-                    drawingStartSquare: null,
-                    arrows: const [],
-                    // The engine's answer, on the board rather than only in a
-                    // list underneath it: one arrow per line, its evaluation
-                    // written beside it. Reading a move as "Nxd4" and finding
-                    // it on the board is work a beginner should not have to do
-                    // to see what the engine means.
-                    engineArrows: _boardArrows(),
-                    onMove: _onMove,
-                    onSquareTapForDrawing: (_) {},
-                  ),
-                ),
+        // Where there is room, the tree sits beside the board instead of on
+        // another screen. This costs nothing: the board is capped, and on a
+        // desktop window the space it does not use was empty.
+        final wide = constraints.maxWidth >= Breakpoints.wide;
+        if (!wide) {
+          return _buildBoardColumn(context, _boardSize(constraints, wide));
+        }
+        // Wide enough for two: the board and its question on the left, the
+        // picture on the right. The left column is the board plus its padding
+        // and no more — everything past that belongs to the tree.
+        final left = (constraints.maxWidth * 0.42).clamp(420.0, 620.0);
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: left,
+              child: _buildBoardColumn(context, _boardSize(constraints, wide)),
+            ),
+            VerticalDivider(width: 1, color: context.colors.border),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: _buildTree(context),
               ),
-              const SizedBox(height: AppSpacing.md),
-              _buildQuestion(context),
-              const SizedBox(height: AppSpacing.sm),
-              // One thing at a time. While the opponent's answers are on the
-              // board, the verdict, the kept moves, the engine and the book all
-              // belong to a position that is no longer the one being shown.
-              if (_answers != null) _buildAnswers(context, _answers!),
-              if (_answers == null && _proposalSan != null)
-                _buildVerdict(context),
-              if (_answers == null && _kept.isNotEmpty) _buildKept(context),
-              // Open once the engine has been asked about *this* position —
-              // including when it came back with nothing, because that is
-              // exactly when the reader wants the depth dial and another go.
-              if (_answers == null && (_thinking || _linesFen == _current))
-                _buildEngine(context),
-              if (_answers == null && _book != null) _buildBook(context),
-              if (_note != null) ...[
-                const SizedBox(height: AppSpacing.sm),
-                Text(_note!,
-                    style: AppText.caption
-                        .copyWith(color: context.colors.textMuted)),
-              ],
-              const SizedBox(height: AppSpacing.md),
-              _buildControls(context),
-            ],
-          ),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  /// How big the board may be here.
+  ///
+  /// Minus the padding, not the raw width: BoardWithCoordinates takes `size` as
+  /// the whole thing, gutter included, so handing it the outer width overflows
+  /// by exactly the padding — 24 px, invisible in a release build.
+  ///
+  /// The old ceiling of 420 is a phone number, and on a 1900 px window it left
+  /// a phone layout wearing a desktop. Wide, it grows — but never past what the
+  /// height allows, or the question below it goes off the bottom, which is the
+  /// one thing worse than a small board.
+  double _boardSize(BoxConstraints constraints, bool wide) {
+    if (!wide) return (constraints.maxWidth - 24).clamp(200.0, 420.0);
+    final byWidth = (constraints.maxWidth * 0.42).clamp(420.0, 620.0) - 24;
+    final byHeight =
+        constraints.maxHeight.isFinite ? constraints.maxHeight - 280 : byWidth;
+    final smaller = byWidth < byHeight ? byWidth : byHeight;
+    return smaller.clamp(200.0, 560.0);
+  }
+
+  /// The tree, drawn by the analysis board's own widget.
+  ///
+  /// Nothing until the walk has answered; an empty canvas would read as an
+  /// empty repertoire, which is the one sentence this screen must not say by
+  /// accident.
+  Widget _buildTree(BuildContext context) {
+    final root = _treeRoot;
+    final active = _activeNode;
+    if (root == null || active == null) return const SizedBox.shrink();
+    return RepertoireTreePanel(
+      root: root,
+      active: active,
+      onSelect: _jumpTo,
+      truncatedAt: _tree?.truncated == true ? _tree?.maxPly : null,
+    );
+  }
+
+  /// The board and everything that belongs to the position standing on it.
+  Widget _buildBoardColumn(BuildContext context, double boardSize) {
+    final active = _activeNode;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: BoardWithCoordinates(
+              size: boardSize,
+              orientation: _forWhite ? PlayerColor.white : PlayerColor.black,
+              builder: (inner) => ChessBoardWithOverlay(
+                controller: _boardController,
+                boardOrientation:
+                    _forWhite ? PlayerColor.white : PlayerColor.black,
+                boardSize: inner,
+                // Nothing to play while the answers are up: the board is
+                // showing a position it is the opponent's turn in, and a
+                // move dragged there would be judged as the student's own.
+                isAllowedToMove:
+                    !_busy && _proposalUci == null && _answers == null,
+                isDrawingMode: false,
+                drawingStartSquare: null,
+                arrows: const [],
+                // The engine's answer, on the board rather than only in a
+                // list underneath it: one arrow per line, its evaluation
+                // written beside it. Reading a move as "Nxd4" and finding
+                // it on the board is work a beginner should not have to do
+                // to see what the engine means.
+                engineArrows: _boardArrows(),
+                onMove: _onMove,
+                onSquareTapForDrawing: (_) {},
+              ),
+            ),
+          ),
+          // Where you came from, where you are, and what comes next. The
+          // part of the tree you need while answering a position, and the
+          // only part readable at 360 dp — where the canvas below is one
+          // scroll away rather than the thing you read.
+          if (active != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            RepertoireLineStrip(active: active, onSelect: _jumpTo),
+          ],
+          const SizedBox(height: AppSpacing.md),
+          _buildQuestion(context),
+          const SizedBox(height: AppSpacing.sm),
+          // One thing at a time. While the opponent's answers are on the
+          // board, the verdict, the kept moves, the engine and the book all
+          // belong to a position that is no longer the one being shown.
+          if (_answers != null) _buildAnswers(context, _answers!),
+          if (_answers == null && _proposalSan != null) _buildVerdict(context),
+          if (_answers == null && _kept.isNotEmpty) _buildKept(context),
+          // Open once the engine has been asked about *this* position —
+          // including when it came back with nothing, because that is
+          // exactly when the reader wants the depth dial and another go.
+          if (_answers == null && (_thinking || _linesFen == _current))
+            _buildEngine(context),
+          if (_answers == null && _book != null) _buildBook(context),
+          if (_note != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(_note!,
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted)),
+          ],
+          const SizedBox(height: AppSpacing.md),
+          _buildControls(context),
+          // Narrow: under the controls rather than beside them, and never a
+          // navigation away. The panel caps its own height, so it sits in
+          // this scroll view without eating the board.
+          if (!Breakpoints.isWide(context)) ...[
+            const SizedBox(height: AppSpacing.lg),
+            _buildTree(context),
+          ],
+        ],
+      ),
     );
   }
 

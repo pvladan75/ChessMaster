@@ -2680,6 +2680,50 @@ te poteze zaista igra na toj tabli.
 Testovi: backend 751 → **758**, aplikacija 989 → **992**. Uživo nije viđeno:
 [TODO-provera.md](TODO-provera.md), stavka 68.
 
+## Stablo je sada pored table — korak 1 iz plana, 31.8.2026
+
+Prvi korak iz [PLAN-REPERTOAR.md](PLAN-REPERTOAR.md). `RepertoireTreeScreen`
+više ne postoji kao ekran: crtež je **panel na ekranu za izgradnju**, onako kako
+Analiza to već radi, pa se ono što se gradi vidi dok se gradi.
+
+- **Široko (≥840 dp):** dve kolone — tabla sa pitanjem levo, stablo desno. Ovo
+  ništa ne košta: tabla je ograničena, pa je prostor pored nje na 1900 px
+  prozoru i do sada bio prazan. Tabla sada raste do 560 px, ali nikad preko
+  onoga što visina dozvoljava — pitanje ispod nje ne sme da ode sa ekrana.
+- **Usko:** jedna kolona, panel ispod kontrola, sklopljen. Nikakve navigacije.
+- **Oba:** traka odmah ispod table — roditelj → trenutna pozicija → deca, svako
+  sa svojom oznakom. To je deo stabla koji treba dok se odgovara na poziciju, i
+  jedini koji je čitljiv na 360 dp.
+
+**Stablo je postalo navigacija.** Dodir na čvor vodi tablu tamo. Dodir na *svoj*
+potez vodi na poziciju **pre** njega — tamo gde je ta odluka doneta — jer je to
+jedina pozicija o kojoj ovaj ekran ume da postavi pitanje, i to je ono što neko
+ko dodirne svoj potez i misli. Red je ostao netaknut: tabla pokazuje poziciju,
+red je mesto odakle stiže sledeće pitanje, i to nikad nisu bile iste stvari.
+
+**Nađen jedan stari bag, i to onaj koji se ne vidi.** `AnalysisMoveTreeWidget`
+ima zaglavlje koje je `Row` sa naslovom i četiri kontrole; na 360 dp prelivalo se
+za **180 px**. Postoji od kad i Analiza i nikad nije bilo pumpano na širini
+telefona — u release build-u se preliv ne crta, pa se ne vidi. Naslov je sada u
+`Flexible`, i popravka je **dokazana mutacijom**: bez njega test na 360 dp pada.
+Analiza od toga takođe ima koristi.
+
+Testovi: 985 → **983** (obrisan `repertoire_tree_test.dart` sa 7, dodato 5 novih
+za raspored). Uživo nije viđeno: [TODO-provera.md](TODO-provera.md), stavka 70.
+
+### Batch koji je ovo trebalo da uradi — istekao
+
+Posao je bio predat Gemini-ju i **istekao je na 75 minuta**. Izveštaj je tvrdio
+da je sve urađeno; diff je pokazao da `repertoire_build_screen.dart` — ceo smisao
+posla — nije ni otvoren, a napisani panel nije bio pozvan niotkuda. Test koji je
+napisao pumpao je **nepromenjen** ekran, pa bi prošao ne dokazujući ništa.
+
+Uzrok je u ostacima: `modify_build.py`, 285 linija `content.replace()` hirurgije
+nad fajlom od 1804 linije. Pouka je ona koju je `chess_game_screen.dart` već
+naučio i koju je brief zaboravio: **prepravka vrlo velikog fajla nije jedan
+batch** — taj ekran (4291 linija) uzet je u pet prolaza. Zapisano u
+`orchestrator/HANDOFF.md`.
+
 ## Izgradnja repertoara se prepravlja — plan, 31.8.2026
 
 Vlasnik je posle prvog ozbiljnog korišćenja rekao da je gradnja konfuzna, i

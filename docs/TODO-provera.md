@@ -2568,3 +2568,29 @@ Backend mora biti pokrenut jednom **posle** ove izmene, da nastane tabela
 9. [ ] **Nema više provere završnica.** Na ekranu arhive i posle uvoza nema
    dugmeta „Proveri završnice". Ponavljanje grešaka i dalje radi, uključujući
    nalaze iz završnica koji su ranije upisani.
+
+## 70. Stablo pored table — 31.8.2026, nije viđeno uživo
+
+1. [ ] **Na Windows-u su tabla i stablo jedno pored drugog.** Otvoriti
+   repertoar: desno od table stoji crtež, i prostor koji je ranije bio prazan
+   sada nosi stablo.
+2. [ ] **Tabla je veća nego ranije** na punom prozoru, ali pitanje ispod nje se
+   i dalje vidi bez skrolovanja.
+3. [ ] **Traka ispod table.** Roditelj → trenutna pozicija → deca, sa oznakama
+   (★, procenat, ?, …, ✂). Dodir na stavku vodi tamo.
+4. [ ] **Dodir na protivnikov potez vodi tablu na tu poziciju**, i linija iznad
+   table se produži.
+5. [ ] **Dodir na svoj potez vodi na poziciju pre njega** — tamo gde je taj
+   potez izabran — a ne u poziciju u kojoj je protivnik na potezu.
+6. [ ] **Red nije poremećen.** Posle skakanja po stablu, „Preskoči" i „Dalje"
+   i dalje rade, i „Još N u redu" se nije promenio zbog samog skakanja.
+7. [ ] **Crtež prati tablu.** Posle „Uzmi" i „Dalje", stablo se osveži i nova
+   grana se vidi bez ručnog osvežavanja.
+8. [ ] **Telefon, 360 dp, release build.** Panel je ispod kontrola, sklopljen.
+   Ovo je mesto gde je nađen preliv od 180 px u zaglavlju panela — proveriti da
+   se ništa ne seče, naročito naslov „Stablo Varijanti".
+9. [ ] **Analiza i dalje radi.** Isti panel se koristi u Analizi; otvoriti je i
+   proveriti da zaglavlje izgleda normalno na širokom prozoru.
+10. [ ] **Nema više zasebnog ekrana za stablo.** U spisku repertoara u ⋮ meniju
+    nema stavke „Stablo poteza", i u zaglavlju „Pokrivenost" nema ikonice
+    stabla — jer je stablo tamo gde se gradi.
