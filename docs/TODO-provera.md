@@ -2742,3 +2742,21 @@ Traži **vaš Lichess token** (isti kao sudija), jer troši vašu kvotu.
 11. [ ] **Telefon, 360 dp, release build.** Ekran je dobio dva panela i paletu
     više — proveriti da se dugmad ispod table i dalje dohvate skrolom i da se
     ništa ne seče.
+
+## 77. Jedna lista, već izabran potez, izbor grane — 1.9.2026, nije viđeno uživo
+
+1. [ ] **Potez koji je već u repertoaru.** Odigrati na tabli potez koji tu već
+   stoji (i glavni i alternativu): nema „Uzmi X", tabla stane posle njega i
+   ispod je „Posle X — šta igra protivnik". Brojač „upita:" se ne miče.
+2. [ ] **Samo jedna Lichess lista.** Posle odigranog i uzetog poteza ne sme da
+   se pojavi drugi panel sa istim potezima. Brojač poraste za **jedan** (sudija),
+   ne za dva.
+3. [ ] **Navigacija u granatoj poziciji.** Na poziciji sa više nastavaka,
+   „napred" otvori spisak „Odavde ide više linija — kojom?"; izbor vodi tablu
+   tom granom. Gde grananja nema, ide se bez pitanja.
+4. [ ] **Desni klik javi šta je uradio.** Posle „Unapredi", „Obriši" i reza na
+   protivnikovom potezu pojavi se poruka na dnu ekrana.
+5. [ ] **Strelice na tabli.** Najviše četiri, ništa ispod 2% — a lista ispod
+   table i dalje ima sve poteze.
+6. [ ] **Telefon, 360 dp, release build.** List za izbor grane i poruke
+   `AppFeedback`-a ne smeju ništa da preklope ni da iseku.

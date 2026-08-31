@@ -16,6 +16,7 @@ import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -160,11 +161,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   String? _proposalSan;
   OpeningJudgement? _verdict;
   String? _verdictReason;
-
-  /// The book with the result percentages, fetched once a move has been
-  /// played. It costs a request and carries what the stored book cannot: how
-  /// those games actually went.
-  OpponentReplies? _book;
 
   /// What is played in the position **on the board**, out of the stored book.
   ///
@@ -469,6 +465,21 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       await _show(_Pending(fen: from.fen, path: _pathTo(from)));
       if (!mounted) return;
     }
+    await _standAfterMove(fen: fen, uci: uci, san: san);
+  }
+
+  /// The same, for a move that is already on the board: everything belonging to
+  /// the position behind it is cleared, the board stays where it is, and the
+  /// panel below becomes what the opponent answers with.
+  ///
+  /// [path] is only used when the caller knows the line — a move played by hand
+  /// on a board that is already standing in the right place.
+  Future<void> _standAfterMove({
+    required String fen,
+    required String uci,
+    required String san,
+    List<String>? path,
+  }) async {
     setState(() {
       // A move on the board, a verdict or an engine line belongs to the
       // position that is no longer the one being shown.
@@ -476,7 +487,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _proposalSan = null;
       _verdict = null;
       _verdictReason = null;
-      _book = null;
       _lines = const [];
       _linesFen = null;
       _showTail = false;
@@ -510,18 +520,25 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final move = _moveOf(node);
     if (move == null || _busy) return;
     if (!_isMine(move.from.fen)) {
-      setState(() => _note = 'To je protivnikov potez — glavni potez biraju '
-          'samo vaši.');
+      // Said out loud, and through AppFeedback: a menu item that does nothing
+      // and explains nothing is what this menu was for a day.
+      AppFeedback.info(
+          context, 'To je protivnikov potez — glavni potez biraju samo vaši.');
       return;
     }
     final kept = await _keptAt(move.from);
     if (kept == null) return;
     final mine = kept.where((m) => m.uci == move.uci).firstOrNull;
     if (mine == null) {
-      setState(() => _note = '${move.san} više nije u repertoaru.');
+      if (!mounted) return;
+      AppFeedback.warning(context, '${move.san} više nije u repertoaru.');
       return;
     }
     await _makePrimary(mine);
+    if (!mounted) return;
+    // Do the thing, then say it. The tree redraws with the star somewhere else,
+    // which is easy to miss on a canvas that is being panned.
+    AppFeedback.success(context, '${move.san} je sada vaš glavni potez.');
   }
 
   /// "Obriši ovu varijantu" on a card, which means two different things.
@@ -542,6 +559,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       await _show(_Pending(fen: node.fen, path: _pathTo(node)));
       if (!mounted) return;
       await _cutBranch();
+      if (!mounted) return;
+      AppFeedback.success(context,
+          'Grana posle ${move.san} je odsečena — više je nema u crtežu.');
       return;
     }
 
@@ -549,10 +569,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (kept == null) return;
     final mine = kept.where((m) => m.uci == move.uci).firstOrNull;
     if (mine == null) {
-      setState(() => _note = '${move.san} više nije u repertoaru.');
+      if (!mounted) return;
+      AppFeedback.warning(context, '${move.san} više nije u repertoaru.');
       return;
     }
     await _remove(mine);
+    if (!mounted) return;
+    AppFeedback.success(context, '${move.san} je uklonjen iz repertoara.');
   }
 
   /// Takes the board to the position a card's move is played from, and hands
@@ -632,9 +655,66 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       onSeek: (to) {
         final nodes = _lineNodes();
         if (to < 0 || to >= nodes.length) return;
+        // One step forward out of a position that branches: which branch was
+        // never a question the palette could ask, so it always took the first
+        // child and the other lines were unreachable by navigation at all.
+        // Now it asks — and only here, where there is a real choice to make.
+        final here = _activeNode;
+        if (to == _lineIndex() + 1 &&
+            here != null &&
+            here.children.length > 1) {
+          _askWhichBranch(here);
+          return;
+        }
         _jumpTo(nodes[to]);
       },
     );
+  }
+
+  /// Which line to follow out of a position that branches.
+  ///
+  /// A sheet rather than a silent choice: at a branching node "forward" has
+  /// more than one meaning, and picking the first child every time is what made
+  /// every other branch unreachable by the palette. Each row says how often the
+  /// opponent plays it and what state the position after it is in, which is the
+  /// same thing the tree's cards say — the choice is made with the same facts
+  /// wherever it is made.
+  Future<void> _askWhichBranch(AnalysisNode from) async {
+    final picked = await showModalBottomSheet<AnalysisNode>(
+      context: context,
+      backgroundColor: context.colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xs),
+              child: Text('Odavde ide više linija — kojom?',
+                  style: AppText.bodyBold
+                      .copyWith(color: sheet.colors.textPrimary)),
+            ),
+            for (final child in from.children)
+              ListTile(
+                dense: true,
+                leading: Icon(Icons.arrow_forward,
+                    size: 18, color: sheet.colors.accent),
+                title: Text('${child.moveSan ?? ""}${child.nag ?? ""}',
+                    style: AppText.bodyLarge
+                        .copyWith(color: sheet.colors.textPrimary)),
+                onTap: () => Navigator.pop(sheet, child),
+              ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || picked == null) return;
+    await _jumpTo(picked);
   }
 
   Widget _buildNavigation(BuildContext context) {
@@ -698,7 +778,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _proposalSan = null;
       _verdict = null;
       _verdictReason = null;
-      _book = null;
       _here = null;
       _hereFor = null;
       _answers = null;
@@ -904,6 +983,26 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final san = board.getHistory().last.toString();
     final uci = isPromotion ? '$from$to$piece' : '$from$to';
 
+    // Already in the repertoire. Playing it on the board is then the same act
+    // as picking it in the tree — "go and look at what comes after it" — and
+    // not a proposal to be judged and accepted a second time. Asking "Uzmi
+    // Re1?" about a move that is already kept is the screen not knowing what
+    // it holds.
+    final already = _kept.where((move) => move.uci == uci).firstOrNull;
+    if (already != null) {
+      final after = _fenAfter(fen, uci);
+      _boardController.loadFen(fen);
+      if (after == null) return;
+      final node = _node;
+      await _standAfterMove(
+        fen: after,
+        uci: uci,
+        san: already.san,
+        path: node == null ? const [] : [...node.path, already.san],
+      );
+      return;
+    }
+
     setState(() {
       _busy = true;
       _proposalUci = uci;
@@ -922,39 +1021,17 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _verdictReason = lookup.reason;
     });
 
-    // And now the book, without being asked for it.
-    //
-    // The rule is about *when*, not whether: hidden while the student is still
-    // deciding, free the moment they have committed. Choosing between
-    // candidates is the work, and a verdict on one move says whether that move
-    // is sound — not whether something better was sitting next to it. There is
-    // nothing left to spoil once the move has been played.
-    await _loadBook();
+    // No second book here. It used to be fetched automatically the moment a
+    // move was played — a Lichess request per move, for a list that is already
+    // on screen above and has been since the position opened. What it carried
+    // that the stored one cannot is how those games *ended*; that is worth
+    // having and is not worth a request per move against a token that serves
+    // every child using this app. If it comes back, it comes back as a column
+    // in `opening_replies`, fetched once for everybody.
   }
 
   /// The moves played from the position in front of the student, and how those
   /// games went. Fetched once per position; the counter says what it cost.
-  Future<void> _loadBook() async {
-    final fen = _current;
-    if (fen == null || _book != null) return;
-    // Without a token there is no book to fetch, and the verdict panel already
-    // says why. A second sentence about the same missing token is noise.
-    if (!_judge.hasPersonalToken) return;
-    setState(() => _busy = true);
-    final lookup = await _judge.replies(fen, minRating: widget.minRating);
-    if (!mounted) return;
-    // The book that arrives is the book for the board it was asked about.
-    if (_current != fen) return;
-    setState(() {
-      _busy = false;
-      _asked += 1;
-      _book = lookup.replies;
-      if (!lookup.isAvailable) {
-        _note = 'Knjiga nije dostupna (${lookup.reason}).';
-      }
-    });
-  }
-
   bool _isPromotion(chess.Chess board, String from, String to) {
     final piece = board.get(from);
     if (piece == null || piece.type != chess.PieceType.PAWN) return false;
@@ -1134,15 +1211,15 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// width as well as colour, and the star is a third channel again. Which move
   /// is the main one must never rest on hue alone.
   ///
-  /// The share comes from the book when the book happens to be open. It is not
-  /// fetched for this: an arrow is not worth a Lichess request the student did
-  /// not ask for, and the star says the thing that matters without one.
+  /// The share comes from the stored book for this position, which is on
+  /// screen anyway and costs nothing. Nothing is fetched for an arrow: a
+  /// drawing is not worth a Lichess request the student did not ask for, and
+  /// the star says the thing that matters without one.
   List<EngineArrow> _keptArrows() {
-    final book = _book;
+    final book = _hereFor == _current ? _here : null;
     final shares = <String, double>{
       if (book != null)
-        for (final move in (book.all.isNotEmpty ? book.all : book.replies))
-          move.uci: move.share,
+        for (final move in book.replies) move.uci: move.share,
     };
 
     final arrows = <EngineArrow>[];
@@ -2124,7 +2201,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                   _linesFen == _current ||
                   _noteHere != null))
             _buildEngine(context),
-          if (!_afterMyMove && _book != null) _buildBook(context),
           if (_note != null) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(_note!,
@@ -2700,110 +2776,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             child: Text(
               '${score.round()}% po vas · ${reply.games} partija',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBook(BuildContext context) {
-    final book = _book!;
-    final moves = book.all.isNotEmpty ? book.all : book.replies;
-    final kept = {for (final move in _kept) move.uci};
-
-    return Container(
-      margin: const EdgeInsets.only(top: AppSpacing.sm),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: context.colors.surface.withValues(alpha: 0.5),
-        borderRadius: AppRadii.roundedSm,
-        border: Border.all(color: context.colors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.menu_book, size: 16, color: context.colors.accent),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text('Šta se ovde igra',
-                    style: AppText.bodyBold
-                        .copyWith(color: context.colors.accent)),
-              ),
-              Text('${book.total} partija',
-                  style:
-                      AppText.micro.copyWith(color: context.colors.textMuted)),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(
-            'Drugi procenat je koliko su te partije donele strani na potezu — '
-            'kako je prošlo, ne koliko je dobro.',
-            style: AppText.micro.copyWith(color: context.colors.textMuted),
-          ),
-          const SizedBox(height: 6),
-          if (moves.isEmpty)
-            Text('Nijedna partija iz baze ne prolazi kroz ovu poziciju.',
-                style:
-                    AppText.caption.copyWith(color: context.colors.textMuted))
-          else
-            for (final reply in moves)
-              _bookRow(context, reply, kept.contains(reply.uci)),
-          if (_proposalUci != null &&
-              moves.isNotEmpty &&
-              !moves.any((m) => m.uci == _proposalUci))
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                '$_proposalSan nije među ovim potezima — ovde se retko igra.',
-                style: AppText.caption.copyWith(color: context.colors.warning),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _bookRow(BuildContext context, OpponentReply reply, bool isKept) {
-    final mine = reply.uci == _proposalUci;
-    final score = reply.scoreFor(white_: _forWhite);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 20,
-            child: isKept
-                ? Icon(Icons.star, size: 14, color: context.colors.accent)
-                : (mine
-                    ? Icon(Icons.arrow_right,
-                        size: 16, color: context.colors.textPrimary)
-                    : const SizedBox.shrink()),
-          ),
-          SizedBox(
-            width: 64,
-            child: Text(
-              reply.san,
-              style: (mine ? AppText.bodyBold : AppText.body).copyWith(
-                color: mine
-                    ? context.colors.textPrimary
-                    : context.colors.textSecondary,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 48,
-            child: Text('${(reply.share * 100).round()}%',
-                style:
-                    AppText.caption.copyWith(color: context.colors.textMuted)),
-          ),
-          Expanded(
-            child: Text(
-              '${score.round()}% za ${_forWhite ? "belog" : "crnog"}',
-              style:
-                  AppText.caption.copyWith(color: context.colors.textSecondary),
             ),
           ),
         ],

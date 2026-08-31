@@ -467,41 +467,64 @@ void main() {
     expect(judge.judged, 1, reason: 'suđenje je poenta ovog režima');
     expect(find.text('Nc6 · Glavna teorija'), findsOneWidget);
     expect(find.text('Uzmi Nc6'), findsOneWidget);
-    // Two: the verdict, and the book that follows it. Their allowance, so the
-    // count is on screen rather than guessed at.
-    expect(find.textContaining('upita: 2'), findsOneWidget);
+    // One: the verdict, and nothing else. A second book used to be fetched the
+    // moment a move was played — a request per move, for a list that has been
+    // on screen since the position opened. Their allowance, so the count is on
+    // screen rather than guessed at.
+    expect(find.textContaining('upita: 1'), findsOneWidget);
   });
 
-  testWidgets('the book arrives once the move is played, without being asked',
-      (tester) async {
-    // Hidden while the student is deciding, free the moment they commit. A
-    // verdict on one move says whether that move is sound; it does not say
-    // whether something better was sitting next to it, and choosing between
-    // candidates is the actual work.
-    await pump(tester);
-
-    expect(find.text('Šta se ovde igra'), findsNothing);
-
-    await play(tester, 'b8', 'c6');
+  testWidgets('playing a move fetches no second list', (tester) async {
+    // There used to be one: the moment a move was played, the judge was asked
+    // for the whole book so the reader could see how those games ended. It cost
+    // a Lichess request per move against a token that serves every child using
+    // this app, and it printed a second panel under the one that had been on
+    // screen since the position opened. What it carried that the stored list
+    // cannot — how the games *ended* — is worth having, and is worth having as
+    // a column fetched once for everybody rather than a request per move.
+    await pump(
+      tester,
+      book: const StoredBook(
+        fen: 'x',
+        opened: true,
+        replies: [
+          StoredReply(
+              uci: 'b8c6', san: 'Nc6', games: 900, share: 0.6, covered: true),
+        ],
+      ),
+    );
 
     expect(find.text('Šta se ovde igra'), findsOneWidget);
-    expect(find.text('d6'), findsOneWidget);
-    expect(find.text('a6'), findsOneWidget);
-    // Popularity and how those games went, side by side.
-    expect(find.text('60%'), findsOneWidget);
-    expect(find.textContaining('za crnog'), findsWidgets);
+    await play(tester, 'b8', 'c6');
+
+    // Still one panel, and only the verdict was paid for.
+    expect(find.text('Šta se ovde igra'), findsOneWidget);
+    expect(judge.asked, 0);
+    expect(find.textContaining('upita: 1'), findsOneWidget);
   });
 
-  testWidgets('reading the book after a move is not counted as looking it up',
+  testWidgets('a move already kept is not offered for keeping again',
       (tester) async {
-    await pump(tester);
+    // The owner played his own second move on the board and was asked whether
+    // to accept it — a move that was already in the repertoire. Playing a kept
+    // move is the same act as picking it in the tree: go and look at what comes
+    // after it.
+    await pump(
+      tester,
+      seed: {
+        smithMorra.split(' ').take(4).join(' '): const [
+          RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
+        ],
+      },
+      book: const StoredBook(fen: 'x', opened: true, replies: []),
+    );
 
     await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Uzmi Nc6'));
-    await tester.pumpAndSettle();
 
-    expect(api.attempts.single['lookedUp'], false,
-        reason: 'pogledao je tek pošto se opredelio — to nije zavirivanje');
+    expect(find.text('Uzmi Nc6'), findsNothing);
+    expect(judge.judged, 0, reason: 'odluka koja postoji se ne sudi ponovo');
+    // Standing after it, looking at what comes back.
+    expect(find.text('Nazad na Nc6'), findsOneWidget);
   });
 
   testWidgets('a kept move is stored, and the first one is the primary',
@@ -771,7 +794,7 @@ void main() {
 
     // Two book lookups: this position's, which came with the verdict, and the
     // one after the kept move, which is the next wave.
-    expect(judge.asked, 2);
+    expect(judge.asked, 1);
     expect(find.textContaining('Pokriveno 85%'), findsOneWidget);
     expect(find.textContaining('van toga još 3'), findsOneWidget);
 
@@ -832,8 +855,9 @@ void main() {
     expect(first.single.to, 'c6');
     // The star, not a colour. Which move is the main one must never rest on
     // hue alone — rank already carries stroke width, and this is a third
-    // channel again. The share comes from the book that is already open.
-    expect(first.single.evalText, '★ 60%');
+    // channel again. No share beside it here: this fake serves no stored book,
+    // and an arrow is never worth a request of its own.
+    expect(first.single.evalText, '★');
     expect(first.single.rank, 1);
 
     // A second move kept here is an alternate: thinner, unstarred, and still
@@ -844,9 +868,9 @@ void main() {
 
     final both = arrows(tester);
     expect(both.length, 2);
-    expect(both.first.evalText, '★ 60%', reason: 'glavni ostaje glavni');
+    expect(both.first.evalText, '★', reason: 'glavni ostaje glavni');
     expect(both.last.to, 'd6');
-    expect(both.last.evalText, '30%');
+    expect(both.last.evalText, '');
     expect(both.last.rank, 2);
   });
 

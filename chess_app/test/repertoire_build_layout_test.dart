@@ -25,6 +25,10 @@ const afterC5 = 'rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 0 4';
 const afterC3 =
     'rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/2P5/PP3PPP/RNBQKBNR b KQkq - 0 4';
 
+/// After 4.Nf3 instead — the second branch, so the line has a fork in it.
+const afterNf3 =
+    'rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/5N2/PPP2PPP/RNBQKB1R b KQkq - 1 4';
+
 class _FakeApi extends RepertoireApiService {
   _FakeApi() : super(client: MockClient((_) async => http.Response('{}', 500)));
 
@@ -171,6 +175,16 @@ class _FakeApi extends RepertoireApiService {
               fen: afterC3,
               mine: false,
               share: 0.64,
+              state: 'open',
+            ),
+            // A second reply, so the line forks and "forward" has more than one
+            // meaning at that node.
+            RepertoireTreeMove(
+              uci: 'g1f3',
+              san: 'Nf3',
+              fen: afterNf3,
+              mine: false,
+              share: 0.2,
               state: 'open',
             ),
           ],
@@ -412,6 +426,35 @@ void main() {
     // It runs past the board to the end of the line, or its forward buttons
     // would be dead the moment the screen opens.
     expect(find.text('Potez 0 od 2'), findsOneWidget);
+  });
+
+  testWidgets('forward out of a branching position asks which line',
+      (tester) async {
+    // "Forward" has more than one meaning at a fork, and the palette always
+    // took the first child — so every other branch was unreachable by
+    // navigation at all, which is what the owner ran into.
+    await pump(tester, const Size(1400, 900));
+
+    // One step onto the student's own move, which is where the fork is.
+    // The palette's own forward button: the strip below the board draws the
+    // same chevron between its chips.
+    final forward = find.descendant(
+      of: find.byType(MoveNavigationControls),
+      matching: find.byIcon(Icons.chevron_right),
+    );
+    await tester.tap(forward);
+    await tester.pumpAndSettle();
+    await tester.tap(forward);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Odavde ide više linija — kojom?'), findsOneWidget);
+    await tester.tap(find.descendant(
+      of: find.byType(ListTile),
+      matching: find.textContaining('Nf3 20%'),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1.e4 e6 2.d4 d5 3.e5 c5 4.Nf3'), findsOneWidget);
   });
 
   testWidgets('a jump to the position already on the board changes nothing',

@@ -2694,6 +2694,44 @@ izmena nad istim ekranom, nijedna nije pokrenuta.
 Backend treba pokrenuti jednom zbog `ALTER TABLE repertoire_moves ADD COLUMN
 source` i zbog nove tabele `repertoire_notes`.
 
+## Drugi prolaz uživo: jedna lista, jedan zahtev, jedan izbor — 1.9.2026
+
+Vlasnik je prošao kroz izmene i javio četiri stvari. Sve četiri su bile tačne i
+sve su bile posledica istog: ekran je radio dvaput ono što treba jednom.
+
+**Potez koji je već u repertoaru se više ne sudi ponovo.** Vlasnik je odigrao
+svoj *drugi* potez u poziciji i ekran ga je pitao „Uzmi Re1?" — potez koji je
+već bio prihvaćen. Odigrati potez koji već stoji u listi je isti čin kao
+izabrati ga u stablu: idi i pogledaj šta dolazi posle njega. Sada je tako, kroz
+isti `_standAfterMove` kroz koji ide i dodir na karticu.
+
+**Druga Lichess lista je uklonjena, i sa njom jedan upit po potezu.** Posle
+svakog odigranog poteza dohvatala se cela knjiga preko sudije, da bi se videlo
+kako su te partije prošle. To je bio **Lichess upit po potezu**, protiv tokena
+koji služi svu decu koja koriste ovu aplikaciju, i drugi panel ispod onog koji
+stoji na ekranu otkad je pozicija otvorena. Ono što je nosio a sačuvana knjiga
+ne nosi — kako su partije **završile** — vredi imati, ali kao kolonu u
+`opening_replies` koja se dohvati jednom za sve, ne kao upit po potezu.
+
+**Navigacija pita kojom granom.** U poziciji koja se grana „napred" ima više od
+jednog značenja, a paleta je uvek uzimala prvo dete — pa se do ostalih grana
+navigacijom **nije moglo stići uopšte**. Sada se otvara list sa svim
+nastavcima, i tek kad izbor zaista postoji.
+
+*Vlasnikov predlog je da to bude pravilo na nivou cele aplikacije.* Nije
+urađeno i vredi zasebno: `MoveCursor` bi dobio „koje su grane napred", a
+`MoveNavigationControls` i `MoveKeyboardShortcuts` bi pitali umesto da biraju.
+Tri implementacije kursora i šest ekrana, pa je to svoj posao, a ne usputna
+izmena.
+
+**Desni klik sada kaže šta je uradio.** Radnje iz menija su radile i ćutale.
+Sve idu kroz `AppFeedback` — „Nc3 je sada vaš glavni potez", „Nc3 je uklonjen iz
+repertoara", „Grana posle Bf5 je odsečena" — jer pravilo ovog projekta je
+**uradi pa reci**, i reci kroz `AppFeedback`, koji ne može da baci izuzetak.
+
+Testovi: aplikacija 1014 → **1015**. Uživo nije viđeno: stavka 77 u
+[TODO-provera.md](TODO-provera.md).
+
 ## Gradnja prestaje da bude kviz — 31.8.2026
 
 Vlasnik je prošao kroz ekran uživo i javio šest stvari. Jedna od njih je
