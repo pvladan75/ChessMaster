@@ -16,6 +16,9 @@ const {
   skippedKeys,
   addExtraReply,
   removeExtraReply,
+  importedMoves,
+  forgetImportedMoves,
+  deleteRepertoire,
 } = require('../services/repertoireService');
 
 const SMITH_MORRA =
@@ -322,4 +325,52 @@ test('preparing a move needs a colour, a position and a move', async () => {
     () => addExtraReply(pool, 5, { color: 'b', fen: SMITH_MORRA }),
     RangeError);
   assert.equal(pool.calls.length, 0, 'loš zahtev je stigao do baze');
+});
+
+test('a move nobody was ever asked about is one the seed wrote', async () => {
+  // Every move kept by hand writes a kept attempt at the moment it is kept.
+  // A move without one was not chosen — it came from the archive seed, which
+  // wrote through the same `addMove` into the same graph and left nothing else
+  // to tell the two apart. That indistinguishability is why the seed is gone.
+  const pool = stubPool([[{ moves: 1132, positions: 648 }]]);
+  const found = await importedMoves(pool, 5, { color: 'b' });
+
+  assert.equal(found.moves, 1132);
+  assert.equal(found.positions, 648);
+  assert.match(pool.calls[0].text, /FROM repertoire_attempts a/);
+  assert.match(pool.calls[0].text, /a\.kept/);
+});
+
+test('removing them puts a primary back where one was taken away', async () => {
+  // Not tidying. A position with any moves must have a primary or the drill has
+  // nothing to ask for, and a bulk delete is the one path that can strip one
+  // without `removeMove` promoting the next.
+  const pool = stubPool([[]]);
+  await forgetImportedMoves(pool, 5, { color: 'b' });
+
+  assert.equal(pool.ran('DELETE FROM repertoire_moves'), 1);
+  assert.equal(pool.ran("SET role = 'primary'"), 1);
+  // Both halves in one transaction: a repertoire between them is one the drill
+  // cannot read.
+  assert.equal(pool.ran('BEGIN'), 1);
+  assert.equal(pool.ran('COMMIT'), 1);
+  assert.equal(pool.releases(), 1);
+});
+
+test('deleting a repertoire takes the door and never the moves', async () => {
+  // The moves belong to (user, colour) and are shared by every repertoire that
+  // reaches them. Deleting them here would empty one door's worth of work out
+  // of every other door.
+  const pool = stubPool([[]]);
+  await deleteRepertoire(pool, 5, 3);
+
+  assert.equal(pool.calls.length, 1);
+  assert.match(pool.calls[0].text, /DELETE FROM repertoires WHERE id = \$1 AND user_id = \$2/);
+  assert.deepEqual(pool.calls[0].params, [3, 5]);
+});
+
+test('a repertoire that is not named by a number is a bad request', async () => {
+  const pool = stubPool([[]]);
+  await assert.rejects(() => deleteRepertoire(pool, 5, 'sve'), RangeError);
+  assert.equal(pool.calls.length, 0);
 });

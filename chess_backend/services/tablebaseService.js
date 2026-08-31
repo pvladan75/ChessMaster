@@ -13,6 +13,12 @@
 // fight everything else running there. Lichess serves the same Syzygy data and
 // reaches to seven pieces, which is further than any set we could hold.
 //
+// A local sidecar was tried on 31.8.2026 and removed the same week, with the
+// scan it was built for. Two halves — local tables and a donated service —
+// answering one question is a system with two ways to be down, and it was slow
+// and it fell over. What is left is what worked for this service's whole life:
+// one request per position, paced, and nothing else.
+//
 // One request answers a whole position — the response carries a category for
 // every legal move — so a drill costs one request per move played, and repeated
 // positions cost none. That is the small, targeted use this service is for, not
@@ -26,11 +32,6 @@
 
 const DEFAULT_URL = process.env.LICHESS_TABLEBASE_URL
   || 'https://tablebase.lichess.ovh/standard';
-
-/// A local Syzygy sidecar, when one is running. Unset means there is none and
-/// every position goes to Lichess, which is the shape this service had for its
-/// whole life and still works.
-const DEFAULT_SIDECAR_URL = process.env.SYZYGY_SIDECAR_URL || null;
 
 const logger = require('./logger');
 
@@ -157,31 +158,18 @@ function createTablebase({
   cooldownMs = RATE_LIMIT_COOLDOWN_MS,
   now = () => Date.now(),
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-  sidecarUrl = DEFAULT_SIDECAR_URL,
-  // Short on purpose. A local read that takes longer than this is not a local
-  // read, and waiting on it costs more than asking Lichess would.
-  sidecarTimeoutMs = 2000,
 } = {}) {
   const cache = new Map();
   // Two children on the same position, or one child whose client retried, must
   // not become two requests to a donated service.
   const inFlight = new Map();
   // And the ones that do go out are spaced, and stop entirely for a minute
-  // after a 429. The endgame audit is what made this necessary: it walks every
-  // archived game that reached seven men, which on one real archive is 471
-  // games and thousands of positions, anonymously, as fast as the round trips
-  // allow. That is a scan of a donated service, and it was written without a
-  // gap for the same reason every bug in this codebase gets written — the fast
-  // version works, right up until it does not.
+  // after a 429. It was a scan of this donated service that made the pacing
+  // necessary, and the scan has since been removed; the pacing stays, because
+  // the drill can still ask for a position a second, and because a rule that
+  // only holds while nothing stresses it is not a rule.
   const pacer = createPacer({ minGapMs, cooldownMs, now, sleep });
   let requests = 0;
-  // Where the answers came from. Reported rather than inferred: "the sidecar is
-  // running" and "the sidecar is answering" are different claims, and only the
-  // second one is worth anything.
-  let local = 0;
-  let declined = 0;
-  let unreachable = 0;
-  let sidecarWarned = false;
 
   function remember(fen, value) {
     cache.set(fen, value);
@@ -230,56 +218,7 @@ function createTablebase({
     }
   }
 
-  /// The local tables, when there are any. Null means "ask Lichess".
-  ///
-  /// Not paced, not retried, and deliberately so: this is a memory-mapped file
-  /// on the same machine, and pacing it would be pacing a disk read. Everything
-  /// the pacer protects — the shared address, the donated service — is on the
-  /// other branch.
-  ///
-  /// A 404 is the sidecar declining, which is a real answer and the reason it
-  /// can be trusted at all: it refuses castling, positions past its largest
-  /// table, tables missing from disk, and any verdict the fifty-move rule could
-  /// overturn. Those fall through to Lichess.
-  async function fromSidecar(fen) {
-    if (!sidecarUrl) return null;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), sidecarTimeoutMs);
-    try {
-      const res = await fetchImpl(`${sidecarUrl}?fen=${encodeURIComponent(fen)}`, {
-        signal: controller.signal,
-      });
-      if (res.status === 404) {
-        declined += 1;
-        return null;
-      }
-      if (!res.ok) throw new Error(`sidecar answered ${res.status}`);
-      local += 1;
-      return await res.json();
-    } catch (err) {
-      // Configured and unreachable is not the same as not configured, and it
-      // must not read the same. Falling back silently would leave every probe
-      // going to Lichess at one a second while the logs said nothing — the
-      // exact shape of every bug in this codebase. Said once, not per probe,
-      // because an audit would otherwise print it thousands of times.
-      if (!sidecarWarned) {
-        sidecarWarned = true;
-        logger.warn(
-          `[TABLICE] Lokalni sidecar (${sidecarUrl}) ne odgovara (${err.message}); `
-          + 'sve pozicije idu na Lichess, sporije. Ovo se prijavljuje jednom.',
-        );
-      }
-      unreachable += 1;
-      return null;
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
   async function load(fen) {
-    const localAnswer = await fromSidecar(fen);
-    if (localAnswer) return localAnswer;
-
     let last;
     for (let attempt = 0; attempt <= retries; attempt += 1) {
       try {
@@ -341,17 +280,10 @@ function createTablebase({
     stats: () => ({
       cached: cache.size,
       requests,
-      local,
-      declined,
-      unreachable,
-      sidecar: sidecarUrl,
     }),
     clear: () => {
       cache.clear();
       requests = 0;
-      local = 0;
-      declined = 0;
-      unreachable = 0;
     },
   };
 }

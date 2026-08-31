@@ -1,12 +1,14 @@
-// repertoire_archive.test.js — the seed that must not overwrite, and the diff
-// that must not silently find nothing.
+// repertoire_archive.test.js — the diff that must not silently find nothing.
+//
+// The other half of this file went with the seed on 31.8.2026: building a
+// repertoire out of imported games wrote into the same graph the trainer reads,
+// so moves nobody had chosen were indistinguishable from decisions.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
-  seedFromArchive, repertoireDiff, playedMoves, uciOf,
-  DEFAULT_MIN_GAMES,
+  repertoireDiff, playedMoves, uciOf, DEFAULT_MIN_GAMES,
 } = require('../services/repertoireArchive');
 const { fenKey } = require('../services/gameArchive');
 
@@ -63,179 +65,6 @@ test('a SAN becomes the UCI the repertoire stores', () => {
   // A move that does not fit its own position is not guessed at.
   assert.equal(uciOf(START_KEY, 'Qh5xf7'), null);
   assert.equal(uciOf(START_KEY, 'nonsense'), null);
-});
-
-test('positions below the floor are not part of a repertoire', async () => {
-  const pool = stubPool({
-    nodes: [
-      nodeRow({ games: 40 }),
-      nodeRow({ fen_key: AFTER_E4, color: 'b', san: 'e5', games: 2 }),
-    ],
-  });
-  const positions = await playedMoves(pool, 5, {
-    subject: 's', color: null, minGames: DEFAULT_MIN_GAMES,
-  });
-  assert.equal(positions.length, 1);
-  assert.equal(positions[0].fenKey, START_KEY);
-});
-
-test('a dry run plans and writes nothing', async () => {
-  const pool = stubPool({ nodes: [nodeRow()] });
-  const out = await seedFromArchive(pool, 5, { subject: 's', dryRun: true });
-  assert.equal(out.dryRun, true);
-  assert.equal(out.moves, 1);
-  assert.deepEqual(out.plan[0].uci, 'e2e4');
-  assert.equal(pool.inserted.length, 0);
-  assert.equal(pool.calls.filter((c) => /INSERT/.test(c.text)).length, 0);
-});
-
-test('a rare second answer is not a repertoire choice', async () => {
-  // 38 of 40 games is a decision; 2 of 40 is a slip, and putting it in the
-  // repertoire would mean drilling a move the player does not actually play.
-  const pool = stubPool({
-    nodes: [
-      nodeRow({ san: 'e4', games: 38 }),
-      nodeRow({ san: 'd4', games: 2 }),
-    ],
-  });
-  const out = await seedFromArchive(pool, 5, { subject: 's', dryRun: true });
-  assert.deepEqual(out.plan.map((m) => m.san), ['e4']);
-});
-
-test('a real second answer is kept, and only so many of them', async () => {
-  const pool = stubPool({
-    nodes: [
-      nodeRow({ san: 'e4', games: 20 }),
-      nodeRow({ san: 'd4', games: 15 }),
-      nodeRow({ san: 'c4', games: 10 }),
-      nodeRow({ san: 'Nf3', games: 8 }),
-    ],
-  });
-  const out = await seedFromArchive(pool, 5, { subject: 's', dryRun: true });
-  assert.deepEqual(out.plan.map((m) => m.san), ['e4', 'd4', 'c4']);
-});
-
-test('the seed never demotes a decision the player already made', async () => {
-  // addMove makes the first move into a position primary and every later one an
-  // alternate. A seed that overwrote a hand-built repertoire would be the worst
-  // possible way to introduce this feature, so it goes through that function
-  // rather than inserting a role of its own.
-  const pool = stubPool({
-    nodes: [nodeRow({ san: 'e4', games: 40 }), nodeRow({ san: 'd4', games: 20 })],
-    hasPrimary: () => true,
-  });
-  const out = await seedFromArchive(pool, 5, { subject: 's' });
-  assert.equal(out.added, 2);
-  assert.equal(out.primary, 0, 'an existing primary must survive the seed');
-  assert.deepEqual(pool.inserted.map((r) => r.role), ['alternate', 'alternate']);
-});
-
-test('an empty position takes the primary', async () => {
-  const pool = stubPool({ nodes: [nodeRow()], hasPrimary: () => false });
-  const out = await seedFromArchive(pool, 5, { subject: 's' });
-  assert.equal(out.primary, 1);
-  assert.equal(pool.inserted[0].role, 'primary');
-  assert.equal(pool.inserted[0].uci, 'e2e4');
-});
-
-test('two moves into one position are never written at the same time', async () => {
-  // addMove decides primary versus alternate by looking for an existing
-  // primary. Two moves into the same position at once would both find none,
-  // both insert a primary, and the partial unique index would refuse the
-  // second — failing a seed halfway through for a reason that has nothing to do
-  // with the player. Positions may go in parallel; the moves inside one may not.
-  const active = new Set();
-  let clash = false;
-  const pool = {
-    calls: [],
-    query: async (text, params = []) => {
-      const flat = text.replace(/\s+/g, ' ').trim();
-      if (/FROM opening_nodes/.test(flat)) {
-        return {
-          rows: [
-            nodeRow({ fen_key: START_KEY, san: 'e4', games: 20 }),
-            nodeRow({ fen_key: START_KEY, san: 'd4', games: 15 }),
-            nodeRow({ fen_key: AFTER_E4, color: 'b', san: 'e6', games: 30 }),
-            nodeRow({ fen_key: AFTER_E4, color: 'b', san: 'c5', games: 12 }),
-          ],
-          rowCount: 4,
-        };
-      }
-      const key = `${params[1]}|${params[2]}`;
-      if (/SELECT 1 FROM repertoire_moves/.test(flat)) {
-        if (active.has(key)) clash = true;
-        active.add(key);
-        await new Promise((resolve) => { setTimeout(resolve, 1); });
-        return { rows: [], rowCount: 0 };
-      }
-      if (/INSERT INTO repertoire_moves/.test(flat)) {
-        active.delete(key);
-        return { rows: [{ role: 'primary' }], rowCount: 1 };
-      }
-      return { rows: [], rowCount: 0 };
-    },
-  };
-
-  const out = await seedFromArchive(pool, 5, { subject: 's' });
-  assert.equal(out.added, 4);
-  assert.equal(clash, false, 'two moves into one position overlapped');
-});
-
-test('a node whose move will not replay is counted, not dropped', async () => {
-  // The number being above zero is a bug report about the importer, and it can
-  // only be that if somebody keeps it.
-  const pool = stubPool({ nodes: [nodeRow({ san: 'Qxz9' })] });
-  const out = await seedFromArchive(pool, 5, { subject: 's', dryRun: true });
-  assert.equal(out.unplayable, 1);
-  assert.equal(out.moves, 0);
-});
-
-// The seed wrote 2376 moves on 30.8.2026 and the owner reported that nothing
-// had happened. He was right: `repertoire_moves` belongs to (user, colour) and
-// the list screen reads `repertoires`, which the seed never wrote. These four
-// hold the fix — a write nobody can reach is not a write.
-
-test('a seed of one colour names the repertoire it wrote into', async () => {
-  const pool = stubPool({ nodes: [nodeRow()] });
-  const out = await seedFromArchive(pool, 5, { subject: 's' });
-
-  assert.equal(out.repertoireName, 'Iz mojih partija — beli');
-  assert.equal(pool.named.length, 1);
-  assert.equal(pool.named[0].color, 'w');
-});
-
-test('a seed over both colours writes both names and claims neither', async () => {
-  const pool = stubPool({
-    nodes: [
-      nodeRow(),
-      nodeRow({ fen_key: AFTER_E4, color: 'b', san: 'e5' }),
-    ],
-  });
-  const out = await seedFromArchive(pool, 5, { subject: 's' });
-
-  // Both rows exist, so both colours appear in the list...
-  assert.deepEqual(pool.named.map((r) => r.color), ['b', 'w']);
-  // ...and there is no single answer to "written into which", so none is given.
-  assert.equal(out.repertoireName, null);
-});
-
-test('a dry run names nothing, as it writes nothing', async () => {
-  const pool = stubPool({ nodes: [nodeRow()] });
-  const out = await seedFromArchive(pool, 5, { subject: 's', dryRun: true });
-
-  assert.equal(pool.named.length, 0);
-  assert.equal(out.repertoireName, undefined);
-});
-
-test('a name that cannot be written does not take the seed down with it', async () => {
-  // Do the thing, then say it. The moves are already in when the naming runs,
-  // and this codebase has twice shipped the opposite: a message about the work
-  // killing the work.
-  const pool = stubPool({ nodes: [nodeRow()], namingThrows: true });
-  const out = await seedFromArchive(pool, 5, { subject: 's' });
-
-  assert.equal(out.added, 1);
-  assert.equal(out.repertoireName, null);
 });
 
 test('the diff separates following the plan from leaving it', async () => {
@@ -323,7 +152,7 @@ test('a missing handle or a colour that is not a colour is refused', async () =>
   const pool = stubPool();
   await assert.rejects(() => repertoireDiff(pool, 5, { subject: ' ' }), RangeError);
   await assert.rejects(
-    () => seedFromArchive(pool, 5, { subject: 's', color: 'white' }), RangeError,
+    () => repertoireDiff(pool, 5, { subject: 's', color: 'white' }), RangeError,
   );
   assert.equal(pool.calls.length, 0);
 });

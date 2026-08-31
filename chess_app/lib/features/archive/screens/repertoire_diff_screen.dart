@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-
-import 'package:chess_app/routing/app_routes.dart';
 
 import 'package:chess_app/features/archive/models/repertoire_diff.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
@@ -47,86 +44,6 @@ class _RepertoireDiffScreenState extends State<RepertoireDiffScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
       AppFeedback.error(context, 'Greška pri učitavanju repertoara: $e');
-    }
-  }
-
-  Future<void> _seed() async {
-    try {
-      // Phase 1: dry run
-      AppFeedback.info(context, 'Priprema predloga...');
-      final plan = await _api.seedRepertoire(
-        username: widget.subject,
-        color: _selectedColor,
-        minGames: 3,
-        dryRun: true,
-      );
-
-      if (!mounted) return;
-
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Predlog repertoara'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Nađeno pozicija: ${plan.positionsCount}',
-                  style: AppText.bodyBold),
-              Text('Nađeno poteza: ${plan.movesCount}', style: AppText.body),
-              Text('Nemoguće odigrati (tuđi potez): ${plan.unplayable}',
-                  style: AppText.body),
-              const SizedBox(height: AppSpacing.md),
-              const Text(
-                  'Da li želite da upišete ovaj repertoar? Ovo će dodati nove pozicije vašem postojećem repertoaru.'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Odustani'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Upiši'),
-            ),
-          ],
-        ),
-      );
-
-      if (confirm == true && mounted) {
-        // Phase 2: Write
-        AppFeedback.info(context, 'Upisujem...');
-        final res = await _api.seedRepertoire(
-          username: widget.subject,
-          color: _selectedColor,
-          minGames: 3,
-          dryRun: false,
-        );
-
-        if (!mounted) return;
-        final name = res.repertoireName;
-        AppFeedback.show(
-          context,
-          () => SnackBar(
-            content: Text(name != null
-                ? 'Upisano u "$name": ${res.added ?? 0} poteza, ${res.primary ?? 0} opcija.'
-                : 'Upisano ${res.added ?? 0} novih poteza i postavljeno ${res.primary ?? 0} primarnih opcija.'),
-            backgroundColor: context.colors.success.withValues(alpha: 0.9),
-            action: name != null
-                ? SnackBarAction(
-                    label: 'Otvori',
-                    textColor: context.colors.canvas,
-                    onPressed: () => context.push(AppRoutes.repertoire),
-                  )
-                : null,
-          ),
-        );
-        _load();
-      }
-    } catch (e) {
-      if (!mounted) return;
-      AppFeedback.error(context, 'Greška pri izvlačenju repertoara: $e');
     }
   }
 
@@ -235,13 +152,12 @@ class _RepertoireDiffScreenState extends State<RepertoireDiffScreen> {
                           ],
                         ),
                         const SizedBox(height: AppSpacing.md),
-                        ElevatedButton.icon(
-                          onPressed: _seed,
-                          icon: const Icon(Icons.auto_awesome),
-                          label: const Text('Izvuci repertoar iz partija'),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(48),
-                          ),
+                        Text(
+                          'Repertoar se gradi ručno, u treningu — ovaj izveštaj '
+                          'samo poredi partije sa onim što ste izgradili. '
+                          'Uvezene partije se u repertoar ne upisuju.',
+                          style: AppText.caption
+                              .copyWith(color: context.colors.textMuted),
                         ),
                       ],
                     ),

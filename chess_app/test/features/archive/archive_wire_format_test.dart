@@ -98,23 +98,6 @@ void main() {
 
       expect(client.gets.single.queryParameters.containsKey('color'), false);
     });
-
-    test('the seed sends w too, since it is refused the same way', () async {
-      final client = _RecordingClient(
-        body: jsonEncode({
-          'dryRun': true,
-          'positions': 0,
-          'moves': 0,
-          'unplayable': 0,
-        }),
-      );
-      final api = ArchiveApiService.withClient(client);
-
-      await api.seedRepertoire(username: 'me', color: 'white', dryRun: true);
-
-      final sent = jsonDecode(client.postBodies.single as String);
-      expect(sent['color'], 'w');
-    });
   });
 
   group('what the server sends back', () {

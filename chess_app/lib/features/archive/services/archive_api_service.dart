@@ -5,8 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/features/archive/models/archive_run.dart';
 import 'package:chess_app/features/archive/models/archive_subject.dart';
-import 'package:chess_app/features/archive/models/endgame_audit.dart';
-import 'package:chess_app/features/archive/models/endgame_mistake.dart';
 import 'package:chess_app/features/archive/models/json_int.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
 import 'package:chess_app/features/archive/models/mistake_item.dart';
@@ -240,32 +238,6 @@ class ArchiveApiService {
     throw Exception('Failed to fetch mistake recurrence: ${response.body}');
   }
 
-  Future<RepertoireSeedResult> seedRepertoire({
-    required String username,
-    String? color,
-    int? minGames,
-    bool? dryRun,
-  }) async {
-    final uri = Uri.parse('$backendUrl/games/repertoire/seed');
-    final response = await _post(
-      uri,
-      {
-        'Authorization': 'Bearer $_token',
-        'Content-Type': 'application/json',
-      },
-      jsonEncode({
-        'username': username,
-        if (_wireColor(color) != null) 'color': _wireColor(color),
-        if (minGames != null) 'minGames': minGames,
-        if (dryRun != null) 'dryRun': dryRun,
-      }),
-    );
-    if (response.statusCode == 200) {
-      return RepertoireSeedResult.fromJson(jsonDecode(response.body));
-    }
-    throw Exception('Failed to seed repertoire: ${response.body}');
-  }
-
   Future<RepertoireDiff> getRepertoireDiff({
     required String username,
     String? color,
@@ -284,51 +256,6 @@ class ArchiveApiService {
       return RepertoireDiff.fromJson(jsonDecode(response.body));
     }
     throw Exception('Failed to fetch repertoire diff: ${response.body}');
-  }
-
-  Future<String> startEndgameAudit(String username) async {
-    final uri = Uri.parse('$backendUrl/games/endgame/audit');
-    final response = await _post(
-      uri,
-      {
-        'Authorization': 'Bearer $_token',
-        'Content-Type': 'application/json',
-      },
-      jsonEncode({'username': username}),
-    );
-    if (response.statusCode == 202) {
-      final json = jsonDecode(response.body);
-      return jsonInt(json['auditId']).toString();
-    } else if (response.statusCode == 409) {
-      final json = jsonDecode(response.body);
-      if (json['reason'] == 'already-running') {
-        final auditId = jsonInt(json['auditId']).toString();
-        final subject = json['subject'] as String? ?? username;
-        throw EndgameAuditAlreadyRunningException(auditId, subject);
-      }
-    }
-    throw Exception('Failed to start endgame audit: ${response.body}');
-  }
-
-  Future<EndgameAudit> getEndgameAudit(String id) async {
-    final uri = Uri.parse('$backendUrl/games/endgame/audits/$id');
-    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
-    if (response.statusCode == 200) {
-      return EndgameAudit.fromJson(jsonDecode(response.body));
-    }
-    throw Exception('Failed to fetch endgame audit: ${response.body}');
-  }
-
-  Future<List<EndgameMistake>> getEndgameMistakes({int limit = 50}) async {
-    final uri = Uri.parse('$backendUrl/games/endgame/mistakes?limit=$limit');
-    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      return ((json['mistakes'] as List?) ?? [])
-          .map((e) => EndgameMistake.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
-    }
-    throw Exception('Failed to fetch endgame mistakes: ${response.body}');
   }
 
   Future<PlayerProfile> getPlayerProfile(String username) async {
@@ -386,15 +313,4 @@ class ArchiveApiService {
     }
     throw Exception('Failed to create homework: ${response.body}');
   }
-}
-
-class EndgameAuditAlreadyRunningException implements Exception {
-  final String auditId;
-  final String subject;
-
-  EndgameAuditAlreadyRunningException(this.auditId, this.subject);
-
-  @override
-  String toString() =>
-      'EndgameAuditAlreadyRunningException: auditId=$auditId, subject=$subject';
 }

@@ -82,38 +82,6 @@ async function createRepertoire(pool, userId, { name, color, rootFen, rootPath }
   return row ? { ...row, rootPath: pathList(row.root_path) } : row;
 }
 
-/// The repertoire a seed writes into: made once, found every time after.
-///
-/// Not `createRepertoire`, which refuses a duplicate name. That is right for a
-/// person typing one in and wrong for a seed that runs again every time an
-/// archive is re-imported.
-///
-/// The row buys nothing the moves need — they belong to (user, colour) and the
-/// build and drill screens find them without it. It buys the *name*, which is
-/// what the list screen reads, and the list screen is the only place a player
-/// ever sees that a repertoire exists. A seed wrote 2376 moves on 30.8.2026 and
-/// the owner reported that nothing had happened; he was right, because nothing
-/// he could reach had.
-///
-/// `DO UPDATE` rather than `DO NOTHING` so `RETURNING` yields a row on the
-/// conflict too. It rewrites the name with the name, on purpose: the colour and
-/// the root are left alone, so an existing repertoire is found, never edited.
-async function ensureRepertoire(pool, userId, { name, color, rootFen }) {
-  const clean = typeof name === 'string' ? name.trim() : '';
-  if (clean === '') throw new RangeError('Repertoar mora imati ime.');
-  requireColor(color);
-  fenKey(rootFen);
-
-  const result = await pool.query(
-    `INSERT INTO repertoires (user_id, name, color, root_fen)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT (user_id, name) DO UPDATE SET name = EXCLUDED.name
-     RETURNING id, name, color, root_fen, created_at`,
-    [userId, clean, color, rootFen.trim()],
-  );
-  return result.rows[0] || null;
-}
-
 async function listRepertoires(pool, userId) {
   const result = await pool.query(
     `SELECT r.id, r.name, r.color, r.root_fen, r.root_path, r.created_at,
@@ -363,6 +331,100 @@ async function unskipNode(pool, userId, { color, fen }) {
   return { skipped: false, removed: result.rowCount };
 }
 
+/// The moves in this colour that nobody was ever asked about.
+///
+/// Every move kept by hand goes through `recordAttempt(kept: true)` the moment
+/// it is kept — that row is the whole point of the attempts table, and it is
+/// written for the student's own choices and for nothing else. So a move with
+/// no kept attempt behind it was not chosen: it was written by the archive seed
+/// that used to build a repertoire out of imported games.
+///
+/// A heuristic, and it is called one on the screen. It is the only signal there
+/// is: the seed wrote through the same `addMove` as the build screen and left
+/// nothing else to tell the two apart. The seed was removed on 31.8.2026 for
+/// exactly that reason — moves nobody had chosen were indistinguishable from
+/// decisions, and the drill went on to ask for them.
+async function importedMoves(pool, userId, { color }) {
+  requireColor(color);
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS moves,
+            COUNT(DISTINCT fen_key)::int AS positions
+       FROM repertoire_moves m
+      WHERE m.user_id = $1 AND m.color = $2
+        AND NOT EXISTS (
+          SELECT 1 FROM repertoire_attempts a
+           WHERE a.user_id = m.user_id AND a.color = m.color
+             AND a.fen_key = m.fen_key AND a.uci = m.uci AND a.kept)`,
+    [userId, color],
+  );
+  const row = result.rows[0] ?? {};
+  return { moves: row.moves ?? 0, positions: row.positions ?? 0 };
+}
+
+/// Removes them, and puts the primary back where removing one took it away.
+///
+/// The second half is not tidying. A position must have a primary if it has any
+/// moves at all — the drill has nothing to ask for otherwise — and a bulk delete
+/// is the one path that can strip one without `removeMove` promoting the next.
+/// Both halves in one transaction, because a repertoire between them is a
+/// repertoire the drill cannot read.
+async function forgetImportedMoves(pool, userId, { color }) {
+  requireColor(color);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const gone = await client.query(
+      `DELETE FROM repertoire_moves m
+        WHERE m.user_id = $1 AND m.color = $2
+          AND NOT EXISTS (
+            SELECT 1 FROM repertoire_attempts a
+             WHERE a.user_id = m.user_id AND a.color = m.color
+               AND a.fen_key = m.fen_key AND a.uci = m.uci AND a.kept)`,
+      [userId, color],
+    );
+    const promoted = await client.query(
+      `UPDATE repertoire_moves
+          SET role = 'primary'
+        WHERE id IN (
+          SELECT DISTINCT ON (fen_key) id
+            FROM repertoire_moves
+           WHERE user_id = $1 AND color = $2
+             AND fen_key IN (
+               SELECT fen_key FROM repertoire_moves
+                WHERE user_id = $1 AND color = $2
+                GROUP BY fen_key
+               HAVING COUNT(*) FILTER (WHERE role = 'primary') = 0)
+           ORDER BY fen_key, added_at ASC)`,
+      [userId, color],
+    );
+    await client.query('COMMIT');
+    return { removed: gone.rowCount, promoted: promoted.rowCount };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/// Removes a repertoire — the name and the starting point, never the moves.
+///
+/// The moves belong to (user, colour) and are shared by every repertoire that
+/// reaches them; deleting them here would empty a door's worth of work out of
+/// every other door. Until this existed there was no way to remove a repertoire
+/// at all, which is how four of them made by a seed stayed on the list.
+async function deleteRepertoire(pool, userId, id) {
+  const numeric = Number(id);
+  if (!Number.isInteger(numeric)) {
+    throw new RangeError('Repertoar nije imenovan brojem.');
+  }
+  const result = await pool.query(
+    'DELETE FROM repertoires WHERE id = $1 AND user_id = $2',
+    [numeric, userId],
+  );
+  return { removed: result.rowCount };
+}
+
 /// "Prepare this opponent move too" — one reply past the coverage cut.
 ///
 /// The build loop stops at 80% of what is played, up to four moves, and names
@@ -420,7 +482,6 @@ module.exports = {
   pathText,
   pathList,
   createRepertoire,
-  ensureRepertoire,
   listRepertoires,
   nodeMoves,
   addMove,
@@ -433,6 +494,9 @@ module.exports = {
   skippedKeys,
   addExtraReply,
   removeExtraReply,
+  importedMoves,
+  forgetImportedMoves,
+  deleteRepertoire,
   COLORS,
   ROLES,
 };

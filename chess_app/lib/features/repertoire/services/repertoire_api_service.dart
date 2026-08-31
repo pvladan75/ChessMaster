@@ -748,6 +748,46 @@ class RepertoireApiService {
         Map<String, dynamic>.from(jsonDecode(res.body) as Map));
   }
 
+  /// How many moves in this colour nobody was ever asked about.
+  ///
+  /// Until 31.8.2026 a repertoire could also be built out of imported games,
+  /// through the same call the build screen uses and into the same graph — so a
+  /// move nobody had chosen was indistinguishable from a decision, and the
+  /// drill went on to ask for it. This counts what that left behind: moves with
+  /// no kept attempt recorded against them.
+  ///
+  /// A heuristic, and the screen says so before anything is deleted. Null when
+  /// the server did not answer.
+  Future<({int moves, int positions})?> importedMoves(
+      {required String color}) async {
+    final uri = Uri.parse('$backendUrl/repertoire/imported')
+        .replace(queryParameters: {'color': color});
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    return (
+      moves: (data['moves'] as num?)?.toInt() ?? 0,
+      positions: (data['positions'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  /// Takes them out, and puts a primary back where removing one took it away.
+  Future<bool> forgetImportedMoves({required String color}) async {
+    final uri = Uri.parse('$backendUrl/repertoire/imported')
+        .replace(queryParameters: {'color': color});
+    return (await _send(() => _delete(uri))).res != null;
+  }
+
+  /// Removes a repertoire — its name and starting point, never its moves.
+  ///
+  /// The moves belong to (user, colour) and are shared by every repertoire that
+  /// reaches them, so deleting them here would empty one door's worth of work
+  /// out of every other door.
+  Future<bool> deleteRepertoire(int id) async {
+    final uri = Uri.parse('$backendUrl/repertoire/$id');
+    return (await _send(() => _delete(uri))).res != null;
+  }
+
   /// What the student already plays in this position, primary first.
   Future<List<RepertoireMove>> movesAt({
     required String color,

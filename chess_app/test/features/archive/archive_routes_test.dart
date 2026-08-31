@@ -13,16 +13,6 @@ void main() {
   test('a handle with a space or a slash survives the query', () {
     expect(AppRoutes.archiveLeaksPath('igrač 1/2'),
         '/archive/leaks?subject=igra%C4%8D+1%2F2');
-    expect(AppRoutes.archiveEndgamesPath('igrač 1/2'),
-        '/archive/endgames?subject=igra%C4%8D+1%2F2');
-  });
-
-  test('the endgame audit is reachable and refuses an empty handle', () {
-    // Batch 49 built the screen and wired it to nothing; this is the assertion
-    // that would have caught that. A route nobody can reach is a feature that
-    // does not exist, and the suite was green over it.
-    expect(AppRoutes.archiveEndgames, '/archive/endgames');
-    expect(AppRoutes.archiveEndgamesPath('me'), contains('subject=me'));
   });
 
   test('the profile is reachable and refuses an empty handle', () {

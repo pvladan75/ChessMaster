@@ -185,11 +185,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(pushedRoute, AppRoutes.archiveLeaksPath('pvladan'));
 
-    // 2. Endgames
-    await tester.tap(find.text('Proveri završnice'));
-    await tester.pumpAndSettle();
-    expect(pushedRoute, AppRoutes.archiveEndgamesPath('pvladan'));
-
     // 3. Repertoire
     await tester.tap(find.text('Repertoar iz partija'));
     await tester.pumpAndSettle();

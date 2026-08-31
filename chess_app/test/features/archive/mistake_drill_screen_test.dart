@@ -12,8 +12,6 @@ import 'package:chess_app/theme/app_theme.dart';
 import 'package:chess_app/features/archive/models/repertoire_diff.dart';
 import 'package:chess_app/features/archive/models/archive_run.dart';
 import 'package:chess_app/features/archive/models/archive_subject.dart';
-import 'package:chess_app/features/archive/models/endgame_audit.dart';
-import 'package:chess_app/features/archive/models/endgame_mistake.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
 
 class FakeArchiveApiService implements ArchiveApiService {
@@ -45,14 +43,6 @@ class FakeArchiveApiService implements ArchiveApiService {
     bool? dryRun,
   }) async =>
       throw UnimplementedError();
-
-  @override
-  Future<String> startEndgameAudit(String username) async => 'fake-id';
-  @override
-  Future<EndgameAudit> getEndgameAudit(String id) async =>
-      throw UnimplementedError();
-  @override
-  Future<List<EndgameMistake>> getEndgameMistakes({int limit = 50}) async => [];
 
   List<String> graded = [];
 
@@ -136,14 +126,6 @@ class FakeArchiveApiService implements ArchiveApiService {
   Future<Map<String, int>> backfill() async => {};
   @override
   Future<Map<String, int>> fetchMistakeStats() async => {};
-  @override
-  Future<RepertoireSeedResult> seedRepertoire(
-          {required String username,
-          String? color,
-          int? minGames,
-          bool? dryRun}) async =>
-      const RepertoireSeedResult(
-          dryRun: true, positionsCount: 0, movesCount: 0, unplayable: 0);
   @override
   Future<RepertoireDiff> getRepertoireDiff(
           {required String username, String? color, int? limit}) async =>

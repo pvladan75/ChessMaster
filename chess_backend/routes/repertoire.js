@@ -35,6 +35,9 @@ const {
   unskipNode,
   addExtraReply,
   removeExtraReply,
+  importedMoves,
+  forgetImportedMoves,
+  deleteRepertoire,
 } = require('../services/repertoireService');
 const { frontier } = require('../services/repertoireFrontier');
 const { drillLine, tree: repertoireTree } = require('../services/repertoireLine');
@@ -78,6 +81,42 @@ router.post('/', authenticateToken, (req, res) => {
 router.get('/', authenticateToken, (req, res) => {
   answer(res, listRepertoires(pool, req.user.id),
     'Spisak repertoara nije mogao da se pročita.');
+});
+
+// GET /repertoire/imported?color=b — how many moves nobody was ever asked about
+// DELETE /repertoire/imported?color=b — and taking them out
+//
+// Until 31.8.2026 a repertoire could also be built out of imported games. It
+// wrote through the same `addMove` as the build screen, into the same graph, so
+// a move nobody had chosen was indistinguishable from a decision — and the
+// drill went on to ask for it. The seed is gone; this is for what it left.
+//
+// The test is whether a kept attempt was ever written for the move, which is
+// what the build screen writes the moment anything is kept. A heuristic, and
+// the screen says so before it deletes anything.
+router.get('/imported', authenticateToken, (req, res) => {
+  answer(
+    res,
+    importedMoves(pool, req.user.id, { color: req.query.color }),
+    'Broj uvezenih poteza nije mogao da se pročita.',
+  );
+});
+
+router.delete('/imported', authenticateToken, (req, res) => {
+  answer(
+    res,
+    forgetImportedMoves(pool, req.user.id, { color: req.query.color }),
+    'Uvezeni potezi nisu mogli da se uklone.',
+  );
+});
+
+// DELETE /repertoire/:id — the name and the starting point, never the moves.
+router.delete('/:id', authenticateToken, (req, res) => {
+  answer(
+    res,
+    deleteRepertoire(pool, req.user.id, req.params.id),
+    'Repertoar nije mogao da se obriše.',
+  );
 });
 
 // GET /repertoire/node?color=b&fen=...

@@ -2680,6 +2680,66 @@ te poteze zaista igra na toj tabli.
 Testovi: backend 751 → **758**, aplikacija 989 → **992**. Uživo nije viđeno:
 [TODO-provera.md](TODO-provera.md), stavka 68.
 
+## Dva uklanjanja, na zahtev vlasnika — 31.8.2026
+
+Oba su prijavljena pri prvom ozbiljnom korišćenju, i oba su tačna.
+
+### Repertoar iz uvezenih partija — uklonjen
+
+Sejanje je pisalo kroz **isti `addMove`** kao ekran za izgradnju, u **isti graf**
+— potezi pripadaju paru (korisnik, boja), ne repertoaru. Posledica koju je
+vlasnik video na spisku: „French Defense: Advance — crni" i „Iz mojih partija —
+crni" prikazuju **isti broj poteza**, jer to i jesu isti potezi. Njegove reči:
+„možda su mnogi od tih poteza pogrešni, a meni ulaze kao da sam ih izabrao".
+
+Gore je nego što zvuči. Uvezeni potez je bio **nerazlučiv** od odluke: šetnja je
+kroz njega prolazila, radar ga je brojao kao odlučen, a drill je tražio da se
+seti poteza koji nikad nije izabrao — i priznavao ga kao tačan, jer je
+`QUALITY.alternate = GRADES.good`.
+
+Uklonjeno: `seedFromArchive`, `POST /games/repertoire/seed`, `ensureRepertoire` i
+dugme „Izvuci repertoar iz partija". **Poređenje ostaje** (`GET
+/games/repertoire/diff`) — ono ništa ne upisuje i odgovara na pravo pitanje:
+gde ste izašli iz onoga što ste izgradili.
+
+Za ono što je seme već upisalo: `GET/DELETE /repertoire/imported`. Test je da li
+uz potez postoji zabeležen **vaš izbor** (`repertoire_attempts` sa `kept`), jer
+ekran za izgradnju taj red upisuje u trenutku kad se potez uzme, a seme nije
+upisivalo nijedan. To je **procena, ne dokaz**, i ekran to kaže pre nego što bilo
+šta obriše — jedini je trag koji postoji, upravo zato što je seme pisalo kroz
+isti put. Brisanje vraća `primary` tamo gde ga je odnelo, u istoj transakciji:
+pozicija sa potezima a bez glavnog je pozicija koju drill ne ume da pita.
+
+Usput: **repertoar do sada nije mogao da se obriše**. `DELETE /repertoire/:id`
+briše ime i početnu poziciju, nikad poteze — oni pripadaju boji i dele ih svi
+repertoari koji do njih stignu.
+
+### Provera završnica preko tablica — uklonjena
+
+Vlasnik je odustao, sa razlozima koji stoje: dva izvora za jedan odgovor (lokalni
+Syzygy + Lichess) su sistem sa dva načina da bude u kvaru, prolaz traje predugo,
+proces je pukao, i greške iz sopstvenih završnica ne uče ništa što ponavljanje
+grešaka već ne pokriva.
+
+Uklonjeno: `services/endgameAudit.js`, tri rute pod `/games/endgame`, tabele
+`tablebase_cache` i `endgame_audits`, lokalni sidecar
+(`sidecar/syzygy_sidecar.py`, `SYZYGY_SIDECAR_URL`, `SYZYGY_PATH`) i ekran
+„Proveri završnice".
+
+**Šta ostaje i zašto:** `tablebaseService` — trener završnica i „odigraj do
+kraja" ga i dalje koriste, jedan zahtev po potezu, što je oblik za koji je i
+pisan. Ostaje i **tempo** (razmak i zastoj posle 429): skener koji ga je učinio
+neophodnim je otišao, ali pravilo koje važi samo dok ga niko ne pritisne nije
+pravilo. Ostaju i nalazi koji su već upisani u `mistake_reviews` sa
+`kind = 'tablebase'` — ponavljanje grešaka ih i dalje prikazuje.
+
+Dve tabele ostaju u bazi kod onoga ko ih već ima; kod se više ne pravi. Mogu da
+se obrišu ručno, ali ništa ih ne čita.
+
+Testovi: backend 758 → **733**, aplikacija 992 → **985**. Manje koda i manje
+testova je ovde ceo rezultat. Uživo nije viđeno: [TODO-provera.md](TODO-provera.md),
+stavka 69; stavke **54 i 56 više ne postoje** i precrtane su.
+
 ## Repertoar iz arhive — sekcija 4, napisana 30.8.2026
 
 `services/repertoireArchive.js`, `POST /games/repertoire/seed` i

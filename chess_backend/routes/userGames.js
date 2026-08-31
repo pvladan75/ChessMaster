@@ -34,14 +34,10 @@ const { isOwnSubject } = require('../services/archiveScope');
 const { GoogleGenAI } = require('@google/genai');
 const { generateContentWithRetry } = require('../geminiService');
 const { openingJudge } = require('../services/openingJudgeService');
-const {
-  createEndgameAuditor, EndgameAuditUnavailable,
-} = require('../services/endgameAudit');
-const { seedFromArchive, repertoireDiff } = require('../services/repertoireArchive');
+const { repertoireDiff } = require('../services/repertoireArchive');
 const { playerProfile } = require('../services/playerProfile');
 
 const importer = createArchiveImporter({ pool });
-const auditor = createEndgameAuditor({ pool });
 const prep = createOpponentPrep({ pool, importer });
 
 /// One call to the model, or a throw. Everything about *whether* the answer may
@@ -103,7 +99,7 @@ const importLimiter = rateLimit({
 });
 
 function fail(res, err, whatFailed) {
-  if (err instanceof ArchiveImportUnavailable || err instanceof EndgameAuditUnavailable) {
+  if (err instanceof ArchiveImportUnavailable) {
     return res.status(err.status).json({
       error: err.message,
       reason: err.reason,
@@ -400,79 +396,6 @@ router.post('/openings/backfill', authenticateToken, importLimiter, async (req, 
     return res.json(await backfillNodes(pool, req.user.id));
   } catch (err) {
     return fail(res, err, 'Dopuna otvaranja nije uspela.');
-  }
-});
-
-// POST /games/endgame/audit  { username }
-//
-// Walks every archived game that reached seven men or fewer and records the
-// moves that threw away what the tables say the player had. Minutes on a first
-// run and seconds afterwards, since every answer lands in the shared
-// `tablebase_cache` — so this answers 202 with an id, like the import does.
-router.post('/endgame/audit', authenticateToken, importLimiter, async (req, res) => {
-  try {
-    const { auditId, finished } = await auditor.start({
-      userId: req.user.id,
-      subject: req.body?.username,
-    });
-    finished.catch((err) => logger.info(
-      `[ZAVRŠNICE] Provera ${auditId} završena greškom: ${err.message}`,
-    ));
-    return res.status(202).json({ auditId });
-  } catch (err) {
-    return fail(res, err, 'Provera završnica nije mogla da počne.');
-  }
-});
-
-// GET /games/endgame/audits/:id — how the run is going.
-router.get('/endgame/audits/:id', authenticateToken, async (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Loš id.' });
-  try {
-    const run = await auditor.getRun(req.user.id, id);
-    if (!run) return res.status(404).json({ error: 'Nema te provere.' });
-    return res.json(run);
-  } catch (err) {
-    return fail(res, err, 'Stanje provere nije dostupno.');
-  }
-});
-
-// GET /games/endgame/mistakes — the findings, worst swing first.
-router.get('/endgame/mistakes', authenticateToken, async (req, res) => {
-  const limit = Number(req.query?.limit);
-  try {
-    return res.json({
-      mistakes: await auditor.listMistakes(req.user.id, {
-        limit: Number.isInteger(limit) && limit > 0 && limit <= 200 ? limit : 50,
-      }),
-    });
-  } catch (err) {
-    return fail(res, err, 'Nalazi iz završnica nisu dostupni.');
-  }
-});
-
-// POST /games/repertoire/seed  { username, color?, minGames?, dryRun? }
-//
-// Builds a repertoire out of what the player already plays. Writes through
-// `addMove`, which makes the first move into a position primary and every later
-// one an alternate — so a position the player has already decided about keeps
-// their decision. A seed that overwrote a hand-built repertoire would be the
-// worst possible introduction to this feature.
-//
-// `dryRun: true` returns the plan and writes nothing, which is the sensible
-// thing for the UI to show first.
-router.post('/repertoire/seed', authenticateToken, importLimiter, async (req, res) => {
-  const body = req.body ?? {};
-  try {
-    return res.json(await seedFromArchive(pool, req.user.id, {
-      subject: body.username,
-      color: body.color ?? null,
-      minGames: Number(body.minGames) > 0 ? Number(body.minGames) : undefined,
-      dryRun: body.dryRun === true,
-    }));
-  } catch (err) {
-    if (err instanceof RangeError) return res.status(400).json({ error: err.message });
-    return fail(res, err, 'Repertoar nije mogao da se zaseje iz arhive.');
   }
 });
 

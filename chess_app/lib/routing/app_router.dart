@@ -31,7 +31,6 @@ import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
 import 'package:chess_app/features/archive/screens/archive_import_screen.dart';
 import 'package:chess_app/features/archive/screens/archive_home_screen.dart';
 import 'package:chess_app/features/archive/screens/mistake_drill_screen.dart';
-import 'package:chess_app/features/archive/screens/endgame_audit_screen.dart';
 import 'package:chess_app/features/archive/screens/opening_leak_report_screen.dart';
 import 'package:chess_app/features/archive/screens/player_profile_screen.dart';
 import 'package:chess_app/features/archive/screens/repertoire_diff_screen.dart';
@@ -281,19 +280,6 @@ final List<RouteBase> appRouteTable = [
   GoRoute(
     path: AppRoutes.archiveImport,
     builder: (context, state) => const ArchiveImportScreen(),
-  ),
-  GoRoute(
-    path: AppRoutes.archiveEndgames,
-    builder: (context, state) {
-      // Same refusal as the leak report: an audit for nobody is an empty list
-      // wearing the same shape as a player who threw nothing away.
-      final subject = state.uri.queryParameters['subject']?.trim() ?? '';
-      if (subject.isEmpty) return const ArchiveImportScreen();
-      return EndgameAuditScreen(
-        session: SessionService.instance.current,
-        username: subject,
-      );
-    },
   ),
   GoRoute(
     path: AppRoutes.archiveLeaks,

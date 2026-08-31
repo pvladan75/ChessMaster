@@ -203,12 +203,6 @@ class _SubjectCard extends StatelessWidget {
                   label: const Text('Pogledaj rupe u otvaranju'),
                 ),
                 FilledButton.icon(
-                  onPressed: () => context
-                      .push(AppRoutes.archiveEndgamesPath(subject.subject)),
-                  icon: const Icon(Icons.flag_outlined),
-                  label: const Text('Proveri završnice'),
-                ),
-                FilledButton.icon(
                   onPressed: () => context.push(
                       '${AppRoutes.archiveRepertoire}?subject=${Uri.encodeQueryComponent(subject.subject)}'),
                   icon: const Icon(Icons.account_tree_outlined),

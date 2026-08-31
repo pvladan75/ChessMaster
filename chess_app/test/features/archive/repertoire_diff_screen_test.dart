@@ -12,8 +12,6 @@ import 'package:chess_app/features/archive/models/mistake_item.dart';
 import 'package:chess_app/features/archive/models/mistake_recurrence.dart';
 import 'package:chess_app/features/archive/models/archive_run.dart';
 import 'package:chess_app/features/archive/models/archive_subject.dart';
-import 'package:chess_app/features/archive/models/endgame_audit.dart';
-import 'package:chess_app/features/archive/models/endgame_mistake.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
 
 class FakeArchiveApiService implements ArchiveApiService {
@@ -44,14 +42,6 @@ class FakeArchiveApiService implements ArchiveApiService {
       throw UnimplementedError();
 
   @override
-  Future<String> startEndgameAudit(String username) async => 'fake-id';
-  @override
-  Future<EndgameAudit> getEndgameAudit(String id) async =>
-      throw UnimplementedError();
-  @override
-  Future<List<EndgameMistake>> getEndgameMistakes({int limit = 50}) async => [];
-
-  @override
   Future<RepertoireDiff> getRepertoireDiff(
       {required String username, String? color, int? limit}) async {
     return RepertoireDiff(
@@ -72,31 +62,6 @@ class FakeArchiveApiService implements ArchiveApiService {
           leftGames: 2,
         ),
       ],
-    );
-  }
-
-  @override
-  Future<RepertoireSeedResult> seedRepertoire(
-      {required String username,
-      String? color,
-      int? minGames,
-      bool? dryRun}) async {
-    if (dryRun == true) {
-      return const RepertoireSeedResult(
-        dryRun: true,
-        positionsCount: 1,
-        movesCount: 2,
-        unplayable: 0,
-        plan: [],
-      );
-    }
-    return const RepertoireSeedResult(
-      dryRun: false,
-      positionsCount: 1,
-      movesCount: 2,
-      unplayable: 0,
-      added: 2,
-      primary: 1,
     );
   }
 
@@ -155,7 +120,7 @@ void main() {
     ArchiveApiService.setMock(FakeArchiveApiService());
   });
 
-  testWidgets('RepertoireDiffScreen displays diff and allows seeding',
+  testWidgets('the diff is shown, and nothing is written into the repertoire',
       (tester) async {
     tester.view.physicalSize = const Size(360, 640);
     tester.view.devicePixelRatio = 1.0;
@@ -172,22 +137,11 @@ void main() {
     expect(find.text('8'), findsOneWidget); // followedGames
     expect(find.text('Potez 3'), findsOneWidget); // ply = 4 -> move 3
 
-    // Click seed button
-    await tester.tap(find.text('Izvuci repertoar iz partija'));
-    await tester.pumpAndSettle();
-
-    // Dialog shows plan
-    expect(find.text('Predlog repertoara'), findsOneWidget);
-    expect(find.text('Nađeno pozicija: 1'), findsOneWidget);
-
-    // Confirm
-    await tester.tap(find.text('Upiši'));
-    await tester.pump(); // Start animation
-    await tester.pump(const Duration(milliseconds: 100)); // Let it slide up
-
-    // Success snackbar
-    expect(find.byType(SnackBar), findsOneWidget);
-
-    addTearDown(() => tester.view.resetPhysicalSize());
+    // The seed is gone: a repertoire built out of imported games wrote into
+    // the same graph the trainer reads, so moves nobody had chosen were
+    // indistinguishable from decisions. This screen only compares now.
+    expect(find.text('Izvuci repertoar iz partija'), findsNothing);
+    expect(find.textContaining('Uvezene partije se u repertoar ne upisuju'),
+        findsOneWidget);
   });
 }

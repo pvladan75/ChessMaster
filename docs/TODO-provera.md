@@ -2080,7 +2080,10 @@ PGN fajlu, kroz isti kod koji ide u produkciju — ali nijednom kroz Postgres.
 - [ ] **Dugme za dopunu** se pojavi kad je `gamesWithoutNodes > 0` i nestane
   posle dopune.
 
-## 54. Provera završnica preko Syzygy tablica — 30.8.2026, nije viđeno uživo
+## ~~54. Provera završnica preko Syzygy tablica~~ — funkcija uklonjena 31.8.2026
+
+Vlasnik je odustao: dva izvora za jedan odgovor, predugo, i pukao proces.
+Ništa ispod se više ne proverava.
 
 Prvi posao u projektu koji minutima priča sa tuđim servisom u pozadini. Sve dole
 je mereno lokalno, kroz produkcioni kod, ali nijednom uz stvarnu tablicu.
@@ -2130,7 +2133,10 @@ je mereno lokalno, kroz produkcioni kod, ali nijednom uz stvarnu tablicu.
 7. [ ] **Ponovni upis istog nalaza ne pravi duplikat** (isti
    `user_id, game_id, ply`).
 
-## 56. Repertoar iz arhive — 30.8.2026, nije viđeno uživo
+## ~~56. Repertoar iz arhive~~ — sejanje uklonjeno 31.8.2026
+
+Pisalo je u isti graf kao ručna izgradnja, pa su uvezeni potezi bili
+nerazlučivi od odluka. Poređenje (diff) ostaje i proverava se u stavci 60.
 
 1. [ ] **Prvo `dryRun`.** `POST /games/repertoire/seed` sa `dryRun: true` mora
    da vrati plan i **ništa** ne upiše. Očekivano na arhivi od 4126 partija:
@@ -2537,3 +2543,28 @@ Backend mora biti pokrenut jednom **posle** ove izmene, da nastane tabela
    šta drugi nalog vidi kao pokriveno.
 9. [ ] **Telefon, 360 dp.** Red repa ima potez, procenat, broj partija i dugme.
    Proveriti u *release* build-u, gde nema žuto-crnih pruga.
+
+## 69. Čišćenje uvezenih poteza i brisanje repertoara — 31.8.2026, nije viđeno uživo
+
+1. [ ] **Menija ima na svakom redu.** U spisku repertoara, uz dugme sa tegom
+   stoji ⋮ sa četiri stavke: Pokrivenost, Stablo poteza, Očisti poteze iz uvoza,
+   Obriši repertoar.
+2. [ ] **Stablo se otvara odatle.** Ovo je i odgovor na „ne vidim stablo" —
+   ranije je bilo samo u zaglavlju Pokrivenosti.
+3. [ ] **Brojanje pre brisanja.** „Očisti poteze iz uvoza" prvo javlja koliko
+   poteza i u koliko pozicija nema zapis da ste ih vi izabrali, i **kaže da je
+   to procena**. Odustajanje ne sme ništa da obriše.
+4. [ ] **Brisanje smanjuje graf.** Posle potvrde, broj poteza u spisku (redak
+   „N poteza u grafu") mora da padne, i to za obe kartice iste boje.
+5. [ ] **Ono što ste sami izabrali ostaje.** Pre čišćenja izgraditi ručno bar
+   jednu poziciju; posle čišćenja ona mora i dalje da bude tu, sa zvezdicom.
+6. [ ] **Nijedna pozicija ne ostaje bez glavnog poteza.** Otvoriti drill posle
+   čišćenja: mora da pita normalno, bez pozicija na koje nema odgovora.
+7. [ ] **Brisanje repertoara ne dira poteze.** Obrisati „Iz mojih partija —
+   beli": kartica nestaje, a drugi repertoar iste boje i dalje ima svoje poteze.
+8. [ ] **Nema više dugmeta za sejanje.** Na ekranu „Repertoar iz partija" nema
+   „Izvuci repertoar iz partija", a stoji rečenica da se uvezene partije u
+   repertoar ne upisuju.
+9. [ ] **Nema više provere završnica.** Na ekranu arhive i posle uvoza nema
+   dugmeta „Proveri završnice". Ponavljanje grešaka i dalje radi, uključujući
+   nalaze iz završnica koji su ranije upisani.

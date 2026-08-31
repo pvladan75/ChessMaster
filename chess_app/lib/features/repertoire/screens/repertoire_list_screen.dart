@@ -9,6 +9,7 @@ import 'package:chess_app/features/repertoire/screens/repertoire_new_screen.dart
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// The repertoires a student has started, and the door to a new one.
 ///
@@ -94,6 +95,106 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   /// about the repertoire and not about a position in it. Both ways out of the
   /// map lead back through this screen, which is the one place that knows how
   /// to open either door.
+  /// Takes out the moves nobody was ever asked about.
+  ///
+  /// Until 31.8.2026 a repertoire could also be built out of imported games,
+  /// and it wrote into the same graph as the build screen — so those moves are
+  /// in the student's hand-built repertoire, indistinguishable from decisions,
+  /// and the drill asks for them. The seed is gone; this is for what it left.
+  ///
+  /// The count comes first and the sentence says plainly that it is a guess,
+  /// because it is: the only signal is whether a kept attempt was ever recorded
+  /// for the move. Nothing is deleted until that has been read.
+  Future<void> _cleanImported(RepertoireSummary item) async {
+    final api = widget.api ?? RepertoireApiService();
+    final found = await api.importedMoves(color: item.color);
+    if (!mounted) return;
+    if (found == null) {
+      AppFeedback.error(context, 'Server nije odgovorio.');
+      return;
+    }
+    if (found.moves == 0) {
+      AppFeedback.info(
+          context, 'Nema poteza iz uvoza — sve u ovoj boji ste izabrali sami.');
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Očisti poteze iz uvoza'),
+        content: Text(
+          'U boji „${item.forWhite ? "beli" : "crni"}" ima ${found.moves} '
+          '${found.moves == 1 ? "potez" : "poteza"} u '
+          '${found.positions} ${found.positions == 1 ? "poziciji" : "pozicija"} '
+          'za koje ne postoji zapis da ste ih vi izabrali. Gotovo sigurno su '
+          'ušli uvozom partija.\n\n'
+          'Ovo je procena, ne dokaz: jedini trag je da li je uz potez '
+          'zabeležen vaš izbor. Potezi koje ste izabrali pre nego što je taj '
+          'zapis postojao izgledali bi isto.\n\n'
+          'Brisanje se ne može poništiti.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Odustani'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final done = await api.forgetImportedMoves(color: item.color);
+    if (!mounted) return;
+    // Do the thing, then say it.
+    await _load();
+    if (!mounted) return;
+    if (done) {
+      AppFeedback.info(context, 'Obrisano ${found.moves} poteza iz uvoza.');
+    } else {
+      AppFeedback.error(context, 'Nije obrisano — server nije odgovorio.');
+    }
+  }
+
+  /// Removes a repertoire: its name and its starting point, never its moves.
+  Future<void> _delete(RepertoireSummary item) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Obriši „${item.name}"?'),
+        content: const Text(
+          'Briše se samo ime i početna pozicija. Potezi ostaju — oni pripadaju '
+          'boji, a ne jednom repertoaru, pa ih drugi repertoari iste boje i '
+          'dalje koriste.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Odustani'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final api = widget.api ?? RepertoireApiService();
+    final done = await api.deleteRepertoire(item.id);
+    if (!mounted) return;
+    await _load();
+    if (!mounted) return;
+    if (!done) {
+      AppFeedback.error(context, 'Nije obrisano — server nije odgovorio.');
+    }
+  }
+
   /// The same walk as a picture, in the tree the Analysis board already uses.
   void _tree(RepertoireSummary item) {
     Navigator.of(context).push(MaterialPageRoute(
@@ -231,14 +332,59 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                   icon: const Icon(Icons.fitness_center),
                   onPressed: () => _drill(item),
                 ),
-                // In place of the chevron, which said only "this row opens".
-                // Tapping the row still opens the build screen; this is the
-                // second thing anybody wants from a repertoire and it was
-                // costing a decoration to leave out.
-                IconButton(
-                  tooltip: 'Pokrivenost',
-                  icon: const Icon(Icons.radar),
-                  onPressed: () => _coverage(item),
+                // A menu in place of the chevron, which said only "this row
+                // opens". Everything a repertoire can be asked for is in one
+                // place and none of it costs the row any width — the map and
+                // the tree were both a screen deep and one of them was not
+                // found at all.
+                PopupMenuButton<String>(
+                  tooltip: 'Još',
+                  onSelected: (choice) {
+                    switch (choice) {
+                      case 'coverage':
+                        _coverage(item);
+                        break;
+                      case 'tree':
+                        _tree(item);
+                        break;
+                      case 'imported':
+                        _cleanImported(item);
+                        break;
+                      case 'delete':
+                        _delete(item);
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: 'coverage',
+                      child: ListTile(
+                        leading: Icon(Icons.radar),
+                        title: Text('Pokrivenost'),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'tree',
+                      child: ListTile(
+                        leading: Icon(Icons.account_tree_outlined),
+                        title: Text('Stablo poteza'),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'imported',
+                      child: ListTile(
+                        leading: Icon(Icons.cleaning_services_outlined),
+                        title: Text('Očisti poteze iz uvoza'),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: ListTile(
+                        leading: Icon(Icons.delete_outline),
+                        title: Text('Obriši repertoar'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

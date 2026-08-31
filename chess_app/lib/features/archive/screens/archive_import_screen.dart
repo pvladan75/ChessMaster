@@ -154,13 +154,6 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 FilledButton.icon(
-                  onPressed: () => context
-                      .push(AppRoutes.archiveEndgamesPath(_run!.subject)),
-                  icon: const Icon(Icons.flag_outlined),
-                  label: const Text('Proveri završnice'),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                FilledButton.icon(
                   onPressed: () => context.push(
                       '${AppRoutes.archiveRepertoire}?subject=${Uri.encodeQueryComponent(_run!.subject)}'),
                   icon: const Icon(Icons.account_tree_outlined),
