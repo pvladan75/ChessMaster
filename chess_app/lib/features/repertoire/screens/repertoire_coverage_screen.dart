@@ -39,6 +39,7 @@ class RepertoireCoverageScreen extends StatefulWidget {
     this.api,
     this.onBuildAt,
     this.onDrillAt,
+    this.onTree,
   });
 
   final String name;
@@ -57,6 +58,10 @@ class RepertoireCoverageScreen extends StatefulWidget {
   /// them decides what happens between them.
   final void Function(String fen)? onBuildAt;
   final void Function(String fen)? onDrillAt;
+
+  /// Opens the same walk as a picture. The map counts and the tree shows; they
+  /// are two readings of one answer, so they sit one tap apart.
+  final VoidCallback? onTree;
 
   @override
   State<RepertoireCoverageScreen> createState() =>
@@ -124,6 +129,12 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
         title: Text('Pokrivenost — ${widget.name}'),
         elevation: 0,
         actions: [
+          if (widget.onTree != null)
+            IconButton(
+              tooltip: 'Stablo',
+              icon: const Icon(Icons.account_tree_outlined),
+              onPressed: widget.onTree,
+            ),
           IconButton(
             tooltip: 'Osveži',
             icon: const Icon(Icons.refresh),

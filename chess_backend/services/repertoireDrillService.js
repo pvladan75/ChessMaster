@@ -58,14 +58,24 @@ const KNOWN_REPETITIONS = 3;
 /// drilled on its own: the ordering rule stays here, in one place, rather than
 /// being written a second time by whoever wants a subset of it. Null means the
 /// whole colour, which is what it has always meant.
-async function nextItem(pool, userId, { color, now = new Date(), only = null } = {}) {
+///
+/// `ahead` drops the "is it due yet" condition and takes the position that is
+/// due soonest. A branch of three positions all scheduled for tomorrow is a
+/// branch nobody can practise today, and "come back tomorrow" is the wrong
+/// answer to somebody who has just built it and wants to run it once. What
+/// makes it safe is at the other end: an answer given ahead of schedule is not
+/// written down, so practising early cannot inflate an interval.
+async function nextItem(pool, userId, {
+  color, now = new Date(), only = null, ahead = false,
+} = {}) {
   const within = Array.isArray(only) ? only : null;
   if (within !== null && within.length === 0) return null;
 
   const due = await pool.query(
     `SELECT r.fen_key, r.due_at, r.repetitions, r.interval_days
        FROM repertoire_reviews r
-      WHERE r.user_id = $1 AND r.color = $2 AND r.due_at <= $3
+      WHERE r.user_id = $1 AND r.color = $2
+        AND ($5 = TRUE OR r.due_at <= $3)
         AND ($4::text[] IS NULL OR r.fen_key = ANY($4))
         AND EXISTS (
           SELECT 1 FROM repertoire_moves m
@@ -74,9 +84,13 @@ async function nextItem(pool, userId, { color, now = new Date(), only = null } =
         )
       ORDER BY r.due_at ASC
       LIMIT 1`,
-    [userId, color, now, within],
+    [userId, color, now, within, ahead],
   );
-  if (due.rowCount > 0) {
+  // Only when something is genuinely due. Running ahead, a position that has
+  // never been drilled at all still comes first: it is the one thing that is
+  // not practice but real, and burying it under an early repetition would be
+  // the wrong order.
+  if (due.rowCount > 0 && (!ahead || Number(due.rows[0].repetitions) === 0)) {
     return itemFrom(pool, userId, color, due.rows[0].fen_key, {
       fresh: false,
       repetitions: Number(due.rows[0].repetitions),
@@ -105,7 +119,15 @@ async function nextItem(pool, userId, { color, now = new Date(), only = null } =
       LIMIT 1`,
     [userId, color, within],
   );
-  if (fresh.rowCount === 0) return null;
+  if (fresh.rowCount === 0) {
+    if (due.rowCount > 0) {
+      return itemFrom(pool, userId, color, due.rows[0].fen_key, {
+        fresh: false,
+        repetitions: Number(due.rows[0].repetitions),
+      });
+    }
+    return null;
+  }
 
   return itemFrom(pool, userId, color, fresh.rows[0].fen_key, {
     fresh: true,
@@ -143,8 +165,15 @@ async function itemFrom(pool, userId, color, key, { fresh, repetitions }) {
 ///
 /// `revealed` says the answer was shown first. It is the difference between
 /// remembering and recognising, and SM-2 has a grade for each.
+///
+/// `practice` judges without writing anything down. It is what an answer given
+/// ahead of schedule is: the same rule the line drill's rehearsal already
+/// keeps, for the same reason — a position run through five times in an evening
+/// because somebody enjoyed themselves must not come back in a month on the
+/// strength of it. Told apart on the way out by `intervalDays: null`, so the
+/// screen cannot accidentally promise a return date nobody stored.
 async function answer(pool, userId, {
-  color, fen, uci, revealed = false, now = new Date(),
+  color, fen, uci, revealed = false, practice = false, now = new Date(),
 }) {
   const key = fenKey(fen);
   if (!uci) throw new RangeError('Potez nije prosleđen.');
@@ -176,6 +205,18 @@ async function answer(pool, userId, {
     quality = QUALITY.revealed;
   } else {
     quality = outcome === 'primary' ? QUALITY.recalled : QUALITY.alternate;
+  }
+
+  if (practice) {
+    return {
+      outcome,
+      quality,
+      practice: true,
+      primary: primary ? { uci: primary.uci, san: primary.san } : null,
+      alternates: alternates.map((m) => ({ uci: m.uci, san: m.san })),
+      intervalDays: null,
+      dueAt: null,
+    };
   }
 
   const current = await ensureReview(pool, userId, color, key);
@@ -328,7 +369,7 @@ async function rememberReplies(pool, { fen, minRating = 0, moves }) {
 async function drillStats(pool, userId, { color, now = new Date(), only = null } = {}) {
   const within = Array.isArray(only) ? only : null;
   if (within !== null && within.length === 0) {
-    return { positions: 0, due: 0, known: 0, fresh: 0 };
+    return { positions: 0, due: 0, known: 0, fresh: 0, nextDueAt: null };
   }
   const result = await pool.query(
     `SELECT
@@ -344,7 +385,10 @@ async function drillStats(pool, userId, { color, now = new Date(), only = null }
        (SELECT COUNT(*)::int FROM repertoire_reviews
          WHERE user_id = $1 AND color = $2
            AND ($4::text[] IS NULL OR fen_key = ANY($4))
-           AND repetitions >= ${KNOWN_REPETITIONS}) AS known`,
+           AND repetitions >= ${KNOWN_REPETITIONS}) AS known,
+       (SELECT MIN(due_at) FROM repertoire_reviews
+         WHERE user_id = $1 AND color = $2 AND due_at > $3
+           AND ($4::text[] IS NULL OR fen_key = ANY($4))) AS next_due`,
     [userId, color, now, within],
   );
   const row = result.rows[0] ?? {};
@@ -357,6 +401,11 @@ async function drillStats(pool, userId, { color, now = new Date(), only = null }
     // "nothing is due" and "nothing was ever built" are two different empty
     // states and only one of them is good news.
     fresh: Math.max(0, positions - (row.seen ?? 0)),
+    // When the soonest one comes back. "Nothing is due" without this reads as
+    // "you cannot practise this", which is how the owner read it on the first
+    // branch he tried: one position, drilled once, scheduled for tomorrow, and
+    // a screen that said only that there was nothing there.
+    nextDueAt: row.next_due ?? null,
   };
 }
 

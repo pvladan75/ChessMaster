@@ -35,7 +35,7 @@ const {
   unskipNode,
 } = require('../services/repertoireService');
 const { frontier } = require('../services/repertoireFrontier');
-const { drillLine } = require('../services/repertoireLine');
+const { drillLine, tree: repertoireTree } = require('../services/repertoireLine');
 
 /// One place where a bad request becomes a 400 and everything else becomes a
 /// 500 with a line in the log. Without it every handler grows its own copy and
@@ -186,6 +186,32 @@ router.get('/frontier', authenticateToken, (req, res) => {
   );
 });
 
+// GET /repertoire/tree?color=b&rootFen=...&rootPath=e4+c5&minRating=0&maxPly=16
+//
+// The repertoire as a picture: one node per ply, each saying whose move it is,
+// how often the opponent plays it, and what state the position it leads to is
+// in. Same walk, same two tables, no Lichess request.
+//
+// `maxPly` keeps it a picture rather than a wall. A seeded repertoire runs to
+// thousands of moves and nobody reads a drawing of all of them; the answer says
+// when the depth was reached.
+router.get('/tree', authenticateToken, (req, res) => {
+  const { color, rootFen, rootPath, minRating, maxPly } = req.query;
+  answer(
+    res,
+    repertoireTree(pool, req.user.id, {
+      color,
+      rootFen,
+      rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
+        ? rootPath.trim().split(/\s+/)
+        : [],
+      minRating: Number(minRating) || 0,
+      maxPly: Math.min(Math.max(Number(maxPly) || 16, 2), 40),
+    }),
+    'Stablo repertoara nije moglo da se sastavi.',
+  );
+});
+
 // GET /repertoire/weak?color=b
 router.get('/weak', authenticateToken, (req, res) => {
   const { color, limit } = req.query;
@@ -230,7 +256,7 @@ router.get('/drill/next', authenticateToken, (req, res) => {
 // The moves in `prefix` are played, never graded. Only the position at the end
 // is answered, through the same `/drill/answer` as before.
 router.get('/drill/line', authenticateToken, (req, res) => {
-  const { color, rootFen, rootPath, minRating, fromFen } = req.query;
+  const { color, rootFen, rootPath, minRating, fromFen, ahead } = req.query;
   answer(
     res,
     drillLine(pool, req.user.id, {
@@ -243,6 +269,9 @@ router.get('/drill/line', authenticateToken, (req, res) => {
       fromFen: typeof fromFen === 'string' && fromFen.trim() !== ''
         ? fromFen
         : null,
+      // Practising before a position is due. Nothing is written down for it,
+      // so it cannot be used to push an interval out.
+      ahead: ahead === '1' || ahead === 'true',
     }),
     'Linija za vežbanje nije mogla da se sastavi.',
   );
@@ -269,11 +298,11 @@ router.get('/drill/reveal', authenticateToken, (req, res) => {
 // stored book, so a drill costs no Lichess request at all - which is what lets
 // somebody without a token of their own practise what they built last week.
 router.post('/drill/answer', authenticateToken, (req, res) => {
-  const { color, fen, uci, revealed, minRating } = req.body ?? {};
+  const { color, fen, uci, revealed, minRating, practice } = req.body ?? {};
   answer(
     res,
     gradeAnswer(pool, req.user.id, {
-      color, fen, uci, revealed: !!revealed,
+      color, fen, uci, revealed: !!revealed, practice: !!practice,
     }).then(async (graded) => {
       const reply = await pickReply(pool, {
         fen: _fenAfterOrSame(fen, graded, uci),

@@ -317,6 +317,110 @@ class RepertoireFrontier {
   }
 }
 
+/// One move in the repertoire's tree, and everything under it.
+///
+/// One node per ply, unlike the walk the frontier and the drill work in — those
+/// think in whole waves, my move and the answer to it, because that is the unit
+/// a question is asked in. A drawing is not: a move I chose is a card of its
+/// own even when nothing has been taken after it.
+class RepertoireTreeMove {
+  const RepertoireTreeMove({
+    required this.uci,
+    required this.san,
+    required this.fen,
+    required this.mine,
+    this.role,
+    this.share = 0,
+    this.state = '',
+    this.children = const [],
+  });
+
+  final String uci;
+  final String san;
+
+  /// The position this move leads to.
+  final String fen;
+
+  /// Whose move it is. Mine carries [role]; theirs carries [share] and [state].
+  final bool mine;
+
+  /// `primary` or `alternate`, for the student's own moves.
+  final String? role;
+
+  /// How often the opponent plays it.
+  final double share;
+
+  /// What the position after it is: `open`, `unopened`, `cut` or `decided`.
+  /// This is what makes the tree worth drawing — without it the picture is a
+  /// decoration, and with it the holes are visible.
+  final String state;
+
+  final List<RepertoireTreeMove> children;
+
+  bool get isPrimary => role == 'primary';
+
+  factory RepertoireTreeMove.fromJson(Map<String, dynamic> json) =>
+      RepertoireTreeMove(
+        uci: json['uci'] as String? ?? '',
+        san: json['san'] as String? ?? '',
+        fen: json['fen'] as String? ?? '',
+        mine: json['mine'] as bool? ?? false,
+        role: json['role'] as String?,
+        share: (json['share'] as num?)?.toDouble() ?? 0,
+        state: json['state'] as String? ?? '',
+        children: ((json['children'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((e) =>
+                RepertoireTreeMove.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+      );
+}
+
+/// The repertoire as a picture.
+class RepertoireTree {
+  const RepertoireTree({
+    required this.rootFen,
+    this.rootPath = const [],
+    this.state = '',
+    this.children = const [],
+    this.maxPly = 16,
+    this.truncated = false,
+  });
+
+  final String rootFen;
+  final List<String> rootPath;
+
+  /// The state of the root position itself, so a repertoire whose first move is
+  /// still undecided says so instead of drawing an empty page.
+  final String state;
+
+  final List<RepertoireTreeMove> children;
+
+  /// How deep the drawing goes. A seeded repertoire runs to thousands of moves
+  /// and nobody reads a picture of all of them.
+  final int maxPly;
+  final bool truncated;
+
+  bool get isEmpty => children.isEmpty;
+
+  factory RepertoireTree.fromJson(Map<String, dynamic> json) {
+    final root = json['root'] is Map
+        ? Map<String, dynamic>.from(json['root'] as Map)
+        : const <String, dynamic>{};
+    return RepertoireTree(
+      rootFen: root['fen'] as String? ?? '',
+      rootPath: sanPath(root['path']),
+      state: json['state'] as String? ?? '',
+      children: ((json['children'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => RepertoireTreeMove.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      maxPly: (json['maxPly'] as num?)?.toInt() ?? 16,
+      truncated: json['truncated'] as bool? ?? false,
+    );
+  }
+}
+
 /// One question the drill is about to ask.
 class DrillItem {
   const DrillItem({
@@ -391,6 +495,7 @@ class DrillLine {
     this.question,
     this.reason,
     this.stats = const DrillStats(positions: 0, due: 0, known: 0, fresh: 0),
+    this.ahead = false,
     this.truncated = false,
   });
 
@@ -419,6 +524,10 @@ class DrillLine {
   final String? reason;
 
   final DrillStats stats;
+
+  /// True when this line was taken before its position was due. The screen has
+  /// to say so, because the answer at the end of it is not written down.
+  final bool ahead;
 
   /// True when the walk hit its ceiling, said out loud rather than quietly
   /// handing back a shorter line.
@@ -449,6 +558,7 @@ class DrillLine {
       reason: json['reason'] as String?,
       stats: DrillStats.fromJson(
           Map<String, dynamic>.from((json['stats'] as Map?) ?? const {})),
+      ahead: json['ahead'] as bool? ?? false,
       truncated: json['truncated'] as bool? ?? false,
     );
   }
@@ -461,6 +571,7 @@ class DrillStats {
     required this.due,
     required this.known,
     required this.fresh,
+    this.nextDueAt,
   });
 
   final int positions;
@@ -471,11 +582,18 @@ class DrillStats {
   /// empty states, and only one of them is good news.
   final int fresh;
 
+  /// When the soonest position comes back. Null when nothing is scheduled at
+  /// all. Without it "nothing is due" reads as "you cannot practise this",
+  /// which is how it read the first time a branch of one position — drilled
+  /// once, scheduled for tomorrow — was opened.
+  final DateTime? nextDueAt;
+
   factory DrillStats.fromJson(Map<String, dynamic> json) => DrillStats(
         positions: (json['positions'] as num?)?.toInt() ?? 0,
         due: (json['due'] as num?)?.toInt() ?? 0,
         known: (json['known'] as num?)?.toInt() ?? 0,
         fresh: (json['fresh'] as num?)?.toInt() ?? 0,
+        nextDueAt: DateTime.tryParse(json['nextDueAt'] as String? ?? ''),
       );
 }
 
@@ -488,6 +606,7 @@ class DrillAnswer {
     this.intervalDays,
     this.reply,
     this.replyCovered = true,
+    this.practice = false,
   });
 
   /// `primary`, `alternate`, `unknown` — or `unprepared`, which is not a mark
@@ -498,8 +617,14 @@ class DrillAnswer {
   final RepertoireMove? primary;
   final List<RepertoireMove> alternates;
 
-  /// When the position comes back, in days. Zero means "in a few minutes".
+  /// When the position comes back, in days. Zero means "in a few minutes", and
+  /// null means nothing was written down at all — see [practice].
   final int? intervalDays;
+
+  /// True when the answer was given ahead of the position's schedule. It is
+  /// judged and then thrown away: a position run through five times in one
+  /// evening must not come back in a month on the strength of it.
+  final bool practice;
 
   /// What the opponent plays next, drawn by how often it is really played —
   /// out of the book stored while the position was built, so a drill costs no
@@ -541,6 +666,7 @@ class DrillAnswer {
       intervalDays: (json['intervalDays'] as num?)?.toInt(),
       reply: reply?['uci'] as String?,
       replyCovered: reply?['covered'] as bool? ?? true,
+      practice: json['practice'] as bool? ?? false,
     );
   }
 }
@@ -748,6 +874,34 @@ class RepertoireApiService {
     );
   }
 
+  /// The repertoire as a tree of single moves, for drawing.
+  ///
+  /// Same walk and same two tables as everything else that reads what was
+  /// built, so it costs no Lichess allowance. Null when the server did not
+  /// answer — which the caller must tell apart from a repertoire with nothing
+  /// in it.
+  Future<RepertoireTree?> repertoireTree({
+    required String color,
+    required String rootFen,
+    List<String> rootPath = const [],
+    int? minRating,
+    int maxPly = 16,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/tree').replace(
+      queryParameters: {
+        'color': color,
+        'rootFen': rootFen,
+        if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
+        if (minRating != null) 'minRating': '$minRating',
+        'maxPly': '$maxPly',
+      },
+    );
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    return RepertoireTree.fromJson(
+        Map<String, dynamic>.from(jsonDecode(res.body) as Map));
+  }
+
   /// A line to rehearse and the question at the end of it.
   ///
   /// Costs nothing at Lichess, like everything that reads what was built.
@@ -764,6 +918,7 @@ class RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     String? fromFen,
+    bool ahead = false,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/drill/line').replace(
       queryParameters: {
@@ -772,6 +927,7 @@ class RepertoireApiService {
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
         if (minRating != null) 'minRating': '$minRating',
         if (fromFen != null) 'fromFen': fromFen,
+        if (ahead) 'ahead': '1',
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -806,6 +962,7 @@ class RepertoireApiService {
     required String uci,
     bool revealed = false,
     int? minRating,
+    bool practice = false,
   }) async {
     final res =
         (await _send(() => _post('$backendUrl/repertoire/drill/answer', {
@@ -814,6 +971,7 @@ class RepertoireApiService {
                   'uci': uci,
                   'revealed': revealed,
                   if (minRating != null) 'minRating': minRating,
+                  if (practice) 'practice': true,
                 })))
             .res;
     if (res == null) return null;

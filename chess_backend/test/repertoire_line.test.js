@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Chess } = require('chess.js');
 
-const { drillLine } = require('../services/repertoireLine');
+const { drillLine, tree } = require('../services/repertoireLine');
 const { fenKey } = require('../services/repertoireService');
 
 const START = new Chess().fen();
@@ -240,4 +240,73 @@ test('the book is asked once per wave, not once per branch', async () => {
 
   const waves = pool.calls.filter((c) => c.text.includes('FROM opening_replies'));
   assert.equal(waves.length, 3, `talasa: ${waves.length}`);
+});
+
+test('the tree draws one node per ply, in the order the student chose', async () => {
+  // The walk works in whole waves because that is the unit a question is asked
+  // in. A picture is not: it needs a card per move.
+  const pool = stubPool(SICILIAN);
+  const drawn = await tree(pool, 7, { color: 'w', rootFen: START });
+
+  assert.deepEqual(drawn.children.map((n) => n.san), ['e4']);
+  assert.equal(drawn.children[0].mine, true);
+  const replies = drawn.children[0].children;
+  assert.deepEqual(replies.map((n) => n.san), ['c5']);
+  assert.equal(replies[0].mine, false);
+  assert.equal(Math.round(replies[0].share * 100), 50);
+  // And on down: 1.e4 c5 2.Nf3 d6 3.d4, five plies, five levels.
+  assert.deepEqual(replies[0].children.map((n) => n.san), ['Nf3']);
+  assert.deepEqual(
+    replies[0].children[0].children.map((n) => n.san), ['d6']);
+  assert.deepEqual(
+    replies[0].children[0].children[0].children.map((n) => n.san), ['d4']);
+});
+
+test('a move decided and not yet opened is still drawn', async () => {
+  // The case the owner was looking at: c5 chosen, replies never taken. Building
+  // the tree from the positions the walk *reached* would draw a repertoire with
+  // that move missing, which is why it is built from what was kept.
+  const pool = stubPool({ moves: SICILIAN.moves, replies: [] });
+  const drawn = await tree(pool, 7, { color: 'w', rootFen: START });
+
+  assert.deepEqual(drawn.children.map((n) => n.san), ['e4']);
+  assert.deepEqual(drawn.children[0].children, []);
+});
+
+test('every node says what the position after it is', async () => {
+  // Without this the tree is a decoration. With it, it is the one place the
+  // holes are visible.
+  const pool = stubPool(SICILIAN);
+  const drawn = await tree(pool, 7, { color: 'w', rootFen: START });
+
+  const afterC5 = drawn.children[0].children[0];
+  assert.equal(afterC5.state, 'decided');
+  // 1.e4 c5 2.Nf3 d6 is decided (3.d4) but its replies were never taken.
+  const afterD6 = afterC5.children[0].children[0];
+  assert.equal(afterD6.state, 'unopened');
+});
+
+test('a cut branch is drawn as cut and not walked past', async () => {
+  const pool = stubPool({ ...SICILIAN, skips: [MIDDLE] });
+  const drawn = await tree(pool, 7, { color: 'w', rootFen: START });
+
+  const afterC5 = drawn.children[0].children[0];
+  assert.equal(afterC5.state, 'cut');
+  assert.deepEqual(afterC5.children, []);
+});
+
+test('the depth is a parameter, and reaching it is said out loud', async () => {
+  // A seeded repertoire runs to thousands of moves and nobody reads a drawing
+  // of all of them.
+  const pool = stubPool(SICILIAN);
+  const drawn = await tree(pool, 7, { color: 'w', rootFen: START, maxPly: 2 });
+
+  assert.equal(drawn.truncated, true);
+  assert.deepEqual(drawn.children[0].children.map((n) => n.san), ['c5']);
+  // One wave, and then it stops. The student's own move at the edge is still
+  // drawn — those are decisions already made and already loaded, and only the
+  // opponent's replies cost a level of the walk — but nothing comes after it.
+  const afterC5 = drawn.children[0].children[0];
+  assert.deepEqual(afterC5.children.map((n) => n.san), ['Nf3']);
+  assert.deepEqual(afterC5.children[0].children, []);
 });

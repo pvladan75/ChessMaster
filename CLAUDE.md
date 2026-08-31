@@ -20,13 +20,13 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 979 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 989 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 742 tests, all green
+cd chess_backend && npm test          # node --test, 751 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-Both counts measured 31.8.2026, after the coverage map finished the
+Both counts measured 31.8.2026, after the first live pass through the
 repertoire trainer. They are here so a suite that quietly stops running half of itself is
 visible; if the number you get is lower, find out why before carrying on.
 

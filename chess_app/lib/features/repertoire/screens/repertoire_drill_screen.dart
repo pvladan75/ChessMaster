@@ -118,6 +118,14 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
 
   bool get _rehearsing => _prefixAt < _prefix.length;
 
+  /// Set once the student has asked to practise a branch before it is due.
+  ///
+  /// Everything answered in this state is judged and then thrown away. That is
+  /// what makes the button safe to offer: a position run through five times in
+  /// one evening because somebody enjoyed themselves must not come back in a
+  /// month on the strength of it.
+  bool _ahead = false;
+
   DrillAnswer? _answer;
   String? _playedSan;
 
@@ -140,7 +148,14 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     _loadNext();
   }
 
-  Future<void> _loadNext() async {
+  /// Practises a branch that is not due yet. Nothing is written down.
+  Future<void> _practiseAhead() async {
+    _ahead = true;
+    await _loadNext();
+  }
+
+  Future<void> _loadNext({bool keepAhead = true}) async {
+    if (!keepAhead) _ahead = false;
     setState(() {
       _loading = true;
       _answer = null;
@@ -169,6 +184,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         rootPath: widget.rootPath,
         minRating: widget.minRating,
         fromFen: widget.fromFen,
+        ahead: _ahead,
       );
       if (!mounted) return;
       if (line != null) {
@@ -357,6 +373,9 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       uci: uci,
       revealed: _revealed != null,
       minRating: widget.minRating,
+      // Ahead of schedule means judged and not stored — the same rule the
+      // rehearsal keeps, and the reason practising early is allowed at all.
+      practice: _ahead,
     );
     if (!mounted) return;
 
@@ -444,7 +463,9 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             padding: const EdgeInsets.only(right: AppSpacing.md),
             child: Center(
               child: Text(
-                'na redu: ${_stats.due} · novo: ${_stats.fresh}',
+                _ahead
+                    ? 'van rasporeda'
+                    : 'na redu: ${_stats.due} · novo: ${_stats.fresh}',
                 style: AppText.micro.copyWith(color: context.colors.textMuted),
               ),
             ),
@@ -622,6 +643,14 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               style:
                   AppText.caption.copyWith(color: context.colors.textPrimary)),
         ],
+        if (graded.practice) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Vežba van rasporeda — ocena se ne upisuje, pa se raspored ove '
+            'pozicije nije pomerio.',
+            style: AppText.caption.copyWith(color: context.colors.textMuted),
+          ),
+        ],
         if (_replySan != null) ...[
           const SizedBox(height: 6),
           Text(
@@ -637,6 +666,32 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         ],
       ],
     );
+  }
+
+  /// When the soonest position comes back, in words. Empty when nothing is
+  /// scheduled at all, which is a different sentence again.
+  String _backAgain() {
+    final at = _stats.nextDueAt;
+    if (at == null) {
+      return 'Sve što ste izgradili vraća se na red kad dođe vreme. ';
+    }
+    final left = at.difference(DateTime.now());
+    if (left.inMinutes <= 1) {
+      return 'Sledeća se vraća za koji trenutak. ';
+    }
+    if (left.inHours < 1) {
+      return 'Sledeća se vraća za ${left.inMinutes} minuta. ';
+    }
+    if (left.inHours < 20) {
+      return 'Sledeća se vraća za ${left.inHours} sati. ';
+    }
+    // Rounded to whole days rather than truncated. SM-2 schedules in days, so
+    // "tomorrow" arrives as twenty-three hours and something, and `inDays`
+    // would report that as zero — a position due tomorrow reading as due today
+    // is the one mistake this sentence must not make.
+    final days = (left.inHours / 24).round();
+    if (days <= 1) return 'Sledeća se vraća sutra. ';
+    return 'Sledeća se vraća za $days dana. ';
   }
 
   /// When the position comes back, in words rather than in a number of days.
@@ -734,7 +789,9 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                   ? (inBranch
                       ? 'U ovoj grani nema šta da se vežba.'
                       : 'Još nema šta da se vežba.')
-                  : 'Ništa nije na redu.',
+                  : (inBranch
+                      ? 'U ovoj grani ništa nije na redu.'
+                      : 'Ništa nije na redu.'),
               style: AppText.bodyBold,
               textAlign: TextAlign.center,
             ),
@@ -746,14 +803,29 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                           'poteza.'
                       : 'Prvo izgradite nekoliko pozicija — vežba pita ono što '
                           'ste vi izabrali.')
-                  : 'Sve što ste izgradili vraća se na red kad dođe vreme. '
-                      'Do sada znate ${_stats.known} od ${_stats.positions} '
-                      'pozicija.',
+                  // When the next one comes back, not only that it will. A
+                  // branch of one position, drilled once and scheduled for
+                  // tomorrow, used to say nothing but "nothing is due" — which
+                  // reads as "this branch cannot be practised".
+                  : '${_backAgain()}Do sada znate ${_stats.known} od '
+                      '${_stats.positions} pozicija.',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.lg),
-            FilledButton(
+            // Practising early is allowed, and it is allowed *because* nothing
+            // is written down for it. Waiting a day is right for a schedule and
+            // wrong for somebody who has just built ten positions and wants to
+            // run them once.
+            if (!nothingBuilt) ...[
+              FilledButton.icon(
+                onPressed: _busy ? null : _practiseAhead,
+                icon: const Icon(Icons.play_arrow, size: 18),
+                label: const Text('Vežbaj ipak'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            OutlinedButton(
               onPressed: () => Navigator.of(context).maybePop(),
               child: const Text('Nazad'),
             ),

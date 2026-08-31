@@ -2475,3 +2475,34 @@ udesno).
    grana produbljuje.
 10. [ ] **Telefon, 360 dp.** Linija grane može da bude duga i ispod nje stoje dva
     dugmeta. Proveriti u *release* build-u, gde nema žuto-crnih pruga.
+
+## 67. Vežba van rasporeda i stablo repertoara — 31.8.2026, nije viđeno uživo
+
+Prva tri iz prvog prolaza vlasnika kroz trenažer (31.8.2026).
+
+1. [ ] **Prazna vežba kaže kada se vraća.** Uzeti granu u kojoj je sve već
+   vežbano: mora da piše „U ovoj grani ništa nije na redu." i „Sledeća se vraća
+   sutra / za N dana", a ne samo da ničega nema.
+2. [ ] **„Vežbaj ipak" postoji i radi.** Dugme se vidi kad ima šta da se vežba a
+   ništa nije dospelo; klik otvara pitanje, a u zaglavlju piše „van rasporeda".
+3. [ ] **Vežba van rasporeda se ne upisuje.** Odgovoriti tačno, pa se vratiti:
+   ista pozicija mora i dalje da bude nedospela, i **ne sme** da piše „Vraća se
+   za N dana". Ovo je jedina provera koja stvarno gleda bazu.
+4. [ ] **Prazna grana i dalje nema to dugme.** U grani u kojoj nikad ništa nije
+   izgrađeno „Vežbaj ipak" se ne nudi.
+5. [ ] **Stablo se otvara sa radara.** Ikonica stabla u zaglavlju „Pokrivenost".
+6. [ ] **Potez bez uzetih odgovora se vidi na crtežu.** Otvoriti stablo
+   repertoara u kome je potez izabran a „Dalje" nije pritisnuto: taj potez mora
+   da bude kartica sa `…`, ne da nedostaje.
+7. [ ] **Kartice kažu stanje bez boje.** Proveriti da se na crtežu razaznaju
+   `★` (glavni), procenat uz protivnikov potez, `?`, `…` i `✂`.
+8. [ ] **Dubina radi.** Prebaciti na 8 poluporeza: crtež se skrati i pojavi se
+   rečenica da je skraćen. Vratiti na 24 i proveriti da se produbi.
+9. [ ] **Velik repertoar ne obara ekran.** Otvoriti stablo nad zasejanim
+   repertoarom („Iz mojih partija") na 24 poluporeza — proveriti da se crta i da
+   zumiranje radi.
+10. [ ] **Obe vrata sa crteža.** Klik na protivnikov potez → „Gradi odavde" i
+    „Vežbaj ovu granu" vode u tu poziciju. Klik na **svoj** potez → umesto
+    dugmadi stoji rečenica da je tamo protivnik na potezu.
+11. [ ] **Ugašen server.** Stablo mora da kaže da nije moglo da se pročita, ne
+    da je repertoar prazan.

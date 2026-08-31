@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_coverage_screen.dart';
+import 'package:chess_app/features/repertoire/screens/repertoire_tree_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_drill_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_new_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
@@ -93,6 +94,27 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   /// about the repertoire and not about a position in it. Both ways out of the
   /// map lead back through this screen, which is the one place that knows how
   /// to open either door.
+  /// The same walk as a picture, in the tree the Analysis board already uses.
+  void _tree(RepertoireSummary item) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => RepertoireTreeScreen(
+        name: item.name,
+        color: item.color,
+        rootFen: item.rootFen,
+        rootPath: item.rootPath,
+        api: widget.api,
+        onBuildAt: (fen) {
+          Navigator.of(context).pop();
+          _open(item, at: fen);
+        },
+        onDrillAt: (fen) {
+          Navigator.of(context).pop();
+          _drill(item, from: fen);
+        },
+      ),
+    ));
+  }
+
   void _coverage(RepertoireSummary item) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => RepertoireCoverageScreen(
@@ -108,6 +130,10 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         onDrillAt: (fen) {
           Navigator.of(context).pop();
           _drill(item, from: fen);
+        },
+        onTree: () {
+          Navigator.of(context).pop();
+          _tree(item);
         },
       ),
     ));

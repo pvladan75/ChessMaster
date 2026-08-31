@@ -60,7 +60,9 @@ const {
 ///
 /// Cut branches are not walked. A line the student refused to prepare is not a
 /// line to be rehearsed down.
-async function walkLines(pool, userId, { color, rootFen, minRating = 0 } = {}) {
+async function walkLines(pool, userId, {
+  color, rootFen, minRating = 0, maxPly = MAX_PLY,
+} = {}) {
   if (color !== 'w' && color !== 'b') {
     throw new RangeError(`Boja mora biti "w" ili "b", a ne "${color}".`);
   }
@@ -80,8 +82,9 @@ async function walkLines(pool, userId, { color, rootFen, minRating = 0 } = {}) {
   let ply = 0;
   let count = 1;
   let truncated = false;
+  const ceiling = Math.min(Math.max(2, Number(maxPly) || MAX_PLY), MAX_PLY);
 
-  while (level.length > 0 && ply < MAX_PLY && !truncated) {
+  while (level.length > 0 && ply < ceiling && !truncated) {
     const branches = [];
     for (const node of level) {
       if (cut.has(node.key)) continue;
@@ -113,6 +116,10 @@ async function walkLines(pool, userId, { color, rootFen, minRating = 0 } = {}) {
           parent: branch.node.key,
           ply: branch.node.ply + 2,
           path: [...branch.node.path, branch.after.san, landed.san],
+          // How often the opponent plays the reply that leads here. Carried on
+          // the node because the picture needs it and a second query for a
+          // number already in hand would be the wrong kind of tidy.
+          share: reply.share,
           // The moves of the line, in order, each one saying whose it is. This
           // is what the replay plays: the student is asked for theirs and the
           // opponent's are answered back at them.
@@ -132,7 +139,104 @@ async function walkLines(pool, userId, { color, rootFen, minRating = 0 } = {}) {
     ply += 2;
   }
 
-  return { nodes, root, truncated };
+  // The walk stopped because it ran out of room, not because the repertoire
+  // ends here. Said out loud, like everywhere else.
+  if (level.length > 0 && ply >= ceiling) truncated = true;
+
+  // `kept` and `cut` go back with it. They were loaded to walk with and the
+  // tree needs exactly the same two facts about every node — reading them a
+  // second time would be a second chance for the two answers to differ.
+  return { nodes, root, truncated, kept, cut };
+}
+
+/// The repertoire as a tree of single moves, for a picture rather than a queue.
+///
+/// The walk works in whole waves — my move and the answer to it — because that
+/// is the unit a question is asked in. A drawing is not: it needs one node per
+/// ply, so a move I chose is a card of its own even when nothing has been taken
+/// after it. That case is the reason this builds from `kept` rather than from
+/// the children found: a move decided and not yet opened has no children, and
+/// building from what was reached would draw a repertoire with that move
+/// missing — which is precisely the position the owner was looking at.
+///
+/// Every node says what it is: whose move, its share of games (theirs) or
+/// whether it is the main line (mine), and what state the position it leads to
+/// is in — `open`, `unopened`, `cut` or `decided`. Without those the tree is a
+/// decoration; with them it is the one place the holes are visible.
+///
+/// `maxPly` keeps it a picture. A seeded repertoire runs to thousands of moves
+/// and nobody reads a drawing of all of them, so the depth is a parameter and
+/// the answer says when it was reached.
+async function tree(pool, userId, {
+  color, rootFen, rootPath = [], minRating = 0, maxPly = 16,
+} = {}) {
+  const { nodes, root, truncated, kept, cut } = await walkLines(pool, userId, {
+    color, rootFen, minRating, maxPly,
+  });
+
+  const byParent = new Map();
+  for (const node of nodes.values()) {
+    if (node.parent == null) continue;
+    const list = byParent.get(node.parent) ?? [];
+    list.push(node);
+    byParent.set(node.parent, list);
+  }
+
+  /// What a position is, in one word, for the card that leads to it.
+  const stateOf = (node) => {
+    if (cut.has(node.key)) return 'cut';
+    if ((kept.get(node.key) ?? []).length === 0) return 'open';
+    if ((byParent.get(node.key) ?? []).length === 0) return 'unopened';
+    return 'decided';
+  };
+
+  const build = (node) => {
+    if (cut.has(node.key)) return [];
+    const kids = byParent.get(node.key) ?? [];
+    const out = [];
+    // In the student's own order: the primary first, then the alternates, the
+    // way `keptByPosition` hands them back.
+    for (const my of kept.get(node.key) ?? []) {
+      const after = step(node.fen, my.uci);
+      if (after === null) continue;
+      const replies = kids
+        .filter((c) => c.moves[c.moves.length - 2].uci === my.uci)
+        .sort((a, b) => (b.share ?? 0) - (a.share ?? 0));
+      out.push({
+        uci: my.uci,
+        san: after.san,
+        mine: true,
+        role: my.role,
+        fen: after.fen,
+        children: replies.map((child) => ({
+          uci: child.moves[child.moves.length - 1].uci,
+          san: child.moves[child.moves.length - 1].san,
+          mine: false,
+          share: Number(child.share ?? 0),
+          fen: child.fen,
+          fenKey: child.key,
+          state: stateOf(child),
+          children: build(child),
+        })),
+      });
+    }
+    return out;
+  };
+
+  const base = Array.isArray(rootPath)
+    ? rootPath.filter((san) => typeof san === 'string' && san !== '')
+    : [];
+
+  return {
+    root: { fen: rootFen, path: base },
+    // The root is a position like any other and carries the same state, so a
+    // repertoire whose first move is undecided says so on the picture instead
+    // of drawing an empty page.
+    state: stateOf(root),
+    children: build(root),
+    maxPly,
+    truncated,
+  };
 }
 
 /// The keys from the root down to a node, the node itself last.
@@ -167,7 +271,7 @@ function subtree(nodes, fromKey) {
 /// two it is.
 async function drillLine(pool, userId, {
   color, rootFen, rootPath = [], minRating = 0, fromFen = null,
-  now = new Date(),
+  ahead = false, now = new Date(),
 } = {}) {
   const { nodes, root, truncated } = await walkLines(pool, userId, {
     color, rootFen, minRating,
@@ -189,7 +293,7 @@ async function drillLine(pool, userId, {
 
   const keys = within ?? [...nodes.keys()];
   const stats = await drillStats(pool, userId, { color, now, only: within });
-  const item = await nextItem(pool, userId, { color, now, only: keys });
+  const item = await nextItem(pool, userId, { color, now, only: keys, ahead });
 
   if (item === null) {
     return {
@@ -197,6 +301,7 @@ async function drillLine(pool, userId, {
       from,
       question: null,
       reason: stats.positions === 0 ? 'nothing-built' : 'nothing-due',
+      ahead,
       start: null,
       prefix: [],
       stats,
@@ -231,6 +336,9 @@ async function drillLine(pool, userId, {
     // does it: each path starts at the repertoire's root and the screen joins
     // the two for a line that reads from move one.
     root: { fen: rootFen, path: base },
+    // Whether this line was taken ahead of its schedule. The screen has to say
+    // so, because the answer at the end of it will not be written down.
+    ahead,
     from,
     start: {
       fen: start.fen,
@@ -261,4 +369,4 @@ async function drillLine(pool, userId, {
   };
 }
 
-module.exports = { drillLine, walkLines, chainTo, subtree };
+module.exports = { drillLine, walkLines, tree, chainTo, subtree };

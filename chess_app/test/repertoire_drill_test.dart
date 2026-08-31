@@ -40,13 +40,19 @@ class _FakeApi extends RepertoireApiService {
   /// The line handed back, and null for a server that did not answer — which
   /// the screen must tell apart from a line with no question in it.
   DrillLine? line;
+
+  /// What comes back when the caller asks to practise ahead of schedule. Null
+  /// means the same line as always.
+  DrillLine? aheadLine;
   int lineCalls = 0;
   String? lastFromFen;
+  bool? lastAhead;
 
   /// How many answers were graded. The rehearsal must add nothing to this: a
   /// prefix is replayed many times a day, and grading it would push those
   /// positions out on repetitions nobody had to remember cold.
   int graded = 0;
+  bool? lastPractice;
 
   @override
   Future<DrillLine?> drillLine({
@@ -55,10 +61,12 @@ class _FakeApi extends RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     String? fromFen,
+    bool ahead = false,
   }) async {
     lineCalls += 1;
     lastFromFen = fromFen;
-    return line;
+    lastAhead = ahead;
+    return aheadLine != null && ahead ? aheadLine : line;
   }
 
   @override
@@ -89,8 +97,10 @@ class _FakeApi extends RepertoireApiService {
     required String uci,
     bool revealed = false,
     int? minRating,
+    bool practice = false,
   }) async {
     graded += 1;
+    lastPractice = practice;
     lastRevealedFlag = revealed;
     final outcome = outcomeFor ?? (uci == primaryUci ? 'primary' : 'unknown');
     return DrillAnswer(
@@ -98,9 +108,10 @@ class _FakeApi extends RepertoireApiService {
       primary: outcome == 'unprepared'
           ? null
           : RepertoireMove(uci: primaryUci, san: primarySan, role: 'primary'),
-      intervalDays: outcome == 'primary' ? 6 : 0,
+      intervalDays: practice ? null : (outcome == 'primary' ? 6 : 0),
       reply: outcome == 'unprepared' ? null : reply,
       replyCovered: replyCovered,
+      practice: practice,
     );
   }
 }
@@ -415,5 +426,70 @@ void main() {
 
     await play(tester, 'c7', 'c5');
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('nothing due in a branch says when it comes back',
+      (tester) async {
+    // One position, drilled once, scheduled for tomorrow. The screen used to
+    // say only that nothing was due, which reads as "this branch cannot be
+    // practised" — and that is exactly how it was read the first time.
+    final api = _FakeApi()
+      ..line = DrillLine(
+        reason: 'nothing-due',
+        stats: DrillStats(
+          positions: 1,
+          due: 0,
+          known: 0,
+          fresh: 0,
+          nextDueAt: DateTime.now().add(const Duration(days: 1)),
+        ),
+      );
+    await pump(tester, api, rootFen: smithMorra, fromFen: smithMorra);
+
+    expect(find.text('U ovoj grani ništa nije na redu.'), findsOneWidget);
+    expect(find.textContaining('Sledeća se vraća sutra'), findsOneWidget);
+    expect(find.text('Vežbaj ipak'), findsOneWidget);
+  });
+
+  testWidgets('an empty branch is not offered a practice run', (tester) async {
+    // Nothing was ever built there, so there is nothing to run early either.
+    final api = _FakeApi()
+      ..line = const DrillLine(
+        reason: 'nothing-built',
+        stats: DrillStats(positions: 0, due: 0, known: 0, fresh: 0),
+      );
+    await pump(tester, api, rootFen: smithMorra, fromFen: smithMorra);
+
+    expect(find.text('Vežbaj ipak'), findsNothing);
+  });
+
+  testWidgets('practising ahead is judged and not written down',
+      (tester) async {
+    // What makes the button safe to offer. A position run through five times in
+    // one evening must not come back in a month on the strength of it.
+    final api = _FakeApi()
+      ..line = const DrillLine(
+        reason: 'nothing-due',
+        stats: DrillStats(positions: 1, due: 0, known: 0, fresh: 0),
+      )
+      ..aheadLine = DrillLine(
+        question: const DrillItem(
+            fen: smithMorra, fresh: false, repetitions: 2, moves: 1),
+        ahead: true,
+        stats: const DrillStats(positions: 1, due: 0, known: 0, fresh: 0),
+      );
+    await pump(tester, api, rootFen: smithMorra, fromFen: smithMorra);
+
+    await tester.tap(find.text('Vežbaj ipak'));
+    await tester.pumpAndSettle();
+    expect(api.lastAhead, true);
+    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+
+    await play(tester, 'b8', 'c6');
+
+    expect(api.lastPractice, true);
+    expect(find.textContaining('ocena se ne upisuje'), findsOneWidget);
+    // And no promise of a return date, because nothing was stored.
+    expect(find.textContaining('Vraća se za'), findsNothing);
   });
 }

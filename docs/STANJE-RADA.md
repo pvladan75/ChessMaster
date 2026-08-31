@@ -2561,6 +2561,86 @@ dodirom.
 Testovi: backend 738 → **742**, aplikacija 971 → **979**. Uživo nije viđeno:
 [TODO-provera.md](TODO-provera.md), stavka 66.
 
+## Prvi prolaz kroz trenažer uživo — tri nalaza, 31.8.2026
+
+Vlasnik je prošao kroz repertoar i javio tri stvari. Prva je izgledala kao bag i
+nije bila.
+
+**„Vežbaj ovu granu" nije dalo da se vežba.** Grana je imala tačno jednu odluku,
+ta pozicija je već jednom vežbana, i SM-2 ju je zakazao za sutra. Server je
+korektno vratio `question: null`, a ekran je rekao samo „Ništa nije na redu" —
+rečenicom pisanom za ceo repertoar, bez datuma i bez izlaza. Pročitano je, sasvim
+razumno, kao „ova grana ne može da se vežba".
+
+Tri izmene, i sve tri su o tome da ekran kaže istinu koju server već zna:
+
+- `drillStats` vraća i **`nextDueAt`**, pa ekran piše „Sledeća se vraća sutra"
+  umesto da ćuti. Zaokruživanje ide na cele dane, jer „sutra" stiže kao 23 sata i
+  nešto — `inDays` bi to prijavio kao nulu, a pozicija koja dospeva sutra ne sme
+  da se čita kao da dospeva danas.
+- U grani se i naslov menja: „**U ovoj grani** ništa nije na redu."
+- **„Vežbaj ipak"** — `ahead=1`. Uzima poziciju koja je najbliža dospeću iako
+  još nije dospela; pozicija koja nikad nije vežbana i dalje ide prva, jer je
+  ona jedina prava, a ne vežba.
+
+Ono što tu polugu čini bezopasnom je drugi kraj: odgovor dat van rasporeda se
+**ne upisuje** (`practice: true`). Isto pravilo koje već važi za ponavljanje
+linije, i iz istog razloga — pozicija provučena pet puta u jedno veče ne sme da
+se vrati tek za mesec dana zato što je nekome bilo zabavno. Ekran to i kaže, a
+`intervalDays` je `null`, pa ne može ni slučajno da obeća datum koji niko nije
+sačuvao.
+
+**„Kada će mi se pojaviti druge opcije protivnika?"** — kako stvari sada stoje,
+neće. Talas pokriva 80% odigranog, najviše četiri poteza; u toj poziciji su to
+bili c3 (64%) i Nf3 (19%), a ostalih 28 poteza je rep koji nosi 16% partija.
+Panel ih pošteno broji, ali nema načina da se jedan od njih **doda** u pripremu.
+Sreću se samo u drillu, koji vuče i nepokrivene poteze. To je prava rupa i nije
+zatvorena — vidi „Šta je ostalo" ispod.
+
+**Stablo poteza** — urađeno, odeljak ispod.
+
+## Stablo repertoara — postojeći crtež, nova stabla, 31.8.2026
+
+`GET /repertoire/tree` i `RepertoireTreeScreen`. Crtež **nije nov**: to je
+`VisualMoveTreeWidget` iz Analize, koji već ume da zumira, pomera, crta odozgo
+naniže ili s leva na desno i da označi transpoziciju. Drugo stablo napisano ovde
+bilo bi drugo mesto na kome sve to može da se pokvari, pa je jedini posao bio
+pretvoriti repertoar u `AnalysisNode`.
+
+**Jedan čvor po poluporezu**, za razliku od šetnje koja radi u celim talasima
+(moj potez i odgovor na njega), jer je talas jedinica u kojoj se postavlja
+pitanje, a ne u kojoj se crta. Zato se stablo gradi iz **`repertoire_moves`**, a
+ne iz onoga do čega je šetnja stigla: potez koji je izabran a odgovori nikad
+uzeti nema nijedno dete, i crtež građen od dosegnutih pozicija bi ga izostavio —
+što je tačno pozicija u koju je vlasnik gledao.
+
+Svaka kartica kaže i **šta je pozicija posle nje**: `?` nema odluke, `…` odluka
+bez uzetih odgovora, `✂` odsečeno, a uz protivnikov potez stoji i procenat.
+Zvezdica je moj glavni potez. Sve u znakovima, ništa u nijansi.
+
+**Dubina je parametar** (`maxPly`, podrazumevano 16, u ekranu 8/16/24/40).
+Repertoar zasejan iz arhive ima hiljade poteza i crtež svih nije crtež koji neko
+čita; kad se dubina dodirne, odgovor to kaže.
+
+Iz izabranog čvora vode ista dvoja vrata kao sa radara — „Gradi odavde" i
+„Vežbaj ovu granu" — i to samo kad je učenik na potezu, jer oba ekrana pitaju
+„šta vi igrate ovde". Ulaz je ikonica stabla u zaglavlju radara.
+
+Testovi: backend 742 → **751**, aplikacija 979 → **989**. Uživo nije viđeno:
+[TODO-provera.md](TODO-provera.md), stavka 67.
+
+### Šta je ostalo posle ovog prolaza
+
+- **Rep protivnikovih poteza se ne može spremiti.** Nema dugmeta „spremi i ovaj
+  potez" u panelu „Odgovori protivnika". Prag od 80% je dobra podrazumevana
+  vrednost i loš zid.
+- **`minRating` niko ne postavlja.** Provučen je kroz sve ekrane repertoara i
+  uvek je `null`, pa svako dete vidi poteze svih rejtinga. Odluka iz plana
+  („rang se bira prema učeniku") još nema polje.
+- **Odsečena grana se posle sesije ne može naći.** Server vraća ceo spisak,
+  aplikacija koristi samo njegovu dužinu; „Vrati odsečenu granu" je jedan korak
+  i živi koliko i ekran.
+
 ## Repertoar iz arhive — sekcija 4, napisana 30.8.2026
 
 `services/repertoireArchive.js`, `POST /games/repertoire/seed` i

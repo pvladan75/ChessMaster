@@ -228,10 +228,82 @@ test('an empty book is not written as an empty row set', async () => {
 
 test('the counts tell "nothing due" apart from "nothing built"', async () => {
   const pool = stubPool([[
-    { positions: 20, seen: 12, due: 3, known: 5 },
+    { positions: 20, seen: 12, due: 3, known: 5, next_due: null },
   ]]);
 
   const stats = await drillStats(pool, 7, { color: 'b' });
 
-  assert.deepEqual(stats, { positions: 20, due: 3, known: 5, fresh: 8 });
+  assert.deepEqual(stats,
+    { positions: 20, due: 3, known: 5, fresh: 8, nextDueAt: null });
 });
+
+test('the counts say when the next position comes back', async () => {
+  // Without this, "nothing is due" reads as "you cannot practise this" — which
+  // is exactly how it read the first time a branch of one position, already
+  // drilled and scheduled for tomorrow, was opened.
+  const back = new Date('2026-09-01T09:00:00Z');
+  const pool = stubPool([[
+    { positions: 1, seen: 1, due: 0, known: 0, next_due: back },
+  ]]);
+
+  const stats = await drillStats(pool, 7, { color: 'b' });
+
+  assert.equal(stats.fresh, 0);
+  assert.equal(stats.nextDueAt, back);
+});
+
+test('running ahead takes an early position rather than nothing', async () => {
+  // A branch of one position, drilled once and scheduled for tomorrow, has
+  // nothing due — and "come back tomorrow" is the wrong answer to somebody who
+  // has just built it and wants to run it once. This is that button.
+  const pool = stubPool([
+    [{ fen_key: KEY, due_at: 'tomorrow', repetitions: '2', interval_days: 1 }],
+    [],
+    [{ moves: 1 }],
+  ]);
+
+  const item = await nextItem(pool, 7, { color: 'b', ahead: true });
+
+  assert.equal(item.fenKey, KEY);
+  assert.equal(item.fresh, false);
+  // The "is it due yet" condition is the one thing that is dropped; the order
+  // is still soonest first.
+  assert.match(pool.calls[0].text, /\$5 = TRUE OR r.due_at <= \$3/);
+  assert.equal(pool.calls[0].params[4], true);
+});
+
+test('running ahead still asks a never-drilled position first', async () => {
+  // The one thing in the queue that is not practice but real. Burying it under
+  // an early repetition would be the wrong order.
+  const pool = stubPool([
+    [{ fen_key: KEY, due_at: 'tomorrow', repetitions: '2', interval_days: 1 }],
+    [{ fen_key: 'drugi kljuc', mistakes: 0 }],
+    [{ moves: 1 }],
+  ]);
+
+  const item = await nextItem(pool, 7, { color: 'b', ahead: true });
+
+  assert.equal(item.fenKey, 'drugi kljuc');
+  assert.equal(item.fresh, true);
+});
+
+test('an answer given ahead of schedule is judged and not written down',
+  async () => {
+    // The same rule the line drill's rehearsal keeps, for the same reason: a
+    // position run through five times in one evening must not come back in a
+    // month on the strength of it.
+    const pool = stubPool([
+      [{ uci: 'b8c6', san: 'Nc6', role: 'primary' }],
+    ]);
+
+    const graded = await answer(pool, 7, {
+      color: 'b', fen: SMITH_MORRA, uci: 'b8c6', practice: true,
+    });
+
+    assert.equal(graded.outcome, 'primary');
+    assert.equal(graded.practice, true);
+    // Nothing to promise, because nothing was stored.
+    assert.equal(graded.intervalDays, null);
+    assert.equal(pool.calls.length, 1, 'vezba van rasporeda je pisala u bazu');
+    assert.equal(pool.ran('repertoire_reviews'), 0);
+  });
