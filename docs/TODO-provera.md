@@ -2644,3 +2644,22 @@ Traži **vaš Lichess token** (isti kao sudija), jer troši vašu kvotu.
     da različitu kičmu — proveriti bar da se prvi potez ili procenti razlikuju.
 11. [ ] **Telefon, 360 dp.** Traka kontrola sada ima sedam dugmadi. Proveriti u
     *release* build-u, gde nema žuto-crnih pruga.
+
+## 73. Orezivanje po dohvatljivosti — 31.8.2026, nije viđeno uživo
+
+1. [ ] **Uklanjanje poteza odnese nacrte iza njega.** Pustiti kičmu, pa ukloniti
+   jedan potez blizu korena (× u „Vaši potezi ovde"): javi „Uklonjeno i N poteza
+   do kojih se više nije moglo stići", i stablo se skrati.
+2. [ ] **Vaši potezi se ne brišu bez pitanja.** Napraviti ručno bar dva poteza
+   duboko u jednoj liniji, pa ukloniti potez iznad njih: mora da se pojavi
+   pitanje „Ostalo je bez veze" sa brojem, i „Ostavi" ne sme ništa da obriše.
+3. [ ] **„Obriši i njih" briše.** Isto, ali potvrditi: potezi nestaju iz stabla.
+4. [ ] **Transpozicija preživi.** Ovo je poenta cele stavke. Napraviti dve
+   linije koje se spajaju (npr. 2.Nf3 Nc6 3.Nc3 i 2.Nc3 Nc6 3.Nf3), pa ukloniti
+   potez sa jedne: zajednička pozicija i sve ispod nje moraju da ostanu.
+5. [ ] **Odsečena grana se ne briše.** Odseći granu, pa ukloniti neki potez
+   drugde: rad iza reza mora da ostane, jer rez nije brisanje.
+6. [ ] **Uklanjanje bez posledica ćuti.** Ukloniti potez iza koga nema ničega:
+   nema poruke o orezivanju i nema pitanja.
+7. [ ] **Nijedna pozicija ne ostaje bez glavnog poteza.** Posle svega otvoriti
+   vežbu: mora da pita normalno.

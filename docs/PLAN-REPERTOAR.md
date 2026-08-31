@@ -259,8 +259,9 @@ Three, and they are decisions rather than details.
    both confirm routes. The rating band was decided and wired at the same time.
 3. ~~**The spine.**~~ — done 31.8.2026, with the games floor and the
    never-overwrite rule. Synchronous, capped at 12 moves.
-4. **Pruning by reachability.** R2 and A2, which pairs with 3 — a spine you
-   cannot rebuild after changing your mind is a spine you use once.
+4. ~~**Pruning by reachability.**~~ — done 31.8.2026, hung on removing a move
+   rather than on promoting one: with `role`, changing the primary leaves the
+   old move in place as an alternate and nothing is stranded at all.
 5. **The replies panel beside the board.** R3 and A3.
 6. **Engine notes on the node.** R4 and `repertoire_notes`.
 

@@ -47,6 +47,9 @@ const {
   buildSpine, MAX_SPINE_DEPTH, MIN_SPINE_GAMES,
 } = require('../services/repertoireSpine');
 const { OpeningJudgeUnavailable } = require('../services/openingJudgeService');
+const {
+  orphansOfRemoving, pruneKeys,
+} = require('../services/repertoirePrune');
 const rateLimit = require('express-rate-limit');
 
 // A spine is up to two dozen book requests in one call, against a token that
@@ -232,6 +235,50 @@ router.post('/node/primary', authenticateToken, (req, res) => {
     res,
     promoteMove(pool, req.user.id, { color, fen, uci }),
     'Glavni potez nije mogao da se promeni.',
+  );
+});
+
+// GET /repertoire/node/orphans?color=b&fen=...&uci=g8f6&minRating=1600
+//
+// What removing that move would strand, without removing anything. Asked
+// *before* the removal, because "would this still be reachable without that
+// move" cannot be answered once the move is gone.
+//
+// Positions, and how many moves in them are drafts and how many are decisions —
+// so a screen can take the first silently and ask about the second. Losing an
+// evening's work to a changed second move with no sentence about it is the kind
+// of thing that happens once and ends trust in a feature.
+router.get('/node/orphans', authenticateToken, (req, res) => {
+  const { color, fen, uci, minRating } = req.query;
+  answer(
+    res,
+    orphansOfRemoving(pool, req.user.id, {
+      color, fen, uci, minRating: Number(minRating) || 0,
+    }),
+    'Nije moglo da se izračuna šta ostaje bez veze.',
+  );
+});
+
+// POST /repertoire/prune  { color, keys, includeDecisions, minRating }
+//
+// Takes out positions that nothing reaches any more. Drafts go by default;
+// decisions only when the caller says so, which is what the count from
+// `/node/orphans` is for.
+//
+// Every key is re-checked against the roots first: the answer to "is this still
+// unreachable" can change between the question and the confirmation, and a
+// sweep that trusted a minute-old list would delete a line that is back in use.
+router.post('/prune', authenticateToken, (req, res) => {
+  const body = req.body ?? {};
+  answer(
+    res,
+    pruneKeys(pool, req.user.id, {
+      color: body.color,
+      keys: Array.isArray(body.keys) ? body.keys : [],
+      includeDecisions: body.includeDecisions === true,
+      minRating: Number(body.minRating) || 0,
+    }),
+    'Orezivanje nije uspelo.',
   );
 });
 

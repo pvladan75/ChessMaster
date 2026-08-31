@@ -2680,6 +2680,50 @@ te poteze zaista igra na toj tabli.
 Testovi: backend 751 → **758**, aplikacija 989 → **992**. Uživo nije viđeno:
 [TODO-provera.md](TODO-provera.md), stavka 68.
 
+## Orezivanje po dohvatljivosti — korak 4 iz plana, 31.8.2026
+
+`services/repertoirePrune.js`, `GET /repertoire/node/orphans` i
+`POST /repertoire/prune`. Traženo pravilo je bilo „promeniš potez, sve iza starog
+izbora se briše"; napravljeno pravilo je **briše se ono do čega se više ne može
+stići**, a ne „briše se podstablo".
+
+Razlika nije akademska. Baza je graf ključan po poziciji — zbog toga rad duboko u
+Smit-Mori postaje deo šireg repertoara protiv 1.e4 u trenutku kad stigne do iste
+table — pa pozicija ispod napuštenog poteza može da stoji i na liniji koja se i
+dalje igra. Brisanje podstabla bi tiho pokvarilo liniju koju niko nije dirao.
+
+Dve šetnje i oduzimanje: **S** je ono do čega se stizalo kroz potez koji odlazi,
+uzeto **pre** nego što ode; **R** je ono do čega se stiže iz svih korena te boje
+posle; siročići su `S \ R`. To oduzimanje usput čuva i pozicije do kojih se
+nikad nije ni stizalo — na primer izgrađene ulaskom iz drilla, van pokrivenog
+repa — jer one nisu ni u `S`. Čistka „sve što je nedohvatljivo" preko cele boje
+pojela bi svaku takvu.
+
+Rezovi se **prolaze**. `repertoire_skips` znači „ne pitaj me za ovu granu", ne
+„obriši je", a rez koji bi tiho obrisao rad iza sebe ne bi mogao da se poništi.
+
+**Nacrti odlaze bez pitanja, odluke se broje i vraćaju na pitanje.** Gubitak
+večeri rada zbog promenjenog drugog poteza, bez ijedne rečenice o tome, je stvar
+koja se dogodi jednom i završi poverenje u funkciju.
+
+Okačeno je na **uklanjanje** poteza, ne na promenu glavnog: sa `role`, promena
+glavnog ostavlja stari potez kao alternativu i ništa ne ostaje bez veze.
+
+### Test koji ništa nije merio, pa je popravljen
+
+Prvi test za ovo je prošao i sa **isključenim** oduzimanjem — imenovao je ključ
+koji ionako nikad nije u skupu. Drugi pokušaj je imenovao transpoziciju, ali
+poziciju u kojoj je protivnik na potezu, a šetnja u skup upisuje samo pozicije u
+kojima je učenik na potezu; opet ništa. Tek treći, nad pravom transpozicijom
+(2.Nf3 Nc6 3.Nc3 i 2.Nc3 Nc6 3.Nf3 su jedna tabla), pada kad se oduzimanje
+izbaci i prolazi kad se vrati.
+
+To je tačno pravilo iz `CLAUDE.md` — **dokaži zaštitu mutacijom pre nego što joj
+poveruješ** — i ovde je dvaput uzastopno pokazalo da zaštita nije čuvala ništa.
+
+Testovi: backend 749 → **758**, aplikacija 989 → **993**. Uživo nije viđeno:
+[TODO-provera.md](TODO-provera.md), stavka 73.
+
 ## Auto-kičma — korak 3 iz plana, 31.8.2026
 
 `services/repertoireSpine.js` i `POST /repertoire/spine`. Deblo u jednom

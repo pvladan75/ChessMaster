@@ -1164,10 +1164,86 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     await _loadTree();
   }
 
+  /// Removes a move, and takes with it whatever nothing can reach any more.
+  ///
+  /// The rule as the owner asked for it is "everything behind the old choice
+  /// goes". The rule as it has to be built is **unreachable**, not "behind":
+  /// the store is a graph, so a position under the move being dropped may also
+  /// stand on a line that is still played, and a subtree delete would silently
+  /// damage a line nobody touched.
+  ///
+  /// Drafts go without a word. Decisions are counted and asked about, because
+  /// losing an evening's work to a changed second move with no sentence about
+  /// it is the kind of thing that happens once and ends trust in a feature.
   Future<void> _remove(RepertoireMove move) async {
     final fen = _current;
-    if (fen == null) return;
+    if (fen == null || _busy) return;
+
+    setState(() => _busy = true);
+    // Before the removal. Afterwards the question has no answer: the move that
+    // reached those positions is gone.
+    final orphans = await _api.orphansOfRemoving(
+      color: widget.color,
+      fen: fen,
+      uci: move.uci,
+      minRating: widget.minRating,
+    );
     await _api.removeMove(color: widget.color, fen: fen, uci: move.uci);
+    if (!mounted) return;
+
+    var swept = 0;
+    if (orphans != null && orphans.keys.isNotEmpty) {
+      if (orphans.drafts > 0) {
+        swept += await _api.prune(
+          color: widget.color,
+          keys: orphans.keys,
+          minRating: widget.minRating,
+        );
+      }
+      if (!mounted) return;
+      if (orphans.decisions > 0) {
+        final also = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Ostalo je bez veze'),
+            content: Text(
+              'Bez tog poteza do ${orphans.decisions} '
+              '${orphans.decisions == 1 ? "vašeg poteza" : "vaših poteza"} '
+              'više nema kako da se stigne. Obrisati i njih?\n\n'
+              'Ako ih ostavite, biće tu ali ih ništa neće dosezati dok ne '
+              'napravite put do njih.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Ostavi'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Obriši i njih'),
+              ),
+            ],
+          ),
+        );
+        if (also == true && mounted) {
+          swept += await _api.prune(
+            color: widget.color,
+            keys: orphans.keys,
+            includeDecisions: true,
+            minRating: widget.minRating,
+          );
+        }
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _note = swept == 0
+          ? null
+          : 'Uklonjeno i $swept ${swept == 1 ? "potez" : "poteza"} do kojih se '
+              'više nije moglo stići.';
+    });
     await _loadKept();
     await _loadTree();
   }

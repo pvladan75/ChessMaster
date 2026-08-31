@@ -44,6 +44,10 @@ class _FakeApi extends RepertoireApiService {
   SpineResult? spine;
   int? spineDepth;
 
+  /// What removing a move would strand, and what the sweep was asked to take.
+  ({List<String> keys, int drafts, int decisions})? orphans;
+  final List<bool> pruned = [];
+
   /// The opponent's moves added to the preparation from past the covered wave.
   final List<String> prepared = [];
   bool prepareFails = false;
@@ -120,6 +124,26 @@ class _FakeApi extends RepertoireApiService {
     if (cutFails) return false;
     cut.add(_key(fen));
     return true;
+  }
+
+  @override
+  Future<({List<String> keys, int drafts, int decisions})?> orphansOfRemoving({
+    required String color,
+    required String fen,
+    required String uci,
+    int? minRating,
+  }) async =>
+      orphans;
+
+  @override
+  Future<int> prune({
+    required String color,
+    required List<String> keys,
+    bool includeDecisions = false,
+    int? minRating,
+  }) async {
+    pruned.add(includeDecisions);
+    return keys.length;
   }
 
   @override
@@ -1311,5 +1335,78 @@ void main() {
 
     expect(find.textContaining('Server nije odgovorio'), findsOneWidget);
     expect(find.textContaining('Upisano'), findsNothing);
+  });
+
+  testWidgets('removing a move sweeps the drafts it stranded, silently',
+      (tester) async {
+    // Drafts go without a word; there is nothing to ask about a move nobody
+    // chose.
+    await pump(tester, seed: {
+      smithMorra.split(' ').take(4).join(' '): const [
+        RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
+      ],
+    });
+    api.orphans = (keys: ['k1', 'k2'], drafts: 2, decisions: 0);
+
+    await tester.tap(find.byTooltip('Ukloni'));
+    await tester.pumpAndSettle();
+
+    // One sweep, and it was not allowed to touch decisions.
+    expect(api.pruned, [false]);
+    expect(find.textContaining('Uklonjeno i 2 poteza'), findsOneWidget);
+  });
+
+  testWidgets('a decision that would be stranded is asked about, not taken',
+      (tester) async {
+    // Losing an evening's work to a changed second move, with no sentence about
+    // it, is the kind of thing that happens once and ends trust in a feature.
+    await pump(tester, seed: {
+      smithMorra.split(' ').take(4).join(' '): const [
+        RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
+      ],
+    });
+    api.orphans = (keys: ['k1'], drafts: 0, decisions: 3);
+
+    await tester.tap(find.byTooltip('Ukloni'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ostalo je bez veze'), findsOneWidget);
+    expect(find.textContaining('3 vaših poteza'), findsOneWidget);
+    await tester.tap(find.text('Ostavi'));
+    await tester.pumpAndSettle();
+
+    // Nothing swept: the drafts count was zero and the decisions were kept.
+    expect(api.pruned, isEmpty);
+  });
+
+  testWidgets('saying yes is what lets decisions go', (tester) async {
+    await pump(tester, seed: {
+      smithMorra.split(' ').take(4).join(' '): const [
+        RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
+      ],
+    });
+    api.orphans = (keys: ['k1'], drafts: 0, decisions: 1);
+
+    await tester.tap(find.byTooltip('Ukloni'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Obriši i njih'));
+    await tester.pumpAndSettle();
+
+    expect(api.pruned, [true]);
+  });
+
+  testWidgets('a removal that stranded nothing says nothing', (tester) async {
+    await pump(tester, seed: {
+      smithMorra.split(' ').take(4).join(' '): const [
+        RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
+      ],
+    });
+    api.orphans = (keys: const [], drafts: 0, decisions: 0);
+
+    await tester.tap(find.byTooltip('Ukloni'));
+    await tester.pumpAndSettle();
+
+    expect(api.pruned, isEmpty);
+    expect(find.textContaining('Uklonjeno i'), findsNothing);
   });
 }

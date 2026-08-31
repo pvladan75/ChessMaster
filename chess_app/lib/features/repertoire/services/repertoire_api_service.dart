@@ -969,6 +969,61 @@ class RepertoireApiService {
     );
   }
 
+  /// What removing a move would leave with no way back to it.
+  ///
+  /// Asked *before* the removal: "would this still be reachable without that
+  /// move" cannot be answered once the move is gone. Nothing is written.
+  ///
+  /// Positions, and how many moves in them are drafts and how many decisions —
+  /// the first can go silently, the second has to be asked about.
+  Future<({List<String> keys, int drafts, int decisions})?> orphansOfRemoving({
+    required String color,
+    required String fen,
+    required String uci,
+    int? minRating,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/node/orphans').replace(
+      queryParameters: {
+        'color': color,
+        'fen': fen,
+        'uci': uci,
+        if (minRating != null) 'minRating': '$minRating',
+      },
+    );
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    return (
+      keys: ((data['keys'] as List?) ?? const []).whereType<String>().toList(),
+      drafts: (data['drafts'] as num?)?.toInt() ?? 0,
+      decisions: (data['decisions'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  /// Takes out positions nothing reaches any more.
+  ///
+  /// Drafts go by default; decisions only when [includeDecisions] says so. The
+  /// server re-checks every key against the roots first, so a list that has
+  /// gone stale cannot delete a line that is back in use.
+  Future<int> prune({
+    required String color,
+    required List<String> keys,
+    bool includeDecisions = false,
+    int? minRating,
+  }) async {
+    if (keys.isEmpty) return 0;
+    final sent = await _send(() => _post('$backendUrl/repertoire/prune', {
+          'color': color,
+          'keys': keys,
+          'includeDecisions': includeDecisions,
+          if (minRating != null) 'minRating': minRating,
+        }));
+    final res = sent.res;
+    if (res == null) return 0;
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    return (data['removed'] as num?)?.toInt() ?? 0;
+  }
+
   /// A generated move becomes a decision.
   ///
   /// Without [uci], every draft in the position; with it, one move. Confirming
