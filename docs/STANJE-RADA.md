@@ -2680,6 +2680,32 @@ te poteze zaista igra na toj tabli.
 Testovi: backend 751 → **758**, aplikacija 989 → **992**. Uživo nije viđeno:
 [TODO-provera.md](TODO-provera.md), stavka 68.
 
+## Protivnikovi odgovori uz tablu — korak 5 iz plana, 31.8.2026
+
+`GET /repertoire/book` i panel „Posle X — šta igra protivnik", koji sada stoji
+uz tablu umesto da se pojavljuje tek posle `Dalje`. To je jedina lista koja
+odlučuje kako izgleda sledeći talas, pa nije imala šta da traži iza dugmeta.
+
+**Ne troši nijedan upit.** Čita se iz `opening_replies`, gde stoji sve što je
+ičija sesija izgradnje već platila — ti redovi su o poziciji i rangu, nikad o
+osobi. To je pravilo za panel koji prati tablu: jedan token služi svu decu koja
+koriste ovu aplikaciju, a lista koja bi se osvežavala na svaki klik trošila bi
+njihovu kvotu na crtež koji niko nije tražio.
+
+`opened` razlikuje dva prazna: „niko ovde nije gledao" je ponuda (dugme „Otvori
+knjigu (1 upit)"), a ne tvrdnja da protivnik nema šta da igra.
+
+Svaki red vodi negde. Odgovor koji je već u pripremi nudi **„Idi"** — tabla ode
+tamo; odgovor van pripreme nudi **„Spremi"**, isti put kroz
+`repertoire_extra_replies` koji je napravljen za rep.
+
+Usput uhvaćen tridesteti `info` u `analyze` — jedan `if` bez zagrada u novom
+kodu. Pravilo je „nula grešaka, nula upozorenja i nijedan nov info", i jedini
+način da se to vidi je brojanje, jer izlazni kod je crven i kad je sve u redu.
+
+Testovi: backend 758 → **761**, aplikacija 993 → **995**. Uživo nije viđeno:
+[TODO-provera.md](TODO-provera.md), stavka 74.
+
 ## Orezivanje po dohvatljivosti — korak 4 iz plana, 31.8.2026
 
 `services/repertoirePrune.js`, `GET /repertoire/node/orphans` i

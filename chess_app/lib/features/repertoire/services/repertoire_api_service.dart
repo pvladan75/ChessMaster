@@ -491,6 +491,72 @@ class SpineResult {
   }
 }
 
+/// One of the opponent's moves, as the stored book has it.
+class StoredReply {
+  const StoredReply({
+    required this.uci,
+    required this.san,
+    required this.games,
+    required this.share,
+    this.covered = false,
+    this.prepared = false,
+  });
+
+  final String uci;
+  final String san;
+  final int games;
+  final double share;
+
+  /// True for the moves the 80% rule prepared for.
+  final bool covered;
+
+  /// True for the ones this student added by hand from past that cut.
+  final bool prepared;
+
+  bool get isInPreparation => covered || prepared;
+
+  factory StoredReply.fromJson(Map<String, dynamic> json) => StoredReply(
+        uci: json['uci'] as String? ?? '',
+        san: json['san'] as String? ?? '',
+        games: (json['games'] as num?)?.toInt() ?? 0,
+        share: (json['share'] as num?)?.toDouble() ?? 0,
+        covered: json['covered'] as bool? ?? false,
+        prepared: json['prepared'] as bool? ?? false,
+      );
+}
+
+/// What the opponent plays in a position, out of what was already fetched.
+///
+/// **No Lichess request behind this.** `opening_replies` holds what anybody's
+/// build session paid for, so a panel that follows the board is free — and only
+/// a position nobody has ever opened costs anything, which is then an offer
+/// rather than something that happens on its own.
+class StoredBook {
+  const StoredBook({
+    required this.fen,
+    this.opened = false,
+    this.replies = const [],
+  });
+
+  final String fen;
+
+  /// False when nobody has ever looked here. Told apart from an empty list on
+  /// purpose: "nobody has looked" and "the opponent plays nothing" are
+  /// different sentences, and only one of them is an invitation.
+  final bool opened;
+
+  final List<StoredReply> replies;
+
+  factory StoredBook.fromJson(Map<String, dynamic> json) => StoredBook(
+        fen: json['fen'] as String? ?? '',
+        opened: json['opened'] as bool? ?? false,
+        replies: ((json['replies'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((e) => StoredReply.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+      );
+}
+
 /// One question the drill is about to ask.
 class DrillItem {
   const DrillItem({
@@ -967,6 +1033,25 @@ class RepertoireApiService {
           Map<String, dynamic>.from(jsonDecode(res.body) as Map)),
       error: null,
     );
+  }
+
+  /// The opponent's book for a position, out of storage. Costs nothing.
+  Future<StoredBook?> storedBook({
+    required String color,
+    required String fen,
+    int? minRating,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/book').replace(
+      queryParameters: {
+        'color': color,
+        'fen': fen,
+        if (minRating != null) 'minRating': '$minRating',
+      },
+    );
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    return StoredBook.fromJson(
+        Map<String, dynamic>.from(jsonDecode(res.body) as Map));
   }
 
   /// What removing a move would leave with no way back to it.

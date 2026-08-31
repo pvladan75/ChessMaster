@@ -21,6 +21,7 @@ const {
   deleteRepertoire,
   confirmNode,
   confirmLine,
+  storedBook,
 } = require('../services/repertoireService');
 
 const SMITH_MORRA =
@@ -425,4 +426,39 @@ test('an empty line is a bad request rather than a silent no-op', async () => {
   await assert.rejects(
     () => confirmLine(pool, 5, { color: 'b', fens: [] }), RangeError);
   assert.equal(pool.calls.length, 0);
+});
+
+test('the stored book is read without asking Lichess anything', async () => {
+  // The rule for a panel that follows the board. One token serves every child
+  // using this app, and a list that refetched on every click would spend their
+  // allowance on a drawing nobody asked for.
+  const pool = stubPool([[
+    { uci: 'g1f3', san: 'Nf3', games: 500, share: '0.5', covered: true, prepared: false },
+  ]]);
+  const book = await storedBook(pool, 5, { color: 'b', fen: SMITH_MORRA });
+
+  assert.equal(pool.calls.length, 1);
+  assert.match(pool.calls[0].text, /FROM opening_replies/);
+  assert.equal(book.opened, true);
+  assert.equal(book.replies[0].games, 500);
+  assert.equal(book.replies[0].covered, true);
+});
+
+test('a position nobody has opened is an offer, not an empty book', async () => {
+  // Two different empties, and only one of them means "the opponent plays
+  // nothing here".
+  const pool = stubPool([[]]);
+  const book = await storedBook(pool, 5, { color: 'b', fen: SMITH_MORRA });
+
+  assert.equal(book.opened, false);
+  assert.deepEqual(book.replies, []);
+});
+
+test('the book says which replies this student already prepared', async () => {
+  const pool = stubPool([[]]);
+  await storedBook(pool, 5, { color: 'b', fen: SMITH_MORRA });
+
+  assert.match(pool.calls[0].text, /FROM repertoire_extra_replies e/);
+  // Keyed by the reader, because preparing a tail move is per student.
+  assert.deepEqual(pool.calls[0].params.slice(2), [5, 'b']);
 });

@@ -262,7 +262,8 @@ Three, and they are decisions rather than details.
 4. ~~**Pruning by reachability.**~~ — done 31.8.2026, hung on removing a move
    rather than on promoting one: with `role`, changing the primary leaves the
    old move in place as an alternate and nothing is stranded at all.
-5. **The replies panel beside the board.** R3 and A3.
+5. ~~**The replies panel beside the board.**~~ — done 31.8.2026, out of the
+   stored book, so it costs nothing and can simply sit there.
 6. **Engine notes on the node.** R4 and `repertoire_notes`.
 
 Steps 1 and 2 are independent of each other and of everything else; 3–6 depend

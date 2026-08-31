@@ -44,6 +44,11 @@ class _FakeApi extends RepertoireApiService {
   SpineResult? spine;
   int? spineDepth;
 
+  /// The stored book, and how many times it was read. Null stands for a server
+  /// that did not answer.
+  StoredBook? book;
+  int bookReads = 0;
+
   /// What removing a move would strand, and what the sweep was asked to take.
   ({List<String> keys, int drafts, int decisions})? orphans;
   final List<bool> pruned = [];
@@ -124,6 +129,16 @@ class _FakeApi extends RepertoireApiService {
     if (cutFails) return false;
     cut.add(_key(fen));
     return true;
+  }
+
+  @override
+  Future<StoredBook?> storedBook({
+    required String color,
+    required String fen,
+    int? minRating,
+  }) async {
+    bookReads += 1;
+    return book;
   }
 
   @override
@@ -357,6 +372,7 @@ void main() {
     RepertoireFrontier? walk,
     bool cutFails = false,
     bool prepareFails = false,
+    StoredBook? book,
 
     /// Moves already in the repertoire, keyed the way the server keys them.
     /// Stands for a position the student built in an earlier session.
@@ -372,6 +388,7 @@ void main() {
       ..walk = walk
       ..cutFails = cutFails
       ..prepareFails = prepareFails
+      ..book = book
       ..kept.addAll(seed);
     judge = _FakeJudge(verdict: verdict, hasToken: hasToken);
     await tester.pumpWidget(MaterialApp(
@@ -1408,5 +1425,63 @@ void main() {
 
     expect(api.pruned, isEmpty);
     expect(find.textContaining('Uklonjeno i'), findsNothing);
+  });
+
+  testWidgets('the replies stand beside the board, and cost nothing',
+      (tester) async {
+    // They decide what the next wave looks like, so they stopped being
+    // something you only see after pressing `Dalje`. And they cost nothing:
+    // one token serves every child using this app.
+    await pump(
+      tester,
+      seed: {
+        smithMorra.split(' ').take(4).join(' '): const [
+          RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
+        ],
+      },
+      book: const StoredBook(
+        fen: 'x',
+        opened: true,
+        replies: [
+          StoredReply(
+              uci: 'g1f3', san: 'Nf3', games: 500, share: 0.5, covered: true),
+          StoredReply(uci: 'f1c4', san: 'Bc4', games: 90, share: 0.09),
+        ],
+      ),
+    );
+
+    expect(find.textContaining('Iz sačuvane knjige'), findsOneWidget);
+    expect(find.text('Nf3'), findsWidgets);
+    // Prepared already: the useful action is to go there. Past the cut: the
+    // useful action is to prepare it.
+    expect(find.text('Idi'), findsOneWidget);
+    expect(find.text('Spremi'), findsOneWidget);
+    // And the judge was never asked anything for this.
+    expect(judge.asked, 0);
+  });
+
+  testWidgets('a position nobody has opened offers to open it, once',
+      (tester) async {
+    // Two different empties. "Nobody has looked" is an invitation; "the
+    // opponent plays nothing" would be a lie.
+    await pump(
+      tester,
+      seed: {
+        smithMorra.split(' ').take(4).join(' '): const [
+          RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
+        ],
+      },
+      book: const StoredBook(fen: 'x'),
+    );
+
+    expect(find.textContaining('još niko nije otvarao'), findsOneWidget);
+    expect(judge.asked, 0);
+
+    await tester.tap(find.text('Otvori knjigu (1 upit)'));
+    await tester.pumpAndSettle();
+
+    // Exactly one, and only because it was asked for.
+    expect(judge.asked, 1);
+    expect(find.textContaining('upita: 1'), findsOneWidget);
   });
 }

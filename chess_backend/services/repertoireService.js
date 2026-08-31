@@ -352,6 +352,53 @@ async function unskipNode(pool, userId, { color, fen }) {
   return { skipped: false, removed: result.rowCount };
 }
 
+/// What the opponent plays here, out of what has already been fetched.
+///
+/// No Lichess request, ever. `opening_replies` holds what anybody's build
+/// session paid for — the rows are about a position and a rating band, never
+/// about a person — so a panel that sits beside the board can be drawn from it
+/// for free, and only a position nobody has ever opened costs anything.
+///
+/// That is the whole rule for a panel that follows the board: one token serves
+/// every child using this app, and a list that refetched on every click would
+/// spend their allowance on a drawing nobody asked for.
+///
+/// `opened` tells the two empties apart: no rows means nobody has ever looked
+/// here, which is an offer to look rather than "the opponent plays nothing".
+async function storedBook(pool, userId, { color, fen, minRating = 0 }) {
+  requireColor(color);
+  const key = fenKey(fen);
+  const band = Number(minRating) || 0;
+
+  const result = await pool.query(
+    `SELECT r.uci, r.san, r.games, r.share, r.covered,
+            EXISTS (
+              SELECT 1 FROM repertoire_extra_replies e
+               WHERE e.user_id = $3 AND e.color = $4
+                 AND e.fen_key = r.fen_key AND e.uci = r.uci
+            ) AS prepared
+       FROM opening_replies r
+      WHERE r.fen_key = $1 AND r.min_rating = $2
+      ORDER BY r.games DESC`,
+    [key, band, userId, color],
+  );
+
+  return {
+    fen,
+    fenKey: key,
+    minRating: band,
+    opened: result.rowCount > 0,
+    replies: result.rows.map((row) => ({
+      uci: row.uci,
+      san: row.san,
+      games: Number(row.games),
+      share: Number(row.share),
+      covered: row.covered === true,
+      prepared: row.prepared === true,
+    })),
+  };
+}
+
 /// A generated move becomes a decision.
 ///
 /// Confirming is an act, and that is the whole reason the auto-spine is safe to
@@ -560,6 +607,7 @@ module.exports = {
   removeExtraReply,
   confirmNode,
   confirmLine,
+  storedBook,
   importedMoves,
   forgetImportedMoves,
   deleteRepertoire,

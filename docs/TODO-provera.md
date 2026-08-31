@@ -2663,3 +2663,22 @@ Traži **vaš Lichess token** (isti kao sudija), jer troši vašu kvotu.
    nema poruke o orezivanju i nema pitanja.
 7. [ ] **Nijedna pozicija ne ostaje bez glavnog poteza.** Posle svega otvoriti
    vežbu: mora da pita normalno.
+
+## 74. Odgovori protivnika uz tablu — 31.8.2026, nije viđeno uživo
+
+1. [ ] **Panel stoji sam od sebe.** U izgradnji, na poziciji gde već imate
+   glavni potez, ispod „Vaši potezi ovde" stoji „Posle X — šta igra protivnik".
+   Nije potrebno pritisnuti „Dalje".
+2. [ ] **Ne troši upit.** Brojač „upita:" ne sme da poraste ni za jedan dok se
+   samo krećete kroz pozicije koje su ranije otvarane.
+3. [ ] **Neotvorena pozicija nudi da se otvori.** Na poziciji koju niko nije
+   otvarao piše „još niko nije otvarao" i stoji „Otvori knjigu (1 upit)".
+   Pritisak poveća brojač tačno za jedan, i lista se pojavi.
+4. [ ] **„Idi" vodi tablu.** Klik na „Idi" uz pripremljen odgovor pomeri tablu
+   na poziciju posle njega, i linija iznad table poraste za dva poteza.
+5. [ ] **„Spremi" dodaje u pripremu.** Klik uz odgovor van pripreme: red poraste
+   i taj odgovor sledeći put nosi „Idi" umesto „Spremi".
+6. [ ] **Posle „Dalje" nema dve iste liste.** Kad su odgovori talasa na ekranu,
+   ovaj panel se ne prikazuje.
+7. [ ] **Telefon, 360 dp.** Red ima potez, procenat, broj partija i dugme.
+   Proveriti u *release* build-u.

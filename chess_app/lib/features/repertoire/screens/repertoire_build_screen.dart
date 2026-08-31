@@ -182,6 +182,17 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// change one number.
   final List<_Pending> _cutHere = [];
 
+  /// What the opponent plays after the student's main move here, out of the
+  /// stored book — no Lichess request. Beside the board rather than behind a
+  /// button, because it is the thing that decides what the next wave looks
+  /// like.
+  StoredBook? _stored;
+
+  /// The position the stored book belongs to: after the primary move. Kept for
+  /// the same reason the engine keeps its own — a list drawn for the previous
+  /// board names moves that cannot be played on this one.
+  String? _storedFor;
+
   /// The opponent's moves prepared by hand in this session, past the cut.
   ///
   /// Kept so the row can say it is done without asking the server again — the
@@ -429,6 +440,59 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final moves = await _api.movesAt(color: widget.color, fen: fen);
     if (!mounted) return;
     setState(() => _kept = moves);
+    await _loadStoredBook();
+  }
+
+  /// Reads the opponent's book for the position after the main move here.
+  ///
+  /// Free: it comes out of `opening_replies`, which holds whatever anybody's
+  /// build session already paid for. A panel that follows the board and
+  /// refetched on every move would spend the reader's allowance on a drawing
+  /// they never asked for — one token serves every child using this app.
+  Future<void> _loadStoredBook() async {
+    final fen = _current;
+    final primary = _kept.isEmpty ? null : _kept.first;
+    if (fen == null || primary == null) {
+      if (!mounted) return;
+      setState(() {
+        _stored = null;
+        _storedFor = null;
+      });
+      return;
+    }
+    final after = _fenAfter(fen, primary.uci);
+    if (after == null) return;
+    final book = await _api.storedBook(
+      color: widget.color,
+      fen: after,
+      minRating: widget.minRating,
+    );
+    if (!mounted) return;
+    // The book that arrives is the book for the board it was asked about.
+    if (_current != fen) return;
+    setState(() {
+      _stored = book;
+      _storedFor = after;
+    });
+  }
+
+  /// Opens the book for a position nobody has looked at yet. One request, and
+  /// only because the reader pressed for it.
+  Future<void> _openStoredBook() async {
+    final after = _storedFor;
+    if (after == null || _busy) return;
+    setState(() => _busy = true);
+    final lookup = await _judge.replies(after, minRating: widget.minRating);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _asked += 1;
+      if (!lookup.isAvailable) {
+        _note = 'Knjiga nije dostupna (${lookup.reason}).';
+      }
+    });
+    // The route stores what it fetched, so reading it back is free from now on.
+    await _loadStoredBook();
   }
 
   /// The student's own move, offered to the judge at once.
@@ -948,9 +1012,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// The frontier follows only covered replies — deliberately, or the queue
   /// would fill with moves nobody enqueued — so a hand-picked one has to be
   /// stored, or closing the screen would lose it.
-  Future<void> _prepareReply(OpponentReply reply) async {
-    final from = _answersFen;
-    final san = _answersSan;
+  Future<void> _prepareReply(
+    OpponentReply reply, {
+    String? fromFen,
+    String? afterSan,
+  }) async {
+    final from = fromFen ?? _answersFen;
+    final san = afterSan ?? _answersSan;
     final node = _node;
     if (from == null || san == null || node == null || _busy) return;
 
@@ -1404,6 +1472,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           if (_answers != null) _buildAnswers(context, _answers!),
           if (_answers == null && _proposalSan != null) _buildVerdict(context),
           if (_answers == null && _kept.isNotEmpty) _buildKept(context),
+          // One thing at a time: while the wave's answers are up they are the
+          // same list, drawn for the board that is showing.
+          if (_answers == null) _buildStoredReplies(context),
           // Open once the engine has been asked about *this* position —
           // including when it came back with nothing, because that is
           // exactly when the reader wants the depth dial and another go.
@@ -1593,6 +1664,129 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                   ],
                 ),
               ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// What the opponent answers the main move with — beside the board, always.
+  ///
+  /// Drawn from the stored book, so it costs nothing and can simply sit there.
+  /// It is also the one list that decides what the next wave looks like, which
+  /// is why it stopped being something you only get after pressing `Dalje`.
+  ///
+  /// Every row leads somewhere: a reply already in the preparation takes the
+  /// board there, and one from past the cut offers to prepare it.
+  Widget _buildStoredReplies(BuildContext context) {
+    final book = _stored;
+    final after = _storedFor;
+    final primary = _kept.isEmpty ? null : _kept.first;
+    if (book == null || after == null || primary == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpacing.sm),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: context.colors.surface.withValues(alpha: 0.5),
+        borderRadius: AppRadii.roundedSm,
+        border: Border.all(color: context.colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.alt_route, size: 16, color: context.colors.accent),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text('Posle ${primary.san} — šta igra protivnik',
+                    style: AppText.bodyBold
+                        .copyWith(color: context.colors.accent)),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            book.opened
+                ? 'Iz sačuvane knjige — ne troši upit.'
+                : 'Ovu poziciju još niko nije otvarao.',
+            style: AppText.micro.copyWith(color: context.colors.textMuted),
+          ),
+          if (!book.opened)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: OutlinedButton.icon(
+                onPressed: _busy ? null : _openStoredBook,
+                icon: const Icon(Icons.menu_book, size: 18),
+                label: const Text('Otvori knjigu (1 upit)'),
+              ),
+            )
+          else
+            for (final reply in book.replies)
+              _storedRow(context, reply, after: after, mine: primary.san),
+        ],
+      ),
+    );
+  }
+
+  Widget _storedRow(BuildContext context, StoredReply reply,
+      {required String after, required String mine}) {
+    final node = _node;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 64,
+            child: Text(reply.san,
+                style:
+                    AppText.body.copyWith(color: context.colors.textPrimary)),
+          ),
+          SizedBox(
+            width: 52,
+            child: Text(_shareText(reply.share),
+                style:
+                    (reply.isInPreparation ? AppText.bodyBold : AppText.caption)
+                        .copyWith(color: context.colors.textPrimary)),
+          ),
+          Expanded(
+            child: Text('${reply.games} partija',
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted)),
+          ),
+          if (reply.isInPreparation)
+            TextButton(
+              // Already prepared, so the useful thing is to go and work on it.
+              onPressed: _busy || node == null
+                  ? null
+                  : () {
+                      final landed = _fenAfter(after, reply.uci);
+                      if (landed == null) return;
+                      _show(_Pending(
+                        fen: landed,
+                        path: [...node.path, mine, reply.san],
+                      ));
+                    },
+              child: const Text('Idi'),
+            )
+          else
+            OutlinedButton(
+              onPressed: _busy
+                  ? null
+                  : () => _prepareReply(
+                        OpponentReply(
+                          uci: reply.uci,
+                          san: reply.san,
+                          games: reply.games,
+                          share: reply.share,
+                        ),
+                        fromFen: after,
+                        afterSan: mine,
+                      ),
+              child: const Text('Spremi'),
             ),
         ],
       ),

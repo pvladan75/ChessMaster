@@ -37,6 +37,7 @@ const {
   removeExtraReply,
   confirmNode,
   confirmLine,
+  storedBook,
   importedMoves,
   forgetImportedMoves,
   deleteRepertoire,
@@ -235,6 +236,27 @@ router.post('/node/primary', authenticateToken, (req, res) => {
     res,
     promoteMove(pool, req.user.id, { color, fen, uci }),
     'Glavni potez nije mogao da se promeni.',
+  );
+});
+
+// GET /repertoire/book?color=b&fen=...&minRating=1600
+//
+// What the opponent plays here, out of what has already been fetched — by
+// anybody. **No Lichess request.** The panel that sits beside the board follows
+// it around, and one token serves every child using this app, so a list that
+// refetched on every click would spend their allowance on a drawing nobody
+// asked for.
+//
+// `opened: false` means nobody has ever looked here, which the screen turns
+// into an offer to look rather than into "the opponent plays nothing".
+router.get('/book', authenticateToken, (req, res) => {
+  const { color, fen, minRating } = req.query;
+  answer(
+    res,
+    storedBook(pool, req.user.id, {
+      color, fen, minRating: Number(minRating) || 0,
+    }),
+    'Knjiga nije mogla da se pročita.',
   );
 });
 
