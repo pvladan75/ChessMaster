@@ -13,6 +13,9 @@ import 'package:chess_app/features/repertoire/widgets/repertoire_comment_panel.d
 import 'package:chess_app/features/repertoire/widgets/repertoire_gate_picker.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_position_ask.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
+import 'package:chess_app/features/repertoire/widgets/breadth_dialog.dart';
+import 'package:chess_app/features/repertoire/widgets/unconfirmed_banner.dart';
+import 'package:chess_app/features/repertoire/widgets/unconfirmed_review_sheet.dart';
 import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
@@ -66,9 +69,11 @@ class RepertoireBuildScreen extends StatefulWidget {
     this.analyse,
     this.onDrillHere,
     this.openingLookup,
+    this.id,
   });
 
   final String name;
+  final int? id;
 
   /// 'w' or 'b' — the side being prepared. The board is turned this way and
   /// only these moves are ever asked for.
@@ -173,6 +178,30 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
   String? _lastMoveFrom;
   String? _lastMoveTo;
+
+  String? _draftToReplaceFen;
+  String? _draftToReplaceUci;
+
+  AnalysisNode? _findNode(String fen, AnalysisNode? root) {
+    if (root == null) return null;
+    if (root.fen == fen) return root;
+    for (final child in root.children) {
+      final found = _findNode(fen, child);
+      if (found != null) return found;
+    }
+    return null;
+  }
+
+  void _jumpToFen(String fen, String rejectedUci) {
+    setState(() {
+      _draftToReplaceFen = fen;
+      _draftToReplaceUci = rejectedUci;
+    });
+    final node = _findNode(fen, _treeRoot);
+    if (node != null) {
+      _jumpTo(node);
+    }
+  }
 
   _Pending? _node;
 
@@ -1250,13 +1279,70 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
     setState(() => _busy = true);
     final verdict = _verdict?.verdict.name;
-    final saved = await _api.keepMove(
-      color: widget.color,
-      fen: fen,
-      uci: uci,
-      san: san,
-      verdict: verdict,
-    );
+
+    bool saved = false;
+    if (_draftToReplaceFen == fen && _draftToReplaceUci != null) {
+      final rejected = _draftToReplaceUci!;
+      final result = await _api.playAlternative(
+        color: widget.color,
+        fen: fen,
+        uci: uci,
+        san: san,
+        rejectedUci: rejected,
+        minRating: widget.minRating,
+        includeDecisions: false,
+      );
+      if (result.result != null && result.result!.decisions > 0) {
+        if (!mounted) return;
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Obrisati vaše odluke?'),
+            content: Text(
+                'Ispod tog nacrta su ${result.result!.decisions} vaše odluke. Obrisati i njih?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Odustani'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Obriši'),
+              ),
+            ],
+          ),
+        );
+        if (confirm == true) {
+          final forceResult = await _api.playAlternative(
+            color: widget.color,
+            fen: fen,
+            uci: uci,
+            san: san,
+            rejectedUci: rejected,
+            minRating: widget.minRating,
+            includeDecisions: true,
+          );
+          saved = forceResult.error == null;
+        }
+      } else {
+        saved = result.error == null;
+      }
+      if (mounted) {
+        setState(() {
+          _draftToReplaceFen = null;
+          _draftToReplaceUci = null;
+        });
+      }
+    } else {
+      saved = await _api.keepMove(
+        color: widget.color,
+        fen: fen,
+        uci: uci,
+        san: san,
+        verdict: verdict,
+      );
+    }
+
     await _api.recordAttempt(
       color: widget.color,
       fen: fen,
@@ -2013,24 +2099,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
     final depth = await showDialog<int>(
       context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Napravi kičmu odavde'),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-            child: Text(
-              'Upisuje najigraniji potez za obe strane, koliko poteza kažete. '
-              'To su predlozi, ne vaše odluke — vežba ih neće pitati dok ih ne '
-              'potvrdite. Staje ranije ako linija postane retka.',
-              style: AppText.caption.copyWith(color: context.colors.textMuted),
-            ),
-          ),
-          for (final option in const [4, 6, 8, 10, 12])
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(context).pop(option),
-              child: Text('$option poteza'),
-            ),
-        ],
+      builder: (context) => BreadthDialog(
+        id: widget.id,
+        api: _api,
       ),
     );
     if (depth == null || !mounted) return;
@@ -2369,6 +2440,21 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             OpeningBanner(
               fen: _standingAfter?.fen ?? _current!,
               lookup: widget.openingLookup,
+            ),
+          if (_frontier != null && _frontier!.draft > 0)
+            UnconfirmedBanner(
+              total: _frontier!.draft,
+              onOpenWizard: () => showUnconfirmedReviewSheet(
+                context,
+                color: widget.color,
+                rootFen: widget.rootFen,
+                rootPath: widget.rootPath,
+                gateUci: widget.gateUci,
+                breadth: null,
+                minRating: widget.minRating,
+                api: _api,
+                onJump: (fen, rejectedUci) => _jumpToFen(fen, rejectedUci),
+              ),
             ),
           Center(
             child: BoardWithCoordinates(

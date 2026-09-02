@@ -1239,6 +1239,147 @@ class DrillAnswer {
 /// spends the reader's allowance to say what a move is worth, while this only
 /// records what they decided about it. A repertoire built last week can be
 /// read, edited and drilled with no allowance spent at all.
+
+/// One unconfirmed position in the walk.
+class UnconfirmedNode {
+  const UnconfirmedNode({
+    required this.fen,
+    required this.fenKey,
+    required this.path,
+    required this.ply,
+    required this.moves,
+  });
+
+  final String fen;
+  final String fenKey;
+  final List<String> path;
+  final int ply;
+  final List<RepertoireMove> moves;
+
+  factory UnconfirmedNode.fromJson(Map<String, dynamic> json) =>
+      UnconfirmedNode(
+        fen: json['fen'] as String? ?? '',
+        fenKey: json['fenKey'] as String? ?? '',
+        path: sanPath(json['path']),
+        ply: _tolerantInt(json['ply']),
+        moves: ((json['moves'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((e) => RepertoireMove.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+      );
+}
+
+/// The result of walking the drafts.
+class RepertoireUnconfirmedWalk {
+  const RepertoireUnconfirmedWalk({
+    this.rootPath = const [],
+    this.positions = const [],
+    this.total = 0,
+    this.truncated = false,
+  });
+
+  final List<String> rootPath;
+  final List<UnconfirmedNode> positions;
+  final int total;
+  final bool truncated;
+
+  factory RepertoireUnconfirmedWalk.fromJson(Map<String, dynamic> json) {
+    final root = json['root'] is Map
+        ? Map<String, dynamic>.from(json['root'] as Map)
+        : const <String, dynamic>{};
+    return RepertoireUnconfirmedWalk(
+      rootPath: sanPath(root['path']),
+      positions: ((json['positions'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => UnconfirmedNode.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      total: _tolerantInt(json['total']),
+      truncated: json['truncated'] as bool? ?? false,
+    );
+  }
+}
+
+/// Draft counts for one color.
+class UnconfirmedColorCount {
+  const UnconfirmedColorCount({
+    this.positions = 0,
+    this.moves = 0,
+  });
+
+  final int positions;
+  final int moves;
+
+  factory UnconfirmedColorCount.fromJson(Map<String, dynamic> json) =>
+      UnconfirmedColorCount(
+        positions: _tolerantInt(json['positions']),
+        moves: _tolerantInt(json['moves']),
+      );
+}
+
+/// Draft counts for both colors.
+class RepertoireUnconfirmedCounts {
+  const RepertoireUnconfirmedCounts({
+    this.w = const UnconfirmedColorCount(),
+    this.b = const UnconfirmedColorCount(),
+  });
+
+  final UnconfirmedColorCount w;
+  final UnconfirmedColorCount b;
+
+  factory RepertoireUnconfirmedCounts.fromJson(Map<String, dynamic> json) {
+    final w = json['w'] is Map
+        ? Map<String, dynamic>.from(json['w'] as Map)
+        : const <String, dynamic>{};
+    final b = json['b'] is Map
+        ? Map<String, dynamic>.from(json['b'] as Map)
+        : const <String, dynamic>{};
+    return RepertoireUnconfirmedCounts(
+      w: UnconfirmedColorCount.fromJson(w),
+      b: UnconfirmedColorCount.fromJson(b),
+    );
+  }
+}
+
+/// The result of playing an alternative to a draft.
+class AlternativeResult {
+  const AlternativeResult({
+    required this.played,
+    required this.rejected,
+    this.orphans = 0,
+    this.removed = 0,
+    this.decisions = 0,
+    this.drafts = 0,
+  });
+
+  final RepertoireMove played;
+  final String rejected;
+  final int orphans;
+  final int removed;
+  final int decisions;
+  final int drafts;
+
+  factory AlternativeResult.fromJson(Map<String, dynamic> json) {
+    final played = json['played'] is Map
+        ? Map<String, dynamic>.from(json['played'] as Map)
+        : const <String, dynamic>{};
+    return AlternativeResult(
+      played: RepertoireMove.fromJson(played),
+      rejected: json['rejected'] as String? ?? '',
+      orphans: _tolerantInt(json['orphans']),
+      removed: _tolerantInt(json['removed']),
+      decisions: _tolerantInt(json['decisions']),
+      drafts: _tolerantInt(json['drafts']),
+    );
+  }
+}
+
+int _tolerantInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
+}
+
 class RepertoireApiService {
   RepertoireApiService({http.Client? client}) : _client = client;
 
@@ -1248,6 +1389,78 @@ class RepertoireApiService {
         'Authorization': 'Bearer ${SessionService.instance.current.token}',
         'Content-Type': 'application/json',
       };
+
+  Future<RepertoireUnconfirmedWalk?> unconfirmedPositions({
+    required String color,
+    required String rootFen,
+    List<String> rootPath = const [],
+    String? gateUci,
+    String? breadth,
+    int? minRating,
+    int? limit,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/unconfirmed').replace(
+      queryParameters: {
+        'color': color,
+        'rootFen': rootFen,
+        if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
+        if (gateUci != null) 'gateUci': gateUci,
+        if (breadth != null) 'breadth': breadth,
+        if (minRating != null) 'minRating': '',
+        if (limit != null) 'limit': '',
+      },
+    );
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    return RepertoireUnconfirmedWalk.fromJson(
+        Map<String, dynamic>.from(jsonDecode(res.body) as Map));
+  }
+
+  Future<RepertoireUnconfirmedCounts?> unconfirmedCounts() async {
+    final uri = Uri.parse('$backendUrl/repertoire/unconfirmed/count');
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    return RepertoireUnconfirmedCounts.fromJson(
+        Map<String, dynamic>.from(jsonDecode(res.body) as Map));
+  }
+
+  Future<({AlternativeResult? result, String? error})> playAlternative({
+    required String color,
+    required String fen,
+    required String uci,
+    required String san,
+    required String rejectedUci,
+    int? minRating,
+    bool includeDecisions = false,
+  }) async {
+    final sent = await _send(() => _post('$backendUrl/repertoire/alternative', {
+          'color': color,
+          'fen': fen,
+          'uci': uci,
+          'san': san,
+          'rejectedUci': rejectedUci,
+          if (minRating != null) 'minRating': minRating,
+          'includeDecisions': includeDecisions,
+        }));
+    final res = sent.res;
+    if (res == null) return (result: null, error: sent.error);
+    return (
+      result: AlternativeResult.fromJson(
+          Map<String, dynamic>.from(jsonDecode(res.body) as Map)),
+      error: null,
+    );
+  }
+
+  Future<bool> setBreadth({
+    required int id,
+    required String breadth,
+  }) async {
+    final sent = await _send(() => _put('$backendUrl/repertoire/breadth', {
+          'id': id,
+          'breadth': breadth,
+        }));
+    return sent.res != null;
+  }
 
   Future<List<RepertoireSummary>> list() async {
     final res =

@@ -34,6 +34,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   late final RepertoireApiService _api = widget.api ?? RepertoireApiService();
 
   List<RepertoireSummary> _items = const [];
+  RepertoireUnconfirmedCounts? _counts;
   bool _loading = true;
 
   @override
@@ -44,9 +45,11 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
 
   Future<void> _load() async {
     final items = await _api.list();
+    final counts = await _api.unconfirmedCounts();
     if (!mounted) return;
     setState(() {
       _items = items;
+      _counts = counts;
       _loading = false;
     });
   }
@@ -64,10 +67,28 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     _open(made);
   }
 
+  Future<void> _openDrafts(RepertoireSummary item) async {
+    final walk = await _api.unconfirmedPositions(
+      color: item.color,
+      rootFen: item.rootFen,
+      rootPath: item.rootPath,
+      gateUci: item.viaUci,
+      minRating: AppSettingsService.instance.repertoireMinRating,
+      limit: 1,
+    );
+    if (!mounted) return;
+    if (walk != null && walk.positions.isNotEmpty) {
+      _open(item, at: walk.positions.first.fen);
+    } else {
+      _open(item);
+    }
+  }
+
   void _open(RepertoireSummary item, {String? at}) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => RepertoireBuildScreen(
         name: item.name,
+        id: item.id,
         color: item.color,
         rootFen: at ?? item.rootFen,
         // Only when we are opening the repertoire's own root. `at` is some
@@ -615,9 +636,43 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
               '${item.moves} ${item.moves == 1 ? "potez" : "poteza"} u grafu',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+            trailing: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
+                if ((item.forWhite
+                            ? _counts?.w.positions
+                            : _counts?.b.positions) !=
+                        null &&
+                    (item.forWhite
+                            ? _counts!.w.positions
+                            : _counts!.b.positions) >
+                        0)
+                  InkWell(
+                    onTap: () => _openDrafts(item),
+                    borderRadius: AppRadii.roundedPill,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                      margin: const EdgeInsets.only(right: AppSpacing.xs),
+                      decoration: BoxDecoration(
+                        color: context.colors.warning,
+                        borderRadius: AppRadii.roundedPill,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.edit_note,
+                              size: 16, color: context.colors.canvas),
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            '${item.forWhite ? _counts!.w.positions : _counts!.b.positions}',
+                            style: AppText.captionBold
+                                .copyWith(color: context.colors.canvas),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 IconButton(
                   tooltip: 'Vežbaj',
                   icon: const Icon(Icons.fitness_center),
