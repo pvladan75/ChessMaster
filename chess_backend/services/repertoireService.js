@@ -18,6 +18,8 @@
 //     promotes the oldest alternate rather than leaving a node that the drill
 //     cannot ask about.
 
+const { Chess } = require('chess.js');
+
 const COLORS = ['w', 'b'];
 const ROLES = ['primary', 'alternate'];
 
@@ -68,7 +70,38 @@ function pathList(text) {
   return text.trim().split(/\s+/);
 }
 
-async function createRepertoire(pool, userId, { name, color, rootFen, rootPath }) {
+/// The move a repertoire goes through at its root, read as a move.
+///
+/// Returns `{ uci, san }`, or null when there is no gate. Refused rather than
+/// stored when the move is not legal in that position: a gate that cannot be
+/// played is a filter that silently matches nothing, and the repertoire would
+/// open on an empty tree with no sentence anywhere saying why.
+function readGate(rootFen, viaUci) {
+  if (viaUci === null || viaUci === undefined || viaUci === '') return null;
+  if (typeof viaUci !== 'string' || viaUci.length < 4 || viaUci.length > 6) {
+    throw new RangeError('Potez kroz koji ide repertoar nije ispravan.');
+  }
+  let played = null;
+  try {
+    const board = new Chess(rootFen);
+    played = board.move({
+      from: viaUci.slice(0, 2),
+      to: viaUci.slice(2, 4),
+      promotion: viaUci.length > 4 ? viaUci.slice(4) : undefined,
+    });
+  } catch {
+    played = null;
+  }
+  if (!played) {
+    throw new RangeError(
+      'Taj potez se ne može odigrati u početnoj poziciji repertoara.');
+  }
+  return { uci: viaUci, san: played.san };
+}
+
+async function createRepertoire(pool, userId, {
+  name, color, rootFen, rootPath, viaUci = null,
+}) {
   const clean = typeof name === 'string' ? name.trim() : '';
   if (clean === '') throw new RangeError('Repertoar mora imati ime.');
   requireColor(color);
@@ -76,19 +109,45 @@ async function createRepertoire(pool, userId, { name, color, rootFen, rootPath }
   // and then failing every time the repertoire is opened.
   fenKey(rootFen);
 
+  // Validated before the insert, so a gate that cannot be played is a 400 with
+  // a sentence rather than a repertoire that opens on an empty tree.
+  const gate = readGate(rootFen, viaUci);
+
   const result = await pool.query(
-    `INSERT INTO repertoires (user_id, name, color, root_fen, root_path)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, name, color, root_fen, root_path, created_at`,
-    [userId, clean, color, rootFen.trim(), pathText(rootPath)],
+    `INSERT INTO repertoires (user_id, name, color, root_fen, root_path, via_uci)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, name, color, root_fen, root_path, via_uci, created_at`,
+    [userId, clean, color, rootFen.trim(), pathText(rootPath),
+      gate === null ? null : gate.uci],
   );
   const row = result.rows[0];
-  return row ? { ...row, rootPath: pathList(row.root_path) } : row;
+  return row
+    ? {
+      ...row,
+      rootPath: pathList(row.root_path),
+      viaUci: row.via_uci,
+      viaSan: gate === null ? null : gate.san,
+    }
+    : row;
+}
+
+/// The gate as a move, or null when it cannot be read.
+///
+/// Forgiving where [readGate] is strict, and on purpose: a stored gate that no
+/// longer parses must not take the whole list of repertoires down with it. The
+/// row still comes back, with the uci and no san.
+function readGateSan(rootFen, viaUci) {
+  try {
+    return readGate(rootFen, viaUci)?.san ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function listRepertoires(pool, userId) {
   const result = await pool.query(
-    `SELECT r.id, r.name, r.color, r.root_fen, r.root_path, r.created_at,
+    `SELECT r.id, r.name, r.color, r.root_fen, r.root_path, r.via_uci,
+            r.created_at,
             (SELECT COUNT(*) FROM repertoire_moves m
               WHERE m.user_id = r.user_id AND m.color = r.color) AS moves
        FROM repertoires r
@@ -105,6 +164,13 @@ async function listRepertoires(pool, userId) {
     // reads that as "start the breadcrumb at the root", which is exactly what
     // it knew before and no worse.
     rootPath: pathList(row.root_path),
+    // The gate, and the move as it is read. The SAN is worked out here rather
+    // than on the client: the client would need a board and the move's legality
+    // to write "0-0" instead of "e1g1", and this server has both already.
+    viaUci: row.via_uci,
+    viaSan: row.via_uci === null
+      ? null
+      : (readGateSan(row.root_fen, row.via_uci)),
     createdAt: row.created_at,
     // Moves are counted per colour, not per repertoire, because that is where
     // they live. Two repertoires for Black show the same number, and that is
@@ -524,6 +590,40 @@ async function forgetImportedMoves(pool, userId, { color }) {
 /// reaches them; deleting them here would empty a door's worth of work out of
 /// every other door. Until this existed there was no way to remove a repertoire
 /// at all, which is how four of them made by a seed stayed on the list.
+/// Sets, changes or clears the move a repertoire goes through.
+///
+/// Needed as its own door because the repertoires that most want a gate are the
+/// ones that already exist: the owner built two from the same position before
+/// this column did, and the second one's tree is showing the first one's
+/// opening right now.
+///
+/// Null clears it — back to the whole graph, which is what every repertoire did
+/// before and is still right for a root with only one move.
+async function setGate(pool, userId, { id, viaUci = null } = {}) {
+  const numeric = Number(id);
+  if (!Number.isInteger(numeric)) {
+    throw new RangeError('Repertoar nije imenovan brojem.');
+  }
+  const found = await pool.query(
+    'SELECT root_fen FROM repertoires WHERE id = $1 AND user_id = $2',
+    [numeric, userId],
+  );
+  if (found.rowCount === 0) throw new RangeError('Taj repertoar ne postoji.');
+
+  const gate = readGate(found.rows[0].root_fen, viaUci);
+  const written = await pool.query(
+    `UPDATE repertoires SET via_uci = $3
+      WHERE id = $1 AND user_id = $2
+      RETURNING id, via_uci`,
+    [numeric, userId, gate === null ? null : gate.uci],
+  );
+  return {
+    id: numeric,
+    viaUci: written.rows[0]?.via_uci ?? null,
+    viaSan: gate === null ? null : gate.san,
+  };
+}
+
 async function deleteRepertoire(pool, userId, id) {
   const numeric = Number(id);
   if (!Number.isInteger(numeric)) {
@@ -612,6 +712,7 @@ module.exports = {
   importedMoves,
   forgetImportedMoves,
   deleteRepertoire,
+  setGate,
   COLORS,
   ROLES,
   SOURCES,

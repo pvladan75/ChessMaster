@@ -37,6 +37,7 @@ const {
   step,
   keptByPosition,
   coveredReplies,
+  gateMoves,
   MAX_NODES,
   MAX_PLY,
 } = require('./repertoireFrontier');
@@ -62,17 +63,23 @@ const {
 /// line to be rehearsed down.
 async function walkLines(pool, userId, {
   color, rootFen, minRating = 0, maxPly = MAX_PLY, onlyChosen = false,
+  gateUci = null,
 } = {}) {
   if (color !== 'w' && color !== 'b') {
     throw new RangeError(`Boja mora biti "w" ili "b", a ne "${color}".`);
   }
   fenKey(rootFen);
 
-  const kept = await keptByPosition(pool, userId, color, { onlyChosen });
+  const rootKey = fenKey(rootFen);
+  // The gate is applied to `kept` itself, before a single step is taken, and
+  // that is why one line covers everything: the walk reads this map, and so
+  // does `tree` — which draws from `kept` rather than from what the walk
+  // reached, so a move decided and not yet opened still gets a card. Filtering
+  // in one place is what keeps the picture and the queue from disagreeing.
+  const kept = gateMoves(
+    await keptByPosition(pool, userId, color, { onlyChosen }), rootKey, gateUci);
   const cut = await skippedKeys(pool, userId, color);
   const band = Number(minRating) || 0;
-
-  const rootKey = fenKey(rootFen);
   const root = {
     key: rootKey, fen: rootFen, parent: null, ply: 0, path: [], moves: [],
   };
@@ -88,10 +95,25 @@ async function walkLines(pool, userId, {
     const branches = [];
     for (const node of level) {
       if (cut.has(node.key)) continue;
-      for (const move of kept.get(node.key) ?? []) {
+      const here = kept.get(node.key) ?? [];
+      for (const move of here) {
         const after = step(node.fen, move.uci);
         if (after === null) continue;
-        branches.push({ node, uci: move.uci, after });
+        branches.push({
+          node,
+          uci: move.uci,
+          after,
+          role: move.role,
+          // The student's *other* decisions in this position. A line runs
+          // through whichever move leads to the question — the primary as
+          // often as an alternate — and without this the rehearsal asks
+          // "play the move" at a position where two of the student's own
+          // moves are right and only one continues this line. Playing the
+          // other one is then reported as a mistake, which it is not.
+          alts: here
+            .filter((m) => m.uci !== move.uci)
+            .map((m) => ({ uci: m.uci, san: m.san, role: m.role })),
+        });
       }
     }
 
@@ -125,7 +147,17 @@ async function walkLines(pool, userId, {
           // opponent's are answered back at them.
           moves: [
             ...branch.node.moves,
-            { uci: branch.uci, san: branch.after.san, mine: true },
+            {
+              uci: branch.uci,
+              san: branch.after.san,
+              mine: true,
+              // Which of the student's decisions this move is, and what the
+              // others were. The rehearsal needs both: to say that a line runs
+              // through an alternate before asking for it, and to tell a move
+              // of the student's own apart from a move that is simply wrong.
+              role: branch.role ?? 'primary',
+              alts: branch.alts ?? [],
+            },
             { uci: reply.uci, san: landed.san, mine: false },
           ],
         };
@@ -168,10 +200,10 @@ async function walkLines(pool, userId, {
 /// and nobody reads a drawing of all of them, so the depth is a parameter and
 /// the answer says when it was reached.
 async function tree(pool, userId, {
-  color, rootFen, rootPath = [], minRating = 0, maxPly = 16,
+  color, rootFen, rootPath = [], minRating = 0, maxPly = 16, gateUci = null,
 } = {}) {
   const { nodes, root, truncated, kept, cut } = await walkLines(pool, userId, {
-    color, rootFen, minRating, maxPly,
+    color, rootFen, minRating, maxPly, gateUci,
   });
 
   const byParent = new Map();
@@ -264,17 +296,51 @@ function subtree(nodes, fromKey) {
   return inside;
 }
 
+/// The positions reached by taking one particular move at one position.
+///
+/// A repertoire holds more than one move in plenty of positions, and the walk
+/// spreads through all of them — so "the line behind my main move" is a thing
+/// the student can see on the board and had no way to ask for. The queue
+/// decided, and the other road came round when its positions fell due.
+///
+/// The move is found by *where it was played from* rather than by its own
+/// square: a chain's move at index `2i` is the student's move out of the node
+/// at chain position `i`, because the walk appends one pair per level. Matching
+/// on the uci alone would catch the same move played somewhere else entirely.
+///
+/// The fork position itself is not in the answer. It is the position the choice
+/// is made in, not one of the positions the choice leads to.
+function nodesVia(nodes, viaKey, viaUci) {
+  const out = [];
+  for (const key of nodes.keys()) {
+    const chain = chainTo(nodes, key);
+    const at = chain.indexOf(viaKey);
+    if (at === -1 || at >= chain.length - 1) continue;
+    if (nodes.get(key).moves[at * 2]?.uci === viaUci) out.push(key);
+  }
+  return out;
+}
+
 /// One line to rehearse, and the question at the end of it.
 ///
 /// `question` is null when nothing is waiting — which the screen must tell
 /// apart from a walk that found nothing at all, so `reason` names which of the
 /// two it is.
+/// `viaFen` + `viaUci` narrow it to the lines that go through one decision, and
+/// are how somebody standing at a fork asks for the other road instead of
+/// waiting for the schedule to offer it.
+///
+/// `exclude` drops positions already refused. Without it "another line" is a
+/// promise the queue cannot keep: `nextItem` is a deterministic `ORDER BY
+/// due_at LIMIT 1` and skipping writes nothing down, so the same line came back
+/// every time the button was pressed.
 async function drillLine(pool, userId, {
   color, rootFen, rootPath = [], minRating = 0, fromFen = null,
-  ahead = false, now = new Date(),
+  viaFen = null, viaUci = null, exclude = [], ahead = false, gateUci = null,
+  now = new Date(),
 } = {}) {
   const { nodes, root, truncated } = await walkLines(pool, userId, {
-    color, rootFen, minRating,
+    color, rootFen, minRating, gateUci,
     // A rehearsal replays decisions. A line through a move nobody chose is not
     // the student's line, and playing it would teach a move they have not
     // agreed to.
@@ -285,19 +351,43 @@ async function drillLine(pool, userId, {
     ? rootPath.filter((san) => typeof san === 'string' && san !== '')
     : [];
 
-  let within = null;
+  // With a gate, the repertoire *is* the gated walk — so the counts and the
+  // queue start from it rather than from the whole colour. Without one this
+  // stays null, which is what it has always meant: everything.
+  let within = gateUci ? [...nodes.keys()] : null;
   let from = null;
   if (fromFen != null && String(fromFen).trim() !== '') {
     from = fenKey(fromFen);
     // A position the walk never reached — cut since, or built under a move that
     // is no longer kept. An empty block rather than a 400: the request was
     // well formed, and "there is nothing there any more" is the answer.
-    within = nodes.has(from) ? subtree(nodes, from) : [];
+    const block = nodes.has(from) ? subtree(nodes, from) : [];
+    // Intersected, never replaced, for the same reason the fork below is: a
+    // gate and a branch are two narrowings of one walk.
+    within = within === null
+      ? block
+      : within.filter((key) => block.includes(key));
   }
 
-  const keys = within ?? [...nodes.keys()];
+  if (viaFen != null && String(viaFen).trim() !== '' && viaUci) {
+    const viaKey = fenKey(viaFen);
+    const through = nodes.has(viaKey) ? nodesVia(nodes, viaKey, viaUci) : [];
+    // Intersected rather than replaced: a branch and a fork inside it are two
+    // narrowings of the same walk, and one must not quietly undo the other.
+    within = within === null
+      ? through
+      : within.filter((key) => through.includes(key));
+  }
+
+  const refused = new Set(Array.isArray(exclude) ? exclude : []);
+  const keys = (within ?? [...nodes.keys()]).filter((key) => !refused.has(key));
+  // The counts describe the walk, not what is left of it after skipping: a
+  // student who has skipped four of six positions has not thereby learned
+  // them, and "dospelo 2" would say they had.
   const stats = await drillStats(pool, userId, { color, now, only: within });
-  const item = await nextItem(pool, userId, { color, now, only: keys, ahead });
+  const item = keys.length === 0
+    ? null
+    : await nextItem(pool, userId, { color, now, only: keys, ahead });
 
   if (item === null) {
     return {
@@ -392,10 +482,11 @@ async function drillLine(pool, userId, {
 ///
 /// No Lichess request, like everything that reads what was built.
 async function drillBranches(pool, userId, {
-  color, rootFen, rootPath = [], minRating = 0, now = new Date(),
+  color, rootFen, rootPath = [], minRating = 0, gateUci = null,
+  now = new Date(),
 } = {}) {
   const { nodes, truncated } = await walkLines(pool, userId, {
-    color, rootFen, minRating, onlyChosen: true,
+    color, rootFen, minRating, onlyChosen: true, gateUci,
   });
 
   const groups = new Map();

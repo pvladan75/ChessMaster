@@ -41,6 +41,7 @@ const {
   importedMoves,
   forgetImportedMoves,
   deleteRepertoire,
+  setGate,
 } = require('../services/repertoireService');
 const { frontier } = require('../services/repertoireFrontier');
 const {
@@ -56,6 +57,13 @@ const {
 const {
   putNote, notesFor, disagreements,
 } = require('../services/repertoireNotes');
+const {
+  putComment, removeComment, commentsFor,
+} = require('../services/repertoireComments');
+const {
+  orphansOfDeleting, deleteRepertoire: deleteRepertoireRow, colorStats,
+  eraseColor,
+} = require('../services/repertoireErase');
 const rateLimit = require('express-rate-limit');
 
 // A spine is up to two dozen book requests in one call, against a token that
@@ -68,6 +76,20 @@ const spineLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Previše kičmi u kratkom roku. Sačekajte minut.' },
 });
+
+/// The repertoire's **gate**: the one move it goes through at its root.
+///
+/// Read from the query on every scoped route, because two repertoires can start
+/// from the same position and mean two different openings — from the Italian
+/// after 3...Bc5, one plays 4.b4 and the other 4.0-0. The moves belong to
+/// (user, colour) and stay in one graph; what the gate narrows is the **view**,
+/// so the tree, the queue, the map and the drill are about one opening.
+///
+/// Absent means what it always meant: the whole graph from that root.
+function gateOf(query) {
+  const gate = query?.gateUci;
+  return typeof gate === 'string' && gate.trim() !== '' ? gate.trim() : null;
+}
 
 /// One place where a bad request becomes a 400 and everything else becomes a
 /// 500 with a line in the log. Without it every handler grows its own copy and
@@ -89,18 +111,41 @@ function answer(res, work, whatFailed) {
   );
 }
 
-// POST /repertoire  { name, color, rootFen, rootPath }
+// POST /repertoire  { name, color, rootFen, rootPath, viaUci }
 //
 // `rootPath` is how the student got to the root — the SAN moves they played on
 // the board before pressing "build from here". Stored so the breadcrumb can
 // read from move one instead of pretending the game began wherever they
 // stopped.
+//
+// `viaUci` is the gate — the move this repertoire goes through at its root.
+// Sent when the position it starts from already holds another repertoire's
+// first move, which is the case that made it necessary.
 router.post('/', authenticateToken, (req, res) => {
-  const { name, color, rootFen, rootPath } = req.body ?? {};
+  const { name, color, rootFen, rootPath, viaUci } = req.body ?? {};
   answer(
     res,
-    createRepertoire(pool, req.user.id, { name, color, rootFen, rootPath }),
+    createRepertoire(pool, req.user.id, {
+      name, color, rootFen, rootPath, viaUci,
+    }),
     'Repertoar nije mogao da se napravi.',
+  );
+});
+
+// PUT /repertoire/gate  { id, viaUci }
+//
+// Sets, changes or clears the gate of a repertoire that already exists — which
+// is most of them: the repertoires that most need one were built before the
+// column was. `viaUci: null` clears it, back to the whole graph.
+//
+// Above `/:id` for the same reason the comment routes are: `/gate` is one path
+// segment.
+router.put('/gate', authenticateToken, (req, res) => {
+  const { id, viaUci } = req.body ?? {};
+  answer(
+    res,
+    setGate(pool, req.user.id, { id, viaUci: viaUci ?? null }),
+    'Potez kroz koji ide repertoar nije mogao da se sačuva.',
   );
 });
 
@@ -137,11 +182,144 @@ router.delete('/imported', authenticateToken, (req, res) => {
   );
 });
 
-// DELETE /repertoire/:id — the name and the starting point, never the moves.
-router.delete('/:id', authenticateToken, (req, res) => {
+// GET /repertoire/removal?id=12[&minRating=1600] — what deleting a repertoire
+// would take with it, before anything is deleted.
+//
+// Reachable from this repertoire's root, minus everything reachable from the
+// other roots of the same colour: a position two repertoires share is not
+// stranded by losing one of them. When this is the last repertoire of its
+// colour there is no second set, and the count is everything the walk reaches —
+// which is exactly the number worth reading before pressing the button.
+router.get('/removal', authenticateToken, (req, res) => {
   answer(
     res,
-    deleteRepertoire(pool, req.user.id, req.params.id),
+    orphansOfDeleting(pool, req.user.id, {
+      id: req.query.id,
+      minRating: Number(req.query.minRating) || 0,
+      // The keys themselves stay on the server: they are a list of FENs the
+      // screen has no use for, and `positions` — how many of them actually
+      // hold moves — is the number the sentence "18 moves in 12 positions" is
+      // made of. `stranded` is the wider count, kept because it is what the
+      // delete will sweep.
+    }).then(({ keys, ...rest }) => ({ ...rest, stranded: keys.length })),
+    'Nije moglo da se izračuna šta bi brisanje odnelo.',
+  );
+});
+
+// GET /repertoire/color?color=b — everything stored for one side, counted.
+//
+// The question the owner actually had, and the one nothing could answer: delete
+// every repertoire of a colour and the moves stay, with no root left for the
+// prune to reason from and no screen that can reach them. This counts them.
+router.get('/color', authenticateToken, (req, res) => {
+  answer(
+    res,
+    colorStats(pool, req.user.id, { color: req.query.color }),
+    'Stanje boje nije moglo da se pročita.',
+  );
+});
+
+// DELETE /repertoire/color?color=b[&comments=1] — emptying a side.
+//
+// Every move, cut, extra reply, attempt, review and evaluation for that colour.
+// The repertoires themselves stay: they are a name and a starting point, and
+// somebody emptying the moves is starting that opening again rather than
+// disowning it.
+//
+// The comments the student wrote stay too, unless `comments=1`. Prose is the
+// one thing here nothing can recompute.
+//
+// Registered before `/:id`, or Express would read "color" as an id.
+router.delete('/color', authenticateToken, (req, res) => {
+  answer(
+    res,
+    eraseColor(pool, req.user.id, {
+      color: req.query.color,
+      includeComments: req.query.comments === '1'
+        || req.query.comments === 'true',
+    }),
+    'Potezi nisu mogli da se obrišu.',
+  );
+});
+
+// The comment routes sit above `/:id` on purpose: `/comment` is a single
+// path segment, so Express would otherwise match it as an id and answer
+// "Repertoar nije imenovan brojem". `/node/...` is safe where it stands
+// because `/:id` matches one segment and those are two.
+// PUT /repertoire/comment  { color, fen, body }
+//
+// What the student wrote about a position, in their own words. Its own table
+// rather than a field on the note: a note is the engine's answer and is
+// rewritten by every deeper search, and `putNote` refuses a row with no
+// evaluation in it — which is exactly the row a comment on an un-analysed
+// position needs.
+//
+// An empty body deletes the row. A screen that saved an emptied box would
+// otherwise leave a comment card with nothing in it on a position nobody has
+// said anything about.
+router.put('/comment', authenticateToken, (req, res) => {
+  const body = req.body ?? {};
+  answer(
+    res,
+    putComment(pool, req.user.id, {
+      color: body.color,
+      fen: body.fen,
+      body: body.body,
+    }),
+    'Komentar nije mogao da se sačuva.',
+  );
+});
+
+// DELETE /repertoire/comment?color=b&fen=...
+router.delete('/comment', authenticateToken, (req, res) => {
+  const { color, fen } = req.query;
+  answer(
+    res,
+    removeComment(pool, req.user.id, { color, fen }),
+    'Komentar nije mogao da se obriše.',
+  );
+});
+
+// GET /repertoire/comments?color=b[&keys=a,b,c]
+//
+// Every comment for that side in one call, shaped like `/notes` and read by the
+// same caller: the tree draws a hundred cards, and a request per card is a
+// request per card.
+router.get('/comments', authenticateToken, (req, res) => {
+  const { color, keys } = req.query;
+  answer(
+    res,
+    commentsFor(pool, req.user.id, {
+      color,
+      keys: typeof keys === 'string' && keys.trim() !== ''
+        ? keys.split(',').map((key) => key.trim()).filter((key) => key !== '')
+        : null,
+    }),
+    'Komentari nisu mogli da se pročitaju.',
+  );
+});
+
+// DELETE /repertoire/:id[?moves=1&comments=1]
+//
+// Without `moves`, what it always was: the name and the starting point, never
+// the moves — they belong to the colour, and another repertoire of that colour
+// may be standing on them.
+//
+// With it, the moves only this repertoire reaches go as well, in the same
+// transaction. `/removal` is the count to show first.
+router.delete('/:id', authenticateToken, (req, res) => {
+  const withMoves = req.query.moves === '1' || req.query.moves === 'true';
+  answer(
+    res,
+    withMoves
+      ? deleteRepertoireRow(pool, req.user.id, {
+        id: req.params.id,
+        withMoves: true,
+        includeComments: req.query.comments === '1'
+          || req.query.comments === 'true',
+        minRating: Number(req.query.minRating) || 0,
+      })
+      : deleteRepertoire(pool, req.user.id, req.params.id),
     'Repertoar nije mogao da se obriše.',
   );
 });
@@ -336,6 +514,7 @@ router.get('/disagreements', authenticateToken, (req, res) => {
     disagreements(pool, req.user.id, {
       color,
       rootFen,
+      gateUci: gateOf(req.query),
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
         : [],
@@ -489,6 +668,7 @@ router.get('/frontier', authenticateToken, (req, res) => {
     frontier(pool, req.user.id, {
       color,
       rootFen,
+      gateUci: gateOf(req.query),
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
         : [],
@@ -515,6 +695,7 @@ router.get('/tree', authenticateToken, (req, res) => {
     repertoireTree(pool, req.user.id, {
       color,
       rootFen,
+      gateUci: gateOf(req.query),
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
         : [],
@@ -556,7 +737,7 @@ router.get('/drill/next', authenticateToken, (req, res) => {
 });
 
 // GET /repertoire/drill/line?color=b&rootFen=...&rootPath=e4+c5&minRating=1600
-//     [&fromFen=...]
+//     [&fromFen=...][&viaFen=...&viaUci=d2d4][&exclude=...&exclude=...]
 //
 // A line to rehearse and the question at the end of it, instead of a bare board
 // four moves into something with no way to tell how it got there.
@@ -566,10 +747,24 @@ router.get('/drill/next', authenticateToken, (req, res) => {
 // stops being opened. `fromFen` narrows the whole thing to one branch, which is
 // what makes it usable the day after a build session.
 //
+// `viaFen` + `viaUci` narrow it further, to the lines that go through one
+// decision: a repertoire keeps more than one move in plenty of positions, and
+// "the line behind my main move" was a thing the student could see on the board
+// and had no way to ask for.
+//
+// `exclude` drops positions already refused this session, which is what makes
+// "another line" mean anything — the queue is deterministic and skipping writes
+// nothing down, so without it the same line came back every time.
+//
 // The moves in `prefix` are played, never graded. Only the position at the end
 // is answered, through the same `/drill/answer` as before.
 router.get('/drill/line', authenticateToken, (req, res) => {
-  const { color, rootFen, rootPath, minRating, fromFen, ahead } = req.query;
+  const {
+    color, rootFen, rootPath, minRating, fromFen, viaFen, viaUci, ahead,
+  } = req.query;
+  const exclude = Array.isArray(req.query.exclude)
+    ? req.query.exclude.filter((k) => typeof k === 'string')
+    : (typeof req.query.exclude === 'string' ? [req.query.exclude] : []);
   answer(
     res,
     drillLine(pool, req.user.id, {
@@ -582,9 +777,24 @@ router.get('/drill/line', authenticateToken, (req, res) => {
       fromFen: typeof fromFen === 'string' && fromFen.trim() !== ''
         ? fromFen
         : null,
+      // The chosen road out of a fork. Without these two reaching the service,
+      // "Vežbaj 0-0" was a button that changed the sentence above the board and
+      // nothing else — the query still came back through whichever move the
+      // schedule preferred.
+      viaFen: typeof viaFen === 'string' && viaFen.trim() !== ''
+        ? viaFen
+        : null,
+      viaUci: typeof viaUci === 'string' && viaUci.trim() !== ''
+        ? viaUci
+        : null,
+      // What was refused this session. The queue is a deterministic
+      // `ORDER BY due_at LIMIT 1`, so without it "Druga linija" asked for the
+      // same line it had just been given.
+      exclude,
       // Practising before a position is due. Nothing is written down for it,
       // so it cannot be used to push an interval out.
       ahead: ahead === '1' || ahead === 'true',
+      gateUci: gateOf(req.query),
     }),
     'Linija za vežbanje nije mogla da se sastavi.',
   );
@@ -608,6 +818,7 @@ router.get('/drill/branches', authenticateToken, (req, res) => {
     drillBranches(pool, req.user.id, {
       color,
       rootFen,
+      gateUci: gateOf(req.query),
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
         : [],
@@ -631,22 +842,39 @@ router.get('/drill/reveal', authenticateToken, (req, res) => {
   );
 });
 
-// POST /repertoire/drill/answer  { color, fen, uci, revealed, minRating }
+// POST /repertoire/drill/answer
+//   { color, fen, uci, revealed, minRating, practice, onlyIfDue }
 //
 // Grades the move against what the student decided, reschedules it, and hands
 // back the opponent's reply so the line can go on. The reply comes from the
 // stored book, so a drill costs no Lichess request at all - which is what lets
 // somebody without a token of their own practise what they built last week.
+//
+// `practice` judges and writes nothing. `onlyIfDue` writes only when this
+// position was what the schedule asked for, which is what a line walked on past
+// its question needs — see `answer` for why the two are not the same flag.
 router.post('/drill/answer', authenticateToken, (req, res) => {
-  const { color, fen, uci, revealed, minRating, practice } = req.body ?? {};
+  const {
+    color, fen, uci, revealed, minRating, practice, onlyIfDue,
+  } = req.body ?? {};
   answer(
     res,
     gradeAnswer(pool, req.user.id, {
-      color, fen, uci, revealed: !!revealed, practice: !!practice,
+      color,
+      fen,
+      uci,
+      revealed: !!revealed,
+      practice: !!practice,
+      onlyIfDue: !!onlyIfDue,
     }).then(async (graded) => {
       const reply = await pickReply(pool, {
         fen: _fenAfterOrSame(fen, graded, uci),
         minRating: Number(minRating) || 0,
+        // Whose preparation counts. A reply this student pressed "prepare this
+        // too" on is theirs, and a draw that did not know who was asking would
+        // refuse a move they chose by name.
+        userId: req.user.id,
+        color,
       });
       return { ...graded, reply };
     }),

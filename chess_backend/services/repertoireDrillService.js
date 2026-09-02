@@ -175,8 +175,18 @@ async function itemFrom(pool, userId, color, key, { fresh, repetitions }) {
 /// because somebody enjoyed themselves must not come back in a month on the
 /// strength of it. Told apart on the way out by `intervalDays: null`, so the
 /// screen cannot accidentally promise a return date nobody stored.
+/// `onlyIfDue` keeps the same rule for a line that is walked on past its
+/// question. The drill asks one position and then carries on down the line, and
+/// the positions below it were not what the schedule asked for — grading them
+/// would push their intervals out on the strength of moves nobody had to
+/// remember cold. It is the sparring rule (`dueKeys`) said once more, here
+/// rather than in the client, because `due_at` is the server's to read.
+///
+/// A position never reviewed at all **is** due: it is the most overdue thing
+/// there is, and walking into one is exactly when it should be written down.
 async function answer(pool, userId, {
-  color, fen, uci, revealed = false, practice = false, now = new Date(),
+  color, fen, uci, revealed = false, practice = false, onlyIfDue = false,
+  now = new Date(),
 }) {
   const key = fenKey(fen);
   if (!uci) throw new RangeError('Potez nije prosleđen.');
@@ -214,16 +224,27 @@ async function answer(pool, userId, {
     quality = outcome === 'primary' ? QUALITY.recalled : QUALITY.alternate;
   }
 
-  if (practice) {
-    return {
-      outcome,
-      quality,
-      practice: true,
-      primary: primary ? { uci: primary.uci, san: primary.san } : null,
-      alternates: alternates.map((m) => ({ uci: m.uci, san: m.san })),
-      intervalDays: null,
-      dueAt: null,
-    };
+  const judged = () => ({
+    outcome,
+    quality,
+    practice: true,
+    primary: primary ? { uci: primary.uci, san: primary.san } : null,
+    alternates: alternates.map((m) => ({ uci: m.uci, san: m.san })),
+    intervalDays: null,
+    dueAt: null,
+  });
+
+  if (practice) return judged();
+
+  if (onlyIfDue) {
+    const review = await pool.query(
+      `SELECT due_at FROM repertoire_reviews
+        WHERE user_id = $1 AND color = $2 AND fen_key = $3`,
+      [userId, color, key],
+    );
+    const due = review.rowCount === 0
+      || new Date(review.rows[0].due_at) <= now;
+    if (!due) return judged();
   }
 
   const current = await ensureReview(pool, userId, color, key);
@@ -297,31 +318,59 @@ async function ensureReview(pool, userId, color, key) {
 ///
 /// Weighted rather than "the most common every time", because a drill that
 /// always answers with the main move rehearses one line and calls it a
-/// repertoire. The uncovered moves are in the draw on purpose: meeting one is
-/// not a failure of the drill, it is the drill doing the one thing a book
-/// cannot - showing the student the edge of what they prepared.
-async function pickReply(pool, { fen, minRating = 0, random = Math.random }) {
+/// repertoire.
+///
+/// **Only replies the student prepared.** This used to be the other way round:
+/// the uncovered moves were in the draw on purpose, so that meeting one showed
+/// the student the edge of what they had prepared and opened the door back into
+/// building. The owner asked for it removed, and two things argue the same way:
+///
+///   * The line walk already refuses to rehearse an uncovered reply
+///     (`coveredReplies`), so the drill's live opponent was playing moves the
+///     drill's own rehearsal would not play. One of the two was wrong.
+///   * The door into building is still there. It is `unprepared` — a position
+///     you covered and never decided about — and that is the honest version of
+///     it, because it is a hole in the repertoire rather than a hole in the
+///     book.
+///
+/// A position with nothing prepared answers with null, and the line ends where
+/// the preparation ends. That is what a book running out looks like.
+///
+/// "Prepared" means the same thing here as everywhere: covered, **or** a move
+/// this student pressed "prepare this too" on. Forgetting the second half would
+/// refuse a reply they asked for by name. Computed in SQL and filtered in JS on
+/// purpose — the condition is then one expression, and the drawing is testable
+/// against rows rather than against a query.
+async function pickReply(pool, {
+  fen, minRating = 0, userId = null, color = null, random = Math.random,
+}) {
   const key = fenKey(fen);
   const rows = await pool.query(
-    `SELECT uci, san, games, covered FROM opening_replies
-      WHERE fen_key = $1 AND min_rating = $2
-      ORDER BY games DESC`,
-    [key, minRating ?? 0],
+    `SELECT r.uci, r.san, r.games,
+            (r.covered = TRUE OR EXISTS (
+              SELECT 1 FROM repertoire_extra_replies e
+               WHERE e.user_id = $3 AND e.color = $4
+                 AND e.fen_key = r.fen_key AND e.uci = r.uci)) AS covered
+       FROM opening_replies r
+      WHERE r.fen_key = $1 AND r.min_rating = $2
+      ORDER BY r.games DESC`,
+    [key, minRating ?? 0, userId, color],
   );
-  if (rows.rowCount === 0) return null;
+  const usable = rows.rows.filter((row) => row.covered === true);
+  if (usable.length === 0) return null;
 
-  const total = rows.rows.reduce((sum, row) => sum + Number(row.games), 0);
+  const total = usable.reduce((sum, row) => sum + Number(row.games), 0);
   if (total <= 0) return null;
 
   let ticket = random() * total;
-  for (const row of rows.rows) {
+  for (const row of usable) {
     ticket -= Number(row.games);
     if (ticket < 0) {
-      return { uci: row.uci, san: row.san, covered: row.covered };
+      return { uci: row.uci, san: row.san, covered: true };
     }
   }
-  const last = rows.rows[rows.rows.length - 1];
-  return { uci: last.uci, san: last.san, covered: last.covered };
+  const last = usable[usable.length - 1];
+  return { uci: last.uci, san: last.san, covered: true };
 }
 
 /// Stores the book for a position, so the drill never has to ask Lichess.

@@ -48,16 +48,30 @@ class _FakeApi extends RepertoireApiService {
   String? lastFromFen;
   bool? lastAhead;
 
+  /// Which fork the last request asked to be walked through, and what it had
+  /// already refused. Both are the point of the buttons that send them.
+  String? lastViaFen;
+  String? lastViaUci;
+  List<String> lastExclude = const [];
+
+  /// A line per chosen road, so a test can watch the drill actually change
+  /// direction rather than only asserting on what went up the wire.
+  final Map<String?, DrillLine?> linesByVia = {};
+
   /// How many answers were graded. The rehearsal must add nothing to this: a
   /// prefix is replayed many times a day, and grading it would push those
   /// positions out on repetitions nobody had to remember cold.
   int graded = 0;
   bool? lastPractice;
 
+  /// Whether the last answer asked the server to write only if the position
+  /// was really due — what a line walked on past its question sends.
+  bool? lastOnlyIfDue;
+
   /// Every position that was graded, and whether it was written down. A run
   /// through a branch must score the positions that were due and leave the
   /// rest alone, so this is the thing worth asserting on.
-  final List<({String fen, bool practice})> answers = [];
+  final List<({String fen, bool practice, bool onlyIfDue})> answers = [];
 
   /// The branches the picker is offered.
   List<DrillBranch> branches = const [];
@@ -69,6 +83,7 @@ class _FakeApi extends RepertoireApiService {
     required String rootFen,
     List<String> rootPath = const [],
     int? minRating,
+    String? gateUci,
   }) async {
     branchCalls += 1;
     return branches;
@@ -81,11 +96,19 @@ class _FakeApi extends RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     String? fromFen,
+    String? viaFen,
+    String? viaUci,
+    List<String> exclude = const [],
     bool ahead = false,
+    String? gateUci,
   }) async {
     lineCalls += 1;
     lastFromFen = fromFen;
     lastAhead = ahead;
+    lastViaFen = viaFen;
+    lastViaUci = viaUci;
+    lastExclude = exclude;
+    if (linesByVia.containsKey(viaUci)) return linesByVia[viaUci];
     return aheadLine != null && ahead ? aheadLine : line;
   }
 
@@ -118,11 +141,13 @@ class _FakeApi extends RepertoireApiService {
     bool revealed = false,
     int? minRating,
     bool practice = false,
+    bool onlyIfDue = false,
   }) async {
     graded += 1;
     lastPractice = practice;
     lastRevealedFlag = revealed;
-    answers.add((fen: fen, practice: practice));
+    lastOnlyIfDue = onlyIfDue;
+    answers.add((fen: fen, practice: practice, onlyIfDue: onlyIfDue));
     final outcome = outcomeFor ?? (uci == primaryUci ? 'primary' : 'unknown');
     return DrillAnswer(
       outcome: outcome,
@@ -186,6 +211,22 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tapAt(at(to));
     await tester.pumpAndSettle();
+    // The rehearsal shows the line's move alone for a beat before the
+    // opponent's answer lands on top of it, so a test that plays two moves in a
+    // row has to let that beat run out or the second tap arrives on a locked
+    // board.
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+  }
+
+  /// Lets the walk-on run out.
+  ///
+  /// A right answer with a reply carries on down the line by itself, so a test
+  /// that only looks at the graded panel still leaves a timer behind. This is
+  /// how it says "and then it moved on", which is also worth asserting after.
+  Future<void> walkOn(WidgetTester tester) async {
+    await tester.pump(const Duration(milliseconds: 1500));
+    await tester.pumpAndSettle();
   }
 
   testWidgets('the question comes without its answer', (tester) async {
@@ -209,6 +250,12 @@ void main() {
     expect(find.textContaining('Tačno'), findsOneWidget);
     expect(find.textContaining('Vraća se za 6 dana'), findsOneWidget);
     expect(api.lastRevealedFlag, false);
+
+    // And then it walks on by itself, carrying the verdict with it: the panel
+    // that named the schedule is gone, and the sentence it was named in is not.
+    await walkOn(tester);
+    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.textContaining('vraća se za 6 dana'), findsOneWidget);
   });
 
   testWidgets('good chess that is not their decision is still a miss',
@@ -237,6 +284,7 @@ void main() {
     await play(tester, 'b8', 'c6');
     expect(api.lastRevealedFlag, true,
         reason: 'prepoznato nije isto što i zapamćeno');
+    await walkOn(tester);
   });
 
   testWidgets('the opponent answers, and an unprepared reply is named as such',
@@ -248,6 +296,63 @@ void main() {
 
     expect(find.textContaining('Protivnik je odgovorio a3'), findsOneWidget);
     expect(find.textContaining('to niste pokrili'), findsOneWidget);
+
+    // And it stops there. Being surprised is the door back into building, and
+    // walking past that sentence into a position with no answer to give would
+    // be the worst moment to hurry.
+    await walkOn(tester);
+    expect(find.textContaining('to niste pokrili'), findsOneWidget);
+    expect(find.text('Nastavi liniju'), findsOneWidget);
+  });
+
+  testWidgets('a right answer walks on down the line by itself',
+      (tester) async {
+    // The drill was agreed as a line walk, and a line walked one button press
+    // at a time is a quiz with an extra step. "Nastavi liniju" was that press.
+    final api = _FakeApi();
+    await pump(tester, api);
+
+    await play(tester, 'b8', 'c6');
+    expect(find.text('Nastavi liniju'), findsNothing,
+        reason: 'ništa se ne traži od korisnika — šetnja ide sama');
+
+    await walkOn(tester);
+    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+
+    // And what it asks next was not what the schedule asked for, so it goes up
+    // saying "write this down only if it really was due".
+    await play(tester, 'd7', 'd6');
+    expect(api.answers.last.onlyIfDue, true);
+    expect(api.answers.first.onlyIfDue, false,
+        reason: 'pitanje jeste bilo dospelo');
+  });
+
+  testWidgets('a mistake stops the walk where it happened', (tester) async {
+    // That position is the whole reason the line was worth playing, and
+    // hurrying past it is the one moment the screen must not hurry.
+    final api = _FakeApi(outcomeFor: 'unknown');
+    await pump(tester, api);
+
+    await play(tester, 'g8', 'f6');
+    await walkOn(tester);
+
+    expect(find.textContaining('Nije to'), findsOneWidget);
+    expect(find.text('Nastavi liniju'), findsOneWidget,
+        reason: 'dalje se ide kad korisnik kaže, ne sam');
+  });
+
+  testWidgets('the end of the book is not walked into', (tester) async {
+    // With no reply there is nothing to walk on into: the position after your
+    // own move is the opponent's to answer, and asking you for it was a bug of
+    // its own.
+    final api = _FakeApi(reply: null);
+    await pump(tester, api);
+
+    await play(tester, 'b8', 'c6');
+    await walkOn(tester);
+
+    expect(find.textContaining('Tačno'), findsOneWidget);
+    expect(find.text('Nastavi liniju'), findsNothing);
   });
 
   testWidgets('a position that was never built offers to build it',
@@ -292,6 +397,11 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await play(tester, 'b8', 'c6');
+    expect(tester.takeException(), isNull);
+
+    // And the line the walk-on leaves behind it, which is the longest sentence
+    // on the screen and the one most likely to be clipped by a release build.
+    await walkOn(tester);
     expect(tester.takeException(), isNull);
   });
 
@@ -378,6 +488,283 @@ void main() {
     // The line's own move went on the board anyway: carrying on from a move
     // that is not in the line would be rehearsing a different line.
     expect(find.text('1.e4 c5 2.d4'), findsOneWidget);
+  });
+
+  /// The same line, but the student kept two moves in the position it opens
+  /// in: 1...c5 is what this line walks and 1...e5 is theirs as well.
+  DrillLine forkedLine() => DrillLine(
+        rootPath: const ['e4'],
+        startFen: fenAfter(['e4']),
+        prefix: const [
+          LineMove(
+            uci: 'c7c5',
+            san: 'c5',
+            mine: true,
+            role: 'alternate',
+            alts: [LineAlternative(uci: 'e7e5', san: 'e5')],
+          ),
+          LineMove(uci: 'd2d4', san: 'd4', mine: false),
+        ],
+        question: DrillItem(
+          fen: fenAfter(['e4', 'c5', 'd4']),
+          fresh: true,
+          repetitions: 0,
+          moves: 1,
+          path: const ['c5', 'd4'],
+        ),
+        stats: const DrillStats(positions: 6, due: 1, known: 2, fresh: 3),
+      );
+
+  testWidgets('a line through an alternate says so before it asks',
+      (tester) async {
+    // Otherwise the rehearsal is a guess. A position where two of the
+    // student's own moves are right and only one continues this line asks
+    // "play the move you chose" and means one of them.
+    final api = _FakeApi()..line = forkedLine();
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    expect(find.textContaining('ide kroz alternativu'), findsOneWidget);
+  });
+
+  testWidgets('and a line through the main move says nothing', (tester) async {
+    final api = _FakeApi()..line = morraLine();
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    expect(find.textContaining('ide kroz alternativu'), findsNothing);
+  });
+
+  testWidgets('another move of their own is named as theirs, not as a miss',
+      (tester) async {
+    // Right chess in the wrong line. Reported in the same orange as a blunder,
+    // it teaches a student to distrust a move they themselves chose — and
+    // nothing in the repertoire is worth that.
+    final api = _FakeApi()..line = forkedLine();
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    await play(tester, 'e7', 'e5');
+
+    expect(find.textContaining('I e5 je vaš potez'), findsOneWidget);
+    expect(find.textContaining('ova linija vežba c5'), findsOneWidget);
+    expect(find.textContaining('U ovoj liniji ide'), findsNothing);
+    expect(api.graded, 0, reason: 'ponavljanje je ocenjeno');
+    // And the line went on through the move it walks, as it always did.
+    expect(find.text('1.e4 c5 2.d4'), findsOneWidget);
+  });
+
+  testWidgets("a move that is nobody's is still just wrong", (tester) async {
+    final api = _FakeApi()..line = forkedLine();
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    await play(tester, 'd7', 'd6');
+
+    expect(find.textContaining('U ovoj liniji ide c5'), findsOneWidget);
+    expect(find.textContaining('je vaš potez'), findsNothing);
+  });
+
+  testWidgets("the line's move is drawn while it is alone on the board",
+      (tester) async {
+    // The correction used to be invisible: both plies landed in one frame, so
+    // a piece appeared on a square nothing had been seen going to. This is the
+    // beat in which it is visible.
+    final api = _FakeApi()..line = morraLine();
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    final finder = find.byType(ChessBoardWithOverlay);
+    final widget = tester.widget<ChessBoardWithOverlay>(finder);
+    final rect = tester.getRect(finder);
+    final square = widget.boardSize / 8;
+    Offset at(String name) {
+      final file = name.codeUnitAt(0) - 'a'.codeUnitAt(0);
+      final rank = name.codeUnitAt(1) - '1'.codeUnitAt(0);
+      final col =
+          widget.boardOrientation == PlayerColor.black ? 7 - file : file;
+      final row =
+          widget.boardOrientation == PlayerColor.black ? rank : 7 - rank;
+      return rect.topLeft + Offset((col + 0.5) * square, (row + 0.5) * square);
+    }
+
+    await tester.tapAt(at('e7'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(at('e5'));
+    await tester.pumpAndSettle();
+
+    final arrows = tester.widget<ChessBoardWithOverlay>(finder).arrows;
+    expect(arrows, hasLength(1));
+    expect(arrows.single.from, 'c7');
+    expect(arrows.single.to, 'c5');
+
+    // And it is gone once the opponent's answer has landed on top of it.
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(tester.widget<ChessBoardWithOverlay>(finder).arrows, isEmpty);
+  });
+
+  testWidgets('a fork offers the other road, and only a fork does',
+      (tester) async {
+    // Standing in front of your own main move, being drilled down the
+    // alternative, with no way to say "the other one" — the queue decided and
+    // the other road came round when its positions fell due.
+    final plain = _FakeApi()..line = morraLine();
+    await pump(tester, plain,
+        rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+    expect(find.text('Druga odluka'), findsNothing);
+
+    final api = _FakeApi()..line = forkedLine();
+    await pump(tester, api,
+        key: const ValueKey('racva'),
+        rootFen: fenAfter(['e4']),
+        rootPath: const ['e4']);
+    expect(find.text('Druga odluka'), findsOneWidget);
+  });
+
+  testWidgets('choosing the other road asks for the line through it',
+      (tester) async {
+    final api = _FakeApi()..line = forkedLine();
+    api.linesByVia['e7e5'] = DrillLine(
+      rootPath: const ['e4'],
+      startFen: fenAfter(['e4', 'e5']),
+      prefix: const [],
+      question: DrillItem(
+        fen: fenAfter(['e4', 'e5']),
+        fresh: true,
+        repetitions: 0,
+        moves: 1,
+        path: const ['e5'],
+      ),
+      stats: const DrillStats(positions: 2, due: 0, known: 0, fresh: 2),
+    );
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    // The move is named nowhere until it is asked for — the rehearsal is not
+    // graded, but with two decisions kept, naming one gives away the other.
+    expect(find.textContaining('Vežbaj e5'), findsNothing);
+
+    await tester.tap(find.text('Druga odluka'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vežbaj e5'));
+    await tester.pumpAndSettle();
+
+    expect(api.lastViaFen, fenAfter(['e4']));
+    expect(api.lastViaUci, 'e7e5');
+    // Nothing under that move need be due: asking for a road is reason enough
+    // to walk it, and practising early writes nothing down.
+    expect(api.lastAhead, true);
+    // And the screen says which road it is on, with the way back.
+    expect(find.textContaining('Vežbate liniju kroz e5'), findsOneWidget);
+    expect(find.text('Nazad na red'), findsOneWidget);
+
+    await tester.tap(find.text('Nazad na red'));
+    await tester.pumpAndSettle();
+    expect(api.lastViaUci, isNull);
+    expect(api.lastAhead, false);
+  });
+
+  testWidgets('the chosen road names its move at the fork', (tester) async {
+    // The bug this exists for: above a fork both roads read exactly the same —
+    // the board, the breadcrumb, the move count. A student who asked for the d4
+    // line was handed it, shown the position they were already looking at, and
+    // asked to play "the move you chose". It worked and could not be seen
+    // working, which is the same thing as not working.
+    final api = _FakeApi()..line = forkedLine();
+    api.linesByVia['e7e5'] = DrillLine(
+      rootPath: const ['e4'],
+      startFen: fenAfter(['e4']),
+      // The same prefix shape as the road not taken: one move of theirs out of
+      // the same position, and nothing on screen to tell the two apart.
+      prefix: const [
+        LineMove(
+          uci: 'e7e5',
+          san: 'e5',
+          mine: true,
+          role: 'primary',
+          alts: [LineAlternative(uci: 'c7c5', san: 'c5')],
+        ),
+        LineMove(uci: 'g1f3', san: 'Nf3', mine: false),
+      ],
+      question: DrillItem(
+        fen: fenAfter(['e4', 'e5', 'Nf3']),
+        fresh: true,
+        repetitions: 0,
+        moves: 1,
+        path: const ['e5', 'Nf3'],
+      ),
+      stats: const DrillStats(positions: 2, due: 1, known: 0, fresh: 1),
+    );
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    await tester.tap(find.text('Druga odluka'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vežbaj e5'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('ide kroz e5 — odigrajte ga'), findsOneWidget);
+    // And the "one of your moves is not this one" warning is gone: they named
+    // the move a moment ago, so hedging about it says less than nothing.
+    expect(find.textContaining('ide kroz alternativu'), findsNothing);
+  });
+
+  testWidgets('a road with nothing behind it says so, and lets you off it',
+      (tester) async {
+    // The empty screen is drawn instead of the panel that carries the road and
+    // the way back off it, so this used to strand the student on a road they
+    // could neither see nor leave — under a sentence about the whole
+    // repertoire that was a fact about one move.
+    final api = _FakeApi()..line = forkedLine();
+    api.linesByVia['e7e5'] = const DrillLine(
+      reason: 'nothing-due',
+      stats: DrillStats(positions: 6, due: 0, known: 2, fresh: 0),
+    );
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    await tester.tap(find.text('Druga odluka'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vežbaj e5'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Iza poteza e5 ništa nije na redu'),
+        findsOneWidget);
+    expect(find.text('Ništa nije na redu.'), findsNothing);
+    expect(find.text('Nazad na red'), findsOneWidget);
+
+    await tester.tap(find.text('Nazad na red'));
+    await tester.pumpAndSettle();
+    expect(api.lastViaUci, isNull);
+  });
+
+  testWidgets('another line is a different line', (tester) async {
+    // `nextItem` is a deterministic `ORDER BY due_at LIMIT 1` and skipping
+    // writes nothing down, so this button used to hand back exactly what it
+    // was asked to take away.
+    final api = _FakeApi()..line = morraLine();
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    await tester.tap(find.text('Druga linija'));
+    await tester.pumpAndSettle();
+
+    expect(api.lastExclude, [fenKeyOf(morraLine().question!.fen)]);
+  });
+
+  testWidgets('and the pile is turned over rather than declared empty',
+      (tester) async {
+    // Skipping is a shuffle, not a deletion. "Ništa nije na redu" after
+    // refusing everything is a lie told by the skip button.
+    final api = _FakeApi()..line = morraLine();
+    await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
+
+    // With the only question refused the server has nothing left to give.
+    api.line = const DrillLine(
+      reason: 'nothing-due',
+      stats: DrillStats(positions: 6, due: 0, known: 2, fresh: 3),
+    );
+    final before = api.lineCalls;
+
+    await tester.tap(find.text('Druga linija'));
+    await tester.pumpAndSettle();
+
+    // Two calls, not one: the empty answer was asked again with a clean pile,
+    // and that second ask carried no refusals.
+    expect(api.lineCalls, before + 2);
+    expect(api.lastExclude, isEmpty);
   });
 
   testWidgets('the rehearsal can be skipped', (tester) async {
@@ -512,6 +899,10 @@ void main() {
     expect(find.textContaining('ocena se ne upisuje'), findsOneWidget);
     // And no promise of a return date, because nothing was stored.
     expect(find.textContaining('Vraća se za'), findsNothing);
+
+    await walkOn(tester);
+    expect(api.lastPractice, true,
+        reason: 'ostaje van rasporeda i posle šetnje');
   });
 
   group('branches and sparring', () {

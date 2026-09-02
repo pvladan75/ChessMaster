@@ -2813,3 +2813,166 @@ Traži **vaš Lichess token** (isti kao sudija), jer troši vašu kvotu.
    kojoj ništa nije dospelo, pa proveriti da se brojevi dospelog nisu promenili.
 9. [ ] **Telefon, 360 dp, release build.** List sa granama i red „Sparing…" —
    ništa da se ne seče.
+
+## 81. Šetnja linijom: alternativa, ispravka i nastavak — 1.9.2026, nije viđeno uživo
+
+Ovo je odgovor na ono što je vlasnik video 1.9.2026 u Petrovljevoj odbrani:
+odigrao je svoj glavni potez d4, dobio narandžastu opomenu i crnog skakača na
+c3, a potez Nc3 nigde nije bio prikazan.
+
+1. [ ] **Linija kroz alternativu se najavljuje.** Naći poziciju u kojoj su
+   zadržana dva svoja poteza i sačekati da red donese liniju kroz alternativu —
+   iznad table treba da stoji „U ovoj poziciji imate više svojih poteza — ova
+   linija ide kroz alternativu, ne kroz glavni." Potez se **ne** imenuje.
+2. [ ] **Linija kroz glavni potez ne kaže ništa.** Ista provera na liniji koja
+   ide kroz glavni: te rečenice nema.
+3. [ ] **Svoj drugi potez nije greška.** Odigrati u toj poziciji glavni potez
+   dok linija traži alternativu: „I d4 je vaš potez — ali ova linija vežba Nc3",
+   i to **plavo**, ne narandžasto.
+4. [ ] **Tuđi potez je i dalje samo pogrešan**, narandžasto, sa „Ponavljanje se
+   ne ocenjuje."
+5. [ ] **Ispravka se vidi.** Potez linije ostaje sam na tabli, sa strelicom na
+   sebi, pa tek onda stiže protivnikov odgovor. Ovo je glavna stavka: pre je
+   figura osvitala na polju na koje ništa nije viđeno da ide.
+6. [ ] **Tačan odgovor vodi dalje sam.** Bez klika, posle pauze u kojoj se
+   pročita presuda.
+7. [ ] **Presuda ide sa šetnjom.** Iznad sledećeg pitanja: „Tačno — Nc6 ·
+   protivnik Nf3 · vraća se za 6 dana."
+8. [ ] **Greška zaustavlja šetnju** i tek tu se pojavljuje „Nastavi liniju".
+9. [ ] **Nepokriven protivnikov odgovor takođe zaustavlja**, sa „to niste
+   pokrili" i ponudom da se pozicija izgradi.
+10. [ ] **Kraj knjige ne nudi „Nastavi liniju".** Kad protivnik nema odgovor,
+    dugmeta nema — ranije je vodilo u pitanje u poziciji u kojoj nisi na potezu.
+11. [ ] **Raspored se ne pomera bez razloga.** Prošetati kroz nekoliko pozicija
+    koje nisu bile dospele, pa proveriti da se brojevi dospelog nisu promenili;
+    pozicija koja nikad nije ponavljana **treba** da se upiše.
+12. [ ] **Telefon, 360 dp, release build.** Red sa presudom je najduža rečenica
+    na ekranu — ne sme da se seče.
+
+## 82. Biranje račve i preskakanje koje preskače — 1.9.2026, nije viđeno uživo
+
+1. [ ] **„Druga odluka" stoji samo na račvi.** U poziciji sa jednim zadržanim
+   potezom dugmeta nema; u poziciji sa dva stoji.
+2. [ ] **Ništa se ne imenuje dok se ne pritisne.** Pre pritiska nigde ne piše
+   koji je drugi potez — sa dve odluke to bi odalo i onu koja se traži.
+3. [ ] **List nudi „Vežbaj d4"** (po jedan red za svaki drugi potez).
+4. [ ] **Izbor menja liniju.** Posle izbora vežbanje ide kroz izabrani potez, a
+   iznad table stoji „Vežbate liniju kroz d4."
+5. [ ] **„Nazad na red" vraća raspored** i uklanja tu rečenicu.
+6. [ ] **Ništa se ne upisuje dok je put izabran** — proveriti da se brojevi
+   dospelog nisu pomerili posle nekoliko odgovora na izabranom putu.
+7. [ ] **„Druga linija" daje drugu liniju.** Pritisnuti dva-tri puta zaredom i
+   videti da pitanje **nije** isto. Ovo je popravka: ranije se vraćalo isto.
+8. [ ] **„Preskoči" nad pitanjem isto tako** — pozicija se ne vraća odmah.
+9. [ ] **Kad se sve preskoči, gomila se okrene** — ekran ne sme da kaže „Ništa
+   nije na redu" posle preskakanja svega; pitanja kreću ispočetka.
+10. [ ] **Grana i sparing brišu izabrani put.** Izabrati račvu, pa otvoriti
+    spisak grana i uzeti drugu granu — rečenice „Vežbate liniju kroz…" više
+    nema.
+11. [ ] **Telefon, 360 dp, release build.** Red „Vežbate liniju kroz… / Nazad
+    na red" i list sa odlukama — ništa da se ne seče.
+12. [ ] **Izabrani potez se imenuje na račvi.** Posle „Vežbaj d4", na toj
+    poziciji piše „Ova linija ide kroz d4 — odigrajte ga." Ovo je popravka
+    prijave „ne mogu da pređem na glavnu liniju": izbor je radio, ali se iznad
+    račve obe linije čitaju identično, pa se nije video.
+13. [ ] **Rečenica o alternativi se tu gasi** — ne stoje obe odjednom.
+14. [ ] **Put bez ičega iza sebe to kaže.** Izabrati potez iza kog nije
+    izgrađena linija: „Iza poteza d4 ništa nije na redu." (ili „još nema šta da
+    se vežba"), sa dugmetom „Nazad na red" — a **ne** „Ništa nije na redu".
+
+## 83. Protivnik ostaje unutar pripremljenog — 1.9.2026, nije viđeno uživo
+
+1. [ ] **Poruka „to niste pokrili" se više ne pojavljuje.** Odigrati dvadesetak
+   poteza kroz dril i sparing — nijednom.
+2. [ ] **Protivnik i dalje ne igra uvek isto.** Ista grana dvaput mora negde da
+   se raziđe; ako uvek ide istim potezom, izvlačenje je palo na jedan red.
+3. [ ] **Kraj pripreme je kraj linije.** U poziciji u kojoj nije pokriven
+   nijedan odgovor, protivnik ne odgovara — nema „Nastavi liniju", a sparing
+   kaže „Grana odigrana do kraja".
+4. [ ] **„Izgradi ovu poziciju" i dalje postoji.** Doći do pozicije koja jeste
+   pokrivena a u njoj nije izabran potez: „Ovu poziciju niste pokrili" i ponuda
+   za izgradnju. Ovo je jedina preostala vrata ka izgradnji i ne smeju da
+   nestanu sa ovom izmenom.
+5. [ ] **Potez „spremi i ovo" se računa.** Dodati jedan protivnikov odgovor
+   preko „Spremi", pa ga sačekati u drilu — sme da se odigra iako u knjizi nije
+   pokriven.
+
+## 84. Brisanje poteza iz baze i sopstveni komentari — 2.9.2026, nije viđeno uživo
+
+Backend mora biti pokrenut bar jednom posle ove izmene (nova tabela
+`repertoire_comments`), inače svaki poziv oko komentara vraća 500.
+
+1. [ ] **Brisanje repertoara i dalje podrazumevano ostavlja poteze.** Obrisati
+   jedan repertoar bez kvadratića i otvoriti drugi iste boje — potezi su tu.
+2. [ ] **Broj pre pitanja.** U dijalogu za brisanje piše koliko poteza u koliko
+   pozicija drži **samo** taj repertoar, i koliko je od toga „sami ste
+   izabrali".
+3. [ ] **Deljene pozicije se ne broje.** Napraviti dva repertoara iste boje koji
+   se preklapaju; u dijalogu za brisanje jednog mora pisati da neke pozicije
+   ostaju jer ih drži još neki repertoar.
+4. [ ] **Kvadratić „Obriši i poteze" stvarno briše.** Posle brisanja sa
+   kvadratićem, novi repertoar iz iste pozicije **ne** zna te poteze.
+5. [ ] **Komentari ostaju.** Isti test kao gore, sa napisanim komentarom na
+   nekoj od tih pozicija: komentar je i dalje tu kad se pozicija ponovo dosegne.
+   Sa uključenim drugim kvadratićem — nije.
+6. [ ] **Pražnjenje boje radi i kad nema nijednog repertoara.** Obrisati sve
+   repertoare, pa iz gornje trake („Brisanje poteza iz baze") obrisati poteze za
+   tu boju; zatim „Novi" — stablo je prazno.
+7. [ ] **Repertoari preživljavaju pražnjenje boje.** Sa bar jednim repertoarom:
+   posle pražnjenja ime i početna pozicija su i dalje na spisku.
+8. [ ] **Prazan spisak objašnjava.** Kad nema nijednog repertoara, na ekranu
+   piše da su potezi sačuvani uz boju i gde se brišu.
+9. [ ] **Komentar se piše i vidi.** Ispod table pritisnuti dugme za komentar,
+   napisati nešto, sačuvati — tekst se pojavi ispod table.
+10. [ ] **Komentar preživi povratak.** Izaći iz ekrana, vratiti se i doći do iste
+    pozicije: komentar je tu.
+11. [ ] **Transpozicija ga nosi.** Doći do iste pozicije drugim redosledom
+    poteza — komentar je i tamo.
+12. [ ] **Prazan tekst briše.** Obrisati sav tekst i sačuvati: kartica komentara
+    nestaje (i ispod table i u koloni).
+13. [ ] **Windows, širok prozor (≥1200 dp):** komentar je u trećoj koloni, desno
+    od stabla, i **nije** istovremeno ispod table.
+14. [ ] **Windows, sužen prozor (oko 1000 dp):** komentar se seli ispod table,
+    tabla ne postaje manja, ništa se ne preklapa.
+15. [ ] **Telefon, 360 dp, release build.** Traka ispod table sa dva nova
+    dugmeta — prelama se u dva reda, ništa nije isečeno. Tastatura ne pokriva
+    polje za pisanje (list se podiže).
+16. [ ] **„Pitaj AI o poziciji".** Odgovor se pojavi; „U moj komentar" otvara
+    editor sa tim tekstom, a **ništa nije sačuvano** dok se ne pritisne
+    „Sačuvaj". Bez ključa za model odgovor je i dalje smislen (rezervni tekst).
+17. [ ] **Kvota se troši samo na AI dugme.** Pisanje i čitanje komentara ne
+    dodiruje `ai_comments`.
+
+## 85. Kapija repertoara i popravka „Vežbaj X" — 2.9.2026, nije viđeno uživo
+
+Backend mora biti pokrenut bar jednom posle ove izmene (`ALTER TABLE
+repertoires ADD COLUMN via_uci`).
+
+1. [ ] **Postojećem repertoaru se postavlja kapija.** Na kartici: „Kroz koji
+   potez ide" → potez koji se već igra stoji na vrhu i označen je → izabrati ga.
+   Na kartici posle toga piše „kroz <potez>".
+2. [ ] **Stablo se očisti.** Otvoriti taj repertoar: u stablu nema poteza iz
+   drugog otvaranja iz iste pozicije, ni bilo čega ispod njega.
+3. [ ] **Ekran kaže da je filtriran** — „Ovaj repertoar ide kroz … — ostalo iz
+   ove pozicije se ne prikazuje."
+4. [ ] **Red za odlučivanje je isto sužen.** Brojevi („još N u redu",
+   pokrivenost) ne računaju pozicije iz druge grane.
+5. [ ] **Drugi repertoar iz iste pozicije pokazuje svoje.** Postaviti mu kapiju
+   na njegov potez i proveriti da su dva ekrana zaista dva otvaranja.
+6. [ ] **Radar pokrivenosti** za taj repertoar prikazuje samo grane iz kapije.
+7. [ ] **Vežbanje je suženo.** „Izaberi granu" nudi samo grane te kapije, a
+   „Ceo repertoar" ne postavlja pitanja iz drugog otvaranja.
+8. [ ] **Novi repertoar iz pozicije koja već ima poteze** nudi izbor kapije
+   („U ovoj poziciji već igrate: …"), i to sa **svim** legalnim potezima, ne
+   samo onima koji su već izabrani.
+9. [ ] **Kapija se može skinuti** („Bez ograničenja") i tada je sve kao pre.
+10. [ ] **Skok na drugu poziciju ne nasleđuje kapiju.** Iz radara ili drila
+    otvoriti izgradnju na nekoj poziciji dublje — tamo nema rečenice o kapiji i
+    ništa nije skriveno.
+11. [ ] **„Vežbaj X" na račvi sada stvarno menja liniju** (popravka): posle
+    izbora dva-tri pitanja moraju biti iz izabrane grane.
+12. [ ] **„Druga linija" daje drugu liniju** — pritisnuti tri puta zaredom.
+13. [ ] **Lista neslaganja se otvara.** Ranije je padala na svaki poziv;
+    proveriti da vraća listu (ili pošteno „nema neslaganja"), a ne grešku.
+14. [ ] **Telefon, 360 dp, release build.** List za izbor kapije i rečenica o
+    kapiji — ništa isečeno.

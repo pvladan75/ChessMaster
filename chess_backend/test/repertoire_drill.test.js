@@ -168,20 +168,64 @@ test('the opponent is drawn by how often a move is really played', async () => {
   const pool = stubPool([[
     { uci: 'g1f3', san: 'Nf3', games: 700, covered: true },
     { uci: 'f1c4', san: 'Bc4', games: 250, covered: true },
-    { uci: 'a2a3', san: 'a3', games: 50, covered: false },
   ]]);
 
-  // Tickets land in the three bands: 0-700, 700-950, 950-1000.
+  // Tickets land in the two bands: 0-700 and 700-950.
   const first = await pickReply(pool, { fen: SMITH_MORRA, random: () => 0.1 });
   const second = await pickReply(pool, { fen: SMITH_MORRA, random: () => 0.8 });
-  const rare = await pickReply(pool, { fen: SMITH_MORRA, random: () => 0.99 });
 
   assert.equal(first.san, 'Nf3');
   assert.equal(second.san, 'Bc4');
-  // The uncovered move is in the draw on purpose: meeting one is the drill
-  // showing the student the edge of what they prepared.
-  assert.equal(rare.san, 'a3');
-  assert.equal(rare.covered, false);
+});
+
+test('a reply the student never prepared is never played at them', async () => {
+  // This used to be the other way round, deliberately: meeting an uncovered
+  // move showed the student the edge of what they had prepared. The owner
+  // asked for it gone, and the line walk already refused to rehearse one — so
+  // the live opponent was playing moves the rehearsal would not.
+  const pool = stubPool([[
+    { uci: 'g1f3', san: 'Nf3', games: 700, covered: true },
+    { uci: 'f1c4', san: 'Bc4', games: 250, covered: true },
+    { uci: 'a2a3', san: 'a3', games: 50, covered: false },
+  ]]);
+
+  // The last ticket there is. Under the old rule it drew the uncovered move;
+  // it must now land on the last prepared one instead.
+  const rare = await pickReply(pool, { fen: SMITH_MORRA, random: () => 0.999 });
+  assert.equal(rare.san, 'Bc4');
+
+  // And the unprepared move is out of the total as well as out of the answer:
+  // a ticket at 0.9 of 950 is Bc4, where 0.9 of 1000 would still have been.
+  const drawn = new Set();
+  for (let i = 0; i < 100; i += 1) {
+    drawn.add((await pickReply(pool, { fen: SMITH_MORRA, random: () => i / 100 })).san);
+  }
+  assert.deepEqual([...drawn].sort(), ['Bc4', 'Nf3']);
+});
+
+test('a move the student asked for by name counts as prepared', async () => {
+  // "Prepared" means covered *or* pressed "prepare this too" on, the same as
+  // everywhere else. Forgetting the second half would refuse a reply they
+  // chose themselves — and it is stored per student, so the draw has to know
+  // who is asking.
+  const pool = stubPool([[
+    { uci: 'a2a3', san: 'a3', games: 50, covered: true },
+  ]]);
+
+  const drawn = await pickReply(pool, {
+    fen: SMITH_MORRA, userId: 7, color: 'b', random: () => 0.5,
+  });
+
+  assert.equal(drawn.san, 'a3');
+  assert.match(pool.calls[0].text, /repertoire_extra_replies/);
+  assert.deepEqual(pool.calls[0].params.slice(2), [7, 'b']);
+});
+
+test('a position with nothing prepared answers with nothing', async () => {
+  const pool = stubPool([[
+    { uci: 'a2a3', san: 'a3', games: 50, covered: false },
+  ]]);
+  assert.equal(await pickReply(pool, { fen: SMITH_MORRA }), null);
 });
 
 test('a position whose book was never stored answers with nothing', async () => {
@@ -286,6 +330,65 @@ test('running ahead still asks a never-drilled position first', async () => {
   assert.equal(item.fenKey, 'drugi kljuc');
   assert.equal(item.fresh, true);
 });
+
+test('a position walked into and not yet due is judged and not written down',
+  async () => {
+    // The line walks on past the question it was asked, and the positions
+    // below it are not what the schedule asked for. Writing them down would
+    // push their intervals out on moves nobody had to remember cold — the
+    // sparring rule, said once more where `due_at` actually is.
+    const soon = new Date(Date.now() + 3 * 24 * 3600 * 1000);
+    const pool = stubPool([
+      [{ uci: 'b8c6', san: 'Nc6', role: 'primary' }],
+      [{ due_at: soon.toISOString() }],
+    ]);
+
+    const graded = await answer(pool, 7, {
+      color: 'b', fen: SMITH_MORRA, uci: 'b8c6', onlyIfDue: true,
+    });
+
+    assert.equal(graded.outcome, 'primary');
+    assert.equal(graded.practice, true);
+    assert.equal(graded.intervalDays, null);
+    assert.equal(pool.ran('UPDATE repertoire_reviews'), 0,
+      'setnja je pomerila raspored pozicije koja nije bila dospela');
+  });
+
+test('but one that really was due is written down like any other', async () => {
+  const pool = stubPool([
+    [{ uci: 'b8c6', san: 'Nc6', role: 'primary' }],
+    [{ due_at: new Date(Date.now() - 3600 * 1000).toISOString() }],
+    [{ id: 3, ease_factor: 2.5, interval_days: 1, repetitions: 1, lapses: 0 }],
+    [],
+  ]);
+
+  const graded = await answer(pool, 7, {
+    color: 'b', fen: SMITH_MORRA, uci: 'b8c6', onlyIfDue: true,
+  });
+
+  assert.equal(graded.practice, undefined);
+  assert.ok(graded.intervalDays > 0);
+});
+
+test('and a position never reviewed at all is the most due thing there is',
+  async () => {
+    // The rule the branch counts already keep. A position nobody has opened
+    // must not read as finished, and walking into one is exactly when it is
+    // worth writing down.
+    const pool = stubPool([
+      [{ uci: 'b8c6', san: 'Nc6', role: 'primary' }],
+      [], // no review row at all
+      [{ id: 3, ease_factor: 2.5, interval_days: 0, repetitions: 0, lapses: 0 }],
+      [],
+    ]);
+
+    const graded = await answer(pool, 7, {
+      color: 'b', fen: SMITH_MORRA, uci: 'b8c6', onlyIfDue: true,
+    });
+
+    assert.equal(graded.practice, undefined);
+    assert.ok(graded.intervalDays >= 0);
+  });
 
 test('an answer given ahead of schedule is judged and not written down',
   async () => {

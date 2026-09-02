@@ -149,6 +149,142 @@ test('the question comes with the line that leads to it', async () => {
   assert.equal(line.start.known, false);
 });
 
+test('a line says which of the decisions it walks, and what the others were',
+  async () => {
+    // A line runs through whichever move leads to the question — the primary
+    // as often as an alternate — and a rehearsal that does not say which is
+    // asking the student to guess. Worse, playing the other move of their own
+    // came back as a mistake, in the same words as a blunder.
+    const pool = stubPool({
+      ...SICILIAN,
+      moves: [
+        ...SICILIAN.moves,
+        // A second first move, kept and not the main one.
+        {
+          fen_key: fenKey(START), uci: 'd2d4', san: 'd4', role: 'alternate',
+        },
+      ],
+      fresh: [{ fen_key: DEEP, mistakes: 0 }],
+    });
+    const line = await drillLine(pool, 7, { color: 'w', rootFen: START });
+
+    const first = line.prefix[0];
+    assert.equal(first.san, 'e4');
+    assert.equal(first.role, 'primary');
+    assert.deepEqual(first.alts, [{ uci: 'd2d4', san: 'd4', role: 'alternate' }]);
+
+    // And a position with one decision in it carries no alternates at all,
+    // rather than an empty promise of a choice.
+    assert.deepEqual(line.prefix[2].alts, []);
+    assert.equal(line.prefix[2].role, 'primary');
+  });
+
+test('a reply carries no choice of its own', async () => {
+  const pool = stubPool({
+    ...SICILIAN,
+    fresh: [{ fen_key: DEEP, mistakes: 0 }],
+  });
+  const line = await drillLine(pool, 7, { color: 'w', rootFen: START });
+
+  for (const move of line.prefix.filter((m) => !m.mine)) {
+    assert.equal(move.alts, undefined);
+    assert.equal(move.role, undefined);
+  }
+});
+
+/// The same Sicilian, plus a second first move with a line of its own:
+/// 1.d4 d5 2.c4. Two roads out of the starting position, both prepared.
+const TWO_ROADS = {
+  moves: [
+    ...SICILIAN.moves,
+    { fen_key: fenKey(START), uci: 'd2d4', san: 'd4', role: 'alternate' },
+    {
+      fen_key: keyAfter('d2d4', 'd7d5'),
+      uci: 'c2c4', san: 'c4', role: 'primary',
+    },
+  ],
+  replies: [
+    ...SICILIAN.replies,
+    {
+      fen_key: keyAfter('d2d4'),
+      uci: 'd7d5', san: 'd5', games: 400, share: '0.40000',
+    },
+  ],
+};
+
+test('one fork can be walked instead of the one the queue chose', async () => {
+  // Standing in front of your own main move and being drilled down the
+  // alternative, with no way to say "the other one", was the queue deciding
+  // something the student can see on the board.
+  const pool = stubPool({
+    ...TWO_ROADS,
+    // Due in both roads, and the Sicilian one first.
+    due: [
+      { fen_key: MIDDLE, due_at: '2020-01-01', repetitions: '2' },
+    ],
+    fresh: [{ fen_key: keyAfter('d2d4', 'd7d5'), mistakes: 0 }],
+  });
+
+  const line = await drillLine(pool, 7, {
+    color: 'w', rootFen: START, viaFen: START, viaUci: 'd2d4',
+  });
+
+  assert.equal(line.question.fenKey, keyAfter('d2d4', 'd7d5'));
+  assert.deepEqual(line.prefix.map((m) => m.san), ['d4', 'd5']);
+});
+
+test('a fork it never reached narrows to nothing rather than to everything',
+  async () => {
+    // The dangerous failure: a `via` nobody can honour quietly falling back to
+    // the whole repertoire would answer a question that was not asked.
+    const pool = stubPool({
+      ...TWO_ROADS,
+      due: [{ fen_key: MIDDLE, due_at: '2020-01-01', repetitions: '2' }],
+    });
+
+    const line = await drillLine(pool, 7, {
+      color: 'w', rootFen: START, viaFen: START, viaUci: 'h2h4',
+    });
+
+    assert.equal(line.question, null);
+  });
+
+test('the fork position itself is not one of the positions it leads to',
+  async () => {
+    // It is where the choice is made, not somewhere the choice takes you —
+    // and offering it back would ask the student the question they had just
+    // answered by pressing the button.
+    const pool = stubPool({
+      ...TWO_ROADS,
+      due: [{ fen_key: fenKey(START), due_at: '2020-01-01', repetitions: '2' }],
+    });
+
+    const line = await drillLine(pool, 7, {
+      color: 'w', rootFen: START, viaFen: START, viaUci: 'd2d4',
+    });
+
+    assert.notEqual(line.question?.fenKey, fenKey(START));
+  });
+
+test('a refused position is not offered again', async () => {
+  // `nextItem` is a deterministic `ORDER BY due_at LIMIT 1` and skipping writes
+  // nothing down, so without this the skip button handed back exactly what it
+  // was asked to take away.
+  const pool = stubPool({
+    ...SICILIAN,
+    fresh: [{ fen_key: DEEP, mistakes: 0 }],
+  });
+
+  const line = await drillLine(pool, 7, {
+    color: 'w', rootFen: START, exclude: [DEEP],
+  });
+
+  assert.equal(line.question, null);
+  // And the counts still describe the walk rather than what is left of it: a
+  // student who skipped a position has not thereby learned it.
+  assert.equal(line.stats.positions, 3);
+});
+
 test('the replay starts at the last position known cold', async () => {
   // Twelve plies of rehearsal to reach one question is how a drill stops being
   // opened. What the student has already got to three clean repetitions is not

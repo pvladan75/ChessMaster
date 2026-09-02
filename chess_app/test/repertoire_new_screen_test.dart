@@ -32,6 +32,7 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
+    String? viaUci,
   }) async {
     lastName = name;
     lastColor = color;

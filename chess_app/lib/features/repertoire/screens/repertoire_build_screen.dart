@@ -9,6 +9,9 @@ import 'package:chess_app/features/analysis_studio/widgets/opening_judge_panel_w
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
 import 'package:chess_app/features/repertoire/line_text.dart';
+import 'package:chess_app/features/repertoire/widgets/repertoire_comment_panel.dart';
+import 'package:chess_app/features/repertoire/widgets/repertoire_gate_picker.dart';
+import 'package:chess_app/features/repertoire/widgets/repertoire_position_ask.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/models/analysis_models.dart';
@@ -55,6 +58,7 @@ class RepertoireBuildScreen extends StatefulWidget {
     required this.rootFen,
     this.rootPath = const [],
     this.minRating,
+    this.gateUci,
     this.api,
     this.judge,
     this.analyse,
@@ -80,6 +84,17 @@ class RepertoireBuildScreen extends StatefulWidget {
   /// The rating band the opponent's replies are counted in. A child meets the
   /// moves of their own opponents, not a grandmaster's.
   final int? minRating;
+
+  /// The move this repertoire goes through at its root — its **gate**.
+  ///
+  /// Two repertoires can start from the same position and mean two different
+  /// openings: after 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5, one plays 4.b4 and the other
+  /// 4.0-0. The moves stay in one graph — a position reached both ways is one
+  /// position — and this narrows the **view** to one of them, so the tree, the
+  /// queue and the drill are about one opening.
+  ///
+  /// Null is every repertoire with no twin, and behaves exactly as before.
+  final String? gateUci;
 
   /// Injected in tests, which have neither a server nor a Lichess token.
   final RepertoireApiService? api;
@@ -291,6 +306,21 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// starts contradicting itself in front of a child.
   Map<String, RepertoireNote> _notes = const {};
 
+  /// What the student wrote about these positions, keyed the same way.
+  ///
+  /// Read beside the notes and for the same reason — one call for the whole
+  /// colour rather than one per card — but with the opposite lifetime. An
+  /// evaluation is recomputed by anything that can run an engine; a sentence
+  /// somebody typed at a board is the only thing here nothing can bring back.
+  Map<String, RepertoireComment> _comments = const {};
+
+  /// A comment is being written to the server. The text stays on screen while
+  /// it goes: what was typed is not in question, only whether it arrived.
+  bool _savingComment = false;
+
+  /// The model has been asked about the position and has not answered yet.
+  bool _asking = false;
+
   /// The whole-line pass: how many positions it has done, and of how many.
   ///
   /// It costs no Lichess allowance at all — only time and a warm phone — which
@@ -330,6 +360,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       rootFen: widget.rootFen,
       rootPath: widget.rootPath,
       minRating: widget.minRating,
+      gateUci: widget.gateUci,
     );
     if (!mounted) return;
     if (walk == null) {
@@ -365,14 +396,20 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       rootFen: widget.rootFen,
       rootPath: widget.rootPath,
       minRating: widget.minRating,
+      gateUci: widget.gateUci,
     );
     final stored = _api.notes(color: widget.color);
+    // The third free read: what the student wrote. Beside the other two rather
+    // than per position, or a tree of a hundred cards is a hundred requests.
+    final written = _api.comments(color: widget.color);
     final tree = await drawing;
     final notes = await stored;
+    final comments = await written;
     if (!mounted || tree == null) return;
     setState(() {
       _tree = tree;
       _notes = notes;
+      _comments = comments;
       _treeRoot = repertoireTreeToNodes(tree, notes: notes, showCut: _showCut);
     });
   }
@@ -393,6 +430,146 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   RepertoireNote? get _noteHere {
     final fen = _current;
     return fen == null ? null : _notes[_keyOf(fen)];
+  }
+
+  /// The position the comment is about: the one **on the board**.
+  ///
+  /// Not the one the question is about. Standing after your own move to see
+  /// what comes back, what you would write a note about is the board in front
+  /// of you — and the store keys by position, so both are perfectly good places
+  /// to have written one.
+  String? get _commentFen => _standingAfter?.fen ?? _current;
+
+  /// What the student wrote about the position on the board, if anything.
+  RepertoireComment? get _commentHere {
+    final fen = _commentFen;
+    return fen == null ? null : _comments[_keyOf(fen)];
+  }
+
+  /// Opens the editor on the position the board is standing on, and stores what
+  /// comes back.
+  ///
+  /// [prefill] is how the model's answer arrives: as text in the box, to be
+  /// read and edited, never as a comment already saved. What a model wrote is
+  /// not the student's note until the student has said it is.
+  Future<void> _editComment({String? prefill}) async {
+    final fen = _commentFen;
+    if (fen == null) return;
+    final existing = _commentHere?.body ?? '';
+    final typed = await showRepertoireCommentEditor(
+      context,
+      initial: prefill ?? existing,
+      line: _lineText(),
+      wide: Breakpoints.isWide(context),
+    );
+    // Closed without saving. An empty string is "clear it" and is a different
+    // answer, which is why this is a null check and not an isEmpty one.
+    if (typed == null || !mounted) return;
+    await _saveComment(fen, typed);
+  }
+
+  /// Writes one comment, and puts the answer on screen.
+  ///
+  /// Do the thing, then say it: the map is updated from what the server stored,
+  /// and only then is anything said about it.
+  Future<void> _saveComment(String fen, String body) async {
+    setState(() => _savingComment = true);
+    final done = await _api.putComment(
+      color: widget.color,
+      fen: fen,
+      body: body,
+    );
+    if (!mounted) return;
+    final key = _keyOf(fen);
+    setState(() {
+      _savingComment = false;
+      final next = {..._comments};
+      final stored = done.comment;
+      if (stored != null) {
+        next[key] = stored;
+      } else if (done.saved) {
+        next.remove(key);
+      }
+      _comments = next;
+    });
+    if (!done.saved) {
+      AppFeedback.error(context, 'Komentar nije sačuvan — server ne odgovara.');
+    }
+  }
+
+  /// Takes the comment off this position, after asking.
+  Future<void> _deleteComment() async {
+    final fen = _commentFen;
+    if (fen == null || _commentHere == null) return;
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Obriši komentar?'),
+        content: const Text(
+          'Briše se samo ono što ste napisali o ovoj poziciji. Potezi i ocene '
+          'ostaju.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Odustani'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+    if (sure != true || !mounted) return;
+
+    setState(() => _savingComment = true);
+    final done = await _api.deleteComment(color: widget.color, fen: fen);
+    if (!mounted) return;
+    setState(() {
+      _savingComment = false;
+      if (done) {
+        final next = {..._comments};
+        next.remove(_keyOf(fen));
+        _comments = next;
+      }
+    });
+    if (!done) {
+      AppFeedback.error(context, 'Komentar nije obrisan — server ne odgovara.');
+    }
+  }
+
+  /// Asks the model about the position on the board.
+  ///
+  /// Not a second judge. The verdict on a move stays the opening judge's — what
+  /// real people played — and this answers a different question: what is going
+  /// on here, in words. It is offered for reading, and carried into the
+  /// student's own comment only if they say so.
+  ///
+  /// It spends the AI allowance, not the Lichess one, which is why it is a
+  /// button and not something the screen does on arrival.
+  Future<void> _askModel() async {
+    final fen = _commentFen;
+    if (fen == null || _asking) return;
+    setState(() => _asking = true);
+    final note = _notes[_keyOf(fen)];
+    final advice = await askAboutPosition(
+      fen: fen,
+      evals: {
+        if (note != null) 'cp': note.evalCp,
+        if (note?.bestUci != null) 'bestMove': note!.bestUci,
+        if (note?.bestLineSan != null) 'continuation': note!.bestLineSan,
+      },
+    );
+    if (!mounted) return;
+    setState(() => _asking = false);
+    if (advice == null) {
+      AppFeedback.error(context, 'AI nije odgovorio o ovoj poziciji.');
+      return;
+    }
+    final keep = await showPositionAdviceDialog(context, advice);
+    if (keep == null || !mounted) return;
+    await _editComment(prefill: keep);
   }
 
   /// The node the board is standing on, for the tree to highlight.
@@ -661,13 +838,70 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         onSelect: _jumpTo,
       );
 
+  /// The strip under the board, and the two buttons that act on the position
+  /// standing in it.
+  ///
+  /// They live here because that is where the Analysis Studio's comment button
+  /// lives, and a person who has learned one screen should not have to find the
+  /// same action somewhere else on the next. `MoveNavigationControls` wraps
+  /// rather than clipping, so a phone folds them onto a second line instead of
+  /// hiding them past the edge with no warning in a release build.
+  ///
+  /// Drawn even when the line is too short to navigate: without this the whole
+  /// strip disappeared at the root, and with it would go the only way to write
+  /// a comment on the very first position.
   Widget _buildNavigation(BuildContext context) {
     final line = _lineNodes();
-    if (line.length < 2) return const SizedBox.shrink();
+    final wrote = _commentHere != null;
     return MoveNavigationControls(
       cursor: _moveCursor(),
-      centerLabel: 'Potez ${_lineIndex()} od ${line.length - 1}',
+      canNavigate: line.length >= 2,
+      centerLabel: line.length >= 2
+          ? 'Potez ${_lineIndex()} od ${line.length - 1}'
+          : null,
       iconSize: 20,
+      trailing: [
+        IconButton(
+          icon: Icon(
+            wrote ? Icons.sticky_note_2 : Icons.sticky_note_2_outlined,
+            size: 18,
+            color: context.colors.info,
+          ),
+          tooltip: wrote ? 'Izmeni komentar' : 'Dodaj komentar',
+          onPressed: _savingComment || _commentFen == null
+              ? null
+              : () => _editComment(),
+        ),
+        IconButton(
+          icon: _asking
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(Icons.auto_awesome,
+                  size: 18, color: context.colors.accent),
+          tooltip: 'Pitaj AI o poziciji',
+          onPressed: _asking || _commentFen == null ? null : _askModel,
+        ),
+      ],
+    );
+  }
+
+  /// The comment on the position, drawn wherever there is room for it.
+  ///
+  /// [dense] is the under-the-board mounting, where an empty comment draws
+  /// nothing: the column under a board at 360 dp is the most expensive space in
+  /// the app, and a card saying "nothing written" would push the question off
+  /// the bottom.
+  Widget _buildComment(BuildContext context, {required bool dense}) {
+    if (_commentFen == null) return const SizedBox.shrink();
+    return RepertoireCommentPanel(
+      body: _commentHere?.body,
+      dense: dense,
+      busy: _savingComment,
+      onEdit: () => _editComment(),
+      onDelete: _commentHere == null ? null : _deleteComment,
     );
   }
 
@@ -1436,6 +1670,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       rootFen: widget.rootFen,
       rootPath: widget.rootPath,
       minRating: widget.minRating,
+      gateUci: widget.gateUci,
       // The branch in front of the reader. At the root that is the whole
       // repertoire, which is why this is one rule and not a switch.
       fromFen: node.fen,
@@ -2007,12 +2242,19 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         // picture on the right. The left column is the board plus its padding
         // and no more — everything past that belongs to the tree.
         final left = (constraints.maxWidth * 0.42).clamp(420.0, 620.0);
+        // And wide enough for three: what was written about the position gets
+        // its own column instead of standing in the queue under the board. The
+        // width comes off the tree, never off the board — `_boardSize` is
+        // computed from the same 42% either way — because a smaller board is
+        // the one thing worse than a comment one scroll away.
+        final third = constraints.maxWidth >= Breakpoints.ultraWide;
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
               width: left,
-              child: _buildBoardColumn(context, _boardSize(constraints, wide)),
+              child: _buildBoardColumn(context, _boardSize(constraints, wide),
+                  commentBeside: third),
             ),
             VerticalDivider(width: 1, color: context.colors.border),
             Expanded(
@@ -2021,6 +2263,19 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                 child: _buildTree(context),
               ),
             ),
+            if (third) ...[
+              VerticalDivider(width: 1, color: context.colors.border),
+              SizedBox(
+                width: 320,
+                // Its own scroll view. A long comment must not be able to make
+                // the row taller than the window — in a release build that is
+                // not a striped warning, it is a panel with its bottom cut off.
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: _buildComment(context, dense: false),
+                ),
+              ),
+            ],
           ],
         );
       },
@@ -2069,7 +2324,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   }
 
   /// The board and everything that belongs to the position standing on it.
-  Widget _buildBoardColumn(BuildContext context, double boardSize) {
+  ///
+  /// [commentBeside] says the comment has a column of its own, so it is not
+  /// drawn a second time here — one comment, in one place, whatever the width.
+  Widget _buildBoardColumn(BuildContext context, double boardSize,
+      {bool commentBeside = false}) {
     final active = _activeNode;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -2115,6 +2374,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             const SizedBox(height: AppSpacing.xxs),
             RepertoireLineStrip(active: active, onSelect: _jumpTo),
           ],
+          // Under the board where there is no third column for it, and nothing
+          // at all when nothing has been written. Above the question on
+          // purpose: it is about the board, and the question is about what to
+          // do next.
+          if (!commentBeside) _buildComment(context, dense: true),
           const SizedBox(height: AppSpacing.md),
           _buildQuestion(context),
           const SizedBox(height: AppSpacing.sm),
@@ -2165,13 +2429,49 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     );
   }
 
+  /// The gate, written as a move — "kroz 0-0", not "kroz e1g1".
+  ///
+  /// Worked out from the root rather than carried in a second parameter: the
+  /// screen already has the position and the move, and two ways to know the
+  /// same thing is two ways for them to disagree.
+  String? get _gateSan {
+    final gate = widget.gateUci;
+    if (gate == null) return null;
+    for (final option in gateOptionsFor(widget.rootFen)) {
+      if (option.uci == gate) return option.san;
+    }
+    return gate;
+  }
+
   Widget _buildQuestion(BuildContext context) {
     final left = _queue.length;
     final line = _lineText();
     final walk = _frontier;
+    final gate = _gateSan;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Which opening this is, when the same starting position holds more
+        // than one. Said on the screen that builds it, because everything below
+        // — the queue, the tree, the counts — is narrowed to it, and a filtered
+        // view that does not say it is filtered is how somebody concludes their
+        // work has been deleted.
+        if (gate != null) ...[
+          Row(
+            children: [
+              Icon(Icons.alt_route, size: 14, color: context.colors.info),
+              const SizedBox(width: AppSpacing.xxs),
+              Expanded(
+                child: Text(
+                  'Ovaj repertoar ide kroz $gate — ostalo iz ove pozicije se '
+                  'ne prikazuje.',
+                  style: AppText.caption.copyWith(color: context.colors.info),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+        ],
         if (line.isNotEmpty) ...[
           // Where this board came from. Without it the screen is a position
           // with no history and a count of an invisible list, which is exactly

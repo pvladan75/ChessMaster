@@ -15,7 +15,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 30.8.2026.
+Poslednje ažuriranje: 2.9.2026.
 
 ---
 
@@ -2693,6 +2693,335 @@ izmena nad istim ekranom, nijedna nije pokrenuta.
 
 Backend treba pokrenuti jednom zbog `ALTER TABLE repertoire_moves ADD COLUMN
 source` i zbog nove tabele `repertoire_notes`.
+
+## Kapija repertoara: dva otvaranja iz iste pozicije — 2.9.2026
+
+Vlasnik gradi belim iz italijanke posle 3...Bc5. Tu se igra i 4.b4 (Evans) i
+4.0-0, i to su dva različita repertoara — ali potezi pripadaju paru
+(korisnik, boja), pa je drugi repertoar u stablu prikazivao ceo prvi.
+
+**Nije se delio store, nego pogled.** Potezi ostaju u jednom grafu i to je
+namerno: pozicija do koje se stiže na dva načina je *jedna* pozicija sa jednim
+odgovorom, jer šah ne pita kroz koja ste vrata ušli. Ono što je falilo je bilo
+ime za to kroz šta jedan repertoar ide.
+
+**`repertoires.via_uci`** — kapija. Jedan potez iz korena. Filtriranje je jedna
+funkcija, `gateMoves`, primenjena na mapu `kept` **pre** nego što se napravi
+ijedan korak — a tu mapu čitaju i šetnja (`walkLines`, `frontier`) i crtanje
+(`tree` crta iz `kept`, ne iz onoga do čega je šetnja stigla, da bi potez koji je
+odlučen a nije otvoren i dalje imao karticu). Zato jedan filter pokriva stablo,
+red za odlučivanje, radar pokrivenosti, spisak grana, vežbanje i listu
+neslaganja.
+
+Kapija koja nije među zadržanim potezima ostavlja poziciju **praznom**, a ne
+nefiltriranom: to se na ekranu čita kao „ovde još nije odlučeno", što je tačno za
+repertoar čiji prvi potez nije zadržan.
+
+**Gde se bira.** Na ekranu za novi repertoar, ali samo ako u toj poziciji već
+ima poteza — pozicija koju niko nije dodirnuo ne treba kapiju i ne pita se za
+nju. Ponuđeni su prvo potezi koji se već igraju (označeni), pa **svi ostali
+legalni**, jer novi repertoar često ide kroz potez koji još nije odigran — to je
+tačno slučaj koji je i naterao ovu izmenu. Postojećim repertoarima kapija se
+postavlja iz menija na kartici („Kroz koji potez ide"), i to je važnije od
+prvog: repertoari kojima kapija najviše treba su oni koji su već napravljeni.
+
+**Ekran za izgradnju to kaže**: „Ovaj repertoar ide kroz 0-0 — ostalo iz ove
+pozicije se ne prikazuje." Filtriran pogled koji ne kaže da je filtriran je način
+da neko zaključi kako mu je rad obrisan.
+
+**Brisanje sada ume da razlikuje ta dva.** `reachable` prima i `{fen, viaUci}`,
+pa se oduzimanje kod „obriši i poteze" računa kroz kapije: brisanje jednog od dva
+repertoara iz istog korena odnosi samo njegovu granu. Kapije se **spajaju** kad
+više polazišta deli poziciju, a jedno polazište bez kapije otvara je celu —
+inače bi se linija proglasila nedohvatljivom zato što je neki drugi repertoar ne
+igra.
+
+Jedan ostatak: kad šetnja uopšte ne uspe (server je pao), dril pada na
+`/drill/next`, koji je i dalje po boji. To je putanja koja se javlja rečenicom
+„Linija nije mogla da se sastavi", pa se ne ćuti — ali nije filtrirana.
+
+### Usput nađeno: „Vežbaj 0-0" nije radilo
+
+Dok se gledalo kako se dril sužava, ispalo je da su `viaFen`, `viaUci` i
+`exclude` u `routes/repertoire.js` upisani u **pogrešan handler**: stajali su u
+`/disagreements`, koji ih nikad nije ni pročitao iz zahteva, a `/drill/line`, koji
+ih čita, nije ih prosleđivao dalje. Posledice, obe bez ijedne poruke:
+
+- „Vežbaj 0-0" je menjalo rečenicu iznad table i ništa više — pitanje je i dalje
+  dolazilo kroz onaj potez koji raspored preferira;
+- „Druga linija" je vraćala istu liniju, jer je red determinističan
+  (`ORDER BY due_at LIMIT 1`), a preskakanje ne upisuje ništa;
+- `/disagreements` je padao na **svaki** poziv, jer je golo `exclude` referenca
+  na nepostojeće ime. `typeof viaFen` na nedeklarisanom imenu je legalan i vraća
+  „undefined", pa su dva od tri otkaza bila potpuno tiha.
+
+Ovo je tačno ona greška koja se u ovom projektu ponavlja — korak koji se preskoči,
+javi uspeh i pukne jedan sloj dalje — pa je dobila test koji čita **ožičenje**:
+`test/repertoire_route_wiring.test.js` traži (1) parametar koji je pročitan iz
+zahteva a nigde ne prosleđen i (2) ime koje handler koristi a nije uzeo iz
+zahteva. Telo handlera se čita **poklapanjem zagrada**, komentari se skidaju pre
+provere, a oba testa su dokazana mutacijom.
+
+Backend treba pokrenuti jednom, zbog `ALTER TABLE repertoires ADD COLUMN
+via_uci`.
+
+Uživo nije viđeno: [TODO-provera.md](TODO-provera.md), stavka 85.
+
+## Brisanje poteza iz baze i sopstveni komentari — 2.9.2026
+
+Vlasnik je obrisao sve repertoare, otišao na „Novi" da ponovo izgradi ono što je
+imao — i u stablu zatekao poteze koje je ranije prihvatio. To nije bila greška
+nego posledica oblika: `repertoire_moves` je ključevan `(user, boja, fen_key)`,
+a `repertoires` je **ime za početnu poziciju**, ne kutija koja drži poteze.
+Zbog toga transpozicije ne koštaju ništa i zbog toga drugi repertoar iste boje
+odmah zna šta se tu igra.
+
+Rupa nije bila to što potezi preživljavaju brisanje. Rupa je bila što posle
+brisanja **poslednjeg** repertoara boje do njih nema nikakvih vrata:
+`repertoirePrune.rootsOf` odbija da radi bez korena — i to je ispravno, jer
+„nema korena" nikada ne sme da se pročita kao „ništa nije dohvatljivo" i pomete
+sve — pa ni `/node/orphans` ni `/prune` tada ne odgovaraju. Novi
+`services/repertoireErase.js` su ta vrata, i ima ih dvoje:
+
+- **Brisanje jednog repertoara, sa potezima.** Ide ono što *samo on* dohvata:
+  dohvatljivo iz njegovog korena minus dohvatljivo iz svih ostalih korena te
+  boje. Pozicija koju drži još neki repertoar ostaje, jer se i dalje igra.
+  Broj se pokazuje **pre** pitanja (`GET /repertoire/removal`), i posebno se
+  imenuje koliko je od toga „sami ste izabrali".
+- **Pražnjenje boje.** Sve što je sačuvano za tu stranu, prebrojano prvo
+  (`GET /repertoire/color`, `DELETE /repertoire/color`). Ovo je jedina vrata
+  koja se otvaraju i kad nijednog repertoara nema — zato stoje u gornjoj traci
+  spiska, a ne na kartici: stanje zbog kog postoje je ono u kom kartica nema.
+  Sami repertoari ostaju; pražnjenje poteza je počinjanje otvaranja iznova, a ne
+  odricanje od njega.
+
+Uz poteze idu i odsečene grane, dodati odgovori, pokušaji, raspored za vežbanje
+i ocene motora za te pozicije. Razlog je jedan: rez ili raspored koji ostane iza
+obrisanih poteza **ponovo se primeni** na liniju izgrađenu kasnije — odluka iz
+repertoara koji više ne postoji, koja stigne nedeljama posle.
+
+Prazan spisak sada i sam kaže gde su potezi otišli, jer je to mesto na kom
+čovek bude iznenađen.
+
+### Komentar uz poziciju — svoja tabela, ne polje u oceni
+
+Nova tabela `repertoire_comments (user, boja, fen_key, body)`. Nije kolona u
+`repertoire_notes`, i to je odluka, ne ukus:
+
+- ocena je ono što je motor rekao — prepisuje je svaka dublja pretraga i ide sa
+  potezima koje opisuje; rečenica koju je čovek otkucao ne može da se izračuna
+  ponovo ni na jednoj dubini, ni na jednoj mašini;
+- `putNote` **odbija** red bez ocene — a to je tačno onaj red koji treba
+  komentaru na poziciji koja nije analizirana.
+
+Zato komentari **ostaju** kad potezi odu, osim ako se ne zažele izričito
+(kvadratić u oba dijaloga, podrazumevano ugašen). Komentar bez poteza košta
+jedan red i vrati se čim se do te pozicije opet dođe — ključ je pozicija, kao i
+svuda ovde, pa se ono što je zapisano duboko u jednoj liniji vidi čim druga
+linija transponira u tu tablu.
+
+Prazan tekst je brisanje. Sačuvan prazan komentar bi crtao karticu o poziciji o
+kojoj niko ništa nije rekao.
+
+### Gde se komentar vidi
+
+Jedan widget (`RepertoireCommentPanel`), dva mesta, i to je razlog što je widget:
+
+- **Pored table**, u trećoj koloni, od `Breakpoints.ultraWide` (1200 dp) na
+  više. Širina se uzima od stabla, nikada od table — `_boardSize` se i dalje
+  računa iz istih 42% — jer je manja tabla jedina stvar gora od komentara koji
+  je jedan skrol daleko. Panel ima svoj skrol, da dugačak komentar ne može da
+  produži red preko prozora (u release buildu to nisu pruge nego odsečen dno).
+- **Ispod table**, na telefonu i u užem prozoru, gde prazan komentar crta
+  **ništa**. Kolona ispod table na 360 dp je najskuplji prostor u aplikaciji.
+
+Na 840 dp (dve kolone) komentar i dalje ide ispod table: treća kolona izvučena na
+toj širini ostavlja sliku preusku da se čita.
+
+### Dva dugmeta u traci ispod table
+
+Tamo gde ih Tabla za analizu već ima, jer onaj ko je naučio jedan ekran ne treba
+da ih traži na sledećem. `MoveNavigationControls` je `Wrap`, pa se na telefonu
+prelome u drugi red umesto da budu isečena bez upozorenja u release buildu.
+Traka se sada crta i kad je linija prekratka za šetnju — ranije bi nestala cela,
+a sa njom i jedini način da se napiše komentar na prvoj poziciji.
+
+**„Pitaj AI o poziciji"** zove `POST /api/ai/explain-position` — rutu koja
+postoji od AI trenera, sa svojom kvotom (`ai_comments`) i limiterom, i
+`PuzzleApiService.explainPosition`, koji je bio **napisan i nigde pozvan**. Nije
+drugi sudija: sud o potezu ostaje otvaranjska baza (šta su ljudi stvarno igrali),
+a ovo je proza o poziciji, ponuđena da se pročita i — ako vredi — prepiše u
+sopstveni komentar, kroz editor, pa tek onda sačuva. Ono što je model napisao
+nije ničiji komentar dok čovek ne kaže da jeste.
+
+Backend treba pokrenuti jednom, zbog nove tabele `repertoire_comments`.
+
+Uživo nije viđeno: [TODO-provera.md](TODO-provera.md), stavka 84.
+
+## Dril šeta sam, i kaže kroz koju odluku — 1.9.2026
+
+Vlasnik je uživo naleteo na dve stvari koje su, kad se pogledalo u kod, ispale
+tri odvojene greške i jedno neslaganje sa dogovorom.
+
+**Šetnja linijom nije govorila kroz koju odluku ide.** `walkLines` širi *svaki*
+zadržani potez u poziciji — i glavni i alternativu — pa linija do dospele
+pozicije sme da ide kroz alternativu. Prefiks o tome nije nosio ništa. Ekran je
+onda pitao „odigrajte potez koji ste izabrali" u poziciji u kojoj su **dva**
+poteza vlasnikova, a samo jedan nastavlja tu liniju; drugi je vraćen narandžastom
+rečenicom „U ovoj liniji ide Nc3", istom kojom se javlja i promašaj. To uči
+učenika da ne veruje potezu koji je sam izabrao, a ništa u repertoaru ne vredi
+toliko.
+
+Sad `walkLines` nosi `role` i `alts` uz svaki moj potez u liniji, a šetnja ima
+**tri ishoda umesto dva**: potez linije, *drugi moj potez* („I d4 je vaš potez —
+ali ova linija vežba Nc3", plavo, ne narandžasto), i promašaj. Pre poteza, kad
+linija ide kroz alternativu, stoji rečenica da ide kroz alternativu — **bez
+imena poteza**, jer imenovanje bi šetnju pretvorilo u film baš na pozicijama
+zbog kojih se šeta. Ćutanje na račvanju znači „glavni", i to je pošteno: koji je
+potez, ostaje na učeniku.
+
+**Ispravka se nije videla.** Potez linije i protivnikov odgovor sletali su u
+jednom `loadFen`-u, pa se figura pojavljivala na polju na koje ništa nije viđeno
+da ide — vlasnik je posle svog d4 dobio crnog skakača na c3 i nigde potez Nc3.
+Sada idu u dva takta: potez linije prvo, sam, sa strelicom na sebi, pa posle
+550 ms protivnikov odgovor.
+
+**„Nastavi liniju" je bilo ručno ono što sparing radi sam.** Dogovor je bio
+šetnja linijom do kraja, a red je posle svakog odgovora stajao i tražio klik.
+Sada tačan odgovor vodi dalje sam, posle 1400 ms — duže od sparingovih 700, jer
+ovde panel kaže i **kada se pozicija vraća**, a rečenica koju niko ne stigne da
+pročita je rečenica koju dril više ne govori. Zato presuda ide **sa** šetnjom:
+iznad sledećeg pitanja stoji „Tačno — Nc6 · protivnik Nf3 · vraća se za 6 dana".
+
+Dugme je ostalo za ono što šetnju **zaustavlja**: grešku i nepokriveni
+protivnikov odgovor. Iznenađenje je jedina stvar koju knjiga ne ume i vrata
+nazad ka izgradnji — proletanje kroz tu rečenicu u poziciju bez odgovora bilo bi
+najgore mesto za žurbu.
+
+**Dve greške uz put.** Dugme se nudilo i kad protivnik nije odgovorio: pozicija
+posle sopstvenog poteza je protivnikova da je odigra, pa je „Nastavi liniju"
+tamo vodilo u pitanje „šta igrate" u poziciji u kojoj nisi na potezu. I šetnja
+je upisivala raspored pozicija koje niko nije tražio — pravilo „ocenjuje se samo
+ono što je bilo dospelo" držao je sparing preko `dueKeys`, a red nije držao
+niko. Sada odgovor ide sa `onlyIfDue`, a odluku donosi server, jer je `due_at`
+njegov. Pozicija koja nikad nije ponavljana i dalje **jeste** dospela.
+
+Testovi: backend 779 → **784**, aplikacija 1032 → **1040**. Uživo nije viđeno:
+stavka 81 u [TODO-provera.md](TODO-provera.md).
+
+## Protivnik ostaje unutar pripremljenog — 1.9.2026
+
+Vlasnik je tražio da dril ide **samo kroz pozicije pokrivene protivnikovim
+odgovorima**, da ne dobija „Protivnik je odgovorio Nf6 — to niste pokrili".
+`pickReply` je do sada vukao iz **celog repa** `opening_replies` — svega što je
+explorer vratio i posle 80% reza — i to namerno: sretanje nepokrivenog poteza
+pokazivalo je učeniku ivicu onoga što je spremio i vodilo nazad u izgradnju.
+
+To je uklonjeno, i dva razloga govore isto:
+
+**Šetnja linijom to nikad nije radila.** `coveredReplies` prati samo pokrivene
+odgovore plus one koje je učenik imenovao, pa je *živi* protivnik igrao poteze
+koje ponavljanje iste te linije ne bi odigralo. Dva različita protivnika u
+jednom drilu, i ponavljanje je bilo ono koje je u pravu.
+
+**Vrata ka izgradnji nisu bila u tome.** Ostaje `unprepared` — pozicija koju
+jesi pokrio a nisi odlučio šta u njoj igraš — sa ponudom „Izgradi ovu poziciju".
+To je rupa u repertoaru, a ne rupa u knjizi, i to je poštenija polovina onoga
+čemu je iznenađenje služilo.
+
+Pozicija u kojoj ništa nije pripremljeno sada odgovara **ničim**: linija se
+završava tamo gde se završava priprema, što je ono kako izgleda knjiga koja je
+istekla. „Nastavi liniju" se tu ne nudi, a sparing to već zove „Grana odigrana
+do kraja".
+
+„Pripremljeno" i ovde znači isto što i svuda: pokriveno **ili** potez na koji je
+učenik pritisnuo „spremi i ovo" — pa `pickReply` sada mora da zna **ko** pita
+(`repertoire_extra_replies` je po učeniku). Uslov se računa u SQL-u a filtrira u
+JS-u namerno: tako je izvlačenje provereno nad redovima, a ne nad tekstom upita.
+
+`replyCovered` i rečenica koju ekran gradi iz njega **ostaju**. Server to više ne
+šalje, ali su ispravno čitanje zastavice koju i dalje šalje — ako se izvlačenje
+ikad ponovo proširi, ekran to kaže bez ijedne izmene unazad.
+
+Testovi: backend 788 → **791**. Uživo nije viđeno: stavka 83 u
+[TODO-provera.md](TODO-provera.md).
+
+## Izbor račve je radio i nije se video — 1.9.2026
+
+Vlasnik je javio da izbor ne radi: klikne „Vežbaj d4" i i dalje dobija
+alternativnu liniju. **Nije bilo tako.** Server je narušavao ispravno — dokazano
+probom nad račvom četiri poteza duboko, jer je jedini postojeći test imao račvu
+u **korenu**, gde je `moves[at * 2]` trivijalno `moves[0]` i aritmetika indeksa
+se ne proverava. Kad se napravi ista provera dublje, `nodesVia` vraća tačno
+poziciju iza `d4`.
+
+Greška je bila u tome što se to **ne vidi**. Iznad račve obe linije čitaju
+identično — ista tabla, isti trag poteza, isti brojač „potez 1 od 1" — jer se
+linija razilazi tek **sledećim** potezom. Učenik je tražio d4, dobio d4, video
+poziciju koju je i pre gledao i rečenicu „Odigrajte potez koji ste izabrali", pa
+je zaključio da se ništa nije desilo. Funkcija koja radi a ne može da se vidi
+kako radi nije isporučena.
+
+Sada, kad je put izabran, ponavljanje na toj račvi **imenuje potez**: „Ova linija
+ide kroz d4 — odigrajte ga." Ništa se ne odaje — učenik ga je maločas izabrao po
+imenu — a rečenica o alternativi se tu gasi, jer „jedan od vaših poteza" ispod
+„odigrajte d4" kaže manje od ničega.
+
+**Druga polovina: put koji nema šta da ponudi.** Prazan ekran se crta *umesto*
+panela koji nosi red „Vežbate liniju kroz d4." i izlaz sa njega, pa je učenik
+ostajao na putu koji ne vidi i sa kog ne može da siđe, ispod rečenice „Ništa nije
+na redu" — koja je tvrdnja o repertoaru, a bila je činjenica o jednom potezu. Sad
+piše „Iza poteza d4 ništa nije na redu." i tu stoji „Nazad na red".
+
+Pouka za dalje, jer se ponavlja: **test koji potvrđuje ponašanje na indeksu 0 ne
+potvrđuje aritmetiku indeksa.** Račva u korenu je prošla i kad je duboka bila u
+pitanju.
+
+Testovi: aplikacija 1044 → **1046**. Uživo nije viđeno: stavka 82 u
+[TODO-provera.md](TODO-provera.md), tačke 12–14.
+
+## Račva se bira, i preskakanje zaista preskače — 1.9.2026
+
+Nastavak istog razgovora. Vlasnik je pitao šta znače „Preskoči ponavljanje" i
+„Druga linija", i kako da pređe na glavni potez i liniju iza njega. Prvo je
+objašnjenje, drugo je bila rupa, a usput je ispalo da jedno od ta dva dugmeta ne
+radi ono što piše na njemu.
+
+**„Druga linija" nije davala drugu liniju.** `nextItem` je deterministički
+`ORDER BY due_at ASC LIMIT 1`, a ponavljanje ne upisuje ništa — pa je isti
+zahtev vraćao isto pitanje. Isto važi i za „Preskoči" nad pitanjem: preskakanje
+ne ocenjuje i ne piše `repertoire_attempts`, pa se pozicija vraćala u nedogled.
+Oba dugmeta su bila izlaz koji ne izlazi nigde. Sada `drillLine` prima
+`exclude` — pozicije odbijene u ovoj sesiji — a kad se sve odbije, gomila se
+**okrene** umesto da ekran kaže „Ništa nije na redu", što bi bila laž koju je
+izgovorilo samo dugme.
+
+**Linija kroz jednu odluku sada može da se zatraži.** `drillLine` prima
+`viaFen` + `viaUci` i šeta samo kroz pozicije do kojih se stiže **tim** potezom
+iz **te** pozicije. Potez se traži po tome *odakle je odigran*, ne po samom
+polju: potez na indeksu `2i` u lancu je moj potez iz čvora `i`, jer šetnja
+dodaje po jedan par po nivou — poklapanje samo po uci uhvatilo bi isti potez
+odigran negde drugde. Sama račva **nije** u odgovoru: to je pozicija u kojoj se
+bira, ne pozicija do koje izbor vodi.
+
+Na ekranu je to dugme **„Druga odluka"**, i to samo na račvi. Otvara list sa
+„Vežbaj d4" po jednom drugom potezu. **Iza pritiska, a ne na tabli** — isto
+pravilo koje već važi za „Pokaži": ponavljanje se ne ocenjuje, ali imenovanje
+drugog poteza tamo gde su zadržana tačno dva odaje onaj koji se traži, pa
+gledanje treba da bude nešto što je učenik uradio, a ne što se desilo samo.
+
+Izabrani put se vidi („Vežbate liniju kroz d4.") i ima izlaz („Nazad na red"),
+jer režim koji se ne vidi izgleda kao greška. Ide sa `ahead: true`: traženje
+puta je dovoljan razlog da se njime prošeta, a rani odgovor se ne upisuje. Grana
+i sparing brišu izbor — veći izbor pobeđuje manji.
+
+Namerno nije rađeno: **biranje grane dublje od prva dva poteza.**
+`drillBranches` i dalje grupiše po paru poteza koji otvara granu, pa je
+„Druga odluka" jedini način da se bira račva u dubini. To je dovoljno za ono
+zbog čega je traženo, a spisak grana kao malo stablo je zaseban posao.
+
+Testovi: backend 784 → **788**, aplikacija 1040 → **1044**. Uživo nije viđeno:
+stavka 82 u [TODO-provera.md](TODO-provera.md).
 
 ## Grana kao sesija, i sparing kroz nju — 1.9.2026
 

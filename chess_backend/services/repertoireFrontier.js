@@ -97,14 +97,40 @@ async function keptByPosition(pool, userId, color, { onlyChosen = false } = {}) 
   return map;
 }
 
+/// Narrows what the student holds at one position to a single move.
+///
+/// The **gate**: a repertoire that starts where another one starts follows only
+/// its own move out of that position. Everything downstream — the queue, the
+/// tree, the drill, the coverage map — is a walk, so filtering the walk's
+/// starting fork is the whole implementation of "show me this opening only".
+///
+/// Mutates the map it is given, which is a fresh one per read
+/// (`keptByPosition` builds it), and answers it back so a caller can chain.
+///
+/// A gate whose move is not among the kept ones leaves the position **empty**
+/// rather than untouched: that is the honest state, and it reads on screen as
+/// "this position is not decided yet", which is exactly true of a repertoire
+/// whose first move has not been kept.
+function gateMoves(kept, rootKey, gateUci) {
+  if (!gateUci) return kept;
+  const here = kept.get(rootKey);
+  if (here === undefined) return kept;
+  kept.set(rootKey, here.filter((move) => move.uci === gateUci));
+  return kept;
+}
+
 /// The book for a whole level of the walk, in one query.
 ///
 /// The covered moves, plus the ones this student asked for by name. The table
 /// also holds the rest of the tail — everything the explorer returned past the
-/// 80% cut — and the drill draws from all of it on purpose, so the student
-/// meets the edge of what they prepared. A *frontier* must not: following the
+/// 80% cut — and neither the frontier nor the drill follows it. Following the
 /// whole tail would grow the queue by moves the build loop never enqueued, and
 /// hand back a walk that does not match the one the student was actually on.
+///
+/// The drill used to draw its opponent from the whole tail, so that meeting an
+/// uncovered move showed the student the edge of what they prepared. It no
+/// longer does (`pickReply`), which makes the live opponent and this walk agree
+/// — they disagreed, and the rehearsal was the one that was right.
 ///
 /// The exception is the point of `repertoire_extra_replies`. A move the student
 /// pressed "prepare this too" on **was** enqueued, so the walk has to follow it
@@ -147,7 +173,7 @@ async function coveredReplies(pool, userId, color, keys, minRating) {
 /// a decision, not a coin, so an alternate carries the same reach as the
 /// primary — read it as "if you play this, how often do you land here".
 async function frontier(pool, userId, {
-  color, rootFen, rootPath = [], minRating = 0, limit = 200,
+  color, rootFen, rootPath = [], minRating = 0, limit = 200, gateUci = null,
 } = {}) {
   if (color !== 'w' && color !== 'b') {
     throw new RangeError(`Boja mora biti "w" ili "b", a ne "${color}".`);
@@ -156,7 +182,8 @@ async function frontier(pool, userId, {
   // answer, it is a bad request.
   fenKey(rootFen);
 
-  const kept = await keptByPosition(pool, userId, color);
+  const kept = gateMoves(
+    await keptByPosition(pool, userId, color), fenKey(rootFen), gateUci);
   const cut = await skippedKeys(pool, userId, color);
   const band = Number(minRating) || 0;
   const base = Array.isArray(rootPath)
@@ -403,6 +430,7 @@ async function frontier(pool, userId, {
 // the rule to drift — which is how three hand-written copies of one subquery
 // all managed to forget the same status check.
 module.exports = {
+  gateMoves,
   frontier,
   step,
   keptByPosition,

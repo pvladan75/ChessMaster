@@ -63,6 +63,8 @@ class RepertoireSummary {
     required this.rootFen,
     required this.moves,
     this.rootPath = const [],
+    this.viaUci,
+    this.viaSan,
   });
 
   final int id;
@@ -80,6 +82,23 @@ class RepertoireSummary {
   /// breadcrumb then reads from the root rather than inventing an opening.
   final List<String> rootPath;
 
+  /// The move this repertoire goes through at its root — its **gate**.
+  ///
+  /// Two repertoires can start from the same position and mean two different
+  /// openings: after 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 one plays 4.b4 and the other
+  /// 4.0-0. The moves belong to (user, colour) and stay in one graph, because a
+  /// position reached both ways is one position with one answer. What the gate
+  /// splits is the **view**: the walk follows only this move out of the root,
+  /// so the tree, the queue, the map and the drill are about one opening.
+  ///
+  /// Null for every repertoire made before this existed, and for one whose root
+  /// holds a single first move — where there is nothing to tell apart.
+  final String? viaUci;
+
+  /// The same move written the way it is read — "O-O", not "e1g1". Worked out
+  /// by the server, which has the board.
+  final String? viaSan;
+
   /// How many moves the whole graph for this colour holds. Honest rather than
   /// flattering: two doors into one graph show the same number.
   final int moves;
@@ -94,6 +113,8 @@ class RepertoireSummary {
         rootFen:
             json['rootFen'] as String? ?? json['root_fen'] as String? ?? '',
         rootPath: sanPath(json['rootPath'] ?? json['root_path']),
+        viaUci: json['viaUci'] as String? ?? json['via_uci'] as String?,
+        viaSan: json['viaSan'] as String?,
         moves: (json['moves'] as num?)?.toInt() ?? 0,
       );
 }
@@ -569,6 +590,122 @@ class StoredBook {
       );
 }
 
+/// What the *student* wrote about one position, in their own words.
+///
+/// The one thing in a repertoire nothing can recompute. An evaluation comes
+/// back at any depth, a book row comes back from Lichess, a move comes back by
+/// playing it again; a sentence somebody typed at a board comes back only if it
+/// was kept. That is why it has its own table on the server, its own lifetime,
+/// and why deleting moves leaves it alone unless it is asked for by name.
+///
+/// Keyed by position like everything else here, so a plan written deep in one
+/// line is on screen the moment another line transposes into that board.
+class RepertoireComment {
+  const RepertoireComment({
+    required this.fenKey,
+    required this.body,
+    this.updatedAt,
+  });
+
+  final String fenKey;
+  final String body;
+  final DateTime? updatedAt;
+
+  factory RepertoireComment.fromJson(Map<String, dynamic> json) =>
+      RepertoireComment(
+        fenKey: json['fenKey'] as String? ?? '',
+        body: json['body'] as String? ?? '',
+        updatedAt: json['updatedAt'] is String
+            ? DateTime.tryParse(json['updatedAt'] as String)
+            : null,
+      );
+}
+
+/// What deleting a repertoire would take with it.
+///
+/// Read before the button does anything. What is counted is what *only* this
+/// repertoire reaches — reachable from its root minus everything reachable from
+/// the other roots of the same colour — and [shared] is what stays behind
+/// because another repertoire is still standing on it.
+///
+/// [positions] counts the ones that actually hold moves, because that is what
+/// the sentence on screen is made of: "18 moves in 12 positions". The sweep
+/// itself covers every stranded position, some of which hold nothing.
+class RepertoireRemoval {
+  const RepertoireRemoval({
+    required this.name,
+    required this.color,
+    required this.positions,
+    required this.moves,
+    required this.decisions,
+    required this.drafts,
+    required this.comments,
+    required this.shared,
+  });
+
+  final String name;
+  final String color;
+  final int positions;
+  final int moves;
+
+  /// Moves the student chose themselves, as against the ones a generator drew.
+  /// The number worth reading twice before pressing anything.
+  final int decisions;
+  final int drafts;
+  final int comments;
+  final int shared;
+
+  factory RepertoireRemoval.fromJson(Map<String, dynamic> json) =>
+      RepertoireRemoval(
+        name: json['name'] as String? ?? '',
+        color: json['color'] as String? ?? 'w',
+        positions: (json['positions'] as num?)?.toInt() ?? 0,
+        moves: (json['moves'] as num?)?.toInt() ?? 0,
+        decisions: (json['decisions'] as num?)?.toInt() ?? 0,
+        drafts: (json['drafts'] as num?)?.toInt() ?? 0,
+        comments: (json['comments'] as num?)?.toInt() ?? 0,
+        shared: (json['shared'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// Everything stored for one side, counted.
+///
+/// The answer to the question that had none: delete every repertoire of a
+/// colour and the moves stay — they belong to the colour, not to the name — and
+/// with no root left there is no walk that can even find them.
+class RepertoireColorStats {
+  const RepertoireColorStats({
+    required this.color,
+    required this.repertoires,
+    required this.positions,
+    required this.moves,
+    required this.decisions,
+    required this.drafts,
+    required this.comments,
+  });
+
+  final String color;
+  final int repertoires;
+  final int positions;
+  final int moves;
+  final int decisions;
+  final int drafts;
+  final int comments;
+
+  bool get isEmpty => moves == 0 && comments == 0;
+
+  factory RepertoireColorStats.fromJson(Map<String, dynamic> json) =>
+      RepertoireColorStats(
+        color: json['color'] as String? ?? 'w',
+        repertoires: (json['repertoires'] as num?)?.toInt() ?? 0,
+        positions: (json['positions'] as num?)?.toInt() ?? 0,
+        moves: (json['moves'] as num?)?.toInt() ?? 0,
+        decisions: (json['decisions'] as num?)?.toInt() ?? 0,
+        drafts: (json['drafts'] as num?)?.toInt() ?? 0,
+        comments: (json['comments'] as num?)?.toInt() ?? 0,
+      );
+}
+
 /// What the engine said about one position in this repertoire.
 ///
 /// Information, never a verdict. The build screen already has a judge — the
@@ -835,8 +972,28 @@ class DrillItem {
 }
 
 /// One move of a line being rehearsed.
+/// One of the student's other decisions in the same position.
+class LineAlternative {
+  const LineAlternative({required this.uci, required this.san});
+
+  final String uci;
+  final String san;
+
+  factory LineAlternative.fromJson(Map<String, dynamic> json) =>
+      LineAlternative(
+        uci: json['uci'] as String? ?? '',
+        san: json['san'] as String? ?? '',
+      );
+}
+
 class LineMove {
-  const LineMove({required this.uci, required this.san, required this.mine});
+  const LineMove({
+    required this.uci,
+    required this.san,
+    required this.mine,
+    this.role = 'primary',
+    this.alts = const [],
+  });
 
   final String uci;
   final String san;
@@ -845,10 +1002,32 @@ class LineMove {
   /// are played back at them.
   final bool mine;
 
+  /// `primary` or `alternate` — which of the student's own decisions this move
+  /// is. A line runs through whichever move leads to the question, so a
+  /// rehearsal can perfectly well be asking for an alternate, and asking for
+  /// one without saying so is asking somebody to guess.
+  final String role;
+
+  /// The student's other moves in this position, empty when they only kept
+  /// one. It is what tells a move of their own apart from a move that is
+  /// simply not in the repertoire — the two must not read the same.
+  final List<LineAlternative> alts;
+
+  /// True when this position holds more than one of the student's decisions.
+  bool get isFork => mine && alts.isNotEmpty;
+
   factory LineMove.fromJson(Map<String, dynamic> json) => LineMove(
         uci: json['uci'] as String? ?? '',
         san: json['san'] as String? ?? '',
         mine: json['mine'] as bool? ?? false,
+        role: json['role'] as String? ?? 'primary',
+        alts: json['alts'] is List
+            ? (json['alts'] as List)
+                .whereType<Map>()
+                .map((e) =>
+                    LineAlternative.fromJson(Map<String, dynamic>.from(e)))
+                .toList()
+            : const [],
       );
 }
 
@@ -1009,8 +1188,14 @@ class DrillAnswer {
   final String? reply;
 
   /// False when the opponent has just played something the student never
-  /// prepared for. Not a fault: it is the drill doing the one thing a book
-  /// cannot, which is showing them the edge of what they covered.
+  /// prepared for.
+  ///
+  /// The server stopped being able to send that on 1.9.2026: `pickReply` draws
+  /// only from replies the student covered, and a position with none of those
+  /// answers with no reply at all. The field and the sentence the screen builds
+  /// from it are kept because they are the honest reading of a flag the server
+  /// still sends — if the draw is ever widened again, the screen says so
+  /// without being changed back.
   final bool replyCovered;
 
   bool get isPrepared => outcome != 'unprepared';
@@ -1082,12 +1267,16 @@ class RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
+    String? viaUci,
   }) async {
     final sent = await _send(() => _post('$backendUrl/repertoire', {
           'name': name,
           'color': color,
           'rootFen': rootFen,
           'rootPath': rootPath,
+          // The gate. Sent only when the reader chose one, which is when the
+          // starting position already holds somebody else's first move.
+          if (viaUci != null) 'viaUci': viaUci,
         }));
     final res = sent.res;
     if (res == null) return (made: null, error: sent.error);
@@ -1110,6 +1299,7 @@ class RepertoireApiService {
     required String rootFen,
     List<String> rootPath = const [],
     int? minRating,
+    String? gateUci,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/frontier').replace(
       queryParameters: {
@@ -1117,6 +1307,7 @@ class RepertoireApiService {
         'rootFen': rootFen,
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
         if (minRating != null) 'minRating': '$minRating',
+        if (gateUci != null) 'gateUci': gateUci,
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -1155,13 +1346,103 @@ class RepertoireApiService {
     return (await _send(() => _delete(uri))).res != null;
   }
 
-  /// Removes a repertoire — its name and starting point, never its moves.
+  /// Removes a repertoire — its name and starting point, and its moves only
+  /// when [withMoves] says so.
   ///
   /// The moves belong to (user, colour) and are shared by every repertoire that
-  /// reaches them, so deleting them here would empty one door's worth of work
-  /// out of every other door.
-  Future<bool> deleteRepertoire(int id) async {
-    final uri = Uri.parse('$backendUrl/repertoire/$id');
+  /// reaches them, which is why they are not taken by default: deleting them
+  /// here would empty one door's worth of work out of every other door. With
+  /// [withMoves], what goes is what *only this repertoire reaches* — the count
+  /// [removalPreview] hands back before the question is asked.
+  ///
+  /// [includeComments] takes what the student wrote as well. Off by default,
+  /// because prose is the one thing here nothing can recompute.
+  Future<bool> deleteRepertoire(
+    int id, {
+    bool withMoves = false,
+    bool includeComments = false,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/$id').replace(
+      queryParameters: {
+        if (withMoves) 'moves': '1',
+        if (withMoves && includeComments) 'comments': '1',
+      },
+    );
+    return (await _send(() => _delete(uri))).res != null;
+  }
+
+  /// Sets, changes or clears the move a repertoire goes through at its root.
+  ///
+  /// Its own door because the repertoires that most need a gate are the ones
+  /// that already exist — built from the same position before this could be
+  /// said at all, each showing the other's opening in its tree.
+  ///
+  /// Null clears it: back to the whole graph from that root, which is what a
+  /// repertoire whose root holds one move wants.
+  Future<({bool saved, String? viaUci, String? viaSan})> setGate(
+    int id, {
+    String? viaUci,
+  }) async {
+    final sent = await _send(() => _put('$backendUrl/repertoire/gate', {
+          'id': id,
+          'viaUci': viaUci,
+        }));
+    final res = sent.res;
+    if (res == null) return (saved: false, viaUci: null, viaSan: null);
+    final data = jsonDecode(res.body);
+    if (data is! Map) return (saved: false, viaUci: null, viaSan: null);
+    return (
+      saved: true,
+      viaUci: data['viaUci'] as String?,
+      viaSan: data['viaSan'] as String?,
+    );
+  }
+
+  /// What deleting this repertoire would strand, before anything is deleted.
+  ///
+  /// Null when the server did not answer — which the caller must tell apart
+  /// from "nothing would be stranded", since one of them is a reason to stop.
+  Future<RepertoireRemoval?> removalPreview(int id, {int? minRating}) async {
+    final uri = Uri.parse('$backendUrl/repertoire/removal').replace(
+      queryParameters: {
+        'id': '$id',
+        if (minRating != null) 'minRating': '$minRating',
+      },
+    );
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    final data = jsonDecode(res.body);
+    if (data is! Map) return null;
+    return RepertoireRemoval.fromJson(Map<String, dynamic>.from(data));
+  }
+
+  /// Everything stored for one side, counted.
+  Future<RepertoireColorStats?> colorStats({required String color}) async {
+    final uri = Uri.parse('$backendUrl/repertoire/color')
+        .replace(queryParameters: {'color': color});
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    final data = jsonDecode(res.body);
+    if (data is! Map) return null;
+    return RepertoireColorStats.fromJson(Map<String, dynamic>.from(data));
+  }
+
+  /// Empties a side: every move, cut, extra reply, attempt, review and
+  /// evaluation stored for it.
+  ///
+  /// The repertoires themselves stay — they are a name and a starting point,
+  /// and emptying the moves is starting that opening over rather than disowning
+  /// it. This is the only door that opens when no repertoire is left at all.
+  Future<bool> eraseColor({
+    required String color,
+    bool includeComments = false,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/color').replace(
+      queryParameters: {
+        'color': color,
+        if (includeComments) 'comments': '1',
+      },
+    );
     return (await _send(() => _delete(uri))).res != null;
   }
 
@@ -1483,6 +1764,7 @@ class RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     int maxPly = 16,
+    String? gateUci,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/tree').replace(
       queryParameters: {
@@ -1491,6 +1773,10 @@ class RepertoireApiService {
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
         if (minRating != null) 'minRating': '$minRating',
         'maxPly': '$maxPly',
+        // The gate: with it the picture is one opening, which is the whole
+        // reason it exists — two repertoires from one position drew each
+        // other's moves.
+        if (gateUci != null) 'gateUci': gateUci,
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -1515,16 +1801,34 @@ class RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     String? fromFen,
+    String? viaFen,
+    String? viaUci,
+    List<String> exclude = const [],
     bool ahead = false,
+    String? gateUci,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/drill/line').replace(
-      queryParameters: {
+      queryParameters: <String, dynamic>{
         'color': color,
         'rootFen': rootFen,
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
         if (minRating != null) 'minRating': '$minRating',
         if (fromFen != null) 'fromFen': fromFen,
+        // Which decision to walk through, for somebody standing at a fork who
+        // wants the other road rather than the one the schedule offered.
+        if (viaFen != null && viaUci != null) ...{
+          'viaFen': viaFen,
+          'viaUci': viaUci,
+        },
+        // The positions already refused. Without them "another line" is a
+        // promise the queue cannot keep: it is deterministic, and skipping
+        // writes nothing down.
+        if (exclude.isNotEmpty) 'exclude': exclude,
         if (ahead) 'ahead': '1',
+        // The repertoire's own gate, which is not the same thing as [viaUci]:
+        // that one is a fork chosen inside a session, this one is which opening
+        // the whole screen is about.
+        if (gateUci != null) 'gateUci': gateUci,
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -1560,6 +1864,7 @@ class RepertoireApiService {
     bool revealed = false,
     int? minRating,
     bool practice = false,
+    bool onlyIfDue = false,
   }) async {
     final res =
         (await _send(() => _post('$backendUrl/repertoire/drill/answer', {
@@ -1569,6 +1874,7 @@ class RepertoireApiService {
                   'revealed': revealed,
                   if (minRating != null) 'minRating': minRating,
                   if (practice) 'practice': true,
+                  if (onlyIfDue) 'onlyIfDue': true,
                 })))
             .res;
     if (res == null) return null;
@@ -1624,6 +1930,63 @@ class RepertoireApiService {
         Map<String, dynamic>.from(data['note'] as Map));
   }
 
+  /// Every comment this student wrote for that side, keyed by position.
+  ///
+  /// One call beside [notes], read by the same screen at the same moment: a
+  /// tree of a hundred cards must not cost a hundred requests.
+  Future<Map<String, RepertoireComment>> comments(
+      {required String color}) async {
+    final uri = Uri.parse('$backendUrl/repertoire/comments')
+        .replace(queryParameters: {'color': color});
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return const {};
+    final data = jsonDecode(res.body);
+    if (data is! Map || data['comments'] is! List) return const {};
+    final all = (data['comments'] as List)
+        .whereType<Map>()
+        .map((e) => RepertoireComment.fromJson(Map<String, dynamic>.from(e)));
+    return {for (final one in all) one.fenKey: one};
+  }
+
+  /// Writes what the student says about a position, or clears it.
+  ///
+  /// An empty body deletes the row on the server, so the comment coming back is
+  /// null both when it was cleared and when the call failed. [saved] is what
+  /// tells those apart — they look identical from the outside and only one of
+  /// them means the screen should complain.
+  Future<({bool saved, RepertoireComment? comment})> putComment({
+    required String color,
+    required String fen,
+    required String body,
+  }) async {
+    final sent = await _send(() => _put('$backendUrl/repertoire/comment', {
+          'color': color,
+          'fen': fen,
+          'body': body,
+        }));
+    final res = sent.res;
+    if (res == null) return (saved: false, comment: null);
+    final data = jsonDecode(res.body);
+    if (data is! Map) return (saved: false, comment: null);
+    final one = data['comment'];
+    return (
+      saved: true,
+      comment: one is Map
+          ? RepertoireComment.fromJson(Map<String, dynamic>.from(one))
+          : null,
+    );
+  }
+
+  /// Takes the comment off a position.
+  Future<bool> deleteComment({
+    required String color,
+    required String fen,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/comment')
+        .replace(queryParameters: {'color': color, 'fen': fen});
+    return (await _send(() => _delete(uri))).res != null;
+  }
+
   /// Where the engine plays something other than what was chosen, worst first.
   ///
   /// Derived from the notes already stored, so it costs nothing at Lichess and
@@ -1635,6 +1998,7 @@ class RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     String? fromFen,
+    String? gateUci,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/disagreements').replace(
       queryParameters: {
@@ -1643,6 +2007,7 @@ class RepertoireApiService {
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
         if (minRating != null) 'minRating': '$minRating',
         if (fromFen != null) 'fromFen': fromFen,
+        if (gateUci != null) 'gateUci': gateUci,
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -1661,6 +2026,7 @@ class RepertoireApiService {
     required String rootFen,
     List<String> rootPath = const [],
     int? minRating,
+    String? gateUci,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/drill/branches').replace(
       queryParameters: {
@@ -1668,6 +2034,7 @@ class RepertoireApiService {
         'rootFen': rootFen,
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
         if (minRating != null) 'minRating': '$minRating',
+        if (gateUci != null) 'gateUci': gateUci,
       },
     );
     final res = (await _send(() => _get(uri))).res;

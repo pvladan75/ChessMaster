@@ -208,11 +208,11 @@ function forStudent(cp, color) {
 /// the screen can tell the two apart.
 async function disagreements(pool, userId, {
   color, rootFen, rootPath = [], minRating = 0, fromFen = null,
-  limit = MAX_DISAGREEMENTS,
+  gateUci = null, limit = MAX_DISAGREEMENTS,
 } = {}) {
   requireColor(color);
   const { nodes, kept, truncated } = await walkLines(pool, userId, {
-    color, rootFen, minRating,
+    color, rootFen, minRating, gateUci,
   });
 
   let within = null;

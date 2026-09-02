@@ -47,6 +47,14 @@ const { fenKey } = require('./repertoireService');
 /// that move went" is asked before anything is removed — the question has to be
 /// answered while the move is still there, or the answer is about a repertoire
 /// that no longer exists.
+/// `from` takes either a plain FEN or `{ fen, viaUci }` — a starting point with
+/// its **gate**, the one move that repertoire goes through at its root.
+///
+/// Two repertoires can start from the same position and go different ways, and
+/// this function answers a *union*: what everything given reaches. So gates are
+/// collected per position and unioned, and one ungated starting point at a
+/// position opens it completely — anything else would call a line unreachable
+/// because some other repertoire happens not to take it.
 async function reachable(pool, userId, {
   color, from, minRating = 0, without = null,
 } = {}) {
@@ -55,9 +63,19 @@ async function reachable(pool, userId, {
   const band = Number(minRating) || 0;
 
   const seen = new Set();
+  const gates = new Map();
   let level = [];
-  for (const fen of from) {
+  for (const one of from) {
+    const fen = typeof one === 'string' ? one : one.fen;
+    const gate = typeof one === 'string' ? null : (one.viaUci ?? null);
     const key = fenKey(fen);
+    if (gate === null) {
+      gates.set(key, null);
+    } else if (gates.get(key) !== null) {
+      const allowed = gates.get(key) ?? new Set();
+      allowed.add(gate);
+      gates.set(key, allowed);
+    }
     if (seen.has(key)) continue;
     seen.add(key);
     level.push(fen);
@@ -68,7 +86,11 @@ async function reachable(pool, userId, {
     const branches = [];
     for (const fen of level) {
       const here = fenKey(fen);
+      // Only on the first wave: a gate is about the root of a repertoire, not
+      // about every time the walk passes that position again by transposition.
+      const allowed = ply === 0 ? gates.get(here) ?? null : null;
       for (const move of kept.get(here) ?? []) {
+        if (allowed !== null && !allowed.has(move.uci)) continue;
         if (here === skipKey && move.uci === without.uci) continue;
         const after = step(fen, move.uci);
         if (after !== null) branches.push(after.fen);
@@ -105,10 +127,12 @@ async function reachable(pool, userId, {
 /// everything.
 async function rootsOf(pool, userId, color) {
   const result = await pool.query(
-    'SELECT root_fen FROM repertoires WHERE user_id = $1 AND color = $2',
+    'SELECT root_fen, via_uci FROM repertoires WHERE user_id = $1 AND color = $2',
     [userId, color],
   );
-  return result.rows.map((row) => row.root_fen);
+  // Each door with the move it goes through. Two repertoires that share a root
+  // and differ only in their gate are two doors, not one.
+  return result.rows.map((row) => ({ fen: row.root_fen, viaUci: row.via_uci }));
 }
 
 /// What removing one move would strand, without removing it.

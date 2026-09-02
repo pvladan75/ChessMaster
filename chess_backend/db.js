@@ -903,6 +903,23 @@ async function initDB() {
       -- every repertoire made before this line has no honest value to give and
       -- guessing one would be worse than admitting it.
       ALTER TABLE repertoires ADD COLUMN IF NOT EXISTS root_path TEXT;
+      -- The move this repertoire goes through at its root — its **gate**.
+      --
+      -- Two repertoires can start from the same position and mean different
+      -- openings: from the Italian after 3...Bc5 one plays 4.b4 and the other
+      -- 4.0-0. The moves belong to (user, colour), so both were in one graph
+      -- with no way to tell which repertoire was being looked at, and the
+      -- second one's tree showed the first one's whole opening.
+      --
+      -- This does **not** split the store, and that is deliberate: a position
+      -- reached by both lines is one position with one answer, because chess
+      -- does not care which door you came through. What the gate splits is the
+      -- **view** — the walk follows only this move out of the root, so the
+      -- tree, the queue, the coverage map and the drill are about one opening.
+      --
+      -- Null means no gate, which is what every repertoire made before this
+      -- column has and what a repertoire whose root has only one move needs.
+      ALTER TABLE repertoires ADD COLUMN IF NOT EXISTS via_uci VARCHAR(6);
     `);
     logger.info('Verified database table & indexes: repertoires');
 
@@ -1121,6 +1138,39 @@ async function initDB() {
       ALTER TABLE repertoire_notes ADD COLUMN IF NOT EXISTS best_uci VARCHAR(6);
     `);
     logger.info('Verified database table & indexes: repertoire_notes');
+
+    // What the *student* wrote about a position, in their own words.
+    //
+    // A second table rather than a column on `repertoire_notes`, and the reason
+    // is what the two rows are. A note is what the engine said: it is rewritten
+    // by every deeper search, it is thrown away with the moves it belonged to,
+    // and nobody would miss one. A comment is the only thing in this whole
+    // feature a person typed — it cannot be recomputed by anything, at any
+    // depth, ever. `putNote` also refuses a row with no evaluation in it, which
+    // is exactly the row a comment on an un-analysed position needs.
+    //
+    // Keyed by position like everything else here, so a sentence written deep
+    // in one line is there the moment another line transposes into it — the
+    // same reason the moves are keyed that way.
+    //
+    // Kept when the moves are deleted, unless the person deleting says
+    // otherwise. Prose is the one artefact here that a rebuild cannot bring
+    // back, and a comment whose moves are gone costs a row and returns the
+    // moment the same position is reached again.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS repertoire_comments (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        color CHAR(1) NOT NULL CHECK (color IN ('w', 'b')),
+        fen_key TEXT NOT NULL,
+        body TEXT NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, color, fen_key)
+      );
+      CREATE INDEX IF NOT EXISTS idx_repertoire_comments_side
+        ON repertoire_comments(user_id, color);
+    `);
+    logger.info('Verified database table & indexes: repertoire_comments');
 
     // What the opponent actually plays in a position, kept from the lookup the
     // build mode already paid for.

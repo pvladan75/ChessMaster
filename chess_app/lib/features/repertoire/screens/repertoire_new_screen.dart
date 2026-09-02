@@ -7,6 +7,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_picker.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
+import 'package:chess_app/features/repertoire/widgets/repertoire_gate_picker.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_coordinates_button.dart';
@@ -88,6 +89,21 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
   /// than one that never helped.
   bool _named = false;
 
+  /// What this student already plays in the position on the board.
+  ///
+  /// Read because it decides whether the question below is worth asking at all:
+  /// a starting position nobody has answered needs no gate, and one that
+  /// already holds a first move is the case this whole feature is for — a
+  /// second repertoire from the same board, meaning a different opening.
+  List<RepertoireMove> _keptHere = const [];
+
+  /// The move this repertoire will go through, chosen or not.
+  ///
+  /// Null means no gate: the whole graph from that root, which is what every
+  /// repertoire did before and is still right when the position is empty.
+  String? _gateUci;
+  String? _gateSan;
+
   @override
   void initState() {
     super.initState();
@@ -104,6 +120,10 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
     } else {
       _suggestName();
     }
+    // What is already played in the position the screen opened on. A repertoire
+    // started from a board the reader is already looking at usually lands here
+    // with moves in it — that is the whole case for a gate.
+    _readKeptHere();
   }
 
   /// Fills the name in from the opening, unless the reader has written their
@@ -117,6 +137,53 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
     final opening = _opening;
     _name.text =
         opening == null ? '' : '$opening — ${_color == 'w' ? 'beli' : 'crni'}';
+  }
+
+  /// Re-reads what is already played in the position on the board.
+  ///
+  /// After every move, because the question is about *this* position and a
+  /// stale answer would offer a gate out of a board nobody is looking at. A
+  /// chosen gate is dropped the moment the position changes under it, for the
+  /// same reason.
+  Future<void> _readKeptHere() async {
+    final fen = _game.fen;
+    final kept = await widget.api.movesAt(color: _color, fen: fen);
+    // The board moved on while the answer was in flight. Its answer is about a
+    // position that is no longer on screen, so it is dropped rather than drawn.
+    if (!mounted || _game.fen != fen) return;
+    setState(() {
+      _keptHere = kept;
+      if (_gateUci != null && !kept.any((move) => move.uci == _gateUci)) {
+        // Only cleared when it is not one of the kept moves *and* the position
+        // changed — a gate on a move nobody has kept yet is perfectly good, so
+        // this runs on the position change and not on the list.
+        _gateUci = null;
+        _gateSan = null;
+      }
+    });
+  }
+
+  /// Asks which move this repertoire goes through.
+  Future<void> _pickGate() async {
+    final picked = await showGatePicker(
+      context,
+      rootFen: _game.fen,
+      kept: _keptHere.map((move) => move.uci).toList(),
+      current: _gateUci,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      if (picked.isEmpty) {
+        _gateUci = null;
+        _gateSan = null;
+        return;
+      }
+      _gateUci = picked;
+      _gateSan = gateOptionsFor(_game.fen)
+          .firstWhere((option) => option.uci == picked,
+              orElse: () => GateOption(uci: picked, san: picked))
+          .san;
+    });
   }
 
   @override
@@ -162,9 +229,12 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
     setState(() {
       _line.add(_game.getHistory().last.toString());
       _error = null;
+      _gateUci = null;
+      _gateSan = null;
       _suggestName();
     });
     _boardController.loadFen(_game.fen);
+    _readKeptHere();
   }
 
   void _undo() {
@@ -173,9 +243,12 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
     setState(() {
       _line.removeLast();
       _error = null;
+      _gateUci = null;
+      _gateSan = null;
       _suggestName();
     });
     _boardController.loadFen(_game.fen);
+    _readKeptHere();
   }
 
   void _reset() {
@@ -183,11 +256,14 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
       _game = chess.Chess.fromFEN(_root);
       _line.clear();
       _error = null;
+      _gateUci = null;
+      _gateSan = null;
       // Back to the start means back to not knowing what this is called.
       _opening = null;
       _suggestName();
     });
     _boardController.loadFen(_game.fen);
+    _readKeptHere();
   }
 
   /// Choosing the opening by name, out of the same ECO search the analysis
@@ -305,6 +381,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
       // them down as the game's opening would put a breadcrumb on the screen
       // that names moves nobody played.
       rootPath: _root == kStartFen ? List<String>.from(_line) : const [],
+      viaUci: _gateUci,
     );
     if (!mounted) return;
 
@@ -366,11 +443,18 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
                             ButtonSegment(value: 'b', label: Text('Crni')),
                           ],
                           selected: {_color},
-                          onSelectionChanged: (s) => setState(() {
-                            _color = s.first;
-                            // The side is half of the suggested name.
-                            _suggestName();
-                          }),
+                          onSelectionChanged: (s) {
+                            setState(() {
+                              _color = s.first;
+                              _gateUci = null;
+                              _gateSan = null;
+                              // The side is half of the suggested name.
+                              _suggestName();
+                            });
+                            // What is already played here is a fact about a
+                            // colour, so the other side has its own answer.
+                            _readKeptHere();
+                          },
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -399,6 +483,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
                       _buildLine(context),
                       const SizedBox(height: 6),
                       _buildStatus(context),
+                      _buildGate(context),
                       if (_error != null) ...[
                         const SizedBox(height: AppSpacing.sm),
                         Text(_error!,
@@ -431,6 +516,58 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
     }
     return Text(buffer.toString().trim(),
         style: AppText.body.copyWith(color: context.colors.textPrimary));
+  }
+
+  /// The gate question, asked only where it means something.
+  ///
+  /// A position nobody has answered needs no gate and is not asked about — the
+  /// row would be one more control to read on the way to a first repertoire.
+  /// A position that already holds a move is the case this exists for: a second
+  /// repertoire from the same board is a different opening, and without this
+  /// the two would show each other's moves in every tree, queue and drill.
+  Widget _buildGate(BuildContext context) {
+    if (_keptHere.isEmpty) return const SizedBox.shrink();
+    final already = _keptHere.map((move) => move.san).join(', ');
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: AppRadii.roundedSm,
+          border:
+              Border.all(color: context.colors.info.withValues(alpha: 0.35)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'U ovoj poziciji već igrate: $already.',
+              style: AppText.caption.copyWith(color: context.colors.textMuted),
+            ),
+            const SizedBox(height: AppSpacing.xxs),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _gateSan == null
+                        ? 'Ovaj repertoar: bez ograničenja (ceo graf).'
+                        : 'Ovaj repertoar ide kroz $_gateSan.',
+                    style: AppText.body
+                        .copyWith(color: context.colors.textPrimary),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _saving ? null : _pickGate,
+                  icon: const Icon(Icons.alt_route, size: 18),
+                  label: const Text('Izaberi'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildStatus(BuildContext context) {

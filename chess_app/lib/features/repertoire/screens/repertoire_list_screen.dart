@@ -6,6 +6,7 @@ import 'package:chess_app/features/repertoire/screens/repertoire_coverage_screen
 import 'package:chess_app/features/repertoire/screens/repertoire_drill_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_new_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
+import 'package:chess_app/features/repertoire/widgets/repertoire_gate_picker.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/services/app_settings_service.dart';
@@ -74,6 +75,11 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         // lead there — a breadcrumb built from it would name the wrong moves,
         // which is worse than showing none.
         rootPath: at == null ? item.rootPath : const [],
+        // Same rule as the breadcrumb above, and for the same reason: the gate
+        // is a move out of *this repertoire's root*. Jumping in at some other
+        // position, there is no fork there for it to narrow, and applying it
+        // would filter a position it says nothing about.
+        gateUci: at == null ? item.viaUci : null,
         minRating: AppSettingsService.instance.repertoireMinRating,
         api: widget.api,
         judge: widget.judge,
@@ -161,37 +167,269 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     }
   }
 
-  /// Removes a repertoire: its name and its starting point, never its moves.
+  /// Choosing the move this repertoire goes through at its root.
+  ///
+  /// The case it exists for: two repertoires from the same position — after
+  /// 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 one plays 4.b4 and the other 4.0-0 — where the
+  /// moves are one graph, correctly, and the *view* was one graph too, so each
+  /// showed the other's whole opening.
+  ///
+  /// The moves already kept in that position come first in the list, since the
+  /// gate is nearly always one of them; every other legal move is under them,
+  /// because a repertoire being redirected may go through a move it has not
+  /// kept yet.
+  Future<void> _pickGate(RepertoireSummary item) async {
+    final kept = await _api.movesAt(color: item.color, fen: item.rootFen);
+    if (!mounted) return;
+    final picked = await showGatePicker(
+      context,
+      rootFen: item.rootFen,
+      kept: kept.map((move) => move.uci).toList(),
+      current: item.viaUci,
+    );
+    // Closed without deciding. An empty string is "no gate", which is a
+    // decision and is stored.
+    if (picked == null || !mounted) return;
+
+    final done = await _api.setGate(
+      item.id,
+      viaUci: picked.isEmpty ? null : picked,
+    );
+    if (!mounted) return;
+    // Do the thing, then say it.
+    await _load();
+    if (!mounted) return;
+    if (!done.saved) {
+      AppFeedback.error(context, 'Nije sačuvano — server nije odgovorio.');
+    } else if (done.viaSan == null) {
+      AppFeedback.info(
+          context, 'Repertoar više nije ograničen na jedan potez.');
+    } else {
+      AppFeedback.info(context, 'Repertoar ide kroz ${done.viaSan}.');
+    }
+  }
+
+  /// Removes a repertoire: its name and its starting point always, and its
+  /// moves when the reader says so.
+  ///
+  /// The count comes first, and it is a *subtraction*: what only this
+  /// repertoire reaches, with everything another repertoire of the same colour
+  /// still stands on left out. Deleting the name has always been safe and stays
+  /// the default — the moves belong to the colour — but there was no door at
+  /// all to the moves themselves, and deleting every repertoire left a graph
+  /// nothing could reach and nothing could clear.
   Future<void> _delete(RepertoireSummary item) async {
+    final preview = await _api.removalPreview(
+      item.id,
+      minRating: AppSettingsService.instance.repertoireMinRating,
+    );
+    if (!mounted) return;
+
+    var withMoves = false;
+    var withComments = false;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Obriši „${item.name}"?'),
-        content: const Text(
-          'Briše se samo ime i početna pozicija. Potezi ostaju — oni pripadaju '
-          'boji, a ne jednom repertoaru, pa ih drugi repertoari iste boje i '
-          'dalje koriste.',
+      builder: (context) => StatefulBuilder(
+        builder: (context, setLocal) => AlertDialog(
+          title: Text('Obriši „${item.name}"?'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Ime i početna pozicija se brišu uvek. Potezi pripadaju '
+                  'boji, a ne jednom repertoaru, pa podrazumevano ostaju.',
+                ),
+                if (preview == null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Koliko poteza bi otišlo sa njim nije moglo da se izračuna '
+                    '— server nije odgovorio. Poteze možete obrisati posle, sa '
+                    'ovog ekrana.',
+                    style: AppText.caption
+                        .copyWith(color: context.colors.textMuted),
+                  ),
+                ] else ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  CheckboxListTile(
+                    value: withMoves,
+                    onChanged: preview.moves == 0
+                        ? null
+                        : (on) => setLocal(() {
+                              withMoves = on ?? false;
+                              if (!withMoves) withComments = false;
+                            }),
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      preview.moves == 0
+                          ? 'Nema poteza koje drži samo ovaj repertoar.'
+                          : 'Obriši i poteze: ${preview.moves} u '
+                              '${preview.positions} '
+                              '${preview.positions == 1 ? "poziciji" : "pozicija"}',
+                      style: AppText.body,
+                    ),
+                    subtitle: preview.moves == 0
+                        ? null
+                        : Text(
+                            'Od toga ${preview.decisions} '
+                            '${preview.decisions == 1 ? "koji ste sami izabrali" : "koje ste sami izabrali"}'
+                            '${preview.shared > 0 ? ", a ${preview.shared} pozicija ostaje jer ih drži još neki repertoar iste boje" : ""}.'
+                            '\nIdu i odsečene grane, dodati odgovori, '
+                            'raspored za vežbanje i ocene motora za te '
+                            'pozicije. Ovo se ne može poništiti.',
+                            style: AppText.caption
+                                .copyWith(color: context.colors.textMuted),
+                          ),
+                  ),
+                  if (withMoves && preview.comments > 0)
+                    CheckboxListTile(
+                      value: withComments,
+                      onChanged: (on) =>
+                          setLocal(() => withComments = on ?? false),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        'Obriši i moje komentare (${preview.comments})',
+                        style: AppText.body,
+                      ),
+                      subtitle: Text(
+                        'Podrazumevano ostaju: ono što ste napisali ne može '
+                        'da se izračuna ponovo, a vraća se čim opet dođete na '
+                        'tu poziciju.',
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted),
+                      ),
+                    ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Odustani'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Obriši'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Odustani'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Obriši'),
-          ),
-        ],
       ),
     );
     if (confirm != true || !mounted) return;
 
-    final api = widget.api ?? RepertoireApiService();
-    final done = await api.deleteRepertoire(item.id);
+    final done = await _api.deleteRepertoire(
+      item.id,
+      withMoves: withMoves,
+      includeComments: withComments,
+    );
     if (!mounted) return;
+    // Do the thing, then say it.
     await _load();
     if (!mounted) return;
     if (!done) {
+      AppFeedback.error(context, 'Nije obrisano — server nije odgovorio.');
+    } else if (withMoves && preview != null && preview.moves > 0) {
+      AppFeedback.info(context, 'Obrisano i ${preview.moves} poteza.');
+    }
+  }
+
+  /// Empties a whole side: every move, cut, extra reply, attempt, review and
+  /// engine evaluation stored for it.
+  ///
+  /// The door that had to exist. A repertoire is a name for a starting point,
+  /// so deleting every repertoire of a colour leaves the moves standing with no
+  /// root to reach them from — the prune refuses to run without one, correctly,
+  /// since "no roots" must never read as "nothing is reachable". This is on the
+  /// app bar rather than on a card, because the state it is for is the one with
+  /// no cards left.
+  Future<void> _eraseColor(String color) async {
+    final stats = await _api.colorStats(color: color);
+    if (!mounted) return;
+    final side = color == 'w' ? 'belog' : 'crnog';
+    if (stats == null) {
+      AppFeedback.error(context, 'Server nije odgovorio.');
+      return;
+    }
+    if (stats.isEmpty) {
+      AppFeedback.info(context, 'Za $side nema sačuvanih poteza.');
+      return;
+    }
+
+    var withComments = false;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setLocal) => AlertDialog(
+          title: Text('Obriši sve poteze za $side?'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sačuvano je ${stats.moves} '
+                  '${stats.moves == 1 ? "potez" : "poteza"} u '
+                  '${stats.positions} '
+                  '${stats.positions == 1 ? "poziciji" : "pozicija"}, od toga '
+                  '${stats.decisions} '
+                  '${stats.decisions == 1 ? "koji ste sami izabrali" : "koje ste sami izabrali"}.',
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'Idu i odsečene grane, dodati odgovori, raspored za '
+                  'vežbanje i ocene motora za tu boju. Sami repertoari '
+                  '(ime i početna pozicija) ostaju — njih brišete pojedinačno.'
+                  '\n\nBrisanje se ne može poništiti.',
+                  style:
+                      AppText.caption.copyWith(color: context.colors.textMuted),
+                ),
+                if (stats.comments > 0)
+                  CheckboxListTile(
+                    value: withComments,
+                    onChanged: (on) =>
+                        setLocal(() => withComments = on ?? false),
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Obriši i moje komentare (${stats.comments})',
+                      style: AppText.body,
+                    ),
+                    subtitle: Text(
+                      'Podrazumevano ostaju: ono što ste napisali ne može da '
+                      'se izračuna ponovo.',
+                      style: AppText.caption
+                          .copyWith(color: context.colors.textMuted),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Odustani'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Obriši'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final done = await _api.eraseColor(
+      color: color,
+      includeComments: withComments,
+    );
+    if (!mounted) return;
+    await _load();
+    if (!mounted) return;
+    if (done) {
+      AppFeedback.info(context, 'Obrisano ${stats.moves} poteza za $side.');
+    } else {
       AppFeedback.error(context, 'Nije obrisano — server nije odgovorio.');
     }
   }
@@ -203,6 +441,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         color: item.color,
         rootFen: item.rootFen,
         rootPath: item.rootPath,
+        gateUci: item.viaUci,
         minRating: AppSettingsService.instance.repertoireMinRating,
         api: widget.api,
         onBuildAt: (fen) {
@@ -227,6 +466,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         // of on a bare board four moves into something.
         rootFen: item.rootFen,
         rootPath: item.rootPath,
+        gateUci: item.viaUci,
         fromFen: from,
         minRating: AppSettingsService.instance.repertoireMinRating,
         api: widget.api,
@@ -275,6 +515,32 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                 ),
             ],
           ),
+          // Emptying a colour, and it is on the app bar rather than on a card
+          // for one reason: the state it exists for is the one where there are
+          // no cards. Delete every repertoire and the moves stay — they belong
+          // to the colour — and until this menu there was nothing anywhere that
+          // could reach them again.
+          PopupMenuButton<String>(
+            tooltip: 'Brisanje poteza iz baze',
+            icon: const Icon(Icons.delete_sweep_outlined),
+            onSelected: _eraseColor,
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'w',
+                child: ListTile(
+                  leading: Icon(Icons.circle_outlined),
+                  title: Text('Obriši sve poteze za belog'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'b',
+                child: ListTile(
+                  leading: Icon(Icons.circle),
+                  title: Text('Obriši sve poteze za crnog'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -308,6 +574,19 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                     AppText.caption.copyWith(color: context.colors.textMuted),
                 textAlign: TextAlign.center,
               ),
+              const SizedBox(height: AppSpacing.md),
+              // Said here because this is where it surprises somebody: the
+              // list is empty and the next repertoire opens onto a tree full
+              // of moves. They were never in the repertoire — they belong to
+              // the colour — and the menu above empties them.
+              Text(
+                'Potezi koje ste ranije birali i dalje su sačuvani uz boju, pa '
+                'ih novi repertoar iste boje odmah zna. Ako želite čist '
+                'početak, u meniju gore („Brisanje poteza iz baze") obrišite '
+                'poteze za belog ili crnog.',
+                style: AppText.micro.copyWith(color: context.colors.textMuted),
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
@@ -330,6 +609,9 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
             title: Text(item.name, style: AppText.bodyBold),
             subtitle: Text(
               '${item.forWhite ? "Beli" : "Crni"} · '
+              // The gate, where there is one. Two repertoires from the same
+              // position are otherwise two identical rows with different names.
+              '${item.viaSan != null ? "kroz ${item.viaSan} · " : ""}'
               '${item.moves} ${item.moves == 1 ? "potez" : "poteza"} u grafu',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
             ),
@@ -353,6 +635,9 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                       case 'coverage':
                         _coverage(item);
                         break;
+                      case 'gate':
+                        _pickGate(item);
+                        break;
                       case 'imported':
                         _cleanImported(item);
                         break;
@@ -367,6 +652,13 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                       child: ListTile(
                         leading: Icon(Icons.radar),
                         title: Text('Pokrivenost'),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'gate',
+                      child: ListTile(
+                        leading: Icon(Icons.alt_route),
+                        title: Text('Kroz koji potez ide'),
                       ),
                     ),
                     PopupMenuItem(

@@ -36,6 +36,7 @@ class RepertoireCoverageScreen extends StatefulWidget {
     required this.rootFen,
     this.rootPath = const [],
     this.minRating,
+    this.gateUci,
     this.api,
     this.onBuildAt,
     this.onDrillAt,
@@ -49,6 +50,18 @@ class RepertoireCoverageScreen extends StatefulWidget {
   final String rootFen;
   final List<String> rootPath;
   final int? minRating;
+
+  /// The move this repertoire goes through at its root — its **gate**.
+  ///
+  /// Two repertoires can start from the same position and mean two different
+  /// openings: after 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5, one plays 4.b4 and the other
+  /// 4.0-0. The moves stay in one graph — a position reached both ways is one
+  /// position — and this narrows the **view** to one of them, so the tree, the
+  /// queue and the drill are about one opening.
+  ///
+  /// Null is every repertoire with no twin, and behaves exactly as before.
+  final String? gateUci;
+
   final RepertoireApiService? api;
 
   /// Opens the build screen at a branch, and the drill over that branch alone.
@@ -91,6 +104,7 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
       rootFen: widget.rootFen,
       rootPath: widget.rootPath,
       minRating: widget.minRating,
+      gateUci: widget.gateUci,
     );
     if (!mounted) return;
     setState(() {

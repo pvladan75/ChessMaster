@@ -8,6 +8,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 
 import 'package:chess_app/features/repertoire/line_text.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
+import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
@@ -29,10 +30,17 @@ import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 /// Somebody who has spent their allowance, or never had a token at all, can
 /// still practise everything they own.
 ///
-/// **It is allowed to surprise.** The opponent's move is drawn by how often it
-/// is really played, and the uncovered moves are in the draw. Landing in a
-/// position nobody prepared is not a failure of the drill — it is the one thing
-/// a book cannot do, and it opens the door back into building.
+/// **The opponent stays inside what was prepared.** Its move is drawn by how
+/// often it is really played, out of the replies the student covered — never
+/// out of the tail beyond them. It used to be the other way round, so that
+/// meeting an uncovered move showed the student the edge of their preparation;
+/// the owner asked for that gone on 1.9.2026, and the line walk had never
+/// rehearsed such a move anyway.
+///
+/// The door back into building survives, and is the honest half of what the
+/// surprise was for: a position you covered and never decided about comes back
+/// as `unprepared`, with an offer to build it. That is a hole in the
+/// repertoire rather than a hole in the book.
 ///
 /// **A line, not a photograph.** With a [rootFen] the question arrives at the
 /// end of the line that leads to it: the student plays their own moves from the
@@ -51,6 +59,7 @@ class RepertoireDrillScreen extends StatefulWidget {
     this.rootPath = const [],
     this.fromFen,
     this.minRating,
+    this.gateUci,
     this.api,
     this.onBuildHere,
   });
@@ -74,6 +83,18 @@ class RepertoireDrillScreen extends StatefulWidget {
   final String? fromFen;
 
   final int? minRating;
+
+  /// The move this repertoire goes through at its root — its **gate**.
+  ///
+  /// Two repertoires can start from the same position and mean two different
+  /// openings: after 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5, one plays 4.b4 and the other
+  /// 4.0-0. The moves stay in one graph — a position reached both ways is one
+  /// position — and this narrows the **view** to one of them, so the tree, the
+  /// queue and the drill are about one opening.
+  ///
+  /// Null is every repertoire with no twin, and behaves exactly as before.
+  final String? gateUci;
+
   final RepertoireApiService? api;
 
   /// Called with a position the student has not prepared, so the screen above
@@ -117,7 +138,63 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// this is a reminder rather than a verdict.
   String? _prefixNote;
 
+  /// True when that note is about a move of the student's own — right chess in
+  /// the wrong line. It is not a mistake and must not be painted as one.
+  bool _prefixNoteMild = false;
+
+  /// The line's own move, drawn on the board for the beat it is alone there.
+  ///
+  /// Without it the correction was invisible: both plies landed in one frame,
+  /// so an enemy piece appeared on a square nothing had been seen going to.
+  ChessArrow? _prefixArrow;
+
+  /// Long enough to see the move, short enough that a six-move rehearsal is
+  /// still a rehearsal and not a film.
+  static const Duration _beat = Duration(milliseconds: 550);
+
   bool get _rehearsing => _prefixAt < _prefix.length;
+
+  /// The next move the student is asked for, or null when the rehearsal is
+  /// over. Found rather than indexed: `_prefixAt` lands on a move of theirs by
+  /// construction, and an assumption that quietly holds is one nobody notices
+  /// breaking.
+  LineMove? get _nextMine {
+    for (var i = _prefixAt; i < _prefix.length; i += 1) {
+      if (_prefix[i].mine) return _prefix[i];
+    }
+    return null;
+  }
+
+  /// True when the move the rehearsal is about to ask for is one of the
+  /// student's alternates and not their main move.
+  ///
+  /// Only for an alternate. Saying "there is a choice here" at every fork would
+  /// name nothing, and naming the move would turn the rehearsal into a cutscene
+  /// at exactly the positions worth rehearsing.
+  bool get _alternateAhead {
+    final next = _nextMine;
+    return next != null && next.isFork && next.role != 'primary';
+  }
+
+  /// True when the rehearsal is standing at the fork whose road was chosen,
+  /// and the move it wants is the one that was asked for.
+  ///
+  /// This is the moment the choice has to be visible. Above the fork the board
+  /// and the breadcrumb read exactly the same down either road — the line
+  /// diverges at the next move and not before — so a student who asked for the
+  /// d4 line was handed it, shown a position identical to the one they were
+  /// looking at, and asked to play "the move you chose" as though nothing had
+  /// happened. The feature worked and could not be seen working.
+  bool get _viaHere {
+    final at = _rehearsalFen;
+    final next = _nextMine;
+    final viaFen = _viaFen;
+    final viaUci = _viaUci;
+    if (at == null || next == null || viaFen == null || viaUci == null) {
+      return false;
+    }
+    return fenKeyOf(at) == fenKeyOf(viaFen) && next.uci == viaUci;
+  }
 
   /// Set once the student has asked to practise a branch before it is due.
   ///
@@ -126,6 +203,24 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// one evening because somebody enjoyed themselves must not come back in a
   /// month on the strength of it.
   bool _ahead = false;
+
+  /// The decision this session is walking through, when the student asked for
+  /// one road at a fork rather than the one the schedule offered.
+  ///
+  /// A repertoire keeps more than one move in plenty of positions, and which of
+  /// them a line goes through was the queue's to decide. Standing in front of
+  /// your own main move and being drilled down the alternative, with no way to
+  /// say "the other one", is the complaint this answers.
+  String? _viaFen;
+  String? _viaUci;
+  String? _viaSan;
+
+  /// The questions refused this session.
+  ///
+  /// `nextItem` is a deterministic `ORDER BY due_at LIMIT 1` and skipping
+  /// writes nothing down, so "Druga linija" and "Preskoči" handed back exactly
+  /// what was refused. They were escapes that escaped nowhere.
+  final Set<String> _refused = {};
 
   /// The branch this session is walking, or null for the whole repertoire.
   ///
@@ -144,6 +239,23 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// with every position scored would push the schedule out on the strength of
   /// moves nobody had to remember cold — the same rule that keeps the line
   /// walk's prefix ungraded, and the reason this is safe to press twice.
+  /// The verdict on the previous answer, carried into the next question.
+  ///
+  /// Walking on by itself takes the graded panel off the screen after a beat,
+  /// and that panel is where the schedule is reported. A drill that quietly
+  /// stops saying when a position comes back has lost the one thing it is
+  /// keeping — so the sentence follows the walk instead of being replaced by
+  /// it. Cleared as soon as there is a real verdict again.
+  String? _lastVerdict;
+
+  /// True once this line has been walked on past the position that was due.
+  ///
+  /// Everything below the question is a position the schedule did not ask for,
+  /// so the answer goes up with `onlyIfDue` and the server writes it only if it
+  /// really was due. Same rule as the sparring run's `dueKeys`, and the reason
+  /// walking on is safe to do by itself.
+  bool _walkedOn = false;
+
   bool _sparring = false;
   Set<String> _sparDue = const {};
   int _sparPlayed = 0;
@@ -189,6 +301,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       rootFen: root,
       rootPath: widget.rootPath,
       minRating: widget.minRating,
+      gateUci: widget.gateUci,
     );
     if (!mounted) return;
     setState(() => _busy = false);
@@ -272,6 +385,11 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _branchSan = picked.branch?.san;
       _sparring = false;
       _sparNote = null;
+      // A branch is a bigger choice than a fork inside one, so it wins.
+      _viaFen = null;
+      _viaUci = null;
+      _viaSan = null;
+      _refused.clear();
     });
     await _loadNext(keepAhead: false);
   }
@@ -287,6 +405,10 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     setState(() {
       _branchFen = branch.fen;
       _branchSan = branch.san;
+      _viaFen = null;
+      _viaUci = null;
+      _viaSan = null;
+      _refused.clear();
       _sparring = true;
       _sparDue = branch.dueKeys.toSet();
       _sparPlayed = 0;
@@ -299,6 +421,10 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _prefixAt = 0;
       _rehearsalFen = null;
       _prefixNote = null;
+      _prefixNoteMild = false;
+      _prefixArrow = null;
+      _walkedOn = false;
+      _lastVerdict = null;
       _answer = null;
       _playedSan = null;
       _replySan = null;
@@ -327,6 +453,95 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     });
   }
 
+  /// Puts this question at the back of the pile and asks for another.
+  ///
+  /// Behind both "Druga linija" and "Preskoči", which is what they always
+  /// claimed to do: without refusing anything, the next request asked the same
+  /// deterministic queue the same question and got the same answer back.
+  Future<void> _refuseAndNext() async {
+    final fen = _fen;
+    if (fen != null) _refused.add(fenKeyOf(fen));
+    await _loadNext();
+  }
+
+  /// The other roads out of the fork the rehearsal is standing at.
+  ///
+  /// Behind a press rather than on the board, the way "Pokaži" is. The
+  /// rehearsal is not graded, but naming the position's other move would give
+  /// away the one it is about to ask for wherever the student kept exactly two
+  /// — and looking is then something they did, not something that happened.
+  Future<void> _pickFork() async {
+    final at = _rehearsalFen;
+    final fork = _nextMine;
+    if (at == null || fork == null || !fork.isFork || _busy) return;
+
+    final picked = await showModalBottomSheet<LineAlternative>(
+      context: context,
+      backgroundColor: context.colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxs),
+              child: Text('Druga odluka u ovoj poziciji',
+                  style: AppText.bodyBold
+                      .copyWith(color: sheet.colors.textPrimary)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.sm),
+              child: Text(
+                'Vežbanje ide dalje kroz potez koji izaberete.',
+                style: AppText.micro.copyWith(color: sheet.colors.textMuted),
+              ),
+            ),
+            const Divider(height: 1),
+            for (final alt in fork.alts)
+              ListTile(
+                dense: true,
+                leading:
+                    Icon(Icons.alt_route, size: 18, color: sheet.colors.accent),
+                title: Text('Vežbaj ${alt.san}', style: AppText.bodyLarge),
+                onTap: () => Navigator.pop(sheet, alt),
+              ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted || picked == null) return;
+    setState(() {
+      _viaFen = at;
+      _viaUci = picked.uci;
+      _viaSan = picked.san;
+      // A different road is a different pile. What was refused on the old one
+      // says nothing about this one.
+      _refused.clear();
+    });
+    // Nothing under that move need be due — asking for a road is a reason to
+    // walk it now, and practising early writes nothing down.
+    _ahead = true;
+    await _loadNext();
+  }
+
+  /// Back to whatever the schedule wants, from a chosen road.
+  Future<void> _clearVia() async {
+    setState(() {
+      _viaFen = null;
+      _viaUci = null;
+      _viaSan = null;
+      _refused.clear();
+    });
+    await _loadNext(keepAhead: false);
+  }
+
   /// Practises a branch that is not due yet. Nothing is written down.
   Future<void> _practiseAhead() async {
     _ahead = true;
@@ -348,6 +563,10 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _prefixAt = 0;
       _rehearsalFen = null;
       _prefixNote = null;
+      _prefixNoteMild = false;
+      _prefixArrow = null;
+      _walkedOn = false;
+      _lastVerdict = null;
       _played.clear();
     });
 
@@ -357,15 +576,37 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     // the drill is still worth having while somebody notices it.
     final root = widget.rootFen;
     if (root != null) {
-      final line = await _api.drillLine(
+      var line = await _api.drillLine(
         color: widget.color,
         rootFen: root,
         rootPath: widget.rootPath,
         minRating: widget.minRating,
         fromFen: _branchFen,
+        viaFen: _viaFen,
+        viaUci: _viaUci,
+        exclude: _refused.toList(),
         ahead: _ahead,
+        gateUci: widget.gateUci,
       );
       if (!mounted) return;
+      // Skipping is a shuffle, not a deletion. Once everything has been
+      // refused the pile is turned over rather than the screen saying nothing
+      // is due — which would be a lie told by the skip button.
+      if (line != null && !line.hasQuestion && _refused.isNotEmpty) {
+        _refused.clear();
+        line = await _api.drillLine(
+          color: widget.color,
+          rootFen: root,
+          rootPath: widget.rootPath,
+          minRating: widget.minRating,
+          fromFen: _branchFen,
+          viaFen: _viaFen,
+          viaUci: _viaUci,
+          ahead: _ahead,
+          gateUci: widget.gateUci,
+        );
+        if (!mounted) return;
+      }
       if (line != null) {
         _startLine(line);
         return;
@@ -398,6 +639,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _prefixAt = 0;
       _rehearsalFen = line.prefix.isEmpty ? null : line.startFen;
       _prefixNote = null;
+      _prefixNoteMild = false;
+      _prefixArrow = null;
     });
     final fen = _rehearsalFen ?? _fen;
     if (fen != null) _boardController.loadFen(fen);
@@ -414,7 +657,19 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// A wrong move is not a failure either: the line's own move is played
   /// instead, and named. Carrying on from a move that is not in the line would
   /// be rehearsing a different line.
-  void _rehearse(String from, String to, String promotion) {
+  ///
+  /// **Three outcomes, not two.** The line's own move is right; *another move
+  /// the student themselves chose* is right chess in the wrong line; anything
+  /// else is a miss. Those first two used to read identically — an orange
+  /// warning naming the move you did not play — so a student rehearsing an
+  /// alternate line was told their own main move was a mistake. It is not, and
+  /// nothing in the repertoire is worth teaching somebody to distrust less.
+  ///
+  /// **Shown in two beats.** The line's move and the opponent's answer used to
+  /// land in a single `loadFen`, so a correction was never visible: the board
+  /// simply changed, and a piece appeared on a square nothing had been seen
+  /// going to. The move goes up alone first, with an arrow on it.
+  Future<void> _rehearse(String from, String to, String promotion) async {
     final at = _rehearsalFen;
     if (at == null || _busy || !_rehearsing) return;
 
@@ -432,7 +687,9 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       return;
     }
     final uci = isPromotion ? '$from$to$piece' : '$from$to';
+    final playedSan = board.getHistory().last.toString();
     final right = uci == want.uci;
+    final ownMove = !right && want.alts.any((a) => a.uci == uci);
 
     // The line's move goes on the board whatever was played, so the board is
     // never one move away from the line it is rehearsing.
@@ -442,8 +699,9 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       'to': want.uci.substring(2, 4),
       if (want.uci.length > 4) 'promotion': want.uci.substring(4, 5),
     });
+    final afterMine = walker.fen;
     var cursor = _prefixAt + 1;
-    final played = <String>[want.san];
+    final replies = <String>[];
 
     // And then the opponent's answers, until it is the student's move again.
     while (cursor < _prefix.length && !_prefix[cursor].mine) {
@@ -453,16 +711,45 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         'to': reply.uci.substring(2, 4),
         if (reply.uci.length > 4) 'promotion': reply.uci.substring(4, 5),
       });
-      played.add(reply.san);
+      replies.add(reply.san);
       cursor += 1;
     }
 
     setState(() {
-      _played.addAll(played);
-      _prefixAt = cursor;
+      // The board is locked for the beat: the answers are coming and a move
+      // played into the middle of them would be answering a position that is
+      // about to stop existing.
+      _busy = replies.isNotEmpty;
+      _played.add(want.san);
+      _prefixArrow = ChessArrow(
+        from: want.uci.substring(0, 2),
+        to: want.uci.substring(2, 4),
+        colorCode: right ? 'G' : 'O',
+      );
       _prefixNote = right
           ? null
-          : 'U ovoj liniji ide ${want.san}. Ponavljanje se ne ocenjuje.';
+          : ownMove
+              ? 'I $playedSan je vaš potez — ali ova linija vežba '
+                  '${want.san}.'
+              : 'U ovoj liniji ide ${want.san}. Ponavljanje se ne ocenjuje.';
+      _prefixNoteMild = ownMove;
+    });
+    _boardController.loadFen(afterMine);
+
+    if (replies.isNotEmpty) {
+      final line = _line;
+      await Future<void>.delayed(_beat);
+      // Somebody may have loaded another line while the beat ran. Checked
+      // against the line itself rather than a flag, because that is the thing
+      // that would have changed.
+      if (!mounted || !identical(_line, line) || _rehearsalFen != at) return;
+    }
+
+    setState(() {
+      _busy = false;
+      _played.addAll(replies);
+      _prefixAt = cursor;
+      _prefixArrow = null;
       _rehearsalFen = cursor < _prefix.length ? walker.fen : null;
     });
     _boardController.loadFen(_rehearsalFen ?? _fen ?? walker.fen);
@@ -476,6 +763,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _prefixAt = _prefix.length;
       _rehearsalFen = null;
       _prefixNote = null;
+      _prefixNoteMild = false;
+      _prefixArrow = null;
     });
     final fen = _fen;
     if (fen != null) _boardController.loadFen(fen);
@@ -499,12 +788,16 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// Continues the line from a position the drill walked into, rather than
   /// jumping somewhere else. Landing in an unprepared position is the point of
   /// the uncovered replies, so it stays on the board and offers the way out.
-  void _continueAt(String fen) {
+  void _continueAt(String fen, {String? verdict}) {
     // The two moves that got here go into the line, or the breadcrumb would
     // name a position two moves behind the board.
     final mine = _playedSan;
     final reply = _replySan;
     setState(() {
+      // Past the position the schedule asked for. Everything answered from
+      // here on is written down only if it was due in its own right.
+      _walkedOn = true;
+      _lastVerdict = verdict;
       if (mine != null) _played.add(mine);
       if (reply != null) _played.add(reply);
       _fen = fen;
@@ -520,7 +813,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
 
   Future<void> _onMove(String from, String to, String promotion) async {
     if (_rehearsing) {
-      _rehearse(from, to, promotion);
+      await _rehearse(from, to, promotion);
       return;
     }
     final fen = _fen;
@@ -557,6 +850,10 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       // was not itself due. A run scored at every position would push the
       // schedule out on the strength of moves nobody had to remember cold.
       practice: _ahead || (_sparring && !_sparDue.contains(fenKeyOf(fen))),
+      // Below the question the schedule asked for nothing, so the server
+      // writes this one only if it really was due. Same rule as the run's
+      // `dueKeys`, kept where `due_at` is — the client cannot know.
+      onlyIfDue: _walkedOn && !_sparring,
     );
     if (!mounted) return;
 
@@ -595,13 +892,67 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     setState(() {
       _busy = false;
       _answer = graded;
+      _lastVerdict = null;
       _replySan = replySan;
       _replyCovered = graded.replyCovered;
       _lineFen = boardFen;
     });
     _boardController.loadFen(boardFen);
 
-    if (_sparring) await _sparStep(graded, boardFen);
+    if (_sparring) {
+      await _sparStep(graded, boardFen);
+      return;
+    }
+    await _walkOn(graded, boardFen);
+  }
+
+  /// On down the line by itself, after a right answer.
+  ///
+  /// The drill was agreed as a line walk, and a line walked one button press at
+  /// a time is a quiz with an extra step. The sparring run already did this;
+  /// the queue did not, and "Nastavi liniju" was the whole difference between
+  /// them. Now the button is what is left when the walk *stops*.
+  ///
+  /// A mistake stops it where it happened — that position is the reason the
+  /// line was worth playing, and hurrying past it is the one moment the screen
+  /// must not hurry. So does the end of the book: with no reply there is
+  /// nothing to walk on into, and the position after your own move is the
+  /// opponent's to answer, not yours.
+  ///
+  /// And so does a reply nobody prepared. Being surprised is the one thing a
+  /// book cannot do and the door back into building — walking straight past
+  /// the sentence that says so, into a position with no answer to give, turns
+  /// the best moment the drill has into a dead end reached at speed.
+  Future<void> _walkOn(DrillAnswer graded, String boardFen) async {
+    if (!_walksOn(graded)) return;
+
+    // Twice the run's beat, because this panel says something the run's does
+    // not: when the position comes back. A sentence nobody has time to read is
+    // a sentence the drill has stopped saying.
+    await Future<void>.delayed(const Duration(milliseconds: 1400));
+    if (!mounted || _sparring || _lineFen != boardFen) return;
+
+    final back = _whenBack(graded);
+    _continueAt(
+      boardFen,
+      verdict: [
+        graded.outcome == 'primary'
+            ? 'Tačno — ${_playedSan ?? ''}'
+            : 'I to je vaše — ${_playedSan ?? ''}',
+        if (_replySan != null) 'protivnik $_replySan',
+        if (back.isNotEmpty) back.trim().replaceAll('.', '').toLowerCase(),
+      ].join(' · '),
+    );
+  }
+
+  /// Whether this answer carries the line on by itself.
+  ///
+  /// Asked in two places — by the walk and by the button that is what is left
+  /// when the walk does not happen — so it is one condition rather than two
+  /// that have to agree.
+  bool _walksOn(DrillAnswer graded) {
+    final right = graded.outcome == 'primary' || graded.outcome == 'alternate';
+    return right && graded.reply != null && graded.replyCovered;
   }
 
   /// One step of a run: count it, and either carry on or stop.
@@ -723,7 +1074,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                     isAllowedToMove: !_busy && _answer == null,
                     isDrawingMode: false,
                     drawingStartSquare: null,
-                    arrows: const [],
+                    arrows: _prefixArrow == null ? const [] : [_prefixArrow!],
                     engineArrows: const [],
                     onMove: _onMove,
                     onSquareTapForDrawing: (_) {},
@@ -732,6 +1083,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               ),
               const SizedBox(height: AppSpacing.md),
               _buildSparLine(context),
+              _buildViaLine(context),
               _buildPrompt(context),
               const SizedBox(height: 10),
               _buildControls(context),
@@ -775,6 +1127,35 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     );
   }
 
+  /// The road the student chose, and the way back to the schedule.
+  ///
+  /// Said out loud because it changes what the drill is doing: the questions
+  /// are no longer the ones that came up, and nothing answered under a chosen
+  /// road is written down. A mode nobody can see they are in is a mode that
+  /// looks like a bug.
+  Widget _buildViaLine(BuildContext context) {
+    final san = _viaSan;
+    if (san == null || _sparring) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: Row(
+        children: [
+          Icon(Icons.alt_route, size: 16, color: context.colors.accent),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text('Vežbate liniju kroz $san.',
+                style: AppText.caption
+                    .copyWith(color: context.colors.textPrimary)),
+          ),
+          TextButton(
+            onPressed: _busy ? null : _clearVia,
+            child: const Text('Nazad na red'),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Where the board came from, when there is a line behind it.
   Widget _buildLine(BuildContext context) {
     final line = _lineText();
@@ -810,10 +1191,44 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                     'pitanja.',
             style: AppText.caption.copyWith(color: context.colors.textMuted),
           ),
+          // The road that was asked for, named. Nothing is given away: the
+          // student chose this move by name a moment ago, and being asked to
+          // guess it back is how the choice came to look like it had done
+          // nothing at all.
+          if (_viaHere) ...[
+            const SizedBox(height: AppSpacing.xxs),
+            Text(
+              'Ova linija ide kroz ${_viaSan ?? ''} — odigrajte ga.',
+              style: AppText.caption.copyWith(color: context.colors.accent),
+            ),
+          ],
+          // Which of the student's decisions this line is walking, when there
+          // is more than one to walk. Said *before* the move and without
+          // naming it: a rehearsal at a fork where the line wants the alternate
+          // is otherwise a guess, and playing your own main move there came
+          // back as a mistake. Which move is still theirs to remember — that is
+          // what the rehearsal is for.
+          //
+          // Not when the road was chosen: then the move has a name already, and
+          // "one of your moves" beneath "play d4" says less than nothing.
+          if (_alternateAhead && !_viaHere) ...[
+            const SizedBox(height: AppSpacing.xxs),
+            Text(
+              'U ovoj poziciji imate više svojih poteza — ova linija ide kroz '
+              'alternativu, ne kroz glavni.',
+              style: AppText.caption.copyWith(color: context.colors.info),
+            ),
+          ],
           if (_prefixNote != null) ...[
             const SizedBox(height: AppSpacing.xxs),
-            Text(_prefixNote!,
-                style: AppText.caption.copyWith(color: context.colors.warning)),
+            Text(
+              _prefixNote!,
+              style: AppText.caption.copyWith(
+                color: _prefixNoteMild
+                    ? context.colors.info
+                    : context.colors.warning,
+              ),
+            ),
           ],
         ],
       );
@@ -824,6 +1239,11 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildLine(context),
+          if (_lastVerdict != null) ...[
+            Text(_lastVerdict!,
+                style: AppText.micro.copyWith(color: context.colors.textMuted)),
+            const SizedBox(height: AppSpacing.xxs),
+          ],
           Text(_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?',
               style: AppText.bodyBold),
           const SizedBox(height: AppSpacing.xxs),
@@ -839,8 +1259,14 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           ),
           if (_prefixNote != null) ...[
             const SizedBox(height: AppSpacing.xxs),
-            Text(_prefixNote!,
-                style: AppText.caption.copyWith(color: context.colors.warning)),
+            Text(
+              _prefixNote!,
+              style: AppText.caption.copyWith(
+                color: _prefixNoteMild
+                    ? context.colors.info
+                    : context.colors.warning,
+              ),
+            ),
           ],
         ],
       );
@@ -985,8 +1411,16 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             icon: const Icon(Icons.fast_forward, size: 18),
             label: const Text('Preskoči ponavljanje'),
           ),
+          // The other road out of this fork. Only where there is one, and it
+          // names nothing until it is pressed.
+          if (_nextMine?.isFork ?? false)
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _pickFork,
+              icon: const Icon(Icons.alt_route, size: 18),
+              label: const Text('Druga odluka'),
+            ),
           OutlinedButton.icon(
-            onPressed: _busy ? null : _loadNext,
+            onPressed: _busy ? null : _refuseAndNext,
             icon: const Icon(Icons.skip_next, size: 18),
             label: const Text('Druga linija'),
           ),
@@ -1010,7 +1444,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             label: const Text('Pokaži'),
           ),
           OutlinedButton.icon(
-            onPressed: _busy ? null : _loadNext,
+            onPressed: _busy ? null : _refuseAndNext,
             icon: const Icon(Icons.skip_next, size: 18),
             label: const Text('Preskoči'),
           ),
@@ -1021,7 +1455,15 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               icon: const Icon(Icons.playlist_add, size: 18),
               label: const Text('Izgradi ovu poziciju'),
             ),
-          if (_lineFen != null && graded.isPrepared)
+          // What is left of "Nastavi liniju" now that a right answer walks on
+          // by itself: the offer to carry on from a mistake, once the right
+          // move has been seen. Without a reply there is nothing to carry on
+          // into — the position after your own move is the opponent's to
+          // answer, and asking you for it was a bug of its own.
+          if (_lineFen != null &&
+              graded.isPrepared &&
+              graded.reply != null &&
+              !_walksOn(graded))
             OutlinedButton.icon(
               onPressed: _busy ? null : () => _continueAt(_lineFen!),
               icon: const Icon(Icons.play_arrow, size: 18),
@@ -1043,6 +1485,12 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     // why the counts come from the walk rather than from the whole colour.
     final nothingBuilt = _stats.positions == 0;
     final inBranch = _branchFen != null;
+    // A chosen road that turns out to hold nothing. Its own sentence, because
+    // "ništa nije na redu" reads as a fact about the repertoire when it is a
+    // fact about one move — and this screen is drawn *instead of* the panel
+    // that carries the road and the way back off it, so without this the
+    // student is on a road they cannot see and cannot leave.
+    final via = _viaSan;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -1053,30 +1501,38 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                 size: 40),
             const SizedBox(height: AppSpacing.md),
             Text(
-              nothingBuilt
-                  ? (inBranch
-                      ? 'U ovoj grani nema šta da se vežba.'
-                      : 'Još nema šta da se vežba.')
-                  : (inBranch
-                      ? 'U ovoj grani ništa nije na redu.'
-                      : 'Ništa nije na redu.'),
+              via != null
+                  ? (nothingBuilt
+                      ? 'Iza poteza $via još nema šta da se vežba.'
+                      : 'Iza poteza $via ništa nije na redu.')
+                  : nothingBuilt
+                      ? (inBranch
+                          ? 'U ovoj grani nema šta da se vežba.'
+                          : 'Još nema šta da se vežba.')
+                      : (inBranch
+                          ? 'U ovoj grani ništa nije na redu.'
+                          : 'Ništa nije na redu.'),
               style: AppText.bodyBold,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
             Text(
-              nothingBuilt
-                  ? (inBranch
-                      ? 'Ova grana je odsečena ili u njoj još nema vaših '
-                          'poteza.'
-                      : 'Prvo izgradite nekoliko pozicija — vežba pita ono što '
-                          'ste vi izabrali.')
-                  // When the next one comes back, not only that it will. A
-                  // branch of one position, drilled once and scheduled for
-                  // tomorrow, used to say nothing but "nothing is due" — which
-                  // reads as "this branch cannot be practised".
-                  : '${_backAgain()}Do sada znate ${_stats.known} od '
-                      '${_stats.positions} pozicija.',
+              via != null
+                  ? 'Taj potez je vaš, ali iza njega još nije izgrađena '
+                      'linija. Otvorite izgradnju i uzmite protivnikove '
+                      'odgovore na njega.'
+                  : nothingBuilt
+                      ? (inBranch
+                          ? 'Ova grana je odsečena ili u njoj još nema vaših '
+                              'poteza.'
+                          : 'Prvo izgradite nekoliko pozicija — vežba pita ono što '
+                              'ste vi izabrali.')
+                      // When the next one comes back, not only that it will. A
+                      // branch of one position, drilled once and scheduled for
+                      // tomorrow, used to say nothing but "nothing is due" — which
+                      // reads as "this branch cannot be practised".
+                      : '${_backAgain()}Do sada znate ${_stats.known} od '
+                          '${_stats.positions} pozicija.',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
@@ -1085,11 +1541,22 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             // is written down for it. Waiting a day is right for a schedule and
             // wrong for somebody who has just built ten positions and wants to
             // run them once.
-            if (!nothingBuilt) ...[
+            if (!nothingBuilt && via == null) ...[
               FilledButton.icon(
                 onPressed: _busy ? null : _practiseAhead,
                 icon: const Icon(Icons.play_arrow, size: 18),
                 label: const Text('Vežbaj ipak'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            // The way off a road that led nowhere. This screen replaces the
+            // panel the road is normally shown and left from, so without it the
+            // only way back to the schedule is out of the drill entirely.
+            if (via != null) ...[
+              FilledButton.icon(
+                onPressed: _busy ? null : _clearVia,
+                icon: const Icon(Icons.arrow_forward, size: 18),
+                label: const Text('Nazad na red'),
               ),
               const SizedBox(height: AppSpacing.sm),
             ],
