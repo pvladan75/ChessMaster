@@ -120,6 +120,28 @@ disabled with a reason rather than silently failing to save.
 §2.5 of the brief has the Serbian wording for the three widths and why a
 one-shot dial was rejected.
 
+## The files you may add
+
+Exactly these, and no others. The harness allows for them by name; **a file by
+another name fails the untracked-tree gate and takes the whole round with it**,
+which has already cost this project two rounds of agent time.
+
+| path | what |
+|---|---|
+| `chess_app/lib/features/repertoire/widgets/unconfirmed_banner.dart` | step 3 |
+| `chess_app/lib/features/repertoire/widgets/unconfirmed_review_sheet.dart` | step 4, the wizard |
+| `chess_app/lib/features/repertoire/widgets/breadth_dialog.dart` | step 6 |
+| `chess_app/test/repertoire_unconfirmed_test.dart` | the client methods, step 1 |
+| `chess_app/test/repertoire_unconfirmed_review_test.dart` | the banner, badge and wizard |
+| `chess_app/test/repertoire_breadth_dialog_test.dart` | the width dialog |
+
+Everything else is an edit to a file that already exists. If you believe you need
+a seventh file, **say so in the report and put the code in one of the six** —
+do not add it and hope.
+
+Leave no scratch files: no `.py` helpers, no notes, no `.bak`. Four runs out of
+four have left scratch files behind and every one of them failed this gate.
+
 ## Method
 
 1. Read the brief whole. §3 is the contract, §5 is what gets the work rejected.

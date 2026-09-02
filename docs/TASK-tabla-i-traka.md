@@ -93,6 +93,24 @@ where `tester.takeException()` is null.
 That exact path is allowed for in the harness. **A test file by another name will
 fail the untracked-tree gate.**
 
+## The files you may add
+
+Exactly these two, and no others. The harness allows for them by name; **a file
+by another name fails the untracked-tree gate and takes the whole round with
+it**, which has already cost this project two rounds of agent time.
+
+| path | what |
+|---|---|
+| `chess_app/lib/features/repertoire/widgets/opening_banner.dart` | step 3 |
+| `chess_app/test/repertoire_opening_banner_test.dart` | its test |
+
+Everything else is an edit to a file that already exists. If you believe you need
+a third file, **say so in the report and put the code in one of the two** — do
+not add it and hope.
+
+Leave no scratch files: no `.py` helpers, no notes, no `.bak`. Four runs out of
+four have left scratch files behind and every one of them failed this gate.
+
 ## Method
 
 1. Read the brief whole. §3 is the contract, §5 is what gets the work rejected.
