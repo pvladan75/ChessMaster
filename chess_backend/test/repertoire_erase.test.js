@@ -57,8 +57,12 @@ function stubPool({
     }
     if (flat.includes('FROM opening_replies')) {
       const [band, keys] = params;
-      const rows = replies.filter(
-        (r) => Number(r.min_rating ?? 0) === band && keys.includes(r.fen_key));
+      // The whole book for the position: `covered` and `asked` are columns the
+      // breadth rule reads at walk time, not a filter this query applies.
+      const rows = replies
+        .filter((r) => Number(r.min_rating ?? 0) === band
+          && keys.includes(r.fen_key))
+        .map((r) => ({ covered: true, asked: false, ...r }));
       return { rows, rowCount: rows.length };
     }
     if (flat.includes('AS positions')) {

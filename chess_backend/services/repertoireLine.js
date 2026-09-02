@@ -41,7 +41,9 @@ const {
   MAX_NODES,
   MAX_PLY,
 } = require('./repertoireFrontier');
-const { fenKey, skippedKeys } = require('./repertoireService');
+const {
+  fenKey, skippedKeys, requireBreadth, DEFAULT_BREADTH,
+} = require('./repertoireService');
 const {
   nextItem,
   drillStats,
@@ -63,7 +65,7 @@ const {
 /// line to be rehearsed down.
 async function walkLines(pool, userId, {
   color, rootFen, minRating = 0, maxPly = MAX_PLY, onlyChosen = false,
-  gateUci = null,
+  gateUci = null, breadth = DEFAULT_BREADTH,
 } = {}) {
   if (color !== 'w' && color !== 'b') {
     throw new RangeError(`Boja mora biti "w" ili "b", a ne "${color}".`);
@@ -80,6 +82,7 @@ async function walkLines(pool, userId, {
     await keptByPosition(pool, userId, color, { onlyChosen }), rootKey, gateUci);
   const cut = await skippedKeys(pool, userId, color);
   const band = Number(minRating) || 0;
+  const wide = requireBreadth(breadth);
   const root = {
     key: rootKey, fen: rootFen, parent: null, ply: 0, path: [], moves: [],
   };
@@ -118,7 +121,7 @@ async function walkLines(pool, userId, {
     }
 
     const keys = [...new Set(branches.map((b) => fenKey(b.after.fen)))];
-    const book = await coveredReplies(pool, userId, color, keys, band);
+    const book = await coveredReplies(pool, userId, color, keys, band, wide);
 
     const next = [];
     for (const branch of branches) {
@@ -201,9 +204,10 @@ async function walkLines(pool, userId, {
 /// the answer says when it was reached.
 async function tree(pool, userId, {
   color, rootFen, rootPath = [], minRating = 0, maxPly = 16, gateUci = null,
+  breadth = DEFAULT_BREADTH,
 } = {}) {
   const { nodes, root, truncated, kept, cut } = await walkLines(pool, userId, {
-    color, rootFen, minRating, maxPly, gateUci,
+    color, rootFen, minRating, maxPly, gateUci, breadth,
   });
 
   const byParent = new Map();
@@ -321,6 +325,48 @@ function nodesVia(nodes, viaKey, viaUci) {
   return out;
 }
 
+/// The doors a session is being run through, always as a list.
+///
+/// Everything below the drill takes one `(rootFen, gateUci)` pair, and a
+/// student who wants to practise two openings in one sitting had no way to say
+/// so. Rather than teach every function to be two functions, one root becomes a
+/// list of one here and the rest of the file only ever sees a list.
+///
+/// `roots` comes from `repertoiresByIds`, so each door already carries its
+/// name, its gate and its breadth — the caller does not send three parallel
+/// arrays, which is the shape that goes wrong the first time one of them is
+/// shorter than the others.
+///
+/// The single-root parameters are still exactly what they were, and a request
+/// that sends them gets the walk it has always got.
+function doorsOf({
+  roots = null, rootFen, rootPath = [], gateUci = null,
+  breadth = DEFAULT_BREADTH,
+} = {}) {
+  if (Array.isArray(roots) && roots.length > 0) {
+    return roots.map((one) => ({
+      id: one.id ?? null,
+      name: one.name ?? null,
+      rootFen: one.rootFen,
+      rootPath: Array.isArray(one.rootPath) ? one.rootPath : [],
+      viaUci: one.viaUci ?? null,
+      breadth: one.breadth ?? DEFAULT_BREADTH,
+    }));
+  }
+  return [{
+    id: null,
+    name: null,
+    rootFen,
+    rootPath: Array.isArray(rootPath) ? rootPath : [],
+    viaUci: gateUci,
+    breadth,
+  }];
+}
+
+/// The SAN moves that led to a door's root, cleaned.
+const baseOf = (door) => door.rootPath
+  .filter((san) => typeof san === 'string' && san !== '');
+
 /// One line to rehearse, and the question at the end of it.
 ///
 /// `question` is null when nothing is waiting — which the screen must tell
@@ -334,53 +380,92 @@ function nodesVia(nodes, viaKey, viaUci) {
 /// promise the queue cannot keep: `nextItem` is a deterministic `ORDER BY
 /// due_at LIMIT 1` and skipping writes nothing down, so the same line came back
 /// every time the button was pressed.
+///
+/// `roots` runs **one session over several repertoires**. Each is walked with
+/// its own gate and its own breadth, the question is taken from the union, and
+/// the line is built from whichever walk holds it — so the breadcrumb reads
+/// from that repertoire's own root and the answer says which one it came from.
+///
+/// A position two repertoires both reach is **one item**: `repertoire_reviews`
+/// is keyed `(colour, position)` and stays that way, so it has one due date and
+/// is answered once. Per-repertoire schedules would put the same board up twice
+/// in one sitting and call the second time practice.
 async function drillLine(pool, userId, {
   color, rootFen, rootPath = [], minRating = 0, fromFen = null,
   viaFen = null, viaUci = null, exclude = [], ahead = false, gateUci = null,
-  now = new Date(),
+  breadth = DEFAULT_BREADTH, roots = null, now = new Date(),
 } = {}) {
-  const { nodes, root, truncated } = await walkLines(pool, userId, {
-    color, rootFen, minRating, gateUci,
-    // A rehearsal replays decisions. A line through a move nobody chose is not
-    // the student's line, and playing it would teach a move they have not
-    // agreed to.
-    onlyChosen: true,
-  });
+  const doors = doorsOf({ roots, rootFen, rootPath, gateUci, breadth });
 
-  const base = Array.isArray(rootPath)
-    ? rootPath.filter((san) => typeof san === 'string' && san !== '')
-    : [];
-
-  // With a gate, the repertoire *is* the gated walk — so the counts and the
-  // queue start from it rather than from the whole colour. Without one this
-  // stays null, which is what it has always meant: everything.
-  let within = gateUci ? [...nodes.keys()] : null;
-  let from = null;
-  if (fromFen != null && String(fromFen).trim() !== '') {
-    from = fenKey(fromFen);
-    // A position the walk never reached — cut since, or built under a move that
-    // is no longer kept. An empty block rather than a 400: the request was
-    // well formed, and "there is nothing there any more" is the answer.
-    const block = nodes.has(from) ? subtree(nodes, from) : [];
-    // Intersected, never replaced, for the same reason the fork below is: a
-    // gate and a branch are two narrowings of one walk.
-    within = within === null
-      ? block
-      : within.filter((key) => block.includes(key));
+  const walks = [];
+  let truncated = false;
+  for (const door of doors) {
+    // Sequential rather than in parallel: these are database round trips
+    // against one pool, and a combined session of four repertoires firing four
+    // wide walks at once is how a pool runs out of clients.
+    // eslint-disable-next-line no-await-in-loop
+    const walk = await walkLines(pool, userId, {
+      color,
+      rootFen: door.rootFen,
+      minRating,
+      gateUci: door.viaUci,
+      breadth: door.breadth,
+      // A rehearsal replays decisions. A line through a move nobody chose is
+      // not the student's line, and playing it would teach a move they have
+      // not agreed to.
+      onlyChosen: true,
+    });
+    truncated = truncated || walk.truncated;
+    walks.push({ door, ...walk });
   }
 
-  if (viaFen != null && String(viaFen).trim() !== '' && viaUci) {
-    const viaKey = fenKey(viaFen);
-    const through = nodes.has(viaKey) ? nodesVia(nodes, viaKey, viaUci) : [];
-    // Intersected rather than replaced: a branch and a fork inside it are two
-    // narrowings of the same walk, and one must not quietly undo the other.
-    within = within === null
-      ? through
-      : within.filter((key) => through.includes(key));
-  }
+  const from = fromFen != null && String(fromFen).trim() !== ''
+    ? fenKey(fromFen)
+    : null;
+  const forkKey = viaFen != null && String(viaFen).trim() !== '' && viaUci
+    ? fenKey(viaFen)
+    : null;
+
+  /// What one door contributes to the queue, or null for "everything it has".
+  ///
+  /// Null is not the same as "all of this walk": with a single ungated door and
+  /// no narrowing it means the whole **colour**, which is what this call has
+  /// always meant and what the schedule is keyed by. It stops meaning that the
+  /// moment there is more than one door — a combined session is exactly the
+  /// union of the repertoires named, not everything the student owns.
+  const narrow = (walk) => {
+    let within = walk.door.viaUci ? [...walk.nodes.keys()] : null;
+    if (from !== null) {
+      // A position this walk never reached — cut since, or built under a move
+      // no longer kept. An empty block rather than a 400: the request was well
+      // formed, and "there is nothing there any more" is the answer.
+      const block = walk.nodes.has(from) ? subtree(walk.nodes, from) : [];
+      // Intersected, never replaced, for the same reason the fork below is: a
+      // gate and a branch are two narrowings of one walk.
+      within = within === null
+        ? block
+        : within.filter((key) => block.includes(key));
+    }
+    if (forkKey !== null) {
+      const through = walk.nodes.has(forkKey)
+        ? nodesVia(walk.nodes, forkKey, viaUci)
+        : [];
+      within = within === null
+        ? through
+        : within.filter((key) => through.includes(key));
+    }
+    return within;
+  };
+
+  const narrowed = walks.map(narrow);
+  const within = (doors.length === 1 && narrowed[0] === null)
+    ? null
+    : [...new Set(narrowed.flatMap(
+      (keys, at) => keys ?? [...walks[at].nodes.keys()]))];
 
   const refused = new Set(Array.isArray(exclude) ? exclude : []);
-  const keys = (within ?? [...nodes.keys()]).filter((key) => !refused.has(key));
+  const keys = (within ?? walks.flatMap((walk) => [...walk.nodes.keys()]))
+    .filter((key) => !refused.has(key));
   // The counts describe the walk, not what is left of it after skipping: a
   // student who has skipped four of six positions has not thereby learned
   // them, and "dospelo 2" would say they had.
@@ -389,9 +474,24 @@ async function drillLine(pool, userId, {
     ? null
     : await nextItem(pool, userId, { color, now, only: keys, ahead });
 
-  if (item === null) {
+  // Which repertoire the question turned out to be in. First door wins where
+  // two of them reach the same position, which is the same first-wins rule the
+  // walk itself keeps — and it is one question either way, because the schedule
+  // is keyed by position and not by repertoire.
+  const found = item === null
+    ? null
+    : walks.find((walk) => walk.nodes.has(item.fenKey)) ?? null;
+  const tag = (walk) => (walk === null || walk.door.id === null
+    ? null
+    : { id: walk.door.id, name: walk.door.name });
+
+  if (item === null || found === null) {
+    // A door has to be named even with no question, because the screen draws a
+    // board from it. The first one, which with a single root is the only one.
+    const door = walks[0].door;
     return {
-      root: { fen: rootFen, path: base },
+      root: { fen: door.rootFen, path: baseOf(door) },
+      repertoire: tag(walks[0]),
       from,
       question: null,
       reason: stats.positions === 0 ? 'nothing-built' : 'nothing-due',
@@ -403,6 +503,7 @@ async function drillLine(pool, userId, {
     };
   }
 
+  const { nodes, root, door } = found;
   const target = nodes.get(item.fenKey);
   const chain = chainTo(nodes, item.fenKey);
   // Everything above the question. The question's own review says nothing about
@@ -428,8 +529,14 @@ async function drillLine(pool, userId, {
   return {
     // Handed back once rather than repeated on every move, the way the frontier
     // does it: each path starts at the repertoire's root and the screen joins
-    // the two for a line that reads from move one.
-    root: { fen: rootFen, path: base },
+    // the two for a line that reads from move one. In a combined session this
+    // is the root of the repertoire the question came from, not of the first
+    // one named — a breadcrumb from the wrong door is a line that does not add
+    // up on the board.
+    root: { fen: door.rootFen, path: baseOf(door) },
+    // Which repertoire that was. Null when the caller asked by root rather than
+    // by id, because then there is nothing to name it with.
+    repertoire: tag(found),
     // Whether this line was taken ahead of its schedule. The screen has to say
     // so, because the answer at the end of it will not be written down.
     ahead,
@@ -476,6 +583,16 @@ async function drillLine(pool, userId, {
 /// and then "2...d6" names two different branches. Same rule the coverage map
 /// keeps, and for the same reason.
 ///
+/// With `roots`, several repertoires are listed at once and every branch says
+/// which one it came from. Two of them can produce the same pair of moves from
+/// different doors, so the pair is not an identity any more: `key` stays what it
+/// was, and `id` is what a list should be keyed by.
+///
+/// A position both repertoires reach is counted into both branches, and that is
+/// the truth rather than double counting — it *is* in both openings. It is one
+/// question with one due date all the same, which is the sentence the branch
+/// sheet has to carry where two are ticked.
+///
 /// Only decisions are walked (`onlyChosen`). A drill never asks about a move
 /// nobody chose, so counting drafts here would promise questions that will
 /// never be asked.
@@ -483,40 +600,55 @@ async function drillLine(pool, userId, {
 /// No Lichess request, like everything that reads what was built.
 async function drillBranches(pool, userId, {
   color, rootFen, rootPath = [], minRating = 0, gateUci = null,
-  now = new Date(),
+  breadth = DEFAULT_BREADTH, roots = null, now = new Date(),
 } = {}) {
-  const { nodes, truncated } = await walkLines(pool, userId, {
-    color, rootFen, minRating, onlyChosen: true, gateUci,
-  });
+  const doors = doorsOf({ roots, rootFen, rootPath, gateUci, breadth });
 
   const groups = new Map();
-  for (const node of nodes.values()) {
-    // The root belongs to no branch: it is the position every branch leaves
-    // from, and counting it into one of them would make that one look bigger.
-    if (node.moves.length < 2) continue;
-    const key = `${node.moves[0].uci}-${node.moves[1].uci}`;
-    let group = groups.get(key);
-    if (group === undefined) {
-      group = {
-        key,
-        // The two moves that open it, so a screen can name the branch the way
-        // the coverage map names it.
-        path: node.path.slice(0, 2),
-        san: node.moves.slice(0, 2).map((m) => m.san).join(' '),
-        fen: null,
-        share: 0,
-        keys: [],
-      };
-      groups.set(key, group);
+  let truncated = false;
+  for (const door of doors) {
+    // eslint-disable-next-line no-await-in-loop
+    const { nodes, truncated: short } = await walkLines(pool, userId, {
+      color,
+      rootFen: door.rootFen,
+      minRating,
+      gateUci: door.viaUci,
+      breadth: door.breadth,
+      onlyChosen: true,
+    });
+    truncated = truncated || short;
+
+    for (const node of nodes.values()) {
+      // The root belongs to no branch: it is the position every branch leaves
+      // from, and counting it into one of them would make that one look bigger.
+      if (node.moves.length < 2) continue;
+      const key = `${node.moves[0].uci}-${node.moves[1].uci}`;
+      const id = `${door.id ?? 0}:${key}`;
+      let group = groups.get(id);
+      if (group === undefined) {
+        group = {
+          id,
+          key,
+          door,
+          // The two moves that open it, so a screen can name the branch the way
+          // the coverage map names it.
+          path: node.path.slice(0, 2),
+          san: node.moves.slice(0, 2).map((m) => m.san).join(' '),
+          fen: null,
+          share: 0,
+          keys: [],
+        };
+        groups.set(id, group);
+      }
+      // The branch's own starting position: after the student's move and the
+      // reply to it. Exactly one node sits at that ply per branch, and it is
+      // where a run of the branch begins.
+      if (node.ply === 2) {
+        group.fen = node.fen;
+        group.share = Number(node.share ?? 0);
+      }
+      group.keys.push(node.key);
     }
-    // The branch's own starting position: after the student's move and the
-    // reply to it. Exactly one node sits at that ply per branch, and it is
-    // where a run of the branch begins.
-    if (node.ply === 2) {
-      group.fen = node.fen;
-      group.share = Number(node.share ?? 0);
-    }
-    group.keys.push(node.key);
   }
 
   const everyKey = [...new Set([...groups.values()].flatMap((g) => g.keys))];
@@ -528,10 +660,6 @@ async function drillBranches(pool, userId, {
       [userId, color, everyKey],
     );
   const byKey = new Map(reviews.rows.map((row) => [row.fen_key, row]));
-
-  const base = Array.isArray(rootPath)
-    ? rootPath.filter((san) => typeof san === 'string' && san !== '')
-    : [];
 
   const branches = [];
   for (const group of groups.values()) {
@@ -551,7 +679,21 @@ async function drillBranches(pool, userId, {
       if (Number(row.repetitions) >= KNOWN_REPETITIONS) known += 1;
     }
     branches.push({
+      // Unique across the whole answer, which `key` is not once more than one
+      // repertoire is listed. A list keyed by `key` would collapse two openings
+      // that happen to start with the same two moves into one row.
+      id: group.id,
       key: group.key,
+      // Which repertoire this branch is in, or null when the caller asked by
+      // root rather than by id and there is nothing to name it with.
+      repertoire: group.door.id === null
+        ? null
+        : { id: group.door.id, name: group.door.name },
+      // The door it is walked from, so a run of this branch alone can be asked
+      // for with the same root and gate the list was built with.
+      root: { fen: group.door.rootFen, path: baseOf(group.door) },
+      gateUci: group.door.viaUci,
+      breadth: group.door.breadth,
       fen: group.fen,
       path: group.path,
       san: group.san,
@@ -572,9 +714,14 @@ async function drillBranches(pool, userId, {
   // they are worth sitting down to, not the order they were built.
   branches.sort((a, b) => (b.due - a.due) || (b.positions - a.positions));
 
-  return { root: { fen: rootFen, path: base }, branches, truncated };
+  const first = doors[0];
+  return {
+    root: { fen: first.rootFen, path: baseOf(first) },
+    branches,
+    truncated,
+  };
 }
 
 module.exports = {
-  drillLine, drillBranches, walkLines, tree, chainTo, subtree,
+  drillLine, drillBranches, walkLines, tree, chainTo, subtree, doorsOf,
 };

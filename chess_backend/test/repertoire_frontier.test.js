@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Chess } = require('chess.js');
 
-const { frontier } = require('../services/repertoireFrontier');
+const { frontier, withinBreadth } = require('../services/repertoireFrontier');
 const { fenKey } = require('../services/repertoireService');
 
 const START = new Chess().fen();
@@ -47,16 +47,24 @@ function stubPool({ moves = [], replies = [], skips = [], extras = [] } = {}) {
       if (text.includes('FROM opening_replies')) {
         levels += 1;
         const [band, keys] = params;
-        // `covered` is modelled, because the walk following an uncovered move
-        // is exactly what one of these tests is about. Rows say nothing by
-        // default, which means covered — that is what every older fixture here
-        // meant when it was written.
-        const rows = replies.filter(
-          (r) => Number(r.min_rating ?? 0) === band
-            && keys.includes(r.fen_key)
-            && (r.covered !== false
-              || extras.some((e) => e.fen_key === r.fen_key && e.uci === r.uci)),
-        );
+        // Every row for those positions, the way the table holds them and the
+        // way the query now reads them: the cut and the "prepare this too" flag
+        // are **columns**, not a WHERE clause, because breadth decides at read
+        // time which of them the walk follows. A stub that filtered here would
+        // be testing a narrowing that no longer happens in SQL.
+        //
+        // `covered` defaults to true, which is what every older fixture here
+        // meant when it was written; a row that says `covered: false` still
+        // says it.
+        const rows = replies
+          .filter((r) => Number(r.min_rating ?? 0) === band
+            && keys.includes(r.fen_key))
+          .map((r) => ({
+            covered: true,
+            ...r,
+            asked: extras.some(
+              (e) => e.fen_key === r.fen_key && e.uci === r.uci),
+          }));
         return { rows, rowCount: rows.length };
       }
       throw new Error(`Neočekivan upit: ${text}`);
@@ -456,3 +464,113 @@ test('a position whose only moves were generated is a draft, not a decision',
     // you cannot confirm.
     assert.ok(walk.open.some((node) => node.path.includes('Nf3')));
   });
+
+// --- breadth -----------------------------------------------------------
+//
+// How wide a repertoire is walked. The rule is `withinBreadth`, in one place,
+// and it is read by the queue, the tree, the coverage map, the prune engine and
+// the drill's live opponent — so it is tested against rows here and threaded
+// through `frontier` in the two tests after it.
+
+/// One position's book as the table holds it: in games order, each row saying
+/// whether it is inside the shared 80% cut.
+const BOOK = [
+  { uci: 'c7c5', san: 'c5', games: 500, share: '0.50000', covered: true },
+  { uci: 'e7e5', san: 'e5', games: 250, share: '0.25000', covered: true },
+  { uci: 'e7e6', san: 'e6', games: 120, share: '0.12000', covered: false },
+  { uci: 'c7c6', san: 'c6', games: 80, share: '0.08000', covered: false },
+  { uci: 'd7d5', san: 'd5', games: 50, share: '0.05000', covered: false },
+];
+
+const sansOf = (rows, breadth) =>
+  withinBreadth(rows, breadth).map((reply) => reply.san);
+
+test('main follows the one move that is actually played', async () => {
+  assert.deepEqual(sansOf(BOOK, 'main'), ['c5']);
+});
+
+test('standard is the stored cut and not a number recomputed here', async () => {
+  // The 80% cut is `opening_replies.covered`, written when the position was
+  // first opened and **shared by every user of this server**. Recomputing it
+  // from the shares would be a second implementation of somebody else's
+  // decision, and the two would drift the first time the cut's caps changed.
+  assert.deepEqual(sansOf(BOOK, 'standard'), ['c5', 'e5']);
+  // Which is also what an absent breadth means: every caller written before
+  // the column existed is asking for exactly this.
+  assert.deepEqual(sansOf(BOOK), ['c5', 'e5']);
+});
+
+test('broad goes on past the cut, to the moves that make up 95%', async () => {
+  assert.deepEqual(sansOf(BOOK, 'broad'), ['c5', 'e5', 'e6', 'c6']);
+  // 0.50 + 0.25 + 0.12 + 0.08 is 0.95, so 1...d5 at a twentieth is the first
+  // move outside it. Widening is not "follow everything" — the tail is still
+  // named and still not walked.
+});
+
+test('the three breadths are nested, so widening only ever adds', async () => {
+  // The property that matters more than the numbers do. If `broad` could drop
+  // something `standard` follows, widening a repertoire would silently orphan
+  // the work under it — and the prune engine reads reachability from this walk.
+  const main = new Set(sansOf(BOOK, 'main'));
+  const standard = new Set(sansOf(BOOK, 'standard'));
+  const broad = new Set(sansOf(BOOK, 'broad'));
+  for (const san of main) assert.ok(standard.has(san), `main ⊄ standard: ${san}`);
+  for (const san of standard) assert.ok(broad.has(san), `standard ⊄ broad: ${san}`);
+});
+
+test('a move asked for by name is followed at every breadth, main included',
+  async () => {
+    // "Prepare this one too" is stored per student precisely so it does not
+    // depend on where anybody's cut falls. Dropping it at `main` would ask the
+    // position once and lose it the moment the screen closed.
+    const asked = BOOK.map((row) => ({ ...row, asked: row.uci === 'd7d5' }));
+    for (const breadth of ['main', 'standard', 'broad']) {
+      assert.ok(sansOf(asked, breadth).includes('d5'),
+        `širina ${breadth} je odbacila potez koji je tražen po imenu`);
+    }
+    // And it keeps its place in games order rather than being appended last: a
+    // reply played in a twentieth of games is not the main line because of the
+    // order the rule happened to collect it in.
+    assert.deepEqual(sansOf(asked, 'main'), ['c5', 'd5']);
+  });
+
+test('a breadth nobody defined is refused rather than guessed at', async () => {
+  assert.throws(() => withinBreadth(BOOK, 'everything'), RangeError);
+});
+
+test('the walk follows what the breadth says, not what the cut says',
+  async () => {
+    // Threaded, not merely defined: a rule this good that no walk passes its
+    // parameter to is a rule with no effect. 1...d5 is outside the cut, so
+    // `standard` never reaches it and `broad` does.
+    const standard = await frontier(stubPool(withTail()), 7, {
+      color: 'w', rootFen: START,
+    });
+    assert.equal(standard.open.some((n) => n.path.includes('d5')), false);
+
+    const broad = await frontier(stubPool(withTail()), 7, {
+      color: 'w', rootFen: START, breadth: 'broad',
+    });
+    const added = broad.open.find((n) => n.path.includes('d5'));
+    assert.ok(added, 'široka širina nije ušla u rep');
+    assert.equal(added.kind, 'undecided');
+  });
+
+test('narrowing hides a branch and never touches a move in it', async () => {
+  // The whole reason breadth is read at walk time. 1...e5 is inside the shared
+  // cut and the student has decided on 2.Bc4 there; at `main` the walk stops
+  // before it, and the row is still in `repertoire_moves` for the day they
+  // widen again.
+  const pool = stubPool(sicilianAndOpenGame());
+  const walk = await frontier(pool, 7, {
+    color: 'w', rootFen: START, breadth: 'main',
+  });
+
+  assert.equal(walk.open.some((n) => n.path.includes('e5')), false);
+  // Nothing was deleted to achieve that: the walk asked the book and the moves
+  // table, and wrote to neither.
+  assert.equal(
+    pool.calls.some((c) => /DELETE|UPDATE|INSERT/.test(c.text)), false,
+    'suženje je nešto upisalo',
+  );
+});

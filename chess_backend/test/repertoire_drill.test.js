@@ -164,15 +164,66 @@ test('a position with nothing decided is not graded at all', async () => {
     'nema šta da se rasporedi dok pozicija nije izgrađena');
 });
 
+/// A pool for the draw, which asks two questions: the book for the position,
+/// and then what the student holds where each of those replies lands.
+///
+/// Answered by *which* query it is rather than by call order, because a draw is
+/// two queries now and a test that runs a hundred of them off one pool would
+/// otherwise be feeding the second answer to the first question.
+function replyPool(book, landing) {
+  const calls = [];
+  const query = async (text, params) => {
+    calls.push({ text: text.replace(/\s+/g, ' ').trim(), params });
+    const rows = /opening_replies/.test(text) ? book : landing;
+    return { rows, rowCount: rows.length };
+  };
+  return {
+    calls,
+    query,
+    connect: async () => ({ query, release: () => {} }),
+  };
+}
+
+// The Smith-Morra one move on, so that it is White — the opponent — to move.
+// `pickReply` is always asked from the position *after* the student's own
+// move, and it now plays the reply out to see where it lands, so a fixture
+// whose replies are illegal is a fixture that answers nothing.
+const MORRA_REPLY =
+  'r1bqkbnr/pp1ppppp/2n5/8/4P3/2N5/PP3PPP/R1BQKBNR w KQkq - 1 5';
+
+/// Where each of those replies lands, by key. Written out rather than computed
+/// in the test, so that a change to the walk's `step` shows up here as a
+/// failure instead of being cancelled out by the same bug on both sides.
+const LANDS = {
+  g1f3: 'r1bqkbnr/pp1ppppp/2n5/8/4P3/2N2N2/PP3PPP/R1BQKB1R b KQkq -',
+  f1c4: 'r1bqkbnr/pp1ppppp/2n5/8/2B1P3/2N5/PP3PPP/R1BQK1NR b KQkq -',
+  a2a3: 'r1bqkbnr/pp1ppppp/2n5/8/4P3/P1N5/1P3PPP/R1BQKBNR b KQkq -',
+};
+
+/// The second query's rows: what the student holds at each landing position.
+/// Defaults are the permissive ones, so a test only states the thing it is
+/// about — `{ g1f3: { cut: true } }` reads as "they cut the Nf3 branch".
+const landings = (spec) => Object.entries(spec).map(([uci, state]) => ({
+  fen_key: LANDS[uci],
+  decided: (state ?? {}).decided !== false,
+  cut: (state ?? {}).cut === true,
+}));
+
+/// Who is asking. Both new conditions are per student, so every draw carries
+/// it — see the RangeError test below for what happens when it does not.
+const ASKING = { userId: 7, color: 'b' };
+
 test('the opponent is drawn by how often a move is really played', async () => {
-  const pool = stubPool([[
+  const pool = replyPool([
     { uci: 'g1f3', san: 'Nf3', games: 700, covered: true },
     { uci: 'f1c4', san: 'Bc4', games: 250, covered: true },
-  ]]);
+  ], landings({ g1f3: {}, f1c4: {} }));
 
   // Tickets land in the two bands: 0-700 and 700-950.
-  const first = await pickReply(pool, { fen: SMITH_MORRA, random: () => 0.1 });
-  const second = await pickReply(pool, { fen: SMITH_MORRA, random: () => 0.8 });
+  const first = await pickReply(pool,
+    { ...ASKING, fen: MORRA_REPLY, random: () => 0.1 });
+  const second = await pickReply(pool,
+    { ...ASKING, fen: MORRA_REPLY, random: () => 0.8 });
 
   assert.equal(first.san, 'Nf3');
   assert.equal(second.san, 'Bc4');
@@ -183,22 +234,24 @@ test('a reply the student never prepared is never played at them', async () => {
   // move showed the student the edge of what they had prepared. The owner
   // asked for it gone, and the line walk already refused to rehearse one — so
   // the live opponent was playing moves the rehearsal would not.
-  const pool = stubPool([[
+  const pool = replyPool([
     { uci: 'g1f3', san: 'Nf3', games: 700, covered: true },
     { uci: 'f1c4', san: 'Bc4', games: 250, covered: true },
     { uci: 'a2a3', san: 'a3', games: 50, covered: false },
-  ]]);
+  ], landings({ g1f3: {}, f1c4: {} }));
 
   // The last ticket there is. Under the old rule it drew the uncovered move;
   // it must now land on the last prepared one instead.
-  const rare = await pickReply(pool, { fen: SMITH_MORRA, random: () => 0.999 });
+  const rare = await pickReply(pool,
+    { ...ASKING, fen: MORRA_REPLY, random: () => 0.999 });
   assert.equal(rare.san, 'Bc4');
 
   // And the unprepared move is out of the total as well as out of the answer:
   // a ticket at 0.9 of 950 is Bc4, where 0.9 of 1000 would still have been.
   const drawn = new Set();
   for (let i = 0; i < 100; i += 1) {
-    drawn.add((await pickReply(pool, { fen: SMITH_MORRA, random: () => i / 100 })).san);
+    drawn.add((await pickReply(pool,
+      { ...ASKING, fen: MORRA_REPLY, random: () => i / 100 })).san);
   }
   assert.deepEqual([...drawn].sort(), ['Bc4', 'Nf3']);
 });
@@ -208,29 +261,104 @@ test('a move the student asked for by name counts as prepared', async () => {
   // everywhere else. Forgetting the second half would refuse a reply they
   // chose themselves — and it is stored per student, so the draw has to know
   // who is asking.
-  const pool = stubPool([[
-    { uci: 'a2a3', san: 'a3', games: 50, covered: true },
-  ]]);
+  const pool = replyPool(
+    [{ uci: 'a2a3', san: 'a3', games: 50, covered: true }],
+    landings({ a2a3: {} }));
 
-  const drawn = await pickReply(pool, {
-    fen: SMITH_MORRA, userId: 7, color: 'b', random: () => 0.5,
-  });
+  const drawn = await pickReply(pool,
+    { ...ASKING, fen: MORRA_REPLY, random: () => 0.5 });
 
   assert.equal(drawn.san, 'a3');
   assert.match(pool.calls[0].text, /repertoire_extra_replies/);
   assert.deepEqual(pool.calls[0].params.slice(2), [7, 'b']);
 });
 
+test('a branch the student cut is never played at them', async () => {
+  // The bug this pair of tests was written for. `repertoire_skips` stopped the
+  // walk and the coverage map for months while the drill's own opponent kept
+  // playing into the cut branch — so a student was asked to remember a
+  // decision they had made by deleting it.
+  const pool = replyPool([
+    { uci: 'g1f3', san: 'Nf3', games: 700, covered: true },
+    { uci: 'f1c4', san: 'Bc4', games: 250, covered: true },
+  ], landings({ g1f3: { cut: true }, f1c4: {} }));
+
+  // 0.1 of the old total is Nf3 by a distance. Every ticket there is must now
+  // be Bc4, which is what makes this fail if the condition is taken back out.
+  const drawn = new Set();
+  for (let i = 0; i < 100; i += 1) {
+    drawn.add((await pickReply(pool,
+      { ...ASKING, fen: MORRA_REPLY, random: () => i / 100 })).san);
+  }
+  assert.deepEqual([...drawn], ['Bc4']);
+  assert.match(pool.calls[1].text, /repertoire_skips/);
+});
+
+test('a reply is only played into a position the student decided something in',
+  async () => {
+    // The other half of the same hole: the reply was legal, covered and not
+    // cut, and led somewhere the student had never answered. `answer()` would
+    // have graded the next move `unprepared` — a question with nothing behind
+    // it — so the draw asks the same thing `answer()` asks, and asks it first.
+    const pool = replyPool([
+      { uci: 'g1f3', san: 'Nf3', games: 700, covered: true },
+      { uci: 'f1c4', san: 'Bc4', games: 250, covered: true },
+    ], landings({ g1f3: { decided: false }, f1c4: {} }));
+
+    const drawn = new Set();
+    for (let i = 0; i < 100; i += 1) {
+      drawn.add((await pickReply(pool,
+        { ...ASKING, fen: MORRA_REPLY, random: () => i / 100 })).san);
+    }
+    assert.deepEqual([...drawn], ['Bc4']);
+    assert.match(pool.calls[1].text, /source = 'chosen'/);
+  });
+
+test('the guards are asked about where a reply lands, not where it leaves',
+  async () => {
+    const pool = replyPool([
+      { uci: 'g1f3', san: 'Nf3', games: 700, covered: true },
+      { uci: 'f1c4', san: 'Bc4', games: 250, covered: true },
+    ], landings({ g1f3: {}, f1c4: {} }));
+    await pickReply(pool, { ...ASKING, fen: MORRA_REPLY, random: () => 0.1 });
+
+    assert.deepEqual([...pool.calls[1].params[2]].sort(),
+      [LANDS.f1c4, LANDS.g1f3].sort());
+  });
+
+test('a spar with no qualifying reply ends instead of walking off the edge',
+  async () => {
+    const pool = replyPool(
+      [{ uci: 'g1f3', san: 'Nf3', games: 700, covered: true }],
+      landings({ g1f3: { decided: false } }));
+    // Null, which is what the end of the book has always looked like: the
+    // screen reads it as "grana odigrana do kraja" and stops the run.
+    assert.equal(
+      await pickReply(pool, { ...ASKING, fen: MORRA_REPLY }), null);
+  });
+
+test('a draw that does not know who is asking is refused, not answered',
+  async () => {
+    // Both conditions are per student. Answering null without a student would
+    // read on screen as "the branch is played out", which is a lie a caller
+    // with a missing argument must not be able to tell.
+    const pool = replyPool([], []);
+    await assert.rejects(
+      () => pickReply(pool, { fen: MORRA_REPLY, color: 'b' }), RangeError);
+    await assert.rejects(
+      () => pickReply(pool, { fen: MORRA_REPLY, userId: 7 }), RangeError);
+    assert.equal(pool.calls.length, 0, 'odbijeno pre nego što se baza pita');
+  });
+
 test('a position with nothing prepared answers with nothing', async () => {
-  const pool = stubPool([[
-    { uci: 'a2a3', san: 'a3', games: 50, covered: false },
-  ]]);
-  assert.equal(await pickReply(pool, { fen: SMITH_MORRA }), null);
+  const pool = replyPool(
+    [{ uci: 'a2a3', san: 'a3', games: 50, covered: false }], []);
+  assert.equal(await pickReply(pool, { ...ASKING, fen: MORRA_REPLY }), null);
 });
 
 test('a position whose book was never stored answers with nothing', async () => {
-  const pool = stubPool([[]]);
-  assert.equal(await pickReply(pool, { fen: SMITH_MORRA }), null);
+  const pool = replyPool([], []);
+  assert.equal(await pickReply(pool, { ...ASKING, fen: MORRA_REPLY }), null);
 });
 
 test('the book is stored per position and band, and refreshed in place',

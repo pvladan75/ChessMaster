@@ -27,6 +27,34 @@ const ROLES = ['primary', 'alternate'];
 /// asked about by the drill until somebody confirms it.
 const SOURCES = ['chosen', 'auto'];
 
+/// How wide a repertoire is walked — how many of the opponent's replies at each
+/// position the queue, the tree, the coverage map and the drill follow.
+///
+/// A property of the **repertoire**, not of the book. `opening_replies.covered`
+/// is the 80% cut and it is one column shared by every user of this server, so
+/// widening it for somebody widens it for everybody. Breadth is stored per
+/// repertoire and applied when the rows are read, from the `share` each row was
+/// stored with — see `withinBreadth` in `repertoireFrontier`, which is the one
+/// place the rule is written.
+///
+/// `standard` is the stored cut exactly as it is, so every repertoire made
+/// before the column keeps the tree it had.
+const BREADTHS = ['main', 'standard', 'broad'];
+const DEFAULT_BREADTH = 'standard';
+
+/// Reads a breadth, or refuses. Absent means the default rather than an error:
+/// every caller written before this existed is asking for `standard`, and that
+/// is what it used to get.
+function requireBreadth(breadth) {
+  if (breadth === null || breadth === undefined || breadth === '') {
+    return DEFAULT_BREADTH;
+  }
+  if (!BREADTHS.includes(breadth)) {
+    throw new RangeError(`Širina mora biti ${BREADTHS.join(', ')} — ne „${breadth}".`);
+  }
+  return breadth;
+}
+
 /// The first four FEN fields: placement, side to move, castling, en passant.
 ///
 /// The move counters are dropped on purpose. The same position reached at move
@@ -100,11 +128,12 @@ function readGate(rootFen, viaUci) {
 }
 
 async function createRepertoire(pool, userId, {
-  name, color, rootFen, rootPath, viaUci = null,
+  name, color, rootFen, rootPath, viaUci = null, breadth = null,
 }) {
   const clean = typeof name === 'string' ? name.trim() : '';
   if (clean === '') throw new RangeError('Repertoar mora imati ime.');
   requireColor(color);
+  const wide = requireBreadth(breadth);
   // Validated here so a broken FEN is refused at the door rather than stored
   // and then failing every time the repertoire is opened.
   fenKey(rootFen);
@@ -114,11 +143,13 @@ async function createRepertoire(pool, userId, {
   const gate = readGate(rootFen, viaUci);
 
   const result = await pool.query(
-    `INSERT INTO repertoires (user_id, name, color, root_fen, root_path, via_uci)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING id, name, color, root_fen, root_path, via_uci, created_at`,
+    `INSERT INTO repertoires
+       (user_id, name, color, root_fen, root_path, via_uci, breadth)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING id, name, color, root_fen, root_path, via_uci, breadth,
+               created_at`,
     [userId, clean, color, rootFen.trim(), pathText(rootPath),
-      gate === null ? null : gate.uci],
+      gate === null ? null : gate.uci, wide],
   );
   const row = result.rows[0];
   return row
@@ -127,6 +158,7 @@ async function createRepertoire(pool, userId, {
       rootPath: pathList(row.root_path),
       viaUci: row.via_uci,
       viaSan: gate === null ? null : gate.san,
+      breadth: row.breadth,
     }
     : row;
 }
@@ -147,7 +179,7 @@ function readGateSan(rootFen, viaUci) {
 async function listRepertoires(pool, userId) {
   const result = await pool.query(
     `SELECT r.id, r.name, r.color, r.root_fen, r.root_path, r.via_uci,
-            r.created_at,
+            r.breadth, r.created_at,
             (SELECT COUNT(*) FROM repertoire_moves m
               WHERE m.user_id = r.user_id AND m.color = r.color) AS moves
        FROM repertoires r
@@ -171,6 +203,10 @@ async function listRepertoires(pool, userId) {
     viaSan: row.via_uci === null
       ? null
       : (readGateSan(row.root_fen, row.via_uci)),
+    // How wide this one is walked. Carried on the row rather than looked up
+    // per screen, because every walk the client asks for has to send it back —
+    // the walks are keyed by position and gate, not by repertoire id.
+    breadth: row.breadth ?? DEFAULT_BREADTH,
     createdAt: row.created_at,
     // Moves are counted per colour, not per repertoire, because that is where
     // they live. Two repertoires for Black show the same number, and that is
@@ -624,6 +660,79 @@ async function setGate(pool, userId, { id, viaUci = null } = {}) {
   };
 }
 
+/// Changes how wide a repertoire is walked.
+///
+/// Its own door, and changeable, because breadth is a decision somebody revises:
+/// a trunk is the right shape while an opening is being learned and the wrong
+/// one a month later. Nothing is written to `opening_replies` and no move is
+/// touched — the next walk simply follows more replies, or fewer, and the queue
+/// and the map are recomputed from it.
+///
+/// Narrowing hides positions rather than deleting them. A position built under
+/// `broad` and then narrowed to `main` keeps every move in it; it stops being
+/// walked to, and widening again brings it straight back. That is the whole
+/// reason breadth is read at walk time.
+async function setBreadth(pool, userId, { id, breadth } = {}) {
+  const numeric = Number(id);
+  if (!Number.isInteger(numeric)) {
+    throw new RangeError('Repertoar nije imenovan brojem.');
+  }
+  const wide = requireBreadth(breadth);
+  const written = await pool.query(
+    `UPDATE repertoires SET breadth = $3
+      WHERE id = $1 AND user_id = $2
+      RETURNING id, breadth`,
+    [numeric, userId, wide],
+  );
+  if (written.rowCount === 0) throw new RangeError('Taj repertoar ne postoji.');
+  return { id: numeric, breadth: written.rows[0].breadth };
+}
+
+/// The repertoires named by a list of ids: their doors, gates and breadths.
+///
+/// This is what a **combined** session is made of. Everything below the drill
+/// takes one `(rootFen, gateUci)`, and a student who wants to practise two
+/// openings in one sitting has no way to say so — so the request names
+/// repertoires by id and the pairing is read here rather than sent as two
+/// parallel lists, which is the shape that goes wrong the first time one of
+/// them is shorter than the other.
+///
+/// One colour, always. A session mixes positions into one queue and the queue
+/// is per colour; a mixed request is a mistake worth a sentence rather than an
+/// answer that silently drops half of it. Ids that are not this user's are the
+/// same kind of mistake, and refused by name.
+async function repertoiresByIds(pool, userId, ids) {
+  const wanted = (Array.isArray(ids) ? ids : [])
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id));
+  if (wanted.length === 0) {
+    throw new RangeError('Nijedan repertoar nije izabran.');
+  }
+  const result = await pool.query(
+    `SELECT id, name, color, root_fen, root_path, via_uci, breadth
+       FROM repertoires
+      WHERE user_id = $1 AND id = ANY($2::int[])
+      ORDER BY created_at ASC`,
+    [userId, wanted],
+  );
+  if (result.rowCount !== new Set(wanted).size) {
+    throw new RangeError('Neki od izabranih repertoara ne postoji.');
+  }
+  const colors = new Set(result.rows.map((row) => row.color));
+  if (colors.size > 1) {
+    throw new RangeError('Zajednička sesija ide za jednu boju.');
+  }
+  return result.rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    color: row.color,
+    rootFen: row.root_fen,
+    rootPath: pathList(row.root_path),
+    viaUci: row.via_uci,
+    breadth: row.breadth ?? DEFAULT_BREADTH,
+  }));
+}
+
 async function deleteRepertoire(pool, userId, id) {
   const numeric = Number(id);
   if (!Number.isInteger(numeric)) {
@@ -713,7 +822,12 @@ module.exports = {
   forgetImportedMoves,
   deleteRepertoire,
   setGate,
+  setBreadth,
+  repertoiresByIds,
+  requireBreadth,
   COLORS,
   ROLES,
   SOURCES,
+  BREADTHS,
+  DEFAULT_BREADTH,
 };

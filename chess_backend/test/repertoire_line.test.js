@@ -94,9 +94,15 @@ function stubPool({
         }
         if (flat.includes('FROM opening_replies')) {
           const [band, keys] = params;
-          return replies.filter(
-            (r) => Number(r.min_rating ?? 0) === band && keys.includes(r.fen_key),
-          );
+          // The cut and the "prepare this too" flag are columns now, not a
+          // WHERE clause: breadth decides at read time which rows the walk
+          // follows, so the stub hands back the whole book for the position.
+          // `covered` defaults to true, which is what these fixtures have
+          // always meant.
+          return replies
+            .filter((r) => Number(r.min_rating ?? 0) === band
+              && keys.includes(r.fen_key))
+            .map((r) => ({ covered: true, asked: false, ...r }));
         }
         if (flat.includes('AS moves')) return [{ moves: 1 }];
         if (flat.includes('r.due_at <= $3')) {
@@ -595,4 +601,153 @@ test('a repertoire with nothing under the root has no branches', async () => {
   const pool = stubPool({ moves: [], replies: [] });
   const answer = await drillBranches(pool, 7, { color: 'w', rootFen: START });
   assert.deepEqual(answer.branches, []);
+});
+
+// --- combined sessions -------------------------------------------------
+//
+// Everything below the drill took one `(rootFen, gateUci)`, so "practise these
+// two openings in one sitting" was a thing the student could want and not ask
+// for. `roots` is a list of doors, each walked with its own gate and its own
+// breadth.
+
+/// The same graph, opened by two doors: one at the start and one at the
+/// Sicilian after 1.e4 c5. They overlap on purpose — that overlap is the case
+/// the shared schedule is about.
+const TWO_DOORS = [
+  {
+    id: 3, name: 'e4 kompletno', rootFen: START, rootPath: [], viaUci: null,
+    breadth: 'standard',
+  },
+  {
+    id: 7,
+    name: 'Sicilijanka',
+    rootFen: after('e2e4', 'c7c5'),
+    rootPath: ['e4', 'c5'],
+    viaUci: null,
+    breadth: 'standard',
+  },
+];
+
+test('a branch says which repertoire it came from', async () => {
+  const pool = stubPool({ ...SICILIAN, reviews: [] });
+  const listed = await drillBranches(pool, 7, {
+    color: 'w', roots: TWO_DOORS,
+  });
+
+  const names = listed.branches.map((b) => b.repertoire?.name);
+  assert.ok(names.includes('e4 kompletno'), `imena: ${names}`);
+  assert.ok(names.includes('Sicilijanka'), `imena: ${names}`);
+  // And carries the door it is walked from, so a run of this branch alone can
+  // be asked for with the same root and gate the list was built with.
+  const sicilian = listed.branches.find((b) => b.repertoire?.id === 7);
+  assert.equal(sicilian.root.fen, after('e2e4', 'c7c5'));
+  assert.deepEqual(sicilian.root.path, ['e4', 'c5']);
+});
+
+test('two openings that start the same way are two rows, not one', async () => {
+  // `key` is the pair of moves that opens a branch, and once more than one
+  // repertoire is listed that pair is no longer an identity. Two repertoires
+  // from **one root** is precisely the case the gate was built for — from the
+  // Italian after 3...Bc5 one plays 4.b4 and the other 4.0-0 — and both of
+  // these open with 1.e4 c5. A list keyed by `key` would collapse them, and the
+  // student would tick one opening and drill the other.
+  const pool = stubPool({ ...SICILIAN, reviews: [] });
+  const listed = await drillBranches(pool, 7, {
+    color: 'w',
+    roots: [
+      { ...TWO_DOORS[0], id: 3, name: 'e4 kompletno', viaUci: null },
+      {
+        id: 9, name: 'Samo 1.e4', rootFen: START, rootPath: [],
+        viaUci: 'e2e4', breadth: 'standard',
+      },
+    ],
+  });
+
+  const ids = listed.branches.map((b) => b.id);
+  assert.equal(new Set(ids).size, ids.length, `id se ponavlja: ${ids}`);
+  // The same two moves, twice, told apart only by the door.
+  const shared = listed.branches.filter((b) => b.san === 'e4 c5');
+  assert.equal(shared.length, 2, `grana sa istim parom poteza: ${shared.length}`);
+  assert.deepEqual(shared.map((b) => b.repertoire.id).sort((a, b) => a - b),
+    [3, 9]);
+  assert.deepEqual(shared.map((b) => b.gateUci), [null, 'e2e4']);
+});
+
+test('asked by root rather than by id, a branch has nothing to name',
+  async () => {
+    // The old shape, unchanged. `repertoire` is null rather than invented,
+    // because the caller did not say which one this is.
+    const pool = stubPool({ ...SICILIAN, reviews: [] });
+    const listed = await drillBranches(pool, 7, { color: 'w', rootFen: START });
+
+    assert.ok(listed.branches.length > 0);
+    for (const branch of listed.branches) {
+      assert.equal(branch.repertoire, null);
+      assert.match(branch.id, /^0:/);
+    }
+  });
+
+test('a combined line is built from the door the question is behind',
+  async () => {
+    // The breadcrumb has to read from the right root, or it does not add up on
+    // the board: the question is four plies from the start and two from the
+    // Sicilian's own door, and only one of those lines is the one being
+    // rehearsed.
+    const pool = stubPool({
+      ...SICILIAN,
+      fresh: [{ fen_key: DEEP, mistakes: 0 }],
+    });
+    const line = await drillLine(pool, 7, { color: 'w', roots: TWO_DOORS });
+
+    assert.equal(line.question.fenKey, DEEP);
+    // First door wins where both reach it, which is the same first-wins rule
+    // the walk itself keeps — and it is one question either way, because the
+    // schedule is keyed by position.
+    assert.equal(line.repertoire.id, 3);
+    assert.equal(line.root.fen, START);
+    assert.deepEqual(line.prefix.map((m) => m.san), ['e4', 'c5', 'Nf3', 'd6']);
+  });
+
+test('a combined session is the repertoires named, not the whole colour',
+  async () => {
+    // The one thing `only: null` must not go on meaning. With a single ungated
+    // door it still means the whole colour, which is what the schedule is keyed
+    // by; with two doors it means their union, or ticking two openings would
+    // quietly drill a third.
+    const pool = stubPool({
+      ...SICILIAN,
+      fresh: [{ fen_key: DEEP, mistakes: 0 }],
+    });
+    await drillLine(pool, 7, { color: 'w', roots: TWO_DOORS });
+
+    // `only` on the counts is the honest place to read it: the queue is always
+    // handed an explicit key list, and it is the *stats* that mean "the whole
+    // colour" when they are given null.
+    const asked = pool.paramsOf('AS positions');
+    assert.ok(Array.isArray(asked[3]), 'brojevi nisu suženi na izabrane');
+    assert.ok(asked[3].includes(DEEP));
+
+    // And with one door and no gate it is still null — unchanged, because that
+    // is what the schedule is keyed by.
+    const one = stubPool({ ...SICILIAN, fresh: [{ fen_key: DEEP, mistakes: 0 }] });
+    await drillLine(one, 7, { color: 'w', rootFen: START });
+    assert.equal(one.paramsOf('AS positions')[3], null);
+  });
+
+test('each door is walked with its own breadth', async () => {
+  // Breadth is a property of the repertoire, so a combined session is not one
+  // walk with one width — it is two walks, each as wide as its own row says.
+  const pool = stubPool({ ...SICILIAN, reviews: [] });
+  await drillBranches(pool, 7, {
+    color: 'w',
+    roots: [
+      { ...TWO_DOORS[0], breadth: 'main' },
+      { ...TWO_DOORS[1], breadth: 'broad' },
+    ],
+  });
+
+  // Two walks, so two sets of book queries, and neither door's width was used
+  // for the other: the walks do not share a call.
+  const books = pool.calls.filter((c) => c.text.includes('FROM opening_replies'));
+  assert.ok(books.length >= 2, `talasa: ${books.length}`);
 });

@@ -34,7 +34,7 @@
 const {
   step, keptByPosition, coveredReplies, MAX_NODES, MAX_PLY,
 } = require('./repertoireFrontier');
-const { fenKey } = require('./repertoireService');
+const { fenKey, BREADTHS, DEFAULT_BREADTH } = require('./repertoireService');
 
 /// Every position reachable from a set of starting points.
 ///
@@ -56,7 +56,7 @@ const { fenKey } = require('./repertoireService');
 /// position opens it completely — anything else would call a line unreachable
 /// because some other repertoire happens not to take it.
 async function reachable(pool, userId, {
-  color, from, minRating = 0, without = null,
+  color, from, minRating = 0, without = null, breadth = DEFAULT_BREADTH,
 } = {}) {
   const skipKey = without ? fenKey(without.fen) : null;
   const kept = await keptByPosition(pool, userId, color);
@@ -98,7 +98,7 @@ async function reachable(pool, userId, {
     }
 
     const keys = [...new Set(branches.map(fenKey))];
-    const book = await coveredReplies(pool, userId, color, keys, band);
+    const book = await coveredReplies(pool, userId, color, keys, band, breadth);
 
     const next = [];
     for (const after of branches) {
@@ -127,12 +127,34 @@ async function reachable(pool, userId, {
 /// everything.
 async function rootsOf(pool, userId, color) {
   const result = await pool.query(
-    'SELECT root_fen, via_uci FROM repertoires WHERE user_id = $1 AND color = $2',
+    `SELECT root_fen, via_uci, breadth
+       FROM repertoires WHERE user_id = $1 AND color = $2`,
     [userId, color],
   );
-  // Each door with the move it goes through. Two repertoires that share a root
-  // and differ only in their gate are two doors, not one.
-  return result.rows.map((row) => ({ fen: row.root_fen, viaUci: row.via_uci }));
+  // Each door with the move it goes through, and how wide that door is walked.
+  // Two repertoires that share a root and differ only in their gate are two
+  // doors, not one.
+  return result.rows.map((row) => ({
+    fen: row.root_fen, viaUci: row.via_uci, breadth: row.breadth,
+  }));
+}
+
+/// The widest breadth among a set of doors.
+///
+/// Reachability decides what gets **deleted**, so the two errors are not the
+/// same size: calling something reachable that is not leaves a dead position
+/// lying about, and calling something unreachable that is not deletes work
+/// somebody did. So the union walk goes as wide as the widest repertoire that
+/// opens onto it, and this is never a parameter — a caller who passed a
+/// narrower breadth than one of their own repertoires actually has would be
+/// asking, in good faith, for exactly the second error.
+function widestOf(roots) {
+  let widest = BREADTHS.indexOf(DEFAULT_BREADTH);
+  for (const root of roots) {
+    const at = BREADTHS.indexOf(root.breadth ?? DEFAULT_BREADTH);
+    if (at > widest) widest = at;
+  }
+  return BREADTHS[widest];
 }
 
 /// What removing one move would strand, without removing it.
@@ -147,6 +169,7 @@ async function orphansOfRemoving(pool, userId, {
   if (roots.length === 0) {
     throw new RangeError('Za ovu boju nema nijednog repertoara.');
   }
+  const breadth = widestOf(roots);
   const after = step(fen, uci);
   if (after === null) {
     // A move that will not replay strands nothing, because nothing was ever
@@ -160,7 +183,7 @@ async function orphansOfRemoving(pool, userId, {
   // the spot. The position itself is stranded either way, so it goes in.
   const band = Number(minRating) || 0;
   const here = fenKey(after.fen);
-  const book = await coveredReplies(pool, userId, color, [here], band);
+  const book = await coveredReplies(pool, userId, color, [here], band, breadth);
   const seeds = [];
   for (const reply of book.get(here) ?? []) {
     const landed = step(after.fen, reply.uci);
@@ -168,14 +191,14 @@ async function orphansOfRemoving(pool, userId, {
   }
   const behind = new Set([here]);
   for (const key of await reachable(pool, userId, {
-    color, from: seeds, minRating,
+    color, from: seeds, minRating, breadth,
   })) {
     behind.add(key);
   }
   // Without that move: every other way in, and the position it was played from
   // is still one of them.
   const otherwise = await reachable(pool, userId, {
-    color, from: roots, minRating, without: { fen, uci },
+    color, from: roots, minRating, breadth, without: { fen, uci },
   });
 
   const keys = [...behind].filter((key) => !otherwise.has(key));
@@ -194,6 +217,36 @@ async function orphansOfRemoving(pool, userId, {
     drafts: row.drafts ?? 0,
     decisions: row.decisions ?? 0,
   };
+}
+
+/// Puts a primary back wherever a bulk delete took one away.
+///
+/// Not tidying. A position that has any moves at all **must** have a primary —
+/// the drill has nothing to ask for otherwise — and a bulk delete is the one
+/// path that can strip one without `removeMove` promoting the next. The oldest
+/// surviving move wins, which is the same rule `removeMove` keeps.
+///
+/// Exported and taken as a client rather than written twice: it runs inside
+/// whichever transaction did the deleting, and a second copy of a statement
+/// this shape is a second place for the rule to drift.
+async function promoteWhereNoPrimary(client, userId, color, keys) {
+  if (!Array.isArray(keys) || keys.length === 0) return 0;
+  const promoted = await client.query(
+    `UPDATE repertoire_moves
+        SET role = 'primary'
+      WHERE id IN (
+        SELECT DISTINCT ON (fen_key) id
+          FROM repertoire_moves
+         WHERE user_id = $1 AND color = $2 AND fen_key = ANY($3)
+           AND fen_key IN (
+             SELECT fen_key FROM repertoire_moves
+              WHERE user_id = $1 AND color = $2 AND fen_key = ANY($3)
+              GROUP BY fen_key
+             HAVING COUNT(*) FILTER (WHERE role = 'primary') = 0)
+         ORDER BY fen_key, added_at ASC)`,
+    [userId, color, keys],
+  );
+  return promoted.rowCount;
 }
 
 /// Removes the moves in a set of positions, and puts the primary back where
@@ -217,8 +270,11 @@ async function pruneKeys(pool, userId, {
   if (roots.length === 0) {
     throw new RangeError('Za ovu boju nema nijednog repertoara.');
   }
+  const breadth = widestOf(roots);
 
-  const live = await reachable(pool, userId, { color, from: roots, minRating });
+  const live = await reachable(pool, userId, {
+    color, from: roots, minRating, breadth,
+  });
   const stranded = keys.filter((key) => !live.has(key));
   if (stranded.length === 0) return { removed: 0, kept: 0, promoted: 0 };
 
@@ -236,26 +292,12 @@ async function pruneKeys(pool, userId, {
         WHERE user_id = $1 AND color = $2 AND fen_key = ANY($3)`,
       [userId, color, stranded],
     );
-    const promoted = await client.query(
-      `UPDATE repertoire_moves
-          SET role = 'primary'
-        WHERE id IN (
-          SELECT DISTINCT ON (fen_key) id
-            FROM repertoire_moves
-           WHERE user_id = $1 AND color = $2 AND fen_key = ANY($3)
-             AND fen_key IN (
-               SELECT fen_key FROM repertoire_moves
-                WHERE user_id = $1 AND color = $2 AND fen_key = ANY($3)
-                GROUP BY fen_key
-               HAVING COUNT(*) FILTER (WHERE role = 'primary') = 0)
-           ORDER BY fen_key, added_at ASC)`,
-      [userId, color, stranded],
-    );
+    const promoted = await promoteWhereNoPrimary(client, userId, color, stranded);
     await client.query('COMMIT');
     return {
       removed: gone.rowCount,
       kept: left.rows[0]?.moves ?? 0,
-      promoted: promoted.rowCount,
+      promoted,
     };
   } catch (err) {
     await client.query('ROLLBACK');
@@ -265,4 +307,7 @@ async function pruneKeys(pool, userId, {
   }
 }
 
-module.exports = { reachable, orphansOfRemoving, pruneKeys, rootsOf };
+module.exports = {
+  reachable, orphansOfRemoving, pruneKeys, rootsOf, widestOf,
+  promoteWhereNoPrimary,
+};

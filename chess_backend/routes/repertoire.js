@@ -42,7 +42,13 @@ const {
   forgetImportedMoves,
   deleteRepertoire,
   setGate,
+  setBreadth,
+  repertoiresByIds,
 } = require('../services/repertoireService');
+const {
+  unconfirmedPositions, unconfirmedCounts,
+} = require('../services/repertoireUnconfirmed');
+const { playAlternative } = require('../services/repertoireAlternative');
 const { frontier } = require('../services/repertoireFrontier');
 const {
   drillLine, drillBranches, tree: repertoireTree,
@@ -91,6 +97,53 @@ function gateOf(query) {
   return typeof gate === 'string' && gate.trim() !== '' ? gate.trim() : null;
 }
 
+/// How wide the walk goes, from the query.
+///
+/// A property of the repertoire, stored on its row, and sent back on every walk
+/// the client asks for — the walks are keyed by position and gate rather than
+/// by repertoire id, so the row is the client's to carry. Absent means
+/// `standard`, which is the stored 80% cut and what every call written before
+/// the column existed was asking for.
+///
+/// Not validated here: `requireBreadth` does it in the service, where the
+/// answer is a 400 with a sentence rather than a silent fall back to the
+/// default. A breadth this server does not know is a client that thinks it is
+/// asking for something.
+function breadthOf(query) {
+  const wide = query?.breadth;
+  return typeof wide === 'string' && wide.trim() !== '' ? wide.trim() : null;
+}
+
+/// The repertoires a **combined** session runs over, or null for the old shape.
+///
+/// `ids=3,7`. The doors, their gates and their breadths are read from the rows
+/// rather than sent as three parallel query parameters, which is the shape that
+/// goes wrong the first time one of the three is shorter than the others — and
+/// it is also what lets a branch say which repertoire it came from, since the
+/// name comes along with the row.
+///
+/// A `color` sent beside the ids has to agree with them. Preferring the rows
+/// silently would answer a different question from the one that was asked, and
+/// this endpoint has exactly one honest answer to a contradiction.
+async function rootsFrom(query, userId) {
+  const raw = Array.isArray(query?.ids)
+    ? query.ids
+    : (typeof query?.ids === 'string' ? query.ids.split(',') : []);
+  const ids = raw
+    .map((one) => String(one).trim())
+    .filter((one) => one !== '')
+    .map(Number)
+    .filter((one) => Number.isInteger(one));
+  if (ids.length === 0) return null;
+
+  const roots = await repertoiresByIds(pool, userId, ids);
+  const asked = query?.color;
+  if (typeof asked === 'string' && asked !== '' && asked !== roots[0].color) {
+    throw new RangeError('Boja se ne slaže sa izabranim repertoarima.');
+  }
+  return roots;
+}
+
 /// One place where a bad request becomes a 400 and everything else becomes a
 /// 500 with a line in the log. Without it every handler grows its own copy and
 /// they drift.
@@ -122,11 +175,11 @@ function answer(res, work, whatFailed) {
 // Sent when the position it starts from already holds another repertoire's
 // first move, which is the case that made it necessary.
 router.post('/', authenticateToken, (req, res) => {
-  const { name, color, rootFen, rootPath, viaUci } = req.body ?? {};
+  const { name, color, rootFen, rootPath, viaUci, breadth } = req.body ?? {};
   answer(
     res,
     createRepertoire(pool, req.user.id, {
-      name, color, rootFen, rootPath, viaUci,
+      name, color, rootFen, rootPath, viaUci, breadth: breadth ?? null,
     }),
     'Repertoar nije mogao da se napravi.',
   );
@@ -146,6 +199,98 @@ router.put('/gate', authenticateToken, (req, res) => {
     res,
     setGate(pool, req.user.id, { id, viaUci: viaUci ?? null }),
     'Potez kroz koji ide repertoar nije mogao da se sačuva.',
+  );
+});
+
+// PUT /repertoire/breadth  { id, breadth }
+//
+// How wide this repertoire is walked: 'main', 'standard' or 'broad'. Changeable
+// afterwards, because it is a decision somebody revises — a trunk is the right
+// shape while an opening is being learned and the wrong one a month later.
+//
+// Nothing is written to `opening_replies`, which is shared by every user of
+// this server, and no move is touched: narrowing hides positions and widening
+// brings them straight back.
+//
+// Above `/:id` for the same reason `/gate` is: one path segment.
+router.put('/breadth', authenticateToken, (req, res) => {
+  const { id, breadth } = req.body ?? {};
+  answer(
+    res,
+    setBreadth(pool, req.user.id, { id, breadth }),
+    'Širina repertoara nije mogla da se sačuva.',
+  );
+});
+
+// GET /repertoire/unconfirmed/count
+//
+// How many drafts each colour holds, both colours in one query, for the badge
+// on the list card. No gate and no walk: the list draws every card at once and
+// walking per card would make the most-opened screen in the app the slowest.
+router.get('/unconfirmed/count', authenticateToken, (req, res) => {
+  answer(
+    res,
+    unconfirmedCounts(pool, req.user.id),
+    'Broj nepotvrđenih poteza nije mogao da se pročita.',
+  );
+});
+
+// GET /repertoire/unconfirmed?color=b&rootFen=...&rootPath=e4+c5&gateUci=...
+//
+// The positions holding nothing but generated moves, in the order the walk
+// meets them, each with the line that reaches it. This is the review queue: a
+// spine writes drafts, the drill never asks about them, and until this existed
+// the only way to find them again was to read the tree.
+//
+// Gate-aware and breadth-aware, because it is a walk — so the number here and
+// the number on the card can differ, and the screen with room for a sentence is
+// the one that gets the exact one.
+router.get('/unconfirmed', authenticateToken, (req, res) => {
+  const { color, rootFen, rootPath, minRating, limit } = req.query;
+  answer(
+    res,
+    unconfirmedPositions(pool, req.user.id, {
+      color,
+      rootFen,
+      gateUci: gateOf(req.query),
+      breadth: breadthOf(req.query),
+      rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
+        ? rootPath.trim().split(/\s+/)
+        : [],
+      minRating: Number(minRating) || 0,
+      limit: Number(limit) || 200,
+    }),
+    'Nepotvrđeni potezi nisu mogli da se pročitaju.',
+  );
+});
+
+// POST /repertoire/alternative
+//   { color, fen, uci, san, rejectedUci, minRating, includeDecisions }
+//
+// "Not that move, this one." The third answer the draft review needs, beside
+// confirming (`/node/confirm`) and refusing the branch (`/node/skip`).
+//
+// One transaction, because the two writes must not be able to happen apart: the
+// student's move takes the rejected draft's place, and everything that draft
+// was the only way to goes with it. Half of that is a queue that keeps offering
+// positions under a line the student has just said they will not play.
+//
+// Drafts under it go without asking; decisions are counted and handed back, so
+// the screen can say what would be lost before anything is.
+router.post('/alternative', authenticateToken, (req, res) => {
+  const body = req.body ?? {};
+  answer(
+    res,
+    playAlternative(pool, req.user.id, {
+      color: body.color,
+      fen: body.fen,
+      uci: body.uci,
+      san: body.san,
+      rejectedUci: body.rejectedUci,
+      minRating: Number(body.minRating) || 0,
+      includeDecisions: body.includeDecisions === true,
+    }),
+    'Zamena nacrta nije uspela.',
   );
 });
 
@@ -672,6 +817,7 @@ router.get('/frontier', authenticateToken, (req, res) => {
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
         : [],
+      breadth: breadthOf(req.query),
       minRating: Number(minRating) || 0,
       limit: Math.min(Math.max(Number(limit) || 200, 1), 500),
     }),
@@ -699,6 +845,7 @@ router.get('/tree', authenticateToken, (req, res) => {
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
         : [],
+      breadth: breadthOf(req.query),
       minRating: Number(minRating) || 0,
       maxPly: Math.min(Math.max(Number(maxPly) || 16, 2), 40),
     }),
@@ -767,8 +914,11 @@ router.get('/drill/line', authenticateToken, (req, res) => {
     : (typeof req.query.exclude === 'string' ? [req.query.exclude] : []);
   answer(
     res,
-    drillLine(pool, req.user.id, {
-      color,
+    rootsFrom(req.query, req.user.id).then((roots) => drillLine(pool, req.user.id, {
+      // With `ids` the colour is the repertoires' own, and `rootsFrom` has
+      // already refused a request that says otherwise.
+      color: roots === null ? color : roots[0].color,
+      roots,
       rootFen,
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
@@ -795,7 +945,8 @@ router.get('/drill/line', authenticateToken, (req, res) => {
       // so it cannot be used to push an interval out.
       ahead: ahead === '1' || ahead === 'true',
       gateUci: gateOf(req.query),
-    }),
+      breadth: breadthOf(req.query),
+    })),
     'Linija za vežbanje nije mogla da se sastavi.',
   );
 });
@@ -815,15 +966,19 @@ router.get('/drill/branches', authenticateToken, (req, res) => {
   const { color, rootFen, rootPath, minRating } = req.query;
   answer(
     res,
-    drillBranches(pool, req.user.id, {
-      color,
-      rootFen,
-      gateUci: gateOf(req.query),
-      rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
-        ? rootPath.trim().split(/\s+/)
-        : [],
-      minRating: Number(minRating) || 0,
-    }),
+    rootsFrom(req.query, req.user.id).then(
+      (roots) => drillBranches(pool, req.user.id, {
+        color: roots === null ? color : roots[0].color,
+        roots,
+        rootFen,
+        gateUci: gateOf(req.query),
+        breadth: breadthOf(req.query),
+        rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
+          ? rootPath.trim().split(/\s+/)
+          : [],
+        minRating: Number(minRating) || 0,
+      }),
+    ),
     'Grane za vežbanje nisu mogle da se pročitaju.',
   );
 });
@@ -855,7 +1010,7 @@ router.get('/drill/reveal', authenticateToken, (req, res) => {
 // its question needs — see `answer` for why the two are not the same flag.
 router.post('/drill/answer', authenticateToken, (req, res) => {
   const {
-    color, fen, uci, revealed, minRating, practice, onlyIfDue,
+    color, fen, uci, revealed, minRating, practice, onlyIfDue, breadth,
   } = req.body ?? {};
   answer(
     res,
@@ -875,6 +1030,12 @@ router.post('/drill/answer', authenticateToken, (req, res) => {
         // refuse a move they chose by name.
         userId: req.user.id,
         color,
+        // And how wide their repertoire is. The live opponent and the line walk
+        // have to draw from the same set of replies — they disagreed once
+        // already, and it was the walk that was right.
+        breadth: typeof breadth === 'string' && breadth.trim() !== ''
+          ? breadth.trim()
+          : null,
       });
       return { ...graded, reply };
     }),

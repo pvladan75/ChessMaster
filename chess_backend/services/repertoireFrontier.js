@@ -39,7 +39,9 @@
 // the map needs is passing through this loop anyway.
 
 const { Chess } = require('chess.js');
-const { fenKey, skippedKeys } = require('./repertoireService');
+const {
+  fenKey, skippedKeys, requireBreadth, DEFAULT_BREADTH,
+} = require('./repertoireService');
 
 /// Ceilings, so a wide repertoire cannot turn one request into a minute of
 /// database time. Hit either and the answer says `truncated`, because a
@@ -137,26 +139,110 @@ function gateMoves(kept, rootKey, gateUci) {
 /// — otherwise the position is asked once, and closing the screen loses it. It
 /// is also why that decision is stored per student rather than by flipping
 /// `covered`, which is everybody's.
-async function coveredReplies(pool, userId, color, keys, minRating) {
+///
+/// **Breadth** is the second half of it, and it is a property of the
+/// repertoire rather than of the book. `covered` is the 80% cut and it is one
+/// column shared by every user of this server, so the only honest way to let
+/// one student prepare more is to leave that column alone and decide at read
+/// time — which the stored `share` on every row makes possible.
+async function coveredReplies(
+  pool, userId, color, keys, minRating, breadth = DEFAULT_BREADTH,
+) {
   if (keys.length === 0) return new Map();
+  const wide = requireBreadth(breadth);
+  // Every row for these positions, cut or not, each saying whether it is inside
+  // the stored cut and whether this student asked for it by name. The narrowing
+  // is `withinBreadth`, below, and it is done in JS on purpose: the rule is then
+  // one readable expression that a test can put rows in front of, instead of
+  // three shapes of WHERE clause that only a live database can disprove.
+  //
+  // The row set this widens to is bounded by what the book writer keeps — a
+  // dozen replies per position — so "everything" here is a dozen small rows,
+  // not a tail.
   const result = await pool.query(
-    `SELECT r.fen_key, r.uci, r.san, r.games, r.share
-       FROM opening_replies r
-      WHERE r.min_rating = $1 AND r.fen_key = ANY($2)
-        AND (r.covered = TRUE OR EXISTS (
+    `SELECT r.fen_key, r.uci, r.san, r.games, r.share, r.covered,
+            EXISTS (
               SELECT 1 FROM repertoire_extra_replies e
                WHERE e.user_id = $3 AND e.color = $4
-                 AND e.fen_key = r.fen_key AND e.uci = r.uci))
+                 AND e.fen_key = r.fen_key AND e.uci = r.uci) AS asked
+       FROM opening_replies r
+      WHERE r.min_rating = $1 AND r.fen_key = ANY($2)
       ORDER BY r.games DESC`,
     [minRating, keys, userId, color],
   );
-  const map = new Map();
+  const rows = new Map();
   for (const row of result.rows) {
-    const list = map.get(row.fen_key) ?? [];
-    list.push({ uci: row.uci, san: row.san, share: Number(row.share) });
-    map.set(row.fen_key, list);
+    const list = rows.get(row.fen_key) ?? [];
+    list.push(row);
+    rows.set(row.fen_key, list);
+  }
+  const map = new Map();
+  for (const [key, list] of rows) {
+    const followed = withinBreadth(list, wide);
+    if (followed.length > 0) map.set(key, followed);
   }
   return map;
+}
+
+/// How much of a position's book each breadth follows.
+///
+/// The same greedy rule the 80% cut itself uses — rows in games order until
+/// that much of what is played here is accounted for, and never more than that
+/// many moves — so widening reads as "the cut, further out" rather than as a
+/// second, differently shaped idea. `standard` is not recomputed at all: it is
+/// the stored flag, so a repertoire made before breadth existed walks the tree
+/// it has always walked, down to the row.
+///
+/// The three are **nested**: `main` ⊆ `standard` ⊆ `broad`, because all three
+/// take the most played moves first and differ only in where they stop. That
+/// matters more than the numbers do — widening a repertoire must only ever add
+/// positions, and narrowing it must only ever hide them.
+const BREADTH_RULE = {
+  main: { share: 0, replies: 1 },
+  broad: { share: 0.95, replies: 8 },
+};
+
+/// The replies a breadth follows, out of every row stored for one position.
+///
+/// `rows` must be in games order, which is how the query hands them back.
+///
+/// A move the student pressed "prepare this too" on is followed at **every**
+/// breadth, including `main`. It was enqueued when they asked for it, so
+/// dropping it here would ask the position once and lose it the moment the
+/// screen closed — and that decision is stored per student precisely so it does
+/// not depend on where anybody's cut falls.
+function withinBreadth(rows, breadth = DEFAULT_BREADTH) {
+  const wide = requireBreadth(breadth);
+  const asked = rows.filter((row) => row.asked === true);
+  const reply = (row) => ({
+    uci: row.uci, san: row.san, share: Number(row.share),
+  });
+
+  if (wide === 'standard') {
+    return rows
+      .filter((row) => row.covered === true || row.asked === true)
+      .map(reply);
+  }
+
+  const rule = BREADTH_RULE[wide];
+  const taken = [];
+  let running = 0;
+  for (const row of rows) {
+    if (taken.length >= 1
+      && (running >= rule.share || taken.length >= rule.replies)) break;
+    taken.push(row);
+    running += Number(row.share) || 0;
+  }
+  const seen = new Set(taken.map((row) => row.uci));
+  for (const row of asked) {
+    if (!seen.has(row.uci)) taken.push(row);
+  }
+  // Back into games order, so the caller sees the same ordering at every
+  // breadth — an extra reply is not suddenly the main line because it was
+  // appended last.
+  return taken
+    .sort((a, b) => Number(b.games) - Number(a.games))
+    .map(reply);
 }
 
 /// The positions still waiting for the student, most-reached first.
@@ -174,6 +260,7 @@ async function coveredReplies(pool, userId, color, keys, minRating) {
 /// primary — read it as "if you play this, how often do you land here".
 async function frontier(pool, userId, {
   color, rootFen, rootPath = [], minRating = 0, limit = 200, gateUci = null,
+  breadth = DEFAULT_BREADTH,
 } = {}) {
   if (color !== 'w' && color !== 'b') {
     throw new RangeError(`Boja mora biti "w" ili "b", a ne "${color}".`);
@@ -186,6 +273,7 @@ async function frontier(pool, userId, {
     await keptByPosition(pool, userId, color), fenKey(rootFen), gateUci);
   const cut = await skippedKeys(pool, userId, color);
   const band = Number(minRating) || 0;
+  const wide = requireBreadth(breadth);
   const base = Array.isArray(rootPath)
     ? rootPath.filter((san) => typeof san === 'string' && san !== '')
     : [];
@@ -291,7 +379,7 @@ async function frontier(pool, userId, {
     }
 
     const keys = [...new Set(branches.map((b) => fenKey(b.after.fen)))];
-    const book = await coveredReplies(pool, userId, color, keys, band);
+    const book = await coveredReplies(pool, userId, color, keys, band, wide);
 
     const next = [];
     const dangling = new Set();
@@ -435,6 +523,8 @@ module.exports = {
   step,
   keptByPosition,
   coveredReplies,
+  withinBreadth,
+  BREADTH_RULE,
   MAX_NODES,
   MAX_PLY,
 };

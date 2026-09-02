@@ -68,8 +68,12 @@ function stubPool({ moves = [], replies = [], skips = [], reviews = [] } = {}) {
         }
         if (flat.includes('FROM opening_replies')) {
           const [band, keys] = params;
-          return replies.filter(
-            (r) => Number(r.min_rating ?? 0) === band && keys.includes(r.fen_key));
+          // The whole book: `covered` and `asked` are columns the breadth rule
+          // reads at walk time, not a filter this query applies.
+          return replies
+            .filter((r) => Number(r.min_rating ?? 0) === band
+              && keys.includes(r.fen_key))
+            .map((r) => ({ covered: true, asked: false, ...r }));
         }
         if (flat.includes('SELECT fen_key, due_at, repetitions')) {
           const within = params[2];

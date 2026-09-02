@@ -920,6 +920,35 @@ async function initDB() {
       -- Null means no gate, which is what every repertoire made before this
       -- column has and what a repertoire whose root has only one move needs.
       ALTER TABLE repertoires ADD COLUMN IF NOT EXISTS via_uci VARCHAR(6);
+      -- How wide this repertoire is walked: 'main', 'standard' or 'broad'.
+      --
+      -- (No backticks in this comment, and none anywhere in this file: the
+      -- whole statement is a JS template literal, so one backtick ends it and
+      -- the file stops parsing. Caught by test/sources_compile.test.js, which
+      -- exists because a server.js that did not parse once shipped past a
+      -- green suite.)
+      --
+      -- The walk follows the opponent's replies, and how many of them it
+      -- follows is the difference between a trunk you can learn in a week and a
+      -- tree nobody finishes. Until this column that number was one number for
+      -- everybody — opening_replies.covered, the 80% cut — and it is a
+      -- **shared** column: every user reads the same rows, so widening it for
+      -- one person widens it for all of them.
+      --
+      -- So breadth is stored here instead, and read at walk time from each
+      -- row's share. 'standard' means exactly covered = TRUE, unchanged, so
+      -- nothing built before this line moves. 'main' follows the single most
+      -- played reply; 'broad' follows down to 95% of the games. Neither ever
+      -- writes to opening_replies.
+      --
+      -- A column rather than a dial pressed once: a one-shot widening would
+      -- have gone back to 80% the next session, with nothing on screen saying
+      -- why the tree had shrunk.
+      ALTER TABLE repertoires ADD COLUMN IF NOT EXISTS breadth
+        VARCHAR(8) NOT NULL DEFAULT 'standard';
+      ALTER TABLE repertoires DROP CONSTRAINT IF EXISTS repertoires_breadth_check;
+      ALTER TABLE repertoires ADD CONSTRAINT repertoires_breadth_check
+        CHECK (breadth IN ('main', 'standard', 'broad'));
     `);
     logger.info('Verified database table & indexes: repertoires');
 

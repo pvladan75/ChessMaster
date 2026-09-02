@@ -21,7 +21,15 @@
 // instead of six.
 
 const { schedule, GRADES } = require('./spacedRepetitionService');
-const { fenKey } = require('./repertoireService');
+const {
+  fenKey, requireColor, DEFAULT_BREADTH,
+} = require('./repertoireService');
+// The walk's own "advance one move", not a second copy of it: the opponent's
+// reply has to be played out to know which position it lands on, and that is
+// the same reading of a stored UCI the frontier already does. `withinBreadth`
+// is there for the same reason — the live opponent and the walk have to draw
+// from the same set, and they have disagreed before.
+const { step, withinBreadth } = require('./repertoireFrontier');
 const logger = require('./logger');
 
 /// How an answer is scored, before SM-2 sees it.
@@ -320,43 +328,111 @@ async function ensureReview(pool, userId, color, key) {
 /// always answers with the main move rehearses one line and calls it a
 /// repertoire.
 ///
-/// **Only replies the student prepared.** This used to be the other way round:
-/// the uncovered moves were in the draw on purpose, so that meeting one showed
-/// the student the edge of what they had prepared and opened the door back into
-/// building. The owner asked for it removed, and two things argue the same way:
+/// **A reply has to pass three conditions, not one.** The book has to say the
+/// move is played here; the student must not have *cut* the position it leads
+/// to; and they must have decided something there. Only the first was checked,
+/// and the other two were missing in the same way — the line walk had refused
+/// to go into a cut branch or past the end of the preparation for months
+/// (`repertoire_skips`, `coveredReplies`), while the live opponent walked
+/// straight into both. One of the two was wrong, and it was not the walk.
 ///
-///   * The line walk already refuses to rehearse an uncovered reply
-///     (`coveredReplies`), so the drill's live opponent was playing moves the
-///     drill's own rehearsal would not play. One of the two was wrong.
-///   * The door into building is still there. It is `unprepared` — a position
-///     you covered and never decided about — and that is the honest version of
-///     it, because it is a hole in the repertoire rather than a hole in the
-///     book.
+/// Cut is the plainer of the two: a branch the student deleted is a decision,
+/// and answering them with it asks them to remember the thing they decided by
+/// deleting.
 ///
-/// A position with nothing prepared answers with null, and the line ends where
-/// the preparation ends. That is what a book running out looks like.
+/// "Decided something there" is `source = 'chosen'` — which is `answer()`'s own
+/// definition of prepared, and that is the point of using it rather than a
+/// condition of this function's own. The reply can then never land on a
+/// position that the very next call would grade `unprepared`, so the spar ends
+/// on "the branch is played out" instead of on a question with no answer
+/// behind it. `role` is deliberately not part of it: a position whose only
+/// decision is an alternate still has an answer that `answer()` grades.
 ///
-/// "Prepared" means the same thing here as everywhere: covered, **or** a move
-/// this student pressed "prepare this too" on. Forgetting the second half would
-/// refuse a reply they asked for by name. Computed in SQL and filtered in JS on
-/// purpose — the condition is then one expression, and the drawing is testable
-/// against rows rather than against a query.
+/// **Prepared** still means covered *or* pressed "prepare this too" on. That is
+/// per student, and so are both new conditions — which is why a call that does
+/// not say who is asking is refused outright rather than answered with null.
+/// Null is what the end of the book looks like, and a missing caller must not
+/// be able to counterfeit it.
+///
+/// `breadth` is the repertoire's, and it has to reach here for the same reason
+/// the two conditions above do: the walk follows what the breadth says, and an
+/// opponent drawing from a narrower set than the walk would refuse to spar into
+/// a position the student built. Read through `withinBreadth`, the one place
+/// that rule is written.
+///
+/// All three are computed in SQL and filtered in JS on purpose. The rule is
+/// then one expression that can be read, and a test can put a cut position or
+/// an undecided one in front of it against rows — a guard written into a WHERE
+/// clause is a guard no stub pool can disprove by mutation.
 async function pickReply(pool, {
-  fen, minRating = 0, userId = null, color = null, random = Math.random,
+  fen, minRating = 0, userId = null, color = null, breadth = DEFAULT_BREADTH,
+  random = Math.random,
 }) {
   const key = fenKey(fen);
+  requireColor(color);
+  if (userId === null || userId === undefined) {
+    throw new RangeError('Korisnik nije prosleđen.');
+  }
   const rows = await pool.query(
-    `SELECT r.uci, r.san, r.games,
-            (r.covered = TRUE OR EXISTS (
+    `SELECT r.uci, r.san, r.games, r.share, r.covered,
+            EXISTS (
               SELECT 1 FROM repertoire_extra_replies e
                WHERE e.user_id = $3 AND e.color = $4
-                 AND e.fen_key = r.fen_key AND e.uci = r.uci)) AS covered
+                 AND e.fen_key = r.fen_key AND e.uci = r.uci) AS asked
        FROM opening_replies r
       WHERE r.fen_key = $1 AND r.min_rating = $2
       ORDER BY r.games DESC`,
     [key, minRating ?? 0, userId, color],
   );
-  const usable = rows.rows.filter((row) => row.covered === true);
+  // The games count is dropped by `withinBreadth`, which answers what the walk
+  // needs, and the draw is weighted by games — so the rows are matched back up
+  // by uci rather than re-queried.
+  const followed = new Set(
+    withinBreadth(rows.rows, breadth).map((reply) => reply.uci));
+  const covered = rows.rows.filter((row) => followed.has(row.uci));
+  if (covered.length === 0) return null;
+
+  // Where each reply lands. A stored move that no longer fits the position is
+  // a broken book row rather than a broken request, so it is dropped and the
+  // rest of the draw is still worth having — the same reading `step` answers
+  // null for in the walk.
+  const landing = new Map();
+  for (const row of covered) {
+    const after = step(fen, row.uci);
+    if (after !== null) landing.set(row.uci, fenKey(after.fen));
+  }
+  const keys = [...new Set(landing.values())];
+  if (keys.length === 0) return null;
+
+  const state = await pool.query(
+    `SELECT k.fen_key,
+            EXISTS (
+              SELECT 1 FROM repertoire_moves m
+               WHERE m.user_id = $1 AND m.color = $2
+                 AND m.fen_key = k.fen_key AND m.source = 'chosen') AS decided,
+            EXISTS (
+              SELECT 1 FROM repertoire_skips s
+               WHERE s.user_id = $1 AND s.color = $2
+                 AND s.fen_key = k.fen_key) AS cut
+       FROM UNNEST($3::text[]) AS k(fen_key)`,
+    [userId, color, keys],
+  );
+  const decided = new Set();
+  const cut = new Set();
+  for (const row of state.rows) {
+    if (row.decided === true) decided.add(row.fen_key);
+    if (row.cut === true) cut.add(row.fen_key);
+  }
+
+  const usable = covered.filter((row) => {
+    const landed = landing.get(row.uci);
+    if (landed === undefined) return false;
+    if (cut.has(landed)) return false;
+    return decided.has(landed);
+  });
+  // Nothing left to play, so the line ends here. That is what a book running
+  // out looks like, and the screen already reads it as "grana odigrana do
+  // kraja" rather than as a failure.
   if (usable.length === 0) return null;
 
   const total = usable.reduce((sum, row) => sum + Number(row.games), 0);
