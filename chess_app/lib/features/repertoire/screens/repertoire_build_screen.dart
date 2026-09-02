@@ -13,6 +13,8 @@ import 'package:chess_app/features/repertoire/widgets/repertoire_comment_panel.d
 import 'package:chess_app/features/repertoire/widgets/repertoire_gate_picker.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_position_ask.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
+import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
+import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/app_settings_service.dart';
@@ -63,6 +65,7 @@ class RepertoireBuildScreen extends StatefulWidget {
     this.judge,
     this.analyse,
     this.onDrillHere,
+    this.openingLookup,
   });
 
   final String name;
@@ -72,6 +75,14 @@ class RepertoireBuildScreen extends StatefulWidget {
   final String color;
 
   final String rootFen;
+
+  /// How the banner above the board finds an opening's name, injected for the
+  /// same reason [api] and [analyse] are: the real `OpeningBookService` loads
+  /// through `compute()`, and `compute()` never completes inside
+  /// `testWidgets`. Without this the banner is unreachable from a test — which
+  /// is how it shipped keyed on a counter that reset it on every walk
+  /// advance, blanking the name at exactly the depth the rule exists for.
+  final OpeningBookEntry? Function(String fen)? openingLookup;
 
   /// The moves that led to [rootFen], in SAN.
   ///
@@ -159,6 +170,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// a cut stops the walk, and a card that stays behind only widens a picture
   /// that is read to find the holes.
   bool _showCut = false;
+
+  String? _lastMoveFrom;
+  String? _lastMoveTo;
 
   _Pending? _node;
 
@@ -668,6 +682,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _lines = const [];
       _linesFen = null;
       _showTail = false;
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
       _standingAfter = (uci: uci, san: san, fen: fen);
     });
     _boardController.loadFen(fen);
@@ -963,6 +979,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _answersSan = null;
       _standingAfter = null;
       _showTail = false;
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
       _preparedUcis.clear();
       _lines = const [];
       _linesFen = null;
@@ -1158,6 +1176,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _boardController.loadFen(fen);
       return;
     }
+
+    final played = ChessBoardWithOverlay.lastMoveSquares(_boardController.game);
+    setState(() {
+      _lastMoveFrom = played?.from;
+      _lastMoveTo = played?.to;
+    });
+
     final san = board.getHistory().last.toString();
     final uci = isPromotion ? '$from$to$piece' : '$from$to';
 
@@ -2335,6 +2360,16 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (_current != null)
+            // Deliberately unkeyed. A key that changes as the walk advances
+            // destroys the banner's State, and its State is the carried
+            // name — the whole point of the last-named rule. Opening another
+            // repertoire pushes a new screen, so there is nothing a key here
+            // could reset that is not reset already.
+            OpeningBanner(
+              fen: _standingAfter?.fen ?? _current!,
+              lookup: widget.openingLookup,
+            ),
           Center(
             child: BoardWithCoordinates(
               size: boardSize,
@@ -2352,6 +2387,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                 isDrawingMode: false,
                 drawingStartSquare: null,
                 arrows: const [],
+                lastMoveFrom: _lastMoveFrom,
+                lastMoveTo: _lastMoveTo,
                 // The engine's answer, on the board rather than only in a
                 // list underneath it: one arrow per line, its evaluation
                 // written beside it. Reading a move as "Nxd4" and finding
