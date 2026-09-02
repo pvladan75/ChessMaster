@@ -1,5 +1,6 @@
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
+import 'package:chess_app/features/repertoire/widgets/unconfirmed_review_sheet.dart';
 // `hide Color`: the board package re-exports the chess package, whose `Color`
 // is a piece colour. Without this, `Color` in this file means black-or-white
 // instead of a paint colour, and the error it produces names two files that
@@ -117,6 +118,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   DrillStats _stats =
       const DrillStats(positions: 0, due: 0, known: 0, fresh: 0);
   bool _loading = true;
+  int _drafts = 0;
   bool _busy = false;
 
   /// Set once the student has asked to be shown the answer. The next answer is
@@ -632,9 +634,20 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     });
     final fen = _fen;
     if (fen != null) _boardController.loadFen(fen);
+
+    if (_stats.positions == 0 || _stats.due == 0) {
+      final counts = await _api.unconfirmedCounts();
+      if (mounted && counts != null) {
+        setState(() {
+          _drafts =
+              widget.color == 'w' ? counts.w.positions : counts.b.positions;
+        });
+      }
+    }
   }
 
   /// Puts up the line: the board at its start, the question waiting at the end.
+
   void _startLine(DrillLine line) {
     final question = line.question;
     setState(() {
@@ -1563,6 +1576,33 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               style: AppText.caption.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
+            if (_drafts > 0) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Još $_drafts nepotvrđenih nacrta čeka u ovom repertoaru.',
+                style: AppText.caption.copyWith(color: context.colors.warning),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              OutlinedButton.icon(
+                onPressed: () => showUnconfirmedReviewSheet(
+                  context,
+                  color: widget.color,
+                  rootFen: widget.rootFen!,
+                  rootPath: widget.rootPath,
+                  gateUci: widget.gateUci,
+                  breadth: null,
+                  minRating: widget.minRating,
+                  api: _api,
+                  onJump: (fen, uci) {
+                    Navigator.of(context)
+                        .pop(); // Go back to where it can be handled or just pop the drill
+                  },
+                ),
+                icon: const Icon(Icons.edit_note, size: 18),
+                label: const Text('Pregledaj nacrt'),
+              ),
+            ],
             const SizedBox(height: AppSpacing.lg),
             // Practising early is allowed, and it is allowed *because* nothing
             // is written down for it. Waiting a day is right for a schedule and
