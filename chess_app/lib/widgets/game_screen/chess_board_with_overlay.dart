@@ -42,6 +42,8 @@ class ChessBoardWithOverlay extends StatefulWidget {
   final String? drawingStartSquare;
   final List<ChessArrow> arrows;
   final List<EngineArrow> engineArrows;
+  final String? lastMoveFrom;
+  final String? lastMoveTo;
 
   /// The move that was just played, with what a promoting pawn became.
   ///
@@ -64,6 +66,8 @@ class ChessBoardWithOverlay extends StatefulWidget {
     required this.engineArrows,
     required this.onMove,
     required this.onSquareTapForDrawing,
+    this.lastMoveFrom,
+    this.lastMoveTo,
   });
 
   @override
@@ -302,6 +306,8 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
                   boardSize: widget.boardSize,
                   orientation: widget.boardOrientation,
                   highlightedSquare: widget.drawingStartSquare,
+                  lastMoveFrom: widget.lastMoveFrom,
+                  lastMoveTo: widget.lastMoveTo,
                 ),
               ),
             ),
@@ -319,6 +325,8 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
                   engineArrows: widget.engineArrows,
                   boardSize: widget.boardSize,
                   orientation: widget.boardOrientation,
+                  lastMoveFrom: widget.lastMoveFrom,
+                  lastMoveTo: widget.lastMoveTo,
                 ),
               ),
             ),

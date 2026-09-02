@@ -326,4 +326,40 @@ void main() {
     expect(find.text('U šta se pretvara pešak?'), findsNothing);
     expect(moves, ['b6b8']);
   });
+
+  testWidgets('the highlight is forwarded to the painter even in drawing mode',
+      (tester) async {
+    final controller = ChessBoardController();
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: ChessBoardWithOverlay(
+          controller: controller,
+          boardOrientation: PlayerColor.white,
+          boardSize: 400,
+          isAllowedToMove: true,
+          isDrawingMode: true,
+          drawingStartSquare: null,
+          arrows: const [],
+          engineArrows: const [],
+          onMove: (_, __, ___) {},
+          onSquareTapForDrawing: (_) {},
+          lastMoveFrom: 'e2',
+          lastMoveTo: 'e4',
+        ),
+      ),
+    ));
+
+    final painters = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((w) => w.painter)
+        .whereType<ChessBoardPainter>()
+        .toList();
+
+    expect(painters, isNotEmpty, reason: 'the painter must be in the tree');
+    for (final p in painters) {
+      expect(p.lastMoveFrom, 'e2');
+      expect(p.lastMoveTo, 'e4');
+    }
+  });
 }

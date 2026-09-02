@@ -8,7 +8,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
+import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/models/analysis_models.dart';
@@ -380,6 +382,7 @@ void main() {
     Map<String, List<RepertoireMove>> seed = const {},
     Future<List<AnalysisLine>> Function(String fen, int depth, int multiPV)?
         analyse,
+    OpeningBookEntry? Function(String fen)? openingLookup,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
@@ -400,6 +403,7 @@ void main() {
         rootPath: rootPath,
         api: api,
         judge: judge,
+        openingLookup: openingLookup,
         // No engine binary in a test, and no ten-second wait for one.
         analyse: analyse ??
             (fen, depth, multiPV) async {
@@ -1559,5 +1563,37 @@ void main() {
     // Exactly one, and only because it was asked for.
     expect(judge.asked, 1);
     expect(find.textContaining('upita: 1'), findsOneWidget);
+  });
+
+  testWidgets('the opening banner is never keyed on anything that moves',
+      (tester) async {
+    // The banner carries the last opening it was able to name, because the ECO
+    // dataset names openings and not every position in them: walk four moves
+    // into a real line and the lookup returns null, and a banner that rendered
+    // whatever it was just handed would go blank exactly where the student is
+    // working hardest.
+    //
+    // That carried name lives in the widget's State, so **a key that changes
+    // as the walk advances throws it away**. This shipped once: both screens
+    // mounted the banner as `key: ValueKey(_boardJumpCount)` with the counter
+    // incremented on every advance, so the name reset on every question. The
+    // widget's own test passed the whole time — it pumps the banner directly
+    // and never sees the key the screen supplies.
+    //
+    // Hence a composition assertion rather than a behavioural one. There is no
+    // key this screen could legitimately need: opening another repertoire
+    // pushes a whole new screen.
+    await tester.runAsync(() async {});
+    await pump(tester,
+        openingLookup: (fen) => OpeningBookEntry(
+              eco: 'B21',
+              name: 'Sicilijanka, Smit-Mora',
+              pgn: '1. e4 c5 2. d4',
+            ));
+
+    final banner = tester.widget<OpeningBanner>(find.byType(OpeningBanner));
+    expect(banner.key, isNull,
+        reason: 'a changing key resets the carried opening name');
+    expect(find.text('B21 · Sicilijanka, Smit-Mora'), findsOneWidget);
   });
 }

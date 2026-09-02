@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 
 import 'package:chess_app/features/repertoire/line_text.dart';
+import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/theme/app_colors.dart';
@@ -111,6 +112,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   late final RepertoireApiService _api = widget.api ?? RepertoireApiService();
 
   String? _fen;
+  String? _lastMoveFrom;
+  String? _lastMoveTo;
   DrillStats _stats =
       const DrillStats(positions: 0, due: 0, known: 0, fresh: 0);
   bool _loading = true;
@@ -415,6 +418,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _sparMissed = 0;
       _sparNote = null;
       _loading = false;
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
       _ahead = false;
       _line = null;
       _prefix = const [];
@@ -619,6 +624,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _loading = false;
       _stats = next.stats;
       _fen = next.item?.fen;
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
       _prefixNote = root == null
           ? null
           : 'Linija nije mogla da se sastavi — pitanje ide bez ponavljanja.';
@@ -641,6 +648,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _prefixNote = null;
       _prefixNoteMild = false;
       _prefixArrow = null;
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
     });
     final fen = _rehearsalFen ?? _fen;
     if (fen != null) _boardController.loadFen(fen);
@@ -733,6 +742,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                   '${want.san}.'
               : 'U ovoj liniji ide ${want.san}. Ponavljanje se ne ocenjuje.';
       _prefixNoteMild = ownMove;
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
     });
     _boardController.loadFen(afterMine);
 
@@ -765,6 +776,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _prefixNote = null;
       _prefixNoteMild = false;
       _prefixArrow = null;
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
     });
     final fen = _fen;
     if (fen != null) _boardController.loadFen(fen);
@@ -831,6 +844,13 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _boardController.loadFen(fen);
       return;
     }
+
+    final played = ChessBoardWithOverlay.lastMoveSquares(_boardController.game);
+    setState(() {
+      _lastMoveFrom = played?.from;
+      _lastMoveTo = played?.to;
+    });
+
     final san = board.getHistory().last.toString();
     final uci = isPromotion ? '$from$to$piece' : '$from$to';
 
@@ -1060,6 +1080,11 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Deliberately unkeyed — see the note on the same widget in
+              // repertoire_build_screen.dart. A key that changes as the drill
+              // moves through a line resets the carried opening name on every
+              // question, which is the one thing the banner is for.
+              if (_fen != null) OpeningBanner(fen: _fen!),
               Center(
                 child: BoardWithCoordinates(
                   size: boardSize,
@@ -1076,6 +1101,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                     drawingStartSquare: null,
                     arrows: _prefixArrow == null ? const [] : [_prefixArrow!],
                     engineArrows: const [],
+                    lastMoveFrom: _lastMoveFrom,
+                    lastMoveTo: _lastMoveTo,
                     onMove: _onMove,
                     onSquareTapForDrawing: (_) {},
                   ),
