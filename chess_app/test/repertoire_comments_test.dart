@@ -38,6 +38,7 @@ class _FakeApi extends RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     String? gateUci,
+    String? breadth,
   }) async =>
       const RepertoireFrontier(
         open: [
@@ -62,6 +63,7 @@ class _FakeApi extends RepertoireApiService {
     int? minRating,
     int maxPly = 16,
     String? gateUci,
+    String? breadth,
   }) async =>
       const RepertoireTree(
         rootFen: advance,

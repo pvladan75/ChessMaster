@@ -115,6 +115,7 @@ class _FakeApi extends RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     String? gateUci,
+    String? breadth,
   }) async =>
       const RepertoireFrontier(
         // One open position — the root — so the screen has a board rather than
@@ -133,6 +134,7 @@ class _FakeApi extends RepertoireApiService {
     int? minRating,
     int maxPly = 16,
     String? gateUci,
+    String? breadth,
   }) async {
     treeCalls += 1;
     if (cutTree) {

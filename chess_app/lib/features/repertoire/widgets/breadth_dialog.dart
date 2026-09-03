@@ -10,22 +10,36 @@ class BreadthDialog extends StatefulWidget {
     super.key,
     required this.id,
     required this.api,
+    this.current,
   });
 
   final int? id;
   final RepertoireApiService? api;
+
+  /// The width this repertoire is already set to.
+  ///
+  /// Without it the dialog opened on `standard` every time, so a repertoire set
+  /// to `main` was quietly reset to 80% by anybody who opened the dialog and
+  /// picked a depth — a setting changed by a screen nobody asked to change it.
+  final String? current;
 
   @override
   State<BreadthDialog> createState() => _BreadthDialogState();
 }
 
 class _BreadthDialogState extends State<BreadthDialog> {
-  String _selectedWidth = 'standard';
+  late String _selectedWidth = widget.current ?? 'standard';
   bool _saving = false;
 
+  /// Both halves of the answer, not only the depth.
+  ///
+  /// The width was written to the row and the screen went on reading at the
+  /// server's default, so a repertoire set to `main` kept drawing the 80%
+  /// picture until it was next opened from the list. The caller needs to know
+  /// what was chosen, here and now.
   Future<void> _saveAndReturn(int depth) async {
     if (widget.id == null) {
-      Navigator.of(context).pop(depth);
+      Navigator.of(context).pop((depth: depth, breadth: _selectedWidth));
       return;
     }
 
@@ -35,7 +49,7 @@ class _BreadthDialogState extends State<BreadthDialog> {
     if (!mounted) return;
 
     if (done) {
-      Navigator.of(context).pop(depth);
+      Navigator.of(context).pop((depth: depth, breadth: _selectedWidth));
     } else {
       setState(() => _saving = false);
       AppFeedback.error(context, 'Nije sačuvano — server nije odgovorio.');

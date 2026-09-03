@@ -52,6 +52,7 @@ class _FakeApi extends RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     String? gateUci,
+    String? breadth,
   }) async {
     frontierGates.add(gateUci);
     return const RepertoireFrontier(
@@ -71,6 +72,7 @@ class _FakeApi extends RepertoireApiService {
     int? minRating,
     int maxPly = 16,
     String? gateUci,
+    String? breadth,
   }) async {
     treeGates.add(gateUci);
     // The server does the narrowing; the fake answers with what a gated read

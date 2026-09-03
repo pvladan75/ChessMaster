@@ -65,6 +65,7 @@ class RepertoireSummary {
     this.rootPath = const [],
     this.viaUci,
     this.viaSan,
+    this.breadth = 'standard',
   });
 
   final int id;
@@ -103,6 +104,13 @@ class RepertoireSummary {
   /// flattering: two doors into one graph show the same number.
   final int moves;
 
+  /// How wide this repertoire's walk reads: `main`, `standard` or `broad`.
+  ///
+  /// The server has sent it since the column existed; this model dropped it,
+  /// which is why the setting was inert — the screens had nothing to pass on,
+  /// so every read fell back to the server's `standard`.
+  final String breadth;
+
   bool get forWhite => color == 'w';
 
   factory RepertoireSummary.fromJson(Map<String, dynamic> json) =>
@@ -116,6 +124,7 @@ class RepertoireSummary {
         viaUci: json['viaUci'] as String? ?? json['via_uci'] as String?,
         viaSan: json['viaSan'] as String?,
         moves: (json['moves'] as num?)?.toInt() ?? 0,
+        breadth: json['breadth'] as String? ?? 'standard',
       );
 }
 
@@ -1569,6 +1578,7 @@ class RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     String? gateUci,
+    String? breadth,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/frontier').replace(
       queryParameters: {
@@ -1577,6 +1587,10 @@ class RepertoireApiService {
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
         if (minRating != null) 'minRating': '$minRating',
         if (gateUci != null) 'gateUci': gateUci,
+        // The width, which is stored on the repertoire's row and means nothing
+        // until somebody sends it: absent, the server falls back to `standard`
+        // and the queue is computed at 80% for a repertoire set to `main`.
+        if (breadth != null) 'breadth': breadth,
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -2034,6 +2048,7 @@ class RepertoireApiService {
     int? minRating,
     int maxPly = 16,
     String? gateUci,
+    String? breadth,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/tree').replace(
       queryParameters: {
@@ -2046,6 +2061,9 @@ class RepertoireApiService {
         // reason it exists — two repertoires from one position drew each
         // other's moves.
         if (gateUci != null) 'gateUci': gateUci,
+        // Same as the gate, and for the same reason: the picture is drawn at
+        // the width the repertoire was set to, not at the server's default.
+        if (breadth != null) 'breadth': breadth,
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -2080,6 +2098,7 @@ class RepertoireApiService {
     List<String> exclude = const [],
     bool ahead = false,
     String? gateUci,
+    String? breadth,
     List<int>? ids,
   }) async {
     final byIds = ids != null && ids.isNotEmpty;
@@ -2092,6 +2111,8 @@ class RepertoireApiService {
           if (rootFen != null) 'rootFen': rootFen,
           if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
           if (gateUci != null) 'gateUci': gateUci,
+          // Beside the root and never beside `ids`, which carry their own.
+          if (breadth != null) 'breadth': breadth,
         },
         if (minRating != null) 'minRating': '$minRating',
         if (fromFen != null) 'fromFen': fromFen,
@@ -2308,6 +2329,7 @@ class RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     String? gateUci,
+    String? breadth,
     List<int>? ids,
   }) async {
     final byIds = ids != null && ids.isNotEmpty;
@@ -2320,6 +2342,7 @@ class RepertoireApiService {
           if (rootFen != null) 'rootFen': rootFen,
           if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
           if (gateUci != null) 'gateUci': gateUci,
+          if (breadth != null) 'breadth': breadth,
         },
         if (minRating != null) 'minRating': '$minRating',
       },

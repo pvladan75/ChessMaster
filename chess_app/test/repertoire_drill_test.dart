@@ -84,6 +84,7 @@ class _FakeApi extends RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     String? gateUci,
+    String? breadth,
     List<int>? ids,
   }) async {
     branchCalls += 1;
@@ -102,6 +103,7 @@ class _FakeApi extends RepertoireApiService {
     List<String> exclude = const [],
     bool ahead = false,
     String? gateUci,
+    String? breadth,
     List<int>? ids,
   }) async {
     lineCalls += 1;

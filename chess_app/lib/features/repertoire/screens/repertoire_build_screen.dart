@@ -71,10 +71,22 @@ class RepertoireBuildScreen extends StatefulWidget {
     this.onDrillHere,
     this.openingLookup,
     this.id,
+    this.breadth,
   });
 
   final String name;
   final int? id;
+
+  /// How wide the walk reads, from this repertoire's own row: `main`,
+  /// `standard` or `broad`.
+  ///
+  /// Carried rather than left to the server's default, which is what made the
+  /// setting inert: the dialog wrote `main` to the row and every read on this
+  /// screen went on asking at 80%, so the picture and the queue disagreed with
+  /// the choice the reader had just made. Null keeps the server's default,
+  /// which is what a screen opened without a row (a jump into some position)
+  /// should get.
+  final String? breadth;
 
   /// 'w' or 'b' — the side being prepared. The board is turned this way and
   /// only these moves are ever asked for.
@@ -213,6 +225,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// The walk this screen resumed from, kept for the header. Null until the
   /// server has answered, and after a server that did not.
   RepertoireFrontier? _frontier;
+
+  /// The width in force, starting from the row and changed by the spine dialog.
+  late String? _breadth = widget.breadth;
   bool _resuming = true;
 
   List<RepertoireMove> _kept = const [];
@@ -405,6 +420,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       rootPath: widget.rootPath,
       minRating: widget.minRating,
       gateUci: widget.gateUci,
+      breadth: _breadth,
     );
     if (!mounted) return;
     if (walk == null) {
@@ -441,6 +457,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       rootPath: widget.rootPath,
       minRating: widget.minRating,
       gateUci: widget.gateUci,
+      breadth: _breadth,
     );
     final stored = _api.notes(color: widget.color);
     // The third free read: what the student wrote. Beside the other two rather
@@ -2124,14 +2141,20 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final fen = _current;
     if (fen == null || _busy) return;
 
-    final depth = await showDialog<int>(
+    final chosen = await showDialog<({int depth, String breadth})>(
       context: context,
       builder: (context) => BreadthDialog(
         id: widget.id,
         api: _api,
+        current: _breadth,
       ),
     );
-    if (depth == null || !mounted) return;
+    if (chosen == null || !mounted) return;
+    final depth = chosen.depth;
+    // Adopted before the spine runs, so the walk and the picture that follow
+    // it are read at the width the reader just chose rather than at the one
+    // the screen was opened with.
+    setState(() => _breadth = chosen.breadth);
 
     setState(() {
       _busy = true;
@@ -2482,7 +2505,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                   rootFen: widget.rootFen,
                   rootPath: widget.rootPath,
                   gateUci: widget.gateUci,
-                  breadth: null,
+                  breadth: _breadth,
                   minRating: widget.minRating,
                   api: _api,
                   onJump: (fen, rejectedUci) => _jumpToFen(fen, rejectedUci),

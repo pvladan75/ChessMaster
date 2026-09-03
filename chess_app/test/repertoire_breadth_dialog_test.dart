@@ -21,13 +21,13 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     final api = _FakeApi();
-    int? returnedDepth;
+    ({int depth, String breadth})? returned;
 
     await tester.pumpWidget(MaterialApp(
       home: Builder(
         builder: (context) => ElevatedButton(
           onPressed: () async {
-            returnedDepth = await showDialog<int>(
+            returned = await showDialog<({int depth, String breadth})>(
               context: context,
               builder: (_) => BreadthDialog(id: 3, api: api),
             );
@@ -53,7 +53,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(api.savedBreadth, 'broad');
-    expect(returnedDepth, 6);
+    expect(returned?.depth, 6);
+    // The width comes back with the depth: the screen has to read at it now,
+    // not next time the repertoire is opened from the list.
+    expect(returned?.breadth, 'broad');
   });
 
   testWidgets('BreadthDialog disables radio buttons if id is null',

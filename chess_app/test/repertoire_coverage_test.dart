@@ -26,6 +26,7 @@ class _FakeApi extends RepertoireApiService {
     List<String> rootPath = const [],
     int? minRating,
     String? gateUci,
+    String? breadth,
   }) async {
     calls += 1;
     return walk;

@@ -104,6 +104,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         // would filter a position it says nothing about.
         gateUci: at == null ? item.viaUci : null,
         minRating: AppSettingsService.instance.repertoireMinRating,
+        breadth: item.breadth,
         api: widget.api,
         judge: widget.judge,
         // Straight from the position on the board into practising that branch.
@@ -540,6 +541,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         gateUci: item.viaUci,
         fromFen: from,
         minRating: AppSettingsService.instance.repertoireMinRating,
+        breadth: item.breadth,
         api: widget.api,
         // Landing in an unprepared position is the drill working as intended,
         // so the way on is building that very position — not a dead end and

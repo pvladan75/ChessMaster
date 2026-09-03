@@ -65,6 +65,7 @@ class RepertoireDrillScreen extends StatefulWidget {
     this.api,
     this.onBuildHere,
     this.ids,
+    this.breadth,
   });
 
   final String name;
@@ -105,6 +106,10 @@ class RepertoireDrillScreen extends StatefulWidget {
   final void Function(String fen)? onBuildHere;
 
   final List<int>? ids;
+
+  /// The repertoire's width, for a session that runs on one. A combined
+  /// session leaves it null: the server reads each door's width from its row.
+  final String? breadth;
 
   @override
   State<RepertoireDrillScreen> createState() => _RepertoireDrillScreenState();
@@ -321,6 +326,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       rootPath: ids == null ? widget.rootPath : const [],
       minRating: widget.minRating,
       gateUci: ids == null ? widget.gateUci : null,
+      breadth: ids == null ? widget.breadth : null,
       ids: ids,
     );
     if (!mounted) return;
@@ -565,6 +571,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         exclude: _refused.toList(),
         ahead: _ahead,
         gateUci: ids == null ? widget.gateUci : null,
+        breadth: ids == null ? widget.breadth : null,
         ids: ids,
       );
       if (!mounted) return;
@@ -1581,7 +1588,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                     rootFen: widget.rootFen!,
                     rootPath: widget.rootPath,
                     gateUci: widget.gateUci,
-                    breadth: null,
+                    breadth: widget.breadth,
                     minRating: widget.minRating,
                     api: _api,
                     onJump: (fen, uci) => Navigator.of(context).pop(),
