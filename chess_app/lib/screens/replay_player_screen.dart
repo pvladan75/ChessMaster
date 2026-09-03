@@ -13,7 +13,7 @@ import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/recording_models.dart';
 import 'package:chess_app/widgets/action_key_shortcuts.dart';
-import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
@@ -646,7 +646,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             icon: Icon(Icons.video_call, color: context.colors.brand),
             onPressed: _showExportMp4Dialog,
           ),
-          const BoardCoordinatesButton(),
+          const BoardViewMenu(),
           BoardFlipButton(
             onPressed: () {
               setState(() {

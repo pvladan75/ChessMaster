@@ -23,7 +23,7 @@ import 'package:chess_app/services/local_recording_service.dart';
 import 'package:chess_app/services/lesson_recorder.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/services/session_service.dart';
-import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/core/services/board_control_rules.dart' as rules;
 import 'package:chess_app/models/pending_session_intent.dart';
@@ -2797,7 +2797,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       // that bar already carries five actions and a status icon, and a sixth
       // is how a row runs past the edge of a 360 dp phone with no warning
       // painted in a release build.
-      trailing: const [BoardCoordinatesButton()],
+      trailing: const [BoardViewMenu()],
     );
   }
 

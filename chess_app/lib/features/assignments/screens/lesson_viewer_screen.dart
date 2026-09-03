@@ -8,7 +8,7 @@ import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
@@ -242,7 +242,7 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
         title: Text(widget.detail.assignment.title),
-        actions: const [BoardCoordinatesButton()],
+        actions: const [BoardViewMenu()],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
           child: LinearProgressIndicator(
