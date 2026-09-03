@@ -373,14 +373,10 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// It costs no Lichess allowance at all — only time and a warm phone — which
   /// is exactly why the price has to be on the button before it is pressed and
   /// the progress has to be visible while it runs.
-  bool _evaluating = false;
-  int _lineDone = 0;
-  int _lineTotal = 0;
 
   /// Set by the stop button. Read between positions rather than mid-search: a
   /// search already running is finished and stored, because throwing away an
   /// answer that has been paid for helps nobody.
-  bool _stopLine = false;
 
   bool get _forWhite => widget.color == 'w';
 
@@ -1791,123 +1787,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     return fens;
   }
 
-  /// Of those, the ones the engine has not already answered at least this
-  /// deep. What the button counts, so the number on it is what will really be
-  /// searched rather than the length of the line.
-  List<String> _lineToEvaluate() => [
-        for (final fen in _lineFens())
-          if ((_notes[_keyOf(fen)]?.evalDepth ?? -1) < _analysisDepth) fen,
-      ];
-
-  /// Runs the engine down the whole line, one position at a time.
-  ///
-  /// It costs nothing at Lichess and everything in battery, which is why the
-  /// count is on the button before it is pressed and why it can be stopped.
-  /// Stopping is read between positions: a search already running is finished
-  /// and stored, because throwing away an answer already paid for helps nobody.
-  Future<void> _evaluateLine() async {
-    if (_evaluating || _thinking) return;
-    final todo = _lineToEvaluate();
-    if (todo.isEmpty) return;
-
-    setState(() {
-      _evaluating = true;
-      _stopLine = false;
-      _lineDone = 0;
-      _lineTotal = todo.length;
-      _note = null;
-    });
-
-    var failed = 0;
-    for (final fen in todo) {
-      if (!mounted || _stopLine) break;
-      List<AnalysisLine> lines;
-      try {
-        lines = await _analyse(fen, _analysisDepth, 1);
-      } catch (e) {
-        lines = const [];
-      }
-      if (!mounted) return;
-      if (lines.isEmpty) {
-        failed += 1;
-      } else {
-        await _saveNote(fen, lines.first);
-      }
-      if (!mounted) return;
-      setState(() => _lineDone += 1);
-    }
-
-    if (!mounted) return;
-    final done = _lineDone;
-    final stopped = _stopLine;
-    final total = _lineTotal;
-    setState(() {
-      _evaluating = false;
-      _stopLine = false;
-      // What actually happened, the part that did not included. An engine that
-      // timed out on half the line must not leave a screen saying the line is
-      // evaluated.
-      _note = [
-        if (stopped) 'Zaustavljeno posle $done od $total.',
-        if (!stopped) 'Ocenjeno pozicija: $done.',
-        if (failed > 0) 'Motor nije odgovorio na $failed.',
-      ].join(' ');
-    });
-    // The cards carry the new numbers only once the picture is read again.
-    await _loadTree();
-  }
-
-  /// Where the engine plays something other than what was chosen, worst first.
-  ///
-  /// This is what the evaluations are *for*. No flag on any card and no second
-  /// verdict beside the judge's — one list, sorted by what the disagreement
-  /// costs, gone through deliberately.
-  Future<void> _openDisagreements() async {
-    final node = _node;
-    if (node == null) return;
-    setState(() => _busy = true);
-    final report = await _api.disagreements(
-      color: widget.color,
-      rootFen: widget.rootFen,
-      rootPath: widget.rootPath,
-      minRating: widget.minRating,
-      gateUci: widget.gateUci,
-      // The branch in front of the reader. At the root that is the whole
-      // repertoire, which is why this is one rule and not a switch.
-      fromFen: node.fen,
-    );
-    if (!mounted) return;
-    setState(() => _busy = false);
-
-    if (report == null) {
-      setState(() => _note = 'Spisak neslaganja nije mogao da se pročita.');
-      return;
-    }
-    if (report.rows.isEmpty) {
-      setState(() {
-        // Three different silences, and only one of them is good news.
-        _note = report.positions == 0
-            ? 'U ovoj grani još nema vaših poteza.'
-            : report.evaluated == 0
-                ? 'Motor još nije pitan ni za jednu poziciju u ovoj grani.'
-                : 'Motor se slaže sa svim potezima koje je ocenio '
-                    '(${report.evaluated} od ${report.positions}).';
-      });
-      return;
-    }
-
-    final picked = await showDialog<RepertoireDisagreement>(
-      context: context,
-      builder: (context) => _DisagreementsDialog(
-        report: report,
-        rootPath: widget.rootPath,
-        rootFen: widget.rootFen,
-      ),
-    );
-    if (!mounted || picked == null) return;
-    await _show(_Pending(fen: picked.fen, path: picked.path));
-  }
-
   /// Plays the engine's move as the reader's own proposal, so it goes through
   /// the same judging and the same decision as a move played by hand. A
   /// suggestion is not a decision.
@@ -2750,10 +2629,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           // and whenever there is a stored evaluation to show, which is the
           // whole point of storing one.
           if (!_afterMyMove &&
-              (_thinking ||
-                  _evaluating ||
-                  _linesFen == _current ||
-                  _noteHere != null))
+              (_thinking || _linesFen == _current || _noteHere != null))
             _buildEngine(context),
           if (_note != null) ...[
             const SizedBox(height: AppSpacing.sm),
@@ -3626,14 +3502,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           EngineAnalysisDials(
             depth: _analysisDepth,
             lines: _analysisLines,
-            enabled: !_thinking && !_evaluating,
+            enabled: !_thinking,
             onRestart: _askEngine,
             onDepthChanged: (value) => _applyAnalysisDials(depth: value),
             onLinesChanged: (value) => _applyAnalysisDials(lines: value),
           ),
           const SizedBox(height: AppSpacing.xs),
           _buildStoredNote(context),
-          _buildLinePass(context),
           const SizedBox(height: AppSpacing.xs),
           for (final line in (_linesFen == _current ? _lines : const []))
             InkWell(
@@ -3719,52 +3594,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             ),
         ],
       ),
-    );
-  }
-
-  /// The whole line at once, and the list of what it found.
-  ///
-  /// The count is in the label because the price has to be visible before the
-  /// button is pressed: no Lichess allowance at all, and a minute of a warm
-  /// phone. The stop button is beside it for the same reason.
-  Widget _buildLinePass(BuildContext context) {
-    if (_evaluating) {
-      return Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Ocenjujem liniju: $_lineDone/$_lineTotal',
-              style:
-                  AppText.caption.copyWith(color: context.colors.textPrimary),
-            ),
-          ),
-          TextButton.icon(
-            onPressed:
-                _stopLine ? null : () => setState(() => _stopLine = true),
-            icon: const Icon(Icons.stop, size: 16),
-            label: Text(_stopLine ? 'Zaustavljam…' : 'Zaustavi'),
-          ),
-        ],
-      );
-    }
-    final todo = _lineToEvaluate().length;
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      children: [
-        OutlinedButton.icon(
-          onPressed: _busy || _thinking || todo == 0 ? null : _evaluateLine,
-          icon: const Icon(Icons.playlist_play, size: 18),
-          label: Text(todo == 0
-              ? 'Cela linija je ocenjena'
-              : 'Evaluiraj celu liniju ($todo ${todo == 1 ? "pozicija" : "pozicija"})'),
-        ),
-        OutlinedButton.icon(
-          onPressed: _busy || _thinking ? null : _openDisagreements,
-          icon: const Icon(Icons.rule, size: 18),
-          label: const Text('Gde se motor ne slaže'),
-        ),
-      ],
     );
   }
 
@@ -3873,103 +3702,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// The review list: where the engine plays something else, worst first.
-///
-/// A list rather than a flag on a card, and that is the decision. The build
-/// screen already answers "is this move sound" with the opening judge, judged
-/// by the games real people played — which is the better question for a
-/// repertoire, because a repertoire is about what will actually be played
-/// against you. A second verdict from a different notion of "good", printed on
-/// the same card, is how a screen starts contradicting itself in front of a
-/// child. Same information, gone through deliberately, in one place.
-class _DisagreementsDialog extends StatelessWidget {
-  const _DisagreementsDialog({
-    required this.report,
-    required this.rootPath,
-    required this.rootFen,
-  });
-
-  final DisagreementReport report;
-  final List<String> rootPath;
-  final String rootFen;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Gde se motor ne slaže'),
-      // Taken from MediaQuery rather than fixed: a dialog with a width of 360
-      // on a 360 dp phone overflows by its own padding, and a release build
-      // paints no stripes to say so.
-      content: SizedBox(
-        width: MediaQuery.of(context).size.width * 0.9,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Ocenjeno ${report.evaluated} od ${report.positions} pozicija u '
-              'ovoj grani. Broj je koliko motor misli da potez gubi, iz vašeg '
-              'ugla; „?" znači da pozicija posle vašeg poteza još nije ocenjena.',
-              style: AppText.micro.copyWith(color: context.colors.textMuted),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: report.rows.length,
-                itemBuilder: (context, index) {
-                  final row = report.rows[index];
-                  return ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    onTap: () => Navigator.of(context).pop(row),
-                    title: Text(
-                      numberedLine(
-                        [...rootPath, ...row.path],
-                        from: rootPath.isEmpty ? rootFen : null,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppText.caption
-                          .copyWith(color: context.colors.textMuted),
-                    ),
-                    subtitle: Text(
-                      [
-                        'vi: ${row.mineSan}',
-                        'motor: ${row.engineSan ?? row.engineUci}',
-                        '−${row.lossText}',
-                        'd${row.evalDepth}',
-                        // A draft was never chosen by anybody, and a list that
-                        // said "vi" about it would be claiming otherwise.
-                        if (row.isDraft) 'nacrt',
-                      ].join(' · '),
-                      style: AppText.bodyBold
-                          .copyWith(color: context.colors.textPrimary),
-                    ),
-                  );
-                },
-              ),
-            ),
-            if (report.truncated) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Spisak je skraćen — ima ih još.',
-                style: AppText.micro.copyWith(color: context.colors.warning),
-              ),
-            ],
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Zatvori'),
-        ),
-      ],
     );
   }
 }

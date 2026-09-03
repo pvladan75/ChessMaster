@@ -35,11 +35,11 @@ AnalysisNode repertoireTreeToNodes(
       uci: move.uci,
     );
     node.nag = markOfRepertoireMove(move);
-    final note = notes[fenKeyOf(move.fen)];
-    if (note != null) {
-      node.eval = note.treeEval;
-      node.evalDepth = note.evalDepth;
-    }
+    // The engine's number is deliberately **not** put on the card. It was one
+    // more thing to read on a drawing whose job is to show the holes, and it
+    // said nothing the reader had asked for: an opinion about a move they had
+    // already decided. Where it is worth keeping, it goes in the comment, in
+    // their own words.
     for (final child in move.children) {
       add(node, child);
     }

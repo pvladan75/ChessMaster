@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
-import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
 import 'package:chess_app/models/analysis_models.dart';
 
 /// 1.e4 e6 2.d4 d5 3.e5 — the French Advance, Black to move, and the root of
@@ -213,24 +212,6 @@ void main() {
     });
   });
 
-  test('a stored evaluation lands on the tree card', () {
-    // The card already draws `eval`, so this is not a new drawing — it is the
-    // number arriving where the picture already had a place for it.
-    const tree = RepertoireTree(
-      rootFen: advance,
-      children: [
-        RepertoireTreeMove(
-            uci: 'c7c5', san: 'c5', fen: afterC5, mine: true, role: 'primary'),
-      ],
-    );
-    final root = repertoireTreeToNodes(tree, notes: {
-      keyOf(afterC5):
-          const RepertoireNote(fenKey: 'ignored', evalCp: -40, evalDepth: 22),
-    });
-    expect(root.children.single.eval, closeTo(-0.40, 0.0001));
-    expect(root.children.single.evalDepth, 22);
-  });
-
   group('on the build screen', () {
     late _FakeApi api;
     late List<String> asked;
@@ -313,103 +294,6 @@ void main() {
       expect(find.textContaining('Sačuvano: +0.35'), findsOneWidget);
       expect(find.textContaining('dubina 20'), findsOneWidget);
       expect(find.textContaining('31.8.2026.'), findsOneWidget);
-    });
-
-    testWidgets('the line pass says its price, and runs once per position',
-        (tester) async {
-      await pump(tester);
-      await tester.tap(find.text('Pitaj motor'));
-      await tester.pumpAndSettle();
-      asked.clear();
-
-      // Three positions on the line — the root, after 3...c5 and after 4.c3 —
-      // of which the last already has an answer at this depth from the button
-      // above. The count is what will actually be searched, not the length of
-      // the line: the price has to be visible before the button is pressed.
-      expect(find.textContaining('Evaluiraj celu liniju (2'), findsOneWidget);
-
-      await tester.tap(find.textContaining('Evaluiraj celu liniju'));
-      await tester.pumpAndSettle();
-
-      expect(asked, [advance, afterC5]);
-      expect(api.stored.length, 3);
-      expect(find.text('Cela linija je ocenjena'), findsOneWidget);
-    });
-
-    testWidgets('a deeper answer already stored is not asked for again',
-        (tester) async {
-      // Everything on the line answered deeper than the dial. Nothing left to
-      // buy, and a button offering to buy it again would be spending a warm
-      // phone on a number already in hand.
-      await pump(tester, seed: {
-        for (final fen in [advance, afterC5, afterC3])
-          keyOf(fen):
-              RepertoireNote(fenKey: keyOf(fen), evalCp: 10, evalDepth: 40),
-      });
-
-      // And the panel is open without anybody pressing anything: a stored
-      // evaluation is what it is there to show.
-      expect(find.text('Cela linija je ocenjena'), findsOneWidget);
-      final button = tester.widget<OutlinedButton>(
-        find.ancestor(
-          of: find.text('Cela linija je ocenjena'),
-          matching: find.byType(OutlinedButton),
-        ),
-      );
-      expect(button.onPressed, isNull);
-    });
-
-    testWidgets('the review list is asked for the branch on the board',
-        (tester) async {
-      await pump(tester);
-      api.report = const DisagreementReport(
-        positions: 3,
-        evaluated: 3,
-        rows: [
-          RepertoireDisagreement(
-            fen: afterC5,
-            path: ['c5'],
-            mineUci: 'c7c5',
-            mineSan: 'c5',
-            engineUci: 'g8f6',
-            engineSan: 'Nf6',
-            evalDepth: 20,
-            loss: 45,
-          ),
-        ],
-      );
-      await tester.tap(find.text('Pitaj motor'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Gde se motor ne slaže'));
-      await tester.pumpAndSettle();
-
-      // The branch in front of the reader. At the root that is the whole
-      // repertoire, which is why this is one rule and not a switch.
-      expect(api.askedFrom, afterC3);
-      expect(find.textContaining('vi: c5'), findsOneWidget);
-      expect(find.textContaining('motor: Nf6'), findsOneWidget);
-      expect(find.textContaining('−0.45'), findsOneWidget);
-    });
-
-    testWidgets('nothing to review is three sentences, not one',
-        (tester) async {
-      await pump(tester);
-      api.report = const DisagreementReport(positions: 4, evaluated: 0);
-      await tester.tap(find.text('Pitaj motor'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Gde se motor ne slaže'));
-      await tester.pumpAndSettle();
-
-      // "The engine agrees with everything" and "the engine has never been
-      // asked" look identical as an empty list, and only one of them is good
-      // news.
-      expect(find.textContaining('nije pitan'), findsOneWidget);
-
-      api.report = const DisagreementReport(positions: 4, evaluated: 4);
-      await tester.tap(find.text('Gde se motor ne slaže'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('slaže sa svim'), findsOneWidget);
     });
 
     testWidgets('a position the engine never answered stores nothing',
