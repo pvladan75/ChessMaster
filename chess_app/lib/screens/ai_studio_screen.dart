@@ -25,7 +25,7 @@ import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/core/models/drill_outcome.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
@@ -2497,7 +2497,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             // solve the position, and the banner above it says whose move it
             // is — a reader who turns it around is then looking at a board
             // that contradicts the sentence naming their colour.
-            const BoardCoordinatesButton(size: 20),
+            const BoardViewMenu(size: 20),
           ],
         ),
       ),
@@ -2628,8 +2628,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            BoardCoordinatesButton(
-                size: 18, color: context.colors.textSecondary),
+            BoardViewMenu(size: 18, color: context.colors.textSecondary),
             const SizedBox(width: AppSpacing.sm),
             IconButton(
               icon: Icon(Icons.biotech,

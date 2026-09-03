@@ -10,7 +10,7 @@ import 'package:chess_app/features/repertoire/services/repertoire_api_service.da
 import 'package:chess_app/features/repertoire/widgets/repertoire_gate_picker.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
@@ -404,7 +404,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
       appBar: AppBar(
         title: const Text('Novi repertoar'),
         elevation: 0,
-        actions: const [BoardCoordinatesButton()],
+        actions: const [BoardViewMenu()],
       ),
       body: SafeArea(
         child: LayoutBuilder(

@@ -26,7 +26,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
-import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/engine_analysis_dials.dart';
@@ -1502,25 +1502,39 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// not bookkeeping: an arrow from the previous position points at pieces that
   /// have moved, which is the same bug the engine readout had.
   List<EngineArrow> _boardArrows() {
-    // Standing after our own move, looking at what comes back.
-    if (_answers != null) return _replyArrows(_answers!);
-    // The same thing from the stored book, after a move tapped in the tree.
-    if (_standingAfter != null) {
-      final book = _stored;
-      // Drawn only for the board it was asked about, like every other layer
-      // here: arrows from the previous position point at pieces that moved.
-      if (book == null || _storedFor != _standingAfter!.fen) return const [];
-      return _shareArrows([
-        for (final reply in book.replies) (uci: reply.uci, share: reply.share),
-      ]);
+    final settings = AppSettingsService.instance;
+
+    if (settings.showStatisticsArrows) {
+      // Standing after our own move, looking at what comes back.
+      if (_answers != null) return _replyArrows(_answers!);
+      // The same thing from the stored book, after a move tapped in the tree.
+      if (_standingAfter != null) {
+        final book = _stored;
+        // Drawn only for the board it was asked about, like every other layer
+        // here: arrows from the previous position point at pieces that moved.
+        if (book == null || _storedFor != _standingAfter!.fen) return const [];
+        return _shareArrows([
+          for (final reply in book.replies)
+            (uci: reply.uci, share: reply.share),
+        ]);
+      }
     }
-    // The engine, if it was asked about this position and answered.
-    final engine = _engineArrows();
-    if (engine.isNotEmpty) return engine;
+
+    if (settings.showEngineArrows) {
+      // The engine, if it was asked about this position and answered.
+      final engine = _engineArrows();
+      if (engine.isNotEmpty) return engine;
+    }
+
     // A move is on the board waiting to be judged, so the pieces are no longer
     // where the kept moves start.
     if (_proposalUci != null) return const [];
-    return _keptArrows();
+
+    if (settings.showChosenMoveArrow) {
+      return _keptArrows();
+    }
+
+    return const [];
   }
 
   /// A share, as a reader reads it. Below one percent is `<1%` rather than
@@ -2375,7 +2389,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         title: Text(widget.name),
         elevation: 0,
         actions: [
-          const BoardCoordinatesButton(),
+          const BoardViewMenu(arrows: true),
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.md),
             child: Center(

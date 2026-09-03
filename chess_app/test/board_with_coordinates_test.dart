@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/services/app_settings_service.dart';
-import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 
 Widget wrap(PlayerColor orientation, {double size = 320}) => MaterialApp(
@@ -110,20 +110,25 @@ void main() {
           reason: 'tabla sluša podešavanje, ne svoj prvi build');
     });
 
-    testWidgets('the button flips it, and says which way it goes',
-        (tester) async {
+    testWidgets('the menu flips it', (tester) async {
       await tester.pumpWidget(const MaterialApp(
-        home: Scaffold(body: BoardCoordinatesButton()),
+        home: Scaffold(body: BoardViewMenu()),
       ));
 
       expect(find.byIcon(Icons.grid_on), findsOneWidget);
-      await tester.tap(find.byType(IconButton));
-      await tester.pump();
+      await tester.tap(find.byType(BoardViewMenu));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Switch).first);
+      await tester.pumpAndSettle();
 
       expect(AppSettingsService.instance.showBoardCoordinates, isFalse);
-      expect(find.byIcon(Icons.grid_off), findsOneWidget,
-          reason: 'dugme koje ne pokazuje stanje je dugme koje se pritiska '
-              'dvaput da bi se videlo šta radi');
+
+      // Close the menu
+      await tester.tapAt(const Offset(0, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.grid_off), findsOneWidget);
     });
   });
 }

@@ -6,7 +6,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
@@ -234,7 +234,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
       appBar: AppBar(
         title: Text(widget.detail.assignment.title),
         actions: [
-          const BoardCoordinatesButton(),
+          const BoardViewMenu(),
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.grid_view),

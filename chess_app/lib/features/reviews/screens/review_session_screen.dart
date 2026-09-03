@@ -7,7 +7,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
@@ -189,7 +189,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
         title: const Text('Ponavljanje'),
-        actions: const [BoardCoordinatesButton()],
+        actions: const [BoardViewMenu()],
         bottom: _queue.isEmpty
             ? null
             : PreferredSize(

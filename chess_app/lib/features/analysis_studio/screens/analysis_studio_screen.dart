@@ -15,7 +15,7 @@ import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.da
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
-import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
@@ -276,7 +276,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     // Kept out of the list and never folded into the overflow menu: it is the
     // one control here that changes what the board *looks* like, and it draws
     // its own state, which a `_ToolAction` cannot.
-    const coordinates = BoardCoordinatesButton();
+    const coordinates = BoardViewMenu(arrows: true);
 
     if (Breakpoints.isWide(context)) {
       return [coordinates, ...actions.map(asIcon)];
@@ -1916,7 +1916,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               ),
             ),
           ),
-        if (_showEngineOverlay && _engineArrows.isNotEmpty)
+        if (_showEngineOverlay &&
+            _engineArrows.isNotEmpty &&
+            AppSettingsService.instance.showEngineArrows)
           Positioned.fill(
             child: IgnorePointer(
               child: CustomPaint(
@@ -1926,7 +1928,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   drawingModeColor: context.colors.accent,
                   badgeBorderColor: context.colors.canvas,
                   arrows: const [],
-                  engineArrows: _engineArrows,
+                  engineArrows: AppSettingsService.instance.showEngineArrows
+                      ? _engineArrows
+                      : const [],
                   boardSize: size,
                   orientation: _orientation,
                 ),

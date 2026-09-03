@@ -9,7 +9,7 @@ import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
@@ -450,7 +450,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       appBar: AppBar(
         title: Text(widget.assignmentTitle ?? 'Taktika'),
         actions: [
-          const BoardCoordinatesButton(),
+          const BoardViewMenu(),
           BoardFlipButton(
             onPressed: () => setState(() {
               _orientation = _orientation == PlayerColor.white

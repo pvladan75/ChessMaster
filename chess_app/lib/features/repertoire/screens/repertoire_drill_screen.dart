@@ -13,7 +13,8 @@ import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
-import 'package:chess_app/widgets/board_coordinates_button.dart';
+import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
@@ -1081,7 +1082,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             icon: const Icon(Icons.account_tree_outlined),
             tooltip: 'Izaberi granu',
           ),
-          const BoardCoordinatesButton(),
+          const BoardViewMenu(arrows: true),
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.md),
             child: Center(
@@ -1130,7 +1131,10 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                     isAllowedToMove: !_busy && _answer == null,
                     isDrawingMode: false,
                     drawingStartSquare: null,
-                    arrows: _prefixArrow == null ? const [] : [_prefixArrow!],
+                    arrows: (!AppSettingsService.instance.showChosenMoveArrow ||
+                            _prefixArrow == null)
+                        ? const []
+                        : [_prefixArrow!],
                     engineArrows: const [],
                     lastMoveFrom: _lastMoveFrom,
                     lastMoveTo: _lastMoveTo,
