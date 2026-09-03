@@ -297,6 +297,83 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   void initState() {
     super.initState();
     _loadNext();
+    _loadToday();
+  }
+
+  /// What has been practised since this reader's day started.
+  ///
+  /// Null until it answers, and null again if it cannot: „danas niste
+  /// odvežbali nijednu poziciju" is a hard enough sentence to be told when it
+  /// is true, and a failed request must not be able to say it.
+  PracticeToday? _today;
+
+  /// Midnight where the reader is. The server cannot work this out — it would
+  /// tell a child in Belgrade at 01:00 that they had already practised
+  /// tomorrow — so the client sends it.
+  DateTime get _dayStart {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  Future<void> _loadToday() async {
+    if (AppSettingsService.instance.dailyTarget == 0) return;
+    final today = await _api.practiceToday(
+      since: _dayStart,
+      color: widget.color,
+    );
+    if (!mounted || today == null) return;
+    setState(() => _today = today);
+  }
+
+  /// What this sitting is about, in one line.
+  ///
+  /// „Vežbate: Benoni · grana e4 c5 · 18 pozicija · danas 4 od 10". The owner's
+  /// ask — *„i drill, mora da bude jasno šta pokriva, koje linije"* — and the
+  /// answer to a screen that put up a board and a question with nothing saying
+  /// which of your openings it had chosen or how much of it was in scope.
+  ///
+  /// Every number here is already on the screen's own state. Nothing is asked
+  /// of the server for it, and a part that is not known is left out rather
+  /// than guessed: „18 pozicija" on a combined session whose stats have not
+  /// arrived would be a number about nothing.
+  Widget _scopeLine(BuildContext context) {
+    final target = AppSettingsService.instance.dailyTarget;
+    final parts = <String>[
+      widget.name,
+      if (_branchSan != null) 'grana $_branchSan' else 'ceo repertoar',
+      if (_stats.positions > 0) '${_stats.positions} pozicija',
+      if (_stats.due > 0) 'na redu ${_stats.due}',
+    ];
+    final done = _today?.positions;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      // `Wrap`: four fragments and a target do not fit on one line at 360 dp,
+      // and a release build clips rather than warning.
+      child: Wrap(
+        spacing: AppSpacing.sm,
+        runSpacing: AppSpacing.xxs,
+        children: [
+          Text(
+            'Vežbate: ${parts.join(' · ')}',
+            style: AppText.micro.copyWith(color: context.colors.textSecondary),
+          ),
+          if (target > 0 && done != null)
+            Text(
+              // The day's own line, said in what was done rather than in what
+              // is left: a number that goes up is worth finishing, and one
+              // that counts down is a debt.
+              done >= target
+                  ? 'danas $done — cilj ispunjen'
+                  : 'danas $done od $target',
+              style: AppText.micro.copyWith(
+                color: done >= target
+                    ? context.colors.success
+                    : context.colors.accent,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   /// The branches still to run in this sitting, after the one on the board.
@@ -918,6 +995,10 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       return;
     }
 
+    // One more position practised, whether or not the schedule was told. Not
+    // awaited: the verdict goes on screen now and the count catches up.
+    _loadToday();
+
     // The board shows the line as it should have gone: the student's own move
     // when it was one of theirs, and their primary when it was not — carrying
     // on from a move they were just told is wrong would rehearse the mistake.
@@ -1117,6 +1198,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               // moves through a line resets the carried opening name on every
               // question, which is the one thing the banner is for.
               if (_fen != null) OpeningBanner(fen: _fen!),
+              _scopeLine(context),
               Center(
                 child: BoardWithCoordinates(
                   size: boardSize,
@@ -1619,6 +1701,27 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                   icon: const Icon(Icons.edit_note, size: 18),
                   label: const Text('Pregledaj nacrt'),
                 ),
+            ],
+            // Where today stands, on the screen that would otherwise say
+            // „ništa nije na redu" and stop. SM-2 is right about retention and
+            // says nothing about habit: after two good answers a position is
+            // six days away, and a child in their first week opens the app to
+            // be told there is nothing to do. The target is the sentence that
+            // turns that into something to finish.
+            if (AppSettingsService.instance.dailyTarget > 0 &&
+                _today != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                _today!.positions >= AppSettingsService.instance.dailyTarget
+                    ? 'Danas ste odvežbali ${_today!.positions} '
+                        '${_today!.positions == 1 ? "poziciju" : "pozicija"} — '
+                        'cilj je ispunjen.'
+                    : 'Danas ste odvežbali ${_today!.positions} od '
+                        '${AppSettingsService.instance.dailyTarget}. '
+                        'Vežba van rasporeda se ne ocenjuje, ali se računa.',
+                style: AppText.caption.copyWith(color: context.colors.accent),
+                textAlign: TextAlign.center,
+              ),
             ],
             const SizedBox(height: AppSpacing.lg),
             // Practising early is allowed, and it is allowed *because* nothing
