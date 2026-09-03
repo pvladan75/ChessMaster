@@ -1604,7 +1604,10 @@ void main() {
     // a hundred moves in it had no door: no board, no tree, no actions.
     await pump(tester, walk: const RepertoireFrontier(decided: 4, open: []));
 
-    expect(find.text('Nema više pozicija u redu.'), findsOneWidget);
+    expect(
+        find.text('Odgovorili ste na sve pozicije do kojih ovaj repertoar '
+            'stiže.'),
+        findsOneWidget);
     expect(find.text('Otvori repertoar'), findsOneWidget);
 
     await tester.tap(find.text('Otvori repertoar'));
@@ -1612,7 +1615,10 @@ void main() {
 
     // The board is back, on the repertoire's own root: the question under it
     // is the one this screen exists to ask.
-    expect(find.text('Nema više pozicija u redu.'), findsNothing);
+    expect(
+        find.text('Odgovorili ste na sve pozicije do kojih ovaj repertoar '
+            'stiže.'),
+        findsNothing);
     expect(find.byType(BoardWithCoordinates), findsOneWidget);
   });
 }

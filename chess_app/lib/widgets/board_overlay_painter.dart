@@ -234,27 +234,40 @@ class ChessBoardPainter extends CustomPainter {
       final toCenter =
           getSquareCenter(lastMoveTo!, effectiveBoardSize, orientation);
 
+      // A frame, not a wash. This painter draws *over* the pieces, so a filled
+      // square at 45% sat on top of the piece standing on it — the highlight
+      // was unmistakable and the piece under it was not, which is the wrong
+      // way round on the one square the reader is being sent to look at.
+      // The tint now runs around the edge and the middle is left alone.
+      final band = squareSize * 0.16;
       final fillPaint = Paint()
-        ..color = lastMoveColor.withValues(alpha: 0.45)
+        ..color = lastMoveColor.withValues(alpha: 0.55)
         ..style = PaintingStyle.fill;
       final borderPaint = Paint()
         ..color = lastMoveColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5;
 
+      void paintSquare(Rect rect) {
+        canvas.drawPath(
+          Path.combine(
+            PathOperation.difference,
+            Path()..addRect(rect),
+            Path()..addRect(rect.deflate(band)),
+          ),
+          fillPaint,
+        );
+        canvas.drawRect(rect, borderPaint);
+        _paintLastMoveBrackets(canvas, rect);
+      }
+
       if (fromCenter != Offset.zero) {
-        final rectFrom = Rect.fromCenter(
-            center: fromCenter, width: squareSize, height: squareSize);
-        canvas.drawRect(rectFrom, fillPaint);
-        canvas.drawRect(rectFrom, borderPaint);
-        _paintLastMoveBrackets(canvas, rectFrom);
+        paintSquare(Rect.fromCenter(
+            center: fromCenter, width: squareSize, height: squareSize));
       }
       if (toCenter != Offset.zero) {
-        final rectTo = Rect.fromCenter(
-            center: toCenter, width: squareSize, height: squareSize);
-        canvas.drawRect(rectTo, fillPaint);
-        canvas.drawRect(rectTo, borderPaint);
-        _paintLastMoveBrackets(canvas, rectTo);
+        paintSquare(Rect.fromCenter(
+            center: toCenter, width: squareSize, height: squareSize));
       }
     }
 

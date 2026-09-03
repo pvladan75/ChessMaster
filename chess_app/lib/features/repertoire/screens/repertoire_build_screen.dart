@@ -16,7 +16,6 @@ import 'package:chess_app/features/repertoire/widgets/repertoire_position_ask.da
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
 import 'package:chess_app/features/repertoire/widgets/breadth_dialog.dart';
 import 'package:chess_app/features/repertoire/widgets/unconfirmed_banner.dart';
-import 'package:chess_app/features/repertoire/widgets/unconfirmed_review_sheet.dart';
 import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
@@ -203,17 +202,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       if (found != null) return found;
     }
     return null;
-  }
-
-  void _jumpToFen(String fen, String rejectedUci) {
-    setState(() {
-      _draftToReplaceFen = fen;
-      _draftToReplaceUci = rejectedUci;
-    });
-    final node = _findNode(fen, _treeRoot);
-    if (node != null) {
-      _jumpTo(node);
-    }
   }
 
   _Pending? _node;
@@ -672,7 +660,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       // Already here, and nothing standing in front of it: a jump that redraws
       // this position would only clear what the reader just computed.
       if (node.fen == _current && !_afterMyMove) return;
-      await _show(_Pending(fen: node.fen, path: _pathTo(node)));
+      await _show(_Pending(
+        fen: node.fen,
+        path: _pathTo(node),
+        lastUci: node.moveUci,
+      ));
       return;
     }
 
@@ -701,7 +693,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     required String san,
   }) async {
     if (from.fen != _current) {
-      await _show(_Pending(fen: from.fen, path: _pathTo(from)));
+      await _show(_Pending(
+        fen: from.fen,
+        path: _pathTo(from),
+        lastUci: from.moveUci,
+      ));
       if (!mounted) return;
     }
     await _standAfterMove(fen: fen, uci: uci, san: san);
@@ -729,8 +725,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _lines = const [];
       _linesFen = null;
       _showTail = false;
-      _lastMoveFrom = null;
-      _lastMoveTo = null;
+      _lastMoveFrom = uci.substring(0, 2);
+      _lastMoveTo = uci.substring(2, 4);
       _standingAfter = (uci: uci, san: san, fen: fen);
     });
     _boardController.loadFen(fen);
@@ -1064,8 +1060,14 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _answersSan = null;
       _standingAfter = null;
       _showTail = false;
-      _lastMoveFrom = null;
-      _lastMoveTo = null;
+      // Marked when the caller knew the way in, cleared when it did not: a
+      // pair of squares from a position no longer on screen is worse than
+      // none, and no mark at all on a position that was walked to is how the
+      // reader loses the thread of the line.
+      _lastMoveFrom =
+          node?.lastUci == null ? null : node!.lastUci!.substring(0, 2);
+      _lastMoveTo =
+          node?.lastUci == null ? null : node!.lastUci!.substring(2, 4);
       _preparedUcis.clear();
       _lines = const [];
       _linesFen = null;
@@ -2143,6 +2145,74 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     await _loadTree();
   }
 
+  /// Takes the board to the first position nobody has decided in.
+  ///
+  /// A sheet used to open over the board with the drafted move and three
+  /// buttons in it, and it was the wrong shape for the question: deciding needs
+  /// the position, what the book says about it, and the engine — all of which
+  /// this screen already has, and none of which fits in a sheet. So the button
+  /// navigates instead. The move waiting there shows up in the list under the
+  /// board as „predlog — nije još vaš izbor", with „Potvrdi" beside it, and
+  /// everything else on the screen works the way it does for a move typed by
+  /// hand.
+  ///
+  /// Available whether or not the banner is up: „where is the work" is a
+  /// question worth asking on any position, and the answer is one request.
+  Future<void> _reviewDrafts() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    final walk = await _api.unconfirmedPositions(
+      color: widget.color,
+      rootFen: widget.rootFen,
+      rootPath: widget.rootPath,
+      gateUci: widget.gateUci,
+      breadth: _breadth,
+      minRating: widget.minRating,
+      limit: 1,
+    );
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    // Three answers, not two. „We could not ask" must never be shown as
+    // „there is nothing left to do" — that is exactly what the review did for
+    // as long as it sent an empty rating band.
+    if (walk == null) {
+      AppFeedback.error(context, 'Nacrti nisu mogli da se pročitaju.');
+      return;
+    }
+    if (walk.positions.isEmpty) {
+      AppFeedback.info(context, 'Nema više nepotvrđenih poteza.');
+      return;
+    }
+    final at = walk.positions.first;
+    // The drafted move travels with the position. Playing something else here
+    // is not just adding a move: what the rejected draft was the only way to
+    // has to go with it, and that sweep is keyed on knowing which move was
+    // turned down.
+    await _goToDraft(at.fen, at.moves.isEmpty ? null : at.moves.first.uci);
+  }
+
+  /// Puts a drafted position on the board, whether or not the drawing reaches
+  /// it.
+  ///
+  /// The tree is cut off at sixteen half-moves, so a draft deeper than that is
+  /// not a card anywhere — and a jump that quietly does nothing is how a button
+  /// stops being believed.
+  Future<void> _goToDraft(String fen, String? rejectedUci) async {
+    setState(() {
+      _draftToReplaceFen = rejectedUci == null ? null : fen;
+      _draftToReplaceUci = rejectedUci;
+    });
+    final node = _findNode(fen, _treeRoot);
+    if (node != null) {
+      await _jumpTo(node);
+      return;
+    }
+    _seen.remove(_keyOf(fen));
+    _enqueue(fen, const [], reach: 1);
+    await _advance();
+  }
+
   /// Builds the trunk from the position on the board.
   ///
   /// The answer to "thirty questions before it looks like an opening". What it
@@ -2512,20 +2582,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               // snapshot taken when the screen opened, and the review is the
               // one thing on this screen that changes it — so without this the
               // banner advertises drafts the wizard then says do not exist.
-              onOpenWizard: () async {
-                await showUnconfirmedReviewSheet(
-                  context,
-                  color: widget.color,
-                  rootFen: widget.rootFen,
-                  rootPath: widget.rootPath,
-                  gateUci: widget.gateUci,
-                  breadth: _breadth,
-                  minRating: widget.minRating,
-                  api: _api,
-                  onJump: (fen, rejectedUci) => _jumpToFen(fen, rejectedUci),
-                );
-                if (mounted) await _resume();
-              },
+              onOpenWizard: _reviewDrafts,
             ),
           Center(
             child: BoardWithCoordinates(
@@ -3303,6 +3360,14 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             icon: const Icon(Icons.auto_awesome, size: 18),
             label: const Text('Napravi kičmu'),
           ),
+          // Here as well as in the banner: the banner is only up while there
+          // are drafts, and „take me to the next one" is the question somebody
+          // asks in the middle of the work.
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _reviewDrafts,
+            icon: const Icon(Icons.edit_note, size: 18),
+            label: const Text('Pregledaj nacrt'),
+          ),
           if (widget.onDrillHere != null && _node != null)
             OutlinedButton.icon(
               onPressed: _busy ? null : () => widget.onDrillHere!(_node!.fen),
@@ -3550,14 +3615,22 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             const Icon(Icons.check_circle_outline, size: 40),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Nema više pozicija u redu.',
+              'Odgovorili ste na sve pozicije do kojih ovaj repertoar stiže.',
               style: AppText.bodyBold,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
+            // Said in what it is about rather than in what the code calls it.
+            // „Red" and „talas" are this screen's own vocabulary: the reader
+            // was told the next wave opens when they take more replies, and
+            // had been given no way to reach a position and no idea which
+            // replies were meant.
             Text(
-              'Sve što ste izabrali je sačuvano. Sledeći talas se otvara kad se '
-              'vratite na neku od pozicija i uzmete još odgovora.',
+              'Sve je sačuvano. Repertoar ide dublje tek kad negde uzmete još '
+              'protivnikovih odgovora — otvorite repertoar, stanite na potez i '
+              'u panelu „Odgovori protivnika" izaberite „Spremi i neki od '
+              'njih". Nepotvrđeni nacrti su nešto drugo i čekaju na dugmetu '
+              '„Pregledaj nacrt".',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
@@ -3711,9 +3784,15 @@ class _Pending {
     required this.path,
     this.kind = 'undecided',
     this.reach = 0,
+    this.lastUci,
   });
 
   final String fen;
+
+  /// The move that led here, when the caller knows it — a card tapped in the
+  /// tree does, the queue does not. The board marks it, so the reader is not
+  /// asked "what do you play here" on a position they cannot see the way into.
+  final String? lastUci;
 
   /// SAN from the repertoire's root to here. Joined with the repertoire's own
   /// root path to read from move one.

@@ -1,6 +1,5 @@
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
-import 'package:chess_app/features/repertoire/widgets/unconfirmed_review_sheet.dart';
 // `hide Color`: the board package re-exports the chess package, whose `Color`
 // is a piece colour. Without this, `Color` in this file means black-or-white
 // instead of a paint colour, and the error it produces names two files that
@@ -305,6 +304,36 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// out a line for one branch at a time — so the rest wait here and the queue
   /// moves on when the current branch has nothing left to ask.
   List<DrillBranch> _branchQueue = [];
+
+  /// Leaves the drill at the first position nobody has decided in.
+  ///
+  /// The drill cannot answer the question — it asks about decisions and a draft
+  /// is the absence of one — so it hands the position to the screen that can.
+  Future<void> _goBuildDrafts() async {
+    final root = widget.rootFen;
+    if (root == null || _busy) return;
+    setState(() => _busy = true);
+    final walk = await _api.unconfirmedPositions(
+      color: widget.color,
+      rootFen: root,
+      rootPath: widget.rootPath,
+      gateUci: widget.gateUci,
+      breadth: widget.breadth,
+      minRating: widget.minRating,
+      limit: 1,
+    );
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (walk == null) {
+      AppFeedback.error(context, 'Nacrti nisu mogli da se pročitaju.');
+      return;
+    }
+    if (walk.positions.isEmpty) {
+      AppFeedback.info(context, 'Nema više nepotvrđenih poteza.');
+      return;
+    }
+    widget.onBuildHere?.call(walk.positions.first.fen);
+  }
 
   /// The branches, and what to do with one.
   ///
@@ -1576,33 +1605,16 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.md),
-              OutlinedButton.icon(
-                // Same reason as the build screen's banner: the count is read
-                // once, the review is what changes it, and a number left
-                // standing after the drafts are gone is a screen telling the
-                // reader to do work that is already done.
-                onPressed: () async {
-                  await showUnconfirmedReviewSheet(
-                    context,
-                    color: widget.color,
-                    rootFen: widget.rootFen!,
-                    rootPath: widget.rootPath,
-                    gateUci: widget.gateUci,
-                    breadth: widget.breadth,
-                    minRating: widget.minRating,
-                    api: _api,
-                    onJump: (fen, uci) => Navigator.of(context).pop(),
-                  );
-                  if (!mounted) return;
-                  final counts = await _api.unconfirmedCounts();
-                  if (!mounted || counts == null) return;
-                  setState(() => _drafts = widget.color == 'w'
-                      ? counts.w.positions
-                      : counts.b.positions);
-                },
-                icon: const Icon(Icons.edit_note, size: 18),
-                label: const Text('Pregledaj nacrt'),
-              ),
+              // Deciding is building, so this leaves the drill rather than
+              // opening a window inside it: the position, the book and the
+              // engine are all on the build screen, and none of the three fits
+              // in a sheet over a board.
+              if (widget.onBuildHere != null)
+                OutlinedButton.icon(
+                  onPressed: _busy ? null : _goBuildDrafts,
+                  icon: const Icon(Icons.edit_note, size: 18),
+                  label: const Text('Pregledaj nacrt'),
+                ),
             ],
             const SizedBox(height: AppSpacing.lg),
             // Practising early is allowed, and it is allowed *because* nothing

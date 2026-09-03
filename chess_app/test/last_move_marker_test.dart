@@ -51,8 +51,10 @@ void main() {
     expect(
       find.byKey(overlayKey),
       paints
-        // The amber wash and border are untouched by this work and come first.
-        ..rect(color: amber.withValues(alpha: 0.45))
+        // The amber frame and border come first. A frame rather than a filled
+        // square: this painter draws over the pieces, and a wash across the
+        // whole square hid the piece standing on it.
+        ..path(color: amber.withValues(alpha: 0.55))
         ..rect(color: amber)
         // Then the two-tone bracket: the dark halo, then the light core over it.
         ..path(color: ChessBoardPainter.lastMoveMarkerShade)
@@ -71,14 +73,17 @@ void main() {
     expect(
       find.byKey(overlayKey),
       paints
+        ..path(color: amber.withValues(alpha: 0.55))
         ..path(color: ChessBoardPainter.lastMoveMarkerShade)
         ..path(color: ChessBoardPainter.lastMoveMarkerLight)
+        ..path(color: amber.withValues(alpha: 0.55))
         ..path(color: ChessBoardPainter.lastMoveMarkerShade)
         ..path(color: ChessBoardPainter.lastMoveMarkerLight),
     );
+    // Six paths, not four: each square draws its frame as a path too.
     expect(
       find.byKey(overlayKey),
-      paintsExactlyCountTimes(#drawPath, 4),
+      paintsExactlyCountTimes(#drawPath, 6),
     );
   });
 
@@ -111,6 +116,8 @@ void main() {
     expect(
       find.byKey(overlayKey),
       paints
+        // The square's own frame is painted first, then the brackets on it.
+        ..path(color: amber.withValues(alpha: 0.55))
         ..path(
           color: ChessBoardPainter.lastMoveMarkerShade,
           includes: [
@@ -131,7 +138,7 @@ void main() {
     expect(
       find.byKey(overlayKey),
       paints
-        ..rect(color: amber.withValues(alpha: 0.45))
+        ..path(color: amber.withValues(alpha: 0.55))
         ..rect(color: amber),
     );
   });
