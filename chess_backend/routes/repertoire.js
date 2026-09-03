@@ -50,6 +50,7 @@ const {
 } = require('../services/repertoireUnconfirmed');
 const { playAlternative } = require('../services/repertoireAlternative');
 const { repertoireProgress } = require('../services/repertoireProgress');
+const { practisedSince } = require('../services/repertoirePractice');
 const { frontier } = require('../services/repertoireFrontier');
 const {
   drillLine, drillBranches, tree: repertoireTree,
@@ -233,6 +234,32 @@ router.get('/unconfirmed/count', authenticateToken, (req, res) => {
     res,
     unconfirmedCounts(pool, req.user.id),
     'Broj nepotvrđenih poteza nije mogao da se pročita.',
+  );
+});
+
+// GET /repertoire/practice/today?since=<ISO>&color=w
+//
+// How much has actually been practised since the reader's own day started, so
+// a screen can say it. `since` comes from the client because the day is theirs:
+// a server counting in UTC tells a child in Belgrade at 01:00 that they have
+// already practised tomorrow.
+//
+// Deliberately not read by anything that schedules. `repertoire_reviews` still
+// decides what is due; this only counts work done, including the work done
+// ahead of schedule that the schedule refuses — on purpose — to hear about.
+router.get('/practice/today', authenticateToken, (req, res) => {
+  const { since, color } = req.query;
+  answer(
+    res,
+    practisedSince(pool, req.user.id, {
+      since: typeof since === 'string' && since.trim() !== ''
+        ? since.trim()
+        : new Date().toISOString(),
+      color: typeof color === 'string' && color.trim() !== ''
+        ? color.trim()
+        : null,
+    }),
+    'Broj odvežbanih pozicija nije mogao da se pročita.',
   );
 });
 

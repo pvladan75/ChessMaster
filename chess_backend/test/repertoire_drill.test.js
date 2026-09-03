@@ -533,8 +533,14 @@ test('an answer given ahead of schedule is judged and not written down',
 
     assert.equal(graded.outcome, 'primary');
     assert.equal(graded.practice, true);
-    // Nothing to promise, because nothing was stored.
+    // Nothing to promise, because nothing was scheduled.
     assert.equal(graded.intervalDays, null);
-    assert.equal(pool.calls.length, 1, 'vezba van rasporeda je pisala u bazu');
-    assert.equal(pool.ran('repertoire_reviews'), 0);
+    // The rule, sharpened rather than loosened: the *schedule* is untouched,
+    // and the practice is written down exactly once. Counting it is what lets
+    // the app ask for practice and then say how much was done — a daily target
+    // read off the schedule would ignore the very work it asked for.
+    assert.equal(pool.ran('repertoire_reviews'), 0,
+      'vezba van rasporeda je pisala u raspored');
+    assert.equal(pool.ran('repertoire_practice_log'), 1,
+      'vezba van rasporeda nije zabelezena');
   });

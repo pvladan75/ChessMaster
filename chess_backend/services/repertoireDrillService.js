@@ -21,6 +21,7 @@
 // instead of six.
 
 const { schedule, GRADES } = require('./spacedRepetitionService');
+const { logAnswer } = require('./repertoirePractice');
 const {
   fenKey, requireColor, DEFAULT_BREADTH,
 } = require('./repertoireService');
@@ -242,7 +243,16 @@ async function answer(pool, userId, {
     dueAt: null,
   });
 
-  if (practice) return judged();
+  // Written down as work done, whichever way the answer goes from here. The
+  // log is not the schedule and never decides anything; it is the only place
+  // that can say "you practised twelve positions today" about a session that
+  // was deliberately not scored. Awaited, but it cannot throw — see
+  // `logAnswer`.
+  if (practice) {
+    await logAnswer(pool, userId,
+      { color, fenKey: key, scored: false, outcome });
+    return judged();
+  }
 
   if (onlyIfDue) {
     const review = await pool.query(
@@ -252,7 +262,11 @@ async function answer(pool, userId, {
     );
     const due = review.rowCount === 0
       || new Date(review.rows[0].due_at) <= now;
-    if (!due) return judged();
+    if (!due) {
+      await logAnswer(pool, userId,
+        { color, fenKey: key, scored: false, outcome });
+      return judged();
+    }
   }
 
   const current = await ensureReview(pool, userId, color, key);
@@ -270,6 +284,9 @@ async function answer(pool, userId, {
     { userId, color, outcome, quality, intervalDays: next.intervalDays },
     'Repertoire drill graded',
   );
+
+  // After the scheduling, never before it: do the thing, then say it.
+  await logAnswer(pool, userId, { color, fenKey: key, scored: true, outcome });
 
   return {
     outcome,

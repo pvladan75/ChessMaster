@@ -1120,6 +1120,38 @@ async function initDB() {
     `);
     logger.info('Verified database table & indexes: repertoire_reviews');
 
+    // Every answer given, whether or not the schedule was told about it.
+    //
+    // `repertoire_reviews` holds *when a position is next due*, and an answer
+    // given ahead of schedule deliberately does not touch it — that is what
+    // makes offering early practice safe. Which leaves the app unable to count
+    // the very thing it wants to encourage: a daily target read off the
+    // schedule would ignore the practice, so the app would be asking for work
+    // and then refusing to count it.
+    //
+    // So: an append-only line per answer, scored or not. It is a motivation
+    // record and nothing reads it to decide anything about the student's
+    // knowledge — the schedule is still the only thing that says what is due.
+    // Small enough to keep: fifty answers a day is eighteen thousand rows a
+    // year, and it can be trimmed by date whenever that stops being true.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS repertoire_practice_log (
+        id BIGSERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        color CHAR(1) NOT NULL CHECK (color IN ('w', 'b')),
+        fen_key TEXT NOT NULL,
+        -- False for an answer given ahead of schedule, which is judged and
+        -- never written down. Kept apart so "you practised twelve positions"
+        -- and "twelve are one day further away" stay two different sentences.
+        scored BOOLEAN NOT NULL DEFAULT TRUE,
+        outcome TEXT NOT NULL,
+        answered_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_repertoire_practice_log_day
+        ON repertoire_practice_log(user_id, answered_at);
+    `);
+    logger.info('Verified database table & indexes: repertoire_practice_log');
+
     // What the engine makes of a position in this student's repertoire.
     //
     // Information, never a verdict. The build screen already has a judge — the
