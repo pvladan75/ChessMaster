@@ -15,7 +15,43 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 2.9.2026.
+Poslednje ažuriranje: 3.9.2026.
+
+---
+
+## Repertoar, druga iteracija — faze 0–3 gotove, faza 4 spremna
+
+Dogovor je [PLAN-REPERTOAR-2.md](PLAN-REPERTOAR-2.md): devet zahteva, pet faza.
+Stanje na 3.9.2026, sve na `master`:
+
+| faza | šta | stanje |
+|---|---|---|
+| 0 | dril govori istinu (`pickReply` čita `repertoire_skips` i nudi samo odgovore koji vode u poziciju sa `source='chosen'`) | **Urađeno**, oba čuvara dokazana mutacijom |
+| 1 | ugovor: `repertoires.breadth`, `/unconfirmed`, `/unconfirmed/count`, `/alternative`, `ids` na `/drill/line` i `/drill/branches` | **Urađeno**, zamrznuto u `3691e8f` |
+| 2 | poslednji potez na tabli i ECO traka | **Urađeno**, `098e786` |
+| 3 | pregled nacrta, značka na kartici, širina kičme | **Urađeno**, `936d202` |
+| 4 | „Izdvoji u novo otvaranje" i kombinovani dril | **Brief napisan, batch nije pokrenut** |
+| 5 | provera uživo i unos u `TODO-provera.md` | Nije rađeno |
+
+**Ništa od faza 2–4 nije gledano kako radi.** Testovi prolaze; to nije isto.
+Faza 5 je upravo to i tek predstoji.
+
+Faze 2 i 3 radio je radni agent (Gemini) po brief-u; ocenjivanje je mašinsko,
+harness je `D:\Projekti\mislisha-test\orchestrator` (nije u gitu — pročitati
+njegov `HANDOFF.md` prvo). Komanda za fazu 4 i šta u njoj treba proveriti
+rukom stoje na vrhu tog fajla.
+
+Dve stvari koje su prošle sve kapije i našle se tek čitanjem diffa, vredne
+pamćenja jer se ponavljaju:
+
+* **Faza 2:** traka sa imenom otvaranja bila je montirana sa `key` koji se menja
+  pri svakom koraku šetnje, pa se ime brisalo baš tamo gde pravilo postoji.
+  Widget test je prolazio — pumpa traku direktno i nikad ne vidi `key` koji joj
+  ekran daje.
+* **Faza 3:** sva četiri nova endpointa napisana su bez `$backendUrl`. Pali bi
+  na prvi dodir na telefonu, a svi testovi su bili zeleni, jer `MockClient`
+  odgovara na šta god dobije i nikad ne gleda URL.
+  `test/repertoire_api_urls_test.dart` sada to čita iz izvora.
 
 ---
 
