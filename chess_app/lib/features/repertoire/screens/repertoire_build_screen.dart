@@ -26,6 +26,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/speakable_info.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -2389,6 +2390,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         title: Text(widget.name),
         elevation: 0,
         actions: [
+          const SpeechToggleButton(),
           const BoardViewMenu(arrows: true),
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.md),
@@ -3643,6 +3645,10 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   }
 
   Widget _buildDone() {
+    // Written once, shown and spoken from the same string. Two copies of a
+    // sentence drift the first time somebody edits the visible one.
+    const done =
+        'Odgovorili ste na sve pozicije do kojih ovaj repertoar stiže.';
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -3651,10 +3657,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           children: [
             const Icon(Icons.check_circle_outline, size: 40),
             const SizedBox(height: AppSpacing.md),
-            Text(
-              'Odgovorili ste na sve pozicije do kojih ovaj repertoar stiže.',
-              style: AppText.bodyBold,
-              textAlign: TextAlign.center,
+            SpeakableInfo(
+              text: done,
+              child: Text(
+                done,
+                style: AppText.bodyBold,
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: 6),
             // No waves and no queue. Both were this screen's own vocabulary,
@@ -3675,10 +3684,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             // the position it was written under.
             if (_note != null) ...[
               const SizedBox(height: 10),
-              Text(
-                _note!,
-                style: AppText.caption.copyWith(color: context.colors.accent),
-                textAlign: TextAlign.center,
+              SpeakableInfo(
+                text: _note!,
+                child: Text(
+                  _note!,
+                  style: AppText.caption.copyWith(color: context.colors.accent),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
             const SizedBox(height: AppSpacing.lg),

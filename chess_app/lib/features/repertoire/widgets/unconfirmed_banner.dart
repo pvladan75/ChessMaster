@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/speakable_info.dart';
 
 class UnconfirmedBanner extends StatelessWidget {
   const UnconfirmedBanner({
@@ -32,8 +33,11 @@ class UnconfirmedBanner extends StatelessWidget {
           Icon(Icons.edit_note, color: context.colors.warning, size: 20),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text(
-              '$total nepotvrđenih u grafu',
+            // One sentence, not two copies of it: `SpeakableInfo` draws the
+            // text itself when it is handed a style, so what is spoken cannot
+            // drift from what is shown by somebody editing one of them.
+            child: SpeakableInfo(
+              text: '$total nepotvrđenih u grafu',
               style:
                   AppText.bodyBold.copyWith(color: context.colors.textPrimary),
             ),
