@@ -3233,6 +3233,17 @@ objašnjenja.
 4. [ ] **Samo pitanje i presuda govore sami od sebe.** Baner „N nepotvrđenih u
    grafu", završni ekran izgradnje i „Još nema šta da se vežba." ćute dok se ne
    pritisne njihov zvučnik.
+10. [ ] **I izgradnja čita svoje pitanje.** Ovo je bio drugi nalaz od 3.9.2026 —
+    „ništa se ne čuje kad uđem u izgradnju repertoara". Faza 2 je na tom ekranu
+    obukla baner, belešku i završnu rečenicu, a **promašila jedini panel koji
+    nešto pita**. Ući u izgradnju sa upaljenim govorom: „Šta igrate belim/
+    crnim?" zajedno sa rečenicom ispod („Još N neodgovorenih.") mora da se
+    pročita sama od sebe, isto kao u vežbi. Kad se stoji posle svog poteza,
+    pitanje glasi „Posle <potez> — ovo igra protivnik" i važi isto.
+11. [ ] **Ono što se ne izgovara nije ni obuhvaćeno.** Ispod pitanja u izgradnji
+    ume da stoji i „Ovde ste već izabrali potez…" ili red o napretku. Te
+    rečenice **nisu** unutar zvučnika i ne čitaju se — zvučnik koji vizuelno
+    obuhvata rečenicu koju ne čita je nalaz.
 5. [ ] **Zvučnik nikad nije mrtvo dugme.** Sa ugašenim govorom pritisnuti
    zvučnik pored rečenice: pali govor **i** izgovara je. Ovo je pravilo iz faze
    0 i najlakše ga je slučajno pokvariti.

@@ -2745,21 +2745,42 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           ),
           const SizedBox(height: AppSpacing.xxs),
         ],
-        Text(
-          _answers != null
+        // This screen asks a question, exactly as the drill does, so it reads
+        // it out for the same reason: the panels that want something from the
+        // reader speak, the ones that are merely true wait. Phase 2 wrapped
+        // this screen's banner, its note and its finished sentence and missed
+        // the one panel that actually asks — found live by the owner on
+        // 3.9.2026, entering izgradnja and hearing nothing.
+        Builder(builder: (context) {
+          final question = _answers != null
               ? 'Posle $_answersSan — ovo igra protivnik'
               : _standingAfter != null
                   ? 'Posle ${_standingAfter!.san} — šta igra protivnik'
-                  : (_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?'),
-          style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
-        ),
-        const SizedBox(height: AppSpacing.xxs),
-        Text(
-          left == 0
+                  : (_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?');
+          final under = left == 0
               ? 'Poslednja neodgovorena pozicija koju ovaj repertoar dohvata.'
-              : 'Još $left neodgovorenih.',
-          style: AppText.caption.copyWith(color: context.colors.textMuted),
-        ),
+              : 'Još $left neodgovorenih.';
+          return SpeakableInfo(
+            autoSpeak: true,
+            text: '$question $under',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  question,
+                  style: AppText.bodyBold
+                      .copyWith(color: context.colors.textPrimary),
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  under,
+                  style:
+                      AppText.caption.copyWith(color: context.colors.textMuted),
+                ),
+              ],
+            ),
+          );
+        }),
         if (!_afterMyMove && _node?.kind == 'unopened') ...[
           const SizedBox(height: AppSpacing.xxs),
           Text(

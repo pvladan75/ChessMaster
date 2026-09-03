@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import 'package:chess_app/core/services/speech_text.dart';
+import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
+import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_drill_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/repertoire/widgets/unconfirmed_banner.dart';
@@ -77,6 +79,29 @@ Future<_Engine> _speech({
 
 const _smithMorra =
     'rnbqkbnr/pp1ppppp/8/8/4P3/2N5/PP3PPP/R1BQKBNR b KQkq - 0 4';
+
+/// 1.e4 e6 2.d4 d5 3.e5 — the French Advance, Black to move.
+const _advance =
+    'rnbqkbnr/ppp2ppp/4p3/3pP3/3P4/8/PPP2PPP/RNBQKBNR b KQkq - 0 3';
+
+/// A judge that asks Lichess nothing. The build screen must draw its question
+/// without a book behind it.
+class _SilentJudge implements OpeningJudgeService {
+  @override
+  bool get hasPersonalToken => false;
+
+  @override
+  Future<OpeningJudgeLookup> judge(String fen, String move,
+          {int? minRating}) async =>
+      const OpeningJudgeLookup.unavailable('no-token');
+
+  @override
+  Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async =>
+      const OpponentRepliesLookup.unavailable('no-token');
+
+  @override
+  void clearCache() {}
+}
 
 /// A drill server with no server: one question, or none.
 class _FakeApi extends RepertoireApiService {
@@ -237,6 +262,37 @@ void main() {
     final shown = _shown(tester, verdict);
     expect(shown, startsWith('Tačno — Nc6'));
     expect(engine.said, contains(speakable(shown)));
+  });
+
+  testWidgets('izgradnja reads the question it is asking', (tester) async {
+    // Found live 3.9.2026: „ništa se ne čuje kad uđem u izgradnju repertoara".
+    // Phase 2 wrapped this screen's banner, note and finished sentence and
+    // missed the one panel that asks the reader for something — which is the
+    // rule the whole feature is built on.
+    final engine = await _speech(enabled: true);
+    tester.view.physicalSize = const Size(1200, 2000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: RepertoireBuildScreen(
+        name: 'French Defense: Advance — crni',
+        color: 'b',
+        rootFen: _advance,
+        rootPath: const ['e4', 'e6', 'd4', 'd5', 'e5'],
+        api: RepertoireApiService(
+            client: MockClient((_) async => http.Response('{}', 500))),
+        judge: _SilentJudge(),
+        analyse: (fen, depth, multiPV) async => const [],
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final asked = find.text('Šta igrate crnim?');
+    expect(asked, findsOneWidget);
+    final panel =
+        find.ancestor(of: asked, matching: find.byType(SpeakableInfo));
+    expect(panel, findsOneWidget);
+    expect(engine.said, [speakable(_shown(tester, panel))]);
   });
 
   testWidgets('the banner speaks the count it is showing', (tester) async {
