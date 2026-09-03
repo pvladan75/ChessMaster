@@ -401,7 +401,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// A server that does not answer falls back to the root. It has to be the
   /// root and not an empty screen: "we could not find out" must never be shown
   /// as "there is nothing left to do".
-  Future<void> _resume() async {
+  /// Re-reads the walk, and only moves the board when there is nothing on it.
+  ///
+  /// [keepBoard] is for the actions that happen *at* a position — a spine grown
+  /// from here, a branch cut behind you. They change the queue and the numbers,
+  /// and moving the board on top of that leaves the reader hunting for where
+  /// they were.
+  Future<void> _resume({bool keepBoard = false}) async {
     final walk = await _api.frontier(
       color: widget.color,
       rootFen: widget.rootFen,
@@ -427,11 +433,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         _resuming = false;
       });
     }
-    await _advance();
+    if (!keepBoard || _node == null) await _advance();
     // Read after the queue rather than beside it: the walk decides what is on
     // the board, and a picture that arrives first would highlight a position
     // nobody is standing on yet.
     await _loadTree();
+    if (keepBoard) await _loadKept();
   }
 
   /// Re-reads the picture. Called after anything that changes the store, and
@@ -1421,6 +1428,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (saved) {
       await _loadKept();
       await _loadTree();
+      // The banner above the board is about to be wrong by one. Not awaited:
+      // the reader is already looking at the next position.
+      _refreshCounts();
     }
     _clearProposal();
   }
@@ -2023,6 +2033,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _seen.remove(_keyOf(gone.fen));
     }
 
+    // Where the board goes next, decided *before* the tree is redrawn: one
+    // step back up the line that was just cut. The queue's next position is
+    // somewhere else in the repertoire entirely, and being moved there without
+    // a word is how somebody loses the place they were working in.
+    final back = _findNode(node.fen, _treeRoot)?.parent;
+
     setState(() {
       _busy = false;
       _cutHere.add(node);
@@ -2032,8 +2048,17 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           : 'Grana je odsečena — sa njom je iz reda izašlo još '
               '${below.length} ${below.length == 1 ? "pozicija" : "pozicija"}.';
     });
-    await _advance();
+    if (back != null) {
+      await _show(_Pending(
+        fen: back.fen,
+        path: _pathTo(back),
+        lastUci: back.moveUci,
+      ));
+    } else {
+      await _advance();
+    }
     await _loadTree();
+    _refreshCounts();
   }
 
   /// "Prepare this one too" — one opponent move from past the covered wave.
@@ -2143,6 +2168,32 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     // is in the middle of answering.
     if (_current == null) await _advance();
     await _loadTree();
+    _refreshCounts();
+  }
+
+  /// Re-reads the walk for its numbers and leaves the board where it is.
+  ///
+  /// `_resume` cannot be used for this: it refills the queue and advances, so
+  /// calling it after every kept move would move the board out from under the
+  /// reader. What changes after an answer is the *count* — how many positions
+  /// are still unanswered, how many drafts are still waiting — and the banner
+  /// above the board is where that is read.
+  ///
+  /// Deliberately not awaited by its callers: it is a walk, about a third of a
+  /// second, and nothing on screen has to wait for a number to catch up.
+  Future<void> _refreshCounts() async {
+    final walk = await _api.frontier(
+      color: widget.color,
+      rootFen: widget.rootFen,
+      rootPath: widget.rootPath,
+      minRating: widget.minRating,
+      gateUci: widget.gateUci,
+      breadth: _breadth,
+    );
+    // A walk that could not be read leaves the old number standing rather than
+    // replacing it with a zero nobody measured.
+    if (!mounted || walk == null) return;
+    setState(() => _frontier = walk);
   }
 
   /// Takes the board to the first position nobody has decided in.
@@ -2266,7 +2317,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _asked += result.path.length;
     });
     // The queue and the picture both changed, and neither costs an allowance.
-    await _resume();
+    // The board stays: the spine was grown from the position in front of the
+    // reader, and the first thing to look at is what it wrote under it.
+    await _resume(keepBoard: true);
     if (!mounted) return;
     // Said *after* the reload, not before it. `_resume` writes its own note
     // when the walk cannot be read, and setting this first meant the one thing
@@ -2316,6 +2369,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (done) {
       await _loadKept();
       await _loadTree();
+      _refreshCounts();
     }
   }
 
@@ -2409,6 +2463,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     });
     await _loadKept();
     await _loadTree();
+    _refreshCounts();
   }
 
   @override

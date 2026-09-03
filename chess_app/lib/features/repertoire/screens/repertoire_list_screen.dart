@@ -98,8 +98,16 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     }
   }
 
+  /// Opening a repertoire, and counting again on the way back.
+  ///
+  /// Everything that changes these numbers happens on the screen this pushes —
+  /// a move kept, a draft confirmed, a branch cut. Without the reload the list
+  /// went on showing what was true when the app started, which is the same
+  /// staleness the banner had and reads worse here: this is the screen somebody
+  /// uses to decide where the work is.
   void _open(RepertoireSummary item, {String? at}) {
-    Navigator.of(context).push(MaterialPageRoute(
+    Navigator.of(context)
+        .push(MaterialPageRoute(
       builder: (_) => RepertoireBuildScreen(
         name: item.name,
         id: item.id,
@@ -124,7 +132,10 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         // inside, over the ten positions that were just made.
         onDrillHere: (fen) => _drill(item, from: fen),
       ),
-    ));
+    ))
+        .then((_) {
+      if (mounted) _load();
+    });
   }
 
   /// Practising what was built. A separate door rather than a mode inside the
@@ -541,7 +552,8 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   }
 
   void _drill(RepertoireSummary item, {String? from}) {
-    Navigator.of(context).push(MaterialPageRoute(
+    Navigator.of(context)
+        .push(MaterialPageRoute(
       builder: (_) => RepertoireDrillScreen(
         name: item.name,
         color: item.color,
@@ -563,7 +575,10 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
           _open(item, at: fen);
         },
       ),
-    ));
+    ))
+        .then((_) {
+      if (mounted) _load();
+    });
   }
 
   @override
