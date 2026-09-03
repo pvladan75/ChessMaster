@@ -2478,6 +2478,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       cutHidden: _tree == null ? 0 : countCutMoves(_tree!),
       showCut: _showCut,
       onToggleCut: _toggleCut,
+      minRating: widget.minRating,
+      breadth: _breadth,
     );
   }
 

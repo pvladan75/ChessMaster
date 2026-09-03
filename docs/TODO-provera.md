@@ -3034,6 +3034,28 @@ korisnici ovog servera — zato drugi repertoar ne sme da oseti tuđi izbor.
    „Nije sačuvano — server nije odgovorio.", i posle paljenja servera stablo je
    nedirnuto.
 
+Traka rejtinga je druga polovina iste priče, dopisana 3.9.2026 pošto se ispostavilo
+da odlučuje o svemu što se vidi, a nigde ne piše koja je. Knjiga se čuva **po
+traci** (`opening_replies` je ključan po `(fen_key, min_rating, uci)`), pa ista
+pozicija dohvaćena na 1600+ ne postoji na 2000+. Podrazumevano je 1600+ i niko
+nikada ne pita.
+
+7. [ ] **Crtež kaže na čemu je nacrtan.** Iznad stabla stoje dve rečenice —
+   „Knjiga: partije od 1600+" i „Širina: samo glavna linija / standardno 80% /
+   široko 95%". Menjaju se kad se promeni podešavanje.
+8. [ ] **Traka se bira iz zaglavlja Repertoara** (ikona sa ljudima, „Rejting
+   protivnika"), kvačica stoji uz izabranu, i po izboru piše „Knjiga sada
+   odgovara iz partija od N naviše."
+9. [ ] **Promena trake ništa ne uništava.** Prebaciti na 2000+ — stablo omršavi
+   jer pozicije nisu dohvaćene u toj traci — pa vratiti na 1600+: sve se vraća
+   istog trenutka i **bez novog trošenja Lichess upita** (brojač upita u
+   zaglavlju se ne pomera). Ovo je najvažnija stavka ove sekcije: ako se pri
+   povratku troše upiti, keš po traci ne radi.
+10. [ ] **Traka je po uređaju, ne po repertoaru.** Windows i telefon mogu da
+    stoje na različitim trakama i da crtaju različito stablo istog repertoara.
+    Ovo je poznato ponašanje — proveriti da se **razume** sa ekrana (rečenica
+    iznad stabla to i kaže), ne da se ispravlja.
+
 
 ## 88. Poslednji potez na tabli i traka sa otvaranjem — 3.9.2026, nije viđeno uživo
 
@@ -3144,3 +3166,43 @@ novo otvaranje vidi iste poteze, a staro ne gubi nijedan.
     dugmad u dijalogu izdvajanja, traka „Odustani / Vežbaj izabrane (N)" u listi
     (bila je četiri piksela ispod dna ekrana), i zaglavlje lista za izbor grane.
     Ništa isečeno i ništa van ekrana.
+
+
+## 91. Popravke nađene u samoj proveri — 3.9.2026, nije viđeno uživo
+
+Četiri kvara nađena za jedno popodne provere, sva četiri popravljena istog dana
+i **nijedan viđen uživo ni pokvaren ni popravljen** — sve što sledi traži build
+napravljen posle `50fe6d2`. Stoje zajedno zato što su nađeni zajedno i zato što
+se posle jednog builda proveravaju u nizu.
+
+Zajedničko im je i nešto gore od svakog pojedinačno: **nijedan nije bio vidljiv
+za 1088 testova.** Sva četiri žive u procepu između onoga što klijent pošalje i
+onoga što test gleda — `MockClient` odgovara na šta god dobije i nikad ne gleda
+URL. To je ista pouka kao `ids` iz faze 4, po četvrti put.
+
+1. [ ] **Pregled nacrta uopšte nalazi nacrte.** `minRating` je odlazio prazan
+   (`minRating=`), server je čitao `Number('') || 0`, pa je svaki pregled pitao
+   u traci 0 — u kojoj vaše pozicije nisu ni dohvatane. Otvoriti repertoar u
+   kome traka kaže „N nepotvrđenih u grafu" i pritisnuti „Pregledaj nacrt":
+   mora da ponudi tih N, a ne „Nema više nepotvrđenih poteza."
+2. [ ] **Traka se osveži kad se pregled zatvori.** Potvrditi jedan nacrt, pa
+   zatvoriti list: broj u traci mora da bude manji za jedan, a ne isti.
+   Ranije se čitao samo pri otvaranju ekrana, pa je nudio posao koji je već
+   urađen — a jedini način da se to sazna bio je da se pritisne.
+3. [ ] **Isto u vežbi.** Rečenica „Još N nepotvrđenih nacrta čeka" posle
+   pregleda pokazuje novi broj.
+4. [ ] **Širina stvarno menja crtež.** Postaviti „Samo glavna linija" pa
+   pogledati stablo: ispod svakog vašeg poteza stoji **jedan** protivnikov, ne
+   tri. Ovo je bio kvar zbog kog je izbor bio potpuno bez dejstva — red u bazi
+   je bio ispravan, a nijedan poziv nije slao `breadth`, pa je server uvek
+   računao na 80%. Mereno na Benoniju: `main` crta 3 protivnikova poteza,
+   `standard` 23, `broad` 48.
+5. [ ] **Dijalog kičme se otvara na već izabranoj širini.** Repertoar na „Samo
+   glavna linija" → „Napravi kičmu" → mora da bude štiklirana glavna linija.
+   Ranije je uvek pisalo „Standardno (80%)", pa je svako otvaranje dijaloga
+   tiho vraćalo repertoar na 80%.
+6. [ ] **Prazan red nije ćorsokak.** Otvoriti repertoar u kome je red za
+   odlučivanje prazan: ekran kaže „Nema više pozicija u redu." i nudi **„Otvori
+   repertoar"**, koje vraća tablu i stablo. Ranije je nudio samo „Nazad", pa je
+   repertoar sa sto poteza bio nedostupan sa sopstvenog ekrana — dok je ista ta
+   rečenica govorila da se vratite na neku poziciju i uzmete još odgovora.

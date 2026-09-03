@@ -131,6 +131,8 @@ class RepertoireTreePanel extends StatelessWidget {
     this.cutHidden = 0,
     this.showCut = false,
     this.onToggleCut,
+    this.minRating,
+    this.breadth,
   });
 
   final AnalysisNode root;
@@ -160,6 +162,23 @@ class RepertoireTreePanel extends StatelessWidget {
   final bool showCut;
   final VoidCallback? onToggleCut;
 
+  /// The two settings this drawing is made of: which games the book answers
+  /// from, and how much of their answer is taken.
+  ///
+  /// Said on the picture rather than left in a popup, because the picture
+  /// changes shape when either one changes and nothing on screen used to say
+  /// which one it was drawn at. A repertoire set to „Samo glavna linija" and a
+  /// repertoire read at a band it was never fetched in look the same from
+  /// here: thin, for reasons the reader cannot see.
+  final int? minRating;
+  final String? breadth;
+
+  static const _widthNames = {
+    'main': 'samo glavna linija',
+    'standard': 'standardno 80%',
+    'broad': 'široko 95%',
+  };
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -173,6 +192,25 @@ class RepertoireTreePanel extends StatelessWidget {
           'dugim pritiskom (ili desnim klikom) otvorite izmene.',
           style: AppText.micro.copyWith(color: context.colors.textMuted),
         ),
+        if (minRating != null || breadth != null) ...[
+          const SizedBox(height: AppSpacing.xxs),
+          // `Wrap`, because these are two sentences on a phone and one on a
+          // desktop, and a release build clips rather than warns.
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: AppSpacing.sm,
+            children: [
+              if (minRating != null)
+                Text('Knjiga: partije od $minRating+',
+                    style: AppText.micro
+                        .copyWith(color: context.colors.textSecondary)),
+              if (breadth != null)
+                Text('Širina: ${_widthNames[breadth] ?? breadth}',
+                    style: AppText.micro
+                        .copyWith(color: context.colors.textSecondary)),
+            ],
+          ),
+        ],
         if (cutHidden > 0 && onToggleCut != null)
           TextButton.icon(
             onPressed: onToggleCut,
