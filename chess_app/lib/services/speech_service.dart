@@ -112,6 +112,14 @@ class SpeechService extends ChangeNotifier {
   /// sentence that is still being spoken means the listener hears about a
   /// position that is no longer there.
   bool _speaking = false;
+
+  /// True while a sentence is being said.
+  ///
+  /// Read by `SpeakableInfo`, whose one control has to mean "stop" while the
+  /// voice is running and "say it again" when it is not — a speaker button that
+  /// could only start is a button the reader presses to shut it up and is
+  /// answered with the sentence a second time.
+  bool get speaking => _speaking;
   bool get isSpeaking => _speaking;
 
   /// Stops [isSpeaking] from sticking when a platform never reports that it

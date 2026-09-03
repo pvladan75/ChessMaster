@@ -77,6 +77,21 @@ class AppSettingsService extends ChangeNotifier {
   /// app invented, because it is handed straight back to the engine. An empty
   /// string means "whatever fits Serbian best", which is what a machine with a
   /// newly installed voice should do without anyone going into settings.
+  /// What the board is allowed to draw on top of the pieces.
+  ///
+  /// Three separate switches because they answer three different questions and
+  /// arrive from three different places: the arrow for the move you chose, the
+  /// statistics arrows out of the opening book, and the engine's lines. All
+  /// three default to on — that is what the app does today, and a switch that
+  /// silently turns something off on upgrade is a bug report about a missing
+  /// feature.
+  ///
+  /// Per device, like every other setting here: the same repertoire on a phone
+  /// and on a desktop can reasonably want different amounts of ink.
+  bool _showChosenMoveArrow = true;
+  bool _showStatisticsArrows = true;
+  bool _showEngineArrows = true;
+
   bool _speechEnabled = false;
   double _speechRate = 0.5;
   String _speechLanguage = '';
@@ -189,6 +204,10 @@ class AppSettingsService extends ChangeNotifier {
   /// the ids, so an id nothing recognises draws `classic` instead of nothing.
   BoardSkin get boardSkin => BoardSkin.byId(_boardSkinId);
   PieceSkin get pieceSkin => PieceSkin.byId(_pieceSkinId);
+  bool get showChosenMoveArrow => _showChosenMoveArrow;
+  bool get showStatisticsArrows => _showStatisticsArrows;
+  bool get showEngineArrows => _showEngineArrows;
+
   bool get speechEnabled => _speechEnabled;
   double get speechRate => _speechRate;
   String get speechLanguage => _speechLanguage;
@@ -248,6 +267,9 @@ class AppSettingsService extends ChangeNotifier {
     _showBoardCoordinates = prefs.getBool('app_board_coordinates') ?? true;
     _boardSkinId = prefs.getString('app_board_skin') ?? BoardSkin.classic.id;
     _pieceSkinId = prefs.getString('app_piece_skin') ?? PieceSkin.classic.id;
+    _showChosenMoveArrow = prefs.getBool('app_arrow_chosen_move') ?? true;
+    _showStatisticsArrows = prefs.getBool('app_arrow_statistics') ?? true;
+    _showEngineArrows = prefs.getBool('app_arrow_engine') ?? true;
     _speechEnabled = prefs.getBool('app_speech_enabled') ?? false;
     _speechRate = (prefs.getDouble('app_speech_rate') ?? 0.5).clamp(0.2, 1.0);
     _speechLanguage = prefs.getString('app_speech_language') ?? '';
@@ -409,6 +431,27 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('app_piece_skin', id);
+  }
+
+  Future<void> setShowChosenMoveArrow(bool show) async {
+    _showChosenMoveArrow = show;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('app_arrow_chosen_move', show);
+  }
+
+  Future<void> setShowStatisticsArrows(bool show) async {
+    _showStatisticsArrows = show;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('app_arrow_statistics', show);
+  }
+
+  Future<void> setShowEngineArrows(bool show) async {
+    _showEngineArrows = show;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('app_arrow_engine', show);
   }
 
   Future<void> setSpeechEnabled(bool enabled) async {
