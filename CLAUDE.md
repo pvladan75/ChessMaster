@@ -20,14 +20,15 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1121 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1128 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 872 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-Both counts measured 3.9.2026, after phase 4 of the second repertoire iteration
-and the four fixes the live pass turned up on top of it. They are here so a suite that quietly stops
+Both counts measured 3.9.2026, after phases 1 and 2 of the simplicity plan on
+top of the second repertoire iteration and the fixes the live pass turned up.
+They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.
 

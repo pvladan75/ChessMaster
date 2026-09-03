@@ -34,7 +34,7 @@ može ni proveriti.
 |---|---|---|---|
 | 0 | ugovori: tri prekidača u podešavanjima, `ActionBanner`, `SpeakableInfo`, `SpeechToggleButton` | lead | **Urađeno**, `661ff47` |
 | 1 | jedan meni na tabli i tri prekidača za strelice | radni agent | **Urađeno**, `c26b83c` |
-| 2 | govor na info panelima, prekidač u zaglavlju | radni agent | **Brief napisan, batch spreman za pokretanje** |
+| 2 | govor na info panelima, prekidač u zaglavlju | radni agent | **Urađeno**, `1e8822d` |
 | 3 | dril kaže šta pokriva; dnevni cilj i vežba van rasporeda | lead | **Urađeno**, `28b196c` + `a217cdf` |
 | 4 | zamena reči po rečniku | radni agent | Nije rađeno |
 | 5 | provera uživo i unos u `TODO-provera.md` | lead | Nije rađeno |
@@ -48,12 +48,36 @@ Otvoreno pitanje koje je vlasnik ostavio za kasnije: pojmovi „odlučeno",
 „otvoreno", „bez odgovora" traže objašnjenje na dodir, tamo gde broj stoji.
 Radi se **posle** faze 4, da se ne piše dvaput.
 
-### Kako se pokreće faza 2
+### Šta je faza 2 pokazala o ocenjivanju batch-a — 3.9.2026
 
-Radno stablo `mislisha-batch-b` stoji na `design/govor-na-panelima`, napravljeno
-sa `a217cdf`. Komanda i šta u diffu treba pročitati stoje u
-`D:\Projekti\mislisha-test\orchestrator\HANDOFF.md`. **Prag je 1121**, ne
-1108. Faze 1 i 2 diraju iste dve datoteke, pa se ne puštaju uporedo.
+Batch je urađen i spojen (`1e8822d`). Kod je bio uglavnom tačan; **dokaz nije
+bio**, i to je nalaz koji vredi pamtiti.
+
+Testovi koje je radni agent napisao nisu dodirnuli nijedan panel: dizali su
+goli `SpeakableInfo` sa rečenicom otkucanom u samom testu, što je test iz faze
+0 napisan po drugi put. Prošli bi i da je omotač uklonjen sa svakog ekrana u
+aplikaciji. `flutter analyze` je to rekao naglas — dva `unused_import`, i to
+baš onih ekrana koje je fajl tvrdio da testira. To je i razlog zašto se
+izveštaj ne uzima kao ocena: brojevi u njemu (29 upozorenja) nisu bili tačni,
+pravo stanje je bilo 31, od toga dva `warning`. Fajl uz to nije bio formatiran.
+
+Testovi sada dižu **prave ekrane** (`RepertoireDrillScreen`, `UnconfirmedBanner`)
+i porede ono što je stiglo do lažnog engine-a sa tekstom pročitanim iz stabla
+widget-a, pa rečenica koja odluta od svog panela obara test. Šav koji to
+omogućava: `SpeakableInfo` u ekranu nema injekciju, čita `SpeechService.
+instance` — ali `init` prima engine, pa se singleton uperi u lažni.
+
+Svaki čuvar dokazan mutacijom: razdvoji izgovoreno od prikazanog, skini
+zvučnik sa banera, ugasi `autoSpeak` na presudi — svaka mutacija obori svoj
+test i nijedan drugi.
+
+Dve odluke izmerene umesto isprazno raspravljene: `Container`/`FittedBox` u
+zaglavlju **ostaje** na ekranu drila, gde vraćanje starog `Padding`/`Center`
+prelije 360 dp telefon za jedan piksel, a **vraćen je** na ekranu gradnje, gde
+nije trebao i uzalud je smanjivao brojač. Release build ne crta trake ni za
+jedno.
+
+**Prag je sada 1128**, 1 preskočen.
 
 ### Šta je harness naučio 3.9.2026
 
