@@ -3246,3 +3246,51 @@ objašnjenja.
    **ceo vidljiv i čitljiv**. U testu je 360 dp prelivalo za jedan piksel bez
    smanjivanja, a release build ne crta trake — samo iseca. Isto pogledati i na
    ekranu izgradnje, gde brojač „upita: N" namerno **nije** smanjivan.
+
+
+## 93. Meni na tabli i tri prekidača za strelice — 3.9.2026, nije viđeno uživo
+
+Faza 1 plana jednostavnosti, radni agent (`c26b83c`). Upisano naknadno, 3.9.2026
+— faza je spojena pre nego što je stavka napisana, pa ovde nema ničega što je
+neko već gledao.
+
+`BoardViewMenu` je zamenio `BoardCoordinatesButton` na **četrnaest mesta u
+trinaest fajlova** (to je ispravka samog radnog agenta: brief je rekao deset,
+jer je `grep` promašio `const` oblike). Koordinate su svuda; tri prekidača za
+strelice samo tamo gde ekran crta strelice — izgradnja repertoara, vežba i
+Analysis Studio.
+
+**Sva tri prekidača su podrazumevano uključena**, i to je namerno: prekidač čiji
+podrazumevani položaj tiho uklanja nešto posle nadogradnje ne čita se kao novo
+podešavanje nego kao izgubljena funkcija.
+
+1. [ ] **Meni je tamo gde je dugme bilo.** Proći ekrane koji su imali dugme za
+   koordinate — igra, replay, taktika, završnice, blunder-šetnja, zadaci,
+   pregledi, sopstveni zadaci, novi repertoar, AI studio — i na svakom videti
+   isti meni na istom mestu u zaglavlju. Na tim ekranima meni nudi **samo**
+   koordinate, bez strelica.
+2. [ ] **Koordinate i dalje rade.** Uključiti i isključiti: slova i brojevi oko
+   table se pojave i nestanu, i to ostaje posle izlaska i povratka.
+3. [ ] **Prekidač za vaše poteze.** U izgradnji repertoara isključiti „vaši
+   izabrani potezi": strelice vaših odluka nestaju sa table, a statistika i
+   motor **ostaju**. Ovo je mesto gde je greška najverovatnija — tri izvora
+   stižu do table kao ista vrsta strelice, pa prekidač koji vrati praznu listu
+   umesto da preskoči svoj izvor obriše i sve ispod sebe.
+4. [ ] **Prekidač za statistiku.** Isto, obrnuto: statistika ode, vaši potezi i
+   motor ostanu.
+5. [ ] **Prekidač za motor.** Isto u Analysis Studiju: strelice motora nestaju,
+   ostalo stoji.
+6. [ ] **Vežba sluša isti prekidač.** U vežbi je strelica koju pokazuje ponavljanje
+   vaš izabrani potez — gasi je prekidač za vaše poteze, ne neki drugi.
+7. [ ] **Tabla se precrta bez izlaska sa ekrana.** Prekidač se pomera dok se
+   gleda tabla: strelice nestanu **odmah**, bez izlaska i povratka. Podešavanje
+   se čita preko `ChangeNotifier`-a; ako treba izaći i vratiti se, pročitano je
+   jednom u polje i to je nalaz.
+8. [ ] **Preživi restart.** Ugasiti dva od tri prekidača, ubiti aplikaciju,
+   pokrenuti ponovo: ista dva su i dalje ugašena.
+9. [ ] **Uključeno se vidi bez boje.** Vlasnik ne razlikuje boje na koje se ovakvi
+   prekidači obično oslanjaju: položaj prekidača mora da se čita kao uključen po
+   **obliku i položaju**, ne po nijansi. Ako se razlika svodi na boju, to je nalaz.
+10. [ ] **Telefon, 360 dp, release build.** Meni otvoren preko table: ništa nije
+    isečeno, sve tri stavke se vide cele, i zatvaranje menija vraća tablu kakva
+    je bila.
