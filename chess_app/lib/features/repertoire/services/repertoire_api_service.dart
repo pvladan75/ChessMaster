@@ -1306,6 +1306,35 @@ class DrillAnswer {
 /// read, edited and drilled with no allowance spent at all.
 
 /// One unconfirmed position in the walk.
+/// How much of one repertoire is still waiting, from its own walk.
+///
+/// Two piles, never added together: [open] is a position this repertoire
+/// reaches that holds no decision of yours, [draft] is one holding a generated
+/// move waiting for a yes. Null in both when the walk could not be read — a
+/// zero would read as "nothing left", which is the one thing a failure must
+/// not be able to say.
+class RepertoireProgress {
+  const RepertoireProgress({
+    required this.id,
+    this.open,
+    this.draft,
+    this.decided,
+  });
+
+  final int id;
+  final int? open;
+  final int? draft;
+  final int? decided;
+
+  factory RepertoireProgress.fromJson(Map<String, dynamic> json) =>
+      RepertoireProgress(
+        id: (json['id'] as num?)?.toInt() ?? 0,
+        open: (json['open'] as num?)?.toInt(),
+        draft: (json['draft'] as num?)?.toInt(),
+        decided: (json['decided'] as num?)?.toInt(),
+      );
+}
+
 class UnconfirmedNode {
   const UnconfirmedNode({
     required this.fen,
@@ -1484,6 +1513,27 @@ class RepertoireApiService {
     if (res == null) return null;
     return RepertoireUnconfirmedWalk.fromJson(
         Map<String, dynamic>.from(jsonDecode(res.body) as Map));
+  }
+
+  /// The unanswered count for every repertoire at once.
+  ///
+  /// A walk each, so the list screen asks for this after it has drawn its
+  /// cards. Null when the server could not be reached, which the caller shows
+  /// as nothing rather than as zero.
+  Future<List<RepertoireProgress>?> progress({int? minRating}) async {
+    final uri = Uri.parse('$backendUrl/repertoire/progress').replace(
+      queryParameters: {
+        if (minRating != null) 'minRating': '$minRating',
+      },
+    );
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    final data = jsonDecode(res.body);
+    if (data is! Map || data['items'] is! List) return null;
+    return (data['items'] as List)
+        .whereType<Map>()
+        .map((e) => RepertoireProgress.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
   Future<RepertoireUnconfirmedCounts?> unconfirmedCounts() async {

@@ -49,6 +49,7 @@ const {
   unconfirmedPositions, unconfirmedCounts,
 } = require('../services/repertoireUnconfirmed');
 const { playAlternative } = require('../services/repertoireAlternative');
+const { repertoireProgress } = require('../services/repertoireProgress');
 const { frontier } = require('../services/repertoireFrontier');
 const {
   drillLine, drillBranches, tree: repertoireTree,
@@ -232,6 +233,26 @@ router.get('/unconfirmed/count', authenticateToken, (req, res) => {
     res,
     unconfirmedCounts(pool, req.user.id),
     'Broj nepotvrđenih poteza nije mogao da se pročita.',
+  );
+});
+
+// GET /repertoire/progress?minRating=1600
+//
+// How many positions each repertoire still has nobody's answer in, one entry
+// per repertoire. A walk each, so the list screen asks for this *after* it has
+// drawn its cards rather than before: the number is worth waiting a moment for
+// and the list is not worth waiting at all for.
+//
+// The band is the caller's own. Read as 0 it would walk a book that has no
+// replies at that band and report every repertoire as finished — which is
+// exactly what an empty `minRating=` did to the draft review.
+router.get('/progress', authenticateToken, (req, res) => {
+  answer(
+    res,
+    repertoireProgress(pool, req.user.id, {
+      minRating: Number(req.query.minRating) || 0,
+    }),
+    'Napredak repertoara nije mogao da se pročita.',
   );
 });
 

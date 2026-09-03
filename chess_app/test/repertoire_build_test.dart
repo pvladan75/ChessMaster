@@ -1050,7 +1050,7 @@ void main() {
     // most often, and the other one is waiting behind it.
     expect(find.text('1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3 Nc6 5.Nf3'),
         findsOneWidget);
-    expect(find.text('Još 1 u redu.'), findsOneWidget);
+    expect(find.text('Još 1 neodgovorenih.'), findsOneWidget);
     expect(find.textContaining('bez odgovora 55%'), findsOneWidget);
   });
 
@@ -1129,7 +1129,7 @@ void main() {
     // asked first. (The fake book names its moves in UCI, which is why the
     // line reads `5.g1f3`.)
     expect(find.text('4...Nc6 5.g1f3'), findsOneWidget);
-    expect(find.text('Još 1 u redu.'), findsOneWidget);
+    expect(find.text('Još 1 neodgovorenih.'), findsOneWidget);
   });
 
   testWidgets('a cut branch takes everything under it out of the queue',
@@ -1165,7 +1165,7 @@ void main() {
           ],
         ));
 
-    expect(find.text('Još 2 u redu.'), findsOneWidget);
+    expect(find.text('Još 2 neodgovorenih.'), findsOneWidget);
     // Scrolled to rather than tapped blind: on a 640 px screen the controls sit
     // below the board and are genuinely off screen.
     await tester.ensureVisible(find.text('Ne spremam ovo'));
@@ -1178,7 +1178,10 @@ void main() {
         fenAfter(smithMorra, ['Nc6', 'Nf3']).split(' ').take(4).join(' '));
     // The line below it went with it; the unrelated one did not.
     expect(find.textContaining('iz reda izašlo još 1'), findsOneWidget);
-    expect(find.text('Poslednja pozicija u ovom talasu.'), findsOneWidget);
+    expect(
+        find.text(
+            'Poslednja neodgovorena pozicija koju ovaj repertoar dohvata.'),
+        findsOneWidget);
     expect(find.textContaining('4...d6 5.Bc4'), findsOneWidget);
     // Counted apart from "bez odgovora", and never taken off it: cutting is
     // work refused, not work done, and those games are still going to be
@@ -1217,7 +1220,7 @@ void main() {
     expect(find.textContaining('Grana je vraćena'), findsOneWidget);
     // Back in the queue, in its own place — not shoved in front of the
     // position the student is in the middle of answering.
-    expect(find.text('Još 1 u redu.'), findsOneWidget);
+    expect(find.text('Još 1 neodgovorenih.'), findsOneWidget);
     expect(find.textContaining('odsečeno'), findsNothing);
   });
 
@@ -1301,14 +1304,14 @@ void main() {
     await tester.tap(find.text('Dalje'));
     await tester.pumpAndSettle();
     // One position came out of the covered wave.
-    expect(find.text('Još 1 u redu.'), findsOneWidget);
+    expect(find.text('Još 1 neodgovorenih.'), findsOneWidget);
 
     await tester.tap(find.text('Spremi i neki od njih'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Spremi').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Još 2 u redu.'), findsOneWidget);
+    expect(find.text('Još 2 neodgovorenih.'), findsOneWidget);
   });
 
   testWidgets('a preparation the server refused is not shown as done',
@@ -1330,7 +1333,7 @@ void main() {
 
     expect(find.textContaining('nije dodat u pripremu'), findsOneWidget);
     expect(find.text('u pripremi'), findsNothing);
-    expect(find.text('Još 1 u redu.'), findsOneWidget);
+    expect(find.text('Još 1 neodgovorenih.'), findsOneWidget);
   });
 
   testWidgets('a generated move is marked as a draft and can be confirmed',

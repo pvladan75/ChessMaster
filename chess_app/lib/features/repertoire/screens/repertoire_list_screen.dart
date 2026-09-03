@@ -34,7 +34,10 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   late final RepertoireApiService _api = widget.api ?? RepertoireApiService();
   bool _loading = true;
   List<RepertoireSummary> _items = const [];
-  RepertoireUnconfirmedCounts? _counts;
+
+  /// How much each repertoire still has waiting, once it has been counted.
+  /// Empty until then, and a card says nothing rather than guessing.
+  Map<int, RepertoireProgress> _progress = const {};
 
   final Set<int> _selectedIds = {};
   bool get _isSelectionMode => _selectedIds.isNotEmpty;
@@ -47,12 +50,21 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
 
   Future<void> _load() async {
     final items = await _api.list();
-    final counts = await _api.unconfirmedCounts();
     if (!mounted) return;
     setState(() {
       _items = items;
-      _counts = counts;
       _loading = false;
+    });
+    // After the cards, never before them. This is a walk per repertoire —
+    // about a third of a second each — and the list is what somebody opens to
+    // choose where to work; it must be on screen while the numbers are still
+    // being counted.
+    final progress = await _api.progress(
+      minRating: AppSettingsService.instance.repertoireMinRating,
+    );
+    if (!mounted || progress == null) return;
+    setState(() {
+      _progress = {for (final row in progress) row.id: row};
     });
   }
 
@@ -723,25 +735,43 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                     color: context.colors.textSecondary,
                   ),
             title: Text(item.name, style: AppText.bodyBold),
-            subtitle: Text(
-              '${item.forWhite ? "Beli" : "Crni"} · '
-              // The gate, where there is one. Two repertoires from the same
-              // position are otherwise two identical rows with different names.
-              '${item.viaSan != null ? "kroz ${item.viaSan} · " : ""}'
-              '${item.moves} ${item.moves == 1 ? "potez" : "poteza"} u grafu',
-              style: AppText.caption.copyWith(color: context.colors.textMuted),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${item.forWhite ? "Beli" : "Crni"} · '
+                  // The gate, where there is one. Two repertoires from the same
+                  // position are otherwise two identical rows with different
+                  // names.
+                  '${item.viaSan != null ? "kroz ${item.viaSan} · " : ""}'
+                  '${item.moves} ${item.moves == 1 ? "potez" : "poteza"} u grafu',
+                  style:
+                      AppText.caption.copyWith(color: context.colors.textMuted),
+                ),
+                // How much is left, which is the question this screen is
+                // opened with — „N poteza u grafu" says how much was built.
+                // Silent until the walk answers: a card that guessed zero
+                // would send somebody past the repertoire that needs them.
+                if (_progress[item.id]?.open != null)
+                  Text(
+                    _progress[item.id]!.open == 0
+                        ? 'sve odgovoreno'
+                        : '${_progress[item.id]!.open} neodgovorenih pozicija',
+                    style: AppText.caption.copyWith(
+                      color: _progress[item.id]!.open == 0
+                          ? context.colors.textMuted
+                          : context.colors.accent,
+                    ),
+                  ),
+              ],
             ),
             trailing: Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                if ((item.forWhite
-                            ? _counts?.w.positions
-                            : _counts?.b.positions) !=
-                        null &&
-                    (item.forWhite
-                            ? _counts!.w.positions
-                            : _counts!.b.positions) >
-                        0)
+                // This repertoire's own drafts. It used to be the colour's,
+                // so three white repertoires wore the same 42 and none of them
+                // was telling you about itself.
+                if ((_progress[item.id]?.draft ?? 0) > 0)
                   InkWell(
                     onTap: () => _openDrafts(item),
                     borderRadius: AppRadii.roundedPill,
@@ -760,7 +790,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                               size: 16, color: context.colors.canvas),
                           const SizedBox(width: AppSpacing.xs),
                           Text(
-                            '${item.forWhite ? _counts!.w.positions : _counts!.b.positions}',
+                            '${_progress[item.id]!.draft}',
                             style: AppText.captionBold
                                 .copyWith(color: context.colors.canvas),
                           ),

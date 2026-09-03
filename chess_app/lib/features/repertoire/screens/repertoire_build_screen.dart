@@ -2744,7 +2744,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         ),
         const SizedBox(height: AppSpacing.xxs),
         Text(
-          left == 0 ? 'Poslednja pozicija u ovom talasu.' : 'Još $left u redu.',
+          left == 0
+              ? 'Poslednja neodgovorena pozicija koju ovaj repertoar dohvata.'
+              : 'Još $left neodgovorenih.',
           style: AppText.caption.copyWith(color: context.colors.textMuted),
         ),
         if (!_afterMyMove && _node?.kind == 'unopened') ...[
@@ -3620,17 +3622,16 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
-            // Said in what it is about rather than in what the code calls it.
-            // „Red" and „talas" are this screen's own vocabulary: the reader
-            // was told the next wave opens when they take more replies, and
-            // had been given no way to reach a position and no idea which
-            // replies were meant.
+            // No waves and no queue. Both were this screen's own vocabulary,
+            // and neither is something the reader has to hold: the number says
+            // where things stand and the buttons below say what can be done
+            // next, on any position, at any time.
             Text(
-              'Sve je sačuvano. Repertoar ide dublje tek kad negde uzmete još '
-              'protivnikovih odgovora — otvorite repertoar, stanite na potez i '
-              'u panelu „Odgovori protivnika" izaberite „Spremi i neki od '
-              'njih". Nepotvrđeni nacrti su nešto drugo i čekaju na dugmetu '
-              '„Pregledaj nacrt".',
+              _frontier == null || _frontier!.draft == 0
+                  ? 'Sve je sačuvano. Repertoar ide dublje kad negde uzmete '
+                      'još protivnikovih odgovora.'
+                  : 'Sve je sačuvano. Čeka još ${_frontier!.draft} '
+                      'nepotvrđenih nacrta.',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
@@ -3664,6 +3665,14 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               icon: const Icon(Icons.account_tree_outlined, size: 18),
               label: const Text('Otvori repertoar'),
             ),
+            if (_frontier != null && _frontier!.draft > 0) ...[
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: _busy ? null : _reviewDrafts,
+                icon: const Icon(Icons.edit_note, size: 18),
+                label: Text('Pregledaj nacrt (${_frontier!.draft})'),
+              ),
+            ],
             const SizedBox(height: AppSpacing.sm),
             TextButton(
               onPressed: () => Navigator.of(context).maybePop(),
