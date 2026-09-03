@@ -70,10 +70,60 @@ class _SpeakableInfoState extends State<SpeakableInfo> {
       widget.settings ?? AppSettingsService.instance;
   SpeechService get _speech => widget.speech ?? SpeechService.instance;
 
+  /// Whether a sentence handed over right now would actually be heard.
+  bool get _canSpeak =>
+      _settings.speechEnabled && _speech.state == SpeechState.ready;
+
+  bool _couldSpeak = false;
+  bool _shownOn = false;
+
   @override
   void initState() {
     super.initState();
+    _couldSpeak = _canSpeak;
+    _shownOn = _settings.speechEnabled;
+    _settings.addListener(_availabilityChanged);
+    _speech.addListener(_availabilityChanged);
     if (widget.autoSpeak) _say();
+  }
+
+  @override
+  void dispose() {
+    _settings.removeListener(_availabilityChanged);
+    _speech.removeListener(_availabilityChanged);
+    super.dispose();
+  }
+
+  /// Speech became possible while this sentence was already on screen.
+  ///
+  /// Without this a panel speaks only when it is built or when its words
+  /// change. Turning speech on from the app bar is neither, so the drill sat
+  /// silent on the question the reader was looking at and the first thing they
+  /// heard was the verdict at the end of the line — the sentence they had
+  /// asked to hear was the one sentence that never came. Reported live by the
+  /// owner, 3.9.2026.
+  ///
+  /// It also covers a cold start: `SpeechService.init` is deliberately not
+  /// awaited in `main`, so a screen reached quickly enough mounts before the
+  /// machine has answered about its voices.
+  void _availabilityChanged() {
+    final now = _canSpeak;
+    final became = now && !_couldSpeak;
+    _couldSpeak = now;
+    if (!mounted) return;
+    // Only when the icon must actually change. `SpeechService` also notifies
+    // on every utterance starting and stopping, and rebuilding this row on
+    // each of those would be churn — and a `setState` that can land inside a
+    // build, since the first notification arrives while `_say` above is still
+    // running.
+    final on = _settings.speechEnabled;
+    if (on != _shownOn) {
+      _shownOn = on;
+      setState(() {});
+    }
+    // `force`, because the sentence may be the one this service last spoke and
+    // the dedup would otherwise swallow exactly the case this exists for.
+    if (became && widget.autoSpeak) _say(force: true);
   }
 
   @override

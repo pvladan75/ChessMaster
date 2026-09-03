@@ -3246,6 +3246,15 @@ objašnjenja.
    **ceo vidljiv i čitljiv**. U testu je 360 dp prelivalo za jedan piksel bez
    smanjivanja, a release build ne crta trake — samo iseca. Isto pogledati i na
    ekranu izgradnje, gde brojač „upita: N" namerno **nije** smanjivan.
+9. [ ] **Paljenje čita ono što je već na ekranu.** Kvar koji je vlasnik našao
+   uživo 3.9.2026 („TTS se u drilu uključuje tek na kraju linije"), popravljen
+   istog dana. Panel je govorio samo kad se **napravi** ili kad mu se **promene
+   reči**, a paljenje prekidača nije ni jedno ni drugo: dril je ćutao na pitanju
+   koje čitalac gleda, pa je prva izgovorena stvar bila presuda na kraju linije
+   — rečenica zbog koje se govor i pali bila je jedina koja se nije čula.
+   Provera: ući u vežbu sa **ugašenim** govorom, sačekati pitanje, pa pritisnuti
+   zvučnik u zaglavlju. Pitanje mora da se pročita **odmah**, ne tek na sledećoj
+   poziciji.
 
 
 ## 93. Meni na tabli i tri prekidača za strelice — 3.9.2026, nije viđeno uživo

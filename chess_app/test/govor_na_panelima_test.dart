@@ -276,6 +276,27 @@ void main() {
     expect(engine.said, [speakable(shown)]);
   });
 
+  testWidgets('turning speech on reads the question already on screen',
+      (tester) async {
+    // The bug the owner found live on 3.9.2026: the panel spoke only when it
+    // was built or when its words changed, and the app-bar switch is neither.
+    // So the drill stayed silent on the question in front of the reader and
+    // the first thing spoken was the verdict at the end of the line.
+    final engine = await _speech(enabled: false);
+    await pumpDrill(tester);
+    expect(engine.said, isEmpty);
+
+    final panel = find.byType(SpeakableInfo);
+    final shown = _shown(tester, panel);
+    expect(shown, contains('Šta igrate crnim?'));
+
+    // The app-bar switch, used the way item 92 tells the reader to use it.
+    await tester.tap(find.byType(SpeechToggleButton));
+    await tester.pumpAndSettle();
+
+    expect(engine.said, [speakable(shown)]);
+  });
+
   testWidgets('with speech off the drill says nothing at all', (tester) async {
     final engine = await _speech(enabled: false);
     await pumpDrill(tester);
