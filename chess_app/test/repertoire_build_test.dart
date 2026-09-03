@@ -1176,8 +1176,12 @@ void main() {
 
     expect(api.cut.single,
         fenAfter(smithMorra, ['Nc6', 'Nf3']).split(' ').take(4).join(' '));
-    // The line below it went with it; the unrelated one did not.
-    expect(find.textContaining('iz reda izašlo još 1'), findsOneWidget);
+    // The line below it went with it; the unrelated one did not. „Izašla",
+    // feminine singular, because one position agrees with its verb — the three
+    // forms went through `serbianCount` on 3.9.2026, and this assertion is
+    // what noticed.
+    expect(
+        find.textContaining('iz reda izašla još 1 pozicija'), findsOneWidget);
     expect(
         find.text(
             'Poslednja neodgovorena pozicija koju ovaj repertoar dohvata.'),

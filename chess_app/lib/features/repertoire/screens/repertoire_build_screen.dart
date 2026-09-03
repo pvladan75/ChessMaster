@@ -22,6 +22,7 @@ import 'package:chess_app/features/repertoire/services/repertoire_api_service.da
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
+import 'package:chess_app/core/services/serbian_plural.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -1878,11 +1879,26 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _answers = shown;
       _answersFen = shownFen;
       _answersSan = shownSan;
+      // Written out in full rather than glued from a stem: Serbian inflects
+      // the participle with the noun, so „Dodata 1 pozicija" and „Dodate 2
+      // pozicije" differ in two words, not in a suffix.
+      final addedText = serbianCount(
+        added,
+        one: 'Dodata $added pozicija',
+        few: 'Dodate $added pozicije',
+        many: 'Dodato $added pozicija',
+      );
+      final tailText = serbianCount(
+        tailMoves,
+        one: 'još $tailMoves potez',
+        few: 'još $tailMoves poteza',
+        many: 'još $tailMoves poteza',
+      );
       _note = counted == 0
           ? 'Nijedan odgovor nije stigao — pozicija ostaje nepokrivena.'
-          : 'Dodato $added ${added == 1 ? "pozicija" : "pozicija"}. '
+          : '$addedText. '
               'Pokriveno $covered% onoga što ćete sresti; '
-              'van toga još $tailMoves ${tailMoves == 1 ? "potez" : "poteza"}.';
+              'van toga $tailText.';
     });
 
     // A stop, not a step. These answers cost a Lichess request and they decide
@@ -1959,10 +1975,18 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _busy = false;
       _cutHere.add(node);
       _lastCut = node;
+      // In a local, not inside the sentence: a string nested in an
+      // interpolation is invisible to the copy gate, and these three are the
+      // wording that changes.
+      final gone = serbianCount(
+        below.length,
+        one: 'izašla još ${below.length} pozicija',
+        few: 'izašle još ${below.length} pozicije',
+        many: 'izašlo još ${below.length} pozicija',
+      );
       _note = below.isEmpty
           ? 'Grana je odsečena. Neće se više javljati.'
-          : 'Grana je odsečena — sa njom je iz reda izašlo još '
-              '${below.length} ${below.length == 1 ? "pozicija" : "pozicija"}.';
+          : 'Grana je odsečena — sa njom je iz reda $gone.';
     });
     if (back != null) {
       await _show(_Pending(

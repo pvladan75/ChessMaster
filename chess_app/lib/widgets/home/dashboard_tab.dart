@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/services/server_status_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/core/services/serbian_plural.dart';
 
 /// The "Početna" tab: welcome header, session shortcuts, account stats and
 /// the recordings list. Purely presentational — [HomeScreen] owns fetching
@@ -262,7 +263,15 @@ class HomeDashboardTab extends StatelessWidget {
                               const SizedBox(height: AppSpacing.xs),
                               Text(
                                 dueReviewCount > 0
-                                    ? '$dueReviewCount ${dueReviewCount == 1 ? 'pozicija čeka' : 'pozicija čeka'} na ponavljanje.'
+                                    ? serbianCount(
+                                        dueReviewCount,
+                                        one: '$dueReviewCount pozicija čeka '
+                                            'na ponavljanje.',
+                                        few: '$dueReviewCount pozicije čekaju '
+                                            'na ponavljanje.',
+                                        many: '$dueReviewCount pozicija čeka '
+                                            'na ponavljanje.',
+                                      )
                                     : 'Pozicije iz lekcija vraćaju se na ponavljanje kad im dođe vreme.',
                                 style: AppText.caption
                                     .copyWith(color: colors.textSecondary),
