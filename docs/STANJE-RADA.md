@@ -15,7 +15,54 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 3.9.2026.
+Poslednje ažuriranje: 3.9.2026 (uveče — provera uživo, plan jednostavnosti,
+faze 0–3 spojene).
+
+---
+
+## Jednostavnost — plan i faze 0–3, 3.9.2026
+
+Dogovor je [PLAN-JEDNOSTAVNOST.md](PLAN-JEDNOSTAVNOST.md), napisan posle
+provere uživo koja je bila i najkorisniji dan do sada: vlasnik je za jedno
+popodne morao da pita šta znače četiri stvari na ekranu („Pregledaj nacrt",
+„talas", „Napravi kičmu", „Pokrivenost"), a ista ta provera je našla četiri
+kvara — svi istog oblika, **ekran zna nešto što čitalac ne vidi**. Rečnik i
+kvarovi su isti problem: ekran koji se ne može pročitati je ekran koji se ne
+može ni proveriti.
+
+| faza | šta | ko | stanje |
+|---|---|---|---|
+| 0 | ugovori: tri prekidača u podešavanjima, `ActionBanner`, `SpeakableInfo`, `SpeechToggleButton` | lead | **Urađeno**, `661ff47` |
+| 1 | jedan meni na tabli i tri prekidača za strelice | radni agent | **Urađeno**, `c26b83c` |
+| 2 | govor na info panelima, prekidač u zaglavlju | radni agent | **Brief napisan, batch spreman za pokretanje** |
+| 3 | dril kaže šta pokriva; dnevni cilj i vežba van rasporeda | lead | **Urađeno**, `28b196c` + `a217cdf` |
+| 4 | zamena reči po rečniku | radni agent | Nije rađeno |
+| 5 | provera uživo i unos u `TODO-provera.md` | lead | Nije rađeno |
+
+**Rečnik je zamrznut u planu** i faza 4 se radi po njemu: kičma → glavna
+linija, nacrt → nepotvrđeni potezi (gomila) / predlog poteza (jedan), kapija →
+„ide kroz <potez>", širina → „koliko odgovora spremamo", pokrivenost → rupe u
+repertoaru, odsečeno → „ne spremam". „Talas" i „red" su već izbačeni.
+
+Otvoreno pitanje koje je vlasnik ostavio za kasnije: pojmovi „odlučeno",
+„otvoreno", „bez odgovora" traže objašnjenje na dodir, tamo gde broj stoji.
+Radi se **posle** faze 4, da se ne piše dvaput.
+
+### Kako se pokreće faza 2
+
+Radno stablo `mislisha-batch-b` stoji na `design/govor-na-panelima`, napravljeno
+sa `a217cdf`. Komanda i šta u diffu treba pročitati stoje u
+`D:\Projekti\mislisha-test\orchestrator\HANDOFF.md`. **Prag je 1121**, ne
+1108. Faze 1 i 2 diraju iste dve datoteke, pa se ne puštaju uporedo.
+
+### Šta je harness naučio 3.9.2026
+
+Prvi batch koji je smeo da **obriše** fajl srušio je tri kapije: čitale su
+spisak izmenjenih fajlova i otvarale svaki, a obrisan fajl je u spisku i nije na
+disku. Pad je najgori od tri moguća odgovora — nije prolaz, nije nalaz, i
+zaustavi sve kapije iza sebe. Sada postoji `changed_dart_files_on_disk`,
+`gate_strings` sam rešava obrisan fajl, a `BATCH_ALLOWANCES` ima treću vrstu
+dozvole: `"deleted"`.
 
 ---
 
@@ -31,11 +78,29 @@ Stanje na 3.9.2026, sve na `master`:
 | 2 | poslednji potez na tabli i ECO traka | **Urađeno**, `098e786` |
 | 3 | pregled nacrta, značka na kartici, širina kičme | **Urađeno**, `936d202` |
 | 4 | „Izdvoji u novo otvaranje" i kombinovani dril | **Urađeno**, batch ocenjen i dovršen rukom |
-| 5 | provera uživo i unos u `TODO-provera.md` | Stavke napisane (sekcije 86–90, 47 stavki); provera uživo tek predstoji |
+| 5 | provera uživo i unos u `TODO-provera.md` | Stavke napisane (sekcije 86–91); **provera je počela 3.9.2026** i našla četiri kvara — vidi ispod |
 
-**Ništa od faza 0–4 nije gledano kako radi.** Testovi prolaze; to nije isto.
-Sekcije 86–90 u `TODO-provera.md` kažu šta tačno treba videti, i unete su u alat
-za proveru (`D:\Projekti\mislisha-test\qa`, 689 stavki, 137 odgovoreno).
+**Provera uživo je počela 3.9.2026 i stala na sekciji 89.** Alat je
+`D:\Projekti\mislisha-test\qa` (699 stavki, 137 odgovoreno; `python
+server.py`, pa `http://localhost:8099/provera.html`). Sekcije 86–91 kažu šta
+treba videti; 91 je spisak onoga što je ta provera našla i popravila.
+
+Četiri kvara nađena za jedno popodne, **nijedan vidljiv za 1088 testova**, svi u
+procepu između onoga što klijent pošalje i onoga što test gleda:
+
+* `'minRating': ''` — vrednost nikad interpolirana, pa je server čitao
+  `Number('') || 0` i svaki pregled nacrta pitao u traci 0, gde pozicije nisu ni
+  dohvatane. „Nema više nepotvrđenih poteza" na repertoaru pun nacrta.
+* **širina se čuvala i nije se slala** — `tree`, `frontier` i oba `drill` poziva
+  su je izostavljala, pa je server uvek računao 80%. Mereno: `main` crta 3
+  protivnikova poteza, `standard` 23.
+* **traka sa brojem nacrta se nije osvežavala** posle pregleda.
+* **prazan red je bio ćorsokak** — ekran je govorio da se vratite na neku
+  poziciju i nudio samo „Nazad".
+
+Popravke: `cb21012`, `9809a25`, `50fe6d2`, `5f9fc6c`, `34cd5de`, `07c3e1f`,
+`8e268bc`, `f2b2dc8`, `0ec7f05`. Sve traže build napravljen posle `50fe6d2` da
+bi se videle.
 
 Faze 2, 3 i 4 radio je radni agent (Gemini) po brief-u; ocenjivanje je mašinsko,
 harness je `D:\Projekti\mislisha-test\orchestrator` (nije u gitu — pročitati
