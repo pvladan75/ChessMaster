@@ -118,6 +118,34 @@ before the run, per file, and this is the one batch where "a string changed" is
 the work rather than the defect. That is a brief the lead writes carefully or
 does not run at all.
 
+#### What phase 4 needs before it can run — measured 3.9.2026
+
+The surface: **42 user-facing literals in 9 lib files**, and **23 assertions in
+4 test files** (`repertoire_build_test`, `repertoire_build_layout_test`,
+`repertoire_coverage_test`, `repertoire_gate_test`). Small enough to enumerate,
+which is what the brief has to do.
+
+* **The gate cannot express this batch yet.** `added_strings` reports additions
+  as warnings and still fails on *edits and removals* — which is all this batch
+  is. It needs a third allowance kind (`rewritten`, per file), and an edit in a
+  file that is not on the list must still fail, or the gate is switched off with
+  extra steps. Lead work, before the run.
+* **The table is the brief, not a rule.** A sweep by word stem is dangerous
+  here: `Nacrtaj strelicu` matches `nacrt` and means "draw an arrow". A
+  mechanical worker renames a board control. Same trap between the title
+  `Pokrivenost` and the sentence `Pokriveno $covered% onoga što ćete sresti`.
+  Every one of the 42 gets its replacement decided by the lead, by hand.
+* **The lead rewrites the 23 assertions first, on the batch branch** (decided
+  3.9.2026). The suite goes red *there*, master stays green, and the worker pass
+  condition is "make it green without touching a test". The rejected
+  alternative — the worker edits the assertions the brief names — is a worker
+  writing the thing that judges it, which is exactly how phase 2 produced tests
+  that pumped no panel.
+* **Order: the release pass on items 92 and 93 comes first** (decided 3.9.2026).
+  Both items quote sentences this sweep rewrites, and verifying phases 1 and 2
+  for the first time on top of a fresh string sweep would put two unwatched
+  changes in one build. The items get re-worded when phase 4 merges.
+
 ### Phase 5 — lead. Watched running
 
 Items into `TODO-provera.md`, checked live, the way sections 86–91 were.
