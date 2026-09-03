@@ -15,6 +15,7 @@ class ForkRepertoireDialog extends StatefulWidget {
     required this.rootPath,
     required this.api,
     this.openingBook,
+    this.initialViaUci,
   });
 
   final String color;
@@ -23,6 +24,14 @@ class ForkRepertoireDialog extends StatefulWidget {
   final RepertoireApiService api;
   final OpeningBookService? openingBook;
 
+  /// The gate this fork already knows about.
+  ///
+  /// Forking from an alternate move in the tree is the case the gate exists
+  /// for: the new opening is *this position through this move*, and asking the
+  /// reader to pick it again out of a list of legal moves would be asking them
+  /// to repeat the thing they just pointed at.
+  final String? initialViaUci;
+
   @override
   State<ForkRepertoireDialog> createState() => _ForkRepertoireDialogState();
 }
@@ -30,7 +39,7 @@ class ForkRepertoireDialog extends StatefulWidget {
 class _ForkRepertoireDialogState extends State<ForkRepertoireDialog> {
   final _nameController = TextEditingController();
   final _nameFocus = FocusNode();
-  String? _viaUci;
+  late String? _viaUci = widget.initialViaUci;
   bool _busy = false;
 
   @override

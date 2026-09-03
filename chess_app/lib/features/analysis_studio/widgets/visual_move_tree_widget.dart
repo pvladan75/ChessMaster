@@ -24,6 +24,18 @@ class VisualMoveTreeWidget extends StatefulWidget {
   final Function(AnalysisNode node)? onPromoteNode;
   final Function(AnalysisNode node)? onDeleteNode;
 
+  /// What that item is called on this card — see `AnalysisMoveTreeWidget`.
+  final String Function(AnalysisNode node)? deleteLabel;
+
+  /// One more action, offered only on the cards the caller names.
+  ///
+  /// Null for every card by default, so a board that has nothing extra to
+  /// offer looks exactly as it did. The repertoire uses it for „Izdvoji u novo
+  /// otvaranje", which belongs on the move it forks from and was reachable
+  /// only from the row under the board.
+  final String? Function(AnalysisNode node)? extraLabel;
+  final void Function(AnalysisNode node)? onExtra;
+
   /// deltaCutoff the tree was last auto-generated with, if any — caps how
   /// far the post-hoc display-filter slider can be dragged, so it can't be
   /// set past the point where it stops doing anything (those branches were
@@ -43,6 +55,9 @@ class VisualMoveTreeWidget extends StatefulWidget {
     required this.onSelectNode,
     this.onPromoteNode,
     this.onDeleteNode,
+    this.deleteLabel,
+    this.extraLabel,
+    this.onExtra,
     this.maxDisplayCutoff,
     this.onNodeTapped,
   });
@@ -864,7 +879,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
               ),
               ListTile(
                 leading: Icon(Icons.delete, color: ctx.colors.danger),
-                title: Text('Obriši Ovu Varijantu',
+                title: Text(
+                    widget.deleteLabel?.call(node) ?? 'Obriši Ovu Varijantu',
                     style: AppText.bodyLarge
                         .copyWith(color: ctx.colors.textPrimary)),
                 onTap: () {
@@ -872,6 +888,17 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                   widget.onDeleteNode?.call(node);
                 },
               ),
+              if (widget.extraLabel?.call(node) != null)
+                ListTile(
+                  leading: Icon(Icons.call_split, color: ctx.colors.accent),
+                  title: Text(widget.extraLabel!.call(node)!,
+                      style: AppText.bodyLarge
+                          .copyWith(color: ctx.colors.textPrimary)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    widget.onExtra?.call(node);
+                  },
+                ),
               if (others.isNotEmpty) ...[
                 Divider(color: ctx.colors.border, height: 1),
                 Padding(

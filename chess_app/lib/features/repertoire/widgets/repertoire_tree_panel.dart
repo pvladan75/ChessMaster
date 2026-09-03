@@ -133,6 +133,9 @@ class RepertoireTreePanel extends StatelessWidget {
     this.onToggleCut,
     this.minRating,
     this.breadth,
+    this.deleteLabel,
+    this.extraLabel,
+    this.onExtra,
   });
 
   final AnalysisNode root;
@@ -172,6 +175,13 @@ class RepertoireTreePanel extends StatelessWidget {
   /// here: thin, for reasons the reader cannot see.
   final int? minRating;
   final String? breadth;
+
+  /// What the card's second menu item is called on this particular card.
+  final String Function(AnalysisNode node)? deleteLabel;
+
+  /// One more action, on the cards the screen names.
+  final String? Function(AnalysisNode node)? extraLabel;
+  final void Function(AnalysisNode node)? onExtra;
 
   static const _widthNames = {
     'main': 'samo glavna linija',
@@ -234,6 +244,9 @@ class RepertoireTreePanel extends StatelessWidget {
           onSelectNode: onSelect,
           onPromoteNode: onPromote,
           onDeleteNode: onDelete,
+          deleteLabel: deleteLabel,
+          extraLabel: extraLabel,
+          onExtra: onExtra,
         ),
       ],
     );

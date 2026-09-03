@@ -384,12 +384,16 @@ void main() {
       (tester) async {
     // Their moves are not rows anybody chose, so there is nothing to delete.
     // What somebody means by it is "I am not preparing this", which is a
-    // decision and is stored as one.
+    // decision and is stored as one — and the menu says so now, in the same
+    // words as the button, because a label promising a deletion that never
+    // happens is how the two came to look like two different powers over one
+    // branch.
     await pump(tester, const Size(1400, 900));
 
     await tester.longPress(find.text('4. c3 64% ?'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Obriši Ovu Varijantu'));
+    expect(find.text('Obriši Ovu Varijantu'), findsNothing);
+    await tester.tap(find.text('Ne spremam ovu granu'));
     await tester.pumpAndSettle();
 
     expect(api.cut, [afterC3]);
@@ -410,6 +414,65 @@ void main() {
     await tester.tap(find.text('Prikaži odsečene grane (1)'));
     await tester.pumpAndSettle();
     expect(find.text('4. c3 64% ✂'), findsWidgets);
+  });
+
+  testWidgets('your own move can be forked into its own opening',
+      (tester) async {
+    // The fork lived on the row under the board, which forks the position
+    // standing there. What somebody points at is a move — usually the second
+    // one they play here — and that is a fork of the position it comes from,
+    // gated on the move itself.
+    await pump(tester, const Size(1400, 900));
+
+    await tester.longPress(find.text('3... c5 ★'));
+    await tester.pumpAndSettle();
+    expect(find.text('Izdvoji u novo otvaranje'), findsOneWidget);
+
+    await tester.tap(find.text('Izdvoji u novo otvaranje'));
+    await tester.pumpAndSettle();
+
+    // The dialog is up, and it already knows which move it is about.
+    expect(find.text('Izdvoji u novo otvaranje'), findsWidgets);
+    expect(find.textContaining('Kroz potez'), findsOneWidget);
+  });
+
+  testWidgets('the opponent move is not something to fork', (tester) async {
+    await pump(tester, const Size(1400, 900));
+
+    await tester.longPress(find.text('4. c3 64% ?'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Izdvoji u novo otvaranje'), findsNothing);
+  });
+
+  testWidgets('a cut branch is not offered as prepared', (tester) async {
+    // The book's `covered` flag is about the 80% wave and knows nothing about
+    // what this reader refused. So the replies panel offered „Idi" on a branch
+    // the drawing was hiding behind „Prikaži odsečene grane" — two screens,
+    // one repertoire, opposite answers, and the reader looking for the branch
+    // in a tree that had deliberately put it away.
+    api = _FakeApi();
+    await pump(tester, const Size(1400, 900), cutTree: true);
+
+    await tester.tap(find.textContaining('c5 ★').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Idi'), findsNothing);
+    expect(find.text('Vidi odsečeno'), findsOneWidget);
+    expect(find.textContaining('✂ odsečeno'), findsOneWidget);
+  });
+
+  testWidgets('a reply that was not cut still says Idi', (tester) async {
+    // The other half, so the test above cannot pass by the row never saying
+    // „Idi" at all.
+    api = _FakeApi();
+    await pump(tester, const Size(1400, 900));
+
+    await tester.tap(find.textContaining('c5 ★').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Idi'), findsOneWidget);
+    expect(find.textContaining('✂ odsečeno'), findsNothing);
   });
 
   testWidgets('the cards are numbered from where the game really is',

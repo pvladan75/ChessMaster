@@ -785,6 +785,28 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     AppFeedback.success(context, '${move.san} je sada vaš glavni potez.');
   }
 
+  /// „Izdvoji u novo otvaranje" from a card in the tree.
+  ///
+  /// The action existed only on the row under the board, which forks the
+  /// position standing there. What somebody actually points at is a *move* —
+  /// usually an alternate, the second thing they play here — and that is a fork
+  /// of the position it is played from, gated on the move itself. Same dialog,
+  /// arriving with the gate already set.
+  Future<void> _forkFromTree(AnalysisNode node) async {
+    final move = _moveOf(node);
+    if (move == null || _busy) return;
+    await showDialog(
+      context: context,
+      builder: (context) => ForkRepertoireDialog(
+        color: widget.color,
+        rootFen: move.from.fen,
+        rootPath: _pathTo(move.from),
+        initialViaUci: move.uci,
+        api: _api,
+      ),
+    );
+  }
+
   /// "Obriši ovu varijantu" on a card, which means two different things.
   ///
   /// On the student's own move it is a removal, with the sweep of everything
@@ -2605,6 +2627,24 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       onToggleCut: _toggleCut,
       minRating: widget.minRating,
       breadth: _breadth,
+      // Named for what it will actually do to *this* card. On the opponent's
+      // move it is the cut, under the same words the button uses, so the two
+      // stop looking like two different powers over the same branch.
+      deleteLabel: (node) {
+        final move = _moveOf(node);
+        if (move == null) return 'Obriši ovu varijantu';
+        return _isMine(move.from.fen)
+            ? 'Obriši ovaj potez'
+            : 'Ne spremam ovu granu';
+      },
+      // Only on the reader's own moves: an opening is a decision of theirs, and
+      // the opponent's reply is not one to fork from.
+      extraLabel: (node) {
+        final move = _moveOf(node);
+        if (move == null || !_isMine(move.from.fen)) return null;
+        return 'Izdvoji u novo otvaranje';
+      },
+      onExtra: _forkFromTree,
     );
   }
 
@@ -3100,9 +3140,77 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     );
   }
 
+  /// True when the board is standing on a branch that was cut.
+  ///
+  /// A cut made in an earlier session could not be undone from anywhere: the
+  /// undo button knows only the last cut of *this* session, so a reader who
+  /// found an old ✂ branch through „Prikaži odsečene grane" could look at it
+  /// and do nothing else — not change their mind, not carry on building.
+  bool get _standingOnCut {
+    final fen = _current;
+    if (fen == null) return false;
+    if (_cutHere.any((node) => _keyOf(node.fen) == _keyOf(fen))) return true;
+    return _findTreeMove(_tree?.children ?? const [], fen)?.state == 'cut';
+  }
+
+  /// Puts the branch in front of the reader back into the walk.
+  ///
+  /// The same call as the undo, aimed at the position on the board rather than
+  /// at the last thing this session did.
+  Future<void> _restoreHere() async {
+    final fen = _current;
+    if (fen == null || _busy) return;
+    setState(() => _busy = true);
+    final done = await _api.unskipNode(color: widget.color, fen: fen);
+    if (!mounted) return;
+    if (!done) {
+      setState(() {
+        _busy = false;
+        _note = 'Grana nije vraćena — server nije odgovorio.';
+      });
+      return;
+    }
+    setState(() {
+      _busy = false;
+      _cutHere.removeWhere((node) => _keyOf(node.fen) == _keyOf(fen));
+      if (_lastCut != null && _keyOf(_lastCut!.fen) == _keyOf(fen)) {
+        _lastCut = null;
+      }
+      _note = 'Grana je vraćena — možete da nastavite odavde.';
+    });
+    await _loadKept();
+    await _loadTree();
+    _refreshCounts();
+  }
+
+  /// True when this reply's position was cut out of the walk.
+  ///
+  /// The book's `covered` flag is about the 80% wave and knows nothing about
+  /// what *this* reader refused: the panel was offering „Idi" on branches they
+  /// had cut themselves, while the drawing marked the same branches ✂ and hid
+  /// them. Two screens, one repertoire, opposite answers.
+  bool _isCutReply(String afterFen, String uci) {
+    final landed = _fenAfter(afterFen, uci);
+    if (landed == null) return false;
+    if (_cutHere.any((node) => _keyOf(node.fen) == _keyOf(landed))) return true;
+    final drawn = _findTreeMove(_tree?.children ?? const [], landed);
+    return drawn?.state == 'cut';
+  }
+
+  RepertoireTreeMove? _findTreeMove(
+      List<RepertoireTreeMove> where, String fen) {
+    for (final move in where) {
+      if (_keyOf(move.fen) == _keyOf(fen)) return move;
+      final deeper = _findTreeMove(move.children, fen);
+      if (deeper != null) return deeper;
+    }
+    return null;
+  }
+
   Widget _storedRow(BuildContext context, StoredReply reply,
       {required String after, required String mine}) {
     final node = _node;
+    final cut = _isCutReply(after, reply.uci);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
@@ -3121,11 +3229,32 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                         .copyWith(color: context.colors.textPrimary)),
           ),
           Expanded(
-            child: Text('${reply.games} partija',
+            child: Text(
+                cut
+                    ? '✂ odsečeno · ${reply.games} partija'
+                    : '${reply.games} partija',
                 style:
                     AppText.caption.copyWith(color: context.colors.textMuted)),
           ),
-          if (reply.isInPreparation)
+          if (cut)
+            // Said, not silently offered as prepared. Going there is still
+            // allowed — that is how a cut is looked at again — but the row has
+            // to carry the fact, because this panel is the one place a cut
+            // branch is otherwise invisible.
+            TextButton(
+              onPressed: _busy || node == null
+                  ? null
+                  : () {
+                      final landed = _fenAfter(after, reply.uci);
+                      if (landed == null) return;
+                      _show(_Pending(
+                        fen: landed,
+                        path: [...node.path, mine, reply.san],
+                      ));
+                    },
+              child: const Text('Vidi odsečeno'),
+            )
+          else if (reply.isInPreparation)
             TextButton(
               // Already prepared, so the useful thing is to go and work on it.
               onPressed: _busy || node == null
@@ -3400,11 +3529,19 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           // pruning, it is deleting the repertoire from inside the screen that
           // builds it, and it is the one cut that leaves no way back in.
           if (_node != null && _node!.path.isNotEmpty)
-            OutlinedButton.icon(
-              onPressed: _busy ? null : _cutBranch,
-              icon: const Icon(Icons.content_cut, size: 18),
-              label: const Text('Ne spremam ovo'),
-            ),
+            _standingOnCut
+                // Standing on a branch that was already refused, the one thing
+                // worth offering is the way back into it.
+                ? OutlinedButton.icon(
+                    onPressed: _busy ? null : _restoreHere,
+                    icon: const Icon(Icons.undo, size: 18),
+                    label: const Text('Vrati ovu granu'),
+                  )
+                : OutlinedButton.icon(
+                    onPressed: _busy ? null : _cutBranch,
+                    icon: const Icon(Icons.content_cut, size: 18),
+                    label: const Text('Ne spremam ovo'),
+                  ),
           // The branch in front of the student, practised on its own. This is
           // where it belongs: the ten positions just built are what somebody
           // sits down to drill, and from the list screen the whole repertoire

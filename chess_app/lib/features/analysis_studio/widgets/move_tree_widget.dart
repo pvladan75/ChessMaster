@@ -11,6 +11,24 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
   final Function(AnalysisNode node)? onPromoteNode;
   final Function(AnalysisNode node)? onDeleteNode;
 
+  /// What the second menu item is called, when the caller knows better.
+  ///
+  /// „Obriši ovu varijantu" is true on an analysis board, where every move is
+  /// the reader's own. In a repertoire it is true for half the cards: on the
+  /// opponent's move nothing is deleted — the branch is refused, reversibly —
+  /// and the label went on promising a deletion that never happened, beside a
+  /// button doing the same thing under its real name.
+  final String Function(AnalysisNode node)? deleteLabel;
+
+  /// One more action, offered only on the cards the caller names.
+  ///
+  /// Null for every card by default, so a board that has nothing extra to
+  /// offer looks exactly as it did. The repertoire uses it for „Izdvoji u novo
+  /// otvaranje", which belongs on the move it forks from and was reachable
+  /// only from the row under the board.
+  final String? Function(AnalysisNode node)? extraLabel;
+  final void Function(AnalysisNode node)? onExtra;
+
   /// deltaCutoff the tree was last auto-generated with, if any — caps the
   /// graphical view's post-hoc display-filter slider so it can't be dragged
   /// past the point where it would stop doing anything.
@@ -23,6 +41,9 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
     required this.onSelectNode,
     this.onPromoteNode,
     this.onDeleteNode,
+    this.deleteLabel,
+    this.extraLabel,
+    this.onExtra,
     this.maxEvalDisplayCutoff,
   });
 
@@ -156,6 +177,9 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       onSelectNode: widget.onSelectNode,
                       onPromoteNode: widget.onPromoteNode,
                       onDeleteNode: widget.onDeleteNode,
+                      deleteLabel: widget.deleteLabel,
+                      extraLabel: widget.extraLabel,
+                      onExtra: widget.onExtra,
                       maxDisplayCutoff: widget.maxEvalDisplayCutoff,
                     )
                   : SingleChildScrollView(
@@ -224,6 +248,9 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       onNodeTapped: () => Navigator.pop(dialogContext),
                       onPromoteNode: widget.onPromoteNode,
                       onDeleteNode: widget.onDeleteNode,
+                      deleteLabel: widget.deleteLabel,
+                      extraLabel: widget.extraLabel,
+                      onExtra: widget.onExtra,
                       maxDisplayCutoff: widget.maxEvalDisplayCutoff,
                     ),
                   ),
@@ -442,13 +469,24 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
               ),
               ListTile(
                 leading: Icon(Icons.delete, color: ctx.colors.danger),
-                title: Text('Obriši Ovu Varijantu',
+                title: Text(
+                    widget.deleteLabel?.call(node) ?? 'Obriši Ovu Varijantu',
                     style: TextStyle(color: ctx.colors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   widget.onDeleteNode?.call(node);
                 },
               ),
+              if (widget.extraLabel?.call(node) != null)
+                ListTile(
+                  leading: Icon(Icons.call_split, color: ctx.colors.accent),
+                  title: Text(widget.extraLabel!.call(node)!,
+                      style: TextStyle(color: ctx.colors.textPrimary)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    widget.onExtra?.call(node);
+                  },
+                ),
             ],
           ),
         );
