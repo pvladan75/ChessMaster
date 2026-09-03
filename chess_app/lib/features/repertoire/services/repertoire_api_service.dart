@@ -1471,8 +1471,13 @@ class RepertoireApiService {
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
         if (gateUci != null) 'gateUci': gateUci,
         if (breadth != null) 'breadth': breadth,
-        if (minRating != null) 'minRating': '',
-        if (limit != null) 'limit': '',
+        // Interpolated, not empty. These went out as `minRating=` and `limit=`
+        // for as long as this endpoint existed: the server reads
+        // `Number('') || 0`, so every review asked at band 0 — a band the
+        // opening book holds no replies for — and answered "nothing left to
+        // confirm" on a repertoire with drafts waiting in it.
+        if (minRating != null) 'minRating': '$minRating',
+        if (limit != null) 'limit': '$limit',
       },
     );
     final res = (await _send(() => _get(uri))).res;

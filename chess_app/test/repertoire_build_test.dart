@@ -12,6 +12,7 @@ import 'package:chess_app/features/analysis_studio/services/opening_book_service
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
@@ -1596,5 +1597,22 @@ void main() {
     expect(banner.key, isNull,
         reason: 'a changing key resets the carried opening name');
     expect(find.text('B21 · Sicilijanka, Smit-Mora'), findsOneWidget);
+  });
+  testWidgets('an empty queue is not a dead end', (tester) async {
+    // The finished screen tells the reader to go back to a position and take
+    // more replies. It offered „Nazad" and nothing else, so a repertoire with
+    // a hundred moves in it had no door: no board, no tree, no actions.
+    await pump(tester, walk: const RepertoireFrontier(decided: 4, open: []));
+
+    expect(find.text('Nema više pozicija u redu.'), findsOneWidget);
+    expect(find.text('Otvori repertoar'), findsOneWidget);
+
+    await tester.tap(find.text('Otvori repertoar'));
+    await tester.pumpAndSettle();
+
+    // The board is back, on the repertoire's own root: the question under it
+    // is the one this screen exists to ask.
+    expect(find.text('Nema više pozicija u redu.'), findsNothing);
+    expect(find.byType(BoardWithCoordinates), findsOneWidget);
   });
 }

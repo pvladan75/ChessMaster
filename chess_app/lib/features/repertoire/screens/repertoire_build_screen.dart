@@ -1033,6 +1033,18 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// Moves to the next position in the queue, or to the "nothing left" state.
   Future<void> _advance() => _show(_queue.isEmpty ? null : _queue.removeAt(0));
 
+  /// Puts the repertoire's own root back on the board.
+  ///
+  /// The finished screen tells the reader to go back to a position and take
+  /// more replies, and then offered them one button, which was „Nazad". The
+  /// tree, the board and every action on this screen were unreachable the
+  /// moment the queue emptied — on a repertoire with a hundred moves in it.
+  Future<void> _openRoot() async {
+    _seen.remove(_keyOf(widget.rootFen));
+    _enqueue(widget.rootFen, widget.rootPath, reach: 1);
+    await _advance();
+  }
+
   /// Puts one position on the board, or the finished screen when there is none.
   ///
   /// Everything belonging to the previous position is cleared here, in one
@@ -3568,7 +3580,17 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                 icon: const Icon(Icons.undo, size: 18),
                 label: const Text('Vrati odsečenu granu'),
               ),
-            FilledButton(
+            // The door the sentence above promises. Without it the reader is
+            // told to go back to a position and given no way to reach one.
+            // The door the sentence above promises. Without it the reader is
+            // told to go back to a position and given no way to reach one.
+            FilledButton.icon(
+              onPressed: _busy ? null : _openRoot,
+              icon: const Icon(Icons.account_tree_outlined, size: 18),
+              label: const Text('Otvori repertoar'),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            TextButton(
               onPressed: () => Navigator.of(context).maybePop(),
               child: const Text('Nazad'),
             ),

@@ -76,6 +76,28 @@ void main() {
     expect(line.queryParameters.containsKey('breadth'), isFalse);
   });
 
+  test('every query value the client sends has something in it', () async {
+    // `'minRating': ''` shipped and hid: the key was there, the value was not,
+    // and the server read `Number('') || 0` — so the draft review asked at
+    // band 0, where the book holds no replies, and told the reader there was
+    // nothing left to confirm on a repertoire with drafts in it. Asserting on
+    // keys would have passed. This asserts on values.
+    final api = _WireApi();
+    await api.unconfirmedPositions(
+      color: 'w',
+      rootFen: root,
+      gateUci: 'e1g1',
+      breadth: 'standard',
+      minRating: 1600,
+      limit: 5,
+    );
+    final asked = api.lastFor('/repertoire/unconfirmed').queryParameters;
+    expect(asked['minRating'], '1600');
+    expect(asked['limit'], '5');
+    expect(
+        asked.entries.where((e) => e.value.isEmpty).map((e) => e.key), isEmpty);
+  });
+
   testWidgets('the drill screen carries its repertoire width up the wire',
       (tester) async {
     tester.view.physicalSize = const Size(360, 640);
