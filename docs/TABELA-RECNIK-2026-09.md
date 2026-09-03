@@ -32,12 +32,13 @@ interpolation to keep quotes paired and does **not** record the strings it finds
 there, so these can change with the gate saying nothing. They are listed in
 their own section and have to be checked by eye — or by the grep in the brief.
 
-While reading them I found a latent defect, not part of this batch:
-`repertoire_build_screen.dart:1965` has
-`${below.length == 1 ? "pozicija" : "pozicija"}` — both arms identical, so a
-plural somebody meant to write never happens. Serbian wants *pozicija* for 1,
-*pozicije* for 2–4, *pozicija* for 5+. It has never been visible to the gate for
-exactly the reason above.
+While reading them I found a latent defect — **fixed 3.9.2026, before this
+batch, in `b5e8073`**. It was not one site but three: `Dodato $added …`, the cut
+branch's `… izašlo još …`, and the dashboard's `… pozicija čeka …` each carried
+a ternary whose two arms were the same word, so an inflection somebody had meant
+to write did nothing at all. `serbian_plural.dart` already existed, with three
+forms and its own tests; none of the three called it. Two of the three sat
+inside an interpolation, which is why nothing ever saw them.
 
 ## The table — what the gate will enforce
 
@@ -57,7 +58,7 @@ exactly the reason above.
 | `nepotvrđenih nacrta.` | `nepotvrđenih poteza.` |
 | `Grana posle ${...} je odsečena — više je nema u crtežu.` | `Granu posle ${...} više ne spremam — nema je u crtežu.` |
 | `Grana je odsečena. Neće se više javljati.` | `Ovu granu više ne spremam. Neće se javljati.` |
-| `Grana je odsečena — sa njom je iz reda izašlo još` | `Ovu granu više ne spremam — s njom je otpalo još` |
+| `Grana je odsečena — sa njom je iz reda $ident` | `Ovu granu više ne spremam — s njom je $ident` |
 | `Grana nije odsečena — server nije odgovorio.` | `Grana je ostala — server nije odgovorio.` |
 | `odsečeno $ident${...}` | `ne spremam $ident${...}` |
 | `✂ odsečeno · ${...} partija` | `✂ ne spremam · ${...} partija` |
@@ -66,8 +67,15 @@ exactly the reason above.
 | `Nijedan odgovor nije stigao — pozicija ostaje nepokrivena.` | `Nijedan odgovor nije stigao — pozicija ostaje bez vašeg odgovora.` |
 | `Pokriveno $ident% onoga što ćete sresti;` | `Spremno je $ident% onoga što ćete sresti;` |
 
-`Grana je odsečena — sa njom je iz reda izašlo još` also retires **red**, which
-the glossary removed in phase 3 and which survived here.
+`Grana je odsečena — sa njom je iz reda $ident` also retires **red**, which the
+glossary removed in phase 3 and which survived here.
+
+That key changed shape on 3.9.2026, when the plural bug below it was fixed: the
+count and its noun moved into a local (`serbianCount`, three forms) so they
+would be **top-level literals the gate can see** rather than one more string
+nested in an interpolation. The three forms — `izašla još ${...} pozicija`,
+`izašle …e`, `izašlo …a` — carry no retired word and are therefore not on this
+table; they stay as they are.
 
 ### `repertoire_coverage_screen.dart`
 
