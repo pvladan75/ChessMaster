@@ -654,18 +654,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final isAllowedToMove = canDriveSharedBoard;
     final isAllowedToUseEngine = isHost || allowStudentEngine;
 
-    final List<EngineArrow> engineArrows =
-        (isEngineEnabled && isAllowedToUseEngine)
-            ? engineLines.values
-                .map((line) => EngineArrow(
-                      from: line.fromSquare,
-                      to: line.toSquare,
-                      evalText: line.evaluation,
-                      rank: line.multipv,
-                    ))
-                .where((a) => a.from.isNotEmpty && a.to.isNotEmpty)
-                .toList()
-            : [];
+    // The engine switch reaches the room too. It used to draw these
+    // unconditionally, with a board menu that offered only coordinates.
+    final List<EngineArrow> engineArrows = (isEngineEnabled &&
+            isAllowedToUseEngine &&
+            AppSettingsService.instance.showEngineArrows)
+        ? engineLines.values
+            .map((line) => EngineArrow(
+                  from: line.fromSquare,
+                  to: line.toSquare,
+                  evalText: line.evaluation,
+                  rank: line.multipv,
+                ))
+            .where((a) => a.from.isNotEmpty && a.to.isNotEmpty)
+            .toList()
+        : [];
 
     return BoardWithCoordinates(
       size: boardSize,
@@ -2797,7 +2800,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       // that bar already carries five actions and a status icon, and a sixth
       // is how a row runs past the edge of a 360 dp phone with no warning
       // painted in a release build.
-      trailing: const [BoardViewMenu()],
+      trailing: const [BoardViewMenu(arrows: true)],
     );
   }
 

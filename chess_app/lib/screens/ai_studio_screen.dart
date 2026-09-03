@@ -2497,7 +2497,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             // solve the position, and the banner above it says whose move it
             // is — a reader who turns it around is then looking at a board
             // that contradicts the sentence naming their colour.
-            const BoardViewMenu(size: 20),
+            const BoardViewMenu(size: 20, arrows: true),
           ],
         ),
       ),
@@ -2628,7 +2628,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            BoardViewMenu(size: 18, color: context.colors.textSecondary),
+            BoardViewMenu(
+                size: 18, color: context.colors.textSecondary, arrows: true),
             const SizedBox(width: AppSpacing.sm),
             IconButton(
               icon: Icon(Icons.biotech,
@@ -3012,15 +3013,22 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     lastMoveColor: context.colors.warning,
                     drawingModeColor: context.colors.accent,
                     badgeBorderColor: context.colors.canvas,
-                    arrows:
-                        (_showEvaluation && _selectedCategory != 'mate_puzzle')
-                            ? _engineArrows
-                            : [],
-                    engineArrows:
-                        (_showEvaluation && _selectedCategory != 'mate_puzzle')
-                            ? _buildEngineArrowsFromLines(
-                                _engineLinesMap.values.toList())
-                            : [],
+                    // Both lists here come from the engine, so both answer to
+                    // the engine switch. This screen drew them unconditionally
+                    // until 3.9.2026: the arrows were on the board and the
+                    // board menu offered no way to turn them off, which is the
+                    // one state a switch must never leave a reader in.
+                    arrows: (_showEvaluation &&
+                            _selectedCategory != 'mate_puzzle' &&
+                            AppSettingsService.instance.showEngineArrows)
+                        ? _engineArrows
+                        : [],
+                    engineArrows: (_showEvaluation &&
+                            _selectedCategory != 'mate_puzzle' &&
+                            AppSettingsService.instance.showEngineArrows)
+                        ? _buildEngineArrowsFromLines(
+                            _engineLinesMap.values.toList())
+                        : [],
                     boardSize: boardSize,
                     orientation: _puzzleOrientation,
                     lastMoveFrom: _lastMoveFrom,

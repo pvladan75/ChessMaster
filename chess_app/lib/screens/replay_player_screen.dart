@@ -54,7 +54,6 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
 
   PlayerColor boardOrientation = PlayerColor.white;
   List<ChessArrow> currentArrows = [];
-  List<EngineArrow> currentEngineArrows = [];
   String? currentFen;
 
   @override
@@ -697,7 +696,10 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                                       drawingModeColor: context.colors.accent,
                                       badgeBorderColor: context.colors.canvas,
                                       arrows: currentArrows,
-                                      engineArrows: currentEngineArrows,
+                                      // Never filled: the replay draws
+                                      // the lesson's own arrows, and
+                                      // no engine runs behind it.
+                                      engineArrows: const [],
                                       boardSize: boardSize,
                                       orientation: boardOrientation,
                                     ),

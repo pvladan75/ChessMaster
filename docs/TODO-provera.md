@@ -3280,8 +3280,11 @@ podešavanje nego kao izgubljena funkcija.
    motor ostanu.
 5. [ ] **Prekidač za motor.** Isto u Analysis Studiju: strelice motora nestaju,
    ostalo stoji.
-6. [ ] **Vežba sluša isti prekidač.** U vežbi je strelica koju pokazuje ponavljanje
-   vaš izabrani potez — gasi je prekidač za vaše poteze, ne neki drugi.
+6. [ ] **Ekran vežbe sluša isti prekidač.** „Vežba" je ekran drila — onaj koji se
+   otvara dugmetom „Vežbaj ovu granu", gde vas aplikacija pita „Šta igrate
+   belim/crnim?". Kad se u toj vežbi ponavlja linija, strelica koja se pokaže
+   **jeste vaš izabrani potez**, pa je gasi prekidač „Strelice odabranog
+   poteza" — ne „Strelice motora" i ne „Strelice sa statistikom.
 7. [ ] **Tabla se precrta bez izlaska sa ekrana.** Prekidač se pomera dok se
    gleda tabla: strelice nestanu **odmah**, bez izlaska i povratka. Podešavanje
    se čita preko `ChangeNotifier`-a; ako treba izaći i vratiti se, pročitano je
@@ -3294,6 +3297,21 @@ podešavanje nego kao izgubljena funkcija.
 10. [ ] **Telefon, 360 dp, release build.** Meni otvoren preko table: ništa nije
     isečeno, sve tri stavke se vide cele, i zatvaranje menija vraća tablu kakva
     je bila.
+
+Sledeće tri stavke su dopisane 3.9.2026, posle nalaza vlasnika da AI Studio crta
+strelice motora nad tablom čiji meni nudi samo koordinate. Kad se to popravilo
+(`e3a1c94`), ispalo je da isto važi i za sobu — brief faze 1 je rekao „tačno tri
+ekrana" i nabrojao ih, a spisak u prozi ne može da primeti četvrti ekran.
+
+11. [ ] **AI Studio ima prekidače.** Otvoriti zadatak sa uključenom „Prikaži
+    evaluaciju": strelice motora stoje na tabli, a meni na tabli sada nudi i tri
+    prekidača. Isključiti „Strelice motora" — strelice nestaju, tabla ostaje.
+12. [ ] **Soba za čas ima prekidače.** Isto tamo gde trener pusti motor: meni
+    nudi prekidače, i „Strelice motora" ih gasi. Ranije su se crtale i nije
+    postojao način da se sklone.
+13. [ ] **Replay ništa ne izgubi.** U replayu snimka strelice lekcije se i dalje
+    vide — one nisu motorove i prekidač ih ne dira. (Lista strelica motora tamo
+    se nikad nije ni punila, pa je obrisana.)
 
 
 ## 94. Množina u tri rečenice — 3.9.2026, nije viđeno uživo

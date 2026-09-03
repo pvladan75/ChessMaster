@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -71,6 +72,7 @@ Future<void> _pump(WidgetTester tester) async {
 }
 
 void main() {
+  mainArrowSwitchGuard();
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     await AppSettingsService.instance.init();
@@ -121,5 +123,83 @@ void main() {
     expect(_board(tester).engineArrows, isNotEmpty,
         reason: 'turning off statistics and the engine took the reader\'s own '
             'moves with them');
+  });
+}
+
+/// Every screen that draws engine arrows must also offer the switch.
+///
+/// Added 3.9.2026, after the owner found the AI Studio drawing engine arrows
+/// over a board whose menu offered only „Koordinate": the arrows were there and
+/// nothing could turn them off. Phase 1's brief said the switches belonged on
+/// „exactly three screens" and named them, so the batch that built the menu was
+/// right to leave this one alone — the brief was wrong, and a list written in
+/// prose cannot notice a fourth screen appearing.
+///
+/// The rule, checked instead of the list: a file that *passes* engine arrows to
+/// the painter has to read `showEngineArrows` and has to mount the menu with
+/// `arrows: true`. Passing `const []` is not drawing them, and the two widgets
+/// that merely receive the parameter are not screens.
+///
+/// **What this proves and what it does not.** The menu half is strong: every
+/// `BoardViewMenu` on such a screen is checked, paren-matched, and stripping
+/// the switches off one of the AI Studio's two menus turns this red — the first
+/// version searched the whole file, and that mutation walked straight past it.
+/// The reading half is weak by construction: it asks only that the file mention
+/// `showEngineArrows` somewhere, so replacing one of two uses with `true` still
+/// passes. The property itself — arrows stop being drawn — is proved by the
+/// widget tests above, and only for the build screen. A screen added tomorrow
+/// gets the loud half of this check and not the quiet one.
+void mainArrowSwitchGuard() {
+  const receivers = [
+    'widgets/board_overlay_painter.dart',
+    'widgets/game_screen/chess_board_with_overlay.dart',
+  ];
+
+  test('a screen that draws engine arrows offers the engine switch', () {
+    final offenders = <String>[];
+    for (final f in Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'))) {
+      final rel = f.path.replaceAll(r'\', '/').split('lib/').last;
+      if (receivers.contains(rel)) continue;
+      final flat = f.readAsStringSync().replaceAll(RegExp(r'\s+'), ' ');
+      if (!RegExp(r'engineArrows: (?!const \[\])').hasMatch(flat)) continue;
+      final reads = flat.contains('showEngineArrows');
+      // Every menu on the screen, not "the file mentions it somewhere". The
+      // first version of this guard checked the whole file, and passed a
+      // mutation that stripped the switches off one of the AI Studio's two
+      // menus, because the other one still carried the words. Paren-matched
+      // rather than sliced, for the reason CLAUDE.md gives.
+      final menus = <String>[];
+      for (var i = flat.indexOf('BoardViewMenu(');
+          i >= 0;
+          i = flat.indexOf('BoardViewMenu(', i + 1)) {
+        final open = flat.indexOf('(', i);
+        var depth = 0, end = -1;
+        for (var j = open; j < flat.length; j++) {
+          if (flat[j] == '(') depth++;
+          if (flat[j] == ')') {
+            depth--;
+            if (depth == 0) {
+              end = j;
+              break;
+            }
+          }
+        }
+        if (end > open) menus.add(flat.substring(open, end));
+      }
+      final bare = menus.where((m) => !m.contains('arrows: true')).length;
+      if (!reads || menus.isEmpty || bare > 0) {
+        offenders.add('$rel: '
+            '${reads ? '' : 'never reads showEngineArrows; '}'
+            '${menus.isEmpty ? 'no BoardViewMenu at all' : ''}'
+            '${bare > 0 ? '$bare of ${menus.length} menus without '
+                'arrows: true' : ''}');
+      }
+    }
+    expect(offenders, isEmpty,
+        reason: 'engine arrows on a board with no way to turn them off:\n'
+            '${offenders.join('\n')}');
   });
 }
