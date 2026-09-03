@@ -31,10 +31,11 @@ Stanje na 3.9.2026, sve na `master`:
 | 2 | poslednji potez na tabli i ECO traka | **Urađeno**, `098e786` |
 | 3 | pregled nacrta, značka na kartici, širina kičme | **Urađeno**, `936d202` |
 | 4 | „Izdvoji u novo otvaranje" i kombinovani dril | **Urađeno**, batch ocenjen i dovršen rukom |
-| 5 | provera uživo i unos u `TODO-provera.md` | Nije rađeno |
+| 5 | provera uživo i unos u `TODO-provera.md` | Stavke napisane (sekcije 86–90, 47 stavki); provera uživo tek predstoji |
 
-**Ništa od faza 2–4 nije gledano kako radi.** Testovi prolaze; to nije isto.
-Faza 5 je upravo to i tek predstoji.
+**Ništa od faza 0–4 nije gledano kako radi.** Testovi prolaze; to nije isto.
+Sekcije 86–90 u `TODO-provera.md` kažu šta tačno treba videti, i unete su u alat
+za proveru (`D:\Projekti\mislisha-test\qa`, 689 stavki, 137 odgovoreno).
 
 Faze 2, 3 i 4 radio je radni agent (Gemini) po brief-u; ocenjivanje je mašinsko,
 harness je `D:\Projekti\mislisha-test\orchestrator` (nije u gitu — pročitati

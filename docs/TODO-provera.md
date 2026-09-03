@@ -2976,3 +2976,171 @@ repertoires ADD COLUMN via_uci`).
     proveriti da vraća listu (ili pošteno „nema neslaganja"), a ne grešku.
 14. [ ] **Telefon, 360 dp, release build.** List za izbor kapije i rečenica o
     kapiji — ništa isečeno.
+
+
+## 86. Vežba govori istinu — protivnik ostaje u odlukama — 3.9.2026, nije viđeno uživo
+
+Faza 0 druge iteracije repertoara (`3691e8f`). `pickReply` je proveravao jedan
+uslov gde su potrebna tri: knjiga mora da kaže da se potez ovde igra, učenik ne
+sme da je odsekao poziciju u koju vodi, i mora da ima svoju odluku u njoj.
+Šetnja linijom je to poštovala mesecima, živi protivnik nije — pa je sparing
+umeo da odigra baš onaj potez koji je učenik izbacio.
+
+Ništa od ovoga se ne vidi na ekranu dok se ne odseče grana i ne odigra sparing.
+Zato je ovo prva sekcija: sve ostalo se gradi iznad vežbe koja govori istinu.
+
+1. [ ] **Protivnik ne igra u odsečenu granu.** Odseći jedan odgovor
+   („Ne spremam ovo"), pa iz vežbe pokrenuti „Odigraj granu do kraja" desetak
+   puta na toj grani. Odsečeni potez ne sme da se pojavi **nijednom** — protivnik
+   bira nasumično po učestalosti, pa jedan prolaz ne dokazuje ništa.
+2. [ ] **Protivnik ne izlazi iz pripremljenog.** Igra samo odgovore posle kojih
+   vi imate izabran potez. Ako odigra nešto na šta nemate odgovor, ovo je pao.
+3. [ ] **Sparing bez ijednog takvog odgovora se završava rečenicom**, ne
+   pitanjem: „Grana odigrana do kraja." ili „Dovde ide grana — dalje nema vašeg
+   poteza."
+4. [ ] **Vraćanje grane vraća i protivnika.** Potvrditi ranije odsečenu poziciju
+   (kroz pregled nacrta) i proveriti da je protivnik ponovo igra.
+5. [ ] **Pitanja se nisu promenila.** Red za vežbu i dalje pita isto što i pre —
+   ovaj posao dira samo protivnikov potez, ne izbor pitanja.
+
+
+## 87. Širina repertoara i ugovor ispod njega — 3.9.2026, nije viđeno uživo
+
+Faza 1, zamrznuta pre nego što je ijedan radni agent počeo (`3691e8f`). Sve
+ispod je server; vidi se samo kroz ekrane koje su faze 2–4 dogradile.
+
+`standard` je tačno onih 80% koliko je i do sada bilo upisano, pa ništa
+napravljeno ranije ne sme da se pomeri. Druge dve širine se računaju iz `share`
+pri čitanju i **nikad** ne pišu u `opening_replies`, tabelu koju dele svi
+korisnici ovog servera — zato drugi repertoar ne sme da oseti tuđi izbor.
+
+1. [ ] **Širina se pamti.** Napraviti kičmu sa „Široko (95%)", ugasiti
+   aplikaciju i otvoriti je ponovo: stablo i radar i dalje računaju 95%. Ranije
+   se ovakav izbor vraćao na 80% sledeće sesije, bez ijedne reči na ekranu.
+2. [ ] **Tri širine daju tri različita broja.** Isti repertoar sa „Samo glavna
+   linija", „Standardno (80%)" i „Široko (95%)" — broj u redu za odlučivanje i
+   pokrivenost moraju stvarno da se razlikuju.
+3. [ ] **Tuđa širina se ne oseća.** Drugi repertoar iste boje ostaje na svojoj
+   širini pošto se prvom promeni. Ako se pomeri i on, negde se piše u zajedničku
+   tabelu.
+4. [ ] **Dva broja o nacrtima se razlikuju, i to je namerno.** Značka na kartici
+   je po boji, traka u izgradnji je po šetnji i poštuje kapiju — pa mogu da
+   pokažu različit broj u istom trenutku. Proveriti da se manji broj u traci ne
+   čita kao greška.
+5. [ ] **„Odigraj drugi potez" je jedan potez, ne dva.** Posle njega u stablu
+   nema ni odbijenog nacrta ni onoga do čega se stizalo samo kroz njega, a vaše
+   odluke koje se dohvataju drugim putem ostaju.
+6. [ ] **Ugašen server ne ostavlja pola upisa.** Ugasiti backend pa pokušati isto:
+   „Nije sačuvano — server nije odgovorio.", i posle paljenja servera stablo je
+   nedirnuto.
+
+
+## 88. Poslednji potez na tabli i traka sa otvaranjem — 3.9.2026, nije viđeno uživo
+
+Faza 2, radni agent (`098e786`). Dve stvari koje su na tabli, a ne u podacima.
+
+Oznaka poslednjeg poteza se crta kao pranje polja **i uglovi u crno-belom**, pa
+se vidi i bez razlikovanja boja. Ako se vidi samo kao promena boje, to je nalaz.
+
+1. [ ] **Izgradnja pokazuje poslednji potez.** Odigrati potez: polje sa kog je
+   pošao i polje na koje je došao su označena, oba, i uglovima a ne samo bojom.
+2. [ ] **Vežba isto.**
+3. [ ] **Oznaka nestaje kad tabla skoči.** Skok iz radara ili otvaranje drugog
+   repertoara: nema oznake sa pozicije koja više nije na ekranu.
+4. [ ] **Oznaka preživi crtanje strelica.** Uključiti crtanje i proveriti da
+   oznaka i dalje stoji — crta je drugi sloj i ranije ga je gasio.
+5. [ ] **Traka iznad table piše ECO i ime** („C60 · Ruy Lopez…").
+6. [ ] **Ime se ne gubi u dubini.** Prošetati liniju osam do deset poteza duboko:
+   traka drži **poslednje poznato** ime, ne prazni se. Baza imenuje otvaranja, ne
+   svaku poziciju u njima. Ovo je bio kvar koji je prošao sve testove — ekran je
+   traci davao ključ koji se menja na svaki korak, pa se ime brisalo baš tamo gde
+   pravilo postoji.
+7. [ ] **Drugo otvaranje menja traku.**
+8. [ ] **Telefon, 360 dp, release build.** Traka iznad table i tabla ispod nje —
+   ništa isečeno, tabla se i dalje cela vidi.
+
+
+## 89. Pregled nacrta, značka na kartici i širina kičme — 3.9.2026, nije viđeno uživo
+
+Faza 3, radni agent (`936d202`). Kičma upisuje poteze koje učenik nije birao, a
+vežba pita samo ono što jeste — pa je repertoar od četrdeset poteza umeo da
+kaže da nema šta da se vežba, dok četrdeset pozicija čeka na „da". Potvrđivanje
+je postojalo; red za njega nije.
+
+1. [ ] **Značka na kartici.** Repertoar sa nacrtima ima žutu pilulu sa brojem i
+   ikonicom; bez nacrta je nema.
+2. [ ] **Dodir na značku vodi na prvu nepotvrđenu poziciju**, ne na koren.
+3. [ ] **Traka u izgradnji** piše „N nepotvrđenih u grafu" i nudi „Pregledaj
+   nacrt".
+4. [ ] **List za pregled** ima naslov „Pregled nacrta (N ostalo)", predlog
+   („Predlog: <potez>") i tri odgovora: potvrdi, „Odigraj drugi potez",
+   „Preskoči (iseci granu)".
+5. [ ] **Svaki odgovor se upisuje sam za sebe.** Prekinuti pregled na pola pa se
+   vratiti: potvrđeno je ostalo potvrđeno i brojač je manji. Pregled se sme
+   napustiti u svakom trenutku.
+6. [ ] **Brisanje pita.** „Odigraj drugi potez" tamo gde ispod nacrta stoje vaše
+   odluke mora prvo da kaže koliko ih je („Ispod tog nacrta su N vaše odluke.
+   Obrisati i njih?") i bez potvrde da ne obriše ništa.
+7. [ ] **Kad se sve reši:** „Nema više nepotvrđenih poteza."
+8. [ ] **Vežba više ne laže da nema posla.** U repertoaru sa samim nacrtima
+   otvoriti vežbu: piše „Još N nepotvrđenih nacrta čeka u ovom repertoaru." i
+   nudi „Pregledaj nacrt".
+9. [ ] **Dijalog na „Napravi kičmu"** nudi tri širine i dubinu, i kaže da su to
+   predlozi koje vežba neće pitati dok se ne potvrde.
+10. [ ] **Svetla tema, traka sa nacrtima.** Tekst na žutoj podlozi mora da se
+    čita, a dugme je obrisano (outlined), ne puno — puno dugme se u svetloj temi
+    nije razlikovalo od podloge iza sebe. Pogledati u obe teme.
+11. [ ] **Telefon, 360 dp, release build.** List za pregled i traka u izgradnji —
+    ništa isečeno.
+
+
+## 90. Izdvajanje u novo otvaranje i kombinovani dril — 3.9.2026, nije viđeno uživo
+
+Faza 4, radni agent pa dovršeno rukom (`4cdace2`). Tri kvara su nađena čitanjem
+diffa i popravljena — nijedan nije viđen uživo, ni pokvaren ni popravljen:
+dugme „Izdvoji" je pucalo van testa, kombinovana sesija je slala pitanja iz cele
+boje umesto iz izabranih otvaranja, i tri reda su bila preširoka za 360 dp.
+
+Ono što ovde treba razumeti pre provere: **izdvajanje ništa ne kopira.** Potezi
+pripadaju paru (korisnik, boja), a red u `repertoires` je vrata u taj graf — pa
+novo otvaranje vidi iste poteze, a staro ne gubi nijedan.
+
+1. [ ] **Dugme postoji i ne puca.** U izgradnji, u redu ispod table, ikona
+   grananja („Izdvoji u novo otvaranje") otvara dijalog. Otvoriti aplikaciju
+   normalno, ne kroz test: baš tu je pucalo.
+2. [ ] **Ime je popunjeno iz knjige** („C60 · Ruy Lopez"), i može da se izmeni.
+3. [ ] **Pozicija koju knjiga ne zna ostavlja prazno polje** sa kursorom u njemu,
+   bez izmišljenog imena.
+4. [ ] **Kapija se bira** kroz isti izbornik kao svuda, i sme da se preskoči.
+5. [ ] **Ništa se ne kopira.** Posle izdvajanja: stari repertoar ima sve poteze
+   koje je imao, novi vidi iste poteze ispod svog korena, i „N poteza u grafu"
+   se **ne udvostručuje**. Ako je broj skočio, negde se pisalo u graf.
+6. [ ] **Novo otvaranje je u listi**, sa svojim imenom i svojom kapijom.
+7. [ ] **Izbor više otvaranja.** Dugi pritisak na karticu ulazi u izbor,
+   čekboksi se vide na svim karticama, dole stoji „Vežbaj izabrane (N)".
+8. [ ] **Izabrano je izabrano čekboksom, ne bojom** — kartica se ne razlikuje
+   samo nijansom.
+9. [ ] **Dve boje se odbijaju rečenicom:** „Jedna sesija može da pita samo o
+   jednoj strani.", i brojač ostaje isti.
+10. [ ] **Sesija pita samo iz izabranih otvaranja.** Ovo je kvar zbog kog je
+    faza pala na ocenjivanju: pitanja su išla iz **cele** boje. Izabrati dva
+    otvaranja koja pokrivaju mali deo boje i proveriti da nijedno pitanje ne
+    dolazi spolja.
+11. [ ] **„Izaberi granu" radi i u kombinovanoj sesiji**, i svaka grana nosi ime
+    otvaranja iz kog je došla.
+12. [ ] **Dva otvaranja koja počinju istim potezima su dva reda.** Sicilijanka i
+    Otvorena sicilijanka koje obe počinju 1.e4 c5 moraju da se vide kao dva reda
+    sa dva imena; štikliranje jednog ne sme da štiklira drugi.
+13. [ ] **Rečenica o zajedničkom rasporedu** — „Pozicija koju oba otvaranja
+    dostižu pita se jednom." — vidi se **pre** nego što se bilo šta štiklira, bez
+    skrolovanja.
+14. [ ] **Jedan dodir na granu i dalje pokreće tu granu.** Čekboks je za više
+    njih; dodir na red je ono što je oduvek radio.
+15. [ ] **Više štikliranih grana je jedna sesija.** Kad se prva isprazni, vežba
+    prelazi na sledeću umesto da kaže da je gotovo.
+16. [ ] **Pozicija koju oba otvaranja dostižu pita se jednom.** Odgovoriti je u
+    prvom otvaranju i proveriti da se u istoj sesiji ne pojavi ponovo.
+17. [ ] **Telefon, 360 dp, release build.** Tri mesta koja su bila preširoka:
+    dugmad u dijalogu izdvajanja, traka „Odustani / Vežbaj izabrane (N)" u listi
+    (bila je četiri piksela ispod dna ekrana), i zaglavlje lista za izbor grane.
+    Ništa isečeno i ništa van ekrana.
