@@ -3294,3 +3294,32 @@ podešavanje nego kao izgubljena funkcija.
 10. [ ] **Telefon, 360 dp, release build.** Meni otvoren preko table: ništa nije
     isečeno, sve tri stavke se vide cele, i zatvaranje menija vraća tablu kakva
     je bila.
+
+
+## 94. Množina u tri rečenice — 3.9.2026, nije viđeno uživo
+
+Popravka `b5e8073`. Tri mesta su imala `n == 1 ? "pozicija" : "pozicija"` —
+obe grane ista reč, pa se oblik nikad nije menjao. `serbian_plural.dart` je sve
+vreme postojao, sa tri oblika; nijedno od tri mesta ga nije zvalo.
+
+**Pravilo koje se proverava**, isto na sva tri mesta: 1 → *pozicija*, 2–4 →
+*pozicije*, 5 i više → *pozicija*, a **11 do 14 idu sa peticom** iako se
+završavaju na 1–4. Glagol ide uz imenicu: „2 pozicije **čekaju**", „5 pozicija
+**čeka**".
+
+Brojevi se ne mogu naručiti, pa se ovo gleda usput — kad se zatekne broj, gleda
+se da li oblik odgovara. Ako se zatekne samo jedan broj, dovoljno je da taj
+bude tačan.
+
+1. [ ] **Početna, red o ponavljanju.** Sa 1 pozicijom: „1 pozicija čeka na
+   ponavljanje." Sa 2, 3 ili 4: „2 pozicije **čekaju** na ponavljanje." Sa 5 i
+   više: „5 pozicija čeka na ponavljanje."
+2. [ ] **Izgradnja, poruka posle uzimanja odgovora.** „Dodata 1 pozicija.",
+   „Dodate 2 pozicije.", „Dodato 5 pozicija." — participijum se menja zajedno
+   sa imenicom, što je i bio ceo kvar.
+3. [ ] **Izgradnja, poruka posle „Ne spremam ovo".** Kad ispod grane ima još
+   pozicija: „sa njom je iz reda **izašla** još 1 pozicija", „**izašle** još 2
+   pozicije", „**izašlo** još 5 pozicija".
+4. [ ] **Jedanaest do četrnaest.** Ako se negde zatekne takav broj: „12
+   pozicija čeka", nikako „12 pozicije čekaju". Ovo je oblik koji svi
+   promaše.
