@@ -37,7 +37,7 @@ renamed; this is about what the reader is shown.
 | retired | shown instead | why |
 |---|---|---|
 | kičma | **glavna linija** | „Napravi kičmu" becomes „Predloži glavnu liniju". It writes the most-played move for both sides, N moves deep, as suggestions — the label should say the suggestion, not the anatomy |
-| nacrt | **predlog** | The moves list already says „predlog — nije još vaš izbor". The banner has to use the same word: „N predloga čeka vašu potvrdu" |
+| nacrt | **nepotvrđeni potezi** (a pile) / **predlog poteza** (one of them) | Two words because the reader meets it two ways. A count is „N nepotvrđenih poteza"; a single row in the moves list is „predlog poteza — još niste potvrdili". „Nacrt" said neither |
 | talas, red | *(gone)* | Removed 3.9.2026. „Još N neodgovorenih" says the same thing without a concept behind it |
 | kapija | **ide kroz `<potez>`** | The sentence already exists and is clear. The word itself never appears |
 | širina | **koliko odgovora spremamo** | „Samo glavni odgovor" / „Uobičajeno (80%)" / „Široko (95%)" |
@@ -121,6 +121,14 @@ does not run at all.
 ### Phase 5 — lead. Watched running
 
 Items into `TODO-provera.md`, checked live, the way sections 86–91 were.
+
+## Later, and worth remembering
+
+**Explain the words where they are used.** „odlučeno", „otvoreno", „bez
+odgovora" are honest numbers that still need a sentence, and the sentence
+belongs where the number is — a term the reader can press, answering in a line
+what it counts and what it does not. Not now: it is worth doing once the words
+themselves have stopped moving, or it is written twice.
 
 ## What is not in this plan
 
