@@ -13,6 +13,7 @@ import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/speakable_info.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -1163,10 +1164,19 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             icon: const Icon(Icons.account_tree_outlined),
             tooltip: 'Izaberi granu',
           ),
+          const SpeechToggleButton(),
           const BoardViewMenu(arrows: true),
-          Padding(
+          // Bounded and scaled down because the speaker button above pushed
+          // this bar one pixel over the edge of a 360 dp phone — measured, by
+          // putting the pre-batch `Padding`/`Center` back and watching the
+          // 360 dp test throw. A release build would have shown none of that:
+          // it clips silently, and the counter would simply have been gone.
+          Container(
+            constraints: const BoxConstraints(maxWidth: 100),
             padding: const EdgeInsets.only(right: AppSpacing.md),
-            child: Center(
+            alignment: Alignment.centerRight,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
               child: Text(
                 _ahead
                     ? 'van rasporeda'
@@ -1384,23 +1394,41 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         children: [
           _buildLine(context),
           if (_lastVerdict != null) ...[
-            Text(_lastVerdict!,
-                style: AppText.micro.copyWith(color: context.colors.textMuted)),
+            SpeakableInfo(
+              text: _lastVerdict!,
+              autoSpeak: true,
+              child: Text(_lastVerdict!,
+                  style:
+                      AppText.micro.copyWith(color: context.colors.textMuted)),
+            ),
             const SizedBox(height: AppSpacing.xxs),
           ],
-          Text(_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?',
-              style: AppText.bodyBold),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(
-            _revealed == null
-                ? 'Odigrajte potez koji ste izabrali za ovu poziciju.'
-                : 'Vaš potez je ${_revealed!.san}. Odigrajte ga.',
-            style: AppText.caption.copyWith(
-              color: _revealed == null
-                  ? context.colors.textMuted
-                  : context.colors.warning,
+          SpeakableInfo(
+            autoSpeak: true,
+            text:
+                '${_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?'} ${_revealed == null ? 'Odigrajte potez koji ste izabrali za ovu poziciju.' : 'Vaš potez je ${_revealed!.san}. Odigrajte ga.'}',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?',
+                    style: AppText.bodyBold),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  _revealed == null
+                      ? 'Odigrajte potez koji ste izabrali za ovu poziciju.'
+                      : 'Vaš potez je ${_revealed!.san}. Odigrajte ga.',
+                  style: AppText.caption.copyWith(
+                    color: _revealed == null
+                        ? context.colors.textMuted
+                        : context.colors.warning,
+                  ),
+                ),
+              ],
             ),
           ),
+          // Outside the spoken block on purpose: the voice says the question
+          // and the line under it, and a speaker that visually encloses a
+          // sentence it never reads is the drift this widget exists to avoid.
           if (_prefixNote != null) ...[
             const SizedBox(height: AppSpacing.xxs),
             Text(
@@ -1644,8 +1672,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             Icon(nothingBuilt ? Icons.menu_book_outlined : Icons.done_all,
                 size: 40),
             const SizedBox(height: AppSpacing.md),
-            Text(
-              via != null
+            Builder(builder: (context) {
+              final text = via != null
                   ? (nothingBuilt
                       ? 'Iza poteza $via još nema šta da se vežba.'
                       : 'Iza poteza $via ništa nije na redu.')
@@ -1655,10 +1683,16 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                           : 'Još nema šta da se vežba.')
                       : (inBranch
                           ? 'U ovoj grani ništa nije na redu.'
-                          : 'Ništa nije na redu.'),
-              style: AppText.bodyBold,
-              textAlign: TextAlign.center,
-            ),
+                          : 'Ništa nije na redu.');
+              return SpeakableInfo(
+                text: text,
+                child: Text(
+                  text,
+                  style: AppText.bodyBold,
+                  textAlign: TextAlign.center,
+                ),
+              );
+            }),
             const SizedBox(height: 6),
             Text(
               via != null
