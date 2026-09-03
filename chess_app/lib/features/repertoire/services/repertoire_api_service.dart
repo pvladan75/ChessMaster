@@ -1335,6 +1335,34 @@ class RepertoireProgress {
       );
 }
 
+/// What has actually been practised since the reader's day started.
+///
+/// [positions] is the number a daily target is read against — distinct
+/// positions, so answering the same board four times is one position practised
+/// and not four. [scored] and [practice] split the same answers by whether the
+/// schedule was told about them, and are never added together on screen: both
+/// are work, only one moves a due date.
+class PracticeToday {
+  const PracticeToday({
+    this.positions = 0,
+    this.answers = 0,
+    this.scored = 0,
+    this.practice = 0,
+  });
+
+  final int positions;
+  final int answers;
+  final int scored;
+  final int practice;
+
+  factory PracticeToday.fromJson(Map<String, dynamic> json) => PracticeToday(
+        positions: (json['positions'] as num?)?.toInt() ?? 0,
+        answers: (json['answers'] as num?)?.toInt() ?? 0,
+        scored: (json['scored'] as num?)?.toInt() ?? 0,
+        practice: (json['practice'] as num?)?.toInt() ?? 0,
+      );
+}
+
 class UnconfirmedNode {
   const UnconfirmedNode({
     required this.fen,
@@ -1534,6 +1562,28 @@ class RepertoireApiService {
         .whereType<Map>()
         .map((e) => RepertoireProgress.fromJson(Map<String, dynamic>.from(e)))
         .toList();
+  }
+
+  /// How much has been practised since [since] — the start of the reader's own
+  /// day, which only the client knows.
+  ///
+  /// Null when the server could not be reached. The screen shows nothing rather
+  /// than a zero: "you have practised nothing today" is a hard enough sentence
+  /// to be told when it is true.
+  Future<PracticeToday?> practiceToday({
+    required DateTime since,
+    String? color,
+  }) async {
+    final uri = Uri.parse('$backendUrl/repertoire/practice/today').replace(
+      queryParameters: {
+        'since': since.toUtc().toIso8601String(),
+        if (color != null) 'color': color,
+      },
+    );
+    final res = (await _send(() => _get(uri))).res;
+    if (res == null) return null;
+    return PracticeToday.fromJson(
+        Map<String, dynamic>.from(jsonDecode(res.body) as Map));
   }
 
   Future<RepertoireUnconfirmedCounts?> unconfirmedCounts() async {

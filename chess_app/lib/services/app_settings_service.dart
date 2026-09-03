@@ -92,6 +92,18 @@ class AppSettingsService extends ChangeNotifier {
   bool _showStatisticsArrows = true;
   bool _showEngineArrows = true;
 
+  /// How many positions a day the reader is aiming for.
+  ///
+  /// Ten by default, and it is a target rather than a limit: nothing stops at
+  /// it and nothing is withheld before it. It exists because the schedule alone
+  /// gives a beginner nothing to do on day three — and a number somebody can
+  /// finish is the difference between a habit and an app that says „nema ništa
+  /// za danas".
+  ///
+  /// Zero turns the whole thing off, for somebody who does not want to be
+  /// counted.
+  int _dailyTarget = 10;
+
   bool _speechEnabled = false;
   double _speechRate = 0.5;
   String _speechLanguage = '';
@@ -204,6 +216,8 @@ class AppSettingsService extends ChangeNotifier {
   /// the ids, so an id nothing recognises draws `classic` instead of nothing.
   BoardSkin get boardSkin => BoardSkin.byId(_boardSkinId);
   PieceSkin get pieceSkin => PieceSkin.byId(_pieceSkinId);
+  int get dailyTarget => _dailyTarget;
+
   bool get showChosenMoveArrow => _showChosenMoveArrow;
   bool get showStatisticsArrows => _showStatisticsArrows;
   bool get showEngineArrows => _showEngineArrows;
@@ -267,6 +281,7 @@ class AppSettingsService extends ChangeNotifier {
     _showBoardCoordinates = prefs.getBool('app_board_coordinates') ?? true;
     _boardSkinId = prefs.getString('app_board_skin') ?? BoardSkin.classic.id;
     _pieceSkinId = prefs.getString('app_piece_skin') ?? PieceSkin.classic.id;
+    _dailyTarget = (prefs.getInt('app_daily_target') ?? 10).clamp(0, 200);
     _showChosenMoveArrow = prefs.getBool('app_arrow_chosen_move') ?? true;
     _showStatisticsArrows = prefs.getBool('app_arrow_statistics') ?? true;
     _showEngineArrows = prefs.getBool('app_arrow_engine') ?? true;
@@ -431,6 +446,13 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('app_piece_skin', id);
+  }
+
+  Future<void> setDailyTarget(int positions) async {
+    _dailyTarget = positions.clamp(0, 200);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('app_daily_target', _dailyTarget);
   }
 
   Future<void> setShowChosenMoveArrow(bool show) async {
