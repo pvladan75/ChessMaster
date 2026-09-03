@@ -2471,17 +2471,24 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           if (_frontier != null && _frontier!.draft > 0)
             UnconfirmedBanner(
               total: _frontier!.draft,
-              onOpenWizard: () => showUnconfirmedReviewSheet(
-                context,
-                color: widget.color,
-                rootFen: widget.rootFen,
-                rootPath: widget.rootPath,
-                gateUci: widget.gateUci,
-                breadth: null,
-                minRating: widget.minRating,
-                api: _api,
-                onJump: (fen, rejectedUci) => _jumpToFen(fen, rejectedUci),
-              ),
+              // The walk is re-read when the review closes. Its number is a
+              // snapshot taken when the screen opened, and the review is the
+              // one thing on this screen that changes it — so without this the
+              // banner advertises drafts the wizard then says do not exist.
+              onOpenWizard: () async {
+                await showUnconfirmedReviewSheet(
+                  context,
+                  color: widget.color,
+                  rootFen: widget.rootFen,
+                  rootPath: widget.rootPath,
+                  gateUci: widget.gateUci,
+                  breadth: null,
+                  minRating: widget.minRating,
+                  api: _api,
+                  onJump: (fen, rejectedUci) => _jumpToFen(fen, rejectedUci),
+                );
+                if (mounted) await _resume();
+              },
             ),
           Center(
             child: BoardWithCoordinates(

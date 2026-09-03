@@ -1570,20 +1570,29 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               ),
               const SizedBox(height: AppSpacing.md),
               OutlinedButton.icon(
-                onPressed: () => showUnconfirmedReviewSheet(
-                  context,
-                  color: widget.color,
-                  rootFen: widget.rootFen!,
-                  rootPath: widget.rootPath,
-                  gateUci: widget.gateUci,
-                  breadth: null,
-                  minRating: widget.minRating,
-                  api: _api,
-                  onJump: (fen, uci) {
-                    Navigator.of(context)
-                        .pop(); // Go back to where it can be handled or just pop the drill
-                  },
-                ),
+                // Same reason as the build screen's banner: the count is read
+                // once, the review is what changes it, and a number left
+                // standing after the drafts are gone is a screen telling the
+                // reader to do work that is already done.
+                onPressed: () async {
+                  await showUnconfirmedReviewSheet(
+                    context,
+                    color: widget.color,
+                    rootFen: widget.rootFen!,
+                    rootPath: widget.rootPath,
+                    gateUci: widget.gateUci,
+                    breadth: null,
+                    minRating: widget.minRating,
+                    api: _api,
+                    onJump: (fen, uci) => Navigator.of(context).pop(),
+                  );
+                  if (!mounted) return;
+                  final counts = await _api.unconfirmedCounts();
+                  if (!mounted || counts == null) return;
+                  setState(() => _drafts = widget.color == 'w'
+                      ? counts.w.positions
+                      : counts.b.positions);
+                },
                 icon: const Icon(Icons.edit_note, size: 18),
                 label: const Text('Pregledaj nacrt'),
               ),
