@@ -3206,3 +3206,43 @@ URL. To je ista pouka kao `ids` iz faze 4, po četvrti put.
    repertoar"**, koje vraća tablu i stablo. Ranije je nudio samo „Nazad", pa je
    repertoar sa sto poteza bio nedostupan sa sopstvenog ekrana — dok je ista ta
    rečenica govorila da se vratite na neku poziciju i uzmete još odgovora.
+
+
+## 92. Govor na panelima i prekidač u zaglavlju — 3.9.2026, nije viđeno uživo
+
+Faza 2 plana jednostavnosti, radni agent (`1e8822d`). Traži build napravljen
+posle tog spoja.
+
+**Najvažnije prvo: govor je podrazumevano isključen, i tako ostaje dok se ne
+pritisne.** Sve ispod se proverava i sa ugašenim govorom — ekran mora da izgleda
+i radi tačno kao pre. Drugo po važnosti: **mašina možda uopšte nema srpski
+glas.** Windows ga po pravilu nema dok se ne instalira, i to je uredno stanje, a
+ne kvar — panel se crta isto, zvučnik ne sme da obori ekran ni da ćuti bez
+objašnjenja.
+
+1. [ ] **Ugašeno je stvarno ugašeno.** Ući u vežbu bez diranja podešavanja:
+   ništa se ne izgovara, nijedan panel nije pomeren, pitanje stoji gde je i
+   stajalo.
+2. [ ] **Prekidač u zaglavlju radi bez izlaska iz ekrana.** Zvučnik u traci
+   vežbe i izgradnje: pritisak ga pali, ikona se menja, sledeće pitanje se
+   izgovori.
+3. [ ] **Izgovara se ono što piše.** Pitanje („Šta igrate crnim?" plus rečenica
+   ispod njega) izgovara se kao jedna rečenica, a presuda posle tačnog odgovora
+   („Tačno — Nc6 · protivnik Nf3 · vraća se za 6 dana") čita se sa notacijom u
+   rečima: „skakač c šest". Ako se čuje nešto što na ekranu ne piše, to je nalaz.
+4. [ ] **Samo pitanje i presuda govore sami od sebe.** Baner „N nepotvrđenih u
+   grafu", završni ekran izgradnje i „Još nema šta da se vežba." ćute dok se ne
+   pritisne njihov zvučnik.
+5. [ ] **Zvučnik nikad nije mrtvo dugme.** Sa ugašenim govorom pritisnuti
+   zvučnik pored rečenice: pali govor **i** izgovara je. Ovo je pravilo iz faze
+   0 i najlakše ga je slučajno pokvariti.
+6. [ ] **Gašenje ućutkuje odmah.** Dok rečenica traje, pritisnuti prekidač u
+   zaglavlju: glas prestaje na mestu, ne dovršava rečenicu.
+7. [ ] **Mašina bez glasa.** Na Windowsu bez srpskog glasa: svi paneli se crtaju,
+   ništa ne puca, a stanje se vidi u podešavanjima govora („nema glasa"), ne
+   samo u logu.
+8. [ ] **Telefon, 360 dp, release build.** Zaglavlje vežbe sada nosi i zvučnik:
+   brojač desno („na redu: N · novo: M", odnosno „van rasporeda") mora da bude
+   **ceo vidljiv i čitljiv**. U testu je 360 dp prelivalo za jedan piksel bez
+   smanjivanja, a release build ne crta trake — samo iseca. Isto pogledati i na
+   ekranu izgradnje, gde brojač „upita: N" namerno **nije** smanjivan.
