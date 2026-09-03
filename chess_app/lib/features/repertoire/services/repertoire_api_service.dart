@@ -883,6 +883,28 @@ class DisagreementReport {
       );
 }
 
+class DrillBranchRepertoire {
+  const DrillBranchRepertoire({required this.id, required this.name});
+  final int id;
+  final String name;
+  factory DrillBranchRepertoire.fromJson(Map<String, dynamic> json) =>
+      DrillBranchRepertoire(
+        id: (json['id'] as num?)?.toInt() ?? 0,
+        name: json['name'] as String? ?? '',
+      );
+}
+
+class DrillBranchRoot {
+  const DrillBranchRoot({required this.fen, this.path = const []});
+  final String fen;
+  final List<String> path;
+  factory DrillBranchRoot.fromJson(Map<String, dynamic> json) =>
+      DrillBranchRoot(
+        fen: json['fen'] as String? ?? '',
+        path: sanPath(json['path']),
+      );
+}
+
 /// One of the opponent's first answers, and how much of it is waiting.
 ///
 /// The unit a practice session is chosen by. A repertoire is a handful of
@@ -891,8 +913,14 @@ class DisagreementReport {
 /// whole colour is right for a schedule and wrong for sitting down.
 class DrillBranch {
   const DrillBranch({
+    required this.id,
+    required this.key,
     required this.fen,
     required this.san,
+    this.repertoire,
+    this.root,
+    this.gateUci,
+    this.breadth = 'standard',
     this.path = const [],
     this.share = 0,
     this.positions = 0,
@@ -900,6 +928,21 @@ class DrillBranch {
     this.known = 0,
     this.dueKeys = const [],
   });
+
+  /// The repertoire id and branch key joined. Key list rows by this.
+  final String id;
+
+  /// The two moves that open it, in UCI.
+  final String key;
+
+  /// The repertoire this branch belongs to. Null if fetched by root.
+  final DrillBranchRepertoire? repertoire;
+
+  /// The root of the repertoire this branch came from.
+  final DrillBranchRoot? root;
+
+  final String? gateUci;
+  final String breadth;
 
   /// Where a run through this branch begins: after your move and their reply.
   final String fen;
@@ -921,18 +964,31 @@ class DrillBranch {
   /// moves nobody had to remember cold.
   final List<String> dueKeys;
 
-  factory DrillBranch.fromJson(Map<String, dynamic> json) => DrillBranch(
-        fen: json['fen'] as String? ?? '',
-        san: json['san'] as String? ?? '',
-        path: sanPath(json['path']),
-        share: (json['share'] as num?)?.toDouble() ?? 0,
-        positions: (json['positions'] as num?)?.toInt() ?? 0,
-        due: (json['due'] as num?)?.toInt() ?? 0,
-        known: (json['known'] as num?)?.toInt() ?? 0,
-        dueKeys: ((json['dueKeys'] as List?) ?? const [])
-            .whereType<String>()
-            .toList(),
-      );
+  factory DrillBranch.fromJson(Map<String, dynamic> json) {
+    final rep = json['repertoire'];
+    final rootMap = json['root'];
+    return DrillBranch(
+      id: json['id'] as String? ?? '',
+      key: json['key'] as String? ?? '',
+      repertoire: rep is Map
+          ? DrillBranchRepertoire.fromJson(Map<String, dynamic>.from(rep))
+          : null,
+      root: rootMap is Map
+          ? DrillBranchRoot.fromJson(Map<String, dynamic>.from(rootMap))
+          : null,
+      gateUci: json['gateUci'] as String?,
+      breadth: json['breadth'] as String? ?? 'standard',
+      fen: json['fen'] as String? ?? '',
+      san: json['san'] as String? ?? '',
+      path: sanPath(json['path']),
+      share: (json['share'] as num?)?.toDouble() ?? 0,
+      positions: (json['positions'] as num?)?.toInt() ?? 0,
+      due: (json['due'] as num?)?.toInt() ?? 0,
+      known: (json['known'] as num?)?.toInt() ?? 0,
+      dueKeys:
+          ((json['dueKeys'] as List?) ?? const []).whereType<String>().toList(),
+    );
+  }
 }
 
 /// One question the drill is about to ask.
@@ -2008,9 +2064,14 @@ class RepertoireApiService {
   /// Null when the server could not be reached, which the caller must tell
   /// apart from a line with no question in it: "we could not find out" and
   /// "nothing is due" are different, and only one of them means rest.
+  ///
+  /// The door is either [ids] — several repertoires drilled as one sitting —
+  /// or a [rootFen], never both: given ids the server reads each door's root,
+  /// gate and breadth from its own row, so sending them beside it would be
+  /// three parallel answers to one question.
   Future<DrillLine?> drillLine({
     required String color,
-    required String rootFen,
+    String? rootFen,
     List<String> rootPath = const [],
     int? minRating,
     String? fromFen,
@@ -2019,12 +2080,19 @@ class RepertoireApiService {
     List<String> exclude = const [],
     bool ahead = false,
     String? gateUci,
+    List<int>? ids,
   }) async {
+    final byIds = ids != null && ids.isNotEmpty;
+    assert(byIds || rootFen != null, 'a drill line needs ids or a rootFen');
     final uri = Uri.parse('$backendUrl/repertoire/drill/line').replace(
       queryParameters: <String, dynamic>{
         'color': color,
-        'rootFen': rootFen,
-        if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
+        if (byIds) 'ids': ids.join(','),
+        if (!byIds) ...{
+          if (rootFen != null) 'rootFen': rootFen,
+          if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
+          if (gateUci != null) 'gateUci': gateUci,
+        },
         if (minRating != null) 'minRating': '$minRating',
         if (fromFen != null) 'fromFen': fromFen,
         // Which decision to walk through, for somebody standing at a fork who
@@ -2038,10 +2106,6 @@ class RepertoireApiService {
         // writes nothing down.
         if (exclude.isNotEmpty) 'exclude': exclude,
         if (ahead) 'ahead': '1',
-        // The repertoire's own gate, which is not the same thing as [viaUci]:
-        // that one is a fork chosen inside a session, this one is which opening
-        // the whole screen is about.
-        if (gateUci != null) 'gateUci': gateUci,
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -2234,20 +2298,30 @@ class RepertoireApiService {
   /// Free, like everything that reads what was built. Empty when the server
   /// could not be reached, which the caller shows as "the whole repertoire"
   /// rather than as "you have no branches".
+  ///
+  /// Asked by [ids], the branches of several repertoires come back as one list,
+  /// each tagged with the repertoire it came from. Asked by [rootFen], that tag
+  /// is null — there is only one door and the caller is standing in it.
   Future<List<DrillBranch>> drillBranches({
     required String color,
-    required String rootFen,
+    String? rootFen,
     List<String> rootPath = const [],
     int? minRating,
     String? gateUci,
+    List<int>? ids,
   }) async {
+    final byIds = ids != null && ids.isNotEmpty;
+    assert(byIds || rootFen != null, 'a branch list needs ids or a rootFen');
     final uri = Uri.parse('$backendUrl/repertoire/drill/branches').replace(
-      queryParameters: {
+      queryParameters: <String, dynamic>{
         'color': color,
-        'rootFen': rootFen,
-        if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
+        if (byIds) 'ids': ids.join(','),
+        if (!byIds) ...{
+          if (rootFen != null) 'rootFen': rootFen,
+          if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
+          if (gateUci != null) 'gateUci': gateUci,
+        },
         if (minRating != null) 'minRating': '$minRating',
-        if (gateUci != null) 'gateUci': gateUci,
       },
     );
     final res = (await _send(() => _get(uri))).res;

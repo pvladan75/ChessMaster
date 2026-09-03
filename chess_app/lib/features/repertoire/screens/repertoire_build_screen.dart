@@ -9,6 +9,7 @@ import 'package:chess_app/features/analysis_studio/widgets/opening_judge_panel_w
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
 import 'package:chess_app/features/repertoire/line_text.dart';
+import 'package:chess_app/features/repertoire/widgets/fork_repertoire_dialog.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_comment_panel.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_gate_picker.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_position_ask.dart';
@@ -907,6 +908,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       iconSize: 20,
       trailing: [
         IconButton(
+          icon: Icon(Icons.call_split,
+              size: 18, color: context.colors.textSecondary),
+          tooltip: 'Izdvoji u novo otvaranje',
+          onPressed: _activeNode == null ? null : _forkHere,
+        ),
+        IconButton(
           icon: Icon(
             wrote ? Icons.sticky_note_2 : Icons.sticky_note_2_outlined,
             size: 18,
@@ -947,6 +954,26 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       busy: _savingComment,
       onEdit: () => _editComment(),
       onDelete: _commentHere == null ? null : _deleteComment,
+    );
+  }
+
+  /// This position becomes an opening of its own.
+  ///
+  /// Nothing is copied and nothing moves: the new repertoire is a second door
+  /// onto the same graph, so the screen stays exactly where it is and the tree
+  /// under the board is as true after the fork as it was before it.
+  Future<void> _forkHere() async {
+    final active = _activeNode;
+    if (active == null) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => ForkRepertoireDialog(
+        color: widget.color,
+        rootFen: active.fen,
+        rootPath: _pathTo(active),
+        api: _api,
+      ),
     );
   }
 

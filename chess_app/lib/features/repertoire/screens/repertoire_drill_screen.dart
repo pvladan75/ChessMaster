@@ -64,6 +64,7 @@ class RepertoireDrillScreen extends StatefulWidget {
     this.gateUci,
     this.api,
     this.onBuildHere,
+    this.ids,
   });
 
   final String name;
@@ -102,6 +103,8 @@ class RepertoireDrillScreen extends StatefulWidget {
   /// Called with a position the student has not prepared, so the screen above
   /// can offer to build it instead of leaving them stuck.
   final void Function(String fen)? onBuildHere;
+
+  final List<int>? ids;
 
   @override
   State<RepertoireDrillScreen> createState() => _RepertoireDrillScreenState();
@@ -291,6 +294,13 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     _loadNext();
   }
 
+  /// The branches still to run in this sitting, after the one on the board.
+  ///
+  /// Several branches ticked in the sheet are one session, and the server hands
+  /// out a line for one branch at a time — so the rest wait here and the queue
+  /// moves on when the current branch has nothing left to ask.
+  List<DrillBranch> _branchQueue = [];
+
   /// The branches, and what to do with one.
   ///
   /// Two actions per row on purpose: the queue and the run are different
@@ -299,14 +309,19 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// somebody means by "let me see if I still know this line".
   Future<void> _pickBranch() async {
     final root = widget.rootFen;
-    if (root == null || _busy) return;
+    final ids = widget.ids;
+    // One door or the other. A combined session has ids and no root, and the
+    // sheet is the whole point of it — reading only [rootFen] here is how the
+    // feature came back unreachable the first time.
+    if ((root == null && ids == null) || _busy) return;
     setState(() => _busy = true);
     final branches = await _api.drillBranches(
       color: widget.color,
-      rootFen: root,
-      rootPath: widget.rootPath,
+      rootFen: ids == null ? root : null,
+      rootPath: ids == null ? widget.rootPath : const [],
       minRating: widget.minRating,
-      gateUci: widget.gateUci,
+      gateUci: ids == null ? widget.gateUci : null,
+      ids: ids,
     );
     if (!mounted) return;
     setState(() => _busy = false);
@@ -318,79 +333,34 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     }
 
     final picked =
-        await showModalBottomSheet<({DrillBranch? branch, bool spar})>(
+        await showModalBottomSheet<({List<DrillBranch> branches, bool spar})>(
       context: context,
       backgroundColor: context.colors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (sheet) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxs),
-              child: Text('Šta vežbate?',
-                  style: AppText.bodyBold
-                      .copyWith(color: sheet.colors.textPrimary)),
-            ),
-            ListTile(
-              dense: true,
-              leading: Icon(Icons.all_inclusive,
-                  size: 18, color: sheet.colors.accent),
-              title: Text('Ceo repertoar', style: AppText.bodyLarge),
-              subtitle: Text('Sve grane pomešane, redom kojim raspored traži.',
-                  style: AppText.micro.copyWith(color: sheet.colors.textMuted)),
-              onTap: () => Navigator.pop(sheet, (branch: null, spar: false)),
-            ),
-            const Divider(height: 1),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  for (final branch in branches)
-                    ListTile(
-                      dense: true,
-                      title: Text(branch.san, style: AppText.bodyLarge),
-                      subtitle: Text(
-                        'dospelo ${branch.due} od ${branch.positions}'
-                        '${branch.known > 0 ? " · zna ${branch.known}" : ""}',
-                        style: AppText.micro
-                            .copyWith(color: sheet.colors.textMuted),
-                      ),
-                      // The run, beside the queue rather than instead of it.
-                      trailing: IconButton(
-                        tooltip: 'Odigraj granu do kraja',
-                        icon: const Icon(Icons.play_circle_outline),
-                        onPressed: () =>
-                            Navigator.pop(sheet, (branch: branch, spar: true)),
-                      ),
-                      onTap: () =>
-                          Navigator.pop(sheet, (branch: branch, spar: false)),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-          ],
-        ),
-      ),
+      builder: (sheet) => _BranchPickerSheet(
+          branches: branches, isCombined: widget.ids != null),
     );
 
     if (!mounted || picked == null) return;
-    if (picked.spar && picked.branch != null) {
-      await _spar(picked.branch!);
+    if (picked.spar && picked.branches.isNotEmpty) {
+      await _spar(picked.branches.first);
       return;
     }
     setState(() {
-      _branchFen = picked.branch?.fen;
-      _branchSan = picked.branch?.san;
+      _branchQueue = List.from(picked.branches);
+      if (_branchQueue.isNotEmpty) {
+        final b = _branchQueue.removeAt(0);
+        _branchFen = b.fen;
+        _branchSan = b.san;
+      } else {
+        _branchFen = null;
+        _branchSan = null;
+      }
       _sparring = false;
       _sparNote = null;
-      // A branch is a bigger choice than a fork inside one, so it wins.
       _viaFen = null;
       _viaUci = null;
       _viaSan = null;
@@ -582,18 +552,20 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     // the old screen: a walk that could not be read is a fault to notice, and
     // the drill is still worth having while somebody notices it.
     final root = widget.rootFen;
-    if (root != null) {
+    final ids = widget.ids;
+    if (root != null || ids != null) {
       var line = await _api.drillLine(
         color: widget.color,
-        rootFen: root,
-        rootPath: widget.rootPath,
+        rootFen: ids == null ? root : null,
+        rootPath: ids == null ? widget.rootPath : const [],
         minRating: widget.minRating,
         fromFen: _branchFen,
         viaFen: _viaFen,
         viaUci: _viaUci,
         exclude: _refused.toList(),
         ahead: _ahead,
-        gateUci: widget.gateUci,
+        gateUci: ids == null ? widget.gateUci : null,
+        ids: ids,
       );
       if (!mounted) return;
       // Skipping is a shuffle, not a deletion. Once everything has been
@@ -603,18 +575,28 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         _refused.clear();
         line = await _api.drillLine(
           color: widget.color,
-          rootFen: root,
-          rootPath: widget.rootPath,
+          rootFen: ids == null ? root : null,
+          rootPath: ids == null ? widget.rootPath : const [],
           minRating: widget.minRating,
           fromFen: _branchFen,
           viaFen: _viaFen,
           viaUci: _viaUci,
           ahead: _ahead,
-          gateUci: widget.gateUci,
+          gateUci: ids == null ? widget.gateUci : null,
+          ids: ids,
         );
         if (!mounted) return;
       }
       if (line != null) {
+        // A branch with nothing left to ask ends the branch, not the sitting:
+        // the next ticked branch takes the board and the load runs again.
+        if (!line.hasQuestion && _branchQueue.isNotEmpty) {
+          final next = _branchQueue.removeAt(0);
+          _branchFen = next.fen;
+          _branchSan = next.san;
+          _refused.clear();
+          return _loadNext(keepAhead: _ahead);
+        }
         _startLine(line);
         return;
       }
@@ -628,7 +610,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _fen = next.item?.fen;
       _lastMoveFrom = null;
       _lastMoveTo = null;
-      _prefixNote = root == null
+      _prefixNote = root == null && ids == null
           ? null
           : 'Linija nije mogla da se sastavi — pitanje ide bez ponavljanja.';
     });
@@ -1576,7 +1558,10 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               style: AppText.caption.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
-            if (_drafts > 0) ...[
+            // The draft review is about one repertoire's root. A combined
+            // sitting has ids and no root, so the offer is left out rather
+            // than pointed at a root that is not there.
+            if (_drafts > 0 && widget.rootFen != null) ...[
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Još $_drafts nepotvrđenih nacrta čeka u ovom repertoaru.',
@@ -1633,6 +1618,137 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _BranchPickerSheet extends StatefulWidget {
+  const _BranchPickerSheet({required this.branches, required this.isCombined});
+  final List<DrillBranch> branches;
+  final bool isCombined;
+
+  @override
+  State<_BranchPickerSheet> createState() => _BranchPickerSheetState();
+}
+
+class _BranchPickerSheetState extends State<_BranchPickerSheet> {
+  final Set<String> _selectedIds = {};
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxs),
+            // `Wrap`: a title and a button with a count in it are wider than
+            // 328 dp together, and a release build clips rather than warns.
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: AppSpacing.sm,
+              children: [
+                Text('Šta vežbate?',
+                    style: AppText.bodyBold
+                        .copyWith(color: context.colors.textPrimary)),
+                if (_selectedIds.isNotEmpty)
+                  TextButton(
+                    onPressed: () {
+                      final selectedBranches = widget.branches
+                          .where((b) => _selectedIds.contains(b.id))
+                          .toList();
+                      Navigator.pop(
+                          context, (branches: selectedBranches, spar: false));
+                    },
+                    child: Text('Vežbaj izabrane (${_selectedIds.length})'),
+                  ),
+              ],
+            ),
+          ),
+          // Said where the choice is made and before anything is ticked: the
+          // reader who has just picked two openings may reasonably expect two
+          // queues, and the schedule is one.
+          if (widget.isCombined)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.xs),
+              child: Text(
+                'Pozicija koju oba otvaranja dostižu pita se jednom.',
+                style: AppText.caption
+                    .copyWith(color: context.colors.textSecondary),
+              ),
+            ),
+          ListTile(
+            dense: true,
+            leading: Icon(Icons.all_inclusive,
+                size: 18, color: context.colors.accent),
+            title: Text('Ceo repertoar', style: AppText.bodyLarge),
+            subtitle: Text('Sve grane pomešane, redom kojim raspored traži.',
+                style: AppText.micro.copyWith(color: context.colors.textMuted)),
+            onTap: () => Navigator.pop(
+                context, (branches: const <DrillBranch>[], spar: false)),
+          ),
+          const Divider(height: 1),
+          Flexible(
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                // Keyed by [id] and never by [key]: two openings that both
+                // start 1.e4 c5 share a key, and a list keyed by it drops one
+                // of them while the count at the bottom still looks right.
+                for (final branch in widget.branches)
+                  ListTile(
+                    key: ValueKey(branch.id),
+                    dense: true,
+                    // The checkbox gathers a session; the row still starts
+                    // this branch on its own, the way it always has.
+                    leading: Checkbox(
+                      value: _selectedIds.contains(branch.id),
+                      onChanged: (on) => setState(() {
+                        if (on == true) {
+                          _selectedIds.add(branch.id);
+                        } else {
+                          _selectedIds.remove(branch.id);
+                        }
+                      }),
+                    ),
+                    title: Wrap(
+                      spacing: AppSpacing.sm,
+                      children: [
+                        Text(branch.san, style: AppText.bodyLarge),
+                        if (branch.repertoire != null)
+                          Text(
+                            branch.repertoire!.name,
+                            style: AppText.bodyLarge
+                                .copyWith(color: context.colors.textMuted),
+                          ),
+                      ],
+                    ),
+                    subtitle: Text(
+                      'dospelo ${branch.due} od ${branch.positions}'
+                      '${branch.known > 0 ? " · zna ${branch.known}" : ""}',
+                      style: AppText.micro
+                          .copyWith(color: context.colors.textMuted),
+                    ),
+                    // The run, beside the queue rather than instead of it.
+                    trailing: IconButton(
+                      tooltip: 'Odigraj granu do kraja',
+                      icon: const Icon(Icons.play_circle_outline),
+                      onPressed: () => Navigator.pop(
+                          context, (branches: [branch], spar: true)),
+                    ),
+                    onTap: () => Navigator.pop(
+                        context, (branches: [branch], spar: false)),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
       ),
     );
   }
