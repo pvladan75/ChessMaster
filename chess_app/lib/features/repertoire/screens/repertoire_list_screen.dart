@@ -32,10 +32,12 @@ class RepertoireListScreen extends StatefulWidget {
 
 class _RepertoireListScreenState extends State<RepertoireListScreen> {
   late final RepertoireApiService _api = widget.api ?? RepertoireApiService();
-
+  bool _loading = true;
   List<RepertoireSummary> _items = const [];
   RepertoireUnconfirmedCounts? _counts;
-  bool _loading = true;
+
+  final Set<int> _selectedIds = {};
+  bool get _isSelectionMode => _selectedIds.isNotEmpty;
 
   @override
   void initState() {
@@ -477,6 +479,54 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     ));
   }
 
+  /// Ticking a card, and the one thing that cannot be ticked with it.
+  ///
+  /// One sitting asks about one side, so a repertoire of the other colour is
+  /// refused with a sentence rather than silently ignored. The refusal is
+  /// decided first and said last: a message must never be able to take down
+  /// the thing it reports on.
+  void _toggleSelection(RepertoireSummary item) {
+    if (_selectedIds.contains(item.id)) {
+      setState(() => _selectedIds.remove(item.id));
+      return;
+    }
+    if (_selectedIds.isNotEmpty) {
+      final first = _items.firstWhere((e) => e.id == _selectedIds.first);
+      if (first.color != item.color) {
+        AppFeedback.error(
+            context, 'Jedna sesija može da pita samo o jednoj strani.');
+        return;
+      }
+    }
+    setState(() => _selectedIds.add(item.id));
+  }
+
+  /// Several openings, one sitting.
+  ///
+  /// No root goes with it: the server reads each door's root, gate and breadth
+  /// from its own row, which is why [ids] and [rootFen] are alternatives rather
+  /// than parallel parameters.
+  void _startCombinedSession() {
+    if (_selectedIds.isEmpty) return;
+    final selectedItems =
+        _items.where((e) => _selectedIds.contains(e.id)).toList();
+    final first = selectedItems.first;
+
+    Navigator.of(context)
+        .push(MaterialPageRoute(
+      builder: (_) => RepertoireDrillScreen(
+        name: 'Kombinovano',
+        color: first.color,
+        minRating: AppSettingsService.instance.repertoireMinRating,
+        api: widget.api,
+        ids: _selectedIds.toList(),
+      ),
+    ))
+        .then((_) {
+      if (mounted) setState(() => _selectedIds.clear());
+    });
+  }
+
   void _drill(RepertoireSummary item, {String? from}) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => RepertoireDrillScreen(
@@ -564,11 +614,49 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _create,
-        icon: const Icon(Icons.add),
-        label: const Text('Novi'),
-      ),
+      floatingActionButton: _isSelectionMode
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _create,
+              icon: const Icon(Icons.add),
+              label: const Text('Novi'),
+            ),
+      // A bar that grows with its content rather than a `BottomAppBar`, whose
+      // height is fixed at 80: two buttons do not fit on one line at 360 dp,
+      // and the second run was laid out four pixels below the bottom of the
+      // screen — off it entirely in a release build, which paints no stripes.
+      bottomNavigationBar: _isSelectionMode
+          ? Material(
+              color: context.colors.surface,
+              elevation: 8,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => setState(() => _selectedIds.clear()),
+                        icon: const Icon(Icons.close),
+                        label: Text('Odustani',
+                            style: AppText.bodyBold
+                                .copyWith(color: context.colors.textSecondary)),
+                      ),
+                      FilledButton(
+                        onPressed: _startCombinedSession,
+                        child: Text('Vežbaj izabrane (${_selectedIds.length})'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : null,
       body: SafeArea(child: _buildBody(context)),
     );
   }
@@ -623,10 +711,15 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         return Card(
           shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
           child: ListTile(
-            leading: Icon(
-              item.forWhite ? Icons.circle_outlined : Icons.circle,
-              color: context.colors.textSecondary,
-            ),
+            leading: _isSelectionMode
+                ? Checkbox(
+                    value: _selectedIds.contains(item.id),
+                    onChanged: (_) => _toggleSelection(item),
+                  )
+                : Icon(
+                    item.forWhite ? Icons.circle_outlined : Icons.circle,
+                    color: context.colors.textSecondary,
+                  ),
             title: Text(item.name, style: AppText.bodyBold),
             subtitle: Text(
               '${item.forWhite ? "Beli" : "Crni"} · '
@@ -734,7 +827,16 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                 ),
               ],
             ),
-            onTap: () => _open(item),
+            onTap: () {
+              if (_isSelectionMode) {
+                _toggleSelection(item);
+              } else {
+                _open(item);
+              }
+            },
+            onLongPress: () {
+              if (!_isSelectionMode) _toggleSelection(item);
+            },
           ),
         );
       },

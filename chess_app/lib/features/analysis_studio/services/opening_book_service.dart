@@ -73,6 +73,9 @@ class OpeningBookService {
   OpeningBookService._();
   static final OpeningBookService instance = OpeningBookService._();
 
+  @visibleForTesting
+  OpeningBookService.test();
+
   List<OpeningBookEntry> _entries = [];
   final Map<String, OpeningBookEntry> _fenIndex = {};
   bool _loaded = false;

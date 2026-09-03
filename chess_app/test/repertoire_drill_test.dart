@@ -80,10 +80,11 @@ class _FakeApi extends RepertoireApiService {
   @override
   Future<List<DrillBranch>> drillBranches({
     required String color,
-    required String rootFen,
+    String? rootFen,
     List<String> rootPath = const [],
     int? minRating,
     String? gateUci,
+    List<int>? ids,
   }) async {
     branchCalls += 1;
     return branches;
@@ -92,7 +93,7 @@ class _FakeApi extends RepertoireApiService {
   @override
   Future<DrillLine?> drillLine({
     required String color,
-    required String rootFen,
+    String? rootFen,
     List<String> rootPath = const [],
     int? minRating,
     String? fromFen,
@@ -101,6 +102,7 @@ class _FakeApi extends RepertoireApiService {
     List<String> exclude = const [],
     bool ahead = false,
     String? gateUci,
+    List<int>? ids,
   }) async {
     lineCalls += 1;
     lastFromFen = fromFen;
@@ -915,6 +917,8 @@ void main() {
     _FakeApi withBranch({List<String> dueKeys = const []}) => _FakeApi()
       ..branches = [
         DrillBranch(
+          id: 'test-id',
+          key: branchKey,
           fen: branchFen,
           san: 'e4 c5',
           path: const ['e4', 'c5'],
@@ -1020,6 +1024,8 @@ void main() {
       final api = _FakeApi(outcomeFor: 'unprepared')
         ..branches = [
           const DrillBranch(
+            id: 'test-id-2',
+            key: 'test-key',
             fen: branchFen,
             san: 'e4 c5',
             path: ['e4', 'c5'],
