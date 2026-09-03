@@ -19,7 +19,7 @@ Poslednje ažuriranje: 3.9.2026.
 
 ---
 
-## Repertoar, druga iteracija — faze 0–3 gotove, faza 4 spremna
+## Repertoar, druga iteracija — faze 0–4 gotove, ostaje provera uživo
 
 Dogovor je [PLAN-REPERTOAR-2.md](PLAN-REPERTOAR-2.md): devet zahteva, pet faza.
 Stanje na 3.9.2026, sve na `master`:
@@ -30,18 +30,17 @@ Stanje na 3.9.2026, sve na `master`:
 | 1 | ugovor: `repertoires.breadth`, `/unconfirmed`, `/unconfirmed/count`, `/alternative`, `ids` na `/drill/line` i `/drill/branches` | **Urađeno**, zamrznuto u `3691e8f` |
 | 2 | poslednji potez na tabli i ECO traka | **Urađeno**, `098e786` |
 | 3 | pregled nacrta, značka na kartici, širina kičme | **Urađeno**, `936d202` |
-| 4 | „Izdvoji u novo otvaranje" i kombinovani dril | **Brief napisan, batch nije pokrenut** |
+| 4 | „Izdvoji u novo otvaranje" i kombinovani dril | **Urađeno**, batch ocenjen i dovršen rukom |
 | 5 | provera uživo i unos u `TODO-provera.md` | Nije rađeno |
 
 **Ništa od faza 2–4 nije gledano kako radi.** Testovi prolaze; to nije isto.
 Faza 5 je upravo to i tek predstoji.
 
-Faze 2 i 3 radio je radni agent (Gemini) po brief-u; ocenjivanje je mašinsko,
+Faze 2, 3 i 4 radio je radni agent (Gemini) po brief-u; ocenjivanje je mašinsko,
 harness je `D:\Projekti\mislisha-test\orchestrator` (nije u gitu — pročitati
-njegov `HANDOFF.md` prvo). Komanda za fazu 4 i šta u njoj treba proveriti
-rukom stoje na vrhu tog fajla.
+njegov `HANDOFF.md` prvo).
 
-Dve stvari koje su prošle sve kapije i našle se tek čitanjem diffa, vredne
+Tri stvari koje su prošle sve kapije i našle se tek čitanjem diffa, vredne
 pamćenja jer se ponavljaju:
 
 * **Faza 2:** traka sa imenom otvaranja bila je montirana sa `key` koji se menja
@@ -52,6 +51,16 @@ pamćenja jer se ponavljaju:
   na prvi dodir na telefonu, a svi testovi su bili zeleni, jer `MockClient`
   odgovara na šta god dobije i nikad ne gleda URL.
   `test/repertoire_api_urls_test.dart` sada to čita iz izvora.
+* **Faza 4:** `ids` je bio uredno provučen kroz servis i nikad poslat. Spisak je
+  gurao ekran drila sa `rootFen: null`, a `_loadNext` i `_pickBranch` su čitali
+  samo koren — pa je kombinovana sesija propadala na dril cele boje, a list
+  grana nije mogao ni da se otvori. Dva otvaranja su drilovala sve crne
+  pozicije koje čovek ima. Osam od devet kapija je bilo zeleno; oba nova testa
+  su lagala jer su lažirala API **iznad** žice. Uz to: `widget.api!` tamo gde
+  konvencija fajla dvesta linija iznad glasi `widget.api ?? ...`, a ruter pravi
+  `const RepertoireListScreen()` — dugme je pucalo na prvi dodir van testa.
+  **Pouka koja se ponavlja treći put: lažirati klijent, ne metodu.** Testovi
+  koji su ovo uhvatili gledaju URL koji je `MockClient` stvarno dobio.
 
 ---
 
