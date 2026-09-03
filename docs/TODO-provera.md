@@ -3300,7 +3300,7 @@ podešavanje nego kao izgubljena funkcija.
 
 Sledeće tri stavke su dopisane 3.9.2026, posle nalaza vlasnika da AI Studio crta
 strelice motora nad tablom čiji meni nudi samo koordinate. Kad se to popravilo
-(`e3a1c94`), ispalo je da isto važi i za sobu — brief faze 1 je rekao „tačno tri
+(`526bcb5`), ispalo je da isto važi i za sobu — brief faze 1 je rekao „tačno tri
 ekrana" i nabrojao ih, a spisak u prozi ne može da primeti četvrti ekran.
 
 11. [ ] **AI Studio ima prekidače.** Otvoriti zadatak sa uključenom „Prikaži
