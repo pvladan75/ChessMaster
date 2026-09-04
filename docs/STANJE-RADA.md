@@ -424,6 +424,33 @@ Dokazan sa tri mutacije, uključujući onu u kojoj čuvar ne pročita ništa.
 Nacrti i dalje ne ulaze u vežbu — nacrt nije odluka i dril ga ne pita. To je
 zasebno pravilo i nije dirano.
 
+## Tri prijave sa provere 4.9.2026 uveče — odgovoreno, nije rađeno
+
+**Prikaz evaluacije se ujednačava po uzoru na „Pitaj motor" u repertoaru.**
+Vlasnik je 4.9.2026 izabrao taj oblik kao željeni; „Prikaži evaluaciju" postoji
+u više oblika (AI Studio, soba, Analysis Studio) i treba da se svede na taj.
+Odluka je doneta, posao nije počet.
+
+**Redosled kroz nepotvrđene poteze ide po dubini, a treba po liniji.**
+Vlasnikovim rečima: „lakše bi mi bilo da ide po jednoj liniji prvo, jer mogu da
+pratim kontinuitet". To je tačno ono što `walkthroughOrder` već radi i što je
+testirano — ali redosled dolazi sa servera (`unconfirmedPositions`), pa
+popravka ide tamo, a ne u novo sortiranje u klijentu. **Ugovor, dakle vodećeg.**
+
+**Skener pozicija radi na fontu, ne na slici.** Vlasnik je pokušao da skenira
+tuđe PDF-ove i nije uspeo, uz pitanje mora li mapa po knjizi. Odgovor je u
+`services/positionScanner/README.md`: mape se biraju **po azbuci, ne po imenu
+fonta**, pa nova knjiga sa poznatom azbukom prolazi bez ijedne izmene; nepoznata
+azbuka traži `derive.mjs` + `identify.mjs`, što je minut posla i traži da knjiga
+ima odeljak sa rešenjima. Poznate su dve azbuke (`SKAK_NEW`, `TACTICS_COURSE`),
+i druga je **nedovršena**.
+
+PDF u kome su dijagrami **slike** ne može da prođe ovim putem uopšte — to je
+drugi uređaj (prepoznavanje sa slike), verovatnoćni je, i tiho bi davao FEN koji
+izgleda ispravno. Skener je namerno pisan suprotno: nepoznat glif je greška, ne
+prazno polje. Ako se ikad radi, ide kao zaseban put sa svojom oznakom pouzdanosti
+i obaveznom potvrdom trenera — nikad kao tihi nastavak ovog.
+
 ## Otvorena pitanja dizajna
 
 Ona koja tek treba odlučiti stoje u [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md),
