@@ -3017,8 +3017,7 @@ korisnici ovog servera — zato drugi repertoar ne sme da oseti tuđi izbor.
 1. [ ] **Širina se pamti.** Napraviti kičmu sa „Široko (95%)", ugasiti
    aplikaciju i otvoriti je ponovo: stablo i radar i dalje računaju 95%. Ranije
    se ovakav izbor vraćao na 80% sledeće sesije, bez ijedne reči na ekranu.
-2. [ ] **Tri širine daju tri različita broja.** Isti repertoar sa „Samo glavna
-   linija", „Uobičajeno (80%)" i „Široko (95%)" — broj u redu za odlučivanje i
+2. [ ] **Tri širine daju tri različita broja.** Isti repertoar sa „Samo glavni odgovor", „Uobičajeno (80%)" i „Široko (95%)" — broj u redu za odlučivanje i
    pokrivenost moraju stvarno da se razlikuju.
 3. [ ] **Tuđa širina se ne oseća.** Drugi repertoar iste boje ostaje na svojoj
    širini pošto se prvom promeni. Ako se pomeri i on, negde se piše u zajedničku
@@ -3092,8 +3091,7 @@ je postojalo; red za njega nije.
 1. [ ] **Značka na kartici.** Repertoar sa nacrtima ima žutu pilulu sa brojem i
    ikonicom; bez nacrta je nema.
 2. [ ] **Dodir na značku vodi na prvu nepotvrđenu poziciju**, ne na koren.
-3. [ ] **Traka u izgradnji** piše „N nepotvrđenih u grafu" i nudi „Pregledaj
-   nacrt".
+3. [ ] **Traka u izgradnji** piše „N nepotvrđenih u grafu" i nudi „Pregledaj nepotvrđene".
 4. [ ] **List za pregled** ima naslov „Pregled nacrta (N ostalo)", predlog
    („Predlog: <potez>") i tri odgovora: potvrdi, „Odigraj drugi potez",
    „Preskoči (iseci granu)".
@@ -3197,8 +3195,7 @@ URL. To je ista pouka kao `ids` iz faze 4, po četvrti put.
    je bio ispravan, a nijedan poziv nije slao `breadth`, pa je server uvek
    računao na 80%. Mereno na Benoniju: `main` crta 3 protivnikova poteza,
    `standard` 23, `broad` 48.
-5. [ ] **Dijalog kičme se otvara na već izabranoj širini.** Repertoar na „Samo
-   glavna linija" → „Predloži glavnu liniju" → mora da bude štiklirana glavna linija.
+5. [ ] **Dijalog kičme se otvara na već izabranoj širini.** Repertoar na „Samo glavni odgovor" → „Predloži glavnu liniju" → mora da bude štiklirana glavna linija.
    Ranije je uvek pisalo „Uobičajeno (80%)", pa je svako otvaranje dijaloga
    tiho vraćalo repertoar na 80%.
 6. [ ] **Prazan red nije ćorsokak.** Otvoriti repertoar u kome je red za
@@ -3398,8 +3395,7 @@ jer je jedan raniji čuvar u ovom fajlu prolazio i sa isečenom zaštitom.
    još 1 pozicija.") **izgovara se** i ima zvučnik pored sebe. Ranije se videla
    kao siv tekst i nikad se nije čula.
 4. [ ] **„Nema više nepotvrđenih poteza" je istina kad se kaže.** Repertoar čija
-   širina ne dohvata sopstvene nacrte (napravi kičmu široko, pa prebaci na „Samo
-   glavna linija") na „Pregledaj nepotvrđene" mora da kaže koliko ih ima u grafu, a ne
+   širina ne dohvata sopstvene nacrte (napravi kičmu široko, pa prebaci na „Samo glavni odgovor") na „Pregledaj nepotvrđene" mora da kaže koliko ih ima u grafu, a ne
    da ih nema. Mereno uživo 4.9.2026 na „Druga": 21 nacrt, walk ih je video 0.
 5. [ ] **Dijalog kaže čemu širina pripada.** „Predloži glavnu liniju odavde" →
    naslov nad tri izbora je „Koliko odgovora spremamo", a ispod njega stoji da
