@@ -224,6 +224,54 @@ Tri odluke koje faza 4 nasleđuje, sve tri vlasnikove:
   telefonu ostaje kompaktni raspored bez stabla.
 * Kontrast rupe u tamnoj temi — rešeno pre faze 4, odeljak ispod.
 
+### Strelice na račvanju i povratak na račvanje — 4.9.2026
+
+Vlasnik je gledao turu i tražio dvoje: strelice za protivnikove odgovore tamo
+gde se linije račvaju, i **povratak na poziciju iz koje se račva** pre nego što
+krene sledeća linija, da bi je prepoznao.
+
+**Strelice** idu kroz `EngineArrow`, isto kao na ekranu za izgradnju, pa
+debljina poteza nosi rang kao i boja. Tri pravila koja se razlikuju od
+`_shareArrows`: rang je **redosled ture**, ne `share` (inače najdeblja strelica
+nije prvi čip); nema praga od 2%, jer tura hoda samo kroz ono što repertoar
+zaista sadrži; rupa nosi `?` u znački, nikad boju. Tavanica od četiri ostaje.
+
+**Povratak** je nov pojam: `walkthroughBeats` pravi listu *taktova* od liste
+stajanja — svako stajanje jednom, plus povratak na račvanje pred svaki uspon.
+`walkthroughOrder` nije diran, i test tvrdi da taktovi ne preuređuju stajanja.
+Kartica tada kaže „Videli smo liniju posle e5. Sada ide e6." i to se izgovara
+uvek, jer je to jedini takt koji postoji da čitalac ne bi bio izgubljen.
+
+Tri greške nađene dok se ovo pisalo, i sve tri su isti oblik — **indeks kome se
+promenilo značenje**:
+
+* `_onSelect` i `_syncBoard` su ograničavali i indeksirali `_index` po
+  `_stops`, a on sada broji taktove. Ima ih više nego stajanja, pa je tura
+  **stala na poslednjem usponu** — dugme napred nije radilo ništa, tiho — a pre
+  toga je tabla učitavala stajanje koje slučajno deli broj sa taktom, dakle
+  **pogrešnu poziciju**, dok su kartica, strelice i rečenica bili tačni.
+  Sve što je ekran činilo tačnim je bilo pokriveno; jedino što je bilo
+  pogrešno nije.
+* Na taktu povratka je traka pitala „odavde ide više linija — kojom?" odmah
+  pošto je tura rekla kojom ide. `forwardBranches` (pitanje trake) je zato
+  razdvojen od `replyBranches` (spisak na kartici).
+* Test iz faze 4 je posle uvođenja taktova **prolazio iz pogrešnog razloga**:
+  čitao je `stops[currentIndex]` sa brojem takta. Prepisan je da tvrdi kroz
+  kursor.
+
+I jedan test moj: „jedan odgovor nije račvanje" je stajao na poziciji ispod
+koje je *moj* potez, pa je dokazivao da pozicija bez protivnikovih odgovora ne
+crta ništa — što niko nije ni sumnjao. Uklanjanje pravila ga je ostavljalo
+zelenim. Sada se dohoda do `d4`, gde postoji tačno jedan odgovor.
+
+**Otvoreno, nađeno usput i namerno nepopravljeno:** `board_arrows_reach_test`
+je pojačan da hvata i drugu polovinu istog kvara — prekidač za sloj koji ekran
+nikad ne crta. Tri ekrana ga imaju: Analysis Studio, AI Studio i
+`chess_game_screen`, svi kroz staro `arrows: true`. Nije dirano jer bi skinulo
+po dva prekidača sa tri ekrana koje niko nije tražio, a podešavanja iza njih
+važe za celu aplikaciju. Nov ekran koji imenuje prekidače pojedinačno je
+pokriven.
+
 ### Faza 5: tura govori, i uglavnom ćuti — 4.9.2026
 
 `walkthroughLine` (`services/walkthrough_speech.dart`) vraća **dve** stvari:

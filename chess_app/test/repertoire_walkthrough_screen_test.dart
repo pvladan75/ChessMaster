@@ -5,6 +5,7 @@ import 'package:http/testing.dart';
 
 import 'package:chess_app/features/repertoire/screens/repertoire_walkthrough_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
+import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/speakable_info.dart';
 
 class _FakeApi extends RepertoireApiService {
@@ -167,6 +168,15 @@ void main() {
 
     expect(find.text('Vaš potez — glavna linija.'), findsOneWidget);
 
+    // Nf3 ends the first line, so the next press is the tour coming back to
+    // e4 rather than a move. Asserted here rather than skipped past: this walk
+    // is the closest thing in the suite to what the reader actually presses.
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+
+    expect(
+        find.text('Videli smo liniju posle e5. Sada ide e6.'), findsOneWidget);
+
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
@@ -181,6 +191,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Na d5, 60% partija, nemate odgovor.'), findsOneWidget);
+
+    // And the second climb, back to the same fork for the last reply.
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+
+    expect(
+        find.text('Videli smo liniju posle e6. Sada ide c5.'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
@@ -358,6 +375,92 @@ void main() {
     await tester.tap(find.widgetWithText(ActionChip, 'e5 55%'));
     await tester.pumpAndSettle();
     expect(speakable().autoSpeak, isFalse);
+  });
+
+  testWidgets('at a fork the replies are drawn on the board, in tour order',
+      (tester) async {
+    // Rank carries stroke width as well as colour, so rank 1 is the thickest
+    // arrow. It has to be the reply the tour takes first, or the board and the
+    // chips would be telling the reader two different things about where this
+    // line goes next.
+    final api = _FakeApi(treeToReturn: buildTestTree());
+    await pump(tester, api, size: const Size(1400, 900));
+
+    final board = tester
+        .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
+    final arrows = board.engineArrows;
+
+    expect(arrows.length, 3, reason: 'e5, e6 and c5 out of e4');
+    expect(arrows[0].rank, 1);
+    expect(arrows[0].evalText, '55%');
+    expect(arrows[1].evalText, '14%');
+    // The hole says so with the tree's own glyph, never with a colour.
+    expect(arrows[2].evalText, '31% ?');
+
+    // And the order is the tour's, which is not the order by share: e6 at 14%
+    // comes before c5 at 31% because the reader has work under it.
+    expect(arrows.map((a) => a.rank), [1, 2, 3]);
+  });
+
+  testWidgets('one reply is not a fork, and draws nothing', (tester) async {
+    final api = _FakeApi(treeToReturn: buildTestTree());
+    await pump(tester, api, size: const Size(1400, 900));
+
+    // Walked all the way to `d4`, which has exactly **one** reply under it:
+    // the hole `d5`. The obvious place to stand for this is `e5`, and the
+    // first version of this test did — but the only move under `e5` is one of
+    // the reader's own, so it proved that a position with *no* opponent
+    // replies draws nothing, which nobody doubted. Dropping the fork rule
+    // outright left it green. The one-reply case has to be walked to.
+    await tester.tap(find.widgetWithText(ActionChip, 'e5 55%'));
+    await tester.pumpAndSettle();
+    // Nf3, the return to e4, e6, then d4.
+    for (var i = 0; i < 4; i++) {
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Vaš potez — glavna linija.'), findsOneWidget);
+
+    final board = tester
+        .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
+    expect(board.engineArrows, isEmpty,
+        reason: 'the board is about to move there anyway');
+  });
+
+  testWidgets('the end of a line returns to the fork before the next one',
+      (tester) async {
+    // The owner's request, as a guard: after the last move of a line the tour
+    // stands on the fork again — board and all — and says which line it has
+    // just shown and which it is about to.
+    final api = _FakeApi(treeToReturn: buildTestTree());
+    await pump(tester, api, size: const Size(1400, 900));
+
+    // e4 -> e5 -> Nf3 is the first line; Nf3 ends it.
+    await tester.tap(find.widgetWithText(ActionChip, 'e5 55%'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+    expect(find.text('Vaš potez — glavna linija.'), findsOneWidget);
+
+    // One more press ends the line and comes back to e4.
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+
+    expect(
+        find.text('Videli smo liniju posle e5. Sada ide e6.'), findsOneWidget);
+    // Standing at the fork means the fork's own replies are on the board.
+    final board = tester
+        .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
+    expect(board.engineArrows.length, 3);
+
+    // And the board is actually *on* the fork. Asserted because the first
+    // version of this screen was not: it indexed the stop list with a beat
+    // number, so the pieces showed a position out of another line while the
+    // card, the arrows and the sentence were all correct. Everything that made
+    // the screen look right was covered; the one thing that was wrong was not.
+    expect(board.controller.getFen(),
+        startsWith('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR'),
+        reason: 'the board stands on e4, not on the line just finished');
   });
 
   testWidgets('The server answering null shows the error', (tester) async {

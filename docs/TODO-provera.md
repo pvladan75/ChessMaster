@@ -3556,3 +3556,31 @@ kartice).
    mesto na kome je `stop()` ranije obarao proces.)
 7. [ ] **Sa isključenim govorom se ne gubi ništa** osim zvuka — sve rečenice su
    i dalje na kartici.
+
+
+## 100. Strelice i povratak na račvanje u turi — 4.9.2026, nije viđeno uživo
+
+Traženo pošto je vlasnik gledao turu kako radi.
+
+1. [ ] **Na račvanju stoje strelice.** Na svom potezu ispod kog protivnik ima
+   više odgovora: strelice na tabli, sa procentom u znački. Najdeblja je onaj
+   odgovor koji je **prvi čip** na kartici — ne onaj sa najvećim procentom, ako
+   se to dvoje razlikuje.
+2. [ ] **Rupa se na strelici poznaje bez boje.** Značka rupe ima `?` pored
+   procenta.
+3. [ ] **Jedan odgovor ne dobija strelicu.** Tabla ionako ide tamo sledećim
+   pritiskom.
+4. [ ] **Kraj linije vraća na račvanje.** Posle poslednjeg poteza linije jedan
+   pritisak napred vraća **tablu** na poziciju iz koje se račva, sa strelicama,
+   i kartica kaže „Videli smo liniju posle X. Sada ide Y." Sledeći pritisak
+   ulazi u novu liniju. Proveriti da je **tabla stvarno na toj poziciji**, ne
+   samo tekst — figure moraju da budu tamo gde su bile.
+5. [ ] **Nazad poništava tačno taj korak.** Sa takta povratka jedan nazad vraća
+   na poslednji potez prethodne linije.
+6. [ ] **Na taktu povratka traka ne pita „kojom linijom".** Tura je upravo
+   rekla kojom ide; pritisak napred mora da ide tamo, a ne da otvori list.
+7. [ ] **Tura dolazi do kraja.** Proći celu turu do poslednjeg poteza. Ako
+   dugme napred u nekom trenutku prestane da radi, to je ovaj kvar ponovo.
+8. [ ] **Meni na tabli nudi samo prekidač koji radi.** „Prikaz na tabli" na
+   ovom ekranu ima „Koordinate" i „Strelice sa statistikom" — i ništa više.
+   Isključivanje tog prekidača skida strelice.

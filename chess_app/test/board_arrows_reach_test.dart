@@ -149,6 +149,12 @@ void main() {
 /// passes. The property itself — arrows stop being drawn — is proved by the
 /// widget tests above, and only for the build screen. A screen added tomorrow
 /// gets the loud half of this check and not the quiet one.
+String _flag(String setting) => const {
+      'showChosenMoveArrow': 'chosenMove',
+      'showStatisticsArrows': 'statistics',
+      'showEngineArrows': 'engine',
+    }[setting]!;
+
 void mainArrowSwitchGuard() {
   const receivers = [
     'widgets/board_overlay_painter.dart',
@@ -165,7 +171,23 @@ void mainArrowSwitchGuard() {
       if (receivers.contains(rel)) continue;
       final flat = f.readAsStringSync().replaceAll(RegExp(r'\s+'), ' ');
       if (!RegExp(r'engineArrows: (?!const \[\])').hasMatch(flat)) continue;
-      final reads = flat.contains('showEngineArrows');
+      // Which layers this screen actually draws, read from the settings it
+      // consults. Widened from „does the file mention showEngineArrows" on
+      // 4.9.2026, when the walkthrough screen started drawing the book's
+      // shares: it offers no engine and never will, so the old rule could only
+      // be satisfied by reading a setting it does not use — and the menu would
+      // then carry two switches that change nothing on that screen, which is
+      // the same defect from the other side.
+      const layers = {
+        'showChosenMoveArrow': 'Strelice odabranog poteza',
+        'showStatisticsArrows': 'Strelice sa statistikom',
+        'showEngineArrows': 'Strelice motora',
+      };
+      final drawn = [
+        for (final setting in layers.keys)
+          if (flat.contains(setting)) setting,
+      ];
+      final reads = drawn.isNotEmpty;
       // Every menu on the screen, not "the file mentions it somewhere". The
       // first version of this guard checked the whole file, and passed a
       // mutation that stripped the switches off one of the AI Studio's two
@@ -189,13 +211,46 @@ void mainArrowSwitchGuard() {
         }
         if (end > open) menus.add(flat.substring(open, end));
       }
-      final bare = menus.where((m) => !m.contains('arrows: true')).length;
-      if (!reads || menus.isEmpty || bare > 0) {
+      // A menu offers a layer when it says so outright or takes all three.
+      bool offers(String menu, String setting) =>
+          menu.contains('arrows: true') ||
+          menu.contains('${_flag(setting)}: true');
+
+      final unswitched = [
+        for (final setting in drawn)
+          if (menus.every((m) => !offers(m, setting))) layers[setting]!,
+      ];
+      // And the other half of the same rule: a switch for a layer this screen
+      // never draws is a control the reader can work with no effect on screen.
+      //
+      // Checked only on menus written in the precise form. `arrows: true` is
+      // the old shorthand for all three, and three screens still carry it
+      // while drawing only the engine's — the Analysis Studio, the AI Studio
+      // and the game screen. That is the same defect, and it is **not** fixed
+      // here: it would take two switches off three screens nobody asked about,
+      // and the settings behind them are app-wide, so a reader may well be
+      // used to finding them there. It is written down in
+      // `docs/STANJE-RADA.md` instead. What this rules out is a *new* screen
+      // naming its switches and naming them wrong.
+      final inert = [
+        for (final setting in layers.keys)
+          if (!drawn.contains(setting) &&
+              menus.any((m) =>
+                  !m.contains('arrows: true') &&
+                  m.contains('${_flag(setting)}: true')))
+            layers[setting]!,
+      ];
+      if (!reads ||
+          menus.isEmpty ||
+          unswitched.isNotEmpty ||
+          inert.isNotEmpty) {
         offenders.add('$rel: '
-            '${reads ? '' : 'never reads showEngineArrows; '}'
-            '${menus.isEmpty ? 'no BoardViewMenu at all' : ''}'
-            '${bare > 0 ? '$bare of ${menus.length} menus without '
-                'arrows: true' : ''}');
+            '${reads ? '' : 'draws arrows but reads no arrow setting; '}'
+            '${menus.isEmpty ? 'no BoardViewMenu at all; ' : ''}'
+            '${unswitched.isEmpty ? '' : 'drawn with no switch: '
+                '$unswitched; '}'
+            '${inert.isEmpty ? '' : 'switch for a layer it never draws: '
+                '$inert'}');
       }
     }
     expect(offenders, isEmpty,

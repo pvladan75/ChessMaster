@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/features/repertoire/models/walkthrough_cursor.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
+import 'package:chess_app/features/repertoire/services/walkthrough_beats.dart';
 import 'package:chess_app/features/repertoire/services/walkthrough_order.dart';
 
 RepertoireTree buildTestTree() {
@@ -97,6 +98,7 @@ void main() {
     final cursor = WalkthroughCursor(
       tree: tree,
       stops: stops,
+      beats: walkthroughBeats(stops),
       index: currentIndex,
       onSelect: (i) => currentIndex = i,
     );
@@ -106,20 +108,54 @@ void main() {
     expect(currentIndex, 0);
 
     final cursorAt0 = WalkthroughCursor(
-        tree: tree, stops: stops, index: 0, onSelect: (i) => currentIndex = i);
+        tree: tree,
+        stops: stops,
+        beats: walkthroughBeats(stops),
+        index: 0,
+        onSelect: (i) => currentIndex = i);
     cursorAt0.next(); // 1: e4 e5
     expect(currentIndex, 1);
 
     final cursorAt1 = WalkthroughCursor(
-        tree: tree, stops: stops, index: 1, onSelect: (i) => currentIndex = i);
+        tree: tree,
+        stops: stops,
+        beats: walkthroughBeats(stops),
+        index: 1,
+        onSelect: (i) => currentIndex = i);
     cursorAt1.next(); // 2: e4 e5 Nf3
     expect(currentIndex, 2);
 
+    // The climb is now two beats, and the first of them is the whole point:
+    // the tour comes back to the fork and shows it before another line starts
+    // out of it. Asserted through the cursor rather than by indexing `stops`
+    // with a beat number — which is what this test used to do, and it went on
+    // passing after the beat list was introduced because 3 is a valid index
+    // into both lists and means two different things.
+    final beats = walkthroughBeats(stops);
     final cursorAt2 = WalkthroughCursor(
-        tree: tree, stops: stops, index: 2, onSelect: (i) => currentIndex = i);
-    cursorAt2.next(); // 3: e4 e6 (climb back to e4 and take e6)
-    expect(currentIndex, 3);
-    expect(stops[currentIndex].path, ['e4', 'e6']);
+        tree: tree,
+        stops: stops,
+        beats: beats,
+        index: 2,
+        onSelect: (i) => currentIndex = i);
+    cursorAt2.next();
+    expect(beats[currentIndex].returning, isTrue,
+        reason: 'the end of a line is followed by a return to the fork');
+    expect(beats[currentIndex].stopIndex, 0, reason: 'the fork is e4');
+    expect(beats[currentIndex].done?.san, 'e5');
+    expect(beats[currentIndex].next?.san, 'e6');
+
+    final atFork = WalkthroughCursor(
+        tree: tree,
+        stops: stops,
+        beats: beats,
+        index: currentIndex,
+        onSelect: (i) => currentIndex = i);
+    expect(atFork.currentFen, stops[0].move.fen,
+        reason: 'the board stands on the fork, not on the line just finished');
+    atFork.next();
+    expect(beats[currentIndex].returning, isFalse);
+    expect(stops[beats[currentIndex].stopIndex].path, ['e4', 'e6']);
   });
 
   test('mutated 2: previous undoes exactly that step', () {
@@ -130,15 +166,20 @@ void main() {
     final cursor = WalkthroughCursor(
       tree: tree,
       stops: stops,
+      beats: walkthroughBeats(stops),
       index: currentIndex,
       onSelect: (i) => currentIndex = i,
     );
 
     cursor.next();
-    expect(currentIndex, 3); // e4 e6
+    expect(currentIndex, 3); // the return to the fork
 
     final cursorAt3 = WalkthroughCursor(
-        tree: tree, stops: stops, index: 3, onSelect: (i) => currentIndex = i);
+        tree: tree,
+        stops: stops,
+        beats: walkthroughBeats(stops),
+        index: 3,
+        onSelect: (i) => currentIndex = i);
     cursorAt3.previous();
     expect(currentIndex, 2); // e4 e5 Nf3 again
   });
@@ -151,6 +192,7 @@ void main() {
     final cursor = WalkthroughCursor(
       tree: tree,
       stops: stops,
+      beats: walkthroughBeats(stops),
       index: currentIndex,
       onSelect: (i) => currentIndex = i,
     );
@@ -159,7 +201,11 @@ void main() {
     expect(currentIndex, -1);
 
     final rootCursor = WalkthroughCursor(
-        tree: tree, stops: stops, index: -1, onSelect: (i) => currentIndex = i);
+        tree: tree,
+        stops: stops,
+        beats: walkthroughBeats(stops),
+        index: -1,
+        onSelect: (i) => currentIndex = i);
     expect(rootCursor.currentFen, 'start');
   });
 
@@ -173,6 +219,7 @@ void main() {
     final cursor = WalkthroughCursor(
       tree: tree,
       stops: stops,
+      beats: walkthroughBeats(stops),
       index: currentIndex,
       onSelect: (i) => currentIndex = i,
     );
@@ -193,6 +240,7 @@ void main() {
     final cursor = WalkthroughCursor(
       tree: tree,
       stops: stops,
+      beats: walkthroughBeats(stops),
       index: currentIndex,
       onSelect: (i) => currentIndex = i,
     );
@@ -221,13 +269,18 @@ void main() {
     final cursor = WalkthroughCursor(
       tree: tree,
       stops: stops,
+      beats: walkthroughBeats(stops),
       index: currentIndex,
       onSelect: (i) => currentIndex = i,
     );
 
     cursor.takeBranch(1);
-    // Branch 1 is e6, which is index 3 in tour order
-    expect(currentIndex, 3);
+    // Branch 1 is e6. Taken deliberately, so the tour goes straight there
+    // rather than through the return beat — the reader chose the fork, they do
+    // not need to be shown it.
+    final beats = walkthroughBeats(stops);
+    expect(beats[currentIndex].returning, isFalse);
+    expect(stops[beats[currentIndex].stopIndex].path, ['e4', 'e6']);
   });
 
   test('a move of mine in front of an open position is not called a hole', () {
@@ -261,6 +314,7 @@ void main() {
     final cursor = WalkthroughCursor(
       tree: tree,
       stops: stops,
+      beats: walkthroughBeats(stops),
       index: -1,
       onSelect: (_) {},
     );
@@ -276,6 +330,7 @@ void main() {
     final cursor = WalkthroughCursor(
       tree: tree,
       stops: stops,
+      beats: walkthroughBeats(stops),
       index: currentIndex,
       onSelect: (i) => currentIndex = i,
     );

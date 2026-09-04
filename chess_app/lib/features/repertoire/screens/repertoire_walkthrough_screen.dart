@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
+import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/features/repertoire/services/walkthrough_beats.dart';
 import 'package:chess_app/features/repertoire/services/walkthrough_order.dart';
 import 'package:chess_app/features/repertoire/services/walkthrough_speech.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
@@ -12,6 +14,8 @@ import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
+import 'package:chess_app/widgets/board_overlay_painter.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/speakable_info.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
@@ -53,6 +57,7 @@ class _RepertoireWalkthroughScreenState
   bool _failed = false;
 
   List<WalkthroughStop> _stops = [];
+  List<WalkthroughBeat> _beats = [];
   AnalysisNode? _root;
   final Map<String, MoveTreeNodeLook> _looks = {};
 
@@ -93,6 +98,7 @@ class _RepertoireWalkthroughScreenState
     }
 
     _stops = walkthroughOrder(tree);
+    _beats = walkthroughBeats(_stops);
     _root = repertoireTreeToNodes(tree, looks: _looks);
 
     setState(() {
@@ -109,17 +115,25 @@ class _RepertoireWalkthroughScreenState
     _syncBoard();
   }
 
+  /// The stop the board stands on for the beat at [index], or -1 for the root.
+  ///
+  /// One place, because both of the readers below had the same bug: `_index`
+  /// counts **beats** and both were bounding and indexing it against `_stops`.
+  /// There are more beats than stops, so the tour stopped dead at the last
+  /// climb — the forward button did nothing, silently — and before that the
+  /// board loaded whatever stop happened to share the beat's number, which on
+  /// a returning beat is the wrong position and looks like a working screen.
+  int _stopAt(int index) =>
+      index < 0 || index >= _beats.length ? -1 : _beats[index].stopIndex;
+
   void _syncBoard() {
     if (_tree == null) return;
-    if (_index < 0) {
-      _boardController.loadFen(_tree!.rootFen);
-    } else if (_index < _stops.length) {
-      _boardController.loadFen(_stops[_index].move.fen);
-    }
+    final at = _stopAt(_index);
+    _boardController.loadFen(at < 0 ? _tree!.rootFen : _stops[at].move.fen);
   }
 
   void _onSelect(int index) {
-    if (index < -1 || index >= _stops.length) return;
+    if (index < -1 || index >= _beats.length) return;
     setState(() {
       _index = index;
     });
@@ -146,6 +160,18 @@ class _RepertoireWalkthroughScreenState
         ),
         backgroundColor: context.colors.surface,
         iconTheme: IconThemeData(color: context.colors.textPrimary),
+        // Anything drawn on a board must be switchable off from the screen
+        // drawing it. The owner found the AI Studio with engine arrows over a
+        // menu that offered only „Koordinate", and `board_arrows_reach_test`
+        // has read the sources for that mistake ever since — it caught this
+        // screen the moment it started drawing.
+        // Only the switch this screen governs. The tour draws the book's
+        // shares and nothing else — no engine by design, and its own moves are
+        // played rather than pointed at — so offering those two switches here
+        // would be a control that changes nothing you can see.
+        actions: const [
+          BoardViewMenu(statistics: true),
+        ],
       ),
       body: _buildBody(context, tree),
     );
@@ -175,6 +201,7 @@ class _RepertoireWalkthroughScreenState
     final cursor = WalkthroughCursor(
       tree: tree,
       stops: _stops,
+      beats: _beats,
       index: _index,
       onSelect: _onSelect,
     );
@@ -185,10 +212,14 @@ class _RepertoireWalkthroughScreenState
         ? (ownSide == PlayerColor.white ? PlayerColor.black : PlayerColor.white)
         : ownSide;
 
+    // The move the board is standing on. On a returning beat that is the
+    // fork's own move, which is right: the reader is being shown that position
+    // again, so the marker has to point at how it was reached.
+    final at = cursor.beat?.stopIndex ?? -1;
     String? lastMoveFrom;
     String? lastMoveTo;
-    if (_index >= 0 && _index < _stops.length) {
-      final uci = _stops[_index].move.uci;
+    if (at >= 0 && at < _stops.length) {
+      final uci = _stops[at].move.uci;
       if (uci.length >= 4) {
         lastMoveFrom = uci.substring(0, 2);
         lastMoveTo = uci.substring(2, 4);
@@ -212,7 +243,7 @@ class _RepertoireWalkthroughScreenState
                 isDrawingMode: false,
                 drawingStartSquare: null,
                 arrows: const [],
-                engineArrows: const [],
+                engineArrows: _replyArrows(cursor),
                 onMove: (String from, String to, String promotion) {},
                 onSquareTapForDrawing: (String square) {},
                 lastMoveFrom: lastMoveFrom,
@@ -226,10 +257,13 @@ class _RepertoireWalkthroughScreenState
           onChanged: () {},
           child: MoveNavigationControls(
             cursor: cursor,
-            centerLabel: _stops.length > 1
-                ? 'Potez ${_index + 1} od ${_stops.length}'
+            // Numbered by the move, not by the beat: a returning beat is not
+            // a new move and the counter going back to it is the truth — that
+            // is the position the reader has been brought back to.
+            centerLabel: _stops.length > 1 && at >= 0
+                ? 'Potez ${at + 1} od ${_stops.length}'
                 : null,
-            canNavigate: _stops.length > 1,
+            canNavigate: _beats.length > 1,
             onFlipBoard: () => setState(() => _flipped = !_flipped),
           ),
         ),
@@ -269,7 +303,10 @@ class _RepertoireWalkthroughScreenState
                   final key = fenKeyOf(node.fen);
                   final idx =
                       _stops.indexWhere((s) => fenKeyOf(s.move.fen) == key);
-                  if (idx >= 0) _onSelect(idx);
+                  if (idx < 0) return;
+                  final beat = _beats
+                      .indexWhere((b) => !b.returning && b.stopIndex == idx);
+                  if (beat >= 0) _onSelect(beat);
                 },
                 nodeLook: (node) => _looks[node.id],
                 showCut: false,
@@ -285,22 +322,69 @@ class _RepertoireWalkthroughScreenState
     }
   }
 
-  Widget _buildCard(BuildContext context, WalkthroughCursor cursor) {
-    if (_index < 0) return const SizedBox.shrink();
+  /// The opponent's replies, drawn on the board at a fork.
+  ///
+  /// Ranked in **tour order**, not by share. The rank decides both the colour
+  /// and the stroke width, so the thickest arrow is the reply the tour will
+  /// take first — and it has to be the same reply the first chip and the first
+  /// name in the sentence point at. `_shareArrows` on the build screen sorts by
+  /// share, which is right for a book and wrong here: two orderings on one
+  /// screen is the defect this feature has already been careful about twice.
+  ///
+  /// Only at a fork. One reply needs no arrow — the board is about to move
+  /// there anyway — which keeps one rule behind the arrows, the chips and the
+  /// spoken sentence rather than three.
+  ///
+  /// No share floor. The build screen drops anything under 2% because a book
+  /// position has a long tail of noise; a tour walks only what this repertoire
+  /// actually contains, and a rare reply that is in it is in it on purpose.
+  /// The cap of four stays: past that the strokes are thin and crossing, and
+  /// the count is in the sentence and every reply is a chip regardless.
+  List<EngineArrow> _replyArrows(WalkthroughCursor cursor) {
+    if (!AppSettingsService.instance.showStatisticsArrows) return const [];
 
-    final stop = _stops[_index];
+    final theirs = [
+      for (final move in cursor.forwardMoves)
+        if (!move.mine && move.uci.length >= 4) move,
+    ];
+    if (theirs.length < 2) return const [];
+
+    final arrows = <EngineArrow>[];
+    for (var i = 0; i < theirs.length && i < 4; i++) {
+      final move = theirs[i];
+      final share = shareLabel(move.share) ?? '';
+      // The hole carries the tree's own glyph rather than a colour. Hue is
+      // never the difference here.
+      final hole = lookOfRepertoireMove(move) == MoveTreeNodeLook.gap;
+      arrows.add(EngineArrow(
+        from: move.uci.substring(0, 2),
+        to: move.uci.substring(2, 4),
+        evalText: hole ? '$share ?'.trim() : share,
+        rank: i + 1,
+      ));
+    }
+    return arrows;
+  }
+
+  Widget _buildCard(BuildContext context, WalkthroughCursor cursor) {
+    final beat = cursor.beat;
+    if (beat == null) return const SizedBox.shrink();
+
     final replies = cursor.forwardMoves;
-    final comment = _comments?[fenKeyOf(stop.move.fen)];
+    final stop = beat.stopIndex >= 0 ? _stops[beat.stopIndex] : null;
 
     // One composition, drawn twice. `line.parts` become the lines on the card
     // and `line.spoken` is those same words joined for the voice, so what is
     // read aloud is what is on screen by construction rather than by two
-    // functions agreeing.
-    final line = walkthroughLine(
-      stop,
-      replies: replies,
-      note: comment?.body,
-    );
+    // functions agreeing. Two registers, one shape: a move, or the tour coming
+    // back to the fork it is about to branch from.
+    final WalkthroughLine line;
+    if (beat.returning) {
+      line = walkthroughReturn(beat, replies: replies);
+    } else {
+      final comment = _comments?[fenKeyOf(stop!.move.fen)];
+      line = walkthroughLine(stop!, replies: replies, note: comment?.body);
+    }
 
     final parts = <Widget>[];
     for (var i = 0; i < line.parts.length; i++) {
@@ -319,7 +403,7 @@ class _RepertoireWalkthroughScreenState
     // the two cannot disagree about which reply comes first.
     final theirs = replies.where((move) => !move.mine).length;
     if (theirs > 1) {
-      final branches = cursor.forwardBranches;
+      final branches = cursor.replyBranches;
       parts.add(const SizedBox(height: AppSpacing.sm));
       parts.add(Wrap(
         spacing: AppSpacing.xs,
@@ -336,7 +420,9 @@ class _RepertoireWalkthroughScreenState
       ));
     }
 
-    if (stop.kind == MoveTreeNodeLook.gap && widget.onBuildHere != null) {
+    if (!beat.returning &&
+        stop!.kind == MoveTreeNodeLook.gap &&
+        widget.onBuildHere != null) {
       parts.add(const SizedBox(height: AppSpacing.sm));
       parts.add(ElevatedButton(
         style: ElevatedButton.styleFrom(

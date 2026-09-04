@@ -9,11 +9,30 @@ class BoardViewMenu extends StatelessWidget {
     this.size,
     this.color,
     this.arrows = false,
-  });
+    bool? chosenMove,
+    bool? statistics,
+    bool? engine,
+  })  : chosenMove = chosenMove ?? arrows,
+        statistics = statistics ?? arrows,
+        engine = engine ?? arrows;
 
   final double? size;
   final Color? color;
+
+  /// All three arrow switches. The three below name them one at a time.
   final bool arrows;
+
+  /// Which arrow switches this screen actually governs.
+  ///
+  /// Default to [arrows], so every existing caller keeps all three. A screen
+  /// draws some layers and not others — the walkthrough has statistics and no
+  /// engine, by design — and offering a switch for a layer that screen never
+  /// draws is the „menu that does nothing" this codebase has already paid for
+  /// twice. `board_arrows_reach_test` reads the sources for both halves of
+  /// that: a layer drawn with no switch, and a switch offered for no layer.
+  final bool chosenMove;
+  final bool statistics;
+  final bool engine;
 
   @override
   Widget build(BuildContext context) {
@@ -43,8 +62,8 @@ class BoardViewMenu extends StatelessWidget {
                   ),
                 ),
               ),
-              if (arrows) ...[
-                const PopupMenuDivider(),
+              if (chosenMove || statistics || engine) const PopupMenuDivider(),
+              if (chosenMove)
                 PopupMenuItem<void>(
                   enabled: false,
                   padding: EdgeInsets.zero,
@@ -59,6 +78,7 @@ class BoardViewMenu extends StatelessWidget {
                     ),
                   ),
                 ),
+              if (statistics)
                 PopupMenuItem<void>(
                   enabled: false,
                   padding: EdgeInsets.zero,
@@ -73,6 +93,7 @@ class BoardViewMenu extends StatelessWidget {
                     ),
                   ),
                 ),
+              if (engine)
                 PopupMenuItem<void>(
                   enabled: false,
                   padding: EdgeInsets.zero,
@@ -87,7 +108,6 @@ class BoardViewMenu extends StatelessWidget {
                     ),
                   ),
                 ),
-              ],
             ];
           },
         );

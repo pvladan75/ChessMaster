@@ -1,6 +1,7 @@
 import 'package:chess_app/core/services/serbian_plural.dart';
 import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
+import 'package:chess_app/features/repertoire/services/walkthrough_beats.dart';
 import 'package:chess_app/features/repertoire/services/walkthrough_order.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
 
@@ -108,6 +109,47 @@ WalkthroughLine walkthroughLine(
         stop.kind == MoveTreeNodeLook.gap ||
         (note != null && note.trim().isNotEmpty),
   );
+}
+
+/// What the tour says when it comes back to a fork before taking another line.
+///
+/// The owner's own words for what was missing: „kad prodje prva linija, pa
+/// treba da se pokaže druga iz iste pozicije, bilo bi dobro da se opet vratimo
+/// na poziciju iz koje se račva". So the sentence names both halves — the line
+/// just finished and the one about to start — because „we are back at a fork"
+/// on its own does not tell a reader *which* fork out of the several they have
+/// walked through.
+///
+/// Always spoken. It is the one beat that exists purely to stop the reader
+/// being lost, so saying it only when the sound happens to be on would be
+/// saying it at the wrong times.
+WalkthroughLine walkthroughReturn(
+  WalkthroughBeat beat, {
+  List<RepertoireTreeMove> replies = const [],
+}) {
+  final parts = <String>[];
+  final done = beat.done?.san;
+  final next = beat.next?.san;
+
+  if (done != null && next != null) {
+    parts.add('Videli smo liniju posle $done. Sada ide $next.');
+  } else if (next != null) {
+    parts.add('Sada ide $next.');
+  } else {
+    parts.add('Vraćamo se na račvanje.');
+  }
+
+  final theirs = [
+    for (final reply in replies)
+      if (!reply.mine) reply,
+  ];
+  if (theirs.length > 1) {
+    parts.add('Odavde protivnik ima ${theirs.length} '
+        '${serbianCount(theirs.length, one: "odgovor", few: "odgovora", many: "odgovora")}: '
+        '${_named(theirs)}.');
+  }
+
+  return WalkthroughLine(parts: parts, speak: true);
 }
 
 /// The replies as prose: at most three, then a count for the rest.
