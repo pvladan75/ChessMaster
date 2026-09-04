@@ -19,6 +19,21 @@ skipped.
 | 3 | literals **nested inside an interpolation**, which the gate cannot see |
 | 2 | false positives that must not be touched |
 
+**Reconciled with master on 4.9.2026, and it moved.** Six live findings were
+fixed that day on these same screens, so the table was re-checked against the
+sources with the gate's own `scan_strings` before anything was briefed. It found
+two things:
+
+* **Five of the thirty-six keys had lost a trailing space** in transcription —
+  `…onoga što ćete sresti;` for `…onoga što ćete sresti; ` and four more. The
+  gate compares byte for byte, so all five would have failed the run and read as
+  „the worker skipped these". Fixed here, not in the brief.
+* **Seven new literals** carrying a retired word arrived with those fixes, and
+  `Širina` in the dialog became `Širina repertoara`. All are in the table below.
+  One more — „Posle ove u redu je još N pozicija." — put the retired *red*
+  straight back and was rewritten in the app instead (`58722e2`), because a
+  glossary decision undone by accident is not a sweep's job to catch.
+
 **The two false positives are the reason this is a table and not a rule.**
 
 * `chess_game_screen.dart:3231` — `'Nacrtaj strelicu'`. Matches the stem
@@ -65,7 +80,10 @@ inside an interpolation, which is why nothing ever saw them.
 | `Vidi odsečeno` | `Vidi šta ne spremam` |
 | `Vrati odsečenu granu` | `Ipak spremi ovu granu` |
 | `Nijedan odgovor nije stigao — pozicija ostaje nepokrivena.` | `Nijedan odgovor nije stigao — pozicija ostaje bez vašeg odgovora.` |
-| `Pokriveno $ident% onoga što ćete sresti;` | `Spremno je $ident% onoga što ćete sresti;` |
+| `Pokriveno $ident% onoga što ćete sresti; ` | `Spremno je $ident% onoga što ćete sresti; ` |
+| `$ident Ova pozicija je van širine „${...}", pa je ` | `$ident Ova pozicija je izvan onoga što spremate („${...}"), pa je ` |
+| `U ovom repertoaru nema nepotvrđenih poteza koje njegova širina ` | `U ovom repertoaru nema nepotvrđenih poteza koje ovoliko odgovora ` |
+| `stablo ne crta — proširite širinu da biste videli šta je upisano.` | `stablo ne crta — spremajte više odgovora da biste videli šta je upisano.` |
 
 `Grana je odsečena — sa njom je iz reda $ident` also retires **red**, which the
 glossary removed in phase 3 and which survived here.
@@ -91,22 +109,26 @@ table; they stay as they are.
 | `Pregledaj nacrt` | `Pregledaj nepotvrđene` |
 | `Nacrti nisu mogli da se pročitaju.` | `Nepotvrđeni potezi nisu mogli da se pročitaju.` |
 | `Još $ident nepotvrđenih nacrta čeka u ovom repertoaru.` | `Još $ident nepotvrđenih poteza čeka u ovom repertoaru.` |
-| `Ova grana je odsečena ili u njoj još nema vaših` | `Ovu granu ne spremam ili u njoj još nema vaših` |
+| `Ova grana je odsečena ili u njoj još nema vaših ` | `Ovu granu ne spremam ili u njoj još nema vaših ` |
+| `U ovom repertoaru nema nepotvrđenih poteza koje njegova širina ` | `U ovom repertoaru nema nepotvrđenih poteza koje ovoliko odgovora ` |
 
 ### `repertoire_list_screen.dart`
 
 | old | new |
 |---|---|
 | `Pokrivenost` | `Rupe u repertoaru` |
-| `Idu i odsečene grane, dodati odgovori, raspored za` | `Idu i grane koje ne spremate, dodati odgovori, raspored za` |
-| `\nIdu i odsečene grane, dodati odgovori,` | `\nIdu i grane koje ne spremate, dodati odgovori,` |
+| `Idu i odsečene grane, dodati odgovori, raspored za ` | `Idu i grane koje ne spremate, dodati odgovori, raspored za ` |
+| `\nIdu i odsečene grane, dodati odgovori, ` | `\nIdu i grane koje ne spremate, dodati odgovori, ` |
 
 ### `breadth_dialog.dart`
 
 | old | new |
 |---|---|
 | `Napravi kičmu odavde` | `Predloži glavnu liniju odavde` |
-| `Širina` | `Koliko odgovora spremamo` |
+| `Širina repertoara` | `Koliko odgovora spremamo` |
+| `Ovo je širina celog repertoara, ne širina kičme — kičma je ` | `Ovo važi za ceo repertoar, ne samo za ovu liniju — glavna linija je ` |
+| `uvek jedna linija. Uža širina sakriva grane koje ste već ` | `uvek jedna linija. Manje odgovora skriva grane koje ste već ` |
+| `nepoznata širina` | `nepoznato` |
 
 ### `repertoire_tree_panel.dart`
 
@@ -115,7 +137,7 @@ table; they stay as they are.
 | `Širina: ${...}` | `Koliko odgovora: ${...}` |
 | `Prikaži odsečene grane ($ident)` | `Prikaži grane koje ne spremam ($ident)` |
 | `Sakrij odsečene grane ($ident)` | `Sakrij grane koje ne spremam ($ident)` |
-| `✂ odsečena grana. Broj u zagradi je ocena motora — dubina i datum` | `✂ grana koju ne spremam. Broj u zagradi je ocena motora — dubina i datum` |
+| `✂ odsečena grana. Broj u zagradi je ocena motora — dubina i datum ` | `✂ grana koju ne spremam. Broj u zagradi je ocena motora — dubina i datum ` |
 
 ### `unconfirmed_banner.dart`
 
