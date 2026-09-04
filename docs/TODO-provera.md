@@ -3502,3 +3502,34 @@ providnost ivice (`alpha: 0.75`, koju dobija svaka kartica van glavne linije).
    strani koja je na potezu, i to je nalaz.
 3. [ ] **Svetla tema nije pokvarena.** Ista slika u svetloj temi: rupa je i dalje
    samo deblja, ne i tamnija mrlja.
+
+
+## 98. Ekran „Upoznaj repertoar" — 4.9.2026, nije viđeno uživo
+
+Faza 4 plana, spojena u `a3b32d5`. Ceo ekran je nov i **ništa od ovoga nije
+gledano kako radi** — testovi znaju samo ono što im je rečeno da provere.
+
+1. [ ] **Ulaz postoji i vodi tamo.** Na kartici repertoara, meni „Još" → prva
+   stavka „Upoznaj repertoar". Otvara tablu sa prvim potezom već odigranim.
+2. [ ] **Traka i strelice voze turu.** Napred ide potez po potez; na kraju
+   linije **penje se nazad do račvanja** i izlazi drugom granom. Nazad poništava
+   tačno taj korak — ne vodi na roditelja. Levo/desno na tastaturi rade isto.
+3. [ ] **Na protivnikovom potezu se vidi lista.** Kartica kaže „Odavde protivnik
+   ima N odgovora:" i ispod stoje čipovi sa procentom i `?` za rupu. Dodir na
+   čip vodi turu tamo. Ovo je ono zbog čega ekran postoji — ako se lista ne
+   vidi bez otvaranja lista, to je nalaz.
+4. [ ] **Rupa nudi vrata.** Na `?` čvoru: „Na <potez>, X% partija, nemate
+   odgovor." i dugme „Napravi odgovor" koje otvara izgradnju **u toj poziciji**,
+   ne u korenu.
+5. [ ] **Na Windowsu stablo stoji pored table i prati turu.** Označena kartica
+   se pomera kako tura ide; dodir na karticu u stablu vodi turu tamo. Na
+   telefonu stabla nema.
+6. [ ] **Na telefonu (360 dp) ništa nije odsečeno.** Račvanje sa više odgovora:
+   svi čipovi se vide, red se prelama. U release buildu prelivanje se ne crta,
+   pa se gleda da li poslednji čip postoji.
+7. [ ] **Dugme za okretanje table okreće tablu.** Bilo je vezano za praznu
+   funkciju; sada mora da radi u oba smera.
+8. [ ] **Vaša napomena se vidi.** Pozicija o kojoj ste nešto napisali: ispod
+   rečenice stoji „Vaša napomena:" i tekst.
+9. [ ] **Tura ništa ne upisuje.** Proći celu turu, izaći, pa otvoriti izgradnju:
+   ništa nije dodato, obrisano ni promenjeno.

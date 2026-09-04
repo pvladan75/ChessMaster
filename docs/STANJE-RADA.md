@@ -194,7 +194,7 @@ drži u glavi.
 | 1 | šetnja pokazuje igraču njegov sopstveni rad (širina ga ne skriva) | lead | **Urađeno**, `e5bdb4c` + `8625273` — uživo neprovereno |
 | 2 | stablo crta svoja četiri stanja | lead | **Urađeno**, `37a67d3` — vlasnik video na obe teme |
 | 3 | redosled obilaska (`walkthroughOrder`) | lead | **Urađeno** — brief `docs/TASK-upoznaj-f3.md` stoji kao ugovor za fazu 4 |
-| 4 | ekran „Upoznaj" | radni agent | **Brifovano** — `docs/TASK-upoznaj-f4.md` + `docs/brief-upoznaj-f4-2026-09.md`, 4.9.2026 |
+| 4 | ekran „Upoznaj" | radni agent | **Urađeno**, `a3b32d5` — radni agent 43.7 min, pet popravki vodećeg, uživo neprovereno |
 | 5 | govor, sa budžetom rečenica | lead | Nije rađeno |
 
 **Dve odluke koje je vlasnik doneo 4.9.2026 i koje faza 4 nasleđuje:**
@@ -223,6 +223,60 @@ Tri odluke koje faza 4 nasleđuje, sve tri vlasnikove:
 * **Na širokom ekranu stablo stoji pored table**, sinhronizovano sa turom; na
   telefonu ostaje kompaktni raspored bez stabla.
 * Kontrast rupe u tamnoj temi — rešeno pre faze 4, odeljak ispod.
+
+### Šta je faza 4 donela, i šta je kod radnog agenta trebalo popraviti — 4.9.2026
+
+Ekran je `repertoire_walkthrough_screen.dart`, ugovor je
+`WalkthroughCursor`. Devet kapija zeleno, 1167 → 1181 testa, `analyze` na 29.
+Radni agent je izašao sa 0 posle 43.7 minuta — nije istekao, što je uslov da se
+rezultat uopšte gleda.
+
+**Ono što je uradio tačno, i što je bilo najlakše pogrešiti:** `forwardBranches`
+je *izveden* iz liste stajanja koju faza 3 već uređuje, a ne novo sortiranje
+`children`. Proverio sam mutacijom — sortiranje grana obara test 5.
+
+**Pet popravki vodećeg, i svaka je bila druga kopija nečega:**
+
+* `shareLabel` je sada izvučen iz `repertoire_tree_panel.dart` i oba mesta ga
+  čitaju. **Brief je ovde bio kriv**: tražio je da se ponovo upotrebi
+  formatiranje iz `markOfRepertoireMove` i istom rečenicom zamrznuo fajl u kome
+  ono živi, pa nije imalo šta da se upotrebi. Radni agent je prepisao pravilo
+  zaokruživanja umesto da to prijavi.
+* Množina ide kroz `serbianCount`. Lokalna kopija je iz obe grane vraćala istu
+  reč.
+* Druga linija u listu grana čita `lookOfRepertoireMove`, ne sirovi `state`.
+  **Moj potez sme da stoji ispred `open` pozicije**, pa je sirovo čitanje
+  govorilo „nemate odgovor" o sopstvenom potezu čitaoca. Novi test, dokazan
+  vraćanjem starog čitanja.
+* Dugme za okretanje table sada okreće tablu. Bilo je nacrtano i vezano za
+  praznu funkciju — „meni koji ništa ne radi", zabranjen u istom briefu jedan
+  vidžet levo.
+* Pozicije se porede preko `fenKeyOf`, nikad cele.
+
+**Izveštaj radnog agenta nije ono što je traženo**, i to je nalaz za sledeći
+put: od šest traženih stavki nedostaju tri — izlaz tri mutacije, tekst kartice
+za sedam stajanja, i sam fajl nije napisan u koren radnog stabla nego u agentov
+`brain/` direktorijum. Uz to tvrdi „above 900dp" nad kodom koji zove
+`Breakpoints.isWide` (840). Kod je bio tačan, proza nije. **Mutacije sam
+ponovio sam i sve tri padaju kako treba** — ali to je merenje vodećeg, ne
+izveštaj agenta.
+
+### Dve rupe u samoj mašini za ocenjivanje — 4.9.2026
+
+Obe iste vrste: kapija koja tiho ne pogleda ono što treba da gleda.
+
+* **`git status --porcelain` sažima potpuno nov direktorijum u jedan red.**
+  `models/` ne završava na `.dart`, pa je otpao iz liste izmenjenih fajlova —
+  i `walkthrough_cursor.dart` nije otvorio nijedan skener: ni `strings`, ni
+  `idioms`, ni `scale`, ni `contrast`, ni `format`. Isti prazan prolaz koji je
+  već popravljen za batch 47, jedan nivo dublje. Sada `-uall`; dokaz je da je
+  broj fajlova otišao sa 2 na 3, ne tvrdnja.
+* **`strings` je poredio *uređene liste*.** Izvlačenje `shareLabel` je pomerilo
+  dva literala unutar fajla i kapija je pala sa porukom `-[] +[]` — nije umela
+  da kaže šta je pogrešno, jer se `removed` i `added` računaju preko
+  pripadnosti. Sada `Counter`: premeštanje prolazi uz upozorenje, a **udvojen
+  literal**, koji je ranije davao istu neopisivu poruku, sada se imenuje.
+  Dokazano mutacijom: `+['<1%']`.
 
 ### Rupa u tamnoj temi: kriva je bila providnost, ne debljina — 4.9.2026
 
