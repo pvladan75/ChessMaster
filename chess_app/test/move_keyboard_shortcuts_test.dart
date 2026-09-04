@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/core/models/move_cursor.dart';
+import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 
 /// A cursor that only remembers where it was told to go.
@@ -197,5 +199,62 @@ void main() {
 
     expect(cursor.index, 0,
         reason: 'dok je fokus u polju, strelice pripadaju polju');
+  });
+
+  testWidgets('the move tree does not keep the arrows for itself',
+      (tester) async {
+    // The fault three findings were written about (i0054, i0559, i0560).
+    //
+    // The graphical tree holds a focus node of its own, and clicking a node is
+    // how anyone gets to a fork in the first place — so from that moment the
+    // arrows were the tree's. It answered all four with tree semantics: down
+    // took the first child and never offered the fork, up stepped to the
+    // parent, and left and right walked between siblings, which in a position
+    // with none is nothing at all. Two screens draw that tree, Analiza and
+    // Repertoar, and those are exactly the two that were reported.
+    //
+    // So the tree is mounted here for real, focused for real, and the keys have
+    // to arrive at the cursor anyway.
+    final root = AnalysisNode(fen: 'startpos');
+    final child = AnalysisNode(fen: 'after', moveSan: 'e4', parent: root);
+    root.children.add(child);
+
+    cursor = _FakeCursor();
+    changes = 0;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: MoveKeyboardShortcuts(
+          cursor: cursor,
+          onChanged: () => changes++,
+          child: SizedBox(
+            width: 400,
+            height: 300,
+            child: VisualMoveTreeWidget(
+              rootNode: root,
+              activeNode: child,
+              onSelectNode: (_) {},
+            ),
+          ),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    // As if the reader had clicked a node — which is how anyone reaches a fork
+    // at all, and the moment the tree took the keys.
+    await tester.tap(find.text('e4'));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(cursor.index, 1, reason: 'desna strelica je i dalje jedan potez');
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pump();
+    expect(cursor.index, 0, reason: 'leva strelica je i dalje jedan potez');
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    expect(cursor.index, 99, reason: 'dole je kraj, ne prvo dete');
   });
 }

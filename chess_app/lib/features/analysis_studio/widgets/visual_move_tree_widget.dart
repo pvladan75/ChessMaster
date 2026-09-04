@@ -196,47 +196,31 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     return result;
   }
 
-  void _selectParent() {
-    final parent = widget.activeNode.parent;
-    if (parent != null) widget.onSelectNode(parent);
-  }
-
-  void _selectFirstChild() {
-    if (widget.activeNode.children.isNotEmpty) {
-      widget.onSelectNode(widget.activeNode.children.first);
-    }
-  }
-
-  void _selectSibling(int direction) {
-    final parent = widget.activeNode.parent;
-    if (parent == null) return;
-    final siblings = parent.children;
-    final idx = siblings.indexWhere((c) => c.id == widget.activeNode.id);
-    if (idx == -1) return;
-    final newIdx = idx + direction;
-    if (newIdx >= 0 && newIdx < siblings.length) {
-      widget.onSelectNode(siblings[newIdx]);
-    }
-  }
-
+  /// Zoom, and **only** zoom.
+  ///
+  /// The arrows are deliberately not here. This node used to answer all four
+  /// with tree semantics — up to the parent, down to the first child, left and
+  /// right between siblings — and it holds the focus the moment the reader
+  /// clicks a node, which is how anyone gets here at all. So on exactly the two
+  /// screens that draw a tree, Analiza and Repertoar, the arrows stopped
+  /// meaning what they mean everywhere else: down walked the main line without
+  /// ever offering the fork, up stepped back a move, and left and right did
+  /// nothing at all in a position with no siblings.
+  ///
+  /// Reported live 30.8. and 3.9.2026, as three separate findings, which is
+  /// what one broken contract looks like from the outside.
+  ///
+  /// Ignoring them is the whole fix: the key then reaches
+  /// [MoveKeyboardShortcuts] up the focus chain, where left and right are one
+  /// move — asking which line at a fork — and up and down are the ends. One
+  /// meaning on every screen, and the branch chooser is what replaced walking
+  /// between siblings by hand.
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }
     final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.arrowUp) {
-      _selectParent();
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.arrowDown) {
-      _selectFirstChild();
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.arrowLeft) {
-      _selectSibling(-1);
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.arrowRight) {
-      _selectSibling(1);
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.equal ||
+    if (key == LogicalKeyboardKey.equal ||
         key == LogicalKeyboardKey.numpadAdd) {
       _zoomBy(1.25);
       return KeyEventResult.handled;
