@@ -2290,7 +2290,20 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     // Said *after* the reload, not before it. `_resume` writes its own note
     // when the walk cannot be read, and setting this first meant the one thing
     // the reader had just asked for was the one thing they did not get told.
-    setState(() => _note = note);
+    //
+    // And if the picture that came back does not contain the position the
+    // spine was grown from, that is said too. Reported live 4.9.2026: a spine
+    // built from a branch off the trunk, with „Samo glavna linija" chosen in
+    // the same dialog, wrote its moves and then vanished — the width narrowed
+    // the walk to one reply a position, the branch fell out of it, and the new
+    // line went with it. The moves are in the graph either way; what is gone
+    // is the way to see them, and that is exactly the kind of silence this
+    // codebase keeps paying for.
+    final lost = result.written > 0 && _findNode(fen, _treeRoot) == null;
+    setState(() => _note = lost
+        ? '$note Ova pozicija je van širine „${breadthName(_breadth)}", pa je '
+            'stablo ne crta — proširite širinu da biste videli šta je upisano.'
+        : note);
   }
 
   /// What the spine did, in one sentence that never claims more than it did.

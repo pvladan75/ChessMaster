@@ -41,9 +41,15 @@ void main() {
     await tester.pumpAndSettle();
 
     // Check initial state
-    expect(find.text('Širina'), findsOneWidget);
+    // „repertoara", because whose width it is turned out to be the whole
+    // misunderstanding: read inside a dialog titled „Napravi kičmu odavde" it
+    // was taken for the width of the spine. Reported live 4.9.2026.
+    expect(find.text('Širina repertoara'), findsOneWidget);
 
-    // Tap broad
+    // Tap broad. `ensureVisible` because the width section now carries a
+    // sentence saying whose width it is, and a dialog is a scroll view: a tap
+    // at a clipped offset is a tap that quietly does nothing.
+    await tester.ensureVisible(find.text('Široko (95%)'));
     await tester.tap(find.text('Široko (95%)'));
     await tester.pumpAndSettle();
 

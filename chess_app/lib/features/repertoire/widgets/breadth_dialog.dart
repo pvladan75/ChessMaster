@@ -5,6 +5,26 @@ import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
+/// The three widths, named once.
+///
+/// The labels the reader chooses between, so a screen that has to say which
+/// width it is drawing at says the same three words the dialog offered rather
+/// than a fourth wording of its own. (`RepertoireTreePanel` keeps a lowercase
+/// in-sentence form for its legend — same three, different register, and a
+/// live verification item quotes it word for word.)
+const Map<String, String> kBreadthNames = {
+  'main': 'Samo glavna linija',
+  'standard': 'Standardno (80%)',
+  'broad': 'Široko (95%)',
+};
+
+/// The width's name, or the key itself when it is one this build does not know.
+///
+/// Never a guess and never a default: a width the app cannot name is a width
+/// somebody added on the server, and printing the key says so.
+String breadthName(String? breadth) =>
+    kBreadthNames[breadth] ?? (breadth ?? 'nepoznata širina');
+
 class BreadthDialog extends StatefulWidget {
   const BreadthDialog({
     super.key,
@@ -74,7 +94,33 @@ class _BreadthDialogState extends State<BreadthDialog> {
               style: AppText.caption.copyWith(color: context.colors.textMuted),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text('Širina', style: AppText.bodyBold),
+            Text('Širina repertoara', style: AppText.bodyBold),
+            // Whose width this is, said before it is changed.
+            //
+            // Reported live 4.9.2026: „napravim kičmu iz pozicije koja nije na
+            // glavnoj liniji, izaberem samo glavna linija, aplikacija ne
+            // napravi ispod te pozicije nove, već se nešto vraća." It did make
+            // them — they are in the graph — and then this dial narrowed the
+            // whole repertoire to one reply a position, so the branch the
+            // reader was standing in fell out of the picture and took the new
+            // line with it.
+            //
+            // The sentence is the fix because the misreading is reasonable:
+            // this is a dialog titled „Napravi kičmu odavde", so a width in it
+            // reads as the width *of the kičma*. It is not — the spine is one
+            // line whatever this says, and this dial belongs to the whole
+            // repertoire and stays after the spine is written.
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xxs),
+              child: Text(
+                'Ovo je širina celog repertoara, ne širina kičme — kičma je '
+                'uvek jedna linija. Uža širina sakriva grane koje ste već '
+                'pripremili.',
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
             if (disabled)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
@@ -97,24 +143,15 @@ class _BreadthDialogState extends State<BreadthDialog> {
               child: RadioGroup<String>(
                 groupValue: _selectedWidth,
                 onChanged: (v) => setState(() => _selectedWidth = v!),
-                child: const Column(
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    RadioListTile<String>(
-                      value: 'main',
-                      title: Text('Samo glavna linija'),
-                      dense: true,
-                    ),
-                    RadioListTile<String>(
-                      value: 'standard',
-                      title: Text('Standardno (80%)'),
-                      dense: true,
-                    ),
-                    RadioListTile<String>(
-                      value: 'broad',
-                      title: Text('Široko (95%)'),
-                      dense: true,
-                    ),
+                    for (final entry in kBreadthNames.entries)
+                      RadioListTile<String>(
+                        value: entry.key,
+                        title: Text(entry.value),
+                        dense: true,
+                      ),
                   ],
                 ),
               ),
