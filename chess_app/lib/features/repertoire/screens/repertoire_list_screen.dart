@@ -5,6 +5,7 @@ import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.da
 import 'package:chess_app/features/repertoire/screens/repertoire_coverage_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_drill_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_new_screen.dart';
+import 'package:chess_app/features/repertoire/screens/repertoire_walkthrough_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_gate_picker.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -581,6 +582,29 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     });
   }
 
+  void _walkthrough(RepertoireSummary item) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(
+      builder: (_) => RepertoireWalkthroughScreen(
+        name: item.name,
+        color: item.color,
+        rootFen: item.rootFen,
+        rootPath: item.rootPath,
+        gateUci: item.viaUci,
+        minRating: AppSettingsService.instance.repertoireMinRating,
+        breadth: item.breadth,
+        api: _api,
+        onBuildHere: (fen) {
+          Navigator.of(context).pop();
+          _open(item, at: fen);
+        },
+      ),
+    ))
+        .then((_) {
+      if (mounted) _load();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -827,6 +851,9 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                   tooltip: 'Još',
                   onSelected: (choice) {
                     switch (choice) {
+                      case 'walkthrough':
+                        _walkthrough(item);
+                        break;
                       case 'coverage':
                         _coverage(item);
                         break;
@@ -842,6 +869,13 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                     }
                   },
                   itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: 'walkthrough',
+                      child: ListTile(
+                        leading: Icon(Icons.menu_book_outlined),
+                        title: Text('Upoznaj repertoar'),
+                      ),
+                    ),
                     PopupMenuItem(
                       value: 'coverage',
                       child: ListTile(

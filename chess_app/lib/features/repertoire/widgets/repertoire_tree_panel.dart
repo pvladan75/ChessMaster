@@ -82,11 +82,23 @@ AnalysisNode repertoireTreeToNodes(
 /// decided, `…` decided but the replies were never taken, `✂` cut on purpose.
 /// Without these the picture is a decoration; with them the holes are the first
 /// thing anybody sees.
+/// How often the opponent plays a reply, in the words the card uses.
+///
+/// Null when there is no number to say, which is how both callers drop it out
+/// of the sentence rather than writing „0%". Exposed because the walkthrough
+/// screen says the same number in prose and a second rounding rule beside this
+/// one is how two places that mean the same thing start disagreeing.
+String? shareLabel(double share) {
+  final percent = share * 100;
+  if (percent <= 0) return null;
+  return percent < 1 ? '<1%' : '${percent.round()}%';
+}
+
 String? markOfRepertoireMove(RepertoireTreeMove move) {
   if (move.mine) return move.isPrimary ? ' ★' : null;
   final parts = <String>[];
-  final percent = move.share * 100;
-  if (percent > 0) parts.add(percent < 1 ? '<1%' : '${percent.round()}%');
+  final share = shareLabel(move.share);
+  if (share != null) parts.add(share);
   switch (move.state) {
     case 'open':
       parts.add('?');
