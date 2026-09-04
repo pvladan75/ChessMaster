@@ -859,7 +859,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       await _cutBranch();
       if (!mounted) return;
       AppFeedback.success(context,
-          'Grana posle ${move.san} je odsečena — više je nema u crtežu.');
+          'Granu posle ${move.san} više ne spremam — nema je u crtežu.');
       return;
     }
 
@@ -1418,7 +1418,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           builder: (context) => AlertDialog(
             title: const Text('Obrisati vaše odluke?'),
             content: Text(
-                'Ispod tog nacrta su ${result.result!.decisions} vaše odluke. Obrisati i njih?'),
+                'Ispod tog predloga su ${result.result!.decisions} vaše odluke. Obrisati i njih?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
@@ -1929,9 +1929,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         many: 'još $tailMoves poteza',
       );
       _note = counted == 0
-          ? 'Nijedan odgovor nije stigao — pozicija ostaje nepokrivena.'
+          ? 'Nijedan odgovor nije stigao — pozicija ostaje bez vašeg odgovora.'
           : '$addedText. '
-              'Pokriveno $covered% onoga što ćete sresti; '
+              'Spremno je $covered% onoga što ćete sresti; '
               'van toga $tailText.';
     });
 
@@ -1981,7 +1981,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (!done) {
       setState(() {
         _busy = false;
-        _note = 'Grana nije odsečena — server nije odgovorio.';
+        _note = 'Grana je ostala — server nije odgovorio.';
       });
       return;
     }
@@ -2019,8 +2019,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         many: 'izašlo još ${below.length} pozicija',
       );
       _note = below.isEmpty
-          ? 'Grana je odsečena. Neće se više javljati.'
-          : 'Grana je odsečena — sa njom je iz reda $gone.';
+          ? 'Ovu granu više ne spremam. Neće se javljati.'
+          : 'Ovu granu više ne spremam — s njom je $gone.';
     });
     if (back != null) {
       await _show(_Pending(
@@ -2202,7 +2202,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     // „there is nothing left to do" — that is exactly what the review did for
     // as long as it sent an empty rating band.
     if (walk == null) {
-      AppFeedback.error(context, 'Nacrti nisu mogli da se pročitaju.');
+      AppFeedback.error(
+          context, 'Nepotvrđeni potezi nisu mogli da se pročitaju.');
       return;
     }
     if (walk.positions.isEmpty) {
@@ -2238,7 +2239,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         ? 0
         : (widget.color == 'w' ? counts.w : counts.b).positions;
     if (held <= 0) return 'Nema više nepotvrđenih poteza.';
-    return 'U ovom repertoaru nema nepotvrđenih poteza koje njegova širina '
+    return 'U ovom repertoaru nema nepotvrđenih poteza koje ovoliko odgovora '
         'dohvata — u grafu ih ima $held. Proširite repertoar ili ih '
         'potvrdite sa druge grane.';
   }
@@ -2291,7 +2292,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
     setState(() {
       _busy = true;
-      _note = 'Pravim kičmu — ovo troši $depth do ${depth * 2} upita.';
+      _note =
+          'Predlažem glavnu liniju — ovo troši $depth do ${depth * 2} upita.';
     });
     final out = await _api.buildSpine(
       color: widget.color,
@@ -2304,7 +2306,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (result == null) {
       setState(() {
         _busy = false;
-        _note = out.error ?? 'Kičma nije napravljena.';
+        _note = out.error ?? 'Glavna linija nije predložena.';
       });
       return;
     }
@@ -2335,8 +2337,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     // codebase keeps paying for.
     final lost = result.written > 0 && _findNode(fen, _treeRoot) == null;
     setState(() => _note = lost
-        ? '$note Ova pozicija je van širine „${breadthName(_breadth)}", pa je '
-            'stablo ne crta — proširite širinu da biste videli šta je upisano.'
+        ? '$note Ova pozicija je izvan onoga što spremate („${breadthName(_breadth)}"), pa je '
+            'stablo ne crta — spremajte više odgovora da biste videli šta je upisano.'
         : note);
   }
 
@@ -2356,7 +2358,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         ? '.'
         : ' — stalo jer je dalje pretanko (${result.games} partija, prag '
             '${result.minGames}).';
-    return '$wrote$tail Kičma: $line. Potvrdite ono sa čim se slažete.';
+    return '$wrote$tail Glavna linija: $line. Potvrdite ono sa čim se slažete.';
   }
 
   /// Says yes to a generated move.
@@ -2918,7 +2920,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       'odlučeno ${walk.decided}',
       'otvoreno ${walk.open.length}',
       'bez odgovora $open%',
-      if (walk.draft > 0) 'nacrt ${walk.draft}',
+      if (walk.draft > 0) 'nepotvrđeno ${walk.draft}',
     ];
     // Cut branches are counted apart and never taken off "bez odgovora".
     // Cutting makes that number fall without a single question having been
@@ -2929,7 +2931,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       final reach = walk.prunedReach +
           _cutHere.fold<double>(0, (sum, node) => sum + node.reach);
       final percent = (reach * 100).clamp(0, 100).round();
-      parts.add('odsečeno $cut${percent > 0 ? " ($percent%)" : ""}');
+      parts.add('ne spremam $cut${percent > 0 ? " ($percent%)" : ""}');
     }
     if (walk.truncated) parts.add('pregled skraćen');
     return parts.join(' · ');
@@ -3274,7 +3276,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           Expanded(
             child: Text(
                 cut
-                    ? '✂ odsečeno · ${reply.games} partija'
+                    ? '✂ ne spremam · ${reply.games} partija'
                     : '${reply.games} partija',
                 style:
                     AppText.caption.copyWith(color: context.colors.textMuted)),
@@ -3295,7 +3297,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                         path: [...node.path, mine, reply.san],
                       ));
                     },
-              child: const Text('Vidi odsečeno'),
+              child: const Text('Vidi šta ne spremam'),
             )
           else if (reply.isInPreparation)
             TextButton(
@@ -3595,7 +3597,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           OutlinedButton.icon(
             onPressed: _busy ? null : _buildSpine,
             icon: const Icon(Icons.auto_awesome, size: 18),
-            label: const Text('Napravi kičmu'),
+            label: const Text('Predloži glavnu liniju'),
           ),
           // Here as well as in the banner: the banner is only up while there
           // are drafts, and „take me to the next one" is the question somebody
@@ -3603,7 +3605,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           OutlinedButton.icon(
             onPressed: _busy ? null : _reviewDrafts,
             icon: const Icon(Icons.edit_note, size: 18),
-            label: const Text('Pregledaj nacrt'),
+            label: const Text('Pregledaj nepotvrđene'),
           ),
           if (widget.onDrillHere != null && _node != null)
             OutlinedButton.icon(
@@ -3616,7 +3618,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           TextButton.icon(
             onPressed: _busy ? null : _restoreBranch,
             icon: const Icon(Icons.undo, size: 18),
-            label: const Text('Vrati odsečenu granu'),
+            label: const Text('Ipak spremi ovu granu'),
           ),
       ],
     );
@@ -3826,7 +3828,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                   ? 'Sve je sačuvano. Repertoar ide dublje kad negde uzmete '
                       'još protivnikovih odgovora.'
                   : 'Sve je sačuvano. Čeka još ${_frontier!.draft} '
-                      'nepotvrđenih nacrta.',
+                      'nepotvrđenih poteza.',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
@@ -3852,7 +3854,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               TextButton.icon(
                 onPressed: _busy ? null : _restoreBranch,
                 icon: const Icon(Icons.undo, size: 18),
-                label: const Text('Vrati odsečenu granu'),
+                label: const Text('Ipak spremi ovu granu'),
               ),
             // The door the sentence above promises. Without it the reader is
             // told to go back to a position and given no way to reach one.
@@ -3868,7 +3870,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               OutlinedButton.icon(
                 onPressed: _busy ? null : _reviewDrafts,
                 icon: const Icon(Icons.edit_note, size: 18),
-                label: Text('Pregledaj nacrt (${_frontier!.draft})'),
+                label: Text('Pregledaj nepotvrđene (${_frontier!.draft})'),
               ),
             ],
             const SizedBox(height: AppSpacing.sm),

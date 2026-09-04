@@ -184,8 +184,8 @@ class RepertoireTreePanel extends StatelessWidget {
   final void Function(AnalysisNode node)? onExtra;
 
   static const _widthNames = {
-    'main': 'samo glavna linija',
-    'standard': 'standardno 80%',
+    'main': 'samo glavni odgovor',
+    'standard': 'uobičajeno 80%',
     'broad': 'široko 95%',
   };
 
@@ -197,7 +197,7 @@ class RepertoireTreePanel extends StatelessWidget {
         Text(
           'Uz protivnikov potez stoji koliko se često igra. ★ je vaš glavni '
           'potez, ? pozicija bez vaše odluke, … odluka bez uzetih odgovora, '
-          '✂ odsečena grana. Broj u zagradi je ocena motora — dubina i datum '
+          '✂ grana koju ne spremam. Broj u zagradi je ocena motora — dubina i datum '
           'stoje u panelu uz tablu. Dodirnite potez da tabla ode tamo, a '
           'dugim pritiskom (ili desnim klikom) otvorite izmene.',
           style: AppText.micro.copyWith(color: context.colors.textMuted),
@@ -215,7 +215,7 @@ class RepertoireTreePanel extends StatelessWidget {
                     style: AppText.micro
                         .copyWith(color: context.colors.textSecondary)),
               if (breadth != null)
-                Text('Širina: ${_widthNames[breadth] ?? breadth}',
+                Text('Koliko odgovora: ${_widthNames[breadth] ?? breadth}',
                     style: AppText.micro
                         .copyWith(color: context.colors.textSecondary)),
             ],
@@ -227,8 +227,8 @@ class RepertoireTreePanel extends StatelessWidget {
             icon: Icon(showCut ? Icons.visibility_off : Icons.content_cut,
                 size: 16),
             label: Text(showCut
-                ? 'Sakrij odsečene grane ($cutHidden)'
-                : 'Prikaži odsečene grane ($cutHidden)'),
+                ? 'Sakrij grane koje ne spremam ($cutHidden)'
+                : 'Prikaži grane koje ne spremam ($cutHidden)'),
           ),
         if (truncatedAt != null) ...[
           const SizedBox(height: AppSpacing.xxs),

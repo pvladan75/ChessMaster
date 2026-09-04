@@ -44,7 +44,7 @@ void main() {
     // „repertoara", because whose width it is turned out to be the whole
     // misunderstanding: read inside a dialog titled „Napravi kičmu odavde" it
     // was taken for the width of the spine. Reported live 4.9.2026.
-    expect(find.text('Širina repertoara'), findsOneWidget);
+    expect(find.text('Koliko odgovora spremamo'), findsOneWidget);
 
     // Tap broad. `ensureVisible` because the width section now carries a
     // sentence saying whose width it is, and a dialog is a scroll view: a tap

@@ -322,7 +322,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                             'Od toga ${preview.decisions} '
                             '${preview.decisions == 1 ? "koji ste sami izabrali" : "koje ste sami izabrali"}'
                             '${preview.shared > 0 ? ", a ${preview.shared} pozicija ostaje jer ih drži još neki repertoar iste boje" : ""}.'
-                            '\nIdu i odsečene grane, dodati odgovori, '
+                            '\nIdu i grane koje ne spremate, dodati odgovori, '
                             'raspored za vežbanje i ocene motora za te '
                             'pozicije. Ovo se ne može poništiti.',
                             style: AppText.caption
@@ -425,7 +425,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Idu i odsečene grane, dodati odgovori, raspored za '
+                  'Idu i grane koje ne spremate, dodati odgovori, raspored za '
                   'vežbanje i ocene motora za tu boju. Sami repertoari '
                   '(ime i početna pozicija) ostaju — njih brišete pojedinačno.'
                   '\n\nBrisanje se ne može poništiti.',
@@ -846,7 +846,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                       value: 'coverage',
                       child: ListTile(
                         leading: Icon(Icons.radar),
-                        title: Text('Pokrivenost'),
+                        title: Text('Rupe u repertoaru'),
                       ),
                     ),
                     PopupMenuItem(

@@ -44,22 +44,25 @@ void main() {
 
     expect(find.text('Knjiga: partije od 1600+'), findsOneWidget);
     // The stored word is not what a reader is shown.
-    expect(find.text('Širina: samo glavna linija'), findsOneWidget);
+    expect(find.text('Koliko odgovora: samo glavni odgovor'), findsOneWidget);
   });
 
   testWidgets('each width is written out', (tester) async {
     await _pump(tester, minRating: 2000, breadth: 'standard');
-    expect(find.text('Širina: standardno 80%'), findsOneWidget);
+    expect(find.text('Koliko odgovora: uobičajeno 80%'), findsOneWidget);
     expect(find.text('Knjiga: partije od 2000+'), findsOneWidget);
 
     await _pump(tester, minRating: 2000, breadth: 'broad');
-    expect(find.text('Širina: široko 95%'), findsOneWidget);
+    expect(find.text('Koliko odgovora: široko 95%'), findsOneWidget);
   });
 
   testWidgets('nothing is invented when nothing is known', (tester) async {
     await _pump(tester);
 
     expect(find.textContaining('Knjiga:'), findsNothing);
-    expect(find.textContaining('Širina:'), findsNothing);
+    // The label without a value, so the table's `Širina: ${...}` row does not
+    // reach it — the twenty-first assertion, and the one the automated pass
+    // over the table could not do.
+    expect(find.textContaining('Koliko odgovora:'), findsNothing);
   });
 }

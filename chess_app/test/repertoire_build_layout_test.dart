@@ -10,6 +10,7 @@ import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
+import 'package:chess_app/features/repertoire/widgets/unconfirmed_banner.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
@@ -409,9 +410,9 @@ void main() {
     await pump(tester, const Size(1400, 900), cutTree: true);
 
     expect(find.text('4. c3 64% ✂'), findsNothing);
-    expect(find.text('Prikaži odsečene grane (1)'), findsOneWidget);
+    expect(find.text('Prikaži grane koje ne spremam (1)'), findsOneWidget);
 
-    await tester.tap(find.text('Prikaži odsečene grane (1)'));
+    await tester.tap(find.text('Prikaži grane koje ne spremam (1)'));
     await tester.pumpAndSettle();
     expect(find.text('4. c3 64% ✂'), findsWidgets);
   });
@@ -458,8 +459,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Idi'), findsNothing);
-    expect(find.text('Vidi odsečeno'), findsOneWidget);
-    expect(find.textContaining('✂ odsečeno'), findsOneWidget);
+    expect(find.text('Vidi šta ne spremam'), findsOneWidget);
+    expect(find.textContaining('✂ ne spremam'), findsOneWidget);
   });
 
   testWidgets('a reply that was not cut still says Idi', (tester) async {
@@ -472,7 +473,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Idi'), findsOneWidget);
-    expect(find.textContaining('✂ odsečeno'), findsNothing);
+    expect(find.textContaining('✂ ne spremam'), findsNothing);
   });
 
   testWidgets('the cards are numbered from where the game really is',
@@ -563,5 +564,47 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Dodirnite liniju'), findsOneWidget);
+  });
+
+  group('the unconfirmed banner has room for its own label', () {
+    /// „Pregledaj nepotvrđene" is four characters longer than the „Pregledaj
+    /// nacrt" this banner was built around, and on a 360 dp phone that is a
+    /// 22-pixel overflow. In a release build nothing is painted over it — the
+    /// button is simply clipped and unreachable, which is the whole reason
+    /// CLAUDE.md keeps a section about it. In a test build it throws, which is
+    /// what these two tests are for.
+    Future<void> pumpBanner(WidgetTester tester, double width) async {
+      tester.view.physicalSize = Size(width, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(body: UnconfirmedBanner(total: 4, onOpenWizard: () {})),
+      ));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a 360 dp phone puts the button under the sentence',
+        (tester) async {
+      await pumpBanner(tester, 360);
+
+      expect(tester.takeException(), isNull, reason: 'preliv na telefonu');
+      final sentence = tester.getTopLeft(find.text('4 nepotvrđenih u grafu'));
+      final button = tester.getTopLeft(find.text('Pregledaj nepotvrđene'));
+      expect(button.dy, greaterThan(sentence.dy + 30),
+          reason: 'na telefonu dugme ide ispod rečenice');
+    });
+
+    testWidgets('a wide window keeps them on one row', (tester) async {
+      // The half that is easy to lose while fixing the half above: a `Wrap`
+      // solves the phone and stacks the desktop too, because `SpeakableInfo`
+      // is a `Row` with an `Expanded` in it and takes the whole width.
+      await pumpBanner(tester, 1200);
+
+      expect(tester.takeException(), isNull);
+      final sentence = tester.getTopLeft(find.text('4 nepotvrđenih u grafu'));
+      final button = tester.getTopLeft(find.text('Pregledaj nepotvrđene'));
+      expect((button.dy - sentence.dy).abs(), lessThan(30),
+          reason: 'u širokom prozoru stoje jedno pored drugog');
+    });
   });
 }

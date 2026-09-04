@@ -92,7 +92,7 @@ void main() {
       (tester) async {
     await pump(tester, heldInGraph: 21);
 
-    await tester.tap(find.text('Pregledaj nacrt'));
+    await tester.tap(find.text('Pregledaj nepotvrđene'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('21'), findsWidgets,
@@ -105,7 +105,7 @@ void main() {
       (tester) async {
     await pump(tester, heldInGraph: 0);
 
-    await tester.tap(find.text('Pregledaj nacrt'));
+    await tester.tap(find.text('Pregledaj nepotvrđene'));
     await tester.pumpAndSettle();
 
     expect(find.text('Nema više nepotvrđenih poteza.'), findsOneWidget);

@@ -146,7 +146,7 @@ void main() {
           ],
         ));
 
-    expect(find.textContaining('odsečeno 100%'), findsOneWidget);
+    expect(find.textContaining('ne spremam 100%'), findsOneWidget);
     expect(find.textContaining('spremljeno 100%'), findsNothing);
   });
 
