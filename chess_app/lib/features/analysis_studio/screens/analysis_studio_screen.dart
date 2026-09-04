@@ -402,6 +402,19 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       this,
       getFen: () => _currentNode.fen,
       isEnabled: () => _showEvaluation || _showEvalBar,
+      // A position that is not a possible game never reaches the engine, and
+      // the reader is told why rather than left with a board that quietly never
+      // evaluates. Reported live 30.8.2026 as a crash: a board set up by hand
+      // with no king, imported here, engine switched on.
+      onRefused: (reason) {
+        if (!mounted) return;
+        AppFeedback.show(
+            context,
+            () => SnackBar(
+                  content: Text('Motor ne može da računa: $reason'),
+                  backgroundColor: context.colors.danger,
+                ));
+      },
       onEvaluation: (evaluation, bestMove, continuation, multipv, depth,
           isFinal, analyzedFen) {
         if (!mounted) return;

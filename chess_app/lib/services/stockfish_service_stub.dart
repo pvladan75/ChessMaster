@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:chess_app/models/analysis_models.dart';
+import 'package:chess_app/services/fen_legality.dart';
 
 class StockfishService {
   // ─── SINGLETON ───
@@ -12,6 +13,11 @@ class StockfishService {
   Function(String evaluation, String bestMove, String continuation, int multipv,
       int depth, bool isFinal, String analyzedFen)? onEvaluationChanged;
   Function(Map<int, AnalysisLine> lines)? onMultiPVUpdated;
+
+  /// Said when a position is refused before the engine ever sees it. Mirrors
+  /// the native service, which is where the reason this exists is written down.
+  Function(String reason)? onPositionRefused;
+
   final Map<int, AnalysisLine> _engineLines = {};
 
   bool _isActive = false;
@@ -29,6 +35,7 @@ class StockfishService {
   void clearCallbacks() {
     onEvaluationChanged = null;
     onMultiPVUpdated = null;
+    onPositionRefused = null;
   }
 
   // ─── SUBSCRIBER STACK ───
@@ -43,12 +50,13 @@ class StockfishService {
             int multipv, int depth, bool isFinal, String analyzedFen)?
         onEvaluation,
     Function(Map<int, AnalysisLine> lines)? onMultiPV,
+    Function(String reason)? onRefused,
     String Function()? getFen,
     bool Function()? isEnabled,
   }) {
     _subscribers.removeWhere((s) => identical(s.owner, owner));
     _subscribers.add(_EngineSubscriber(owner, onEvaluation, onMultiPV,
-        getFen: getFen, isEnabled: isEnabled));
+        onRefused: onRefused, getFen: getFen, isEnabled: isEnabled));
     _activateTopSubscriber();
   }
 
@@ -67,11 +75,13 @@ class StockfishService {
     if (_subscribers.isEmpty) {
       onEvaluationChanged = null;
       onMultiPVUpdated = null;
+      onPositionRefused = null;
       return;
     }
     final top = _subscribers.last;
     onEvaluationChanged = top.onEvaluation;
     onMultiPVUpdated = top.onMultiPV;
+    onPositionRefused = top.onRefused;
 
     final active = top.isEnabled?.call() ?? true;
     final currentFen = top.getFen?.call();
@@ -82,6 +92,14 @@ class StockfishService {
 
   Future<void> analyzePosition(String fen,
       {int depth = 10, bool isInfinite = false}) async {
+    // Same door, same guard — see the native service for why it is here and
+    // not on the screens.
+    final illegal = fenIllegalReason(fen);
+    if (illegal != null) {
+      _isActive = false;
+      onPositionRefused?.call(illegal);
+      return;
+    }
     _isActive = true;
 
     final reqId = ++_requestId;
@@ -188,9 +206,10 @@ class _EngineSubscriber {
   final Function(String evaluation, String bestMove, String continuation,
       int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation;
   final Function(Map<int, AnalysisLine> lines)? onMultiPV;
+  final Function(String reason)? onRefused;
   final String Function()? getFen;
   final bool Function()? isEnabled;
 
   _EngineSubscriber(this.owner, this.onEvaluation, this.onMultiPV,
-      {this.getFen, this.isEnabled});
+      {this.onRefused, this.getFen, this.isEnabled});
 }

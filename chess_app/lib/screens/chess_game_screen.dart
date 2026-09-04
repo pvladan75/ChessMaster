@@ -312,6 +312,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
       isEnabled: () => isEngineEnabled,
       onEvaluation: _stockfishService.onEvaluationChanged,
       onMultiPV: _stockfishService.onMultiPVUpdated,
+      // A position that is not a possible game never reaches the engine, and
+      // the reader is told why rather than left with a board that quietly
+      // never evaluates. Reported live 30.8.2026 as a crash.
+      onRefused: (reason) {
+        if (!mounted) return;
+        AppFeedback.show(
+            context,
+            () => SnackBar(
+                  content: Text('Motor ne može da računa: $reason'),
+                  backgroundColor: context.colors.danger,
+                ));
+      },
     );
 
     // No `_initAudioChat()` here. Entering a room is not asking for a

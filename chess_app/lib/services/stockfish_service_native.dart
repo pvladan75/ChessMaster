@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stockfish/stockfish.dart';
 
 import 'package:chess_app/models/analysis_models.dart';
+import 'package:chess_app/services/fen_legality.dart';
 
 class StockfishService {
   // ─── SINGLETON ───
@@ -26,6 +27,13 @@ class StockfishService {
   Function(String evaluation, String bestMove, String continuation, int multipv,
       int depth, bool isFinal, String analyzedFen)? onEvaluationChanged;
   Function(Map<int, AnalysisLine> lines)? onMultiPVUpdated;
+
+  /// Said when a position is refused before the engine ever sees it.
+  ///
+  /// Null on a screen that has nowhere to put the sentence; the position is
+  /// refused either way, which is the half that keeps the application alive.
+  Function(String reason)? onPositionRefused;
+
   final Map<int, AnalysisLine> _engineLines = {};
 
   bool _isActive = false;
@@ -300,6 +308,7 @@ class StockfishService {
             int multipv, int depth, bool isFinal, String analyzedFen)?
         onEvaluation,
     Function(Map<int, AnalysisLine> lines)? onMultiPV,
+    Function(String reason)? onRefused,
     String Function()? getFen,
     bool Function()? isEnabled,
   }) {
@@ -308,6 +317,7 @@ class StockfishService {
       owner,
       onEvaluation,
       onMultiPV,
+      onRefused: onRefused,
       getFen: getFen,
       isEnabled: isEnabled,
     ));
@@ -344,11 +354,13 @@ class StockfishService {
     if (_subscribers.isEmpty) {
       onEvaluationChanged = null;
       onMultiPVUpdated = null;
+      onPositionRefused = null;
       return;
     }
     final top = _subscribers.last;
     onEvaluationChanged = top.onEvaluation;
     onMultiPVUpdated = top.onMultiPV;
+    onPositionRefused = top.onRefused;
 
     // Automatically trigger analysis for current visible board position if engine is ON
     final active = top.isEnabled?.call() ?? true;
@@ -368,8 +380,29 @@ class StockfishService {
   /// clicking through several tree nodes quickly) only actually reaches the
   /// engine for the last one, instead of piling up "stop"+"go" commands
   /// faster than the engine can honor them.
+  ///
+  /// A position that is not a possible game never reaches the engine at all.
+  /// Reported live 30.8.2026: a board set up by hand with no king, imported,
+  /// engine switched on — and the application went down. `fenIllegalReason`
+  /// was written for it the same day, but it was put on the two doors that were
+  /// known (the setup dialog and the FEN paste box), and this is the corridor
+  /// they both lead to. Every other way in — a lesson position from the server,
+  /// a PGN, a puzzle with a broken FEN, the auto-trigger below — walked past it.
+  ///
+  /// So the check is here, where there is exactly one of it, and it is loud:
+  /// [onPositionRefused] is what the screen says out loud, because a board that
+  /// silently never evaluates is the same failure wearing a quieter coat.
   Future<void> analyzePosition(String fen,
       {int depth = 18, bool isInfinite = false}) async {
+    final illegal = fenIllegalReason(fen);
+    if (illegal != null) {
+      AppLogger.log(
+          '[StockfishService] ⛔ Pozicija odbijena, motor nije pozvan: $illegal | FEN: $fen');
+      _analyzeDebounceTimer?.cancel();
+      _isActive = false;
+      onPositionRefused?.call(illegal);
+      return;
+    }
     _analyzeDebounceTimer?.cancel();
     final completer = Completer<void>();
     _analyzeDebounceTimer = Timer(const Duration(milliseconds: 180), () async {
@@ -989,6 +1022,7 @@ class _EngineSubscriber {
   final Function(String evaluation, String bestMove, String continuation,
       int multipv, int depth, bool isFinal, String analyzedFen)? onEvaluation;
   final Function(Map<int, AnalysisLine> lines)? onMultiPV;
+  final Function(String reason)? onRefused;
   final String Function()? getFen;
   final bool Function()? isEnabled;
 
@@ -996,6 +1030,7 @@ class _EngineSubscriber {
     this.owner,
     this.onEvaluation,
     this.onMultiPV, {
+    this.onRefused,
     this.getFen,
     this.isEnabled,
   });
