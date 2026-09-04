@@ -142,6 +142,31 @@ void main() {
       expect(hole.border!.top.width, greaterThan(covered.border!.top.width));
     });
 
+    testWidgets("a hole's edge is at full strength, and still says whose move",
+        (tester) async {
+      // The channel that failed live was never the weight — a hole was already
+      // drawn heavier than its neighbours. It was the edge *colour*: `c5` is
+      // the opponent's second reply, so it is off the main line, and every
+      // off-line card has its side token discounted to `alpha: 0.75`. On a
+      // dark ground that discount is the hole the owner could not find.
+      final looks = <String, MoveTreeNodeLook>{};
+      final root = repertoireTreeToNodes(treeWithAHole(), looks: looks);
+      await pumpTree(tester, root, nodeLook: (node) => looks[node.id]);
+
+      final covered = cardFor(tester, 'e5').border!.top;
+      final hole = cardFor(tester, 'c5').border!.top;
+
+      // No discount left on the one card the reader is hunting for.
+      expect(hole.color.a, 1.0);
+      expect(hole.width, 3.0);
+
+      // And the *same* token as the covered reply beside it, at full opacity.
+      // Both are Black's moves, so a single bright colour for every hole would
+      // buy the contrast by throwing the side-to-move channel away — this is
+      // the assertion that refuses that trade.
+      expect(hole.color, covered.color);
+    });
+
     testWidgets('a board that passes no look is drawn exactly as before',
         (tester) async {
       // The analysis studio shares this widget and knows nothing about

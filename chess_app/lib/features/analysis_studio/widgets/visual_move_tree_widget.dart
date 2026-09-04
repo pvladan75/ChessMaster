@@ -771,7 +771,17 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
       if (look == MoveTreeNodeLook.gap) {
         // Heavier, not quieter. The whole reason to draw these apart is that a
         // hole is the one card the reader is looking for.
-        borderWidth = isSelected ? 2.8 : 2.4;
+        //
+        // The weight was never the weak half — a hole was already 2.4 against
+        // 1.2. What made it vanish in the dark theme was the edge *colour*: a
+        // hole sits under the opponent's reply, so it is rarely on the main
+        // line, and the rules above hand every off-line card its side token at
+        // `alpha: 0.75`. A discounted `sideBlack` edge on a dark ground is the
+        // card the owner could not find. So the discount is lifted rather than
+        // the token replaced: the outline still says whose move it is, which a
+        // single bright colour for every hole would have thrown away.
+        borderColor = borderColor.withValues(alpha: 1.0);
+        borderWidth = 3.0;
       }
       if (look == MoveTreeNodeLook.refused) {
         textColor = context.colors.textMuted;
