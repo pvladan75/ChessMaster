@@ -20,17 +20,16 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1148 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1149 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 873 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-The Flutter count was measured 4.9.2026, after the vocabulary sweep merged and
-brought two banner-layout tests with it; the backend count 4.9.2026 as well,
-after the walk stopped hiding a reader's own moves behind a narrow width. The
-sweep changed words and not behaviour, so 1146 plus those two is the whole of
-the move.
+The Flutter count was measured 4.9.2026: the vocabulary sweep brought two
+banner-layout tests, and the board/tree synchronisation fix one more. The
+backend count is 4.9.2026 as well, after the walk stopped hiding a reader's own
+moves behind a narrow width.
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.
