@@ -129,12 +129,27 @@ table; they stay as they are.
 | `Ovo je širina celog repertoara, ne širina kičme — kičma je ` | `Ovo važi za ceo repertoar, ne samo za ovu liniju — glavna linija je ` |
 | `uvek jedna linija. Uža širina sakriva grane koje ste već ` | `uvek jedna linija. Manje odgovora skriva grane koje ste već ` |
 | `nepoznata širina` | `nepoznato` |
+| `Samo glavna linija` | `Samo glavni odgovor` |
+| `Standardno (80%)` | `Uobičajeno (80%)` |
+
+The last two are the glossary's own third column and were missing from this
+table until 4.9.2026 — found by listing the test assertions the sweep breaks,
+which is a better reader of a table than the table's author. They matter more
+than they look: „Samo glavna linija" is the reason the owner read this dial as
+the shape of the kičma rather than as how much of the opponent's book the whole
+repertoire follows, which cost a live finding. „Široko (95%)" is unchanged.
+
+`Napravi kičmu` in `repertoire_build_screen.dart` is the button that opens this
+dialog; the two have to move together or the button and its dialog stop agreeing
+about what they are for.
 
 ### `repertoire_tree_panel.dart`
 
 | old | new |
 |---|---|
 | `Širina: ${...}` | `Koliko odgovora: ${...}` |
+| `samo glavna linija` | `samo glavni odgovor` |
+| `standardno 80%` | `uobičajeno 80%` |
 | `Prikaži odsečene grane ($ident)` | `Prikaži grane koje ne spremam ($ident)` |
 | `Sakrij odsečene grane ($ident)` | `Sakrij grane koje ne spremam ($ident)` |
 | `✂ odsečena grana. Broj u zagradi je ocena motora — dubina i datum ` | `✂ grana koju ne spremam. Broj u zagradi je ocena motora — dubina i datum ` |

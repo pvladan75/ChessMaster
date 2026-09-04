@@ -1,0 +1,143 @@
+# Brief: the vocabulary sweep
+
+Written 4.9.2026. Pairs with [TASK-recnik.md](TASK-recnik.md), which holds the
+scope and the method. This file holds the *why*, the shape of the gate, and the
+rules that get the work rejected.
+
+Phase 4 of [PLAN-JEDNOSTAVNOST.md](PLAN-JEDNOSTAVNOST.md). Phases 0, 1 and 2 are
+merged; phase 3 is the lead's and does not block this.
+
+**This is the one batch in this project where „a string changed" is the work
+rather than the defect.** Everything below exists because of that inversion.
+
+## 1. Why this job exists
+
+The repertoire grew its vocabulary from the inside. *Kičma* is what the code
+calls the trunk it writes; *nacrt* is what the column `source = 'auto'` felt
+like; *širina* is a database column; *pokrivenost* is what the walk computes.
+Every one of them is an accurate name for an implementation, and not one of them
+is a word a twelve-year-old would use about their own opening.
+
+The glossary in `PLAN-JEDNOSTAVNOST.md` retires seven of them and says what is
+shown instead. This batch is that glossary applied.
+
+**It is not a rename.** Nothing in the code changes name — not a column, not a
+route, not a variable. Seven words stop appearing on screen; that is the whole
+job.
+
+## 2. Why a table and not a rule
+
+A sweep by word stem is dangerous here, and the two cases that prove it are in
+the table's own preamble:
+
+* `'Nacrtaj strelicu'` in `chess_game_screen.dart` matches the stem `nacrt` and
+  means *draw an arrow*. A mechanical sweep renames a board control.
+* `'pokriveno ${...}%'` in `opening_judge_service.dart` is inside an
+  `AppLogger.log` and is not user-facing at all.
+
+So every replacement was decided by hand and written down. `docs/TABELA-RECNIK-2026-09.md`
+is the contract: **47 rows the gate can see, 3 it cannot, 2 that must not be
+touched.**
+
+The table was re-checked against `master` on 4.9.2026 with the gate's own
+`scan_strings`, and it moved twice — five keys had lost a trailing space in
+transcription, and seven new literals had arrived with that day's live fixes.
+Both would otherwise have surfaced as a red batch that read like your mistake.
+`orchestrator/check_table.py` is that check; it is worth running again if this
+brief sits unused for a week.
+
+## 3. How you are judged
+
+### 3.1 The strings gate reads the table
+
+`gate_strings(..., allow_rewritten=table)` no longer asks „is the copy identical
+to master". It asks:
+
+* is every `old` **gone** from that file?
+* is every `new` **present** in that file?
+* did **anything else** in those files change?
+
+All three have to hold. A wording of your own fails the second and third; a row
+you skipped fails the first. This is deliberately tighter than a normal batch:
+the gate that usually protects the copy is the gate you are steering.
+
+### 3.2 The tests are already written, and you may not touch them
+
+**21 assertions across 6 test files** quote the old wording. The lead has
+already rewritten them to the new wording on this branch, so the suite is red
+when you start and your job is to make it green without editing a test.
+
+That order is not bureaucracy. An earlier batch in this project was allowed to
+write the tests that judged it and produced tests that pumped no panel and
+proved nothing. A worker who cannot edit the assertions cannot produce that.
+
+The six files, so you recognise the failures:
+
+| file | assertions |
+|---|---|
+| `repertoire_build_test.dart` | 8 |
+| `repertoire_build_layout_test.dart` | 5 |
+| `repertoire_tree_legend_test.dart` | 4 |
+| `draft_review_empty_answer_test.dart` | 2 |
+| `repertoire_breadth_dialog_test.dart` | 1 |
+| `repertoire_coverage_test.dart` | 1 |
+
+Three more mentions are in **comments** — in those files and in
+`repertoire_breadth_wire_test.dart` — and they stay exactly as they are. A
+comment quoting „Samo glavna linija" is explaining what once went wrong, and it
+does not stop being true because a label moved.
+
+### 3.3 The three the gate is blind to
+
+`scan_strings` walks into an interpolation to keep quotes paired and does **not**
+record what it finds there. Three of the strings are nested that way, all in
+`repertoire_coverage_screen.dart`, and the gate will pass whether or not you
+touch them.
+
+They are listed in the table with their line numbers. **Quote all three in your
+report as they now read.** An unquoted one is treated as not done.
+
+## 4. What gets the work rejected
+
+* **A wording that is not the table's.** Even a better one. If a replacement
+  reads badly in place, that is a report line and a stop, not an edit.
+* **Any change under `chess_app/test/`.** §3.2.
+* **A renamed identifier.** `_widthNames`, `kBreadthNames`, `breadthName`,
+  `_cutHere`, `draft`, `pruned` — all stay. The glossary is about the reader.
+* **A comment rewritten to match.** The comments explain the code and use the
+  code's words on purpose; several of them explain why a word was retired and
+  would become nonsense with the word removed.
+* **A file reformatted beyond the lines you edited.**
+* **A row applied „close enough".** Byte for byte, trailing spaces included.
+
+## 5. Two rules that bite in Serbian
+
+**Inflection.** Where a replacement sits next to a number, the noun and its
+participle move together: „Dodata 1 pozicija", „Dodate 2 pozicije", „Dodato 5
+pozicija" — and 11 to 14 go with the five. `serbianCount` in
+`lib/core/services/serbian_plural.dart` has the three forms and its own tests.
+The table's replacements were written to avoid introducing a new agreement
+problem; if one of them does, report the row rather than inventing a fourth
+form.
+
+**The retired words are retired everywhere, including inside a sentence.** The
+table catches the ones that exist today. If applying a row leaves a retired word
+standing in the same sentence — because the sentence was longer than the key —
+that is a row the table got wrong: report it, with the whole sentence.
+
+## 6. What this batch is not allowed to fix
+
+You will pass things worth fixing. Leave them and write them down:
+
+* the two false positives in §2 stay exactly as they are;
+* `chess_backend/` is out of scope entirely, including the Serbian error
+  messages the routes return — those are a separate decision nobody has taken;
+* the wording of anything not in the table, however tempting;
+* anything on a screen outside the seven files.
+
+## 7. Your report
+
+`report-recnik.md` in the worktree root. §"Your report" of the TASK lists what
+it must contain. The two that are usually skipped and matter most here: **the
+three interpolated strings quoted in full**, and **any assertion you believe is
+wrong, having changed nothing.**
