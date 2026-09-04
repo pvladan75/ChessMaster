@@ -5,6 +5,7 @@ import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
+import 'package:chess_app/theme/app_theme.dart';
 
 /// Phase 2 of `docs/PLAN-UPOZNAJ-REPERTOAR.md`: the four states, drawn apart.
 ///
@@ -62,11 +63,13 @@ Future<void> pumpTree(
   WidgetTester tester,
   AnalysisNode root, {
   MoveTreeNodeLook? Function(AnalysisNode)? nodeLook,
+  ThemeData? theme,
 }) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(MaterialApp(
+    theme: theme,
     home: Scaffold(
       body: VisualMoveTreeWidget(
         rootNode: root,
@@ -124,11 +127,12 @@ void main() {
       final covered = cardFor(tester, 'e5');
       final hole = cardFor(tester, 'c5');
 
-      // Fill: mine carries one, theirs does not. The first channel, and the
-      // one that reads at a distance.
+      // Fill: mine carries one, an answered reply does not. The first
+      // channel, and the one that reads at a distance. A hole carries a wash —
+      // see the luminance test below for why it stopped being bare.
       expect(mine.color, isNot(Colors.transparent));
       expect(covered.color, Colors.transparent);
-      expect(hole.color, Colors.transparent);
+      expect(hole.color, isNot(Colors.transparent));
 
       // Silhouette: a rectangle is mine, a pill is theirs. This is the channel
       // that survives being glanced at rather than read.
@@ -142,29 +146,71 @@ void main() {
       expect(hole.border!.top.width, greaterThan(covered.border!.top.width));
     });
 
-    testWidgets("a hole's edge is at full strength, and still says whose move",
+    testWidgets("a hole's edge carries luminance, in both themes",
         (tester) async {
-      // The channel that failed live was never the weight — a hole was already
-      // drawn heavier than its neighbours. It was the edge *colour*: `c5` is
-      // the opponent's second reply, so it is off the main line, and every
-      // off-line card has its side token discounted to `alpha: 0.75`. On a
-      // dark ground that discount is the hole the owner could not find.
-      final looks = <String, MoveTreeNodeLook>{};
-      final root = repertoireTreeToNodes(treeWithAHole(), looks: looks);
-      await pumpTree(tester, root, nodeLook: (node) => looks[node.id]);
+      // Measured, not asserted by eye. The first version of this test demanded
+      // the hole keep the *same* colour as the covered reply beside it, on the
+      // argument that the outline still had to say whose move it was. The
+      // owner watched it on 4.9.2026 and the hole was still hard to find, so
+      // the numbers were taken: in the dark theme that shared token is
+      // `sideBlack` at luminance 0.002 — a near-black line on a near-black
+      // ground, and the only difference from its neighbours was 3.0 px of it
+      // instead of 1.2. The channel that was being protected is constant
+      // inside a repertoire anyway: every card of the opponent's is the same
+      // side, and fill and silhouette already say whose move it is.
+      //
+      // So what is asserted now is what a reader actually gets: the hole's
+      // edge stands away from its neighbour's in luminance, in both themes.
+      for (final theme in [AppTheme.dark, AppTheme.light]) {
+        final looks = <String, MoveTreeNodeLook>{};
+        final root = repertoireTreeToNodes(treeWithAHole(), looks: looks);
+        await pumpTree(tester, root,
+            nodeLook: (node) => looks[node.id], theme: theme);
 
-      final covered = cardFor(tester, 'e5').border!.top;
-      final hole = cardFor(tester, 'c5').border!.top;
+        final covered = cardFor(tester, 'e5').border!.top;
+        final hole = cardFor(tester, 'c5').border!.top;
 
-      // No discount left on the one card the reader is hunting for.
-      expect(hole.color.a, 1.0);
-      expect(hole.width, 3.0);
+        final holeFill = cardFor(tester, 'c5').color!;
+        final coveredFill = cardFor(tester, 'e5').color!;
 
-      // And the *same* token as the covered reply beside it, at full opacity.
-      // Both are Black's moves, so a single bright colour for every hole would
-      // buy the contrast by throwing the side-to-move channel away — this is
-      // the assertion that refuses that trade.
-      expect(hole.color, covered.color);
+        expect(hole.width, 3.0);
+        expect(hole.color.a, 1.0);
+
+        // The channel that has to survive both themes. A bright edge alone
+        // fixes the dark one and does nothing for the light one, where
+        // `textPrimary` and the neighbours' side token are both dark.
+        expect(holeFill.a, greaterThan(0.0),
+            reason: 'a hole with no fill differs from an answered reply only '
+                'by stroke width');
+        expect(coveredFill.a, 0.0);
+
+        // And the edge has to be visible against the ground it is drawn on,
+        // which is the half the fill does not cover. This is the assertion the
+        // old side token fails: in the dark theme it is luminance 0.002 on a
+        // ground of about 0.02, so the line is there and cannot be seen.
+        final ground = theme.scaffoldBackgroundColor.computeLuminance();
+        expect((hole.color.computeLuminance() - ground).abs(), greaterThan(0.4),
+            reason: 'the hole is outlined in almost exactly the shade behind '
+                'it');
+      }
+    });
+
+    testWidgets('and an answered reply is not drawn like a hole',
+        (tester) async {
+      // The other side of it: whatever the hole gets, a covered reply must not
+      // have, or the drawing is back to one look for two states.
+      for (final theme in [AppTheme.dark, AppTheme.light]) {
+        final looks = <String, MoveTreeNodeLook>{};
+        final root = repertoireTreeToNodes(treeWithAHole(), looks: looks);
+        await pumpTree(tester, root,
+            nodeLook: (node) => looks[node.id], theme: theme);
+
+        final covered = cardFor(tester, 'e5');
+        final hole = cardFor(tester, 'c5');
+
+        expect(covered.border!.top.width, lessThan(hole.border!.top.width));
+        expect(covered.color!.a, lessThan(hole.color!.a));
+      }
     });
 
     testWidgets('a board that passes no look is drawn exactly as before',

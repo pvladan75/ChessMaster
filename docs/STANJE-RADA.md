@@ -357,6 +357,38 @@ Obe iste vrste: kapija koja tiho ne pogleda ono što treba da gleda.
   literal**, koji je ranije davao istu neopisivu poruku, sada se imenuje.
   Dokazano mutacijom: `+['<1%']`.
 
+### Rupa u stablu, drugi pokušaj: mereno umesto tvrđeno — 4.9.2026
+
+Vlasnik je prvu popravku video uživo i rekao „teško se uočava i ovako
+podebljano". Izmereno na njegovoj tamnoj temi, umesto nagađanja:
+
+| kartica | luminancija ivice | širina | ispuna |
+|---|---|---|---|
+| moj potez | 0.9085 | 1.2 | ima |
+| pokriven odgovor | **0.0021** | 1.2 | nema |
+| rupa (pre) | **0.0021** — ista | 3.0 | nema |
+
+Rupa je nasleđivala `sideBlack`, luminancije 0.002 — **skoro crna linija na
+skoro crnoj podlozi.** Podizanje neprovidnosti sa 0.75 na 1.0 je nevidljivu
+liniju učinilo čvrsto nevidljivom.
+
+**Argument zbog koga je token zadržan bio je pogrešan.** Rečeno je da ivica mora
+i dalje da kaže ko je na potezu — ali to već dvostruko kažu ispuna i silueta
+(moj potez je ispunjen pravougaonik, njegov je prazna pilula), a **unutar jednog
+repertoara su svi protivnikovi potezi iste strane**, pa je taj kanal konstantan
+tačno tamo gde razlika treba da postoji. Ceo budžet kontrasta je odlazio na
+razliku koja se na tom ekranu nikad ne javi.
+
+Sada rupa ima `textPrimary` ivicu (svetla na tamnom, tamna na svetlom) i **blagu
+ispunu**. Ivica sama popravlja samo tamnu temu: u svetloj su i `textPrimary` i
+susedov token tamni, pa se opet izjednače — ispuna je jedini kanal koji
+preživljava obe. Tri izgleda, nijedan nije nijansa: ispunjen pravougaonik,
+prazna pilula, oprana pilula.
+
+Test više ne tvrdi jednakost boja nego meri: ispuna postoji a susedova ne, i
+**ivica se luminancijom odvaja od podloge na kojoj je nacrtana** — što je
+tvrdnja koju stari token pada. Dokazano sa dve mutacije.
+
 ### Rupa u tamnoj temi: kriva je bila providnost, ne debljina — 4.9.2026
 
 Vlasnik je tražio deblju ivicu (2.0 → 2.5–3.0). Merenje je pokazalo da je

@@ -780,8 +780,37 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
         // card the owner could not find. So the discount is lifted rather than
         // the token replaced: the outline still says whose move it is, which a
         // single bright colour for every hole would have thrown away.
-        borderColor = borderColor.withValues(alpha: 1.0);
+        // Measured on the owner's own dark theme, 4.9.2026: the side token a
+        // hole inherits is `sideBlack`, luminance **0.002** — a near-black
+        // outline on a near-black ground. Lifting its alpha from 0.75 to 1.0,
+        // which is what this line used to do, made an invisible line solidly
+        // invisible. He reported the hole still hard to find, and he was being
+        // generous about it.
+        //
+        // So the side token goes. It was kept on the argument that the outline
+        // must still say whose move it is — but fill and silhouette already
+        // say that twice over (mine is a filled rectangle, theirs an outlined
+        // pill), and inside a single repertoire *every* card of theirs is the
+        // same side, so that channel is constant exactly where the difference
+        // is needed. The whole contrast budget was going on a distinction that
+        // never varies on this screen.
+        //
+        // `textPrimary` is light on dark and dark on light, so the hole keeps
+        // its contrast in both themes with no hue carrying any of it.
+        borderColor = context.colors.textPrimary;
         borderWidth = 3.0;
+        // And a wash, which is the channel a hole was not using at all.
+        //
+        // The bright edge alone fixes the dark theme and does nothing for the
+        // light one: there `textPrimary` is dark and so is the side token the
+        // neighbours wear, so the two match again and only stroke width tells
+        // them apart. A fill is binary and survives both themes — and it does
+        // not collide with „mine", because that is a filled **rectangle** and
+        // this is a filled pill. Three looks, none of them a hue: filled
+        // rectangle, bare pill, washed pill.
+        if (!isSelected) {
+          bgColor = context.colors.textPrimary.withValues(alpha: 0.14);
+        }
       }
       if (look == MoveTreeNodeLook.refused) {
         textColor = context.colors.textMuted;
