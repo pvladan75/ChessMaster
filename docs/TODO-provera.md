@@ -3018,7 +3018,7 @@ korisnici ovog servera — zato drugi repertoar ne sme da oseti tuđi izbor.
    aplikaciju i otvoriti je ponovo: stablo i radar i dalje računaju 95%. Ranije
    se ovakav izbor vraćao na 80% sledeće sesije, bez ijedne reči na ekranu.
 2. [ ] **Tri širine daju tri različita broja.** Isti repertoar sa „Samo glavna
-   linija", „Standardno (80%)" i „Široko (95%)" — broj u redu za odlučivanje i
+   linija", „Uobičajeno (80%)" i „Široko (95%)" — broj u redu za odlučivanje i
    pokrivenost moraju stvarno da se razlikuju.
 3. [ ] **Tuđa širina se ne oseća.** Drugi repertoar iste boje ostaje na svojoj
    širini pošto se prvom promeni. Ako se pomeri i on, negde se piše u zajedničku
@@ -3101,13 +3101,13 @@ je postojalo; red za njega nije.
    vratiti: potvrđeno je ostalo potvrđeno i brojač je manji. Pregled se sme
    napustiti u svakom trenutku.
 6. [ ] **Brisanje pita.** „Odigraj drugi potez" tamo gde ispod nacrta stoje vaše
-   odluke mora prvo da kaže koliko ih je („Ispod tog nacrta su N vaše odluke.
+   odluke mora prvo da kaže koliko ih je („Ispod tog predloga su N vaše odluke.
    Obrisati i njih?") i bez potvrde da ne obriše ništa.
 7. [ ] **Kad se sve reši:** „Nema više nepotvrđenih poteza."
 8. [ ] **Vežba više ne laže da nema posla.** U repertoaru sa samim nacrtima
-   otvoriti vežbu: piše „Još N nepotvrđenih nacrta čeka u ovom repertoaru." i
-   nudi „Pregledaj nacrt".
-9. [ ] **Dijalog na „Napravi kičmu"** nudi tri širine i dubinu, i kaže da su to
+   otvoriti vežbu: piše „Još N nepotvrđenih poteza čeka u ovom repertoaru." i
+   nudi „Pregledaj nepotvrđene".
+9. [ ] **Dijalog na „Predloži glavnu liniju"** nudi tri širine i dubinu, i kaže da su to
    predlozi koje vežba neće pitati dok se ne potvrde.
 10. [ ] **Svetla tema, traka sa nacrtima.** Tekst na žutoj podlozi mora da se
     čita, a dugme je obrisano (outlined), ne puno — puno dugme se u svetloj temi
@@ -3183,23 +3183,23 @@ URL. To je ista pouka kao `ids` iz faze 4, po četvrti put.
 1. [ ] **Pregled nacrta uopšte nalazi nacrte.** `minRating` je odlazio prazan
    (`minRating=`), server je čitao `Number('') || 0`, pa je svaki pregled pitao
    u traci 0 — u kojoj vaše pozicije nisu ni dohvatane. Otvoriti repertoar u
-   kome traka kaže „N nepotvrđenih u grafu" i pritisnuti „Pregledaj nacrt":
+   kome traka kaže „N nepotvrđenih u grafu" i pritisnuti „Pregledaj nepotvrđene":
    mora da ponudi tih N, a ne „Nema više nepotvrđenih poteza."
 2. [ ] **Traka se osveži kad se pregled zatvori.** Potvrditi jedan nacrt, pa
    zatvoriti list: broj u traci mora da bude manji za jedan, a ne isti.
    Ranije se čitao samo pri otvaranju ekrana, pa je nudio posao koji je već
    urađen — a jedini način da se to sazna bio je da se pritisne.
-3. [ ] **Isto u vežbi.** Rečenica „Još N nepotvrđenih nacrta čeka" posle
+3. [ ] **Isto u vežbi.** Rečenica „Još N nepotvrđenih poteza čeka" posle
    pregleda pokazuje novi broj.
-4. [ ] **Širina stvarno menja crtež.** Postaviti „Samo glavna linija" pa
+4. [ ] **Širina stvarno menja crtež.** Postaviti „Samo glavni odgovor" pa
    pogledati stablo: ispod svakog vašeg poteza stoji **jedan** protivnikov, ne
    tri. Ovo je bio kvar zbog kog je izbor bio potpuno bez dejstva — red u bazi
    je bio ispravan, a nijedan poziv nije slao `breadth`, pa je server uvek
    računao na 80%. Mereno na Benoniju: `main` crta 3 protivnikova poteza,
    `standard` 23, `broad` 48.
 5. [ ] **Dijalog kičme se otvara na već izabranoj širini.** Repertoar na „Samo
-   glavna linija" → „Napravi kičmu" → mora da bude štiklirana glavna linija.
-   Ranije je uvek pisalo „Standardno (80%)", pa je svako otvaranje dijaloga
+   glavna linija" → „Predloži glavnu liniju" → mora da bude štiklirana glavna linija.
+   Ranije je uvek pisalo „Uobičajeno (80%)", pa je svako otvaranje dijaloga
    tiho vraćalo repertoar na 80%.
 6. [ ] **Prazan red nije ćorsokak.** Otvoriti repertoar u kome je red za
    odlučivanje prazan: ekran kaže „Nema više pozicija u redu." i nudi **„Otvori
@@ -3394,18 +3394,18 @@ jer je jedan raniji čuvar u ovom fajlu prolazio i sa isečenom zaštitom.
    (uključujući „Šahovski studio"). Ranije je aplikacija padala.
 3. [ ] **Poruke u izgradnji se čuju.** Sa uključenim govorom, u izgradnji
    repertoara: posle „Ne spremam ovo" i posle uzimanja odgovora, rečenica ispod
-   table („Dodate 2 pozicije.", „Grana je odsečena — sa njom je iz reda izašla
+   table („Dodate 2 pozicije.", „Ovu granu više ne spremam — s njom je izašla
    još 1 pozicija.") **izgovara se** i ima zvučnik pored sebe. Ranije se videla
    kao siv tekst i nikad se nije čula.
 4. [ ] **„Nema više nepotvrđenih poteza" je istina kad se kaže.** Repertoar čija
    širina ne dohvata sopstvene nacrte (napravi kičmu široko, pa prebaci na „Samo
-   glavna linija") na „Pregledaj nacrt" mora da kaže koliko ih ima u grafu, a ne
+   glavna linija") na „Pregledaj nepotvrđene" mora da kaže koliko ih ima u grafu, a ne
    da ih nema. Mereno uživo 4.9.2026 na „Druga": 21 nacrt, walk ih je video 0.
-5. [ ] **Širina u dijalogu za kičmu kaže čija je.** „Napravi kičmu odavde" →
-   naslov je „Širina repertoara" i ispod stoji da to nije širina kičme. Napraviti
-   kičmu iz pozicije van glavne linije sa izabranom „Samo glavna linija": ako
-   stablo tu poziciju više ne crta, poruka ispod table mora to da kaže i da
-   imenuje širinu.
+5. [ ] **Dijalog kaže čemu širina pripada.** „Predloži glavnu liniju odavde" →
+   naslov nad tri izbora je „Koliko odgovora spremamo", a ispod njega stoji da
+   to važi za ceo repertoar, ne samo za ovu liniju. Predložiti glavnu liniju iz
+   pozicije van nje sa izabranim „Samo glavni odgovor": ako stablo tu poziciju
+   više ne crta, poruka ispod table mora to da kaže i da imenuje izbor.
 6. [ ] **Stablo se crta dovoljno duboko.** Raditi na potezu 7 ili dubljem i uzeti
    odgovor: novi čvor se vidi u stablu **odmah**. Ranije se crtež tražio na 16
    polupoteza (8 poteza) i ono što se uzme na sedmom potezu je padalo preko
@@ -3416,12 +3416,72 @@ jer je jedan raniji čuvar u ovom fajlu prolazio i sa isečenom zaštitom.
    pored i dalje kaže `otvoreno N`, što je walk i broji i ovu. Dva broja koja se
    razlikuju za jedan su tačna; prijava je bila da se ne zna koji je koji.
 
-8. [ ] **Vaši potezi se vide i na „Samo glavna linija".** Repertoar sa kičmom
-   napravljenom široko, pa prebačen na „Samo glavna linija": stablo i dalje crta
+8. [ ] **Vaši potezi se vide i na „Samo glavni odgovor".** Repertoar sa kičmom
+   napravljenom široko, pa prebačen na „Samo glavni odgovor": stablo i dalje crta
    sve što ste sami uneli, a **ne** crta grane u kojima nemate nijedan potez.
    Mereno na „Druga" 4.9.2026: pre popravke 4 čvora i 0 od 21 nacrta, posle 38
-   čvorova i svih 21. Ako se posle ovoga na „Samo glavna linija" vidi i ono gde
+   čvorova i svih 21. Ako se posle ovoga na „Samo glavni odgovor" vidi i ono gde
    niste ništa odlučili, to je nalaz — pravilo sme da doda samo vaše.
 9. [ ] **Vežba nije proširena.** Ista promena, druga strana: broj pozicija u
    vežbi za taj repertoar ostaje isti, jer nacrt nije odluka i dril ga ne pita.
    („Druga" ima 4 i pre i posle.)
+
+
+## 96. Rečnik u repertoaru — 4.9.2026, nije viđeno uživo
+
+Faza 4 plana jednostavnosti, spojena u `8ce6a6e`. 47 zamena po
+`docs/TABELA-RECNIK-2026-09.md` u sedam fajlova repertoara, plus tri unutar
+interpolacija koje kapija ne vidi. **Ovo je jedina faza koja ne menja nijedno
+ponašanje** — ako se nešto drugačije *radi*, a ne samo drugačije piše, to je
+nalaz.
+
+Povučene reči i ono što ih menja: kičma → glavna linija, nacrt → nepotvrđeni
+potezi (gomila) / predlog poteza (jedan), širina → koliko odgovora spremamo,
+pokrivenost → rupe u repertoaru, odsečeno → ne spremam.
+
+1. [ ] **Nijedna povučena reč ne stoji na ekranu.** Proći sedam ekrana
+   repertoara — spisak, izgradnja, vežba, rupe (radar), dijalog za glavnu
+   liniju, stablo, traka sa nepotvrđenima — i ne naći nijedno „kičma", „nacrt",
+   „širina", „pokrivenost" ni „odsečeno". Ovo je ceo posao ove faze; sve ispod
+   je gde se najlakše sakrilo.
+2. [ ] **Reč koja mora da ostane.** Na tabli je i dalje „Nacrtaj strelicu" — to
+   je crtanje strelice, nema veze sa nacrtom. Ako je i ona preimenovana, sweep
+   je otišao predaleko. (Druga takva je `pokriveno %` u logu motora — nije na
+   ekranu, pa se ne proverava odavde.)
+3. [ ] **Traka na telefonu, 360 dp, release build.** „N nepotvrđenih u grafu" i
+   dugme „Pregledaj nepotvrđene": dugme stoji **ispod** rečenice i celo se vidi.
+   Novo ime je duže od starog za četiri znaka i u release build-u se višak ne
+   crta prugicama — prosto se odseče i dugme se ne može pritisnuti. U širokom
+   prozoru (desktop) njih dvoje stoje **jedno pored drugog**; ako i tamo idu
+   jedno ispod drugog, popravka je otišla na drugu stranu.
+4. [ ] **Dugmad u izgradnji.** „Predloži glavnu liniju", „Pregledaj
+   nepotvrđene", „Vežbaj ovu granu", „Ne spremam ovo", „Ipak spremi ovu granu" —
+   i u punom prozoru i na 360 dp, gde se prelamaju u dva reda umesto da se seku.
+5. [ ] **Radar.** U ⋮ meniju kartice piše „Rupe u repertoaru", a zaglavlje
+   ekrana je „Rupe u repertoaru — <ime>". Po granama: „ne spremam" umesto
+   „odsečeno", uz iste makaze.
+6. [ ] **Dijalog za glavnu liniju.** Naslov „Predloži glavnu liniju odavde",
+   nad izborima „Koliko odgovora spremamo", tri izbora „Samo glavni odgovor",
+   „Uobičajeno (80%)", „Široko (95%)". Isti izbori istim redom kao pre.
+7. [ ] **Stablo.** U legendi „✂ grana koju ne spremam", iznad „Koliko odgovora:
+   uobičajeno 80%", i dugme „Prikaži/Sakrij grane koje ne spremam (N)".
+8. [ ] **Rečenice ispod table.** Posle uzimanja odgovora „Spremno je X% onoga
+   što ćete sresti"; posle „Ne spremam ovo" — „Ovu granu više ne spremam — s
+   njom je izašla još N pozicija."; kad server ne odgovori — „Grana je ostala —
+   server nije odgovorio." Brojevi i množina moraju da se slažu kao i pre: 1
+   pozicija, 2 pozicije, 5 pozicija.
+9. [ ] **Ono što se čuje je ono što piše.** Sa uključenim govorom (faza 2), sve
+   rečenice iz stavke 8 se izgovaraju **novim** rečima. Ako se čuje stara reč,
+   negde postoji drugi tekst za govor — što je tačno ono što `SpeakableInfo`
+   postoji da spreči.
+10. [ ] **Brisanje i dalje kaže šta odnosi.** U spisku, brisanje nacrta i
+    brisanje boje: „Idu i grane koje ne spremate, dodati odgovori, raspored za
+    vežbanje…", i „Ispod tog predloga su N vaše odluke. Obrisati i njih?"
+11. [ ] **Vežba, prazna stanja.** „Ovu granu ne spremam ili u njoj još nema
+    vaših poteza.", „Još N nepotvrđenih poteza čeka u ovom repertoaru." i dugme
+    „Pregledaj nepotvrđene".
+
+**Šta ovde nije dirano, pa ne treba tražiti promenu:** `chess_backend/` i
+njegove srpske poruke, imena u kodu (`_widthNames`, `breadthName`, `draft`,
+`pruned`), i bilo koji ekran van repertoara. Ako se povučena reč nađe tamo, to
+je zaseban posao, ne propust ove faze.
