@@ -3370,13 +3370,14 @@ bude tačan.
    promaše.
 
 
-## 95. Šest popravki iz odgovora na proveru — 4.9.2026, nije viđeno uživo
+## 95. Šest popravki iz odgovora na proveru — 4.9.2026, delimično potvrđeno
 
 Sve šest su nastale iz vlasnikovih odgovora i prijava od 30.8. do 4.9.2026.
 Svaka ima test dokazan mutacijom — test je obaran, gledano da pada, pa vraćen —
 jer je jedan raniji čuvar u ovom fajlu prolazio i sa isečenom zaštitom.
 
-1. [ ] **Strelice na tastaturi rade i tamo gde ima stabla.** U Analizi i u
+1. [x] **Strelice na tastaturi rade i tamo gde ima stabla.** — potvrdio
+   vlasnik na uređaju 4.9.2026: navigacija strelicama radi bez greške. U Analizi i u
    Repertoaru: kliknuti čvor u grafičkom stablu (time stablo uzima fokus), pa
    levo/desno — jedan potez napred i nazad, isto što rade dugmad ispod table, sa
    pitanjem „Odavde ide više linija — kojom?" na račvanju. Gore i dole idu na
@@ -3384,7 +3385,8 @@ jer je jedan raniji čuvar u ovom fajlu prolazio i sa isečenom zaštitom.
    četiri tastera za sebe: dole je išlo glavnom granom bez pitanja, a levo i
    desno u poziciji bez braće nisu radili ništa. (Nalazi i0054, i0559, i0560 —
    jedan uzrok, tri prijave.) `+` i `-` i dalje zumiraju stablo.
-2. [ ] **Nemoguća pozicija ne ruši aplikaciju.** Postaviti poziciju bez kralja
+2. [x] **Nemoguća pozicija ne ruši aplikaciju.** — potvrdio vlasnik na
+   uređaju 4.9.2026: motor ne pada i uredno ispisuje upozorenje. Postaviti poziciju bez kralja
    (Postavi poziciju / nalepljen FEN), uvesti je i uključiti motor: mora da se
    javi „Motor ne može da računa: Nedostaje beli kralj." i ekran da ostane živ.
    Probati na sva tri mesta koja imaju motor — Analysis Studio, AI Studio i soba
@@ -3402,7 +3404,8 @@ jer je jedan raniji čuvar u ovom fajlu prolazio i sa isečenom zaštitom.
    to važi za ceo repertoar, ne samo za ovu liniju. Predložiti glavnu liniju iz
    pozicije van nje sa izabranim „Samo glavni odgovor": ako stablo tu poziciju
    više ne crta, poruka ispod table mora to da kaže i da imenuje izbor.
-6. [ ] **Stablo se crta dovoljno duboko.** Raditi na potezu 7 ili dubljem i uzeti
+6. [x] **Stablo se crta dovoljno duboko.** — potvrdio vlasnik na uređaju
+   4.9.2026: potezi koji ranije nisu ulazili u stablo sada ulaze. Raditi na potezu 7 ili dubljem i uzeti
    odgovor: novi čvor se vidi u stablu **odmah**. Ranije se crtež tražio na 16
    polupoteza (8 poteza) i ono što se uzme na sedmom potezu je padalo preko
    ivice. Ako se i dalje javi „Crtež je skraćen na N polupoteza", to je uredno —
@@ -3481,3 +3484,21 @@ pokrivenost → rupe u repertoaru, odsečeno → ne spremam.
 njegove srpske poruke, imena u kodu (`_widthNames`, `breadthName`, `draft`,
 `pruned`), i bilo koji ekran van repertoara. Ako se povučena reč nađe tamo, to
 je zaseban posao, ne propust ove faze.
+
+
+## 97. Rupa u stablu u tamnoj temi — 4.9.2026, nije viđeno uživo
+
+Jedna promena, u `visual_move_tree_widget.dart`. Vlasnik je 4.9.2026 prijavio da
+se u tamnoj temi rupa („?") ne razlikuje dovoljno od pokrivenog odgovora.
+Debljina nije bila kriva — rupa je već bila na 2.4 naspram 1.2; kriva je bila
+providnost ivice (`alpha: 0.75`, koju dobija svaka kartica van glavne linije).
+
+1. [ ] **Rupa bode oči u tamnoj temi.** Otvoriti stablo repertoara sa bar jednom
+   rupom, u **tamnoj** temi: kartica sa `?` mora da se nađe bez čitanja oznaka,
+   po ivici koja je punom jačinom i deblja (3.0) od svih ostalih.
+2. [ ] **Ivica i dalje kaže ko je na potezu.** Uporediti dve rupe — jednu posle
+   belog i jednu posle crnog poteza: ivice moraju da ostanu različite. Ako sve
+   rupe izgledaju isto, popravka je kupila kontrast tako što je pojela kanal o
+   strani koja je na potezu, i to je nalaz.
+3. [ ] **Svetla tema nije pokvarena.** Ista slika u svetloj temi: rupa je i dalje
+   samo deblja, ne i tamnija mrlja.
