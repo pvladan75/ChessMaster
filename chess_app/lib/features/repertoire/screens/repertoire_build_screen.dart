@@ -214,15 +214,15 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   String? _draftToReplaceFen;
   String? _draftToReplaceUci;
 
-  AnalysisNode? _findNode(String fen, AnalysisNode? root) {
-    if (root == null) return null;
-    if (root.fen == fen) return root;
-    for (final child in root.children) {
-      final found = _findNode(fen, child);
-      if (found != null) return found;
-    }
-    return null;
-  }
+  /// One search, not two.
+  ///
+  /// This was a second copy of `findNodeByFen` with the same body, and a copied
+  /// comparison is where the two drift: the panel's learned to compare by
+  /// `fenKeyOf` and this one would have gone on comparing whole FENs, so the
+  /// tree would highlight the right card while the same question answered here
+  /// said the position was not in the drawing at all.
+  AnalysisNode? _findNode(String fen, AnalysisNode? root) =>
+      root == null ? null : findNodeByFen(root, fen);
 
   _Pending? _node;
 

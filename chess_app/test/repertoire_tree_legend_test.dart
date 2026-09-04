@@ -65,4 +65,56 @@ void main() {
     // over the table could not do.
     expect(find.textContaining('Koliko odgovora:'), findsNothing);
   });
+
+  group('finding the node a position stands on', () {
+    // The tree's FENs come from the server; the one the board is standing on is
+    // computed locally by the chess engine after a move. Those two agree about
+    // the position and can disagree about the halfmove clock and the move
+    // number, which are arithmetic and not position. Compared whole, the search
+    // then finds nothing and the caller falls back to the root: the picture
+    // silently highlights the opening instead of where you are.
+    //
+    // Every other position comparison in this codebase goes through `fenKeyOf`.
+    // This one did not, which is the whole defect.
+    AnalysisNode treeFromServer() {
+      final root = AnalysisNode(
+        fen: 'rnbqkbnr/ppp2ppp/4p3/3pP3/3P4/8/PPP2PPP/RNBQKBNR b KQkq - 0 3',
+      );
+      final c5 = AnalysisNode(
+        fen: 'rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w KQkq c6 0 4',
+        moveSan: 'c5',
+        moveUci: 'c7c5',
+      )..parent = root;
+      root.children.add(c5);
+      return root;
+    }
+
+    test('the same position with different move counters is the same node', () {
+      final root = treeFromServer();
+
+      // The board's arithmetic: same placement, same side to move, same
+      // castling and en-passant — a different halfmove clock and move number.
+      final found = findNodeByFen(root,
+          'rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w KQkq c6 7 12');
+
+      expect(found?.moveSan, 'c5', reason: 'brojači poteza nisu pozicija');
+    });
+
+    test('a genuinely different position is still not found', () {
+      // The half that would be lost by comparing too little. The en-passant
+      // square is inside the key on purpose: two positions that differ only in
+      // it are different positions, and one of them allows a capture.
+      final root = treeFromServer();
+
+      expect(
+          findNodeByFen(root,
+              'rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 0 4'),
+          isNull,
+          reason: 'en passant jeste deo pozicije');
+      expect(
+          findNodeByFen(
+              root, 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'),
+          isNull);
+    });
+  });
 }

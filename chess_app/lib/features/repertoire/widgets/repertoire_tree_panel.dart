@@ -101,13 +101,29 @@ int countCutMoves(RepertoireTree tree) {
 /// First match wins where a position is reachable two ways, which is the same
 /// rule the walk itself keeps: a transposition is one position, and the line
 /// that reached it first is the one it is filed under.
+/// Compared by `fenKeyOf`, like every other position comparison here.
+///
+/// The tree's FENs come from the server; the position the board is standing on
+/// is computed locally by the chess engine after a move. The two agree about
+/// the position and may disagree about the halfmove clock and the move number,
+/// which are arithmetic and not position. Compared whole, this returned null
+/// and the caller fell back to the root — the picture then highlighted the
+/// opening instead of where the reader was, and said nothing about it.
+///
+/// The en-passant square stays inside the key: two positions differing only in
+/// it are different positions, and in one of them a capture is legal.
 AnalysisNode? findNodeByFen(AnalysisNode root, String fen) {
-  if (root.fen == fen) return root;
-  for (final child in root.children) {
-    final found = findNodeByFen(child, fen);
-    if (found != null) return found;
+  final key = fenKeyOf(fen);
+  AnalysisNode? search(AnalysisNode node) {
+    if (fenKeyOf(node.fen) == key) return node;
+    for (final child in node.children) {
+      final found = search(child);
+      if (found != null) return found;
+    }
+    return null;
   }
-  return null;
+
+  return search(root);
 }
 
 /// The repertoire drawn, beside the board rather than instead of it.
