@@ -2172,7 +2172,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       return;
     }
     if (walk.positions.isEmpty) {
-      AppFeedback.info(context, 'Nema više nepotvrđenih poteza.');
+      final said = await _emptyDraftMessage();
+      if (!mounted) return;
+      AppFeedback.info(context, said);
       return;
     }
     final at = walk.positions.first;
@@ -2181,6 +2183,30 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     // has to go with it, and that sweep is keyed on knowing which move was
     // turned down.
     await _goToDraft(at.fen, at.moves.isEmpty ? null : at.moves.first.uci);
+  }
+
+  /// „There are none" is only true when there are none **anywhere**.
+  ///
+  /// The review walks this repertoire — its gate, its width — and a draft
+  /// outside either is one it cannot reach. Found live 4.9.2026 with 21 of
+  /// them: a spine written while the width was wider, then read back at „Samo
+  /// glavna linija", where the walk follows one reply a position and every one
+  /// of those drafts sits under the second. The screen said „Nema više
+  /// nepotvrđenih poteza." — which was the walk's honest answer and the wrong
+  /// sentence, because they were all still there.
+  ///
+  /// So the colour is counted before that sentence is said, and the reader is
+  /// told which of the two they are looking at. The count costs one query and
+  /// no Lichess request, and it is asked only on the empty answer.
+  Future<String> _emptyDraftMessage() async {
+    final counts = await _api.unconfirmedCounts();
+    final held = counts == null
+        ? 0
+        : (widget.color == 'w' ? counts.w : counts.b).positions;
+    if (held <= 0) return 'Nema više nepotvrđenih poteza.';
+    return 'U ovom repertoaru nema nepotvrđenih poteza koje njegova širina '
+        'dohvata — u grafu ih ima $held. Proširite repertoar ili ih '
+        'potvrdite sa druge grane.';
   }
 
   /// Puts a drafted position on the board, whether or not the drawing reaches
