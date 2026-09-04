@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { Chess } = require('chess.js');
 
 const {
-  drillLine, drillBranches, tree,
+  drillLine, drillBranches, tree, walkLines, lineOrder,
 } = require('../services/repertoireLine');
 const { fenKey } = require('../services/repertoireService');
 
@@ -196,6 +196,151 @@ test('a reply carries no choice of its own', async () => {
     assert.equal(move.alts, undefined);
     assert.equal(move.role, undefined);
   }
+});
+
+/// A fork with a line under one arm, built so that reading it in waves and
+/// reading it down the lines give different answers.
+///
+/// 1.e4 (mine, the main move) with two answers — 1...e5 more often played,
+/// 1...c5 less — and 2.Nf3 d6 3.d4 under the rarer of the two; plus 1.d4
+/// (mine, an alternate) answered 1...d5, which is the most played reply of the
+/// three and still belongs last, because it is behind my second move.
+const FORK = {
+  moves: [
+    { fen_key: fenKey(START), uci: 'e2e4', san: 'e4', role: 'primary' },
+    { fen_key: fenKey(START), uci: 'd2d4', san: 'd4', role: 'alternate' },
+    {
+      fen_key: keyAfter('e2e4', 'e7e5'),
+      uci: 'g1f3', san: 'Nf3', role: 'primary',
+    },
+    {
+      fen_key: keyAfter('e2e4', 'c7c5'),
+      uci: 'g1f3', san: 'Nf3', role: 'primary',
+    },
+    {
+      fen_key: keyAfter('e2e4', 'c7c5', 'g1f3', 'd7d6'),
+      uci: 'd2d4', san: 'd4', role: 'primary',
+    },
+    {
+      fen_key: keyAfter('d2d4', 'd7d5'),
+      uci: 'c2c4', san: 'c4', role: 'primary',
+    },
+  ],
+  // In games order, which is how the query hands them back.
+  replies: [
+    {
+      fen_key: keyAfter('e2e4'),
+      uci: 'e7e5', san: 'e5', games: 550, share: '0.55000',
+    },
+    {
+      fen_key: keyAfter('e2e4'),
+      uci: 'c7c5', san: 'c5', games: 350, share: '0.35000',
+    },
+    {
+      fen_key: keyAfter('d2d4'),
+      uci: 'd7d5', san: 'd5', games: 600, share: '0.60000',
+    },
+    {
+      fen_key: keyAfter('e2e4', 'c7c5', 'g1f3'),
+      uci: 'd7d6', san: 'd6', games: 300, share: '0.60000',
+    },
+  ],
+};
+
+test('a reading goes down one line rather than across a wave', async () => {
+  const { nodes, root, kept } = await walkLines(stubPool(FORK), 7, {
+    color: 'w', rootFen: START,
+  });
+
+  // What the walk itself holds, and why it is the wrong order to read in: every
+  // position at one depth, then every position at the next. In the owner's
+  // words, all the fifth moves and then all the sixth.
+  assert.deepEqual([...nodes.values()].map((n) => n.path.join(' ')), [
+    '', 'e4 e5', 'e4 c5', 'd4 d5', 'e4 c5 Nf3 d6',
+  ]);
+
+  assert.deepEqual(lineOrder(nodes, root, kept).map((n) => n.path.join(' ')), [
+    '',
+    // My main move first, and under it the answer played more often…
+    'e4 e5',
+    // …then the rarer one, followed to the end of its line before anything
+    // else is read. This is the whole change: 2...d6 used to be last.
+    'e4 c5',
+    'e4 c5 Nf3 d6',
+    // And my alternate last, however often the answer to it is played.
+    'd4 d5',
+  ]);
+});
+
+test('a reading holds every position the walk found, once each', async () => {
+  // An order is free to be wrong about what comes first and must never be wrong
+  // about what is in it: the banner counts this list, and a walk that quietly
+  // dropped a branch would say a repertoire is more finished than it is.
+  const { nodes, root, kept } = await walkLines(stubPool(FORK), 7, {
+    color: 'w', rootFen: START,
+  });
+  const read = lineOrder(nodes, root, kept);
+
+  assert.equal(read.length, nodes.size);
+  assert.equal(new Set(read.map((n) => n.key)).size, nodes.size);
+});
+
+test('a fork is read the way it is drawn: by share, not by count', async () => {
+  // The book's two numbers rank a position's replies the same way in real data,
+  // so a fixture is the only place they can be pulled apart — and pulling them
+  // apart is the only way to say which of them decides. `tree` sorts the drawing
+  // by `share`; the reading has to do the same, or the two part company the
+  // first time the book disagrees with itself.
+  const skew = {
+    ...FORK,
+    replies: FORK.replies.map((row) => (row.fen_key === keyAfter('e2e4')
+      ? { ...row, share: row.uci === 'e7e5' ? '0.35000' : '0.55000' }
+      : row)),
+  };
+  const drawn = await tree(stubPool(skew), 7, { color: 'w', rootFen: START });
+  const { nodes, root, kept } = await walkLines(stubPool(skew), 7, {
+    color: 'w', rootFen: START,
+  });
+
+  // The walk still meets 1...e5 first, because the query hands the book back in
+  // games order. Neither the drawing nor the reading keeps it there.
+  assert.deepEqual([...nodes.values()][1].path, ['e4', 'e5']);
+  assert.deepEqual(drawn.children[0].children.map((n) => n.san), ['c5', 'e5']);
+  assert.deepEqual(lineOrder(nodes, root, kept).map((n) => n.path.join(' ')), [
+    '', 'e4 c5', 'e4 c5 Nf3 d6', 'e4 e5', 'd4 d5',
+  ]);
+});
+
+test('the reading and the drawing are the same walk', async () => {
+  // The owner asked for this order in the drawing's own terms — by the tree on
+  // screen, left to right and top to bottom — so the two agreeing is the
+  // requirement rather than a coincidence. `tree` builds the picture from
+  // `kept` and `lineOrder` orders the walk's nodes; this is the test that fails
+  // if one of them is ever changed alone.
+  const drawn = await tree(stubPool(FORK), 7, { color: 'w', rootFen: START });
+  const { nodes, root, kept } = await walkLines(stubPool(FORK), 7, {
+    color: 'w', rootFen: START,
+  });
+
+  // Every position on the drawing, read top-left first. A position is where one
+  // of the opponent's replies lands, which is one card in from each of mine.
+  const onScreen = [];
+  const readOff = (mineHere) => {
+    for (const my of mineHere) {
+      for (const theirs of my.children) {
+        onScreen.push(theirs.fenKey);
+        readOff(theirs.children);
+      }
+    }
+  };
+  readOff(drawn.children);
+
+  assert.deepEqual(
+    // Without the root: the drawing starts at the first move, the walk starts
+    // at the position it is played from.
+    lineOrder(nodes, root, kept).slice(1).map((n) => n.key),
+    onScreen,
+  );
 });
 
 /// The same Sicilian, plus a second first move with a line of its own:

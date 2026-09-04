@@ -22,14 +22,15 @@ several rules below.
 ```bash
 cd chess_app && flutter test          # 1203 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 877 tests, all green
+cd chess_backend && npm test          # node --test, 883 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
 Both counts were measured 4.9.2026, after the day's repertoire work: the
 vocabulary sweep brought two banner-layout tests, the board/tree
 synchronisation one, and `findNodeByFen` two more; on the backend, four came
-with the rule that a breadth never hides the reader's own work. The 1167th is
+with the rule that a breadth never hides the reader's own work and six with
+`lineOrder`, which reads the drafts down one line instead of across a wave. The 1167th is
 the gap's edge in the dark theme, and fourteen more came with the walkthrough
 screen and its cursor, twelve with the sentence it speaks, and eight
 with the arrows and the return to the fork.

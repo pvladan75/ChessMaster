@@ -15,9 +15,10 @@
 // Two reads, and they are deliberately different shapes:
 //
 //   * `unconfirmedPositions` **walks**. It is gate-aware and breadth-aware and
-//     hands each position back with the line that reaches it, because the
-//     review is a walk down the repertoire and a draft with no path is a board
-//     with no story. This is what the workspace banner and the wizard read.
+//     hands each position back with the line that reaches it, one line at a
+//     time (`lineOrder`), because the review is a walk down the repertoire and
+//     a draft with no path is a board with no story. This is what the workspace
+//     banner and the wizard read.
 //   * `unconfirmedCounts` **counts**, per colour, in one query for every
 //     repertoire at once. This is what the list screen's cards read, and it is
 //     the same shape as the "N poteza u grafu" already on them — per colour,
@@ -30,7 +31,7 @@
 // or outside the gate, is in the first number and not the second — and the
 // screen that has room for a sentence is the one that gets the exact number.
 
-const { walkLines } = require('./repertoireLine');
+const { walkLines, lineOrder } = require('./repertoireLine');
 const { requireColor, DEFAULT_BREADTH } = require('./repertoireService');
 
 /// A position is unconfirmed when it holds moves and **none of them is the
@@ -49,13 +50,21 @@ function draftsAt(moves) {
   }));
 }
 
-/// The unconfirmed positions, in the order the walk meets them.
+/// The unconfirmed positions, one line at a time.
 ///
-/// Walk order, not reach order. The review is played forwards — the wizard puts
-/// up a board, shows the drafted move and asks — and a spine is a trunk, so
-/// walking it is walking down the line the student will actually play. Sorting
-/// by how often a position is reached is right for "where should I work next",
-/// which is the queue's question and not this one.
+/// Line order, not reach order — and no longer the walk's own wave order,
+/// which is what `lineOrder` exists to undo. Reported live 4.9.2026: the review
+/// confirmed the fifth move in every branch, then all the sixth, and a review
+/// read that way is a table of contents rather than a walk. The review is
+/// played forwards — the wizard puts up a board, shows the drafted move and
+/// asks — so the positions have to follow from one another.
+///
+/// The screen asks with `limit: 1` and goes to whatever comes back, so the
+/// **first element has to be right here**. A second sort in the client would be
+/// sorting a list of one.
+///
+/// Sorting by how often a position is reached is right for "where should I work
+/// next", which is the queue's question and not this one.
 ///
 /// Cut branches are left out, and it takes two facts rather than one.
 /// `walkLines` does not walk *past* a cut, so nothing behind one is ever
@@ -72,7 +81,7 @@ async function unconfirmedPositions(pool, userId, {
   breadth = DEFAULT_BREADTH, limit = 200,
 } = {}) {
   requireColor(color);
-  const { nodes, kept, cut, truncated } = await walkLines(pool, userId, {
+  const { nodes, root, kept, cut, truncated } = await walkLines(pool, userId, {
     color,
     rootFen,
     minRating,
@@ -85,7 +94,7 @@ async function unconfirmedPositions(pool, userId, {
   });
 
   const found = [];
-  for (const node of nodes.values()) {
+  for (const node of lineOrder(nodes, root, kept)) {
     if (cut.has(node.key)) continue;
     const drafts = draftsAt(kept.get(node.key) ?? []);
     if (drafts === null) continue;

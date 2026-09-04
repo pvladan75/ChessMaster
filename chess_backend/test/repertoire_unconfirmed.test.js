@@ -90,8 +90,8 @@ const SPINE = {
   ],
 };
 
-test('the drafts come back in the order the walk meets them', async () => {
-  // Walk order, not reach order. The review is played forwards — a board, the
+test('the drafts come back in the order the line is played', async () => {
+  // Line order, not reach order. The review is played forwards — a board, the
   // drafted move, and a question — so walking it is walking down the line the
   // student will actually play.
   const walk = await unconfirmedPositions(stubPool(SPINE), 7, {
@@ -111,6 +111,114 @@ test('the drafts come back in the order the walk meets them', async () => {
     { uci: 'g1f3', san: 'Nf3', role: 'primary' },
   ]);
 });
+
+/// The same spine, forked: 1.e4 decided, answered 1...e5 more often and 1...c5
+/// less, with 2.Nf3 d6 3.d4 drafted under the rarer of the two; plus 1.d4,
+/// also decided, answered 1...d5 — the most played reply of the three.
+///
+/// Everything below the first move is generated, so every one of the four
+/// positions is a draft and the whole fixture is one review.
+const FORK = {
+  moves: [
+    {
+      fen_key: fenKey(START), uci: 'e2e4', san: 'e4',
+      role: 'primary', source: 'chosen',
+    },
+    {
+      fen_key: fenKey(START), uci: 'd2d4', san: 'd4',
+      role: 'alternate', source: 'chosen',
+    },
+    {
+      fen_key: keyAfter('e2e4', 'e7e5'), uci: 'g1f3', san: 'Nf3',
+      role: 'primary', source: 'auto',
+    },
+    {
+      fen_key: keyAfter('e2e4', 'c7c5'), uci: 'g1f3', san: 'Nf3',
+      role: 'primary', source: 'auto',
+    },
+    {
+      fen_key: keyAfter('e2e4', 'c7c5', 'g1f3', 'd7d6'), uci: 'd2d4', san: 'd4',
+      role: 'primary', source: 'auto',
+    },
+    {
+      fen_key: keyAfter('d2d4', 'd7d5'), uci: 'c2c4', san: 'c4',
+      role: 'primary', source: 'auto',
+    },
+  ],
+  // In games order, which is how the query hands them back.
+  replies: [
+    {
+      fen_key: keyAfter('e2e4'),
+      uci: 'e7e5', san: 'e5', games: 550, share: '0.55000',
+    },
+    {
+      fen_key: keyAfter('e2e4'),
+      uci: 'c7c5', san: 'c5', games: 350, share: '0.35000',
+    },
+    {
+      fen_key: keyAfter('d2d4'),
+      uci: 'd7d5', san: 'd5', games: 600, share: '0.60000',
+    },
+    {
+      fen_key: keyAfter('e2e4', 'c7c5', 'g1f3'),
+      uci: 'd7d6', san: 'd6', games: 300, share: '0.60000',
+    },
+  ],
+};
+
+test('the review follows one line to its end before starting the next',
+  async () => {
+    // The live report of 4.9.2026, in the owner's words: the review confirmed
+    // the fifth move in every branch and then all the sixth, because the walk
+    // it reads goes wave by wave. He asked to follow one line instead — „mogu
+    // da pratim kontinuitet, pozicije prirodno slede jedna iz druge".
+    const walk = await unconfirmedPositions(stubPool(FORK), 7, {
+      color: 'w', rootFen: START,
+    });
+
+    assert.deepEqual(walk.positions.map((p) => p.path.join(' ')), [
+      // My main move, and under it the answer played more often…
+      'e4 e5',
+      // …then the rarer one, and straight down its line rather than back
+      // across the wave. Wave by wave, 1.d4 d5 came before this.
+      'e4 c5',
+      'e4 c5 Nf3 d6',
+      // My alternate last, however often the answer to it is played.
+      'd4 d5',
+    ]);
+    assert.equal(walk.total, 4);
+  });
+
+/// The same fork, further into the review: both second moves have been
+/// confirmed, so what is left is the draft at the end of the first line and the
+/// one behind my alternate.
+///
+/// Which is the shape that tells the two orders apart at the *head*. Wave by
+/// wave, 1.d4 d5 is reached first and 2...d6 last; down the line it is the other
+/// way round.
+const DEEPER = {
+  ...FORK,
+  moves: FORK.moves.map((move) => (
+    move.fen_key === keyAfter('e2e4', 'e7e5')
+      || move.fen_key === keyAfter('e2e4', 'c7c5')
+      ? { ...move, source: 'chosen' }
+      : move)),
+};
+
+test('the head of the queue is decided on the server, not on the screen',
+  async () => {
+    // `_reviewDrafts` asks with `limit: 1` and takes the board to whatever comes
+    // back, so the ordering has to happen before the slice. A sort in the client
+    // would be sorting a list of one.
+    const walk = await unconfirmedPositions(stubPool(DEEPER), 7, {
+      color: 'w', rootFen: START, limit: 1,
+    });
+
+    assert.deepEqual(
+      walk.positions.map((p) => p.path.join(' ')), ['e4 c5 Nf3 d6']);
+    // And the count is still what there is, not what was sent.
+    assert.equal(walk.total, 2);
+  });
 
 test('a position the student decided is not asked about again', async () => {
   // 3.d4 was chosen. Putting it in the review would ask somebody to re-confirm

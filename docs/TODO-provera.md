@@ -3616,3 +3616,31 @@ Oboje iz vlasnikove provere od 4.9.2026 uveče.
    teško uočava; ovo je zamena, ne dorada.
 4. [ ] **Pokriven odgovor nije počeo da liči na rupu.** Prazna pilula, tanka
    ivica, bez ispune — i dalje jasno drugačija od oprane.
+
+## 102. Redosled kroz nepotvrđene poteze — 4.9.2026, nije viđeno uživo
+
+Iz vlasnikove prijave od 4.9.2026: „prvo potvrđujem 5. potez od početka u svim
+granama, pa onda prelazi na sve šeste". Sada ide po jednoj liniji do kraja, pa
+nazad na poslednje račvanje. Redosled dolazi sa servera i traži se po jedna
+pozicija, pa se ovo vidi samo uzastopnim pritiskanjem dugmeta.
+
+Traži repertoar sa **bar dva račvanja** i nacrtima u obe grane — spina napisana
+čarobnjakom je to. Najlakše na „Druga", gde je 21 nacrt.
+
+1. [ ] **Pritisnuti „Pregledaj nepotvrđene" nekoliko puta zaredom, potvrđujući
+   svaki put.** Pozicije moraju da **slede jedna iz druge** — ista linija, potez
+   dublje svaki put — dok se linija ne završi, pa tek onda skok na drugu granu.
+   Ranije je nakon svake potvrde skakalo u drugu granu na istoj dubini.
+2. [ ] **Redosled se poklapa sa stablom na ekranu.** Otvoriti grafičko stablo i
+   pratiti: pregled ide **od gore na dole i sleva nadesno** — moj glavni potez,
+   pa najčešći protivnikov odgovor, pa niz tu liniju do kraja. Ovo je vlasnikova
+   sopstvena slika i jedini način da se redosled proveri bez čitanja koda.
+3. [ ] **Moja alternativa ide posle cele glavne grane**, čak i kad je odgovor na
+   nju češći od svega u glavnoj. Vidi se u repertoaru gde ima drugi prvi potez.
+4. [ ] **Isto iz sva tri ulaza.** Traka na ekranu za gradnju, „Idi na nacrte" u
+   drilu, i otvaranje kartice sa liste (kartica sa značkom nacrta vodi na prvu
+   nepotvrđenu poziciju). Sva tri traže isti prvi element sa servera.
+5. [ ] **Brojka u traci se nije promenila.** Redosled je izmenjen, skup nije —
+   „N nepotvrđenih" mora da bude isti broj kao pre potvrđivanja minus potvrđeno.
+6. [ ] **Odsečena grana i dalje ćuti.** Odseći granu u kojoj ima nacrta, pa
+   proći pregled do kraja: ništa iz nje se ne nudi na potvrdu.

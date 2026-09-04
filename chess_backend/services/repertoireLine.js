@@ -280,6 +280,71 @@ async function tree(pool, userId, {
   };
 }
 
+/// The children of one position, in the order the drawing puts them.
+///
+/// The picture and the reading have to agree. The owner asked for the review of
+/// his drafts in the drawing's own terms — „po grafičkom stablu od leva na
+/// desno i od gore na dole" — so this is that order written down: the student's
+/// own moves first, in their own order (the primary, then the alternates, the
+/// way `keptByPosition` hands them back), and under each of them the opponent's
+/// replies by how often they are played. It is what `tree` builds and therefore
+/// what the panel draws.
+///
+/// Ties fall back to the order the walk found them in, so two branches the
+/// rules cannot separate keep one order rather than a fresh one each run.
+function orderedChildren(kids, mine) {
+  const rank = new Map(mine.map((move, i) => [move.uci, i]));
+  const found = new Map(kids.map((kid, i) => [kid.key, i]));
+  // A child is reached by a pair — my move, then their reply — so my move is
+  // the second from the end of its line, at whatever depth it sits.
+  const mineOf = (kid) => rank.get(kid.moves[kid.moves.length - 2]?.uci)
+    ?? mine.length;
+  return [...kids].sort((a, b) => (mineOf(a) - mineOf(b))
+    || (Number(b.share ?? 0) - Number(a.share ?? 0))
+    || (found.get(a.key) - found.get(b.key)));
+}
+
+/// Every position the walk reached, one line at a time.
+///
+/// `walkLines` goes wave by wave, because a wave is the unit a question is
+/// asked in — and that is the right shape for a queue and the wrong one for a
+/// reading. The owner said it plainly about the draft review on 4.9.2026: he
+/// confirms the fifth move in every branch, then all the sixth. Each position
+/// stops following from the one before it, and following from one another is
+/// the only thing that makes a walk down a repertoire readable.
+///
+/// So: down one line to its end, then back to the last fork and out along the
+/// next, which is the same thing as reading the drawing from the top left.
+///
+/// **The walk's own order is left alone.** The tree, the coverage, the drill
+/// and the delete sweep all read `walkLines`, so changing it would be a change
+/// under every one of them at once. This orders a copy and mutates nothing.
+///
+/// Cut positions stay in the list rather than being dropped here. Nothing is
+/// ever walked past one, so a cut is a leaf — and what to do with that leaf is
+/// the caller's rule to state, which `unconfirmedPositions` does.
+function lineOrder(nodes, root, kept) {
+  const byParent = new Map();
+  for (const node of nodes.values()) {
+    if (node.parent == null) continue;
+    const list = byParent.get(node.parent) ?? [];
+    list.push(node);
+    byParent.set(node.parent, list);
+  }
+
+  const out = [];
+  const stack = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    out.push(node);
+    const kids = orderedChildren(
+      byParent.get(node.key) ?? [], kept.get(node.key) ?? []);
+    // Onto a stack, so the first child goes on last to come off first.
+    for (let i = kids.length - 1; i >= 0; i -= 1) stack.push(kids[i]);
+  }
+  return out;
+}
+
 /// The keys from the root down to a node, the node itself last.
 function chainTo(nodes, key) {
   const chain = [];
@@ -728,5 +793,6 @@ async function drillBranches(pool, userId, {
 }
 
 module.exports = {
-  drillLine, drillBranches, walkLines, tree, chainTo, subtree, doorsOf,
+  drillLine, drillBranches, walkLines, tree, lineOrder, chainTo, subtree,
+  doorsOf,
 };

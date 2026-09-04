@@ -424,7 +424,7 @@ Dokazan sa tri mutacije, uključujući onu u kojoj čuvar ne pročita ništa.
 Nacrti i dalje ne ulaze u vežbu — nacrt nije odluka i dril ga ne pita. To je
 zasebno pravilo i nije dirano.
 
-## SLEDEĆI POSAO: redosled kroz nepotvrđene poteze — 4.9.2026
+## Redosled kroz nepotvrđene poteze ide po liniji — 4.9.2026, nije viđeno uživo
 
 Vlasnikova prijava, njegovim rečima:
 
@@ -433,36 +433,51 @@ Vlasnikova prijava, njegovim rečima:
 > da ide po jednoj liniji prvo, jer mogu da pratim kontinuitet, pozicije
 > prirodno slede jedna iz druge. Pa onda po drugoj liniji…
 
-Tačan je i o uzroku. **Gde redosled nastaje:**
-`chess_backend/services/repertoireUnconfirmed.js`, `unconfirmedPositions` —
-`found` se puni iz `for (const node of nodes.values())`, a `nodes` dolazi iz
-`walkLines`, koji ide **talas po talas** (u širinu). Otuda „svi peti pa svi
-šesti".
+Bio je tačan i o uzroku. Redosled je nastajao u
+`chess_backend/services/repertoireUnconfirmed.js`: `found` se punio iz
+`nodes.values()`, a `nodes` dolazi iz `walkLines`, koji ide **talas po talas**.
+Otuda „svi peti pa svi šesti".
 
-**Tačka umetanja je čista:** `found.slice(0, ceiling)` seče tek na kraju, pa je
-dovoljno urediti `found` pre toga. Klijent (`_reviewDrafts` u
-`repertoire_build_screen.dart`) traži `limit: 1`, dakle **prvi element mora da
-bude tačan na serveru** — sortiranje u klijentu ne rešava ništa.
+**Šta je napisano.** `lineOrder` u `services/repertoireLine.js`, uz `tree`:
+uzima `nodes`, `root` i `kept` iz šetnje i vraća iste čvorove u dubinskom
+redosledu — niz jedne linije do kraja, pa nazad na poslednje račvanje i napolje
+kroz sledeće. `unconfirmedPositions` sada čita iz njega umesto iz
+`nodes.values()`.
 
-**Šta ne dirati:** `walkLines`. Iz njega čita sve što gleda izgrađeno —
-stablo, pokrivenost, dril, brisanje — i menjanje njegovog redosleda je izmena
-pod svima njima.
+**Redosled braće je redosled crteža**, i to je vlasnikova odluka od 4.9.2026 uz
+njegovu sopstvenu sliku: „po grafičkom stablu od leva na desno i od gore na
+dole… od pozicije koja se račva prvo kroz liniju skroz levo". Znači: moji
+potezi u mom redosledu (glavni pa alternative, kako ih `keptByPosition` vraća),
+a ispod svakog protivnikovi odgovori po tome koliko se često igraju. To je
+tačno ono što `tree` gradi i što panel crta.
 
-**Jedina prava odluka:** redosled braće. Dubinski obilazak traži da se zna koje
-dete ide prvo, a `walkthroughOrder`
-(`chess_app/lib/features/repertoire/services/walkthrough_order.dart`) taj
-odgovor već ima i testiran je: po `share`, ali **grana u kojoj ima igračevih
-odluka nikad ne ide iza prazne**. To je vlasnikovo pravilo iz faze 3 i
-najverovatnije isti odgovor i ovde — ali je ono u klijentu i u Dartu, a ovo je
-server u JS-u, pa je pitanje da li se pravilo preslikava ili se ovde bira
-jednostavnije (samo `share`, pa red iz knjige).
+Razmatrano je i pravilo iz „Upoznaj repertoar" (`walkthroughOrder`: grana u
+kojoj ima igračevih odluka nikad ne ide iza prazne) i **nije uzeto**. Tura
+prolazi ceo repertoar i tamo to pravilo brani igračev rad od zatrpavanja;
+pregled nacrta gleda samo pozicije bez ijedne odluke, a vlasnik je redosled
+tražio u terminima crteža. Kad bi se uzelo, čitanje i crtež bi se razišli.
 
-Vlasnik je predložio i sliku: „po grafičkom stablu od leva na desno i od gore na
-dole… od pozicije koja se račva prvo kroz liniju skroz levo". To je isti
-dubinski obilazak, opisan sa ekrana.
+**Šta nije dirano.** `walkLines`. Iz njega čitaju stablo, pokrivenost, dril i
+brisanje, i menjanje njegovog redosleda bila bi izmena pod svima njima odjednom.
+`lineOrder` uređuje kopiju i ne menja ništa.
 
-**Nije počet nijedan red koda.** Ovo je ugovor nad čitanjem koje gledaju traka,
-čarobnjak i vežba, pa je posao vodećeg, ne radnog agenta.
+**Klijent nije menjan.** Sva tri mesta koja ovo zovu — traka na ekranu za
+gradnju, „Idi na nacrte" u drilu i otvaranje kartice sa liste — traže `limit: 1`
+i uzimaju `.first`, pa je popravka na serveru stigla do sva tri.
+
+**Testovi:** šest novih, 883 zelenih. Četiri u `test/repertoire_line.test.js`
+(redosled, da se ništa ne gubi ni ne ponavlja, da odlučuje `share` a ne broj
+partija, i da se čitanje i crtež poklapaju) i dva u
+`test/repertoire_unconfirmed.test.js` (ceo pregled po liniji, i da je prvi
+element tačan pri `limit: 1`).
+
+**Provereno mutacijom**, po pravilu iz `CLAUDE.md`: povratak na `nodes.values()`
+obara dva testa, brisanje reda mojih poteza pet, brisanje `share` jedan, a
+zamena steka redom pet. Nijedan uslov nije mrtvo slovo — prva verzija testa za
+`share` **jeste** bila mrtvo slovo, jer u podacima `games` i `share` rangiraju
+isto, pa je fiksture morala da ih razdvoji.
+
+Ostaje provera uživo: `docs/TODO-provera.md`, stavka 102.
 
 ## Tri prijave sa provere 4.9.2026 uveče — odgovoreno, nije rađeno
 
@@ -472,10 +487,9 @@ u više oblika (AI Studio, soba, Analysis Studio) i treba da se svede na taj.
 Odluka je doneta, posao nije počet.
 
 **Redosled kroz nepotvrđene poteze ide po dubini, a treba po liniji.**
-Vlasnikovim rečima: „lakše bi mi bilo da ide po jednoj liniji prvo, jer mogu da
-pratim kontinuitet". To je tačno ono što `walkthroughOrder` već radi i što je
-testirano — ali redosled dolazi sa servera (`unconfirmedPositions`), pa
-popravka ide tamo, a ne u novo sortiranje u klijentu. **Ugovor, dakle vodećeg.**
+**Urađeno 4.9.2026** — vidi odeljak „Redosled kroz nepotvrđene poteze ide po
+liniji" gore. Popravka je otišla na server (`lineOrder`), a ne u novo sortiranje
+u klijentu, jer klijent traži `limit: 1`.
 
 **Skener pozicija radi na fontu, ne na slici.** Vlasnik je pokušao da skenira
 tuđe PDF-ove i nije uspeo, uz pitanje mora li mapa po knjizi. Odgovor je u
