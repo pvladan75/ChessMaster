@@ -176,10 +176,32 @@ stajanje posle svog poteza da bi se videli protivnikovi odgovori je namerno.
 Sinhronizovani moraju da budu **tabla i sve što tvrdi gde smo** — stablo,
 poslednji potez, knjiga, komentar.
 
-Otvoreno: proveriti ostale `loadFen` pozive na ovom ekranu istom merom, i
-`findNodeByFen`, koji poredi ceo FEN dok ostatak koda poredi `fenKeyOf` (bez
-brojača poteza). Poziciju koju je server poslao i onu koju je tabla izračunala
-to može da razdvoji, a posledica je tiha: stablo osvetli koren.
+`findNodeByFen` je popravljen istog dana (`7bbd16f`): poredio je ceo FEN dok
+ostatak koda poredi `fenKeyOf`, pa su se pozicija koju je server poslao i ona
+koju je tabla izračunala razlikovale u brojačima poteza — tiho, uz stablo koje
+osvetli koren. Uz njega je otišla i druga kopija iste pretrage (`_findNode`).
+
+Otvoreno: proveriti ostale `loadFen` pozive na ovom ekranu istom merom.
+
+## Širina nikad ne skriva ono što je igrač sam uradio — 4.9.2026
+
+Pravilo, opšte i za sve ekrane: **potez ili nacrt koji je igrač sam napravio
+ili tražio ne sme da nestane zbog širine.** Širina sužava ono što *knjiga*
+predlaže da se sprema, a ne ono što je već spremljeno.
+
+Servis to sad drži na jednom mestu, pa važi za svaki ekran — klijent nigde ne
+filtrira po širini, samo je prosleđuje. Popravljena su tri mesta koja su
+pravilo zaobilazila: `reachable` i `orphansOfRemoving` (oba odlučuju šta bi
+brisanje ostavilo bez puta, a „nedohvatljivo" je ono što čistač briše) i
+`pickReply`, koji je sužavao po širini **pre** nego što bi pitao vodi li potez
+u poziciju koju je igrač odlučio.
+
+Da četiri poziva ne ostanu navika nego pravilo, `test/repertoire_breadth_rescue.test.js`
+čita izvor i pada ako ijedan poziv `coveredReplies` nema `fens` i `kept`.
+Dokazan sa tri mutacije, uključujući onu u kojoj čuvar ne pročita ništa.
+
+Nacrti i dalje ne ulaze u vežbu — nacrt nije odluka i dril ga ne pita. To je
+zasebno pravilo i nije dirano.
 
 ## Otvorena pitanja dizajna
 
