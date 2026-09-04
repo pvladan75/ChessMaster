@@ -195,7 +195,7 @@ drži u glavi.
 | 2 | stablo crta svoja četiri stanja | lead | **Urađeno**, `37a67d3` — vlasnik video na obe teme |
 | 3 | redosled obilaska (`walkthroughOrder`) | lead | **Urađeno** — brief `docs/TASK-upoznaj-f3.md` stoji kao ugovor za fazu 4 |
 | 4 | ekran „Upoznaj" | radni agent | **Urađeno**, `a3b32d5` — radni agent 43.7 min, pet popravki vodećeg, uživo neprovereno |
-| 5 | govor, sa budžetom rečenica | lead | Nije rađeno |
+| 5 | govor, sa budžetom rečenica | lead | **Urađeno** — uživo neprovereno |
 
 **Dve odluke koje je vlasnik doneo 4.9.2026 i koje faza 4 nasleđuje:**
 
@@ -223,6 +223,37 @@ Tri odluke koje faza 4 nasleđuje, sve tri vlasnikove:
 * **Na širokom ekranu stablo stoji pored table**, sinhronizovano sa turom; na
   telefonu ostaje kompaktni raspored bez stabla.
 * Kontrast rupe u tamnoj temi — rešeno pre faze 4, odeljak ispod.
+
+### Faza 5: tura govori, i uglavnom ćuti — 4.9.2026
+
+`walkthroughLine` (`services/walkthrough_speech.dart`) vraća **dve** stvari:
+rečenice i to da li se ovo stajanje uopšte izgovara. Govori se na račvanju, na
+rupi i tamo gde ste nešto zapisali; običan potez na glavnoj liniji ćuti — tabla
+se pomeri, kartica kaže šta je, i ništa se ne čita. To je ceo dizajn protiv
+zamora i zbog njega budžet iz plana („najviše četiri izgovorene rečenice na
+dvanaest poteza") drži po konstrukciji, a ne slučajno. Test ga meri na trunku
+od 24 poluporeza.
+
+**Dve stvari koje je plan tražio se ne mogu obe ispuniti doslovno**, pa je
+odabrano ovako i zapisano u kodu: §4 kaže i „običan potez dobija izgovoren
+potez" i budžet od četiri rečenice — dvanaest najava je dvanaest rečenica.
+Najava je zato kartica i brojač u traci, a glas ćuti.
+
+Pravilo „izgovoreno je ono što piše" nije namera nego čuvar: kartica crta
+`line.parts` kao zasebne redove, a glasu se predaje isti spisak spojen —
+**dva crtanja jednog spiska**, pa ne mogu da se raziđu. Widget test čita šta je
+`SpeakableInfo` dobio i traži svaku reč na kartici; pada čim neko sastavi
+izgovoreni tekst po drugi put. Dokazano mutacijom, uz još dve: kad svaki potez
+progovori padaju oba budžetska testa, a kad račvanje prestane da imenuje
+odgovore pada rečenica.
+
+Grane se imenuju najviše tri, pa „i još N" — redosled iz faze 3 već stavlja
+igračev rad napred, pa je rep spiska ono što se najmanje sluša. Svi su na
+kartici kao čipovi u svakom slučaju; to je samo ono što se čuje.
+
+`stop()` se ne zove nigde. Čitalac prekida rečenicu tako što krene dalje — a na
+Windowsu `stop()` pre nego što je išta izgovoreno obara proces, što je već
+zapisano u `speech_service.dart`.
 
 ### Šta je faza 4 donela, i šta je kod radnog agenta trebalo popraviti — 4.9.2026
 

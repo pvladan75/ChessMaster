@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:chess_app/core/services/serbian_plural.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/repertoire/services/walkthrough_order.dart';
+import 'package:chess_app/features/repertoire/services/walkthrough_speech.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
 import 'package:chess_app/features/repertoire/models/walkthrough_cursor.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
@@ -13,6 +13,7 @@ import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/speakable_info.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 
 class RepertoireWalkthroughScreen extends StatefulWidget {
@@ -288,100 +289,62 @@ class _RepertoireWalkthroughScreenState
     if (_index < 0) return const SizedBox.shrink();
 
     final stop = _stops[_index];
-    final move = stop.move;
-    final kind = stop.kind;
+    final replies = cursor.forwardMoves;
+    final comment = _comments?[fenKeyOf(stop.move.fen)];
+
+    // One composition, drawn twice. `line.parts` become the lines on the card
+    // and `line.spoken` is those same words joined for the voice, so what is
+    // read aloud is what is on screen by construction rather than by two
+    // functions agreeing.
+    final line = walkthroughLine(
+      stop,
+      replies: replies,
+      note: comment?.body,
+    );
 
     final parts = <Widget>[];
-
-    if (kind == MoveTreeNodeLook.authored) {
-      final primary = move.role == 'primary' || move.role == null;
+    for (var i = 0; i < line.parts.length; i++) {
+      if (i > 0) parts.add(const SizedBox(height: AppSpacing.xs));
       parts.add(Text(
-        primary ? 'Vaš potez — glavna linija.' : 'Vaš potez — druga mogućnost.',
-        style: AppText.body.copyWith(color: context.colors.textPrimary),
+        line.parts[i],
+        style: AppText.body.copyWith(
+          color: i == 0
+              ? context.colors.textPrimary
+              : context.colors.textSecondary,
+        ),
       ));
-    } else if (kind == MoveTreeNodeLook.covered) {
-      final percentStr = shareLabel(move.share);
-      if (percentStr != null) {
-        parts.add(Text(
-          'Protivnik igra ${move.san} — $percentStr partija.',
-          style: AppText.body.copyWith(color: context.colors.textPrimary),
-        ));
-      } else {
-        parts.add(Text(
-          'Protivnik igra ${move.san}.',
-          style: AppText.body.copyWith(color: context.colors.textPrimary),
-        ));
-      }
-      if (move.state == 'unopened') {
-        parts.add(const SizedBox(height: AppSpacing.xs));
-        parts.add(Text(
-          'Odluka bez uzetih odgovora.',
-          style: AppText.body.copyWith(color: context.colors.textSecondary),
-        ));
-      }
-    } else if (kind == MoveTreeNodeLook.gap) {
-      // The same rule the covered sentence follows and the mark follows: a
-      // share of nothing is left out rather than written as „0%".
-      final percentStr = shareLabel(move.share);
-      parts.add(Text(
-        percentStr == null
-            ? 'Na ${move.san} nemate odgovor.'
-            : 'Na ${move.san}, $percentStr partija, nemate odgovor.',
-        style: AppText.body.copyWith(color: context.colors.textPrimary),
-      ));
-      if (widget.onBuildHere != null) {
-        parts.add(const SizedBox(height: AppSpacing.sm));
-        parts.add(ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: context.colors.brand,
-            foregroundColor: context.colors.canvas,
-          ),
-          onPressed: () => widget.onBuildHere!(move.fen),
-          child: const Text('Napravi odgovor'),
-        ));
-      }
     }
 
-    final forward = cursor.forwardBranches;
-    // The next moves are the opponent's if the current move is ours (mine),
-    // or if we are at the root (index < 0, but we return early above).
-    if (forward.length > 1 && move.mine) {
-      parts.add(const SizedBox(height: AppSpacing.md));
-      parts.add(Text(
-        'Odavde protivnik ima ${forward.length} '
-        '${serbianCount(forward.length, one: "odgovor", few: "odgovora", many: "odgovora")}:',
-        style: AppText.body.copyWith(color: context.colors.textSecondary),
-      ));
+    // The chips read the same list the sentence names, in the same order, so
+    // the two cannot disagree about which reply comes first.
+    final theirs = replies.where((move) => !move.mine).length;
+    if (theirs > 1) {
+      final branches = cursor.forwardBranches;
       parts.add(const SizedBox(height: AppSpacing.sm));
       parts.add(Wrap(
         spacing: AppSpacing.xs,
         runSpacing: AppSpacing.xs,
-        children: forward.asMap().entries.map((e) {
-          final branchIndex = e.key;
-          final branch = e.value;
+        children: branches.asMap().entries.map((e) {
           return ActionChip(
             backgroundColor: context.colors.surfaceRaised,
-            label: Text(branch.label,
+            label: Text(e.value.label,
                 style:
                     AppText.body.copyWith(color: context.colors.textPrimary)),
-            onPressed: () => cursor.takeBranch(branchIndex),
+            onPressed: () => cursor.takeBranch(e.key),
           );
         }).toList(),
       ));
     }
 
-    final key = fenKeyOf(move.fen);
-    final comment = _comments?[key];
-    if (comment != null && comment.body.isNotEmpty) {
-      parts.add(const SizedBox(height: AppSpacing.md));
-      parts.add(Text(
-        'Vaša napomena:',
-        style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
-      ));
-      parts.add(const SizedBox(height: AppSpacing.xs));
-      parts.add(Text(
-        comment.body,
-        style: AppText.body.copyWith(color: context.colors.textSecondary),
+    if (stop.kind == MoveTreeNodeLook.gap && widget.onBuildHere != null) {
+      parts.add(const SizedBox(height: AppSpacing.sm));
+      parts.add(ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: context.colors.brand,
+          foregroundColor: context.colors.canvas,
+        ),
+        onPressed: () => widget.onBuildHere!(stop.move.fen),
+        child: const Text('Napravi odgovor'),
       ));
     }
 
@@ -391,9 +354,18 @@ class _RepertoireWalkthroughScreenState
         color: context.colors.surface,
         borderRadius: AppRadii.roundedMd,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: parts,
+      // `autoSpeak` is the whole anti-fatigue design: a fork, a hole or a note
+      // is worth interrupting the reader for and an ordinary move on the trunk
+      // is not. Nothing here calls `stop()` — the reader ends a sentence by
+      // moving, and on Windows a `stop()` before anything was said takes the
+      // process with it.
+      child: SpeakableInfo(
+        text: line.spoken,
+        autoSpeak: line.speak,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: parts,
+        ),
       ),
     );
   }

@@ -77,50 +77,54 @@ class WalkthroughCursor implements MoveCursor {
     onSelect(lastIndex);
   }
 
-  @override
-  List<MoveBranch> get forwardBranches {
+  /// The index in [stops] of every move out of the current position, in tour
+  /// order.
+  ///
+  /// The one derivation. Three things want these — the strip's fork question,
+  /// the chips on the card, and the sentence that names them — and each of
+  /// them writing its own scan is how the sheet and the tour would end up
+  /// disagreeing about which reply comes first. The scan itself is the rule
+  /// from the brief: a child is a stop whose path is the current one plus a
+  /// single move, taken while we are still inside the current subtree.
+  List<int> get _forwardIndices {
     final prefix = index < 0 ? const <String>[] : stops[index].path;
-    final branches = <MoveBranch>[];
+    final found = <int>[];
     for (var j = index + 1; j < stops.length; j++) {
       final path = stops[j].path;
-      if (_startsWith(path, prefix)) {
-        if (path.length == prefix.length + 1) {
-          final move = stops[j].move;
-          final state = _detailForMove(move);
-          branches.add(
-            MoveBranch(
-              label: '${move.san}${markOfRepertoireMove(move) ?? ''}',
-              detail: state,
-              isMain: branches.isEmpty,
-            ),
-          );
-        }
-      } else {
-        break;
-      }
+      if (!_startsWith(path, prefix)) break;
+      if (path.length == prefix.length + 1) found.add(j);
     }
-    return branches;
+    return found;
+  }
+
+  /// The moves out of the current position, in tour order.
+  ///
+  /// What the card's sentence is built from, so the words and the sheet name
+  /// the same replies in the same order.
+  List<RepertoireTreeMove> get forwardMoves =>
+      [for (final j in _forwardIndices) stops[j].move];
+
+  @override
+  List<MoveBranch> get forwardBranches {
+    final moves = forwardMoves;
+    return [
+      for (var i = 0; i < moves.length; i++)
+        MoveBranch(
+          label: '${moves[i].san}${markOfRepertoireMove(moves[i]) ?? ''}',
+          detail: _detailForMove(moves[i]),
+          isMain: i == 0,
+        ),
+    ];
   }
 
   @override
   void takeBranch(int branchIndex) {
-    final prefix = index < 0 ? const <String>[] : stops[index].path;
-    var currentBranch = 0;
-    for (var j = index + 1; j < stops.length; j++) {
-      final path = stops[j].path;
-      if (_startsWith(path, prefix)) {
-        if (path.length == prefix.length + 1) {
-          if (currentBranch == branchIndex) {
-            onSelect(j);
-            return;
-          }
-          currentBranch++;
-        }
-      } else {
-        break;
-      }
+    final found = _forwardIndices;
+    if (branchIndex < 0 || branchIndex >= found.length) {
+      next();
+      return;
     }
-    next();
+    onSelect(found[branchIndex]);
   }
 
   /// The second line of a branch in the sheet: the state, in plain words.

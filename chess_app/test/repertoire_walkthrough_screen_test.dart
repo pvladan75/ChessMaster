@@ -5,6 +5,7 @@ import 'package:http/testing.dart';
 
 import 'package:chess_app/features/repertoire/screens/repertoire_walkthrough_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
+import 'package:chess_app/widgets/speakable_info.dart';
 
 class _FakeApi extends RepertoireApiService {
   _FakeApi({this.treeToReturn})
@@ -308,6 +309,55 @@ void main() {
     expect(
         find.textContaining('Uz protivnikov potez stoji koliko se često igra'),
         findsOneWidget);
+  });
+
+  testWidgets('every word the voice is handed is a word on the card',
+      (tester) async {
+    // Phase 5's one rule, as a guard rather than as an intention: the sentence
+    // spoken is the sentence on screen, so a reader who turns speech off loses
+    // nothing but the sound. The card and the voice are two renderings of one
+    // list; this fails the moment somebody composes the spoken string a second
+    // time from the same facts.
+    final api = _FakeApi(treeToReturn: buildTestTree());
+    await pump(tester, api, size: const Size(1400, 900));
+
+    final speakable = tester.widget<SpeakableInfo>(find.byType(SpeakableInfo));
+    final shown = tester
+        .widgetList<Text>(find.descendant(
+          of: find.byType(SpeakableInfo),
+          matching: find.byType(Text),
+        ))
+        .map((t) => t.data)
+        .whereType<String>()
+        .toList();
+
+    expect(speakable.text, isNotEmpty);
+    for (final part in speakable.text.split(' ')) {
+      expect(shown.any((line) => line.contains(part)), isTrue,
+          reason: 'spoken but not shown anywhere on the card: $part');
+    }
+  });
+
+  testWidgets('the trunk is silent and a hole is not', (tester) async {
+    // The budget lives in walkthrough_speech_test.dart; this is the wiring —
+    // that `autoSpeak` actually follows the stop, and does not sit true for
+    // every card the way an ordinary panel would.
+    final api = _FakeApi(treeToReturn: buildTestTree());
+    await pump(tester, api, size: const Size(1400, 900));
+
+    SpeakableInfo speakable() =>
+        tester.widget<SpeakableInfo>(find.byType(SpeakableInfo));
+
+    // Stop 0 is `e4`, the reader's own move, with two replies below it — a
+    // fork, so it speaks.
+    expect(speakable().autoSpeak, isTrue);
+
+    // Into `e5`, an answered reply with one move under it. Nothing to say.
+    // Taken by the chip rather than by the forward arrow, because the arrow at
+    // a fork opens the sheet — which is the strip working, not a way forward.
+    await tester.tap(find.widgetWithText(ActionChip, 'e5 55%'));
+    await tester.pumpAndSettle();
+    expect(speakable().autoSpeak, isFalse);
   });
 
   testWidgets('The server answering null shows the error', (tester) async {

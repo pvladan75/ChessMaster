@@ -3533,3 +3533,26 @@ gledano kako radi** — testovi znaju samo ono što im je rečeno da provere.
    rečenice stoji „Vaša napomena:" i tekst.
 9. [ ] **Tura ništa ne upisuje.** Proći celu turu, izaći, pa otvoriti izgradnju:
    ništa nije dodato, obrisano ni promenjeno.
+
+
+## 99. Govor u turi „Upoznaj repertoar" — 4.9.2026, nije viđeno uživo
+
+Faza 5. Sve se sluša sa uključenim govorom (zvučnik u zaglavlju ili pored
+kartice).
+
+1. [ ] **Glavna linija ćuti.** Proći nekoliko poteza kroz liniju bez račvanja i
+   bez rupa: tabla se pomera, kartica piše, **ništa se ne čuje**. Ako se čuje
+   svaki potez, faza je promašila ono zbog čega postoji.
+2. [ ] **Račvanje govori i imenuje odgovore.** Na svom potezu ispod kog
+   protivnik ima više odgovora: čuje se „Odavde protivnik ima N odgovora: …" sa
+   procentima, i rupa je u toj rečenici označena sa „bez odgovora".
+3. [ ] **Rupa govori.** Na `?` čvoru se čuje „Na <potez>, X% partija, nemate
+   odgovor."
+4. [ ] **Napomena se čuje poslednja**, i počinje sa „Vaša napomena:".
+5. [ ] **Izgovoreno je ono što piše.** Sve što se čuje mora da stoji na
+   kartici. Ako se čuje nešto čega nema na ekranu, to je nalaz.
+6. [ ] **Rečenica se ne preseca.** Krenuti dalje dok govori: nova rečenica
+   dolazi na red, aplikacija ne puca i ne ućuti zauvek. (Na Windowsu je ovo
+   mesto na kome je `stop()` ranije obarao proces.)
+7. [ ] **Sa isključenim govorom se ne gubi ništa** osim zvuka — sve rečenice su
+   i dalje na kartici.

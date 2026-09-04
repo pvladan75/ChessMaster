@@ -43,3 +43,7 @@ docs/bug_spec.txt
 
 # Antigravity CLI drops a symlink to its per-project config here.
 .antigravitycli/
+
+# QA working files: findings live in the test log outside this repo, never in it.
+.answers.txt
+.findings.txt
