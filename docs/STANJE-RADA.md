@@ -610,26 +610,46 @@ samo zabeleže: „kad ih skupimo dovoljno, možemo jednim planom popravke sve d
 rešimo." Kod je pogledan samo toliko da se svaka usidri i da se zna šta bi
 koštala — ništa nije menjano.
 
-### 1. Pregled repertoara treba da završi liniju **sopstvenim** potezom (21:21)
+### 1. Lepeza neodgovorenih protivnikovih poteza kaže istu stvar pet puta (21:21, pojašnjeno 22:20)
 
-> „Pregled repertoara treba korisnika da upozna sa njegovim odabirom na
-> pozicije, a ne na pozicije na koje nije odgovorio."
+Prva formulacija je zvučala kao „ne pokazuj rupe", pa je ovde bila zabeležena
+kao sudar sa svrhom ture. **Vlasnikovo pojašnjenje pomera je sasvim:**
 
-**Gde živi:** `walkthroughOrder` (`services/walkthrough_order.dart`) pravi
-stajanja, a `repertoire_walkthrough_screen.dart` ih vrti. Odsecanje bi bilo
-filtar nad listom stajanja — jeftino po sebi.
+> „Nema potrebe doći u situaciju da na kraju linije imamo poziciju posle
+> korisnikovog poteza, a onda 4 poteza protivnika koji započinju nove linije, a
+> nemaju odgovor korisnika, i da se sad sve 4 pokazuju. Tu korisnik nema šta da
+> zapamti."
 
-**Ali postoji sudar, i vlasnik je tražio baš to da se proveri pre rada.**
-Protivnikov potez bez odgovora **je rupa**, a tura je namerno pravljena da rupe
-pokaže i **izgovori**: `lookOfRepertoireMove(move) == MoveTreeNodeLook.gap` crta
-`?` na kartici (`repertoire_walkthrough_screen.dart:363`), a
-`walkthrough_speech.dart:41` kaže da stajanje dobija glas „kad je račva, rupa
-ili nosi zabelešku". Ako se linija skrati na poslednji sopstveni potez, tura
-prestaje da pokazuje upravo ono zbog čega je pola nje napisano.
+**Nije sudar — prijava je tačna, i to protiv budžeta koji je tura sama sebi
+postavila.** Provereno u kodu:
 
-**Pitanje za plan, ne za sada:** da li je „upoznaj svoj izbor" i „pokaži gde ti
-fali odgovor" jedna tura ili dve. Moguć međuoblik: linija se završava
-sopstvenim potezom, a rupa se najavi rečenicom umesto zasebnim stajanjem.
+- `lookOfRepertoireMove` (`repertoire_tree_panel.dart:32`) proglašava rupom svaki
+  protivnikov potez čija je pozicija `open`. Ako korisnikov potez vodi u
+  poziciju sa četiri neodgovorena odgovora, sva četiri su rupe.
+- `walkthroughOrder` obilazi **svaki** potez u crtežu, pa su to četiri zasebna
+  stajanja.
+- `walkthrough_speech.dart` daje glas svakoj rupi, pa se četiri puta izgovori
+  „Na …, N% partija, nemate odgovor."
+- A **peta rečenica je već rečena pre njih**: stajanje na korisnikovom potezu
+  dobija račvu — „Odavde protivnik ima 4 odgovora: …" — i ona ih sve imenuje.
+
+Dakle pet izgovorenih rečenica na jednoj poziciji, sve o istoj činjenici. Tura
+je pisana sa budžetom „najviše četiri izgovorene rečenice na dvanaest poteza
+trunka" (`walkthrough_speech.dart`), i jedna ovakva lepeza ga potroši na jednom
+mestu. Rupa **ostaje prijavljena** — u račvi, gde je već imenovana.
+
+**Predlog pravila za plan** (nije pisan nijedan red):
+
+- Ne silaziti u protivnikov potez koji je rupa **kada ih na toj poziciji ima
+  dvoje ili više**; račva ih je već imenovala.
+- **Usamljenu rupu zadržati.** Račva se izgovara tek na `theirs.length > 1`, pa
+  je kod jednog jedinog neodgovorenog odgovora to stajanje jedino mesto gde se
+  rupa uopšte kaže.
+- Pravilo važi samo za odgovore koji su rupe; ako su neki odgovoreni, u njih se
+  silazi kao i do sada.
+
+Time linija prirodno završava korisnikovim potezom — što je i bilo traženo — a
+da se ništa ne prećuti.
 
 ### 2. Verovatnoća da se stigne do pozicije (21:30)
 
