@@ -3081,37 +3081,49 @@ se vidi i bez razlikovanja boja. Ako se vidi samo kao promena boje, to je nalaz.
    ništa isečeno, tabla se i dalje cela vidi.
 
 
-## 89. Pregled nacrta, značka na kartici i širina kičme — 3.9.2026, nije viđeno uživo
+## 89. Nepotvrđeni potezi i značka na kartici — 3.9.2026, nije viđeno uživo
 
-Faza 3, radni agent (`936d202`). Kičma upisuje poteze koje učenik nije birao, a
-vežba pita samo ono što jeste — pa je repertoar od četrdeset poteza umeo da
-kaže da nema šta da se vežba, dok četrdeset pozicija čeka na „da". Potvrđivanje
-je postojalo; red za njega nije.
+Faza 3, radni agent (`936d202`). „Predloži glavnu liniju" upisuje poteze koje
+učenik nije birao, a vežba pita samo ono što jeste — pa je repertoar od
+četrdeset poteza umeo da kaže da nema šta da se vežba, dok četrdeset pozicija
+čeka na „da". Potvrđivanje je postojalo; red za njega nije.
 
-1. [ ] **Značka na kartici.** Repertoar sa nacrtima ima žutu pilulu sa brojem i
-   ikonicom; bez nacrta je nema.
+**Prepisano 4.9.2026, pošto ekran opisan u stavkama 4, 6 i 11 više ne
+postoji.** „Pregledaj nepotvrđene" ne otvara više zaseban list sa naslovom
+„Pregled nacrta (N ostalo)" i tri dugmeta — ono vodi **tablu izgradnje** na
+prvu nepotvrđenu poziciju, a potvrda se dešava u panelu „Vaši potezi ovde".
+Uz to je reč „nacrt" povučena rečnikom (faza 4 plana jednostavnosti), pa je i
+ostatak sekcije preveden na „nepotvrđeni potezi" / „predlog poteza".
+
+1. [ ] **Značka na kartici.** Repertoar sa nepotvrđenim potezima ima žutu
+   pilulu sa brojem i ikonicom; bez njih je nema.
 2. [ ] **Dodir na značku vodi na prvu nepotvrđenu poziciju**, ne na koren.
 3. [ ] **Traka u izgradnji** piše „N nepotvrđenih u grafu" i nudi „Pregledaj nepotvrđene".
-4. [ ] **List za pregled** ima naslov „Pregled nacrta (N ostalo)", predlog
-   („Predlog: <potez>") i tri odgovora: potvrdi, „Odigraj drugi potez",
-   „Preskoči (iseci granu)".
-5. [ ] **Svaki odgovor se upisuje sam za sebe.** Prekinuti pregled na pola pa se
-   vratiti: potvrđeno je ostalo potvrđeno i brojač je manji. Pregled se sme
-   napustiti u svakom trenutku.
-6. [ ] **Brisanje pita.** „Odigraj drugi potez" tamo gde ispod nacrta stoje vaše
-   odluke mora prvo da kaže koliko ih je („Ispod tog predloga su N vaše odluke.
-   Obrisati i njih?") i bez potvrde da ne obriše ništa.
+4. [ ] **„Pregledaj nepotvrđene" vodi tablu, ne otvara list.** Tabla izgradnje
+   ode na prvu nepotvrđenu poziciju. U panelu „Vaši potezi ovde" taj potez
+   stoji kao **„predlog — nije još vaš izbor"** (žuto) i pored njega je dugme
+   **„Potvrdi"**. Ako se pojavi zaseban list sa naslovom „Pregled nacrta", to
+   je stari ekran i nalaz je.
+5. [ ] **Svaki odgovor se upisuje sam za sebe.** Potvrditi jedan, pa otići sa
+   ekrana i vratiti se: potvrđeno je ostalo potvrđeno i brojač je manji.
+   Pregled se sme napustiti u svakom trenutku — nema koraka koji mora da se
+   dovrši.
+6. [ ] **Brisanje pita.** Ukloniti (×) predlog ispod kog stoje vaše odluke:
+   mora prvo da se javi dijalog **„Obrisati vaše odluke?"** sa rečenicom
+   „Ispod tog predloga su N vaše odluke. Obrisati i njih?" — i bez potvrde da
+   ne obriše ništa.
 7. [ ] **Kad se sve reši:** „Nema više nepotvrđenih poteza."
-8. [ ] **Vežba više ne laže da nema posla.** U repertoaru sa samim nacrtima
-   otvoriti vežbu: piše „Još N nepotvrđenih poteza čeka u ovom repertoaru." i
-   nudi „Pregledaj nepotvrđene".
-9. [ ] **Dijalog na „Predloži glavnu liniju"** nudi tri širine i dubinu, i kaže da su to
-   predlozi koje vežba neće pitati dok se ne potvrde.
-10. [ ] **Svetla tema, traka sa nacrtima.** Tekst na žutoj podlozi mora da se
-    čita, a dugme je obrisano (outlined), ne puno — puno dugme se u svetloj temi
-    nije razlikovalo od podloge iza sebe. Pogledati u obe teme.
-11. [ ] **Telefon, 360 dp, release build.** List za pregled i traka u izgradnji —
-    ništa isečeno.
+8. [ ] **Vežba više ne laže da nema posla.** U repertoaru u kome su svi potezi
+   nepotvrđeni otvoriti vežbu: piše „Još N nepotvrđenih poteza čeka u ovom
+   repertoaru." i nudi „Pregledaj nepotvrđene".
+9. [ ] **Dijalog „Predloži glavnu liniju odavde"** ima naslov „Koliko odgovora
+   spremamo" nad tri izbora, nudi i dubinu, i kaže da su to predlozi koje vežba
+   neće pitati dok se ne potvrde.
+10. [ ] **Svetla tema, traka sa nepotvrđenim potezima.** Tekst na žutoj podlozi
+    mora da se čita, a dugme je obrisano (outlined), ne puno — puno dugme se u
+    svetloj temi nije razlikovalo od podloge iza sebe. Pogledati u obe teme.
+11. [ ] **Telefon, 360 dp, release build.** Traka „N nepotvrđenih u grafu" i
+    panel „Vaši potezi ovde" sa dugmetom „Potvrdi" — ništa isečeno.
 
 
 ## 90. Izdvajanje u novo otvaranje i kombinovani dril — 3.9.2026, nije viđeno uživo
