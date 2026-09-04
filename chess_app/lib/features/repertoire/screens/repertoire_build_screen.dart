@@ -2846,19 +2846,25 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           //
           // Reported live 4.9.2026: „javlja mi da ima 9 neodgovorenih, a ja sam
           // izbrojao 7". Three numbers sit within two lines of each other here
-          // and each measures something else — this one is the **queue**, and
-          // the position on the board has already been taken out of it; the
-          // legend below says `otvoreno 10`, which is the walk and still counts
-          // it; and the picture draws however many fit under its depth cap. All
-          // three were right and none of them said what it was counting, which
-          // is the same defect as a wrong number and harder to argue with.
+          // and each measures something else — this one leaves out the position
+          // on the board; the legend below says `otvoreno 10`, which still
+          // counts it; and the picture draws however many fit under its depth
+          // cap. All three were right and none of them said what it was
+          // counting, which is the same defect as a wrong number and harder to
+          // argue with.
+          //
+          // „ne računajući ovu" rather than a word for the list itself: the
+          // glossary retired *red* on 3.9.2026 and chose „Još N neodgovorenih"
+          // to say the same thing without a concept behind it. The first
+          // version of this fix put the concept straight back, and the phase 4
+          // table check is what caught it.
           final under = left == 0
               ? 'Poslednja neodgovorena pozicija koju ovaj repertoar dohvata.'
               : serbianCount(
                   left,
-                  one: 'Posle ove u redu je još $left pozicija.',
-                  few: 'Posle ove u redu su još $left pozicije.',
-                  many: 'Posle ove u redu je još $left pozicija.',
+                  one: 'Još $left neodgovorena pozicija, ne računajući ovu.',
+                  few: 'Još $left neodgovorene pozicije, ne računajući ovu.',
+                  many: 'Još $left neodgovorenih pozicija, ne računajući ovu.',
                 );
           return SpeakableInfo(
             autoSpeak: true,
