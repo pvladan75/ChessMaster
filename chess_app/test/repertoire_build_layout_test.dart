@@ -409,9 +409,9 @@ void main() {
     await pump(tester, const Size(1400, 900), cutTree: true);
 
     expect(find.text('4. c3 64% ✂'), findsNothing);
-    expect(find.text('Prikaži odsečene grane (1)'), findsOneWidget);
+    expect(find.text('Prikaži grane koje ne spremam (1)'), findsOneWidget);
 
-    await tester.tap(find.text('Prikaži odsečene grane (1)'));
+    await tester.tap(find.text('Prikaži grane koje ne spremam (1)'));
     await tester.pumpAndSettle();
     expect(find.text('4. c3 64% ✂'), findsWidgets);
   });
@@ -458,8 +458,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Idi'), findsNothing);
-    expect(find.text('Vidi odsečeno'), findsOneWidget);
-    expect(find.textContaining('✂ odsečeno'), findsOneWidget);
+    expect(find.text('Vidi šta ne spremam'), findsOneWidget);
+    expect(find.textContaining('✂ ne spremam'), findsOneWidget);
   });
 
   testWidgets('a reply that was not cut still says Idi', (tester) async {
@@ -472,7 +472,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Idi'), findsOneWidget);
-    expect(find.textContaining('✂ odsečeno'), findsNothing);
+    expect(find.textContaining('✂ ne spremam'), findsNothing);
   });
 
   testWidgets('the cards are numbered from where the game really is',

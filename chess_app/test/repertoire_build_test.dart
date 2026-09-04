@@ -1193,7 +1193,7 @@ void main() {
     // Counted apart from "bez odgovora", and never taken off it: cutting is
     // work refused, not work done, and those games are still going to be
     // played.
-    expect(find.textContaining('odsečeno 1 (60%)'), findsOneWidget);
+    expect(find.textContaining('ne spremam 1 (60%)'), findsOneWidget);
   });
 
   testWidgets('a cut branch can be put back', (tester) async {
@@ -1219,7 +1219,7 @@ void main() {
 
     await tester.tap(find.text('Ne spremam ovo'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Vrati odsečenu granu'));
+    await tester.tap(find.text('Ipak spremi ovu granu'));
     await tester.pumpAndSettle();
 
     expect(api.restored.single,
@@ -1229,7 +1229,7 @@ void main() {
     // position the student is in the middle of answering.
     expect(find.text('Još 1 neodgovorena pozicija, ne računajući ovu.'),
         findsOneWidget);
-    expect(find.textContaining('odsečeno'), findsNothing);
+    expect(find.textContaining('ne spremam'), findsNothing);
   });
 
   testWidgets('the repertoire root is never offered as a branch to cut',
@@ -1264,7 +1264,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Grana nije odsečena'), findsOneWidget);
-    expect(find.textContaining('odsečeno'), findsNothing);
+    expect(find.textContaining('ne spremam'), findsNothing);
     // Still the position that was there: nothing moved on.
     expect(find.text('4...Nc6 5.Nf3'), findsOneWidget);
   });
@@ -1390,7 +1390,7 @@ void main() {
       path: ['Nc6', 'Nf3', 'e6', 'd4'],
     );
 
-    await tester.tap(find.text('Napravi kičmu'));
+    await tester.tap(find.text('Predloži glavnu liniju'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('6 poteza'));
     await tester.pumpAndSettle();
@@ -1414,7 +1414,7 @@ void main() {
       minGames: 100,
     );
 
-    await tester.tap(find.text('Napravi kičmu'));
+    await tester.tap(find.text('Predloži glavnu liniju'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('4 poteza'));
     await tester.pumpAndSettle();
@@ -1428,7 +1428,7 @@ void main() {
     await pump(tester);
     api.spine = const SpineResult(reason: 'thin', minGames: 100);
 
-    await tester.tap(find.text('Napravi kičmu'));
+    await tester.tap(find.text('Predloži glavnu liniju'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('4 poteza'));
     await tester.pumpAndSettle();
@@ -1440,7 +1440,7 @@ void main() {
     await pump(tester);
     // `spine` left null: the fake answers the way a server that did not reply
     // does.
-    await tester.tap(find.text('Napravi kičmu'));
+    await tester.tap(find.text('Predloži glavnu liniju'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('4 poteza'));
     await tester.pumpAndSettle();
