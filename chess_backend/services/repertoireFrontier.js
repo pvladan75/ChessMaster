@@ -147,6 +147,7 @@ function gateMoves(kept, rootKey, gateUci) {
 /// time — which the stored `share` on every row makes possible.
 async function coveredReplies(
   pool, userId, color, keys, minRating, breadth = DEFAULT_BREADTH,
+  { fens = null, kept = null } = {},
 ) {
   if (keys.length === 0) return new Map();
   const wide = requireBreadth(breadth);
@@ -178,8 +179,44 @@ async function coveredReplies(
   }
   const map = new Map();
   for (const [key, list] of rows) {
-    const followed = withinBreadth(list, wide);
-    if (followed.length > 0) map.set(key, followed);
+    const inside = new Set(withinBreadth(list, wide).map((row) => row.uci));
+    // ...and every reply that leads somewhere the student has already decided.
+    //
+    // The rule above this one is the same argument for `repertoire_extra_replies`
+    // — a move they pressed "prepare this too" on is followed at every breadth —
+    // and a move they actually played is the stronger case. Without this, a
+    // repertoire set to `main` walks one reply a position and everything built
+    // under the second is not in the reader's own tree: measured 4.9.2026 on a
+    // live repertoire, four nodes reached and none of its twenty-one drafts,
+    // against seventy-nine and all of them at `standard`.
+    //
+    // That is not a narrower view, it is a view that hides the reader's work
+    // from them, and it was the true cause of three separate live findings: a
+    // spine that "wrote nothing", a draft review that found none, and a tree
+    // that did not grow.
+    //
+    // It can only ever add positions they made themselves, so the walk cannot
+    // grow past their own decisions. Off when the caller passes no board — the
+    // landing position cannot be computed without one, and a caller that does
+    // not care keeps exactly the behaviour it had.
+    const here = fens === null ? null : fens.get(key);
+    const followed = (here === null || here === undefined || kept === null)
+      ? list.filter((row) => inside.has(row.uci))
+      : list.filter((row) => {
+        if (inside.has(row.uci)) return true;
+        const landed = step(here, row.uci);
+        return landed !== null && kept.has(fenKey(landed.fen));
+      });
+    if (followed.length > 0) {
+      // Games order, like `withinBreadth` hands its own back: a reply is not
+      // suddenly the main line because of which test let it through.
+      map.set(key, followed
+        .slice()
+        .sort((a, b) => Number(b.games) - Number(a.games))
+        .map((row) => ({
+          uci: row.uci, san: row.san, share: Number(row.share),
+        })));
+    }
   }
   return map;
 }
@@ -379,7 +416,11 @@ async function frontier(pool, userId, {
     }
 
     const keys = [...new Set(branches.map((b) => fenKey(b.after.fen)))];
-    const book = await coveredReplies(pool, userId, color, keys, band, wide);
+    // Same rule as the tree walks by, and it has to be the same or the queue
+    // and the picture disagree about what the repertoire contains.
+    const fens = new Map(branches.map((b) => [fenKey(b.after.fen), b.after.fen]));
+    const book = await coveredReplies(
+      pool, userId, color, keys, band, wide, { fens, kept });
 
     const next = [];
     const dangling = new Set();

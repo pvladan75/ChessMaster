@@ -556,21 +556,47 @@ test('the walk follows what the breadth says, not what the cut says',
     assert.equal(added.kind, 'undecided');
   });
 
-test('narrowing hides a branch and never touches a move in it', async () => {
-  // The whole reason breadth is read at walk time. 1...e5 is inside the shared
-  // cut and the student has decided on 2.Bc4 there; at `main` the walk stops
-  // before it, and the row is still in `repertoire_moves` for the day they
-  // widen again.
+test('narrowing never hides a branch the student has decided in', async () => {
+  // This test used to assert the opposite, and the opposite was wrong.
+  //
+  // 1...e5 is the second most played reply, so `main` — one reply a position —
+  // does not follow it. But the student has decided 2.Bc4 there, and hiding
+  // their own move from their own tree is not a narrower view: measured on a
+  // live repertoire 4.9.2026, `main` reached four nodes and none of that
+  // repertoire's twenty-one drafts, `standard` reached seventy-nine and all of
+  // them. It was the true cause of three separate live findings — a spine that
+  // „wrote nothing", a review that found no drafts, and a tree that did not
+  // grow.
+  //
+  // The old wording accepted it because the row survived in `repertoire_moves`
+  // „for the day they widen again". The row did survive. Nothing on screen said
+  // so, and no reader is going to widen a repertoire to look for work they do
+  // not know is there.
   const pool = stubPool(sicilianAndOpenGame());
   const walk = await frontier(pool, 7, {
     color: 'w', rootFen: START, breadth: 'main',
   });
 
-  assert.equal(walk.open.some((n) => n.path.includes('e5')), false);
-  // Nothing was deleted to achieve that: the walk asked the book and the moves
-  // table, and wrote to neither.
+  assert.ok(walk.open.some((n) => n.path.includes('e5')),
+    'sopstvena odluka je ostala van sopstvenog stabla');
+  // Nothing was deleted to achieve any of it: the walk asked the book and the
+  // moves table, and wrote to neither.
   assert.equal(
     pool.calls.some((c) => /DELETE|UPDATE|INSERT/.test(c.text)), false,
     'suženje je nešto upisalo',
   );
+});
+
+test('and it widens for nothing else', async () => {
+  // The other half, and the one that keeps the rule honest: `main` still walks
+  // one reply a position everywhere the student has decided nothing. Without
+  // this the change reads as „breadth stopped working", which would be a fair
+  // description of a walk that followed every reply it was handed.
+  const pool = stubPool(withTail());
+  const walk = await frontier(pool, 7, {
+    color: 'w', rootFen: START, breadth: 'main',
+  });
+
+  assert.equal(walk.open.some((n) => n.path.includes('d5')), false,
+    'širina više ništa ne sužava');
 });

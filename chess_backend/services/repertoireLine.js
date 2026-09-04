@@ -121,7 +121,12 @@ async function walkLines(pool, userId, {
     }
 
     const keys = [...new Set(branches.map((b) => fenKey(b.after.fen)))];
-    const book = await coveredReplies(pool, userId, color, keys, band, wide);
+    // The board for each of those keys, so the book can tell which replies land
+    // somewhere this student has already decided — those are followed at every
+    // breadth. See `coveredReplies`.
+    const fens = new Map(branches.map((b) => [fenKey(b.after.fen), b.after.fen]));
+    const book = await coveredReplies(
+      pool, userId, color, keys, band, wide, { fens, kept });
 
     const next = [];
     for (const branch of branches) {
