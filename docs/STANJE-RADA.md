@@ -183,6 +183,34 @@ osvetli koren. Uz njega je otišla i druga kopija iste pretrage (`_findNode`).
 
 Otvoreno: proveriti ostale `loadFen` pozive na ovom ekranu istom merom.
 
+## „Upoznaj repertoar" — faze 1–3 gotove, 4.9.2026
+
+Dogovor je [PLAN-UPOZNAJ-REPERTOAR.md](PLAN-UPOZNAJ-REPERTOAR.md), napisan po
+vlasnikovom zapažanju da izgrađen repertoar postane slika koju niko ne može da
+drži u glavi.
+
+| faza | šta | ko | stanje |
+|---|---|---|---|
+| 1 | šetnja pokazuje igraču njegov sopstveni rad (širina ga ne skriva) | lead | **Urađeno**, `e5bdb4c` + `8625273` — uživo neprovereno |
+| 2 | stablo crta svoja četiri stanja | lead | **Urađeno**, `37a67d3` — vlasnik video na obe teme |
+| 3 | redosled obilaska (`walkthroughOrder`) | lead | **Urađeno** — brief `docs/TASK-upoznaj-f3.md` stoji kao ugovor za fazu 4 |
+| 4 | ekran „Upoznaj" | radni agent | Nije rađeno |
+| 5 | govor, sa budžetom rečenica | lead | Nije rađeno |
+
+**Dve odluke koje je vlasnik doneo 4.9.2026 i koje faza 4 nasleđuje:**
+
+* Redosled je po `share`, ali **grana u kojoj ima igračevih odluka nikad ne ide
+  iza prazne**. „It is a walkthrough of my repertoire, so the user's actual
+  work must never be buried beneath untouched book lines."
+* Tura govori samo o onome što je nacrtano. Rep („van toga još N poteza") ne
+  ulazi u odgovor `/repertoire/tree` i endpoint se ne dira.
+
+**Otvoreno pred fazu 4**, i traži vlasnikovo oko pre nego što se piše brief:
+da li čitljivo stablo iz faze 2 već odgovara na „šta ja igram". Ako odgovara,
+faza 4 je manja nego što izgleda. Uz to, u tamnoj temi razlika između
+pokrivenog odgovora i rupe je najslabiji od tri kanala — vidi se na slici koju
+je vlasnik poslao, i ako smeta, pojačava se debljina ivice.
+
 ## Širina nikad ne skriva ono što je igrač sam uradio — 4.9.2026
 
 Pravilo, opšte i za sve ekrane: **potez ili nacrt koji je igrač sam napravio

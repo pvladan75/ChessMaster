@@ -303,7 +303,36 @@ Two things the brief must say, both learned the hard way and neither obvious:
   yes to it, because the shapes will be fine. Fill, outline, glyph, weight —
   in that order, hue last and never load-bearing. See §5.
 
-**Phase 3 — lead. The order and the stops.**
+**Phase 3 — done by the lead, 4.9.2026.** Briefed as a worker batch
+(`docs/TASK-upoznaj-f3.md`), then written directly because the owner judged a
+round of agent time slower than the work. The brief stands as the contract
+phase 4 is written against, and writing it first is why the implementation had
+no decisions left in it.
+
+Three corrections the brief made to this section, all of them from having built
+phase 2 first:
+
+* **The signature is over `RepertoireTreeMove`, not `AnalysisNode`.** §3 below
+  said `walkthroughOrder(AnalysisNode root)`, which cannot work: an
+  `AnalysisNode` carries neither `share` nor `mine` — the share is glued into
+  `nag` as text for drawing. The API model has both as fields.
+* **There is no `stopKindOf`.** Phase 2 shipped `lookOfRepertoireMove`, which
+  answers the same question, and `WalkthroughStop.kind` delegates to it.
+* **Cut branches are not visited, nor anything under them.** This section did
+  not say; the tour is „what I play and what awaits me" and a refusal is
+  neither.
+
+And one thing the brief itself left ambiguous, resolved in the implementation
+and worth keeping: „a reply whose subtree contains the reader's own work" counts
+only work the tour will actually *walk*. Work behind a cut does not lift the
+reply that leads to it, because the tour cannot show what it does not visit, and
+ranking a branch up for something never delivered is a promise broken twice.
+
+Eleven tests, and the four ways this function can fail were each mutated in and
+watched failing: sorting by share alone, ignoring share entirely, reading
+breadth-first, and walking into cut branches.
+
+**Phase 3 (original scope, for the record) — lead. The order and the stops.**
 `walkthroughOrder` and `stopKindOf`, pure functions with their own tests, plus
 the panel contract (`Stop` → the sentence). No screen yet. The output of this
 phase is testable in full without a widget, which is deliberate: it is the part
