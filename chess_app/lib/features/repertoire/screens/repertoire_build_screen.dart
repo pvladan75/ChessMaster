@@ -2673,9 +2673,21 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             _buildEngine(context),
           if (_note != null) ...[
             const SizedBox(height: AppSpacing.sm),
-            Text(_note!,
-                style:
-                    AppText.caption.copyWith(color: context.colors.textMuted)),
+            // Read aloud, like the same sentence is on the finished screen.
+            //
+            // This is where „Dodate 2 pozicije" and „Grana je odsečena — sa
+            // njom je iz reda izašla još 1 pozicija" land, and it was a plain
+            // grey caption: the one line saying what the button just did was
+            // the one line nobody heard. Reported live 4.9.2026, twice, as the
+            // plurals being silent — they were written and they were shown,
+            // and the panel around them could not speak.
+            SpeakableInfo(
+              text: _note!,
+              autoSpeak: true,
+              child: Text(_note!,
+                  style: AppText.caption
+                      .copyWith(color: context.colors.textMuted)),
+            ),
           ],
           const SizedBox(height: AppSpacing.md),
           _buildControls(context),

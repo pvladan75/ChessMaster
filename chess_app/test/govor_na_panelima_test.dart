@@ -292,7 +292,45 @@ void main() {
     final panel =
         find.ancestor(of: asked, matching: find.byType(SpeakableInfo));
     expect(panel, findsOneWidget);
-    expect(engine.said, [speakable(_shown(tester, panel))]);
+    // `contains`, not equality: this screen also writes a note saying it could
+    // not read where the reader had got to, and since 4.9.2026 that note is
+    // spoken too. Both sentences are wanted; only one of them is this test's.
+    expect(engine.said, contains(speakable(_shown(tester, panel))));
+  });
+
+  testWidgets('izgradnja reads the sentence saying what just happened',
+      (tester) async {
+    // Reported live 4.9.2026, twice over — the plural messages („Dodate 2
+    // pozicije", „sa njom je iz reda izašla još 1 pozicija") were written,
+    // shown, and never heard: the panel that carries them was a plain grey
+    // caption, while the identical sentence on the finished screen could
+    // speak. Every one of those messages goes through this one `_note`, so the
+    // note reached here — the server did not answer about where the reader had
+    // got to — is the same panel the findings were about.
+    final engine = await _speech(enabled: true);
+    tester.view.physicalSize = const Size(1200, 2000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: RepertoireBuildScreen(
+        name: 'French Defense: Advance — crni',
+        color: 'b',
+        rootFen: _advance,
+        rootPath: const ['e4', 'e6', 'd4', 'd5', 'e5'],
+        api: RepertoireApiService(
+            client: MockClient((_) async => http.Response('{}', 500))),
+        judge: _SilentJudge(),
+        analyse: (fen, depth, multiPV) async => const [],
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final note = find.textContaining('Nije moglo da se pročita dokle ste');
+    expect(note, findsOneWidget, reason: 'poruka mora da se vidi');
+    final panel = find.ancestor(of: note, matching: find.byType(SpeakableInfo));
+    expect(panel, findsOneWidget,
+        reason: 'poruka o tome šta se upravo desilo mora da može da se čuje');
+    expect(engine.said, contains(speakable(_shown(tester, panel))));
   });
 
   testWidgets('the banner speaks the count it is showing', (tester) async {
