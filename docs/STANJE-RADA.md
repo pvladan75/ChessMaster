@@ -424,6 +424,46 @@ Dokazan sa tri mutacije, uključujući onu u kojoj čuvar ne pročita ništa.
 Nacrti i dalje ne ulaze u vežbu — nacrt nije odluka i dril ga ne pita. To je
 zasebno pravilo i nije dirano.
 
+## SLEDEĆI POSAO: redosled kroz nepotvrđene poteze — 4.9.2026
+
+Vlasnikova prijava, njegovim rečima:
+
+> Trenutno, mislim da ide po dubini, pa recimo prvo potvrđujem 5. potez od
+> početka u svim granama, pa onda prelazi na sve šeste poteze. Lakše bi mi bilo
+> da ide po jednoj liniji prvo, jer mogu da pratim kontinuitet, pozicije
+> prirodno slede jedna iz druge. Pa onda po drugoj liniji…
+
+Tačan je i o uzroku. **Gde redosled nastaje:**
+`chess_backend/services/repertoireUnconfirmed.js`, `unconfirmedPositions` —
+`found` se puni iz `for (const node of nodes.values())`, a `nodes` dolazi iz
+`walkLines`, koji ide **talas po talas** (u širinu). Otuda „svi peti pa svi
+šesti".
+
+**Tačka umetanja je čista:** `found.slice(0, ceiling)` seče tek na kraju, pa je
+dovoljno urediti `found` pre toga. Klijent (`_reviewDrafts` u
+`repertoire_build_screen.dart`) traži `limit: 1`, dakle **prvi element mora da
+bude tačan na serveru** — sortiranje u klijentu ne rešava ništa.
+
+**Šta ne dirati:** `walkLines`. Iz njega čita sve što gleda izgrađeno —
+stablo, pokrivenost, dril, brisanje — i menjanje njegovog redosleda je izmena
+pod svima njima.
+
+**Jedina prava odluka:** redosled braće. Dubinski obilazak traži da se zna koje
+dete ide prvo, a `walkthroughOrder`
+(`chess_app/lib/features/repertoire/services/walkthrough_order.dart`) taj
+odgovor već ima i testiran je: po `share`, ali **grana u kojoj ima igračevih
+odluka nikad ne ide iza prazne**. To je vlasnikovo pravilo iz faze 3 i
+najverovatnije isti odgovor i ovde — ali je ono u klijentu i u Dartu, a ovo je
+server u JS-u, pa je pitanje da li se pravilo preslikava ili se ovde bira
+jednostavnije (samo `share`, pa red iz knjige).
+
+Vlasnik je predložio i sliku: „po grafičkom stablu od leva na desno i od gore na
+dole… od pozicije koja se račva prvo kroz liniju skroz levo". To je isti
+dubinski obilazak, opisan sa ekrana.
+
+**Nije počet nijedan red koda.** Ovo je ugovor nad čitanjem koje gledaju traka,
+čarobnjak i vežba, pa je posao vodećeg, ne radnog agenta.
+
 ## Tri prijave sa provere 4.9.2026 uveče — odgovoreno, nije rađeno
 
 **Prikaz evaluacije se ujednačava po uzoru na „Pitaj motor" u repertoaru.**
