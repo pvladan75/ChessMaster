@@ -154,6 +154,33 @@ pamćenja jer se ponavljaju:
 
 ---
 
+## Tabla, stablo i pitanje moraju da govore o istoj poziciji — 4.9.2026
+
+Prijavljeno uživo: „pita me za potez, a u stablu mi je fokus na drugoj
+poziciji." Jedan slučaj je nađen i popravljen istog dana (`_openReplies` je
+pomerao tablu preko `_boardController.loadFen`, što ne kaže ničemu drugom da se
+pozicija promenila — `_standingAfter` je ostajao prazan, a to je ono što stablo
+osvetljava i po čemu se čita knjiga ispod table). Sada ide kroz
+`_standAfterMove`, sa testom dokazanim mutacijom.
+
+**Pravilo koje iz toga sledi, i važi šire od ovog ekrana:** postoji **jedan**
+način da se ova tabla pomeri, i to je metoda koja uz tablu pomeri i sve ostalo.
+`_boardController.loadFen` sam za sebe je uvek pola posla — pomeri figure i
+ostavi stablo, poslednji potez i knjigu na staroj poziciji. Ako zatreba nova
+vrsta pomeranja, dobija svoju metodu pored `_standAfterMove` i `_show`, a ne
+goli `loadFen` na mestu upotrebe.
+
+Ono što **nije** kvar i ne treba „popravljati": pitanje i tabla smeju da se
+razilaze. Red je odakle dolazi sledeće pitanje, tabla je ono što gledate, i
+stajanje posle svog poteza da bi se videli protivnikovi odgovori je namerno.
+Sinhronizovani moraju da budu **tabla i sve što tvrdi gde smo** — stablo,
+poslednji potez, knjiga, komentar.
+
+Otvoreno: proveriti ostale `loadFen` pozive na ovom ekranu istom merom, i
+`findNodeByFen`, koji poredi ceo FEN dok ostatak koda poredi `fenKeyOf` (bez
+brojača poteza). Poziciju koju je server poslao i onu koju je tabla izračunala
+to može da razdvoji, a posledica je tiha: stablo osvetli koren.
+
 ## Otvorena pitanja dizajna
 
 Ona koja tek treba odlučiti stoje u [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md),

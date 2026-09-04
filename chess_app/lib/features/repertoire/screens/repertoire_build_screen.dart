@@ -1864,6 +1864,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     OpponentReplies? shown;
     String? shownFen;
     String? shownSan;
+    String? shownUci;
 
     for (final move in kept) {
       final after = _fenAfter(node.fen, move.uci);
@@ -1882,6 +1883,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         shown = replies;
         shownFen = after;
         shownSan = move.san;
+        shownUci = move.uci;
       }
       coveredSum += replies.coveredShare;
       tailMoves += replies.tailMoves;
@@ -1940,11 +1942,20 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     // the student ended up building a tree whose shape nobody had seen.
     // A wave of replies is new branches, so the picture moved too.
     await _loadTree();
-    if (shownFen == null) {
+    if (shownFen == null || shownUci == null || shownSan == null) {
       await _advance();
       return;
     }
-    _boardController.loadFen(shownFen);
+    // Through `_standAfterMove`, not `loadFen`.
+    //
+    // Loading the FEN moves the pieces and tells nothing else: `_standingAfter`
+    // stays null, and that is what the tree highlights and what the stored book
+    // is read for. The board stood after the move while the picture went on
+    // lighting up the position behind it — „pita me za potez, a u stablu mi je
+    // fokus na drugoj poziciji", reported live 4.9.2026.
+    //
+    // There is exactly one way to put this screen after a move, and this is it.
+    await _standAfterMove(fen: shownFen, uci: shownUci, san: shownSan);
   }
 
   String? _fenAfter(String fen, String uci) {

@@ -20,7 +20,12 @@ import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 const advance = 'rnbqkbnr/ppp2ppp/4p3/3pP3/3P4/8/PPP2PPP/RNBQKBNR b KQkq - 0 3';
 
 /// After 3...c5, White to move.
-const afterC5 = 'rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 0 4';
+// With the en-passant square, because that is what a real FEN for this
+// position carries and what the board computes after 4...c5. Without it the
+// fixture and the screen disagree about the same position, and every match
+// against it fails for a reason that has nothing to do with the test.
+const afterC5 =
+    'rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w KQkq c6 0 4';
 
 /// After 4.c3, Black to move again — a position this screen can ask about.
 const afterC3 =
@@ -201,6 +206,51 @@ class _FakeApi extends RepertoireApiService {
 
 /// A judge with nothing behind it. The layout is what is being tested, and a
 /// screen that asked Lichess anything to draw itself would be the bug.
+/// Answers for the position after the student's own move, so the "Dalje"
+/// step has something to open. `_SilentJudge` returns nothing, which sends
+/// `_openReplies` down its other path and never moves the board.
+class _RepliesJudge implements OpeningJudgeService {
+  @override
+  bool get hasPersonalToken => false;
+
+  @override
+  Future<OpeningJudgeLookup> judge(String fen, String move,
+          {int? minRating}) async =>
+      const OpeningJudgeLookup.unavailable('no-token');
+
+  /// The position it was actually asked about, so a fixture that disagrees
+  /// with the board says so instead of silently answering nothing.
+  String? lastAsked;
+
+  @override
+  Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async {
+    lastAsked = fen;
+    // Matched on the placement and the side to move, not the whole FEN: the
+    // counters and the en-passant square are the board's arithmetic, and a
+    // fixture that guesses them wrong should not look like "no replies".
+    if (!fen.startsWith('rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w')) {
+      return const OpponentRepliesLookup.unavailable('n/a');
+    }
+    return const OpponentRepliesLookup.ok(OpponentReplies(
+      total: 1000,
+      replies: [
+        OpponentReply(
+            uci: 'c2c3', san: 'c3', games: 640, share: 0.64, covered: true),
+      ],
+      all: [
+        OpponentReply(
+            uci: 'c2c3', san: 'c3', games: 640, share: 0.64, covered: true),
+      ],
+      coveredShare: 0.64,
+      tailMoves: 0,
+      tailShare: 0,
+    ));
+  }
+
+  @override
+  void clearCache() {}
+}
+
 class _SilentJudge implements OpeningJudgeService {
   @override
   bool get hasPersonalToken => false;
@@ -230,6 +280,7 @@ void main() {
     Future<List<AnalysisLine>> Function(String fen, int depth, int multiPV)?
         analyse,
     bool cutTree = false,
+    OpeningJudgeService? judge,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
@@ -243,7 +294,7 @@ void main() {
         rootFen: advance,
         rootPath: const ['e4', 'e6', 'd4', 'd5', 'e5'],
         api: api,
-        judge: _SilentJudge(),
+        judge: judge ?? _SilentJudge(),
         analyse: analyse ?? (fen, depth, multiPV) async => const [],
       ),
     ));
@@ -564,6 +615,40 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Dodirnite liniju'), findsOneWidget);
+  });
+
+  testWidgets('going on lights up the move the board just made',
+      (tester) async {
+    // Reported live 4.9.2026: „pita me za potez, a u stablu mi je fokus na
+    // drugoj poziciji."
+    //
+    // Going on moves the board to the position after the student's own move,
+    // because that is where the opponent's answers belong. It did that by
+    // loading the FEN straight through the board controller, which is the one
+    // way to move the board that tells nothing else on the screen. The tree
+    // highlights `_standingAfter ?? _current`, and `_standingAfter` was still
+    // null -- so the picture went on lighting up the position behind the
+    // board, and the stored book was still the one for the position behind it.
+    final judge = _RepliesJudge();
+    await pump(tester, const Size(1400, 900), judge: judge);
+
+    final dalje = find.widgetWithText(FilledButton, 'Dalje');
+    await tester.ensureVisible(dalje);
+    await tester.pumpAndSettle();
+    await tester.tap(dalje);
+    await tester.pumpAndSettle();
+
+    // The wave was opened at all -- otherwise the rest asserts nothing.
+    expect(judge.lastAsked, isNotNull,
+        reason: 'Dalje mora da otvori odgovore protivnika');
+
+    final panel =
+        tester.widget<RepertoireTreePanel>(find.byType(RepertoireTreePanel));
+    expect(panel.active.moveSan, 'c5',
+        reason: 'stablo mora da svetli na potezu koji tabla pokazuje');
+    // The same thing said the other way: the book under the board belongs to
+    // the position the board is standing on.
+    expect(api.bookReads.last, judge.lastAsked);
   });
 
   group('the unconfirmed banner has room for its own label', () {
