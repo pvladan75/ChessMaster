@@ -135,6 +135,12 @@ The difference is one comparator and it is a pure function either way, so this
 can be decided late — but not after phase 4, because the sentence the tour
 opens with depends on which story it is telling.
 
+**Decided by the owner, 4.9.2026: option 2.** „It is a walkthrough of *my*
+repertoire, so the user's actual work must never be buried beneath untouched
+book lines." So `walkthroughOrder` sorts by `share`, with one rule above it: a
+branch containing the student's own decisions is never ranked below one that
+contains none. That is the comparator phase 3 writes, and its first test.
+
 ### 2.5 The tour can only speak about the replies the walk followed
 
 Found while reading the tree endpoint for phase 3, and it decides what §4's
@@ -159,8 +165,9 @@ Two honest options, and the difference is one line of JSON:
   computes the same pair per wave. Then a fork stop can end with „i još 3
   poteza, 9% partija, bez odgovora."
 
-**Proposed:** ship the first, and only add the second if the live check on
-phase 4 shows readers asking „is that all?". A per-branch summary is available
+**Decided by the owner, 4.9.2026: the first.** The tour speaks about what is
+drawn and does not claim the list is complete; the tree endpoint is left alone.
+Revisit only if the live check on phase 4 shows readers asking „is that all?". A per-branch summary is available
 today without any change at all — the coverage endpoint already returns
 `coveredWithin` / `openWithin` / `prunedWithin` per branch, which is the honest
 „this branch is N% prepared" line and needs no new field anywhere.
