@@ -603,6 +603,91 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
 
+## Četiri sugestije sa provere 4.9.2026, 21:20–22:00 — zabeleženo, nije rađeno
+
+Vlasnik ih je izričito prijavio kao **sugestije, ne kvarove**, i tražio da se
+samo zabeleže: „kad ih skupimo dovoljno, možemo jednim planom popravke sve da
+rešimo." Kod je pogledan samo toliko da se svaka usidri i da se zna šta bi
+koštala — ništa nije menjano.
+
+### 1. Pregled repertoara treba da završi liniju **sopstvenim** potezom (21:21)
+
+> „Pregled repertoara treba korisnika da upozna sa njegovim odabirom na
+> pozicije, a ne na pozicije na koje nije odgovorio."
+
+**Gde živi:** `walkthroughOrder` (`services/walkthrough_order.dart`) pravi
+stajanja, a `repertoire_walkthrough_screen.dart` ih vrti. Odsecanje bi bilo
+filtar nad listom stajanja — jeftino po sebi.
+
+**Ali postoji sudar, i vlasnik je tražio baš to da se proveri pre rada.**
+Protivnikov potez bez odgovora **je rupa**, a tura je namerno pravljena da rupe
+pokaže i **izgovori**: `lookOfRepertoireMove(move) == MoveTreeNodeLook.gap` crta
+`?` na kartici (`repertoire_walkthrough_screen.dart:363`), a
+`walkthrough_speech.dart:41` kaže da stajanje dobija glas „kad je račva, rupa
+ili nosi zabelešku". Ako se linija skrati na poslednji sopstveni potez, tura
+prestaje da pokazuje upravo ono zbog čega je pola nje napisano.
+
+**Pitanje za plan, ne za sada:** da li je „upoznaj svoj izbor" i „pokaži gde ti
+fali odgovor" jedna tura ili dve. Moguć međuoblik: linija se završava
+sopstvenim potezom, a rupa se najavi rečenicom umesto zasebnim stajanjem.
+
+### 2. Verovatnoća da se stigne do pozicije (21:30)
+
+> „Pošto repertoar prati statistiku sa Lichess-a, možda ne bi bilo loše znati
+> relativnu verovatnoću da pozicije... stignu do trenutne pozicije ili početka
+> neke linije."
+
+**Podaci već postoje.** Svaki protivnikov odgovor nosi `share` iz `walkLines`
+(`repertoireLine.js`), a klijent ga već ispisuje (`shareLabel` u
+`repertoire_tree_panel.dart`). Verovatnoća dolaska = proizvod `share`-ova
+protivnikovih odgovora duž linije; sopstveni potezi su odluke, ne verovatnoće,
+i ulaze kao 1.
+
+**Šta treba odlučiti:** to je **uslovna** verovatnoća — „ako igramo ovaj
+repertoar i protivnik ostane unutar onoga što je pokriveno". Širina repertoara
+je menja: na „samo glavna linija" proizvod je nad jednim odgovorom po poziciji i
+čita se previsoko. Broj bez te rečenice pored sebe je broj koji laže.
+
+### 3. Zum ne sme da se menja pri kretanju kroz stablo (21:55)
+
+> „Korisnik je već izabrao veličinu, tj. zum koji mu odgovara... Ako aplikacija
+> menja zum, onda korisnik izgubi fokus. Takođe, ne mora trenutni potez da bude
+> centriran na sred ekrana, već samo ako priđe ivicama."
+
+Odnosi se na **svaki** ekran sa grafičkim stablom, ne samo na repertoar.
+
+**Polovina je potvrđena i tačno locirana:** `visual_move_tree_widget.dart:407`
+centrira na aktivni čvor **posle svake promene poteza**
+(`_lastCenteredNodeId != widget.activeNode.id`). To je upravo skakanje koje
+vlasnik opisuje, i „samo kad priđe ivici" je izmena unutar `_centerOnActive`.
+
+**Druga polovina traži merenje:** `_centerOnActive` **čuva** razmeru — čita
+`getMaxScaleOnAxis()` i vraća je istu. Znači da promena zuma koju vlasnik vidi
+ne dolazi odatle. Kandidati: platno se proširi kad se dodaju potezi (`InteractiveViewer`
+tada drugačije ograničava pomeraj, pa isti zum izgleda drugačije), ili se
+kontroler negde resetuje pri ponovnom učitavanju stabla. **Ne popravljati dok se
+ne izmeri koji je od ta dva** — inače se popravlja simptom.
+
+### 4. Fokus na liniju, i dugme za način prikaza (22:00)
+
+> „Fokus treba da bude na trenutnoj liniji, ne striktno na potez. Ili da postoji
+> dugme kojim korisnik podešava kako se ažurira prikaz stabla... Možda i dugme
+> „prikaži samo ovu liniju" ili prikaži samo od ove pozicije."
+
+Isti vidžet kao 3, i to dvoje ide zajedno u plan.
+
+**Dve stvari vredi znati:**
+
+- Filtar koji je 4.9.2026 obrisan bio je **po evaluaciji motora** i to je ono što
+  ga je činilo lošim — sakrivao je grane po tuđem mišljenju. Ovo je filtar **po
+  liniji koju je korisnik izabrao**, što je sasvim druga stvar i mnogo
+  odbranjivije. Brisanje onog ne govori protiv ovog.
+- „Prikaži samo od ove pozicije" **već postoji na serveru**, kao kapija
+  repertoara (`rootFen` + `gateUci`, `gateMoves` u `repertoireFrontier.js`) i
+  ekran „Vežbaj X" ga koristi. Pre pisanja novog filtra treba proveriti da li je
+  ovo isti pojam pod drugim imenom — dva različita „samo ova grana" u istoj
+  aplikaciji je tačno onaj oblik koji se kasnije razilazi.
+
 ## Otvorena pitanja dizajna
 
 Ona koja tek treba odlučiti stoje u [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md),
