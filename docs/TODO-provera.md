@@ -3286,9 +3286,12 @@ podešavanje nego kao izgubljena funkcija.
 
 1. [ ] **Meni je tamo gde je dugme bilo.** Proći ekrane koji su imali dugme za
    koordinate — igra, replay, taktika, završnice, blunder-šetnja, zadaci,
-   pregledi, sopstveni zadaci, novi repertoar, AI studio — i na svakom videti
-   isti meni na istom mestu u zaglavlju. Na tim ekranima meni nudi **samo**
-   koordinate, bez strelica.
+   pregledi, sopstveni zadaci, novi repertoar — i na svakom videti isti meni na
+   istom mestu u zaglavlju. Na tim ekranima meni nudi **samo** koordinate, bez
+   strelica.
+   AI Studio i soba su ispali sa ovog spiska 4.9.2026: oni **crtaju** strelice
+   motora, pa im idu i prekidači — vidi stavke 11 i 12. Dok je AI Studio stajao
+   ovde, ova stavka je tražila da se potvrdi upravo ono što je bio kvar.
 2. [ ] **Koordinate i dalje rade.** Uključiti i isključiti: slova i brojevi oko
    table se pojave i nestanu, i to ostaje posle izlaska i povratka.
 3. [ ] **Prekidač za vaše poteze.** U izgradnji repertoara isključiti „vaši
@@ -3304,7 +3307,7 @@ podešavanje nego kao izgubljena funkcija.
    otvara dugmetom „Vežbaj ovu granu", gde vas aplikacija pita „Šta igrate
    belim/crnim?". Kad se u toj vežbi ponavlja linija, strelica koja se pokaže
    **jeste vaš izabrani potez**, pa je gasi prekidač „Strelice odabranog
-   poteza" — ne „Strelice motora" i ne „Strelice sa statistikom.
+   poteza" — ne „Strelice motora" i ne „Strelice sa statistikom".
 7. [ ] **Tabla se precrta bez izlaska sa ekrana.** Prekidač se pomera dok se
    gleda tabla: strelice nestanu **odmah**, bez izlaska i povratka. Podešavanje
    se čita preko `ChangeNotifier`-a; ako treba izaći i vratiti se, pročitano je
@@ -3332,6 +3335,13 @@ ekrana" i nabrojao ih, a spisak u prozi ne može da primeti četvrti ekran.
 13. [ ] **Replay ništa ne izgubi.** U replayu snimka strelice lekcije se i dalje
     vide — one nisu motorove i prekidač ih ne dira. (Lista strelica motora tamo
     se nikad nije ni punila, pa je obrisana.)
+
+**Stavke 11 i 12 traže build napravljen posle `526bcb5`** (3.9.2026, 22:04).
+Vlasnik ih je 4.9.2026 ujutru gledao u Windows build-u i javio „ovde toga nema";
+`board_arrows_reach_test.dart` čita izvor sa uparenim zagradama i pada ako i
+jedan `BoardViewMenu` na ekranu koji crta strelice ostane bez `arrows: true`, a
+prolazi. `flutter build windows` ume da ponese i stari font ikona — vidi
+CLAUDE.md. Dakle: prvo nov build, pa onda nalaz.
 
 
 ## 94. Množina u tri rečenice — 3.9.2026, nije viđeno uživo
@@ -3361,3 +3371,47 @@ bude tačan.
 4. [ ] **Jedanaest do četrnaest.** Ako se negde zatekne takav broj: „12
    pozicija čeka", nikako „12 pozicije čekaju". Ovo je oblik koji svi
    promaše.
+
+
+## 95. Šest popravki iz odgovora na proveru — 4.9.2026, nije viđeno uživo
+
+Sve šest su nastale iz vlasnikovih odgovora i prijava od 30.8. do 4.9.2026.
+Svaka ima test dokazan mutacijom — test je obaran, gledano da pada, pa vraćen —
+jer je jedan raniji čuvar u ovom fajlu prolazio i sa isečenom zaštitom.
+
+1. [ ] **Strelice na tastaturi rade i tamo gde ima stabla.** U Analizi i u
+   Repertoaru: kliknuti čvor u grafičkom stablu (time stablo uzima fokus), pa
+   levo/desno — jedan potez napred i nazad, isto što rade dugmad ispod table, sa
+   pitanjem „Odavde ide više linija — kojom?" na račvanju. Gore i dole idu na
+   krajeve linije, **ne** na roditelja i prvo dete. Ranije je stablo držalo sva
+   četiri tastera za sebe: dole je išlo glavnom granom bez pitanja, a levo i
+   desno u poziciji bez braće nisu radili ništa. (Nalazi i0054, i0559, i0560 —
+   jedan uzrok, tri prijave.) `+` i `-` i dalje zumiraju stablo.
+2. [ ] **Nemoguća pozicija ne ruši aplikaciju.** Postaviti poziciju bez kralja
+   (Postavi poziciju / nalepljen FEN), uvesti je i uključiti motor: mora da se
+   javi „Motor ne može da računa: Nedostaje beli kralj." i ekran da ostane živ.
+   Probati na sva tri mesta koja imaju motor — Analysis Studio, AI Studio i soba
+   (uključujući „Šahovski studio"). Ranije je aplikacija padala.
+3. [ ] **Poruke u izgradnji se čuju.** Sa uključenim govorom, u izgradnji
+   repertoara: posle „Ne spremam ovo" i posle uzimanja odgovora, rečenica ispod
+   table („Dodate 2 pozicije.", „Grana je odsečena — sa njom je iz reda izašla
+   još 1 pozicija.") **izgovara se** i ima zvučnik pored sebe. Ranije se videla
+   kao siv tekst i nikad se nije čula.
+4. [ ] **„Nema više nepotvrđenih poteza" je istina kad se kaže.** Repertoar čija
+   širina ne dohvata sopstvene nacrte (napravi kičmu široko, pa prebaci na „Samo
+   glavna linija") na „Pregledaj nacrt" mora da kaže koliko ih ima u grafu, a ne
+   da ih nema. Mereno uživo 4.9.2026 na „Druga": 21 nacrt, walk ih je video 0.
+5. [ ] **Širina u dijalogu za kičmu kaže čija je.** „Napravi kičmu odavde" →
+   naslov je „Širina repertoara" i ispod stoji da to nije širina kičme. Napraviti
+   kičmu iz pozicije van glavne linije sa izabranom „Samo glavna linija": ako
+   stablo tu poziciju više ne crta, poruka ispod table mora to da kaže i da
+   imenuje širinu.
+6. [ ] **Stablo se crta dovoljno duboko.** Raditi na potezu 7 ili dubljem i uzeti
+   odgovor: novi čvor se vidi u stablu **odmah**. Ranije se crtež tražio na 16
+   polupoteza (8 poteza) i ono što se uzme na sedmom potezu je padalo preko
+   ivice. Ako se i dalje javi „Crtež je skraćen na N polupoteza", to je uredno —
+   ali mora da bude dublje od pozicije na kojoj stojite.
+7. [ ] **Brojevi ispod table kažu šta broje.** Rečenica ispod pitanja sada glasi
+   „Posle ove u redu je još N pozicija." — red, bez pozicije na tabli. Legenda
+   pored i dalje kaže `otvoreno N`, što je walk i broji i ovu. Dva broja koja se
+   razlikuju za jedan su tačna; prijava je bila da se ne zna koji je koji.
