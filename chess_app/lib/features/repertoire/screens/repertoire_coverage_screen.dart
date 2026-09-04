@@ -135,7 +135,7 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: Text('Pokrivenost — ${widget.name}'),
+        title: Text('Rupe u repertoaru — ${widget.name}'),
         elevation: 0,
         actions: [
           IconButton(
@@ -247,7 +247,7 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
           const SizedBox(height: AppSpacing.xxs),
           Text(
             'Bez odgovora $open% partija koje kroz njega prođu'
-            '${cut > 0 ? ", odsečeno $cut%" : ""}. '
+            '${cut > 0 ? ", ne spremam $cut%" : ""}. '
             'Ide do ${walk.depthInMoves}. poteza, '
             '${walk.decided} pozicija je odlučeno.',
             style: AppText.caption.copyWith(color: context.colors.textPrimary),
@@ -268,7 +268,7 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
   Widget _buildBranch(BuildContext context, CoverageBranch branch) {
     final name = _nameOf(branch);
     final ({IconData icon, String label}) state = branch.prunedWithin >= 1
-        ? (icon: Icons.content_cut, label: 'odsečeno')
+        ? (icon: Icons.content_cut, label: 'ne spremam')
         : branch.isFinished
             ? (icon: Icons.check_circle_outline, label: 'spremljeno')
             : (icon: Icons.hourglass_empty, label: 'u izradi');
@@ -314,7 +314,7 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
           Text(
             'spremljeno ${_percent(branch.coveredWithin)} · '
             'bez odgovora ${_percent(branch.openWithin)}'
-            '${branch.prunedWithin > 0 ? " · odsečeno ${_percent(branch.prunedWithin)}" : ""}',
+            '${branch.prunedWithin > 0 ? " · ne spremam ${_percent(branch.prunedWithin)}" : ""}',
             style: AppText.caption.copyWith(color: context.colors.textPrimary),
           ),
           const SizedBox(height: AppSpacing.xxs),
@@ -323,7 +323,7 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
             // prepared to move six", never "to ply twelve".
             'do ${((branch.maxPly + 1) / 2).ceil()}. poteza posle korena · '
             '${branch.decided} odlučeno · ${branch.open} otvoreno'
-            '${branch.pruned > 0 ? " · ${branch.pruned} odsečeno" : ""} · '
+            '${branch.pruned > 0 ? " · ${branch.pruned} ne spremam" : ""} · '
             '${state.label}',
             style: AppText.micro.copyWith(color: context.colors.textMuted),
           ),

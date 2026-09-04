@@ -404,7 +404,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (walk == null) {
-      AppFeedback.error(context, 'Nacrti nisu mogli da se pročitaju.');
+      AppFeedback.error(
+          context, 'Nepotvrđeni potezi nisu mogli da se pročitaju.');
       return;
     }
     if (walk.positions.isEmpty) {
@@ -435,7 +436,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         ? 0
         : (widget.color == 'w' ? counts.w : counts.b).positions;
     if (held <= 0) return 'Nema više nepotvrđenih poteza.';
-    return 'U ovom repertoaru nema nepotvrđenih poteza koje njegova širina '
+    return 'U ovom repertoaru nema nepotvrđenih poteza koje ovoliko odgovora '
         'dohvata — u grafu ih ima $held. Proširite repertoar ili ih '
         'potvrdite sa druge grane.';
   }
@@ -1727,7 +1728,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                       'odgovore na njega.'
                   : nothingBuilt
                       ? (inBranch
-                          ? 'Ova grana je odsečena ili u njoj još nema vaših '
+                          ? 'Ovu granu ne spremam ili u njoj još nema vaših '
                               'poteza.'
                           : 'Prvo izgradite nekoliko pozicija — vežba pita ono što '
                               'ste vi izabrali.')
@@ -1746,7 +1747,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             if (_drafts > 0 && widget.rootFen != null) ...[
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Još $_drafts nepotvrđenih nacrta čeka u ovom repertoaru.',
+                'Još $_drafts nepotvrđenih poteza čeka u ovom repertoaru.',
                 style: AppText.caption.copyWith(color: context.colors.warning),
                 textAlign: TextAlign.center,
               ),
@@ -1759,7 +1760,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _goBuildDrafts,
                   icon: const Icon(Icons.edit_note, size: 18),
-                  label: const Text('Pregledaj nacrt'),
+                  label: const Text('Pregledaj nepotvrđene'),
                 ),
             ],
             // Where today stands, on the screen that would otherwise say

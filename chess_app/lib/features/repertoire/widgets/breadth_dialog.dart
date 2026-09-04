@@ -13,8 +13,8 @@ import 'package:chess_app/widgets/app_feedback.dart';
 /// in-sentence form for its legend — same three, different register, and a
 /// live verification item quotes it word for word.)
 const Map<String, String> kBreadthNames = {
-  'main': 'Samo glavna linija',
-  'standard': 'Standardno (80%)',
+  'main': 'Samo glavni odgovor',
+  'standard': 'Uobičajeno (80%)',
   'broad': 'Široko (95%)',
 };
 
@@ -23,7 +23,7 @@ const Map<String, String> kBreadthNames = {
 /// Never a guess and never a default: a width the app cannot name is a width
 /// somebody added on the server, and printing the key says so.
 String breadthName(String? breadth) =>
-    kBreadthNames[breadth] ?? (breadth ?? 'nepoznata širina');
+    kBreadthNames[breadth] ?? (breadth ?? 'nepoznato');
 
 class BreadthDialog extends StatefulWidget {
   const BreadthDialog({
@@ -81,7 +81,7 @@ class _BreadthDialogState extends State<BreadthDialog> {
     final disabled = widget.id == null;
 
     return AlertDialog(
-      title: const Text('Napravi kičmu odavde'),
+      title: const Text('Predloži glavnu liniju odavde'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -94,7 +94,7 @@ class _BreadthDialogState extends State<BreadthDialog> {
               style: AppText.caption.copyWith(color: context.colors.textMuted),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text('Širina repertoara', style: AppText.bodyBold),
+            Text('Koliko odgovora spremamo', style: AppText.bodyBold),
             // Whose width this is, said before it is changed.
             //
             // Reported live 4.9.2026: „napravim kičmu iz pozicije koja nije na
@@ -106,15 +106,15 @@ class _BreadthDialogState extends State<BreadthDialog> {
             // line with it.
             //
             // The sentence is the fix because the misreading is reasonable:
-            // this is a dialog titled „Napravi kičmu odavde", so a width in it
+            // this is a dialog titled „Predloži glavnu liniju odavde", so a width in it
             // reads as the width *of the kičma*. It is not — the spine is one
             // line whatever this says, and this dial belongs to the whole
             // repertoire and stays after the spine is written.
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.xxs),
               child: Text(
-                'Ovo je širina celog repertoara, ne širina kičme — kičma je '
-                'uvek jedna linija. Uža širina sakriva grane koje ste već '
+                'Ovo važi za ceo repertoar, ne samo za ovu liniju — glavna linija je '
+                'uvek jedna linija. Manje odgovora skriva grane koje ste već '
                 'pripremili.',
                 style:
                     AppText.caption.copyWith(color: context.colors.textMuted),

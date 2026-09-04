@@ -652,7 +652,7 @@ void main() {
     await press(find.text('Uzmi Nc6'));
     await until(find.text('Vaši potezi ovde'));
     await press(find.text('Dalje'));
-    await until(find.textContaining('Pokriveno'));
+    await until(find.textContaining('Spremno je'));
 
     // Only now does the engine answer — about the board that was left behind.
     gate.complete([
@@ -802,7 +802,7 @@ void main() {
     // Two book lookups: this position's, which came with the verdict, and the
     // one after the kept move, which is the next wave.
     expect(judge.asked, 1);
-    expect(find.textContaining('Pokriveno 85%'), findsOneWidget);
+    expect(find.textContaining('Spremno je 85%'), findsOneWidget);
     expect(find.textContaining('van toga još 3'), findsOneWidget);
 
     // A stop, not a step. These answers cost a request and they decide what the
@@ -1184,7 +1184,7 @@ void main() {
     // forms went through `serbianCount` on 3.9.2026, and this assertion is
     // what noticed.
     expect(
-        find.textContaining('iz reda izašla još 1 pozicija'), findsOneWidget);
+        find.textContaining('s njom je izašla još 1 pozicija'), findsOneWidget);
     expect(
         find.text(
             'Poslednja neodgovorena pozicija koju ovaj repertoar dohvata.'),
@@ -1263,7 +1263,7 @@ void main() {
     await tester.tap(find.text('Ne spremam ovo'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Grana nije odsečena'), findsOneWidget);
+    expect(find.textContaining('Grana je ostala'), findsOneWidget);
     expect(find.textContaining('ne spremam'), findsNothing);
     // Still the position that was there: nothing moved on.
     expect(find.text('4...Nc6 5.Nf3'), findsOneWidget);
