@@ -80,11 +80,10 @@ inside an interpolation, which is why nothing ever saw them.
 | `Vidi odsečeno` | `Vidi šta ne spremam` |
 | `Vrati odsečenu granu` | `Ipak spremi ovu granu` |
 | `Nijedan odgovor nije stigao — pozicija ostaje nepokrivena.` | `Nijedan odgovor nije stigao — pozicija ostaje bez vašeg odgovora.` |
-| `Pokriveno $ident% onoga što ćete sresti; ` | `Spremno je $ident% onoga što ćete sresti; ` |
-| `$ident Ova pozicija je van širine „${...}", pa je ` | `$ident Ova pozicija je izvan onoga što spremate („${...}"), pa je ` |
-| `U ovom repertoaru nema nepotvrđenih poteza koje njegova širina ` | `U ovom repertoaru nema nepotvrđenih poteza koje ovoliko odgovora ` |
+| `Pokriveno $ident% onoga što ćete sresti;` | `Spremno je $ident% onoga što ćete sresti;` |
+| `$ident Ova pozicija je van širine „${...}", pa je` | `$ident Ova pozicija je izvan onoga što spremate („${...}"), pa je` |
+| `U ovom repertoaru nema nepotvrđenih poteza koje njegova širina` | `U ovom repertoaru nema nepotvrđenih poteza koje ovoliko odgovora` |
 | `stablo ne crta — proširite širinu da biste videli šta je upisano.` | `stablo ne crta — spremajte više odgovora da biste videli šta je upisano.` |
-
 `Grana je odsečena — sa njom je iz reda $ident` also retires **red**, which the
 glossary removed in phase 3 and which survived here.
 
@@ -101,7 +100,6 @@ table; they stay as they are.
 |---|---|
 | `Pokrivenost — ${...}` | `Rupe u repertoaru — ${...}` |
 | `odsečeno` | `ne spremam` |
-
 ### `repertoire_drill_screen.dart`
 
 | old | new |
@@ -109,29 +107,26 @@ table; they stay as they are.
 | `Pregledaj nacrt` | `Pregledaj nepotvrđene` |
 | `Nacrti nisu mogli da se pročitaju.` | `Nepotvrđeni potezi nisu mogli da se pročitaju.` |
 | `Još $ident nepotvrđenih nacrta čeka u ovom repertoaru.` | `Još $ident nepotvrđenih poteza čeka u ovom repertoaru.` |
-| `Ova grana je odsečena ili u njoj još nema vaših ` | `Ovu granu ne spremam ili u njoj još nema vaših ` |
-| `U ovom repertoaru nema nepotvrđenih poteza koje njegova širina ` | `U ovom repertoaru nema nepotvrđenih poteza koje ovoliko odgovora ` |
-
+| `Ova grana je odsečena ili u njoj još nema vaših` | `Ovu granu ne spremam ili u njoj još nema vaših` |
+| `U ovom repertoaru nema nepotvrđenih poteza koje njegova širina` | `U ovom repertoaru nema nepotvrđenih poteza koje ovoliko odgovora` |
 ### `repertoire_list_screen.dart`
 
 | old | new |
 |---|---|
 | `Pokrivenost` | `Rupe u repertoaru` |
-| `Idu i odsečene grane, dodati odgovori, raspored za ` | `Idu i grane koje ne spremate, dodati odgovori, raspored za ` |
-| `\nIdu i odsečene grane, dodati odgovori, ` | `\nIdu i grane koje ne spremate, dodati odgovori, ` |
-
+| `Idu i odsečene grane, dodati odgovori, raspored za` | `Idu i grane koje ne spremate, dodati odgovori, raspored za` |
+| `\nIdu i odsečene grane, dodati odgovori,` | `\nIdu i grane koje ne spremate, dodati odgovori,` |
 ### `breadth_dialog.dart`
 
 | old | new |
 |---|---|
 | `Napravi kičmu odavde` | `Predloži glavnu liniju odavde` |
 | `Širina repertoara` | `Koliko odgovora spremamo` |
-| `Ovo je širina celog repertoara, ne širina kičme — kičma je ` | `Ovo važi za ceo repertoar, ne samo za ovu liniju — glavna linija je ` |
-| `uvek jedna linija. Uža širina sakriva grane koje ste već ` | `uvek jedna linija. Manje odgovora skriva grane koje ste već ` |
+| `Ovo je širina celog repertoara, ne širina kičme — kičma je` | `Ovo važi za ceo repertoar, ne samo za ovu liniju — glavna linija je` |
+| `uvek jedna linija. Uža širina sakriva grane koje ste već` | `uvek jedna linija. Manje odgovora skriva grane koje ste već` |
 | `nepoznata širina` | `nepoznato` |
 | `Samo glavna linija` | `Samo glavni odgovor` |
 | `Standardno (80%)` | `Uobičajeno (80%)` |
-
 The last two are the glossary's own third column and were missing from this
 table until 4.9.2026 — found by listing the test assertions the sweep breaks,
 which is a better reader of a table than the table's author. They matter more
@@ -152,14 +147,12 @@ about what they are for.
 | `standardno 80%` | `uobičajeno 80%` |
 | `Prikaži odsečene grane ($ident)` | `Prikaži grane koje ne spremam ($ident)` |
 | `Sakrij odsečene grane ($ident)` | `Sakrij grane koje ne spremam ($ident)` |
-| `✂ odsečena grana. Broj u zagradi je ocena motora — dubina i datum ` | `✂ grana koju ne spremam. Broj u zagradi je ocena motora — dubina i datum ` |
-
+| `✂ odsečena grana. Broj u zagradi je ocena motora — dubina i datum` | `✂ grana koju ne spremam. Broj u zagradi je ocena motora — dubina i datum` |
 ### `unconfirmed_banner.dart`
 
 | old | new |
 |---|---|
 | `Pregledaj nacrt` | `Pregledaj nepotvrđene` |
-
 ## The three the gate cannot see
 
 All in `repertoire_coverage_screen.dart`, all inside an interpolation. The brief

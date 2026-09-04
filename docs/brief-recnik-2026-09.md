@@ -82,8 +82,25 @@ layer later. Here the layer is the strings gate, which will fail those 16 as
    do not — a row where the counts differ — that is §4's "a row you cannot
    apply": report it and stop.
 
-Trailing spaces are part of the cell, in the normalised form as much as in the
-file.
+### Two details that have already cost a round
+
+**Whitespace is normalised too.** `_norm` is `" ".join(s.split())`: it strips
+leading and trailing whitespace and collapses internal runs. So a cell never
+ends in a space even when the Dart literal does — `'Pokriveno $covered% onoga
+što ćete sresti; '` is the cell `Pokriveno $ident% onoga što ćete sresti;`. The
+first version of this table had trailing spaces added to ten cells by a checker
+that compared raw scan output instead of normalised, and every one of those ten
+failed the run.
+
+**A `.` right after `$identifier` is eaten.** The scanner reads `$line.` as the
+start of a member access, so `'$wrote$tail Kičma: $line. Potvrdite ono sa čim se
+slažete.'` normalises to `$ident$ident Kičma: $ident Potvrdite ono sa čim se
+slažete.` — no dot after the last `$ident`. The dot **is** in the file and you
+must leave it there; it simply is not in the cell. Round 1 skipped this row for
+looking like a punctuation mismatch, and it was not one.
+
+Trailing spaces are therefore *not* part of a cell — but every other character
+is, and the cell is still compared exactly.
 
 ## 3. How you are judged
 
