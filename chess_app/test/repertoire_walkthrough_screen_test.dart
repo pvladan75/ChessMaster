@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:chess_app/services/app_settings_service.dart';
 
 import 'package:chess_app/features/repertoire/screens/repertoire_walkthrough_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
@@ -461,6 +464,41 @@ void main() {
     expect(board.controller.getFen(),
         startsWith('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR'),
         reason: 'the board stands on e4, not on the line just finished');
+  });
+
+  testWidgets('the screen carries its own speech switch, and only one speaker',
+      (tester) async {
+    // The owner's finding: the speaker under the board silenced one sentence
+    // and the next stop with something to say spoke again, because that is a
+    // fresh `autoSpeak`. The switch in the app bar is the one that holds for
+    // the whole reading — and while it is off the second speaker is gone, so
+    // there is no control on screen that produces silence when pressed.
+    SharedPreferences.setMockInitialValues({});
+    await AppSettingsService.instance.init();
+    addTearDown(() => AppSettingsService.instance.setSpeechEnabled(false));
+
+    final api = _FakeApi(treeToReturn: buildTestTree());
+    await pump(tester, api, size: const Size(1400, 900));
+
+    expect(find.byType(SpeechToggleButton), findsOneWidget);
+    expect(
+        find.descendant(
+          of: find.byType(SpeakableInfo),
+          matching: find.byIcon(Icons.volume_off_outlined),
+        ),
+        findsNothing,
+        reason: 'a speaker that does nothing until the switch above is on');
+
+    await AppSettingsService.instance.setSpeechEnabled(true);
+    await tester.pumpAndSettle();
+
+    expect(
+        find.descendant(
+          of: find.byType(SpeakableInfo),
+          matching: find.byIcon(Icons.volume_up_outlined),
+        ),
+        findsOneWidget,
+        reason: 'with speech on, the sentence can be replayed from the card');
   });
 
   testWidgets('The server answering null shows the error', (tester) async {

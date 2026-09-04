@@ -3584,3 +3584,23 @@ Traženo pošto je vlasnik gledao turu kako radi.
 8. [ ] **Meni na tabli nudi samo prekidač koji radi.** „Prikaz na tabli" na
    ovom ekranu ima „Koordinate" i „Strelice sa statistikom" — i ništa više.
    Isključivanje tog prekidača skida strelice.
+
+
+## 101. Prekidač za govor u turi i ivica rupe, drugi pokušaj — 4.9.2026, nije viđeno uživo
+
+Oboje iz vlasnikove provere od 4.9.2026 uveče.
+
+1. [ ] **Prekidač u zaglavlju gasi govor za ceo pregled.** „Upoznaj repertoar",
+   zvučnik gore desno: isključiti ga i proći kroz nekoliko račvanja i rupa —
+   **ništa se ne izgovara ni na jednom stajanju**. Ranije je zvučnik ispod
+   table ćutao samo do sledeće pozicije u kojoj ima šta da se kaže.
+2. [ ] **Dok je gore isključeno, ispod table nema zvučnika.** Da se ne pritisne
+   nešto što ne može da proizvede zvuk. Kad se gore uključi, zvučnik ispod
+   table se vrati i ponavlja rečenicu.
+3. [ ] **Rupa u tamnoj temi, drugi pokušaj.** Ivica je sada svetla (ne više
+   nijansa strane koja je na potezu) i kartica ima blagu ispunu. Rupa mora da
+   se nađe **bez čitanja oznaka**, na obe teme. Prva popravka je merena na
+   0.002 luminancije — crna linija na crnoj podlozi — i vlasnik je rekao da se
+   teško uočava; ovo je zamena, ne dorada.
+4. [ ] **Pokriven odgovor nije počeo da liči na rupu.** Prazna pilula, tanka
+   ivica, bez ispune — i dalje jasno drugačija od oprane.

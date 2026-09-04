@@ -35,6 +35,7 @@ class SpeakableInfo extends StatefulWidget {
     this.style,
     this.autoSpeak = false,
     this.child,
+    this.hideButtonWhenOff = false,
     this.settings,
     this.speech,
   });
@@ -54,6 +55,17 @@ class SpeakableInfo extends StatefulWidget {
   /// Shown instead of the plain text, when the screen draws the sentence
   /// itself. [text] is still what gets spoken.
   final Widget? child;
+
+  /// Hide the speaker entirely while speech is switched off.
+  ///
+  /// Off by default, because on most screens this button is how speech gets
+  /// switched **on** — it is the only speaker in sight. A screen that carries
+  /// its own switch in the app bar is the exception: there, a second speaker
+  /// under the board invites a press that produces nothing, which is what the
+  /// owner met on the walkthrough — „da ne bi korisnik pritiskom na ovaj ispod
+  /// table očekivao da čuje govor". With the switch above off, this one goes
+  /// away and the one control that means anything is the one still on screen.
+  final bool hideButtonWhenOff;
 
   /// Injectable for tests. `compute`-free and side-effect-free by design — the
   /// real ones are singletons, and a widget test that reached them would be
@@ -181,17 +193,18 @@ class _SpeakableInfoState extends State<SpeakableInfo> {
                     AppText.body.copyWith(color: context.colors.textPrimary),
               ),
         ),
-        IconButton(
-          // Said in the tooltip rather than only in the icon, because the two
-          // states of a speaker glyph are exactly the pair somebody misses.
-          tooltip: on ? 'Pročitaj naglas' : 'Uključi čitanje naglas',
-          icon: Icon(
-            on ? Icons.volume_up_outlined : Icons.volume_off_outlined,
-            size: 20,
-            color: on ? context.colors.accent : context.colors.textMuted,
+        if (on || !widget.hideButtonWhenOff)
+          IconButton(
+            // Said in the tooltip rather than only in the icon, because the two
+            // states of a speaker glyph are exactly the pair somebody misses.
+            tooltip: on ? 'Pročitaj naglas' : 'Uključi čitanje naglas',
+            icon: Icon(
+              on ? Icons.volume_up_outlined : Icons.volume_off_outlined,
+              size: 20,
+              color: on ? context.colors.accent : context.colors.textMuted,
+            ),
+            onPressed: _pressed,
           ),
-          onPressed: _pressed,
-        ),
       ],
     );
   }

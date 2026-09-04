@@ -169,7 +169,12 @@ class _RepertoireWalkthroughScreenState
         // shares and nothing else — no engine by design, and its own moves are
         // played rather than pointed at — so offering those two switches here
         // would be a control that changes nothing you can see.
+        // The tour's own switch, and it holds for the whole reading. The
+        // speaker under the board only ever silenced the sentence in front of
+        // it: the next stop with something to say spoke again, because that is
+        // a fresh `autoSpeak`. This one writes the setting.
         actions: const [
+          SpeechToggleButton(),
           BoardViewMenu(statistics: true),
         ],
       ),
@@ -448,6 +453,10 @@ class _RepertoireWalkthroughScreenState
       child: SpeakableInfo(
         text: line.spoken,
         autoSpeak: line.speak,
+        // With the switch above off there is no speaker here at all. Two
+        // speakers on one screen, one of which does nothing until the other is
+        // on, is a press that produces silence and reads as a broken feature.
+        hideButtonWhenOff: true,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: parts,
