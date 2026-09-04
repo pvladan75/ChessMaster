@@ -36,7 +36,7 @@ može ni proveriti.
 | 1 | jedan meni na tabli i tri prekidača za strelice | radni agent | **Urađeno**, `c26b83c` |
 | 2 | govor na info panelima, prekidač u zaglavlju | radni agent | **Urađeno**, `1e8822d` |
 | 3 | dril kaže šta pokriva; dnevni cilj i vežba van rasporeda | lead | **Urađeno**, `28b196c` + `a217cdf` |
-| 4 | zamena reči po rečniku | radni agent | Nije rađeno |
+| 4 | zamena reči po rečniku | radni agent | **Urađeno**, `8ce6a6e` |
 | 5 | provera uživo i unos u `TODO-provera.md` | lead | Nije rađeno |
 
 **Rečnik je zamrznut u planu** i faza 4 se radi po njemu: kičma → glavna
