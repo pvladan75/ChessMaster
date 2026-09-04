@@ -70,6 +70,19 @@ work.
 This is a **contract change to the core walk** and it touches the queue and the
 drill, not only the picture. It is phase 1, alone, with its own live check.
 
+**Done, 4.9.2026 — and it was bigger than this section thought.** `e5bdb4c`
+made the rule, and `8625273` found that three more walks bypassed it: the two
+that decide what deleting a move would strand (`reachable`,
+`orphansOfRemoving` — „unreachable" is what the sweep deletes) and the drill's
+`pickReply`, which narrowed by breadth **before** asking whether a reply led
+into a position the student had decided. Since four call sites are a habit and
+not a rule, `test/repertoire_breadth_rescue.test.js` now reads the sources and
+fails if a fifth forgets. The owner's own words for the rule, which is the
+version to keep: *širina sužava ono što knjiga predlaže da se sprema, a ne ono
+što je već spremljeno.*
+
+Still unchecked live on „Druga" — that check is what closes this phase.
+
 ### 2.2 The tour is read-only, and therefore free
 
 No Lichess request, no writes, nothing to lose. It reads `GET /repertoire/tree`
@@ -98,6 +111,59 @@ tree endpoint returns: every node carries `share` (how often the opponent plays
 the reply that leads here) and its parent. Sort children by `share` descending,
 depth-first, and the tour is the main line to its end, then back up to the
 last fork and out along the next most played. No new endpoint.
+
+**One question phase 1 opened, and it needs the owner's answer before phase 3.**
+Now that a reply into the student's own work is followed at every breadth, the
+tree contains branches reached through a *rarely played* reply that nevertheless
+hold most of their work. On „Druga" that is exactly where all twenty-one drafts
+live: under the opponent's **second** reply. Sorted purely by `share`, that
+branch is visited last — so a tour of „my repertoire" would spend its opening
+minutes on book lines the reader never built, and reach their own work when
+they have stopped watching.
+
+Three orders, and this is a pedagogy question rather than a technical one:
+
+1. **By share, strictly.** The book's story. Honest about what you will *meet*.
+2. **By share, but a branch holding your own decisions is never ranked below an
+   empty one.** The repertoire's story: „here is what you play", holes named as
+   they come. My recommendation.
+3. **Your work first, holes last.** Reads as a report rather than a walk, and
+   loses the „what happens if they deviate" thread that makes an opening
+   learnable.
+
+The difference is one comparator and it is a pure function either way, so this
+can be decided late — but not after phase 4, because the sentence the tour
+opens with depends on which story it is telling.
+
+### 2.5 The tour can only speak about the replies the walk followed
+
+Found while reading the tree endpoint for phase 3, and it decides what §4's
+„hole" sentence is allowed to say.
+
+`GET /repertoire/tree` returns one node per reply **the walk followed**. A
+position of the student's own with no move under it comes back as
+`state: 'open'` — that is a hole, it is drawn, and the tour can name it with
+its share. Good.
+
+What is *not* in that answer is the tail: the opponent's replies the breadth
+left outside, which the build screen already names („van toga još 3 poteza").
+Those are also „šta me čeka", and the tour is the screen where a reader would
+most expect to hear it.
+
+Two honest options, and the difference is one line of JSON:
+
+* **Say only what is drawn.** The tour speaks about followed replies and never
+  claims the list is complete. No server change. This is the phase 3/4 default.
+* **Carry the tail.** Add `tailMoves` and `tailShare` per position to the tree
+  answer — the numbers already exist in `coveredReplies`, and the build screen
+  computes the same pair per wave. Then a fork stop can end with „i još 3
+  poteza, 9% partija, bez odgovora."
+
+**Proposed:** ship the first, and only add the second if the live check on
+phase 4 shows readers asking „is that all?". A per-branch summary is available
+today without any change at all — the coverage endpoint already returns
+`coveredWithin` / `openWithin` / `prunedWithin` per branch, which is the honest
+„this branch is N% prepared" line and needs no new field anywhere.
 
 ## 3. What is reused, and what is genuinely new
 
@@ -175,15 +241,27 @@ Shape and fill first, weight second, hue never load-bearing.
 Sizes are honest. The lead keeps anything touching a contract, a walk, or the
 schedule; the rest can be a worker batch.
 
-**Phase 1 — lead. The walk shows the student their own work.**
-§2.1, server-side, with tests over the real shapes and a live check on the
-owner's own „Druga". Nothing visual. This is the phase that can go wrong, and
-it is worth shipping alone: it fixes three known findings by itself.
+**Phase 1 — lead. The walk shows the student their own work. ✅ 4.9.2026**
+§2.1, server-side. Shipped in `e5bdb4c` and `8625273`, backend 873 → 877, with
+a source-reading guard so a fifth walk cannot forget. **Open: the live check on
+„Druga".** It fixed three known findings by itself, as expected.
 
-**Phase 2 — worker. The tree draws its four states.**
-§5. Pure presentation inside `VisualMoveTreeWidget` and the legend. Bounded,
-gradeable by golden screenshots, and it is the half that may make phase 3
-smaller. **Ship and watch this before writing phase 3's brief.**
+**Phase 2 — worker. The tree draws its four states. ← next, and now unblocked.**
+§5. Pure presentation inside `VisualMoveTreeWidget` and the legend. It is the
+half that may make phase 3 smaller, so **ship and watch it before writing phase
+3's brief.**
+
+Two things the brief must say, both learned the hard way and neither obvious:
+
+* **Golden tests do not run by default.** `dart_test.yaml` skips that group
+  unconditionally, and `--tags golden` alone still skips it — the run exits 0
+  saying „All tests skipped". A batch graded on goldens without
+  `--run-skipped` is a batch graded on nothing. See CLAUDE.md.
+* **Hue is never the difference.** The owner is colourblind and every live
+  sign-off he has given proves luminance and shape. A brief that says „make the
+  covered ones blue" produces a picture he cannot grade, and he will still say
+  yes to it, because the shapes will be fine. Fill, outline, glyph, weight —
+  in that order, hue last and never load-bearing. See §5.
 
 **Phase 3 — lead. The order and the stops.**
 `walkthroughOrder` and `stopKindOf`, pure functions with their own tests, plus
@@ -206,15 +284,21 @@ that is wrong is worse when it talks.
 It does not replace it and it must not overtake it.
 
 * That plan's **phase 4 (the vocabulary sweep) rewrites the strings on exactly
-  the screens this feature touches**, and its own note says the release pass on
-  items 92 and 93 comes first. Starting this feature before that sweep means
-  writing new labels that the sweep then rewrites, and the string gate is the
-  thing that would notice — loudly, and correctly.
-* So: **PLAN-JEDNOSTAVNOST phases 3 and 4 finish first.** The single exception
-  is phase 1 here (the walk contract), which is server-side, touches no string,
-  and unblocks three live findings. It can run in parallel with the sweep
-  without either one seeing the other.
-* This plan's phase 2 (drawing) is the natural first thing after the sweep.
+  the screens this feature touches**. Starting this feature before that sweep
+  meant writing new labels that the sweep would then rewrite, and the string
+  gate would have noticed — loudly, and correctly.
+
+**That condition is now met.** The sweep merged 4.9.2026 (`8ce6a6e`, 47 rows)
+and its live check came back clean on all eleven items of `TODO-provera`
+section 96. The frozen glossary is therefore the vocabulary this feature writes
+in from its first label — „glavna linija", „nepotvrđeni potezi", „koliko
+odgovora spremamo", „rupe u repertoaru", „ne spremam" — and „Upoznaj repertoar"
+has to be read against that list before it is used as a name.
+
+So the order now is: **phase 2 of this plan is the next thing to start**, and
+nothing in PLAN-JEDNOSTAVNOST blocks it. What is still open there is phase 5's
+remaining live checks (sections 92–95), which are the owner's to run and do not
+gate this work.
 
 On „bez preopterećivanja korisnika novim modalima": the tour adds exactly one
 destination and no modal. It reuses the strip, the keys and the fork sheet, so
