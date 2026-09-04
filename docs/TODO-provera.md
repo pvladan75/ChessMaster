@@ -3415,3 +3415,13 @@ jer je jedan raniji čuvar u ovom fajlu prolazio i sa isečenom zaštitom.
    „Posle ove u redu je još N pozicija." — red, bez pozicije na tabli. Legenda
    pored i dalje kaže `otvoreno N`, što je walk i broji i ovu. Dva broja koja se
    razlikuju za jedan su tačna; prijava je bila da se ne zna koji je koji.
+
+8. [ ] **Vaši potezi se vide i na „Samo glavna linija".** Repertoar sa kičmom
+   napravljenom široko, pa prebačen na „Samo glavna linija": stablo i dalje crta
+   sve što ste sami uneli, a **ne** crta grane u kojima nemate nijedan potez.
+   Mereno na „Druga" 4.9.2026: pre popravke 4 čvora i 0 od 21 nacrta, posle 38
+   čvorova i svih 21. Ako se posle ovoga na „Samo glavna linija" vidi i ono gde
+   niste ništa odlučili, to je nalaz — pravilo sme da doda samo vaše.
+9. [ ] **Vežba nije proširena.** Ista promena, druga strana: broj pozicija u
+   vežbi za taj repertoar ostaje isti, jer nacrt nije odluka i dril ga ne pita.
+   („Druga" ima 4 i pre i posle.)
