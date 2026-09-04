@@ -2842,9 +2842,24 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               : _standingAfter != null
                   ? 'Posle ${_standingAfter!.san} — šta igra protivnik'
                   : (_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?');
+          // Says which count it is.
+          //
+          // Reported live 4.9.2026: „javlja mi da ima 9 neodgovorenih, a ja sam
+          // izbrojao 7". Three numbers sit within two lines of each other here
+          // and each measures something else — this one is the **queue**, and
+          // the position on the board has already been taken out of it; the
+          // legend below says `otvoreno 10`, which is the walk and still counts
+          // it; and the picture draws however many fit under its depth cap. All
+          // three were right and none of them said what it was counting, which
+          // is the same defect as a wrong number and harder to argue with.
           final under = left == 0
               ? 'Poslednja neodgovorena pozicija koju ovaj repertoar dohvata.'
-              : 'Još $left neodgovorenih.';
+              : serbianCount(
+                  left,
+                  one: 'Posle ove u redu je još $left pozicija.',
+                  few: 'Posle ove u redu su još $left pozicije.',
+                  many: 'Posle ove u redu je još $left pozicija.',
+                );
           return SpeakableInfo(
             autoSpeak: true,
             text: '$question $under',
