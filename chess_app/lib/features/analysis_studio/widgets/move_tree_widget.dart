@@ -29,6 +29,9 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
   final String? Function(AnalysisNode node)? extraLabel;
   final void Function(AnalysisNode node)? onExtra;
 
+  /// Passed straight through to the graph. See `MoveTreeNodeLook`.
+  final MoveTreeNodeLook? Function(AnalysisNode node)? nodeLook;
+
   /// deltaCutoff the tree was last auto-generated with, if any — caps the
   /// graphical view's post-hoc display-filter slider so it can't be dragged
   /// past the point where it would stop doing anything.
@@ -44,6 +47,7 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
     this.deleteLabel,
     this.extraLabel,
     this.onExtra,
+    this.nodeLook,
     this.maxEvalDisplayCutoff,
   });
 
@@ -179,6 +183,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       onDeleteNode: widget.onDeleteNode,
                       deleteLabel: widget.deleteLabel,
                       extraLabel: widget.extraLabel,
+                      nodeLook: widget.nodeLook,
                       onExtra: widget.onExtra,
                       maxDisplayCutoff: widget.maxEvalDisplayCutoff,
                     )
@@ -250,6 +255,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       onDeleteNode: widget.onDeleteNode,
                       deleteLabel: widget.deleteLabel,
                       extraLabel: widget.extraLabel,
+                      nodeLook: widget.nodeLook,
                       onExtra: widget.onExtra,
                       maxDisplayCutoff: widget.maxEvalDisplayCutoff,
                     ),

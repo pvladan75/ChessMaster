@@ -17,6 +17,33 @@ import 'package:chess_app/theme/app_typography.dart';
 /// to pan), so this adds explicit desktop-friendly controls on top: mouse
 /// wheel zoom, +/- buttons, a reset/center button, and a toggle between a
 /// top-down and left-to-right layout.
+/// What a card *is*, for a caller that knows more about it than the tree does.
+///
+/// Deliberately not named after the repertoire: this file belongs to the
+/// analysis board and must not learn about repertoires to draw them. The
+/// repertoire maps its own four states onto these.
+///
+/// The four are drawn apart by **fill, silhouette and weight — never by hue.**
+/// The owner is colourblind, and every live sign-off he has given proves
+/// luminance and shape. A palette that separates these by colour would be
+/// approved and still unreadable, which is the worst of both.
+enum MoveTreeNodeLook {
+  /// The reader's own move. Filled, and the label carries its weight.
+  authored,
+
+  /// Somebody else's move that the reader has an answer to. Outlined, and a
+  /// pill rather than a rectangle — the silhouette alone says whose move it is.
+  covered,
+
+  /// A position with no answer in it. The pill, drawn heavier: a hole is not a
+  /// quieter card than a covered one, it is a louder one.
+  gap,
+
+  /// A branch the reader has said they are not preparing. Dimmed, because it is
+  /// the only one of the four that is not work waiting to be done.
+  refused,
+}
+
 class VisualMoveTreeWidget extends StatefulWidget {
   final AnalysisNode rootNode;
   final AnalysisNode activeNode;
@@ -35,6 +62,10 @@ class VisualMoveTreeWidget extends StatefulWidget {
   /// only from the row under the board.
   final String? Function(AnalysisNode node)? extraLabel;
   final void Function(AnalysisNode node)? onExtra;
+
+  /// What each card is, when the caller knows. Null for every card by default,
+  /// so a board with nothing to add is drawn exactly as it was.
+  final MoveTreeNodeLook? Function(AnalysisNode node)? nodeLook;
 
   /// deltaCutoff the tree was last auto-generated with, if any — caps how
   /// far the post-hoc display-filter slider can be dragged, so it can't be
@@ -58,6 +89,7 @@ class VisualMoveTreeWidget extends StatefulWidget {
     this.deleteLabel,
     this.extraLabel,
     this.onExtra,
+    this.nodeLook,
     this.maxDisplayCutoff,
     this.onNodeTapped,
   });
@@ -714,6 +746,41 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
           : context.colors.sideBlack.withValues(alpha: 0.75);
     }
 
+    // What the caller knows and the tree cannot: whose work this card is.
+    //
+    // Applied after the rules above rather than instead of them, so the side
+    // to move still speaks through the outline and a board that passes no look
+    // is untouched. Three channels, all of them luminance or shape: whether the
+    // card is filled, whether it is a rectangle or a pill, and how heavy its
+    // edge and its label are.
+    final look = node.isRoot ? null : widget.nodeLook?.call(node);
+    var borderWidth = isSelected ? 2.0 : 1.2;
+    var radius = AppRadii.roundedSm;
+    var bold = isSelected;
+    if (look != null) {
+      // The pill is the silhouette of a move that is not mine. It is readable
+      // at a glance across a whole drawing, which is the thing a legend under
+      // the tree can never do.
+      if (look != MoveTreeNodeLook.authored) {
+        radius = BorderRadius.circular(999);
+        if (!isSelected) bgColor = Colors.transparent;
+      } else {
+        bold = true;
+        if (!isSelected) bgColor = context.colors.surfaceRaised;
+      }
+      if (look == MoveTreeNodeLook.gap) {
+        // Heavier, not quieter. The whole reason to draw these apart is that a
+        // hole is the one card the reader is looking for.
+        borderWidth = isSelected ? 2.8 : 2.4;
+      }
+      if (look == MoveTreeNodeLook.refused) {
+        textColor = context.colors.textMuted;
+        if (!isSelected) {
+          borderColor = borderColor.withValues(alpha: 0.4);
+        }
+      }
+    }
+
     String label;
     Color evalBg = context.colors.textMuted;
     if (node.isRoot) {
@@ -762,16 +829,15 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                   ? null
                   : () =>
                       _showNodeContextMenu(context, node, transpositionGroup),
-              borderRadius: AppRadii.roundedSm,
+              borderRadius: radius,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
                 padding: const EdgeInsets.symmetric(
                     horizontal: 6, vertical: AppSpacing.xs),
                 decoration: BoxDecoration(
                   color: bgColor,
-                  borderRadius: AppRadii.roundedSm,
-                  border: Border.all(
-                      color: borderColor, width: isSelected ? 2.0 : 1.2),
+                  borderRadius: radius,
+                  border: Border.all(color: borderColor, width: borderWidth),
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
@@ -791,10 +857,9 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: (isSelected ? AppText.bodyBold : AppText.body)
-                            .copyWith(
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.w600,
+                        style:
+                            (bold ? AppText.bodyBold : AppText.body).copyWith(
+                          fontWeight: bold ? FontWeight.bold : FontWeight.w600,
                           color: textColor,
                         ),
                       ),

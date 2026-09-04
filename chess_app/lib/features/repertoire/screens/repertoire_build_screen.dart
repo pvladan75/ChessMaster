@@ -13,6 +13,7 @@ import 'package:chess_app/features/repertoire/widgets/fork_repertoire_dialog.dar
 import 'package:chess_app/features/repertoire/widgets/repertoire_comment_panel.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_gate_picker.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_position_ask.dart';
+import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
 import 'package:chess_app/features/repertoire/widgets/breadth_dialog.dart';
 import 'package:chess_app/features/repertoire/widgets/unconfirmed_banner.dart';
@@ -221,6 +222,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// `fenKeyOf` and this one would have gone on comparing whole FENs, so the
   /// tree would highlight the right card while the same question answered here
   /// said the position was not in the drawing at all.
+  /// What each drawn card is, by node id, rebuilt with the drawing itself.
+  Map<String, MoveTreeNodeLook> _looks = {};
+
   AnalysisNode? _findNode(String fen, AnalysisNode? root) =>
       root == null ? null : findNodeByFen(root, fen);
 
@@ -498,7 +502,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _tree = tree;
       _notes = notes;
       _comments = comments;
-      _treeRoot = repertoireTreeToNodes(tree, notes: notes, showCut: _showCut);
+      _looks = {};
+      _treeRoot = repertoireTreeToNodes(tree,
+          notes: notes, showCut: _showCut, looks: _looks);
     });
   }
 
@@ -510,7 +516,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (tree == null) return;
     setState(() {
       _showCut = !_showCut;
-      _treeRoot = repertoireTreeToNodes(tree, notes: _notes, showCut: _showCut);
+      // Rebuilt together, always. The looks are keyed by node id and the ids
+      // are minted by this call, so a map kept from the previous drawing would
+      // colour nothing and quietly draw every card as an ordinary one.
+      _looks = {};
+      _treeRoot = repertoireTreeToNodes(tree,
+          notes: _notes, showCut: _showCut, looks: _looks);
     });
   }
 
@@ -2623,6 +2634,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     return RepertoireTreePanel(
       root: root,
       active: active,
+      nodeLook: (node) => _looks[node.id],
       onSelect: _jumpTo,
       onPromote: _promoteFromTree,
       onDelete: _deleteFromTree,

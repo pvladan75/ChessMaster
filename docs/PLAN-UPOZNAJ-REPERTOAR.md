@@ -253,7 +253,40 @@ schedule; the rest can be a worker batch.
 a source-reading guard so a fifth walk cannot forget. **Open: the live check on
 „Druga".** It fixed three known findings by itself, as expected.
 
-**Phase 2 — worker. The tree draws its four states. ← next, and now unblocked.**
+**Phase 2 — done by the lead, 4.9.2026, not by a worker.**
+The owner asked for it to be started while he ran the section 95 checks, so it
+was written inline rather than briefed. What shipped, and the two design
+choices worth keeping:
+
+* The look is a **neutral enum in the analysis widget** (`MoveTreeNodeLook`:
+  `authored` / `covered` / `gap` / `refused`), supplied by an optional
+  `nodeLook` callback. The analysis board must not learn what a repertoire is
+  in order to draw one, so the repertoire maps its own states onto those four
+  and the dependency stays the way round it already was.
+* **Three channels, none of them hue**: fill (mine is filled, theirs is not),
+  silhouette (mine is a rectangle, theirs a pill), and weight (a hole is drawn
+  heavier than an answered reply, because it is the card being hunted for). A
+  refusal is dimmed — the only one of the four that is not work waiting.
+
+`unopened` is drawn as `covered` on purpose: it means „decided, but the replies
+were never taken", which is work outstanding rather than a gap, and the `…`
+already on the label says the rest. Four silhouettes, not five.
+
+Tests are widget tests over the `BoxDecoration`, not goldens — goldens do not
+run without `--run-skipped` and would have graded nothing. Four tests, and the
+three channels were each mutated away and watched failing, including the one
+that proves a board passing **no** look is drawn exactly as before.
+
+**What phase 2 was meant to measure, and only the owner can:** whether a
+legible tree already answers „šta ja igram". If it largely does, phase 3 is a
+smaller feature than it looks. Watch it before phase 3's brief is written.
+
+Left undone on purpose: the legend still names ★, ?, … and ✂ and says nothing
+about fill or silhouette. Adding that is new Serbian copy on a screen whose
+words were frozen by the sweep hours earlier, and it is worth writing only if
+the drawing turns out not to speak for itself.
+
+**Phase 2 (original scope, for the record) — worker. The tree draws its four states.**
 §5. Pure presentation inside `VisualMoveTreeWidget` and the legend. It is the
 half that may make phase 3 smaller, so **ship and watch it before writing phase
 3's brief.**

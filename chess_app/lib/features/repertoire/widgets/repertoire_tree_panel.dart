@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
+import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -21,10 +22,32 @@ import 'package:chess_app/theme/app_typography.dart';
 /// ten dead leaves widening a drawing that is read to find the holes. The count
 /// is beside the toggle, so nothing disappears silently — a cut is a decision
 /// and has to stay findable.
+/// Which of the four a card is, out of what the server said about it.
+///
+/// The states the tree answers with are about the position a move *leads to*,
+/// so they read differently on the two kinds of card: on the student's own move
+/// the state describes the board the opponent then faces, and on the opponent's
+/// it describes the board the student faces — which is where a hole is a hole.
+///
+/// `unopened` is drawn as covered on purpose. It means „decided, but the
+/// replies were never taken", which is work outstanding rather than a gap in
+/// the preparation; the `…` already on the label says the rest, and a fifth
+/// silhouette would cost more than it tells.
+MoveTreeNodeLook lookOfRepertoireMove(RepertoireTreeMove move) {
+  if (move.state == 'cut') return MoveTreeNodeLook.refused;
+  if (move.mine) return MoveTreeNodeLook.authored;
+  if (move.state == 'open') return MoveTreeNodeLook.gap;
+  return MoveTreeNodeLook.covered;
+}
+
+/// [looks], when given, is filled with one entry per drawn card, keyed by the
+/// node's id — the drawing's own key, so a position reached two ways keeps one
+/// look per card rather than one per position.
 AnalysisNode repertoireTreeToNodes(
   RepertoireTree tree, {
   Map<String, RepertoireNote> notes = const {},
   bool showCut = false,
+  Map<String, MoveTreeNodeLook>? looks,
 }) {
   final root = AnalysisNode(fen: tree.rootFen);
   void add(AnalysisNode parent, RepertoireTreeMove move) {
@@ -35,6 +58,7 @@ AnalysisNode repertoireTreeToNodes(
       uci: move.uci,
     );
     node.nag = markOfRepertoireMove(move);
+    looks?[node.id] = lookOfRepertoireMove(move);
     // The engine's number is deliberately **not** put on the card. It was one
     // more thing to read on a drawing whose job is to show the holes, and it
     // said nothing the reader had asked for: an opinion about a move they had
@@ -152,6 +176,7 @@ class RepertoireTreePanel extends StatelessWidget {
     this.deleteLabel,
     this.extraLabel,
     this.onExtra,
+    this.nodeLook,
   });
 
   final AnalysisNode root;
@@ -198,6 +223,10 @@ class RepertoireTreePanel extends StatelessWidget {
   /// One more action, on the cards the screen names.
   final String? Function(AnalysisNode node)? extraLabel;
   final void Function(AnalysisNode node)? onExtra;
+
+  /// What each card is, so the drawing says it without being read. See
+  /// `lookOfRepertoireMove`.
+  final MoveTreeNodeLook? Function(AnalysisNode node)? nodeLook;
 
   static const _widthNames = {
     'main': 'samo glavni odgovor',
@@ -255,6 +284,7 @@ class RepertoireTreePanel extends StatelessWidget {
         ],
         const SizedBox(height: AppSpacing.xs),
         AnalysisMoveTreeWidget(
+          nodeLook: nodeLook,
           rootNode: root,
           activeNode: active,
           onSelectNode: onSelect,
