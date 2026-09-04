@@ -194,7 +194,7 @@ drži u glavi.
 | 1 | šetnja pokazuje igraču njegov sopstveni rad (širina ga ne skriva) | lead | **Urađeno**, `e5bdb4c` + `8625273` — uživo neprovereno |
 | 2 | stablo crta svoja četiri stanja | lead | **Urađeno**, `37a67d3` — vlasnik video na obe teme |
 | 3 | redosled obilaska (`walkthroughOrder`) | lead | **Urađeno** — brief `docs/TASK-upoznaj-f3.md` stoji kao ugovor za fazu 4 |
-| 4 | ekran „Upoznaj" | radni agent | Nije rađeno |
+| 4 | ekran „Upoznaj" | radni agent | **Brifovano** — `docs/TASK-upoznaj-f4.md` + `docs/brief-upoznaj-f4-2026-09.md`, 4.9.2026 |
 | 5 | govor, sa budžetom rečenica | lead | Nije rađeno |
 
 **Dve odluke koje je vlasnik doneo 4.9.2026 i koje faza 4 nasleđuje:**
@@ -205,11 +205,39 @@ drži u glavi.
 * Tura govori samo o onome što je nacrtano. Rep („van toga još N poteza") ne
   ulazi u odgovor `/repertoire/tree` i endpoint se ne dira.
 
-**Otvoreno pred fazu 4**, i traži vlasnikovo oko pre nego što se piše brief:
-da li čitljivo stablo iz faze 2 već odgovara na „šta ja igram". Ako odgovara,
-faza 4 je manja nego što izgleda. Uz to, u tamnoj temi razlika između
-pokrivenog odgovora i rupe je najslabiji od tri kanala — vidi se na slici koju
-je vlasnik poslao, i ako smeta, pojačava se debljina ivice.
+**Vlasnik je oba pitanja zatvorio 4.9.2026.**
+
+Stablo iz faze 2 **jeste** rešilo prostorni deo — „graf je neuporedivo
+čitljiviji" — ali faza 4 ostaje, i to je merenje koje je faza 2 trebalo da
+donese: *„korisnik ne želi samo statičan pogled na razgranato stablo, već
+sekvencijalno vođenje kroz poteze na tabli korak-po-korak, gde na protivnikovom
+potezu jasno vidi listu odgovora i rupe."* Ekran je zato kompaktan: tabla,
+traka poteza, sheet za granu i kartica sa objašnjenjem — bez drugog graditelja
+i bez druge slike.
+
+Tri odluke koje faza 4 nasleđuje, sve tri vlasnikove:
+
+* **Ulaz je stavka u meniju „Još"** na kartici repertoara, ne četvrta ikonica:
+  red već nosi bedž, „Vežbaj" i meni, a četvrta kontrola na 360 dp se u release
+  buildu tiho seče. Naziv je **„Upoznaj repertoar"**.
+* **Na širokom ekranu stablo stoji pored table**, sinhronizovano sa turom; na
+  telefonu ostaje kompaktni raspored bez stabla.
+* Kontrast rupe u tamnoj temi — rešeno pre faze 4, odeljak ispod.
+
+### Rupa u tamnoj temi: kriva je bila providnost, ne debljina — 4.9.2026
+
+Vlasnik je tražio deblju ivicu (2.0 → 2.5–3.0). Merenje je pokazalo da je
+težina već bila u redu: rupa se crtala na **2.4** naspram 1.2 za sve ostalo, pa
+bi predloženi korak bio 0.1. Slab kanal je bila **boja ivice**: rupa stoji ispod
+protivnikovog odgovora, dakle retko je na glavnoj liniji, a svaka kartica van
+glavne linije dobija svoj `side` token na `alpha: 0.75`. Prigušen `sideBlack` na
+tamnoj podlozi je tačno ono što se na slici nije videlo.
+
+Popust je zato skinut, a token **nije** zamenjen: ivica i dalje govori ko je na
+potezu, što bi jedna svetla boja za sve rupe pojela. Uz to je debljina podignuta
+na 3.0. Test u `test/repertoire_tree_looks_test.dart` tvrdi oba kanala i dokazan
+je sa tri mutacije — bez skidanja popusta, sa zamenom boje jednim svetlim
+tokenom, i sa vraćanjem debljine na 2.4. **Nije još gledano uživo.**
 
 ## Širina nikad ne skriva ono što je igrač sam uradio — 4.9.2026
 
