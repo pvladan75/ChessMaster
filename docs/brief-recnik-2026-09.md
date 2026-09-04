@@ -46,6 +46,62 @@ Both would otherwise have surfaced as a red batch that read like your mistake.
 `orchestrator/check_table.py` is that check; it is worth running again if this
 brief sits unused for a week.
 
+## 2a. How to read a cell — the table is not written in Dart
+
+**The `old` and `new` cells are in the gate's normalised form, not in the text
+that is in the file.** `scan_strings` collapses every interpolation in a Dart
+string to `${...}` and every bare `$identifier` to `$ident`, and the table is
+written in that space because that is the space the gate compares in.
+
+So a cell is a **pattern, not a search string**. Two of the forty-seven, with
+what is actually in the file:
+
+| the table says | `repertoire_build_screen.dart` really says |
+|---|---|
+| `Pokriveno $ident% onoga što ćete sresti; ` | line 1934: `'Pokriveno $covered% onoga što ćete sresti; '` |
+| `$ident Ova pozicija je van širine „${...}", pa je ` | line 2338: `'$note Ova pozicija je van širine „${breadthName(_breadth)}", pa je '` |
+
+**16 of the 47 rows carry a placeholder. The other 31 are plain text and can be
+copied straight across.** A blind `content.replace(old, new)` over a whole file
+does the 31 and silently does nothing for the 16 — no error, no diff, and a
+report that says the table was applied. That is precisely the failure this
+project keeps paying for: a step that skips, reports success, and is found one
+layer later. Here the layer is the strings gate, which will fail those 16 as
+"not rewritten" without telling you they were never findable.
+
+### How to work one of the 16
+
+1. Take the **longest run of plain text** in the cell — the part with no
+   placeholder. For the first row above that is `% onoga što ćete sresti; `.
+2. `grep` for it in the file named by the section. That finds the real line.
+3. Change **only the words**. Every `$identifier` and every `${expression}`
+   stays exactly as it is, character for character: the placeholder marks where
+   an expression sits, and the expression is code that has to keep compiling and
+   keep meaning what it meant.
+4. The replacement's placeholders appear in the same order as the key's. If they
+   do not — a row where the counts differ — that is §4's "a row you cannot
+   apply": report it and stop.
+
+### Two details that have already cost a round
+
+**Whitespace is normalised too.** `_norm` is `" ".join(s.split())`: it strips
+leading and trailing whitespace and collapses internal runs. So a cell never
+ends in a space even when the Dart literal does — `'Pokriveno $covered% onoga
+što ćete sresti; '` is the cell `Pokriveno $ident% onoga što ćete sresti;`. The
+first version of this table had trailing spaces added to ten cells by a checker
+that compared raw scan output instead of normalised, and every one of those ten
+failed the run.
+
+**A `.` right after `$identifier` is eaten.** The scanner reads `$line.` as the
+start of a member access, so `'$wrote$tail Kičma: $line. Potvrdite ono sa čim se
+slažete.'` normalises to `$ident$ident Kičma: $ident Potvrdite ono sa čim se
+slažete.` — no dot after the last `$ident`. The dot **is** in the file and you
+must leave it there; it simply is not in the cell. Round 1 skipped this row for
+looking like a punctuation mismatch, and it was not one.
+
+Trailing spaces are therefore *not* part of a cell — but every other character
+is, and the cell is still compared exactly.
+
 ## 3. How you are judged
 
 ### 3.1 The strings gate reads the table

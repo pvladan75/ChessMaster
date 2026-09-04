@@ -82,6 +82,13 @@ Byte for byte, **including trailing spaces** — five of those rows exist only
 because a trailing space was once dropped in transcription, and the gate
 compares exactly.
 
+**Read §2a of the brief before you touch the first row.** The cells are written
+in the gate's normalised form: `$ident` and `${...}` stand for a Dart
+interpolation and are *not* text you can search for. 16 of the 47 rows carry one,
+and a whole-file find-and-replace using the cell verbatim will match none of
+them, change nothing, and leave you reporting a sweep that did two thirds of its
+job.
+
 ### 2. The 3 the gate cannot see
 
 `repertoire_coverage_screen.dart`, listed in their own section of the table with
