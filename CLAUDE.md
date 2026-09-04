@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1213 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1212 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 883 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -29,8 +29,9 @@ cd chess_backend && npm run dev       # nodemon, port 3000
 Both counts were measured 4.9.2026, after the day's repertoire work: the
 vocabulary sweep brought two banner-layout tests, the board/tree
 synchronisation one, and `findNodeByFen` two more, and ten came with the engine
-panel taking one shape across the three screens that draw it; on the backend,
-four came
+panel taking one shape across the three screens that draw it — less one, when
+deleting the evaluation from the move tree's nodes took `treeEval` and its test
+with it; on the backend, four came
 with the rule that a breadth never hides the reader's own work and six with
 `lineOrder`, which reads the drafts down one line instead of across a wave. The 1167th is
 the gap's edge in the dark theme, and fourteen more came with the walkthrough

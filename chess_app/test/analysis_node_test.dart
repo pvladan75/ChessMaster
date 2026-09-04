@@ -84,7 +84,6 @@ void main() {
       );
       e4.comment = 'Main line';
       e4.nag = '!';
-      e4.eval = 0.3;
       final d4 = root.addChild(
         childFen: 'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1',
         san: 'd4',
@@ -100,7 +99,6 @@ void main() {
       expect(restoredE4.moveSan, 'e4');
       expect(restoredE4.comment, 'Main line');
       expect(restoredE4.nag, '!');
-      expect(restoredE4.eval, 0.3);
       expect(restoredE4.parent, same(restored));
       expect(restoredE4.isMainLine, isTrue);
 

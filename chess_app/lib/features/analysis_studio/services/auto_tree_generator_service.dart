@@ -6,6 +6,7 @@ import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/services/app_logger.dart';
+import 'package:chess_app/core/services/eval_parsing.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
 import 'package:chess_app/core/services/positional_evaluator_service.dart';
@@ -126,15 +127,16 @@ class AutoTreeGeneratorService {
 
     final isWhiteToMove = currentNode.fen.contains(' w ');
 
-    // Parse eval to numeric double score from White's perspective
-    double parseEvalToNumeric(String evalStr) {
-      if (evalStr.contains('M')) {
-        final mateNum =
-            int.tryParse(evalStr.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-        return evalStr.contains('-') ? (-1000.0 + mateNum) : (1000.0 - mateNum);
-      }
-      return double.tryParse(evalStr.replaceAll('+', '')) ?? 0.0;
-    }
+    // The app's one parser, not a second one written here. This used to be a
+    // local copy that read a mate as ±(1000 − distance) while
+    // `parseWhiteRelativeEval` read the same string as ±(100 − distance), and
+    // the two of them wrote the same field — which is how a mate found by the
+    // live engine came out on a card as „+98.00". The field is gone now
+    // (4.9.2026) and so is the second parser; what is left is used here only
+    // to rank and prune candidates, where the magnitude cancels out of every
+    // comparison.
+    double parseEvalToNumeric(String evalStr) =>
+        parseWhiteRelativeEval(evalStr) ?? 0.0;
 
     final sortedLines = List<AnalysisLine>.from(lines);
     sortedLines.sort((a, b) {
@@ -223,7 +225,6 @@ class AutoTreeGeneratorService {
         san: san,
         uci: uci,
       );
-      childNode.eval = lineScore;
 
       if (!AppSettingsService.instance.manualCommentMode &&
           childNode.comment.isEmpty) {

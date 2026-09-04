@@ -26,13 +26,26 @@ void main() {
       expect(info.openingName, contains('Syzygy Tablebase Podrška Spremna'));
     });
 
-    test('3. AnalysisNode eval storage persistence', () {
+    test('3. AnalysisNode no longer carries an engine evaluation', () {
+      // Removed 4.9.2026. A node used to store the engine's number, written by
+      // two paths that encoded a mate differently, and drawn on the card by a
+      // decoder that only understood one of them. What the reader wants kept
+      // about a position goes in `comment`, which they type.
       final node = AnalysisNode(
           fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-      expect(node.eval, isNull);
 
-      node.eval = 1.45;
-      expect(node.eval, equals(1.45));
+      expect(node.toJson().containsKey('eval'), isFalse);
+      expect(node.toJson().containsKey('evalDepth'), isFalse);
+      // And an old saved tree that still has one simply loses it on the way in,
+      // rather than failing to open.
+      final old = AnalysisNode.fromJson({
+        'fen': node.fen,
+        'eval': 998.0,
+        'evalDepth': 30,
+        'children': const [],
+      });
+      expect(old.fen, node.fen);
+      expect(old.toJson().containsKey('eval'), isFalse);
     });
 
     test('4. EngineArrow creation for Multi-PV ranks', () {

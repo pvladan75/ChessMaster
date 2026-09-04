@@ -18,7 +18,6 @@ void main() {
       uci: 'e2e4',
     );
     e4.comment = 'Glavna linija';
-    e4.eval = 0.3;
     root.addChild(
       childFen: 'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1',
       san: 'd4',
@@ -30,7 +29,7 @@ void main() {
       uci: 'e7e5',
     );
 
-    final pgn = PgnExporterService.exportToPgn(root, includeEvalComments: true);
+    final pgn = PgnExporterService.exportToPgn(root);
 
     final tree = MoveTree.parsePgn(pgn, startingFen: root.fen);
     expect(tree, isNotNull);
@@ -40,7 +39,6 @@ void main() {
     final parsedE4 = tree.root.children[0];
     expect(parsedE4.san, 'e4');
     expect(parsedE4.comment, contains('Glavna linija'));
-    expect(parsedE4.comment, contains('%eval'));
     expect(parsedE4.children.length, 1);
     expect(parsedE4.children[0].san, 'e5');
     expect(parsedE4.children[0].fen, e5.fen);

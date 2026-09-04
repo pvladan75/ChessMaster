@@ -106,8 +106,8 @@ void main() {
         analyzer: _SequencedFakeEngine(['+0.00', '-9.00']).analyze,
       );
 
-      expect(child.eval, closeTo(-9.00, 1e-9));
-      // The queen-hanging blunder should produce a real comment.
+      // The review writes what it says about the move, and no longer a number
+      // onto the node. The queen-hanging blunder should produce a real comment.
       expect(child.comment, contains('nebranjen'));
 
       child.comment = 'moj ručni komentar';

@@ -13,10 +13,6 @@ import 'package:chess_app/theme/app_typography.dart';
 /// so the widget's "main line" rule lands on the move they settled on rather
 /// than on whichever move happened to be stored first.
 ///
-/// [notes] are the engine's evaluations, keyed the way the store keys
-/// positions. They go onto the cards because the widget already draws
-/// `eval` — no new drawing, and no verdict either: a number beside a move is
-/// information, and the judgement on this screen stays the opening judge's.
 /// [showCut] draws the branches the student said they are not preparing.
 /// Off by default: a cut stops the walk but the card stayed, so ten cuts left
 /// ten dead leaves widening a drawing that is read to find the holes. The count
@@ -45,7 +41,6 @@ MoveTreeNodeLook lookOfRepertoireMove(RepertoireTreeMove move) {
 /// look per card rather than one per position.
 AnalysisNode repertoireTreeToNodes(
   RepertoireTree tree, {
-  Map<String, RepertoireNote> notes = const {},
   bool showCut = false,
   Map<String, MoveTreeNodeLook>? looks,
 }) {
@@ -59,11 +54,9 @@ AnalysisNode repertoireTreeToNodes(
     );
     node.nag = markOfRepertoireMove(move);
     looks?[node.id] = lookOfRepertoireMove(move);
-    // The engine's number is deliberately **not** put on the card. It was one
-    // more thing to read on a drawing whose job is to show the holes, and it
-    // said nothing the reader had asked for: an opinion about a move they had
-    // already decided. Where it is worth keeping, it goes in the comment, in
-    // their own words.
+    // No engine number on the card. That was already true here before a node
+    // stopped carrying one at all — the drawing's job is to show the holes,
+    // and an opinion about a move the reader already decided is not one.
     for (final child in move.children) {
       add(node, child);
     }

@@ -503,8 +503,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _notes = notes;
       _comments = comments;
       _looks = {};
-      _treeRoot = repertoireTreeToNodes(tree,
-          notes: notes, showCut: _showCut, looks: _looks);
+      _treeRoot = repertoireTreeToNodes(tree, showCut: _showCut, looks: _looks);
     });
   }
 
@@ -520,8 +519,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       // are minted by this call, so a map kept from the previous drawing would
       // colour nothing and quietly draw every card as an ordinary one.
       _looks = {};
-      _treeRoot = repertoireTreeToNodes(tree,
-          notes: _notes, showCut: _showCut, looks: _looks);
+      _treeRoot = repertoireTreeToNodes(tree, showCut: _showCut, looks: _looks);
     });
   }
 

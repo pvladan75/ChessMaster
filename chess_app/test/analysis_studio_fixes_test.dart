@@ -22,12 +22,11 @@ void main() {
       expect(info.isEndgame, isFalse);
     });
 
-    test('3. Verify AnalysisNode tree root creation with default eval status',
-        () {
+    test('3. Verify AnalysisNode tree root creation', () {
       final root = AnalysisNode(
           fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
       expect(root.isRoot, isTrue);
-      expect(root.eval, isNull);
+      expect(root.children, isEmpty);
     });
   });
 }

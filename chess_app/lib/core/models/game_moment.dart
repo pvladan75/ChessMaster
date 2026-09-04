@@ -21,7 +21,7 @@ class GameMoment {
 
   /// Raw engine eval strings (White-relative, e.g. "1.23" or "-M4") for the
   /// positions before and after this move — kept around for display/PGN
-  /// export, since `AnalysisNode.eval` is stored White-relative too.
+  /// export, White-relative like everything else the app shows.
   final String? evalBeforeRaw;
   final String? evalAfterRaw;
 

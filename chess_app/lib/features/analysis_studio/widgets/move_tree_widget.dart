@@ -32,11 +32,6 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
   /// Passed straight through to the graph. See `MoveTreeNodeLook`.
   final MoveTreeNodeLook? Function(AnalysisNode node)? nodeLook;
 
-  /// deltaCutoff the tree was last auto-generated with, if any — caps the
-  /// graphical view's post-hoc display-filter slider so it can't be dragged
-  /// past the point where it would stop doing anything.
-  final double? maxEvalDisplayCutoff;
-
   const AnalysisMoveTreeWidget({
     super.key,
     required this.rootNode,
@@ -48,7 +43,6 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
     this.extraLabel,
     this.onExtra,
     this.nodeLook,
-    this.maxEvalDisplayCutoff,
   });
 
   @override
@@ -185,7 +179,6 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       extraLabel: widget.extraLabel,
                       nodeLook: widget.nodeLook,
                       onExtra: widget.onExtra,
-                      maxDisplayCutoff: widget.maxEvalDisplayCutoff,
                     )
                   : SingleChildScrollView(
                       child: Column(
@@ -257,7 +250,6 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       extraLabel: widget.extraLabel,
                       nodeLook: widget.nodeLook,
                       onExtra: widget.onExtra,
-                      maxDisplayCutoff: widget.maxEvalDisplayCutoff,
                     ),
                   ),
                 ),

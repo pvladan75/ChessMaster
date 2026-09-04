@@ -121,7 +121,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   // deltaCutoff the auto-analysis tree was last generated with, so the tree
   // view's post-hoc display filter can cap its slider there instead of
   // offering a range that would silently do nothing above that value.
-  double? _lastAutoAnalysisDeltaCutoff;
 
   // Syzygy tablebase state
   final SyzygyTablebaseService _syzygyService = SyzygyTablebaseService.instance;
@@ -427,15 +426,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             _currentRawEval = parsedEval;
             _currentEvalString = evaluation;
             _currentEvalDepth = depth;
-            // Never let a shallower live pass (e.g. this node just came back
-            // into view while the engine is still climbing toward its
-            // target depth) regress an eval a prior whole-game review
-            // already computed at a greater depth.
-            if (_currentNode.evalDepth == null ||
-                depth >= _currentNode.evalDepth!) {
-              _currentNode.eval = parsedEval;
-              _currentNode.evalDepth = depth;
-            }
           });
         }
       },
@@ -694,18 +684,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     final isWhiteToMove =
         node.fen.split(' ').length > 1 && node.fen.split(' ')[1] == 'w';
 
-    // Rank by how good the reply is for the side to move.
+    // In the order they were generated, which for an auto-generated tree is
+    // already best-first: the generator sorts its candidate lines by score
+    // before it adds them. Re-sorting here needed a number on the node, and
+    // the node no longer carries one.
     final ranked = node.children
         .where((c) => c.moveUci != null && c.moveUci!.length >= 4)
-        .toList()
-      ..sort((a, b) {
-        final ea = a.eval;
-        final eb = b.eval;
-        if (ea == null && eb == null) return 0;
-        if (ea == null) return 1;
-        if (eb == null) return -1;
-        return isWhiteToMove ? eb.compareTo(ea) : ea.compareTo(eb);
-      });
+        .toList();
 
     final arrows = <EngineArrow>[];
     for (var i = 0; i < ranked.length; i++) {
@@ -714,11 +699,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       arrows.add(EngineArrow(
         from: uci.substring(0, 2),
         to: uci.substring(2, 4),
-        evalText: child.eval != null
-            ? (child.eval! > 0
-                ? '+${child.eval!.toStringAsFixed(2)}'
-                : child.eval!.toStringAsFixed(2))
-            : (child.moveSan ?? ''),
+        evalText: child.moveSan ?? '',
         rank: i + 1,
       ));
     }
@@ -1065,23 +1046,19 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     // Cheap fallback: if there's no fresh engine alternative, but the game
     // actually continued past this move, that reply's eval is already
     // sitting in the tree — free forward-looking context, no extra query.
-    Map<String, dynamic>? nextMoveEvalData;
-    if (engineAlternativeData == null && _currentNode.children.isNotEmpty) {
-      final nextChild = _currentNode.children.first;
-      if (nextChild.eval != null) {
-        nextMoveEvalData = {
-          'moveSan': nextChild.moveSan ?? '',
-          'eval': nextChild.eval
-        };
-      }
-    }
+    // There used to be a cheap fallback here: the reply already in the tree
+    // carried an eval, so it came along as free forward-looking context. The
+    // node no longer stores one, so the comment is written from the tactical
+    // and positional findings and from a fresh engine alternative when there
+    // is one.
+    const Map<String, dynamic>? nextMoveEvalData = null;
 
     String? aiComment;
     try {
       aiComment = await PuzzleApiService.instance.generateMoveComment(
         moveSan: _currentNode.moveSan ?? '',
-        evalBefore: parent.eval,
-        evalAfter: _currentNode.eval,
+        evalBefore: null,
+        evalAfter: null,
         tacticalFindings: played.tactical,
         positionalFindings: played.positional,
         previousMove: previousMoveData,
@@ -1124,9 +1101,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       builder: (ctx) => AutoAnalysisDialog(
         startNode: _currentNode,
         stockfishService: _stockfishService,
-        onAnalysisCompleted: (deltaCutoffUsed) {
+        onAnalysisCompleted: (_) {
           // The start node now has candidate children — surface them as arrows.
-          setState(() => _lastAutoAnalysisDeltaCutoff = deltaCutoffUsed);
+          // The cutoff it used is no longer kept: it capped a display filter
+          // that read the eval off each node, and neither survives.
           _refreshArrows();
           AppFeedback.show(
             context,
@@ -1784,7 +1762,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           AnalysisMoveTreeWidget(
             rootNode: _rootNode,
             activeNode: _currentNode,
-            maxEvalDisplayCutoff: _lastAutoAnalysisDeltaCutoff,
             onSelectNode: _jumpToNode,
             onPromoteNode: (node) {
               setState(() {

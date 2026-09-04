@@ -537,11 +537,8 @@ niz, formiran na dva mesta u `stockfish_service_native.dart` (`+0.40` / `M5`,
 fiksirano iz ugla belog), pa su `+0.4` i mat i pre ovoga čitali isto svuda.
 Razlika je bila u panelu oko broja, i to je ono što je ujednačeno.
 
-**Jedna prava razlika u formatu ipak postoji, i nije u panelima nego u stablu:**
-`visual_move_tree_widget.dart:_formatEval` sam izvodi niz iz sačuvanog `double`
-(mat kodiran kao ±(1000 − potezi do mata)). Ispisuje istu notaciju, ali je to
-druga implementacija nad drugim izvorom, pa se slaganje drži na sreću.
-Nije dirano — zabeleženo je kao sledeći kandidat.
+**Jedna prava razlika u formatu bila je u stablu**, i rešena je brisanjem —
+vidi odeljak „Evaluacija je obrisana iz čvorova stabla" ispod.
 
 **Testovi:** deset novih (`test/stockfish_analysis_panel_test.dart`), 1213
 zelenih. Podeljeni na dve polovine, kao i odluka: šta je moralo da se promeni i
@@ -556,7 +553,55 @@ na 360 dp. Isto je važilo i za staru verziju — tamo je natpis bio 13px umesto
 red samo iseče, bez ijedne trake koja bi to rekla; u testu puca, i zato test
 postoji.
 
-Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103.
+Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo A.
+
+## Evaluacija je obrisana iz čvorova stabla — 4.9.2026, nije viđeno uživo
+
+Vlasnikova odluka, istog dana i njegovim rečima: ocena motora se **uopšte ne
+upisuje u stablo poteza**; ko hoće da je zapamti, upisuje je kao komentar uz
+potez — što je i bio jedan od razloga zbog kojih je tražio pisanje komentara.
+
+**Zašto je to bila prava odluka, a ne samo manje koda.** Polje `AnalysisNode.eval`
+imalo je **dva pisca sa različitim kodiranjem mata**: živi motor je preko
+`parseWhiteRelativeEval` upisivao ±(100 − potezi), a generator stabla preko
+sopstvenog `parseEvalToNumeric` ±(1000 − potezi). Čitač na kartici
+(`_formatEval`) prepoznavao je mat po `abs() > 500` i računao sa bazom 1000 — pa
+je mat koji nađe **živi motor** bio nacrtan kao „+98.00". Ista greška je u ovom
+kodu već jednom popravljana (100 naspram 10000, vidi `eval_parsing.dart`), a ove
+dve kopije tada nisu bile uvučene. Brisanjem polja nestaju i koder i dekoder;
+nema šta da se razilazi.
+
+**Obrisano:** `AnalysisNode.eval` i `evalDepth` (uz `toJson`/`fromJson`),
+`VisualMoveTreeWidget._formatEval`, broj i obojena tačka na kartici, ceo naknadni
+filter po eval-u sa dugmetom i klizačem („Prag"), `maxDisplayCutoff` /
+`maxEvalDisplayCutoff` i `_lastAutoAnalysisDeltaCutoff` koji su ga hranili,
+`[%eval …]` u PGN izvozu zajedno sa zastavicom `includeEvalComments`,
+`RepertoireNote.treeEval`, i mrtvi `notes:` parametar
+`repertoireTreeToNodes` (repertoarova kartica ni ranije nije crtala broj).
+Generator stabla više ne piše `childNode.eval` i koristi
+`parseWhiteRelativeEval` umesto svoje kopije — čime nestaje i poslednja baza
+1000.
+
+**Zadržano:** traka evaluacije i panel motora (to je prikaz uživo, ne čvor),
+pregled cele partije koji i dalje piše komentare i NAG-ove, i `RepertoireNote`
+sa svojom dubinom i datumom u repertoaru — to je ocena koju je korisnik sam
+sačuvao, i ona ostaje.
+
+**Cena, koja nije bila u vlasnikova tri razloga i vredi je znati:** AI generator
+komentara je dobijao `evalBefore` / `evalAfter` / `nextMoveEval` sa čvorova, i
+sada ih dobija kao `null`. Komentar se i dalje pravi, ali se oslanja na taktičke
+i pozicione nalaze. Ako se uživo pokaže osetno slabijim, to je poznata posledica
+i traži odluku, ne popravku. Nestao je i filter „sakrij slabije grane" i
+`[%eval]` u PGN-u — oba je vlasnik izričito otpisao.
+
+**Brojke:** 306 obrisanih redova naspram 86 dodatih, 18 fajlova. 1212 testova
+zelenih (jedan manje nego pre — test za `treeEval` je obrisan sa getterom).
+`flutter analyze` i dalje prijavljuje istih 29 poznatih `info` stavki.
+
+Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više ne
+čitaju iz JSON-a, i za to postoji test.
+
+Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
 
 ## Otvorena pitanja dizajna
 

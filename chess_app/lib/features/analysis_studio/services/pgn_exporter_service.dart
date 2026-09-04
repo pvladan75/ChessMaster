@@ -6,7 +6,6 @@ class PgnExporterService {
   static String exportToPgn(
     AnalysisNode rootNode, {
     Map<String, String>? customHeaders,
-    bool includeEvalComments = true,
   }) {
     final buffer = StringBuffer();
 
@@ -47,7 +46,6 @@ class PgnExporterService {
       rootNode,
       startMoveNum,
       isWhiteToMove,
-      includeEvalComments: includeEvalComments,
     );
 
     buffer.write(' *');
@@ -58,15 +56,13 @@ class PgnExporterService {
     StringBuffer buffer,
     AnalysisNode parent,
     int moveNum,
-    bool isWhiteTurn, {
-    required bool includeEvalComments,
-  }) {
+    bool isWhiteTurn,
+  ) {
     if (parent.children.isEmpty) return;
 
     // Main line child (index 0)
     final mainChild = parent.children.first;
-    _writeMoveToken(buffer, mainChild, moveNum, isWhiteTurn,
-        includeEvalComments: includeEvalComments);
+    _writeMoveToken(buffer, mainChild, moveNum, isWhiteTurn);
 
     // Variations (index 1 to N)
     if (parent.children.length > 1) {
@@ -74,13 +70,12 @@ class PgnExporterService {
         final varChild = parent.children[i];
         buffer.write(' (');
         _writeMoveToken(buffer, varChild, moveNum, isWhiteTurn,
-            isVariationStart: true, includeEvalComments: includeEvalComments);
+            isVariationStart: true);
         _formatNodeChildren(
           buffer,
           varChild,
           isWhiteTurn ? moveNum : moveNum + 1,
           !isWhiteTurn,
-          includeEvalComments: includeEvalComments,
         );
         buffer.write(')');
       }
@@ -93,7 +88,6 @@ class PgnExporterService {
       mainChild,
       nextMoveNum,
       !isWhiteTurn,
-      includeEvalComments: includeEvalComments,
     );
   }
 
@@ -103,7 +97,6 @@ class PgnExporterService {
     int moveNum,
     bool isWhiteTurn, {
     bool isVariationStart = false,
-    required bool includeEvalComments,
   }) {
     if (buffer.isNotEmpty && !buffer.toString().endsWith('(')) {
       buffer.write(' ');
@@ -122,12 +115,9 @@ class PgnExporterService {
     }
 
     final commentParts = <String>[];
-    if (includeEvalComments && node.eval != null) {
-      final evalFormatted = node.eval! > 0
-          ? '+${node.eval!.toStringAsFixed(2)}'
-          : node.eval!.toStringAsFixed(2);
-      commentParts.add('[%eval $evalFormatted]');
-    }
+    // No `[%eval …]` any more. A node stopped carrying the engine's number on
+    // 4.9.2026, and an export writes what the tree holds — the reader's own
+    // comment, and the NAG above.
     if (node.comment.isNotEmpty) {
       commentParts.add(node.comment);
     }

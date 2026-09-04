@@ -763,16 +763,6 @@ class RepertoireNote {
         : pawns.toStringAsFixed(2);
   }
 
-  /// The same number in the units the tree's cards draw: White-relative pawns,
-  /// with a mate as ±(1000 − moves), which is what
-  /// `VisualMoveTreeWidget._formatEval` reads back as `M4`. Written here rather
-  /// than at the call site so there is one place that knows the convention.
-  double get treeEval {
-    final mate = mateIn;
-    if (mate != null) return (mate > 0 ? 1000 - mate : -1000 - mate).toDouble();
-    return evalCp / 100;
-  }
-
   factory RepertoireNote.fromJson(Map<String, dynamic> json) => RepertoireNote(
         fenKey: json['fenKey'] as String? ?? '',
         evalCp: (json['evalCp'] as num?)?.toInt() ?? 0,

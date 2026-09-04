@@ -7,14 +7,18 @@ class AnalysisNode {
   String? moveUci;
   String comment;
   String? nag; // '!!', '!', '?', '??', '!?', '!□'
-  double? eval;
 
-  /// Engine depth [eval] was computed at. Lets a shallower, later analysis
-  /// (e.g. the live eval bar re-triggering for whatever node is on screen)
-  /// avoid silently overwriting a deeper, more authoritative eval that a
-  /// prior whole-game review already wrote — see the live-analysis callback
-  /// in AnalysisStudioScreen.
-  int? evalDepth;
+  // A node used to carry the engine's evaluation, and it no longer does.
+  // Removed 4.9.2026 by the owner's decision: a number the engine wrote is not
+  // a thing the reader chose to say, and the place for what the reader wants
+  // remembered about a position is [comment], which they type. It also ended a
+  // fault rather than tidying one — two writers of that field encoded a mate
+  // differently (±(100 − distance) from the live engine, ±(1000 − distance)
+  // from the generator), so a mate the engine found live was drawn on a card
+  // as „+98.00". Deleting the field deletes both the encoder and the decoder.
+  //
+  // Reading an old saved tree still works: `eval` and `evalDepth` are simply
+  // not read out of the JSON any more.
 
   List<AnalysisNode> children;
   AnalysisNode? parent;
@@ -26,8 +30,6 @@ class AnalysisNode {
     this.moveUci,
     this.comment = '',
     this.nag,
-    this.eval,
-    this.evalDepth,
     List<AnalysisNode>? children,
     this.parent,
   })  : id = id ?? _generateId(),
@@ -92,8 +94,6 @@ class AnalysisNode {
       'moveUci': moveUci,
       'comment': comment,
       'nag': nag,
-      'eval': eval,
-      'evalDepth': evalDepth,
       'children': children.map((c) => c.toJson()).toList(),
     };
   }
@@ -108,8 +108,6 @@ class AnalysisNode {
       moveUci: json['moveUci'] as String?,
       comment: json['comment'] as String? ?? '',
       nag: json['nag'] as String?,
-      eval: (json['eval'] as num?)?.toDouble(),
-      evalDepth: (json['evalDepth'] as num?)?.toInt(),
       parent: parent,
     );
     final childrenJson = (json['children'] as List?) ?? const [];

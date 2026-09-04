@@ -3645,12 +3645,17 @@ Traži repertoar sa **bar dva račvanja** i nacrtima u obe grane — spina napis
 6. [ ] **Odsečena grana i dalje ćuti.** Odseći granu u kojoj ima nacrta, pa
    proći pregled do kraja: ništa iz nje se ne nudi na potvrdu.
 
-## 103. Panel motora ima jedan oblik — 4.9.2026, nije viđeno uživo
+## 103. Motor: jedan panel, i nijedna ocena u stablu — 4.9.2026, nije viđeno uživo
 
-Vlasnikova odluka od 4.9.2026: „Zadrži prekidač i dijalog, ujednači samo izgled
-panela." Menjan je jedan vidžet (`stockfish_analysis_widget.dart`), pa se isti
-panel vidi na tri mesta — i sva tri treba pogledati, jer se razlikuju po tome
-koja dugmad im je prosleđena.
+Dve izmene istog dana, namerno spojene u jednu proveru: panel motora je dobio
+jedan oblik, a stablo je ostalo **bez ijedne evaluacije na čvorovima**.
+
+### A. Panel motora ima jedan oblik
+
+Vlasnikova odluka: „Zadrži prekidač i dijalog, ujednači samo izgled panela."
+Menjan je jedan vidžet (`stockfish_analysis_widget.dart`), pa se isti panel vidi
+na tri mesta — i sva tri treba pogledati, jer se razlikuju po tome koja dugmad
+im je prosleđena.
 
 1. [ ] **Analysis Studio, AI Studio i soba imaju isti panel.** Otvoriti sva tri
    i uporediti sa „Pitaj motor" u repertoaru: okvir sa ivicom (ne obojena
@@ -3671,3 +3676,42 @@ koja dugmad im je prosleđena.
    se vrti dok je evaluacija ugašena.
 8. [ ] **Zaključan motor kaže „Zaključano od strane trenera"** i ništa ne
    računa iza te poruke.
+
+### B. Evaluacija je obrisana iz čvorova stabla
+
+Vlasnikova odluka istog dana: ocena motora se **uopšte ne upisuje** u čvor. Ko
+hoće da je zapamti, upisuje je kao komentar. Ovo je brisanje, pa se proverava i
+šta je nestalo i šta je preživelo.
+
+**Šta mora da nestane:**
+
+9. [ ] **Na kartici u stablu nema broja.** Ni u Analysis Studiju ni u
+   repertoaru: kartica nosi broj poteza, SAN i oznaku (`!`, `?`…) — i ništa u
+   zagradi. Nema ni obojene tačkice pored natpisa.
+10. [ ] **U alatnici grafičkog stabla nema dugmeta za filter.** Ikonice
+    `filter_alt` više nema, a sa njom ni traka „Prag: 1.5 / 5.0" sa klizačem
+    dole. Ostala dugmad (uvećaj, umanji, centriraj, reset, raspored, puštanje)
+    su tu.
+11. [ ] **Izvezeni PGN nema `[%eval …]`.** Izvesti partiju sa komentarima i
+    oznakama i pogledati tekst: komentar i NAG jesu unutra, evaluacije nema.
+12. [ ] **Strelice motora pokazuju potez, ne broj.** Posle „auto analize" na
+    tabli se crtaju strelice — na njima piše SAN (npr. `Nf3`), ne `+0.35`.
+
+**Šta mora da preživi:**
+
+13. [ ] **Traka evaluacije i panel motora rade kao pre.** Brisanje je bilo u
+    čvoru, a ne u prikazu uživo — `Prikaži evaluaciju` i evaluaciona linija
+    ispod table i dalje pokazuju broj za poziciju na ekranu.
+14. [ ] **Pregled cele partije i dalje piše komentare i oznake.** Pusti
+    „analizu cele partije": greške dobijaju komentar i NAG. Samo broj na čvoru
+    više ne postoji.
+15. [ ] **Komentar se i dalje može upisati ručno**, i to je sada jedino mesto
+    gde ocena može da ostane zapamćena uz potez. Upisati npr. „+0.35, motor
+    d20", zatvoriti i otvoriti stablo — tekst je tu.
+16. [ ] **Staro sačuvano stablo se i dalje otvara.** Ako postoji stablo
+    sačuvano pre ove izmene (u kursu ili lekciji), otvoriti ga: mora da se
+    učita normalno, samo bez brojeva na karticama.
+17. [ ] **AI komentar se i dalje generiše.** „Generiši AI komentar" na potezu
+    radi — s tim da mu evaluacija više ne stiže kao ulaz, pa se oslanja na
+    taktičke i pozicione nalaze. Ako ispadne primetno slabiji nego ranije,
+    zabeležiti; to je poznata posledica, ne kvar.

@@ -190,11 +190,10 @@ class GameAnalysisWalkerService {
         }
       }
 
-      final afterEval = parseWhiteRelativeEval(moment.evalAfterRaw);
-      if (afterEval != null) {
-        node.eval = afterEval;
-        node.evalDepth = depth;
-      }
+      // The review writes what it *says* about a move — the comment and the
+      // NAG above — and no longer a number onto the node. A stored evaluation
+      // is the engine's opinion wearing the reader's handwriting; if they want
+      // it kept, they type it into the comment.
     }
 
     return (chain: chain, moments: moments);

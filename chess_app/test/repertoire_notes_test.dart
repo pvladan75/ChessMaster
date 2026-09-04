@@ -198,18 +198,6 @@ void main() {
           RepertoireNote(fenKey: 'x', evalCp: -9600, mateIn: -4, evalDepth: 20);
       expect(against.text, '-M4');
     });
-
-    test('hands the tree the units that widget already draws', () {
-      // VisualMoveTreeWidget reads a mate back as ±(1000 − moves). Converting
-      // in one place is the whole point: this app has had one node carrying two
-      // evaluations two orders of magnitude apart.
-      const plain = RepertoireNote(fenKey: 'x', evalCp: 35);
-      expect(plain.treeEval, closeTo(0.35, 0.0001));
-      const mate = RepertoireNote(fenKey: 'x', evalCp: 9600, mateIn: 4);
-      expect(mate.treeEval, 996);
-      const against = RepertoireNote(fenKey: 'x', evalCp: -9600, mateIn: -4);
-      expect(against.treeEval, -996);
-    });
   });
 
   group('on the build screen', () {

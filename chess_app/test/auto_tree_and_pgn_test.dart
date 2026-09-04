@@ -58,7 +58,6 @@ void main() {
       );
       e4.nag = '!';
       e4.comment = 'Dobro otvaranje';
-      e4.eval = 0.35;
 
       final e5 = e4.addChild(
         childFen:
@@ -70,7 +69,10 @@ void main() {
       final pgn = PgnExporterService.exportToPgn(root);
 
       expect(pgn, contains('[Event "Analysis Studio Session"]'));
-      expect(pgn, contains('1. e4! { [%eval +0.35] Dobro otvaranje } e5'));
+      // No `[%eval …]`: a node stopped carrying the engine's number on
+      // 4.9.2026, so an export carries the reader's comment and the NAG.
+      expect(pgn, contains('1. e4! { Dobro otvaranje } e5'));
+      expect(pgn, isNot(contains('%eval')));
     });
 
     test('2. PgnExporterService formats nested variations in parentheses', () {
