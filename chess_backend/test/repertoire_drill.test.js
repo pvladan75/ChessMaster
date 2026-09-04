@@ -213,6 +213,36 @@ const landings = (spec) => Object.entries(spec).map(([uci, state]) => ({
 /// it — see the RangeError test below for what happens when it does not.
 const ASKING = { userId: 7, color: 'b' };
 
+test('the opponent spars into a line the breadth does not cover', async () => {
+  // The rule, and this function's own doc already states it: „an opponent
+  // drawing from a narrower set than the walk would refuse to spar into a
+  // position the student built." It did exactly that — the breadth was applied
+  // first and the „did they decide this?" test second, so a reply outside the
+  // breadth was gone before anyone asked whether it led into their own work.
+  //
+  // A breadth narrows what the *book* suggests preparing. It was never meant
+  // to narrow what the student already prepared.
+  const pool = replyPool(
+    [
+      { uci: 'g1f3', san: 'Nf3', games: 700, covered: true, asked: false },
+      // Outside `main` (second by games) and outside the stored 80%, and the
+      // student has built a line under it all the same.
+      { uci: 'a2a3', san: 'a3', games: 20, covered: false, asked: false },
+    ],
+    landings({ a2a3: {} }),
+  );
+
+  const out = await pickReply(pool, {
+    ...ASKING,
+    fen: MORRA_REPLY,
+    breadth: 'main',
+    random: () => 0,
+  });
+
+  assert.ok(out !== null, 'grana koju je igrač spremio mora da se igra');
+  assert.equal(out.uci, 'a2a3');
+});
+
 test('the opponent is drawn by how often a move is really played', async () => {
   const pool = replyPool([
     { uci: 'g1f3', san: 'Nf3', games: 700, covered: true },

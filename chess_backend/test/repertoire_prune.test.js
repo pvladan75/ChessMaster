@@ -96,6 +96,80 @@ test('reachability follows drafts as well as decisions', async () => {
   assert.ok(seen.has(keyAfter('d2d4', 'd7d5')));
 });
 
+/// A line the student built behind a reply the breadth leaves out.
+///
+/// White plays 1.e4. The book answers 1...e5 (60%) and 1...c5 (30%), and at
+/// „samo glavni odgovor" only the first is inside the breadth. But the student
+/// has written a move of their own after 1...c5, so that reply leads into their
+/// own work and has to be followed anyway — that is the rule the walk and the
+/// picture already keep.
+const WORK_BEHIND_A_NARROW_REPLY = {
+  moves: [
+    { fen_key: fenKey(START), uci: 'e2e4', san: 'e4', role: 'primary', source: 'chosen' },
+    {
+      fen_key: keyAfter('e2e4', 'c7c5'),
+      uci: 'g1f3',
+      san: 'Nf3',
+      role: 'primary',
+      source: 'auto',
+    },
+  ],
+  replies: [
+    { fen_key: keyAfter('e2e4'), uci: 'e7e5', san: 'e5', games: 600, share: '0.6' },
+    // Outside the stored 80% as well as outside `main`, so the rescue is the
+    // only thing that can follow it. Deletion always walks at `standard` or
+    // wider (`widestOf`), and `covered` is exactly what `standard` reads.
+    {
+      fen_key: keyAfter('e2e4'),
+      uci: 'c7c5',
+      san: 'c5',
+      games: 300,
+      share: '0.3',
+      covered: false,
+    },
+  ],
+};
+
+test('a narrow breadth still reaches the work behind an uncovered reply',
+  async () => {
+    // `reachable` decides what deleting a move would strand, and it says of
+    // itself that it is „the same walk the queue and the picture use". It was
+    // not: those two follow a reply that lands where the student has decided
+    // something, at every breadth, and this one followed only what the breadth
+    // covered. So a repertoire read at `main` called the student's own line an
+    // orphan — and orphans are what the sweep deletes.
+    const pool = stubPool(WORK_BEHIND_A_NARROW_REPLY);
+    const seen = await reachable(pool, 7, {
+      color: 'w', from: [START], breadth: 'main',
+    });
+
+    assert.ok(seen.has(keyAfter('e2e4', 'c7c5')),
+      'potez iza uskog odgovora je i dalje dohvatljiv');
+    // The half that would be lost by simply widening: a reply the breadth
+    // leaves out and that leads nowhere the student has been is still left out.
+    assert.equal(seen.has(keyAfter('e2e4', 'e7e5')), true);
+  });
+
+test('deleting a move warns about the work behind a narrow reply', async () => {
+    // The same gap, one call further on, and this is the direction that costs
+    // something. `orphansOfRemoving` seeds its walk with the positions after
+    // each reply to the move being removed; a reply the breadth leaves out was
+    // not among them, so the work behind it never entered the set that gets
+    // counted. The screen then asks „Ispod tog predloga su N vaše odluke.
+    // Obrisati i njih?" with N too small, and deletes what it did not name.
+  const pool = stubPool({
+    ...WORK_BEHIND_A_NARROW_REPLY,
+    counts: { drafts: 1 },
+  });
+  const out = await orphansOfRemoving(pool, 7, {
+    color: 'w', fen: START, uci: 'e2e4',
+  });
+
+  assert.ok(out.keys.includes(keyAfter('e2e4', 'c7c5')),
+    'rad iza uskog odgovora mora da se prijavi pre brisanja');
+  assert.equal(out.drafts, 1);
+});
+
 test('removing a move strands only what nothing else reaches', async () => {
   // The whole point of computing this rather than deleting a subtree.
   const pool = stubPool({ ...TWO_FIRST_MOVES, counts: { drafts: 1 } });

@@ -30,7 +30,7 @@ const {
 // the same reading of a stored UCI the frontier already does. `withinBreadth`
 // is there for the same reason — the live opponent and the walk have to draw
 // from the same set, and they have disagreed before.
-const { step, withinBreadth } = require('./repertoireFrontier');
+const { step } = require('./repertoireFrontier');
 const logger = require('./logger');
 
 /// How an answer is scored, before SM-2 sees it.
@@ -371,11 +371,12 @@ async function ensureReview(pool, userId, color, key) {
 /// Null is what the end of the book looks like, and a missing caller must not
 /// be able to counterfeit it.
 ///
-/// `breadth` is the repertoire's, and it has to reach here for the same reason
-/// the two conditions above do: the walk follows what the breadth says, and an
-/// opponent drawing from a narrower set than the walk would refuse to spar into
-/// a position the student built. Read through `withinBreadth`, the one place
-/// that rule is written.
+/// `breadth` no longer narrows anything here, and the reason is the rule it was
+/// added for: an opponent drawing from a narrower set than the walk refuses to
+/// spar into a position the student built. Narrowing first and asking „did they
+/// decide this?" second did precisely that. Asking only the second question is
+/// the whole rule, because a position they chose is their own work and their
+/// own work is followed at every breadth.
 ///
 /// All three are computed in SQL and filtered in JS on purpose. The rule is
 /// then one expression that can be read, and a test can put a cut position or
@@ -404,9 +405,22 @@ async function pickReply(pool, {
   // The games count is dropped by `withinBreadth`, which answers what the walk
   // needs, and the draw is weighted by games — so the rows are matched back up
   // by uci rather than re-queried.
-  const followed = new Set(
-    withinBreadth(rows.rows, breadth).map((reply) => reply.uci));
-  const covered = rows.rows.filter((row) => followed.has(row.uci));
+  // Every reply is played out, and the breadth narrows none of them.
+  //
+  // It used to narrow them here, before anything asked where a reply lands, so
+  // a reply outside the breadth was gone before the question „does this lead
+  // into a position the student decided?" could be put. That is the one case
+  // this function's own doc says must not happen.
+  //
+  // And once that question is asked, the breadth has nothing left to decide:
+  // the draw below keeps only replies landing on a position the student chose,
+  // which is their own work by definition, and their own work is followed at
+  // every breadth. A breadth narrows what the *book* suggests preparing; it
+  // was never meant to narrow what they already prepared. So the narrowing is
+  // gone rather than moved, and `breadth` stays in the signature only because
+  // every caller passes it and a parameter that quietly stops being read is
+  // worse than one that says it is not.
+  const covered = rows.rows;
   if (covered.length === 0) return null;
 
   // Where each reply lands. A stored move that no longer fits the position is

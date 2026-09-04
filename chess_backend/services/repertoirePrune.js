@@ -98,7 +98,15 @@ async function reachable(pool, userId, {
     }
 
     const keys = [...new Set(branches.map(fenKey))];
-    const book = await coveredReplies(pool, userId, color, keys, band, breadth);
+    // The board for each key, and everything the student holds, so a reply that
+    // leads into their own work is followed at every breadth — the same rule
+    // the queue and the picture walk by. This function says of itself that it
+    // is that same walk, and without these two arguments it was not: at a
+    // narrow breadth it called the student's own line unreachable, and
+    // unreachable is what the sweep deletes.
+    const fens = new Map(branches.map((fen) => [fenKey(fen), fen]));
+    const book = await coveredReplies(
+      pool, userId, color, keys, band, breadth, { fens, kept });
 
     const next = [];
     for (const after of branches) {
@@ -183,7 +191,14 @@ async function orphansOfRemoving(pool, userId, {
   // the spot. The position itself is stranded either way, so it goes in.
   const band = Number(minRating) || 0;
   const here = fenKey(after.fen);
-  const book = await coveredReplies(pool, userId, color, [here], band, breadth);
+  // Same rule as the walk above, and here it decides what a delete is allowed
+  // to take silently: a reply outside the breadth that leads into the student's
+  // own work never entered the set that gets counted, so the screen asked about
+  // fewer decisions than it was about to remove.
+  const kept = await keptByPosition(pool, userId, color);
+  const book = await coveredReplies(
+    pool, userId, color, [here], band, breadth,
+    { fens: new Map([[here, after.fen]]), kept });
   const seeds = [];
   for (const reply of book.get(here) ?? []) {
     const landed = step(after.fen, reply.uci);
