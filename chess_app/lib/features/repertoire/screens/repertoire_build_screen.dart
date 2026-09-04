@@ -57,6 +57,24 @@ import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 ///     repertoire that never gets built.
 ///   * **The rejected attempts are kept too.** They are where the instinct is
 ///     wrong, and they are what the drill should ask about first.
+/// How deep the picture is asked for, in plies, from where the board is.
+///
+/// Sixteen is the old default and the floor. Past that it follows the reader:
+/// the line they are actually on, plus four moves of room, so a move taken here
+/// lands inside the drawing instead of one ply past its edge. Capped at the
+/// forty the server allows — more is a 400, and a picture nobody can read was
+/// never the goal.
+///
+/// Top-level and pure so the rule can be tested as a rule. The screen that uses
+/// it is the same screen the owner was standing on at move seven when the tree
+/// stopped at move eight.
+int treeDepthFor(int plyHere) {
+  final wanted = plyHere + 8;
+  if (wanted < 16) return 16;
+  if (wanted > 40) return 40;
+  return wanted;
+}
+
 class RepertoireBuildScreen extends StatefulWidget {
   const RepertoireBuildScreen({
     super.key,
@@ -439,6 +457,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (keepBoard) await _loadKept();
   }
 
+  int _treeDepth() => treeDepthFor(_node?.path.length ?? 0);
+
   /// Re-reads the picture. Called after anything that changes the store, and
   /// never on a plain advance: the tree only moves when the moves do.
   Future<void> _loadTree() async {
@@ -451,6 +471,20 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       minRating: widget.minRating,
       gateUci: widget.gateUci,
       breadth: _breadth,
+      maxPly: _treeDepth(),
+      // Deep enough to contain the reader.
+      //
+      // The default is sixteen plies — eight moves — and it was never sent, so
+      // the picture stopped at move eight however deep the work had gone.
+      // Standing on move seven, as the owner was on 4.9.2026, the move being
+      // decided is the last one the drawing can hold and everything taken after
+      // it falls off the edge: „aplikacija ne upisuje taj potez u stablo
+      // odmah". It was written; the picture just could not reach it.
+      //
+      // Four moves of headroom past where the board is, never less than the old
+      // default and never past what the server allows. The panel already says
+      // when it was cut short, so this makes that sentence rarer rather than
+      // hiding it.
     );
     final stored = _api.notes(color: widget.color);
     // The third free read: what the student wrote. Beside the other two rather

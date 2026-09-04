@@ -233,7 +233,7 @@ class RepertoireTreePanel extends StatelessWidget {
         if (truncatedAt != null) ...[
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            'Crtež je skraćen na $truncatedAt poluporeza — repertoar ide dublje.',
+            'Crtež je skraćen na $truncatedAt polupoteza — repertoar ide dublje.',
             style: AppText.micro.copyWith(color: context.colors.warning),
           ),
         ],
