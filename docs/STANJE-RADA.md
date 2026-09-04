@@ -482,9 +482,7 @@ Ostaje provera uživo: `docs/TODO-provera.md`, stavka 102.
 ## Tri prijave sa provere 4.9.2026 uveče — odgovoreno, nije rađeno
 
 **Prikaz evaluacije se ujednačava po uzoru na „Pitaj motor" u repertoaru.**
-Vlasnik je 4.9.2026 izabrao taj oblik kao željeni; „Prikaži evaluaciju" postoji
-u više oblika (AI Studio, soba, Analysis Studio) i treba da se svede na taj.
-Odluka je doneta, posao nije počet.
+**Urađeno 4.9.2026** — vidi odeljak „Panel motora ima jedan oblik" niže.
 
 **Redosled kroz nepotvrđene poteze ide po dubini, a treba po liniji.**
 **Urađeno 4.9.2026** — vidi odeljak „Redosled kroz nepotvrđene poteze ide po
@@ -504,6 +502,61 @@ drugi uređaj (prepoznavanje sa slike), verovatnoćni je, i tiho bi davao FEN ko
 izgleda ispravno. Skener je namerno pisan suprotno: nepoznat glif je greška, ne
 prazno polje. Ako se ikad radi, ide kao zaseban put sa svojom oznakom pouzdanosti
 i obaveznom potvrdom trenera — nikad kao tihi nastavak ovog.
+
+## Panel motora ima jedan oblik — 4.9.2026, nije viđeno uživo
+
+Vlasnik je 4.9.2026 izabrao repertoarov „Pitaj motor" kao oblik koji svaki
+prikaz evaluacije treba da ima, i istog dana odlučio **koliko** od njega da se
+preslika: **„Zadrži prekidač i dijalog, ujednači samo izgled panela."**
+
+**Šta je promenjeno.** `chess_app/lib/widgets/stockfish_analysis_widget.dart` —
+jedan vidžet koji crtaju tri ekrana (Analysis Studio, AI Studio dvaput, i soba
+tri puta), pa nijedan od njih nije diran. Sada izgleda kao repertoarov panel:
+
+- okvirni `Container` na `surface` sa ivicom, umesto obojene `Card`;
+- naslov „Motor" sa `psychology_outlined` u akcentnoj boji, i ispod njega jedan
+  prigušen red koji kaže **koji** motor odgovara i **iz čijeg ugla** je ocena —
+  ista rečenica koju repertoar već ima, jer je konvencija aplikacijina a ne
+  ekranova;
+- red po liniji: ocena, prvi potez, nastavak, pa `dN`. **Dubina je na svakom
+  redu**, a ne jednom u baneru iznad njih: linije stižu na različitim dubinama i
+  popravljaju se dok pretraga traje, pa je jedan broj nad svima tačan za prvi
+  red i netačan za ostale. Time su nestali i baner `Eval: … (depth: …)` i
+  naslov „Top N Linije";
+- vrteška u zaglavlju dok motor još ništa nije rekao, iz istog razloga iz kog je
+  ima repertoar: prazan panel se ne razlikuje od motora koji ne odgovara.
+
+**Šta je zadržano, po vlasnikovoj odluci.** Prekidač „Prikaži evaluaciju" —
+ovaj panel drži motor stalno upaljenim, a repertoarov ga pita jednom, pa mu
+treba način da ga ugasi. Prekidač „Prikaži evaluacionu liniju", jer je to drugo
+pitanje. I `EngineLineDialog` na dodir linije, jer ovi ekrani imaju gde da
+smeste liniju, a repertoarova tabla nema — zato ona umesto toga odigra potez.
+
+**Broj ostaje isti i nije bio problem.** `AnalysisLine.evaluation` je već jedan
+niz, formiran na dva mesta u `stockfish_service_native.dart` (`+0.40` / `M5`,
+fiksirano iz ugla belog), pa su `+0.4` i mat i pre ovoga čitali isto svuda.
+Razlika je bila u panelu oko broja, i to je ono što je ujednačeno.
+
+**Jedna prava razlika u formatu ipak postoji, i nije u panelima nego u stablu:**
+`visual_move_tree_widget.dart:_formatEval` sam izvodi niz iz sačuvanog `double`
+(mat kodiran kao ±(1000 − potezi do mata)). Ispisuje istu notaciju, ali je to
+druga implementacija nad drugim izvorom, pa se slaganje drži na sreću.
+Nije dirano — zabeleženo je kao sledeći kandidat.
+
+**Testovi:** deset novih (`test/stockfish_analysis_panel_test.dart`), 1213
+zelenih. Podeljeni na dve polovine, kao i odluka: šta je moralo da se promeni i
+šta je moralo da preživi. Provereno mutacijom — vraćanje starog reda sa
+prekidačem obara test za 360 dp, brisanje dubine po redu jedan, brisanje vrteške
+jedan, i gašenje dijaloga jedan.
+
+**Usput nađeno.** Red sa prekidačem „Prikaži evaluacionu liniju" prelazi ivicu
+na 360 dp. Isto je važilo i za staru verziju — tamo je natpis bio 13px umesto
+11px, uz širu ikonu — pa ovo nije uneto sada nego zatečeno. Natpisi su sada
+`Flexible` sa skraćivanjem, a prekidači `shrinkWrap`. U release buildu se takav
+red samo iseče, bez ijedne trake koja bi to rekla; u testu puca, i zato test
+postoji.
+
+Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103.
 
 ## Otvorena pitanja dizajna
 

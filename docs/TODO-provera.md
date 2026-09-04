@@ -3644,3 +3644,30 @@ Traži repertoar sa **bar dva račvanja** i nacrtima u obe grane — spina napis
    „N nepotvrđenih" mora da bude isti broj kao pre potvrđivanja minus potvrđeno.
 6. [ ] **Odsečena grana i dalje ćuti.** Odseći granu u kojoj ima nacrta, pa
    proći pregled do kraja: ništa iz nje se ne nudi na potvrdu.
+
+## 103. Panel motora ima jedan oblik — 4.9.2026, nije viđeno uživo
+
+Vlasnikova odluka od 4.9.2026: „Zadrži prekidač i dijalog, ujednači samo izgled
+panela." Menjan je jedan vidžet (`stockfish_analysis_widget.dart`), pa se isti
+panel vidi na tri mesta — i sva tri treba pogledati, jer se razlikuju po tome
+koja dugmad im je prosleđena.
+
+1. [ ] **Analysis Studio, AI Studio i soba imaju isti panel.** Otvoriti sva tri
+   i uporediti sa „Pitaj motor" u repertoaru: okvir sa ivicom (ne obojena
+   kartica), naslov „Motor", ispod njega jedan sitan red o tome koji motor
+   odgovara i da je ocena iz ugla belog.
+2. [ ] **Dubina je na svakom redu (`d20`), a ne u baneru iznad.** Banera
+   `Eval: +0.35 (depth: 20)` i naslova „Top 3 Linije" više nema.
+3. [ ] **Prekidač „Prikaži evaluaciju" i dalje pali i gasi motor**, na sva tri
+   ekrana. Ovo je izričito zadržano — nije zamenjeno dugmetom.
+4. [ ] **Dodir linije i dalje otvara pun pregled** (`EngineLineDialog`), a ne
+   odigrava potez. Takođe zadržano namerno.
+5. [ ] **„Ubaci liniju kao varijaciju" radi tamo gde ga ima.** Ikonica sa
+   račvom, na ekranima koji imaju stablo poteza.
+6. [ ] **Na telefonu (360 dp) ništa nije isečeno.** Naročito red „Prikaži
+   evaluacionu liniju" sa prekidačem — natpis sme da se skrati sa „…", ali ne
+   sme da nestane iza ivice. Isto proveriti sa uvećanim sistemskim fontom.
+7. [ ] **Vrteška se vrti dok motor ćuti i nestane kad stignu linije.** Ne sme da
+   se vrti dok je evaluacija ugašena.
+8. [ ] **Zaključan motor kaže „Zaključano od strane trenera"** i ništa ne
+   računa iza te poruke.
