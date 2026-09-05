@@ -635,6 +635,26 @@ Suite **1312 → 1323**. What is left for the batch is genuinely wiring: hand th
 current node's `arrows` and `squares` to the board the viewer already builds, and
 put the step's sentence in `SpeakableInfo`.
 
+**Phase 6b — worker. Briefed 5.9.2026, not yet launched.**
+
+* Gate: `chess_app/test/lesson_step_narration_test.dart`, **8 tests, written by
+  the lead and red on purpose** — seven of them. The eighth, „a step with no
+  line draws nothing", passes today because the screen draws nothing today; it
+  is a regression guard and the brief says so, because a gate with a test that
+  is green before the work starts teaches the next round to count wrong.
+* Brief and task: `docs/brief-interaktivna-lekcija-6-2026-09.md`,
+  `docs/TASK-interaktivna-lekcija-6.md`, both committed before the worktree is
+  cut so they are present in the tree the worker is given.
+* Floor: suite **1327 → 1334**, measured on the branch rather than quoted.
+* Allowance for the `strings` gate: the viewer only, and the brief says this
+  batch adds **no** new Serbian strings — the sentences belong to the trainer
+  and arrive as variables. The allowance exists because wrapping a `Text` in a
+  `SpeakableInfo` moves literals around inside a file and can duplicate one,
+  which this gate reads as an edit.
+* Scope boundary that matters more than usual: the board widget and the painter
+  are **read-only** for this batch. They are shared by every screen in the app,
+  and they were finished for this batch two commits earlier.
+
 **One thing the batch must not quietly fix:** the palette has no yellow.
 `ArrowColor` is R/O/G/B/P and `byId` falls back to grey, so a `[%csl Yd5]` — and
 Lichess writes those — draws a grey ring. That is a colour decision, not a

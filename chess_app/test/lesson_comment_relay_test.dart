@@ -88,4 +88,43 @@ void main() {
       expect(reread.mainLine().movesSan, ['e4', 'e5', 'Nf3']);
     });
   });
+
+  group('what the author wrote before the first move', () {
+    // The only place an arrow or a coloured square about a *still* position can
+    // live, and a still position is most of what an interactive lesson is:
+    // „look at d5" is a step with no moves in it. `parsePgn` has always
+    // attached a leading comment to the root; `mainLine()` dropped it on the
+    // way out, which was invisible while nothing read arrows or squares at all.
+    const pgn = '{ Slabo polje d5. [%csl Rd5] [%cal Gf3d5] } 1. e4 e5';
+
+    test('its words, its squares and its arrows all survive the flattening',
+        () {
+      final line = MoveTree.parsePgn(pgn, startingFen: _startFen)!.mainLine();
+
+      expect(line.rootComment, 'Slabo polje d5.');
+      expect(line.rootSquares.single.square, 'd5');
+      expect(line.rootSquares.single.colorCode, 'R');
+      expect(line.rootArrows.single.toString(), 'Gf3d5');
+    });
+
+    test('and it is not confused with the first move’s own note', () {
+      final line = MoveTree.parsePgn(pgn, startingFen: _startFen)!.mainLine();
+
+      // The root's note belongs to `fens[0]`, not to `e4`. Folding the two
+      // together would make the trainer appear to have written about a move
+      // they wrote about a position.
+      expect(line.comments, ['', '']);
+      expect(line.squares, [[], []]);
+      expect(line.arrows, [[], []]);
+    });
+
+    test('a line with no leading comment says so with empties', () {
+      final line =
+          MoveTree.parsePgn('1. e4 e5', startingFen: _startFen)!.mainLine();
+
+      expect(line.rootComment, '');
+      expect(line.rootSquares, isEmpty);
+      expect(line.rootArrows, isEmpty);
+    });
+  });
 }

@@ -80,12 +80,33 @@ class PgnLine {
   final List<List<ChessArrow>> arrows;
   final List<List<SquareMark>> squares;
 
+  /// What the author wrote **before the first move**, about the position the
+  /// line starts from.
+  ///
+  /// PGN puts it in a comment ahead of move one, and `parsePgn` has always
+  /// attached it to the root — `mainLine()` simply did not carry it out, so it
+  /// was parsed and then dropped one call later. That was invisible while
+  /// nothing read arrows or squares at all.
+  ///
+  /// It is the only place an arrow or a coloured square about a *still*
+  /// position can live, and a still position is most of what an interactive
+  /// lesson is: „look at d5" is a step with no moves in it. Kept as three
+  /// fields rather than by making the per-move lists one longer, because
+  /// [fens] is already the odd one out at n+1 and a second list with a
+  /// different length to its neighbours is how an off-by-one gets written.
+  final String rootComment;
+  final List<ChessArrow> rootArrows;
+  final List<SquareMark> rootSquares;
+
   const PgnLine({
     required this.fens,
     required this.movesSan,
     required this.comments,
     required this.arrows,
     required this.squares,
+    this.rootComment = '',
+    this.rootArrows = const [],
+    this.rootSquares = const [],
   });
 
   bool get isEmpty => movesSan.isEmpty;
@@ -308,6 +329,9 @@ class MoveTree {
       comments: comments,
       arrows: arrows,
       squares: squares,
+      rootComment: root.comment,
+      rootArrows: root.arrows,
+      rootSquares: root.squares,
     );
   }
 
