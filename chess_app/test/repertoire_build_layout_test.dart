@@ -665,6 +665,92 @@ void main() {
     expect(api.bookReads.last, judge.lastAsked);
   });
 
+  group('the board does not scroll away from its own question', () {
+    // Reported live 5.9.2026: „tabla sa navigacionom paletom ispod se
+    // skrolovanjem ne vidi, treba da bude statična, a da se pomera samo ono
+    // što je ispod". Reading the answer used to scroll the board off the top.
+    for (final size in const [
+      Size(360, 640),
+      Size(360, 740),
+      Size(900, 800),
+    ]) {
+      testWidgets(
+          'board and palette stay inside the viewport at '
+          '${size.width}x${size.height}', (tester) async {
+        await pump(tester, size);
+
+        // An overflowing Row or Column throws in a test build and is silently
+        // clipped in a release one, which is why this is asserted rather than
+        // looked at.
+        expect(tester.takeException(), isNull);
+
+        final board = tester.getRect(find.byType(ChessBoardWithOverlay));
+        expect(board.top, greaterThanOrEqualTo(0.0));
+        expect(board.bottom, lessThanOrEqualTo(size.height));
+
+        final palette = tester.getRect(find.byType(MoveNavigationControls));
+        expect(palette.bottom, lessThanOrEqualTo(size.height),
+            reason: 'paleta ispod table mora da stane na ekran');
+      });
+    }
+
+    testWidgets('scrolling the part below moves it and leaves the board',
+        (tester) async {
+      await pump(tester, const Size(360, 640));
+
+      final boardBefore = tester.getRect(find.byType(ChessBoardWithOverlay));
+      // A widget that lives *below* the split, so the drag is proved to have
+      // scrolled something. Without this the board standing still would also
+      // pass on a screen that simply does not scroll.
+      final stripBefore = tester.getRect(find.byType(RepertoireLineStrip));
+
+      // The scrollable the strip actually lives in, rather than a point on the
+      // screen: a drag aimed by coordinate landed on the strip itself and moved
+      // nothing, which made the board standing still prove nothing.
+      final scroller = find
+          .ancestor(
+              of: find.byType(RepertoireLineStrip),
+              matching: find.byType(Scrollable))
+          .first;
+      await tester.drag(scroller, const Offset(0, -160));
+      await tester.pump();
+
+      expect(tester.getRect(find.byType(RepertoireLineStrip)).top,
+          lessThan(stripBefore.top),
+          reason: 'ispod table ništa se nije pomerilo — potez nije skrolovao');
+      expect(tester.getRect(find.byType(ChessBoardWithOverlay)), boardBefore,
+          reason: 'tabla se pomerila sa ostatkom');
+    });
+
+    testWidgets('a short screen shrinks the board rather than the question',
+        (tester) async {
+      // The height rule only bites here. On an ordinary 360x640 phone the width
+      // rule caps the board at 336 anyway, so a test there passes with the
+      // height clamp deleted — which is a test that proves nothing. At 360x480
+      // width alone would ask for 336, the banners and palette take another
+      // ~114, and the region below would be a few pixels high.
+      await pump(tester, const Size(360, 480));
+
+      expect(tester.takeException(), isNull);
+      final board = tester.getRect(find.byType(ChessBoardWithOverlay));
+      expect(board.bottom, lessThanOrEqualTo(480.0));
+      final palette = tester.getRect(find.byType(MoveNavigationControls));
+      expect(480.0 - palette.bottom, greaterThan(60.0),
+          reason: 'na niskom ekranu ispod palete nije ostalo ništa');
+    });
+
+    testWidgets('there is something left to scroll', (tester) async {
+      // The failure this exists for: a board sized by width alone, pinned,
+      // fills the screen and leaves the region under it a few pixels high — so
+      // nothing is clipped and nothing is reachable either.
+      await pump(tester, const Size(360, 640));
+
+      final palette = tester.getRect(find.byType(MoveNavigationControls));
+      expect(640.0 - palette.bottom, greaterThan(80.0),
+          reason: 'ispod table i palete nije ostalo šta da se skroluje');
+    });
+  });
+
   group('the drawing is asked to reach the reader', () {
     testWidgets('the tree read carries the line the board is standing on',
         (tester) async {
@@ -712,9 +798,14 @@ void main() {
       await pumpBanner(tester, 360);
 
       expect(tester.takeException(), isNull, reason: 'preliv na telefonu');
-      final sentence = tester.getTopLeft(find.text('4 nepotvrđenih u grafu'));
+      // The property is that they are stacked, not that a particular gap is a
+      // particular size. The old form asserted `sentence.dy + 30`, which is a
+      // proxy for the row's height — and it broke the day the banner was
+      // compacted from 134 px to 66, saying nothing about whether the button
+      // had moved. Below the sentence's *bottom* is the thing that was meant.
+      final sentence = tester.getRect(find.text('4 nepotvrđenih u grafu'));
       final button = tester.getTopLeft(find.text('Pregledaj nepotvrđene'));
-      expect(button.dy, greaterThan(sentence.dy + 30),
+      expect(button.dy, greaterThan(sentence.bottom),
           reason: 'na telefonu dugme ide ispod rečenice');
     });
 

@@ -2638,8 +2638,40 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// a phone layout wearing a desktop. Wide, it grows — but never past what the
   /// height allows, or the question below it goes off the bottom, which is the
   /// one thing worse than a small board.
+  /// How much of a phone's height the board may take.
+  ///
+  /// **Derived rather than tuned.** The rest of the column carries the two
+  /// banners (66 px measured 5.9.2026), the navigation palette (~48) and the
+  /// paddings (~24) — call it 138 — and the region under them has to be worth
+  /// scrolling, which is about 100 px. On the shortest screen worth supporting,
+  /// 480, that leaves 480 − 138 − 100 = 242, and 242/480 is very close to a
+  /// half.
+  ///
+  /// A half also bites gently on an ordinary phone: 320 px at 360x640 against
+  /// the 336 the width rule asks for. Sixteen pixels of board bought a hundred
+  /// under it, which is the trade the owner asked for in the first place.
+  static const double _phoneBoardShare = 0.50;
+
   double _boardSize(BoxConstraints constraints, bool wide) {
-    if (!wide) return (constraints.maxWidth - 24).clamp(200.0, 420.0);
+    if (!wide) {
+      final byWidth = (constraints.maxWidth - 24).clamp(200.0, 420.0);
+      if (!constraints.maxHeight.isFinite) return byWidth;
+      // ...and never more of the window's height than this, so the banners and
+      // the strip above and below it, and something of the question under them,
+      // all still fit on a short screen. Since 5.9.2026 the board does not
+      // scroll away, and a board sized by width alone would either clip or
+      // leave nothing under it to scroll.
+      //
+      // **A share rather than the header's measured height, deliberately.**
+      // Subtracting a hand-assembled sum of the banners' padding and the
+      // strip's height is exact for one afternoon and silently wrong the first
+      // time either changes — and it changed on the same day, when the banner
+      // was compacted from 134 px to 66. A share cannot rot that way: it is
+      // wrong by a few pixels always, rather than right until somebody edits a
+      // widget it never mentions.
+      final byHeight = constraints.maxHeight * _phoneBoardShare;
+      return byHeight < byWidth ? byHeight.clamp(200.0, 420.0) : byWidth;
+    }
     final byWidth = (constraints.maxWidth * 0.42).clamp(420.0, 620.0) - 24;
     final byHeight =
         constraints.maxHeight.isFinite ? constraints.maxHeight - 280 : byWidth;
@@ -2697,132 +2729,168 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   Widget _buildBoardColumn(BuildContext context, double boardSize,
       {bool commentBeside = false}) {
     final active = _activeNode;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (_current != null)
-            // Deliberately unkeyed. A key that changes as the walk advances
-            // destroys the banner's State, and its State is the carried
-            // name — the whole point of the last-named rule. Opening another
-            // repertoire pushes a new screen, so there is nothing a key here
-            // could reset that is not reset already.
-            OpeningBanner(
-              fen: _standingAfter?.fen ?? _current!,
-              lookup: widget.openingLookup,
-            ),
-          if (_frontier != null && _frontier!.draft > 0)
-            UnconfirmedBanner(
-              total: _frontier!.draft,
-              // The walk is re-read when the review closes. Its number is a
-              // snapshot taken when the screen opened, and the review is the
-              // one thing on this screen that changes it — so without this the
-              // banner advertises drafts the wizard then says do not exist.
-              onOpenWizard: _reviewDrafts,
-            ),
-          Center(
-            child: BoardWithCoordinates(
-              size: boardSize,
-              orientation: _forWhite ? PlayerColor.white : PlayerColor.black,
-              builder: (inner) => ChessBoardWithOverlay(
-                controller: _boardController,
-                boardOrientation:
-                    _forWhite ? PlayerColor.white : PlayerColor.black,
-                boardSize: inner,
-                // Nothing to play while the answers are up: the board is
-                // showing a position it is the opponent's turn in, and a
-                // move dragged there would be judged as the student's own.
-                isAllowedToMove:
-                    !_busy && _proposalUci == null && !_afterMyMove,
-                isDrawingMode: false,
-                drawingStartSquare: null,
-                arrows: const [],
-                lastMoveFrom: _lastMoveFrom,
-                lastMoveTo: _lastMoveTo,
-                // The engine's answer, on the board rather than only in a
-                // list underneath it: one arrow per line, its evaluation
-                // written beside it. Reading a move as "Nxd4" and finding
-                // it on the board is work a beginner should not have to do
-                // to see what the engine means.
-                engineArrows: _boardArrows(),
-                onMove: _onMove,
-                onSquareTapForDrawing: (_) {},
+    // The board does not scroll away from the question about it.
+    //
+    // Reported live 5.9.2026: „tabla sa navigacionom paletom ispod se
+    // skrolovanjem ne vidi, treba da bude statična, a da se pomera samo ono što
+    // je ispod". Reading the answer used to scroll the board off the top, and
+    // the board is the thing the answer is about.
+    //
+    // So: the banners, the board and the strip that walks it are a header that
+    // stays, and everything a reader scrolls *to* — the comment, the question,
+    // the answers, the verdict, the book — moves under it.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(
+            left: AppSpacing.md,
+            right: AppSpacing.md,
+            top: AppSpacing.md,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_current != null)
+                // Deliberately unkeyed. A key that changes as the walk advances
+                // destroys the banner's State, and its State is the carried
+                // name — the whole point of the last-named rule. Opening another
+                // repertoire pushes a new screen, so there is nothing a key here
+                // could reset that is not reset already.
+                OpeningBanner(
+                  fen: _standingAfter?.fen ?? _current!,
+                  lookup: widget.openingLookup,
+                ),
+              if (_frontier != null && _frontier!.draft > 0)
+                UnconfirmedBanner(
+                  total: _frontier!.draft,
+                  // The walk is re-read when the review closes. Its number is a
+                  // snapshot taken when the screen opened, and the review is the
+                  // one thing on this screen that changes it — so without this the
+                  // banner advertises drafts the wizard then says do not exist.
+                  onOpenWizard: _reviewDrafts,
+                ),
+              Center(
+                child: BoardWithCoordinates(
+                  size: boardSize,
+                  orientation:
+                      _forWhite ? PlayerColor.white : PlayerColor.black,
+                  builder: (inner) => ChessBoardWithOverlay(
+                    controller: _boardController,
+                    boardOrientation:
+                        _forWhite ? PlayerColor.white : PlayerColor.black,
+                    boardSize: inner,
+                    // Nothing to play while the answers are up: the board is
+                    // showing a position it is the opponent's turn in, and a
+                    // move dragged there would be judged as the student's own.
+                    isAllowedToMove:
+                        !_busy && _proposalUci == null && !_afterMyMove,
+                    isDrawingMode: false,
+                    drawingStartSquare: null,
+                    arrows: const [],
+                    lastMoveFrom: _lastMoveFrom,
+                    lastMoveTo: _lastMoveTo,
+                    // The engine's answer, on the board rather than only in a
+                    // list underneath it: one arrow per line, its evaluation
+                    // written beside it. Reading a move as "Nxd4" and finding
+                    // it on the board is work a beginner should not have to do
+                    // to see what the engine means.
+                    engineArrows: _boardArrows(),
+                    onMove: _onMove,
+                    onSquareTapForDrawing: (_) {},
+                  ),
+                ),
               ),
+              // The palette first, then the strip: one walks the line, the
+              // other shows what branches off it.
+              _buildNavigation(context),
+            ],
+          ),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(
+              left: AppSpacing.md,
+              right: AppSpacing.md,
+              bottom: AppSpacing.md,
+              top: AppSpacing.xs,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Where you came from, where you are, and what comes next. The
+                // part of the tree you need while answering a position, and the
+                // only part readable at 360 dp — where the canvas below is one
+                // scroll away rather than the thing you read.
+                if (active != null) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  RepertoireLineStrip(active: active, onSelect: _jumpTo),
+                ],
+                // Under the board where there is no third column for it, and nothing
+                // at all when nothing has been written. Above the question on
+                // purpose: it is about the board, and the question is about what to
+                // do next.
+                if (!commentBeside) _buildComment(context, dense: true),
+                const SizedBox(height: AppSpacing.md),
+                _buildQuestion(context),
+                const SizedBox(height: AppSpacing.sm),
+                // One thing at a time. While the opponent's answers are on the
+                // board, the verdict, the kept moves, the engine and the book all
+                // belong to a position that is no longer the one being shown.
+                if (_answers != null) _buildAnswers(context, _answers!),
+                if (!_afterMyMove && _proposalSan != null)
+                  _buildVerdict(context),
+                if (!_afterMyMove && _kept.isNotEmpty) _buildKept(context),
+                // **One** statistics panel, and it is the one for the side to move
+                // on the board. Two of them were on screen at once — what is played
+                // here, and what the opponent answers the main move with — which is
+                // two lists about two different positions stacked under one board.
+                // The second is now where it belongs: one step forward, on the
+                // position it is actually about.
+                if (_answers == null)
+                  _standingAfter == null
+                      ? _buildHereBook(context)
+                      : _buildStoredReplies(context),
+                // Open once the engine has been asked about *this* position —
+                // including when it came back with nothing, because that is
+                // exactly when the reader wants the depth dial and another go —
+                // and whenever there is a stored evaluation to show, which is the
+                // whole point of storing one.
+                if (!_afterMyMove &&
+                    (_thinking || _linesFen == _current || _noteHere != null))
+                  _buildEngine(context),
+                if (_note != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  // Read aloud, like the same sentence is on the finished screen.
+                  //
+                  // This is where „Dodate 2 pozicije" and „Grana je odsečena — sa
+                  // njom je iz reda izašla još 1 pozicija" land, and it was a plain
+                  // grey caption: the one line saying what the button just did was
+                  // the one line nobody heard. Reported live 4.9.2026, twice, as the
+                  // plurals being silent — they were written and they were shown,
+                  // and the panel around them could not speak.
+                  SpeakableInfo(
+                    text: _note!,
+                    autoSpeak: true,
+                    child: Text(_note!,
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted)),
+                  ),
+                ],
+                const SizedBox(height: AppSpacing.md),
+                _buildControls(context),
+                // Narrow: under the controls rather than beside them, and never a
+                // navigation away. The panel caps its own height, so it sits in
+                // this scroll view without eating the board.
+                if (!Breakpoints.isWide(context)) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildTree(context),
+                ],
+              ],
             ),
           ),
-          // The palette first, then the strip: one walks the line, the other
-          // shows what branches off it.
-          _buildNavigation(context),
-          // Where you came from, where you are, and what comes next. The
-          // part of the tree you need while answering a position, and the
-          // only part readable at 360 dp — where the canvas below is one
-          // scroll away rather than the thing you read.
-          if (active != null) ...[
-            const SizedBox(height: AppSpacing.xxs),
-            RepertoireLineStrip(active: active, onSelect: _jumpTo),
-          ],
-          // Under the board where there is no third column for it, and nothing
-          // at all when nothing has been written. Above the question on
-          // purpose: it is about the board, and the question is about what to
-          // do next.
-          if (!commentBeside) _buildComment(context, dense: true),
-          const SizedBox(height: AppSpacing.md),
-          _buildQuestion(context),
-          const SizedBox(height: AppSpacing.sm),
-          // One thing at a time. While the opponent's answers are on the
-          // board, the verdict, the kept moves, the engine and the book all
-          // belong to a position that is no longer the one being shown.
-          if (_answers != null) _buildAnswers(context, _answers!),
-          if (!_afterMyMove && _proposalSan != null) _buildVerdict(context),
-          if (!_afterMyMove && _kept.isNotEmpty) _buildKept(context),
-          // **One** statistics panel, and it is the one for the side to move
-          // on the board. Two of them were on screen at once — what is played
-          // here, and what the opponent answers the main move with — which is
-          // two lists about two different positions stacked under one board.
-          // The second is now where it belongs: one step forward, on the
-          // position it is actually about.
-          if (_answers == null)
-            _standingAfter == null
-                ? _buildHereBook(context)
-                : _buildStoredReplies(context),
-          // Open once the engine has been asked about *this* position —
-          // including when it came back with nothing, because that is
-          // exactly when the reader wants the depth dial and another go —
-          // and whenever there is a stored evaluation to show, which is the
-          // whole point of storing one.
-          if (!_afterMyMove &&
-              (_thinking || _linesFen == _current || _noteHere != null))
-            _buildEngine(context),
-          if (_note != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            // Read aloud, like the same sentence is on the finished screen.
-            //
-            // This is where „Dodate 2 pozicije" and „Grana je odsečena — sa
-            // njom je iz reda izašla još 1 pozicija" land, and it was a plain
-            // grey caption: the one line saying what the button just did was
-            // the one line nobody heard. Reported live 4.9.2026, twice, as the
-            // plurals being silent — they were written and they were shown,
-            // and the panel around them could not speak.
-            SpeakableInfo(
-              text: _note!,
-              autoSpeak: true,
-              child: Text(_note!,
-                  style: AppText.caption
-                      .copyWith(color: context.colors.textMuted)),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.md),
-          _buildControls(context),
-          // Narrow: under the controls rather than beside them, and never a
-          // navigation away. The panel caps its own height, so it sits in
-          // this scroll view without eating the board.
-          if (!Breakpoints.isWide(context)) ...[
-            const SizedBox(height: AppSpacing.lg),
-            _buildTree(context),
-          ],
-        ],
-      ),
+        ),
+      ],
     );
   }
 

@@ -28,9 +28,9 @@ class UnconfirmedBanner extends StatelessWidget {
     if (total == 0) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+          horizontal: AppSpacing.md, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
         color: context.colors.warning.withValues(alpha: 0.1),
         border:
@@ -53,9 +53,20 @@ class UnconfirmedBanner extends StatelessWidget {
         // One sentence, not two copies of it: `SpeakableInfo` draws the text
         // itself when it is handed a style, so what is spoken cannot drift
         // from what is shown by somebody editing one of them.
-        final sentence = SpeakableInfo(
-          text: '$total nepotvrđenih u grafu',
-          style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
+        final sentence = Theme(
+          data: Theme.of(context).copyWith(
+            iconButtonTheme: IconButtonThemeData(
+              style: IconButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ),
+          child: SpeakableInfo(
+            text: '$total nepotvrđenih u grafu',
+            style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
+          ),
         );
         // Outlined rather than filled. A filled warning button needs `canvas`
         // for its label, and `canvas` measures 1.51:1 against the tint behind
@@ -70,6 +81,9 @@ class UnconfirmedBanner extends StatelessWidget {
             foregroundColor: context.colors.textPrimary,
             side: BorderSide(color: context.colors.warning),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            visualDensity: VisualDensity.compact,
+            minimumSize: const Size(64, 32),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           child: const Text('Pregledaj nepotvrđene'),
         );
@@ -85,7 +99,7 @@ class UnconfirmedBanner extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(child: sentence),
               ]),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.xs),
               button,
             ],
           );
