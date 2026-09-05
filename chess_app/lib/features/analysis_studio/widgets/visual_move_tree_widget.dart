@@ -107,12 +107,23 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
   static const double _minScale = 0.3;
   static const double _maxScale = 2.5;
 
+  /// How close the active card may come to the edge before the view follows
+  /// it, in **logical pixels of the viewport** — never a fraction of the
+  /// canvas, which grows as the tree grows and would mean a different margin
+  /// every session.
+  ///
+  /// A card is 124 x 40, so 48 is a card height and a little: when the rule
+  /// does fire, the card lands with roughly a card's worth of room between it
+  /// and the edge — enough to see the edge that joins it to its parent, which
+  /// is what tells the reader where they are.
+  static const double _edgeMargin = 48.0;
+
   final TransformationController _transformController =
       TransformationController();
   final FocusNode _focusNode = FocusNode(debugLabel: 'VisualMoveTreeWidget');
   bool _isHorizontal = false;
   Size _viewportSize = Size.zero;
-  String? _lastCenteredNodeId;
+  String? _lastFollowedNodeId;
 
   // Auto-player: steps through every node the tree shows, in the same order
   // they are laid out —
@@ -397,6 +408,57 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     _transformController.value = matrix;
   }
 
+  void _ensureActiveVisible(List<_PositionedNode> positioned) {
+    if (_viewportSize == Size.zero) return;
+    _PositionedNode? activePos;
+    for (final pn in positioned) {
+      if (pn.node.id == widget.activeNode.id) {
+        activePos = pn;
+        break;
+      }
+    }
+    if (activePos == null) return;
+
+    final matrix = _transformController.value;
+    final cardRect = Rect.fromLTWH(
+        activePos.x, activePos.y, activePos.width, activePos.height);
+
+    final topLeft = MatrixUtils.transformPoint(matrix, cardRect.topLeft);
+    final bottomRight =
+        MatrixUtils.transformPoint(matrix, cardRect.bottomRight);
+    final projectedCard = Rect.fromPoints(topLeft, bottomRight);
+
+    final viewportRect = Offset.zero & _viewportSize;
+    final deflatedViewport = viewportRect.deflate(_edgeMargin);
+
+    if (deflatedViewport.contains(projectedCard.topLeft) &&
+        deflatedViewport.contains(projectedCard.bottomRight)) {
+      return;
+    }
+
+    double dx = 0.0;
+    if (projectedCard.left < deflatedViewport.left) {
+      dx = deflatedViewport.left - projectedCard.left;
+    } else if (projectedCard.right > deflatedViewport.right) {
+      dx = deflatedViewport.right - projectedCard.right;
+    }
+
+    double dy = 0.0;
+    if (projectedCard.top < deflatedViewport.top) {
+      dy = deflatedViewport.top - projectedCard.top;
+    } else if (projectedCard.bottom > deflatedViewport.bottom) {
+      dy = deflatedViewport.bottom - projectedCard.bottom;
+    }
+
+    if (dx == 0.0 && dy == 0.0) return;
+
+    final updated = matrix.clone();
+    updated[12] += dx;
+    updated[13] += dy;
+
+    _transformController.value = updated;
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<_PositionedNode> positioned = [];
@@ -421,10 +483,10 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     final canvasWidth = maxRight + 20.0;
     final canvasHeight = maxBottom + 20.0;
 
-    if (_lastCenteredNodeId != widget.activeNode.id) {
-      _lastCenteredNodeId = widget.activeNode.id;
+    if (_lastFollowedNodeId != widget.activeNode.id) {
+      _lastFollowedNodeId = widget.activeNode.id;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _centerOnActive(positioned);
+        if (mounted) _ensureActiveVisible(positioned);
       });
     }
 
