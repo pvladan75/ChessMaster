@@ -247,6 +247,25 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// holds it to exactly one.
   final GlobalKey _openingKey = GlobalKey();
 
+  /// The drawing's identity, for the same reason and against a worse loss.
+  ///
+  /// The tree has two homes as well — its own column beside the board on a
+  /// wide window, under the controls on a narrow one — and its `State` holds
+  /// what the reader set by hand: the `TransformationController`'s zoom and
+  /// pan, the graph/notation switch, the layout direction. A widget that
+  /// changes parent gets a new `State`, so crossing 840 dp threw all of it
+  /// away and the picture snapped back to 1.0. Measured twice on 5.9.2026:
+  /// 1,5625 -> 1,0. On Windows that crossing is dragging a window edge, and
+  /// „aplikacija nikad ne menja sama zum" (5.9.2026) forbids exactly this.
+  ///
+  /// Made once and never changed, like `_openingKey`, and for the same reason:
+  /// a key that changes as the walk advances would throw the `State` away on
+  /// every move, which is the opposite of what this is for. The two homes are
+  /// therefore mutually exclusive by construction — `_buildBody`'s
+  /// `LayoutBuilder` decides once and hands the answer down as `treeBelow` —
+  /// because a `GlobalKey` drawn in two places at once throws.
+  final GlobalKey _treeKey = GlobalKey();
+
   /// How many drafts the banner would advertise, wherever it is drawn.
   ///
   /// One reading, because the banner now has two homes — the app bar on a wide
@@ -2741,7 +2760,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         // desktop window the space it does not use was empty.
         final wide = constraints.maxWidth >= Breakpoints.wide;
         if (!wide) {
-          return _buildBoardColumn(context, _boardSize(constraints, wide));
+          return _buildBoardColumn(context, _boardSize(constraints, wide),
+              treeBelow: true);
         }
         // Wide enough for two: the board and its question on the left, the
         // picture on the right. The left column is the board plus its padding
@@ -2856,6 +2876,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final active = _activeNode;
     if (root == null || active == null) return const SizedBox.shrink();
     return RepertoireTreePanel(
+      key: _treeKey,
       root: root,
       active: active,
       nodeLook: (node) => _looks[node.id],
@@ -2902,7 +2923,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// [commentBeside] says the comment has a column of its own, so it is not
   /// drawn a second time here — one comment, in one place, whatever the width.
   Widget _buildBoardColumn(BuildContext context, double boardSize,
-      {bool commentBeside = false}) {
+      {bool commentBeside = false, bool treeBelow = false}) {
     final active = _activeNode;
     // The board does not scroll away from the question about it.
     //
@@ -3059,7 +3080,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                 // Narrow: under the controls rather than beside them, and never a
                 // navigation away. The panel caps its own height, so it sits in
                 // this scroll view without eating the board.
-                if (!Breakpoints.isWide(context)) ...[
+                //
+                // Whether it is here is the body's decision, handed down —
+                // not `Breakpoints.isWide` asked a second time. The drawing
+                // carries `_treeKey`, and two of it on screen at once throws;
+                // one `LayoutBuilder` answering once cannot disagree with
+                // itself the way two readings of the width can.
+                if (treeBelow) ...[
                   const SizedBox(height: AppSpacing.lg),
                   _buildTree(context),
                 ],

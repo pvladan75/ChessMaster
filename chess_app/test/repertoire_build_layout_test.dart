@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
+import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
@@ -839,6 +840,77 @@ void main() {
       expect(tester.getRect(find.byType(UnconfirmedBanner)).top,
           greaterThan(kToolbarHeight),
           reason: 'baner je u zaglavlju gde za njega nema mesta');
+    });
+  });
+
+  group('the drawing keeps what the reader set by hand', () {
+    // Reported live 5.9.2026: „zum mi se resetuje kad promenim veličinu
+    // prozora". The tree has two homes across `Breakpoints.wide` (840) — its
+    // own column beside the board, and under the controls — and a widget that
+    // changes parent gets a new `State`, so its `TransformationController`
+    // went back to the identity matrix. Measured then: 1,5625 -> 1,0.
+    //
+    // The rule it breaks is unconditional: „aplikacija nikad ne menja sama
+    // zum". This asserts the scale rather than the pan, because crossing does
+    // legitimately move the view — a narrower viewport can put the active card
+    // at an edge, and `_ensureActiveVisible` translates. It never scales.
+    double scaleOf(WidgetTester tester) {
+      final viewer = tester.widget<InteractiveViewer>(find.descendant(
+        of: find.byType(VisualMoveTreeWidget),
+        matching: find.byType(InteractiveViewer),
+      ));
+      return viewer.transformationController!.value.getMaxScaleOnAxis();
+    }
+
+    testWidgets('the zoom survives crossing the breakpoint', (tester) async {
+      await pump(tester, const Size(1000, 900));
+      expect(find.byType(VisualMoveTreeWidget), findsOneWidget);
+
+      // What the reader's pinch or scroll wheel does, done directly: the
+      // widget's own `_zoomBy` writes this same controller.
+      final viewer = tester.widget<InteractiveViewer>(find.descendant(
+        of: find.byType(VisualMoveTreeWidget),
+        matching: find.byType(InteractiveViewer),
+      ));
+      viewer.transformationController!.value = Matrix4.identity()
+        ..scaleByDouble(1.5625, 1.5625, 1, 1);
+      await tester.pumpAndSettle();
+      expect(scaleOf(tester), closeTo(1.5625, 0.0001),
+          reason: 'zum nije ni postavljen, pa prelazak ništa ne dokazuje');
+
+      // Same screen, resized across 840 rather than rebuilt — which is what
+      // dragging a window edge on Windows is.
+      tester.view.physicalSize = const Size(800, 900);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(VisualMoveTreeWidget), findsOneWidget);
+      expect(scaleOf(tester), closeTo(1.5625, 0.0001),
+          reason: 'zum je resetovan pri prelasku praga');
+
+      // And back, because a window edge is dragged in both directions.
+      tester.view.physicalSize = const Size(1000, 900);
+      await tester.pumpAndSettle();
+      expect(scaleOf(tester), closeTo(1.5625, 0.0001),
+          reason: 'zum je resetovan pri povratku preko praga');
+    });
+
+    testWidgets('and it is drawn exactly once at every width', (tester) async {
+      // `_treeKey` in two places at once throws, so the two homes have to be
+      // mutually exclusive at every width — including the ones where the body's
+      // `LayoutBuilder` and a second reading of `MediaQuery` could disagree.
+      for (final size in const [
+        Size(360, 640),
+        Size(800, 900),
+        Size(840, 900),
+        Size(1000, 900),
+        Size(1400, 900),
+      ]) {
+        await pump(tester, size);
+        expect(tester.takeException(), isNull, reason: 'na $size');
+        expect(find.byType(VisualMoveTreeWidget), findsOneWidget,
+            reason: 'crtež nije tačno jednom na $size');
+      }
     });
   });
 

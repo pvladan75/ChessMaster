@@ -3842,12 +3842,36 @@ dva-tri puta.
 34. [ ] **Isto u Analizi, ne samo u repertoaru.** Otvori Analysis Studio,
     uzumiraj stablo i prođi partiju strelicama.
 
-**Ono što ova faza NIJE popravila, i ne treba da te zbuni pri proveri:** na
-Windowsu **promena širine prozora preko 840 px i dalje vraća zum na 100%.**
-Izmereno dva puta 5.9.2026 (1,5625 → 1,0): stablo se pri tom pragu crta na
-drugom mestu u rasporedu, dobija novo stanje i sa njim nov kontroler pogleda.
-To je zaseban posao u `repertoire_build_screen.dart` i ima svoju stavku. Ako
-ti se zum resetuje, prvo proveri da nisi u tom trenutku menjao veličinu prozora.
+**Ono što ova faza nije popravila, popravljeno je istog dana i ima svoj deo:**
+promena širine prozora preko 840 px vraćala je zum na 100% (izmereno dva puta
+5.9.2026, 1,5625 → 1,0). To je **deo H** ispod.
+
+### H. Zum i pogled prežive promenu veličine prozora (5.9.2026)
+
+Isti vlasnikov zahtev kao G — „aplikacija nikad ne menja sama zum" — ali drugi
+uzrok, i zato zaseban deo. Stablo se u gradnji repertoara crta na dva mesta:
+pored table na širokom prozoru, ispod kontrola na uskom, a granica je 840 dp.
+Vidžet koji se pri prelasku premesti dobijao je **novo stanje**, pa nov
+kontroler pogleda, pa zum 1,0. Sada nosi stalan ključ, kao i baner sa imenom
+otvaranja, pa isto stanje preživi selidbu.
+
+**Ovo se vidi samo na Windowsu** (i na desktopu uopšte) — telefon ne menja
+širinu prozora.
+
+35. [ ] **Uzumiraj stablo, pa vuci desnu ivicu prozora preko 840 dp gore-dole.**
+    Veličina kartica ostaje ista i posle prelaska, u oba smera. Ranije se
+    vraćala na 100%.
+36. [ ] **I pomeraj (pan) ostaje.** Odvuci crtež u stranu pre prelaska; posle
+    prelaska si na istom delu stabla. Izuzetak koji je u redu: ako se aktivna
+    kartica u užem prozoru nađe uz ivicu, crtež se pomeri **tek toliko** da uđe
+    unutra — to je pravilo iz dela G, ne resetovanje.
+37. [ ] **Prekidač „graf / notacija" ostaje kako si ga ostavio.** Prebaci na
+    notaciju, pa pređi prag: i dalje je notacija.
+38. [ ] **Stablo je na ekranu tačno jednom pri svakoj širini.** Vuci ivicu polako
+    kroz 840 dp: nema trenutka u kome se vide dva crteža, i nema crvenog ekrana
+    sa greškom.
+39. [ ] **Ime otvaranja i dalje preživi svoj prag (1200 dp)** — deo F, stavka 28.
+    Ova izmena je istog oblika i ne sme da ga pokvari.
 
 ### B. Lepeza neodgovorenih odgovora u turi (faza 4)
 

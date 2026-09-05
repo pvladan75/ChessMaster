@@ -620,14 +620,25 @@ desktopu, i oba banera u zaglavlju).
 | D | šansa linije i pogled na jednu granu | čeka |
 | E | prostor ispod table | **potvrđeno na desktopu**, telefon čeka |
 | F | oba banera u zaglavlju iznad 1200 dp | čeka |
+| G | stablo ne pomera pogled samo od sebe | čeka |
+| H | zum preživi promenu veličine prozora | čeka |
+
+**Urađeno posle ovog reda, istog dana:** zum i pogled u stablu sada preživljavaju
+promenu širine prozora preko 840 dp (`_treeKey`) — poslednje što je od
+vlasnikovih prijava od 4.9–5.9.2026 ostajalo neurađeno u kodu. Detalji i cena su
+u sekciji ispod, stavka 3; provera je 104-H.
 
 **Prvo pitanje za sledeći put:** proći 104 od početka. Dve stvari u njoj su
 odluke a ne provere, i vlasnik ih jedini može doneti — dugme banera je sada 32 px
 visoko umesto 48 (deo C, stavka 13), a u zaglavlju uz „N nepotvrđenih" nema
 zvučnika (deo F, stavka 29).
 
-**Brojke na kraju dana:** Flutter 1234 (1 preskočen), backend 886, `flutter
-analyze` istih 29 poznatih `info` stavki.
+**Brojke na kraju dana:** Flutter **1241** (1 preskočen), backend 886, `flutter
+analyze` istih 29 poznatih `info` stavki. Broj 1234 koji je ovde stajao ranije
+tog dana bio je zastareo za pet — izmeren je pre nego što su poslednje faze
+spojene, pa je prag bio niži od suite-a i pad od pet testova bi prošao
+neprimećen. Izmereno na `master`-u pre današnje izmene: 1239, i 1241 sa dva
+testa koje ona donosi.
 
 **Radna stabla:** `mislisha-batch-b` je odrađen i spojen. **`mislisha-batch-a`
 drži odbačeni posao** — worker je uradio baner (uzet) i fiksnu tablu (odbijena:
@@ -745,14 +756,25 @@ Vidžet koji se premesti u drugi slot dobija **novo** `State`, pa nov
 `TransformationController`, pa razmeru 1,0. Isti oblik zamke koji je u tom
 fajlu već zapisan za `OpeningBanner._lastNamed`.
 
-**Zašto nije popravljeno u istom potezu:** popravka je u
-`repertoire_build_screen.dart`, koji je faza 3 tek prepisala, a batch je
-namerno bio ograđen na jedan vidžet. Rešenja su dva i treba izabrati:
-kontroler pogleda da se drži na ekranu i preda vidžetu kao parametar, ili jedan
-`GlobalKey` da isti `State` preživi prelaz. Prvo je čistije i skuplje, drugo je
-jedan red i lako se zaboravi zašto stoji. **Vlasnik ovo vidi kao „zum mi se
-resetuje kad promenim veličinu prozora" — dakle prijava ostaje otvorena dok se
-ovo ne uradi.**
+**Urađeno 5.9.2026, posle faze 5.** Izabran je `GlobalKey` — `_treeKey` u
+`repertoire_build_screen.dart` — a ne selidba kontrolera na ekran, iz dva
+razloga. Prvi: kontroler nije jedino što se gubilo. U istom `State`-u su i
+pomeraj, prekidač „graf / notacija" i smer rasporeda, pa bi selidba jednog
+polja ostavila ostala tri da se i dalje resetuju. Drugi: isti fajl je istog
+dana dobio `_openingKey` iz istog razloga, sa objašnjenjem uz njega — dve
+različite popravke istog oblika u jednom fajlu su skuplje od jedne ponovljene.
+Zamerka „jedan red koji se lako zaboravi zašto stoji" rešena je time što taj
+red nosi mereni broj (1,5625 → 1,0) i pravilo koje brani.
+
+**Cena koja je došla uz ključ, i nije bila u proceni:** `GlobalKey` u dva mesta
+odjednom baca. Dva crteža su se do sada isključivala tako što su **dva puta
+čitala širinu** — `LayoutBuilder` u telu i `Breakpoints.isWide` u koloni sa
+tablom — a to su dva izvora koji mogu da se ne slože. Sada telo odlučuje jednom
+i odgovor prosleđuje kao `treeBelow`. Čuvar je dokazan mutacijom u oba pravca:
+bez ključa test pada sa `1.0` umesto `1.5625`, a sa uvek uključenim drugim
+mestom pada na „Multiple widgets used the same GlobalKey".
+
+Živo nije gledano: `docs/TODO-provera.md`, stavka **104-H**.
 
 ### 4. Fokus na liniju, i dugme za način prikaza (22:00)
 
@@ -855,8 +877,9 @@ bezuslovan, pa nije bitno odakle promena dolazi — ne sme da postoji.
 
 **Izmereno 5.9.2026, i stavka 3 gore nosi ceo nalaz:** stablo samo od sebe ne
 menja zum ni na jednom mestu u svom vidžetu; zum se gubi zato što vidžet pri
-prelazu preko 840 px dobija novo stanje. Ostaje da se uradi, u
-`repertoire_build_screen.dart`.
+prelazu preko 840 px dobija novo stanje. **Urađeno 5.9.2026** — vidi stavku 3
+gore za izbor rešenja i za cenu koja je uz njega došla. Ovime je cela prijava
+d) zatvorena u kodu; ostaje da se vidi uživo (provera 104-G i 104-H).
 
 ### 6. Banere iznad srednje kolone na desktopu (5.9.2026, ideja vlasnika)
 
