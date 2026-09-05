@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
+import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/services/app_logger.dart';
 import '../models/blunder_game.dart';
 import '../models/endgame_catalog.dart';
@@ -253,26 +254,18 @@ class EndgameApiService {
     required String title,
     required String description,
   }) async {
-    try {
-      final res = await http
-          .post(
-            Uri.parse('$backendUrl/lessons/save'),
-            headers: _headers,
-            body: jsonEncode({
-              'title': title,
-              'description': description,
-              'fen': fen,
-              'tags': [unclearTag],
-            }),
-          )
-          .timeout(const Duration(seconds: 12));
-      if (res.statusCode == 201) return true;
-      AppLogger.log('[Zavrsnice] Pozicija nije sačuvana (${res.statusCode}).');
-      return false;
-    } catch (e) {
-      AppLogger.log('[Zavrsnice] Greška pri čuvanju pozicije: $e');
-      return false;
-    }
+    // Through `LessonApiService`, not `http`. Every write to `saved_lessons`
+    // goes through one place since phase 7a — the rule a `positionList` is read
+    // under is not something a second caller should have to know about.
+    final error = await LessonApiService(authToken: authToken).save(
+      title: title,
+      description: description,
+      fen: fen,
+      tags: const [unclearTag],
+    );
+    if (error == null) return true;
+    AppLogger.log('[Zavrsnice] Pozicija nije sačuvana: $error');
+    return false;
   }
 
   /// Best play for both sides from a position, as a line of moves.

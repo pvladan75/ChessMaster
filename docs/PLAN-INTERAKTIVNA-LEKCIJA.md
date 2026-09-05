@@ -696,7 +696,7 @@ wiring one: the five values were chosen by a search that holds every pair at
 1.5:1 under protanopia and deuteranopia, and a sixth has to be measured into that
 set, not picked. Out of scope for the batch, and it should say so.
 
-### Phase 7 — lead. The trainer's editor
+### Phase 7 — split into 7a (lead) and 7b (worker)
 
 „Napravi korak od ove pozicije" in the studio, the step list, PGN import, and
 the preview through the student's own widget.
@@ -704,6 +704,74 @@ the preview through the student's own widget.
 *Verification:* a test that the preview and the viewer instantiate the same
 widget. Ids survive an edit round trip (phase 1's guard, exercised through the
 real editor).
+
+**Why it split, 5.9.2026.** Scoping it against the code rather than against this
+paragraph found the risky half already built: `POST /lessons/save`,
+`PUT /lessons/:id` and `POST /lessons/:id/steps` all exist, `buildLessonStep`
+already refuses a bad step with a reason in the trainer's language, and phase 1's
+409 already guards the ids. Nothing in this phase needs an endpoint or a schema
+change — so by the standing rule the rest is a worker batch, and the "lead" label
+this phase carried was left over from before 4a landed.
+
+**Two decisions the owner made before either half started, 5.9.2026.**
+
+* **The studio panel owns a step's content; `CreateCourseDialog` keeps only the
+  order.** The dialog goes on picking positions from the library and arranging
+  them, and gives up its per-step instruction control. One place a step's words
+  are written. Two authoring surfaces is the same disease as two parsers, which
+  phase 2 spent a batch curing.
+* **The preview shows and does not judge.** It runs `LessonViewerScreen` so the
+  two cannot drift, and answers nothing: a preview that graded would be a second
+  authority, which is what §2.4 exists to prevent. The trainer is checking
+  wording, drawing and layout, and already knows the answer.
+
+**PGN paste → draft steps is deliberately not in 7b.** Splitting a game into
+steps is a judgement call with a UI of its own, and a brief longer than its
+implementation is the first thing this method warns about. Its own batch, later.
+
+**Phase 7a — lead. Done 5.9.2026.**
+
+* **`LessonApiService`** — `lib/features/lessons/services/lesson_api_service.dart`.
+  The count in the scoping note was wrong and worth correcting: there were
+  **seven** raw `http` calls to `/lessons`, not four — five in
+  `chess_game_screen.dart` (4,346 lines), one in the course dialog, one in
+  `endgame_api_service.dart` — plus `appendStep`, which sat in
+  `PositionLibraryService`, whose own doc comment already called it the odd one
+  out. All of them now go through one service, and it answers `null` for success
+  and **the server's own sentence** for failure. `PositionLibraryService` is a
+  read-only shelf again; its `GET /lessons` stays, because reading lessons as
+  part of that shelf is its job.
+* **A rename no longer deletes a lesson's steps.** `PUT /lessons/:id` ran a
+  missing `positionList` through `buildOrReject`, which answers `[]` for both a
+  missing list and an empty one, and then wrote `position_list = NULL`. Nothing
+  had lost data, and only because the *caller* was careful: the saved-lesson list
+  offers the rename for a single position and the course dialog for a course, so
+  the nulling path was never handed a lesson with steps. **A guarantee living in
+  a widget's `isCourse ? ... : ...` is one refactor away from gone, and phase 7
+  is that refactor.** The route now tells "leave them alone" from "there are none
+  now" by whether the field was sent at all, written as two statements rather
+  than one clever `CASE` because what is being protected cannot be reconstructed.
+  `test/lesson_rename_keeps_steps.test.js` drives the **mounted route**, not the
+  helper — the helper being right and the route asking it are two different
+  things — and was proved by mutation. Backend 941 → 945, identical with `.env`
+  moved aside.
+
+**Phase 7b — worker. Briefed 5.9.2026.**
+
+* Gate: `chess_app/test/lesson_editor_test.dart`, **6 tests, written by the lead
+  and red on purpose** — the file does not load at all, because it imports the
+  panel that is the first thing to build.
+* Brief and task: `docs/brief-interaktivna-lekcija-7-2026-09.md`,
+  `docs/TASK-interaktivna-lekcija-7.md`.
+* Floor: suite **1334 → 1340**, measured on the branch rather than quoted.
+* **The `strings` gate learned a fourth kind of allowance**, because this batch
+  *removes* copy — the dialog's instruction control — and additions were the only
+  thing an allowance could describe. `allow_removed` is `{file: [strings]}`, a
+  list and not a flag, for the same reason `allow_rewritten` is a table: naming
+  what may go keeps the gate asking whether exactly the decided copy disappeared.
+  This gate has now failed work its own brief demanded on batches 45, 46 and 48,
+  and would have on 50. **When a gate fails work that was asked for, the answer
+  is a way to state what was asked, never a way to stop asking.**
 
 ### Phase 8 — lead. The classroom: one click, N assignments
 

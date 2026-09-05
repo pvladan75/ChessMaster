@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:chess/chess.dart' as chess;
 
+import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
@@ -155,6 +156,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   List<dynamic> lessons = [];
   bool isLoadingLessons = false;
+
+  /// Everything this screen does to `saved_lessons`. Phase 7a pulled five
+  /// raw `http` calls out of this file and onto it; the editor batch needs a
+  /// seam a test can fake, and this file is 4,346 lines long.
+  late final LessonApiService _lessonApi =
+      LessonApiService(authToken: widget.userSession.token);
   final TextEditingController fenPasteController = TextEditingController();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController commentController = TextEditingController();
@@ -1757,25 +1764,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   Future<void> fetchUserLabels() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$backendUrl/lessons/labels'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.userSession.token}'
-        },
-      );
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        if (mounted) {
-          setState(() {
-            _availableUserLabels = List<String>.from(data);
-          });
-        }
-      }
-    } catch (e) {
-      print('Error fetching user labels: $e');
-    }
+    final labels = await _lessonApi.fetchLabels();
+    if (!mounted) return;
+    setState(() => _availableUserLabels = labels);
   }
 
   // REST API: Fetch saved lessons (with search and matrix label filters)
@@ -1786,47 +1777,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
     String? matchMode,
   }) async {
     setState(() => isLoadingLessons = true);
-    try {
-      final queryParams = <String, String>{};
-      final queryText = searchQuery ?? searchController.text.trim();
-      if (queryText.isNotEmpty) {
-        queryParams['search'] = queryText;
-      }
-      final includes = includeTags ?? _selectedIncludeTags;
-      if (includes.isNotEmpty) {
-        queryParams['includeTags'] = includes.join(',');
-      }
-      final excludes = excludeTags ?? _selectedExcludeTags;
-      if (excludes.isNotEmpty) {
-        queryParams['excludeTags'] = excludes.join(',');
-      }
-      queryParams['matchMode'] = matchMode ?? _filterMatchMode;
 
-      final uri = Uri.parse('$backendUrl/lessons')
-          .replace(queryParameters: queryParams.isEmpty ? null : queryParams);
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.userSession.token}'
-        },
-      );
+    final fetched = await _lessonApi.fetchAll(
+      searchQuery: searchQuery ?? searchController.text.trim(),
+      includeTags: includeTags ?? _selectedIncludeTags,
+      excludeTags: excludeTags ?? _selectedExcludeTags,
+      matchMode: matchMode ?? _filterMatchMode,
+    );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (mounted) {
-          setState(() {
-            lessons = data;
-          });
-        }
-      }
-    } catch (e) {
-      _showError('Greška prilikom učitavanja lekcija sa servera.');
-    } finally {
-      if (mounted) {
-        setState(() => isLoadingLessons = false);
-      }
-    }
+    if (!mounted) return;
+    setState(() {
+      lessons = fetched;
+      isLoadingLessons = false;
+    });
   }
 
   Future<void> _confirmDeleteLesson(Map<String, dynamic> lesson) async {
@@ -1849,21 +1812,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
     if (confirmed != true) return;
 
-    try {
-      final response = await http.delete(
-        Uri.parse('$backendUrl/lessons/${lesson['id']}'),
-        headers: {'Authorization': 'Bearer ${widget.userSession.token}'},
-      );
-      if (!mounted) return;
-      if (response.statusCode == 200) {
-        _showSuccess('Lekcija obrisana.');
-        fetchLessons();
-      } else {
-        _showError('Brisanje nije uspelo.');
-      }
-    } catch (e) {
-      if (mounted) _showError('Greška na mreži pri brisanju.');
+    final error = await _lessonApi.delete(lesson['id'] as int);
+    if (!mounted) return;
+    if (error != null) {
+      _showError(error);
+      return;
     }
+    _showSuccess('Lekcija obrisana.');
+    fetchLessons();
   }
 
   // Rename/re-describe a single (non-course) saved position. FEN/PGN stay
@@ -1910,62 +1866,47 @@ class _ChessGamePageState extends State<ChessGamePage> {
       return;
     }
 
-    try {
-      final response = await http.put(
-        Uri.parse('$backendUrl/lessons/${lesson['id']}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.userSession.token}',
-        },
-        body: jsonEncode({
-          'title': title,
-          'description': descController.text.trim(),
-          'tags': lesson['tags'],
-          'fen': lesson['fen'],
-          'pgn': lesson['pgn'],
-        }),
-      );
-      if (!mounted) return;
-      if (response.statusCode == 200) {
-        _showSuccess('Pozicija izmenjena.');
-        fetchLessons();
-      } else {
-        _showError('Izmena nije uspela.');
-      }
-    } catch (e) {
-      if (mounted) _showError('Greška na mreži pri izmeni.');
+    // No `positionList`, and the omission is the point: the server reads a
+    // request that says nothing about the steps as "leave them alone". Sending
+    // an explicit null here would delete every step of a course, which is what
+    // it used to do — see `lesson_rename_keeps_steps.test.js`. The list screen
+    // only offers this for a single position, but that is a guarantee living in
+    // a widget's `isCourse ? ... : ...`, and this file is where it would be
+    // refactored away.
+    final error = await _lessonApi.update(
+      id: lesson['id'] as int,
+      title: title,
+      description: descController.text.trim(),
+      tags: (lesson['tags'] as List?)?.map((t) => t.toString()).toList(),
+      fen: lesson['fen'] as String?,
+      pgn: lesson['pgn'] as String?,
+    );
+    if (!mounted) return;
+    if (error != null) {
+      _showError(error);
+      return;
     }
+    _showSuccess('Pozicija izmenjena.');
+    fetchLessons();
   }
 
   // REST API: Save current board FEN with description and tags
   Future<void> saveCurrentPosition(
       String title, String description, List<String> tags) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$backendUrl/lessons/save'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.userSession.token}'
-        },
-        body: jsonEncode({
-          'title': title,
-          'description': description,
-          'tags': tags,
-          'fen': controller.getFen(),
-          'pgn': moveTree.exportToPgn(),
-        }),
-      );
-
-      if (response.statusCode == 201) {
-        _showSuccess('Lekcija sa varijacijama je uspešno sačuvana!');
-        fetchLessons();
-      } else {
-        final data = jsonDecode(response.body);
-        _showError(data['error'] ?? 'Neuspešno čuvanje lekcije');
-      }
-    } catch (e) {
-      _showError('Greška na mreži pri čuvanju lekcije.');
+    final error = await _lessonApi.save(
+      title: title,
+      description: description,
+      tags: tags,
+      fen: controller.getFen(),
+      pgn: moveTree.exportToPgn(),
+    );
+    if (!mounted) return;
+    if (error != null) {
+      _showError(error);
+      return;
     }
+    _showSuccess('Lekcija sa varijacijama je uspešno sačuvana!');
+    fetchLessons();
   }
 
   // Socket: Load lesson position to board and broadcast

@@ -1,11 +1,9 @@
 import 'package:chess_app/theme/app_typography.dart';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
-import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import '../services/assignment_api_service.dart';
@@ -57,16 +55,14 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
 
   Future<void> _loadLessons() async {
     try {
-      final res = await http.get(
-        Uri.parse('$backendUrl/lessons'),
-        headers: {'Authorization': 'Bearer ${widget.session.token}'},
-      ).timeout(const Duration(seconds: 12));
+      final fetched =
+          await LessonApiService(authToken: widget.session.token).fetchAll();
 
       if (!mounted) return;
 
-      if (res.statusCode == 200) {
-        final list = (jsonDecode(res.body) as List)
-            .map((e) => Map<String, dynamic>.from(e))
+      if (fetched.isNotEmpty) {
+        final list = fetched
+            .map((e) => Map<String, dynamic>.from(e as Map))
             // Only lessons the trainer owns can be assigned; the list also
             // carries lessons shared with them by someone else.
             .where((lesson) => lesson['is_trainer_lesson'] != true)
