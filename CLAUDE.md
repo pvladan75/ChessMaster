@@ -157,6 +157,16 @@ When adding a guard or a fallback, prefer a loud failure. `DB_CA_PATH` pointing
 at a missing file deliberately kills the process rather than downgrading to an
 unverified connection — copy that instinct.
 
+One more on 5.9.2026, and it is the local-versus-CI version of the same shape.
+A test that `require`s a **route** drags in the whole server chain, and
+`middleware/auth` calls `process.exit(1)` at import when `JWT_SECRET` is
+missing. `db.js` and `middleware/auth.js` both call `dotenv.config()`, so on a
+machine with a `.env` the require succeeds and the suite is green; CI has no
+`.env`, so the same file killed the test process and took all 895 tests with
+it. **A test that reaches a route must set the environment that route's imports
+demand, and the way to check is to run `npm test` with `.env` moved aside** —
+that is the environment CI actually has.
+
 ## Two ways a Flutter release build hides a mistake
 
 Both cost time on 20.8.2026, and neither shows up in tests, in `flutter

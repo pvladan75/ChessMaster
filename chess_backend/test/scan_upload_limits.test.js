@@ -19,6 +19,14 @@ const multer = require('multer');
 
 const { uploadRejection, MAX_DOCUMENT_BYTES } = require('../services/scanIntake');
 
+// The last test reads the mounted router, and requiring a route drags in the
+// whole server chain — including `middleware/auth`, which calls `process.exit`
+// at import when JWT_SECRET is missing. On a developer's machine `dotenv` finds
+// a real `.env` and nothing happens; CI has none, so this file turned the whole
+// backend suite red while passing locally. Set before the require, deliberately
+// worthless, and never used to sign anything: no test here authenticates.
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-not-used-for-signing-0123456789';
+
 test('a book over the ceiling is refused by size, and says so', () => {
   const rejection = uploadRejection(new multer.MulterError('LIMIT_FILE_SIZE', 'document'));
 
