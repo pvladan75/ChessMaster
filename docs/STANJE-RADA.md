@@ -795,6 +795,48 @@ Ovo **zatvara pitanje ostavljeno otvoreno u stavci 3** gore: zahtev je sada
 bezuslovan, pa nije bitno odakle promena dolazi — ne sme da postoji. Merenje
 odakle dolazi i dalje treba, ali kao dijagnostika, ne kao odluka.
 
+### 6. Banere iznad srednje kolone na desktopu (5.9.2026, ideja vlasnika)
+
+> „Šta misliš da u desktop režimu naziv otvaranja („C50 · Italian Game…") i
+> baner sa nepotvrđenim potezima prebacimo iznad srednje kolone (iznad stabla
+> varijanti)?"
+
+Njegova dva razloga, oba stoje: leva kolona bi ostala bez ijedne fiksne kartice
+iznad table — tabla ide na sam vrh, a sav prostor ostaje tabli, navigaciji i
+potezima; a i sadržajno, i ime otvaranja i broj nepotvrđenih govore o
+repertoaru i stablu, a srednja kolona na desktopu ima vertikalnog prostora
+napretek.
+
+**Šta bi se menjalo.** `_buildBoardColumn` već prima `commentBeside` za istu
+vrstu odluke, pa bi dobio i drugi takav prekidač; široki raspored bi banere
+crtao iznad `Expanded`-a sa stablom. Fiksno iznad, ne unutar `SingleChildScrollView`-a
+— „Pregledaj nepotvrđene" je radnja i ne sme da odskroluje.
+
+**Koliko se dobija.** Baneri u levoj koloni troše oko 106 px (ime otvaranja ~40
++ nepotvrđeni 66). Na prozoru visine 1000 to je, pri istom `_boardShare`, oko
+106 px više ispod table — ili veća tabla za toliko, ako se deo uzme nazad.
+Vlasnikovih 500 px traži `_boardShare` oko 0,53.
+
+**Dve cene, i obe treba znati pre nego što se počne:**
+
+1. **`_boardShare` bi opet postao dva broja.** Tek je 5.9.2026 postao jedan za
+   oba rasporeda, i to je bilo pojednostavljenje. Ako desktop izgubi banere iz
+   leve kolone, njegov nepomični deo više nije istog sastava kao telefonov, pa
+   jedan udeo prestaje da znači isto na oba. Nije prepreka — samo treba reći
+   naglas da se time vraća razlika koja je upravo uklonjena.
+2. **`OpeningBanner` nosi stanje, i selidba ga briše.** `_lastNamed` u
+   `_OpeningBannerState` pamti poslednje *imenovano* otvaranje, i zato je taj
+   vidžet namerno bez ključa — komentar u `repertoire_build_screen.dart` to
+   izričito kaže. Vidžet na drugom mestu u stablu vidžeta dobija **novo**
+   `State`, pa se ime gubi. Jednokratno je bezazleno, ali ako baner postoji na
+   dva mesta (usko naspram široko), **svaki prelaz preko praga od 840 px briše
+   nošeno ime** — a to je obično menjanje veličine prozora na Windowsu. Rešivo
+   (jedan `GlobalKey`, ili da se nošeno ime drži na ekranu umesto u baneru),
+   ali se mora rešiti, inače je to tiha regresija tačno one vrste koju ovaj
+   projekat stalno plaća.
+
+**Nije počet nijedan red.** Vlasnik prvo gleda stavku 104-E na svežem bildu.
+
 ## Otvorena pitanja dizajna
 
 Ona koja tek treba odlučiti stoje u [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md),
