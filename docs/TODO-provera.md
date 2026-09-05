@@ -4015,3 +4015,23 @@ Treba jedan zadatak sa tri koraka: jedan `show`, jedan `ask_move` (sa
    i tabla ostaje tamo gde je bila. Dete sme odmah da pokuša ponovo.
 10. [ ] **Nigde nema tajmera, bodova ni niza.** Ovaj ekran se koristi u sekciji
     gde deca vide ekrane jedno drugom.
+
+Uz to, faza 6 (crtež i glas, paket 49) — za ovo treba korak čiji PGN nosi
+`[%csl]` i `[%cal]`, jedan pre prvog poteza i jedan uz potez:
+
+11. [ ] **Polje koje je autor obojio se vidi kao prsten**, i vidi se **pre**
+    prvog poteza. Prsten ima crnu i belu ivicu oko boje — to je ono što ga drži
+    čitljivim na svakoj tabli i za svako oko; ako se vidi samo boja, nešto nije
+    nacrtano kako treba.
+12. [ ] **Prsten se ne meša sa poslednjim potezom** (uglovi) ni sa poljem sa
+    kog trener crta (pun krug). Razlika je oblik, ne nijansa.
+13. [ ] **Korak napred menja crtež**, korak nazad ga vraća. Prođi liniju do
+    kraja i natrag.
+14. [ ] **`[%csl Yd5]` daje siv prsten**, jer paleta nema žutu. To je poznato i
+    zapisano; pitanje za uživo je da li je sivo dovoljno ili paleti treba šesta
+    boja — a šesta se **meri** u postojeći skup (1.5:1 na svaki par, pod
+    protanopijom i deuteranopijom), ne bira.
+15. [ ] **Zvučnik pored zadatka i pored beleške radi**, i čita **tačno ono što
+    piše**. Ništa se ne izgovara što nije napisano.
+16. [ ] **Sa isključenim govorom ekran ne gubi ništa** — svaka rečenica koja bi
+    se čula i dalje stoji napisana.

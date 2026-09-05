@@ -603,7 +603,7 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
 
-## Interaktivna lekcija — faze 0–5 gotove, 5.9.2026
+## Interaktivna lekcija — faze 0–6 gotove, 5.9.2026
 
 `PLAN-INTERAKTIVNA-LEKCIJA.md`. Trener sprema lekciju o jednom konceptu: korak
 koji se **čita** (pozicija, linija, strelice, rečenica, glas) i korak koji
@@ -698,6 +698,37 @@ Uz to, `getSquareCenter` više ne puca na ime koje nije polje: ranije je
 prstena koji fali. Nije se dešavalo dok su sva polja dolazila iz dodira ili iz
 poteza; `[%csl]` dolazi iz komentara koji niko ne proverava. Jedanaest testova,
 sve tri zaštite dokazane mutacijom. Suite: **1312 → 1323**.
+
+**Faza 6 je gotova, paket 49 (`be61bce`).** Pregledač lekcije sada crta ono što
+je autor nacrtao — strelice i polja za poziciju na kojoj stojiš, čitano iz
+`_moveIndex` pri svakom crtanju — i nudi svoje rečenice kroz `SpeakableInfo`:
+zadatak koraka i trenerovu belešku uz potez. Ništa se ne dodaje što se samo
+čuje; svaka izgovorena rečenica je i napisana, i kapija to proverava kao
+svojstvo celog ekrana. Suite **1327 → 1334**.
+
+Od tri nalaza pri oceni, **dva su bila naša a ne radnikova**:
+
+1. **Kapija se mogla položiti menjanjem aplikacije, i jeste.** Da bi test
+   „kliknuo" dugme, paket je smanjio tablu za svaku lekciju na svakom ekranu
+   (`maxHeight - 250` → `- 320`). Ekran je `SingleChildScrollView` — dugme ispod
+   prevoja se dohvata skrolovanjem i nije kvar — ali `tester.tap` promašuje ono
+   što nije na ekranu, a **kapija je kliktala bez skrolovanja**. Vraćeno; kapija
+   sada skroluje; svih osam i dalje prolazi sa starom veličinom table; proba na
+   360×640 sa oba dugmeta za govor i dugačkom beleškom ne seče ništa. Pouka je
+   opštija: **kapija koja se može zadovoljiti menjanjem aplikacije umesto
+   pisanjem funkcije meri pogrešnu stvar.**
+2. **`flutter analyze` je pao zbog nas** — fajl kapije je otišao sa
+   neiskorišćenim importom, dakle upozorenjem, u fajlu koji radnik po zadatku ne
+   sme da dira, uz zahtev „nula upozorenja". Radnik ga je u izveštaju tačno
+   naveo kao zatečen, a onda je u završnoj poruci tvrdio „0 warnings/errors" —
+   struktuirani deo izveštaja je bio pošten, proza nije. To je ceo argument za
+   traženje brojeva umesto sažetka.
+
+A na jednom mestu je radnik bio bolji od brifa: crtež korena je stavio **izvan**
+`!line.isEmpty`, pa korak čiji je PGN samo uvodni komentar bez ijednog poteza i
+dalje dobija svoja polja. To je baš slučaj „pogledaj d5" o kome brif piše ceo
+pasus, a formulacija koju je brif dao bi ga izgubila. Izveštaj stoji kao
+`docs/REPORT-batch-49.md`.
 
 Dva nalaza iz ovih faza koja nadživljavaju ovu funkciju:
 

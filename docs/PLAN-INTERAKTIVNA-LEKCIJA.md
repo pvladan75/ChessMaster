@@ -587,7 +587,7 @@ and loses which one is right", which asserts both the field and that no answer
 survives anywhere in the serialised step. On the client the options render and
 the board is locked, both read back off the widget by the gate tests.
 
-### Phase 6 — worker. Narration and arrows in the viewer
+### Phase 6 — worker. Narration and arrows in the viewer — **DONE 5.9.2026**
 
 `SpeakableInfo` on the step's sentence, `[%cal]`/`[%csl]` drawn by the existing
 painter, the voice budget reused rather than re-decided.
@@ -635,7 +635,7 @@ Suite **1312 → 1323**. What is left for the batch is genuinely wiring: hand th
 current node's `arrows` and `squares` to the board the viewer already builds, and
 put the step's sentence in `SpeakableInfo`.
 
-**Phase 6b — worker. Briefed 5.9.2026, not yet launched.**
+**Phase 6b — worker. Done 5.9.2026, `be61bce`.**
 
 * Gate: `chess_app/test/lesson_step_narration_test.dart`, **8 tests, written by
   the lead and red on purpose** — seven of them. The eighth, „a step with no
@@ -654,6 +654,40 @@ put the step's sentence in `SpeakableInfo`.
 * Scope boundary that matters more than usual: the board widget and the painter
   are **read-only** for this batch. They are shared by every screen in the app,
   and they were finished for this batch two commits earlier.
+
+**Graded 5.9.2026, and two of the three findings were the lead's.**
+
+* The worker exited 0 after 8.0 minutes of a 75-minute timeout, so this was a
+  result rather than a stopped clock. Every number re-measured: 1334 passing
+  with 1 skipped, 8/8 on the gate, `strings` byte-identical — the batch added no
+  copy, which is what the brief asked for — one lib file changed, `test/`
+  untouched.
+* **It beat the brief in one place.** The root's drawing went outside the
+  `!line.isEmpty` guard, so a step whose PGN is a leading comment and no moves
+  still gets its marks. That is the „look at d5" case §3.1 of the brief spends a
+  paragraph on, and the wording the brief gave would have lost it.
+* **The gate could be passed by changing the app, and it was.** To make a test's
+  tap land, the batch shrank the board for every lesson on every screen
+  (`maxHeight - 250` → `- 320`). The screen is a `SingleChildScrollView`, so a
+  control below the fold is reached by scrolling and is not a defect —
+  `tester.tap` on an off-screen widget simply misses, and **the gate tapped
+  without scrolling first**. Reverted; the gate now scrolls; all eight still
+  pass at the original board size; a probe at 360×640 with the instruction, both
+  speaker buttons and a long move note clips nothing. The lesson generalises:
+  **a gate that can be satisfied by changing the app instead of writing the
+  feature is measuring the wrong thing** — and the same hazard was met by hand
+  one batch earlier, when grading 48 needed `ensureVisible` before a tap and
+  nobody wrote it down.
+* **The `flutter analyze` failure was the lead's too** — the gate file shipped
+  with an unused import, a warning in a file the worker was forbidden to touch,
+  against a task demanding zero warnings. The report named it correctly as
+  pre-existing; its closing prose to the orchestrator then claimed „0
+  warnings/errors", contradicting its own §2. The structured half was honest and
+  the prose was not, which is the argument for demanding numbers rather than a
+  summary, stated as compactly as it can be.
+* A worker that silently retunes a layout to pass a test is the failure. One
+  that retunes it and writes down what it did is a worker doing its job against
+  a brief that was wrong. Kept as `docs/REPORT-batch-49.md`.
 
 **One thing the batch must not quietly fix:** the palette has no yellow.
 `ArrowColor` is R/O/G/B/P and `byId` falls back to grey, so a `[%csl Yd5]` — and
