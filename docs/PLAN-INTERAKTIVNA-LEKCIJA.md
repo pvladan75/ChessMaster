@@ -477,7 +477,7 @@ Three notes for whoever builds on it:
   phase 6 needs it on screen; unused production code is worse than a proven
   seam.
 
-### Phase 4 — split into 4a (lead) and 4b (worker)
+### Phase 4 — split into 4a (lead) and 4b (worker) — **DONE 5.9.2026**
 
 Server: the schema from §4 in `buildLessonStep`; `judgeAttempt` gains
 `acceptedSans`; a route that judges, records `played_san`, and releases the
@@ -515,34 +515,77 @@ was written. The contract was changed, not the older test. Worth remembering
 when writing a contract before the code: **the tests that already pass are
 evidence about the contract, not just about the code.**
 
-**Phase 4b — worker. Launched 5.9.2026, not yet graded.** The client half:
-`LessonStepKind`, `LessonStep.choices`, the two service calls, and the viewer
-asking the question and showing the server's verdict.
+**Phase 4b — worker. Done 5.9.2026, `0b1a610`, merged as `d092ee0`.** The client
+half: `LessonStepKind`, `LessonStep.choices`, the two service calls, and the
+viewer asking the question and showing the server's verdict.
 
 * Gate: `chess_app/test/lesson_step_asks_test.dart`, **14 tests, written by the
-  lead and red on purpose** (`1a771f0`). Pass condition is turning them green
-  **without editing them**.
+  lead and red on purpose** (`1a771f0`). Pass condition was turning them green
+  **without editing them**, and it was met — 14/14, `test/` untouched,
+  `chess_backend/` untouched, `pubspec.yaml` untouched, nothing committed by the
+  worker.
 * Brief and task: `docs/brief-interaktivna-lekcija-4b-2026-09.md`,
   `docs/TASK-interaktivna-lekcija-4b.md`, both at `40f8da2` so they are present
-  in the worktree the worker is given.
-* Floor: suite **1297 → 1311**, measured on the branch rather than quoted.
+  in the worktree the worker is given. The worker's own report is kept as
+  `docs/REPORT-batch-48.md`.
+* Floor: suite **1297 → 1311**, measured on the branch rather than quoted. The
+  merged branch reads **1312**, the extra one being the lead's, below.
 * Allowance for the `strings` gate added to the orchestrator, keyed by the task
-  file: one file gains user-facing strings
-  (`lesson_viewer_screen.dart`), and the five strings are listed in §4 of the
-  brief so the allowance and the brief cannot drift apart.
+  file: **three** files, not the one it was written with — see below.
 
-**When the report comes back:** grade the diff, not the prose. Re-measure
-anything it claims to have proved — the `zum-ne-skace` report was two-thirds
-honest and the invented third was the part that read most like evidence.
+**Graded 5.9.2026, and the report was not the verdict.** Every number in it was
+re-measured: 1311 passing with 1 skipped, the 14 green when run alone, 29
+`curly_braces` infos unchanged, `dart format` clean. The client was also checked
+against the frozen backend rather than against the brief — URLs, field names and
+the `choices: [{text}]` shape all match `routes/assignments.js` and
+`redactStepForStudent`, and there is no judging code in Dart. One claim did not
+survive: the report noted a flaky failure in `opening_book_service_test.dart`,
+which did not reproduce in two full runs. The comment it cited is real and that
+test does carry a two-minute timeout for exactly that reason, so the excuse was
+honest rather than invented — but it was still an unverified number in a report
+whose numbers are the whole point.
 
-### Phase 5 — folded into 4a and 4b, 5.9.2026
+**Two things the gates could not see, both fixed by the lead before the merge.**
+
+1. **A wrong `ask_move` answer left the wrong move on the board.** Not only
+   against the convention `wrong_move_board_test.dart` is named after: the second
+   attempt is read off `_lessonFen`, so a board left standing on the first wrong
+   move offered the child moves that resolved to nothing in the position being
+   judged, and then snapped back with nothing said. None of the 14 tests drive
+   `onMove` — the fake calls `submitMove` directly — so the whole path was
+   untested. Fixed in `lesson_viewer_screen.dart`, covered by a 15th test
+   (`ask_move › a wrong move puts the position back`), **proved by mutation
+   before it was believed**. A correct alternative is still left where the child
+   put it: §2.5 answers that with a sentence, not by moving pieces.
+2. **The `Size(360, 640)` test this phase's verification asks for is not in the
+   gate file** — it pumps at the default 800×600, so the batch was graded without
+   it. Run by hand while grading: no overflow, in the choice layout or in the
+   wrong-answer banner carrying „Pokaži mi". The options do sit below the fold at
+   that size, which is scrolling rather than clipping — `TODO-provera.md`, item
+   108, for phase 9.
+
+**The strings gate failed work its own brief demanded, for the third time**
+(after batch 45's test files and batch 46's board skins). The finding was
+`kind`, `ask_move`, `ask_choice`, `moveSan`, `choiceIndex`, the two URL paths and
+two `AppLogger` lines — wire literals §3.1–3.3 of the brief specify, in files the
+brief told the worker to change, none of them copy. The allowance now names all
+three files; removals and edits in them still fail, which is the half that
+protects anything. **A literal is not copy because it is quoted, and the gate
+cannot tell the difference — so the allowance has to, per file, in the brief's
+own terms.**
+
+### Phase 5 — folded into 4a and 4b — **DONE 5.9.2026**
 
 The server half shipped with 4a (one route judges both kinds) and the client
-half is in the 4b batch. It was never big enough to be its own batch once the
-route existed, and splitting it would have meant two workers touching one
+half came with the 4b batch. It was never big enough to be its own batch once
+the route existed, and splitting it would have meant two workers touching one
 screen.
 
-*Verification:* as phase 4, plus the redaction test for `choices[].correct`.
+*Verification:* as phase 4, plus the redaction test for `choices[].correct` —
+`test/lesson_step_kinds.test.js`, „a redacted ask_choice step keeps the options
+and loses which one is right", which asserts both the field and that no answer
+survives anywhere in the serialised step. On the client the options render and
+the board is locked, both read back off the widget by the gate tests.
 
 ### Phase 6 — worker. Narration and arrows in the viewer
 

@@ -603,7 +603,7 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
 
-## Interaktivna lekcija — faze 0–4a gotove, 4b kod radnika, 5.9.2026
+## Interaktivna lekcija — faze 0–5 gotove, 5.9.2026
 
 `PLAN-INTERAKTIVNA-LEKCIJA.md`. Trener sprema lekciju o jednom konceptu: korak
 koji se **čita** (pozicija, linija, strelice, rečenica, glas) i korak koji
@@ -648,10 +648,42 @@ zadatak troši jednu jedinicu kvote ili N? `POST /assignments/lesson` stoji iza
 jedinica, što je možda tačno a možda čini upravo taj slučaj neisplativim. To je
 cena, ne inženjering — vidi `CENA-I-PRETPLATA.md`.
 
-**Gde smo na kraju dana:** faze 0, 1, 2, 3 i 4a su na grani
+**Gde smo na kraju dana:** faze 0, 1, 2, 3, 4 i 5 su na grani
 `feat/interactive-lessons`, master je netaknut i zelen. Paket 4b (ekran koji
-pita) je predat radniku i **još nije ocenjen** — kad izveštaj stigne, ocenjuje
-se dijff a ne proza, i sve što tvrdi da je dokazao meri se ponovo.
+pita) je ocenjen i spojen — `0b1a610`, merge `d092ee0`, grana čita **1312
+prolaza uz 1 preskočen**. Faza 5 nema svoj paket: server je došao sa 4a (ista
+ruta sudi obe vrste koraka), klijent sa 4b.
+
+Ocena je rađena mašinom, ne po izveštaju: svaki broj je premeren, a klijent je
+proveren prema **zamrznutom bekendu** a ne prema brifu — imena polja, putanje i
+oblik `choices: [{text}]` slažu se sa `routes/assignments.js`, i u Dartu nema
+nijedne linije koja sudi odgovor. Jedna tvrdnja nije preživela: izveštaj pominje
+nestabilan test u `opening_book_service_test.dart` koji se nije ponovio ni u
+jednom od dva puna prolaza.
+
+**Dve stvari koje kapije nisu mogle da vide**, obe popravljene pre spajanja:
+
+1. **Pogrešan potez je ostajao na tabli.** Sledeći pokušaj se čita sa
+   `_lessonFen`, pa je tabla zaostala na prvom pogrešnom potezu nudila detetu
+   poteze koji se u suđenoj poziciji ne razrešavaju ni u šta — a onda bi se sama
+   vratila, bez reči. Nijedan od 14 testova ne prolazi kroz `onMove`, pa taj put
+   nije bio pokriven. Popravljeno, pokriveno petnaestim testom i **dokazano
+   mutacijom** pre nego što je poverovano. Tačna alternativa i dalje ostaje tamo
+   gde ju je dete odigralo — na to §2.5 odgovara rečenicom, ne pomeranjem figura.
+2. **Test na `Size(360, 640)`, koji faza 4 traži, nije u kapiji** — ona pumpa na
+   podrazumevanih 800×600. Odrađen ručno pri oceni: nigde ne curi preko ivice,
+   ni raspored opcija ni baner sa „Pokaži mi". Opcije jesu ispod prevoja na toj
+   veličini, što je skrolovanje a ne sečenje — `TODO-provera.md`, stavka 108.
+
+**Kapija `strings` je oborila posao koji je njen sopstveni brif tražio**, treći
+put (posle paketa 45 i 46). Nalaz su bili `kind`, `ask_move`, `moveSan`,
+`choiceIndex` i dve putanje — literali sa žice, u fajlovima koje brif izričito
+daje radniku, i nijedan od njih nije tekst koji dete vidi. Dozvola sada imenuje
+sva tri fajla; brisanje i izmena u njima i dalje padaju. Pouka je opštija od
+ovog paketa: **literal nije tekst zato što je pod navodnicima, a kapija tu
+razliku ne vidi — pa mora dozvola, po fajlu, rečnikom samog brifa.**
+
+Izveštaj radnika stoji kao `docs/REPORT-batch-48.md`.
 
 Dva nalaza iz ovih faza koja nadživljavaju ovu funkciju:
 

@@ -3977,3 +3977,41 @@ archive.org što se može selektovati mišem), i bilo koji PDF **veći od 25 MB*
    proverava da popravka nije ništa pokvarila.
 5. [ ] **Nijedna poruka se ne pojavi dvaput** i nijedna ne ostane na ekranu
    posle sledećeg skeniranja.
+
+
+## 108. Interaktivna lekcija — korak koji pita (faza 9)
+
+Napravljeno 5.9.2026, faze 0–5 na grani `feat/interactive-lessons`. Ovo je živa
+provera iz faze 9 plana [PLAN-INTERAKTIVNA-LEKCIJA.md](PLAN-INTERAKTIVNA-LEKCIJA.md);
+otvara se tek kad postoji način da se korak koji pita **napravi** — trenerski
+uređivač je faza 7, pa dotle korak mora da se upiše ručno u `position_list`.
+
+Treba jedan zadatak sa tri koraka: jedan `show`, jedan `ask_move` (sa
+`acceptedSans`, da se vidi i druga tačna varijanta) i jedan `ask_choice`.
+
+1. [ ] **Stara lekcija bez `kind`-a i dalje radi** — otvori bilo koji postojeći
+   zadatak lekcije. Tabla se igra, ništa ne pita, nema banera. Ovo je jedina
+   stavka koja proverava da ništa nije pokvareno.
+2. [ ] **`ask_move`, tačan potez** → „Tačno." i ništa više.
+3. [ ] **`ask_move`, druga tačna varijanta** → „Tačno. Mi nastavljamo posle
+   `<potez>`." Figure ostaju tamo gde si ih ti odigrao — rečenica kaže odakle
+   lekcija ide dalje, tabla se ne pomera sama.
+4. [ ] **`ask_move`, pogrešan potez** → poruka je **serverova** („taj potez nije
+   moguć u ovoj poziciji" i „nije traženi potez" su dve različite poruke i moraju
+   da se razlikuju), a **figure se vrate na početnu poziciju koraka**. Odigraj
+   odmah drugi potez: mora da bude primljen normalno, bez pritiska na išta.
+5. [ ] **„Pokaži mi" se ne nudi posle prve greške**, a posle druge se pojavi.
+   Pritisni ga: pokaže „Rešenje: `<potez>`".
+6. [ ] **`ask_choice`** → opcije se vide, **tabla se ne igra** (probaj da
+   povučeš figuru — ne sme da se pomeri), izbor šalje odgovor i verdikt stiže.
+7. [ ] **Tačno i netačno se razlikuju i bez boje.** Vlasnik je daltonista:
+   gledaj ikonicu i oblik banera, ne nijansu.
+8. [ ] **Na telefonu (360 dp) ništa nije odsečeno.** Izmereno u testu 5.9.2026 i
+   čisto je, ali release build ne crta upozorenje pa se gleda okom. **Opcije kod
+   `ask_choice` su ispod prevoja** — treba skrolovati ispod table da bi se
+   videle. To nije kvar; odluka je da li je prihvatljivo detetu koje prvi put
+   vidi ekran.
+9. [ ] **Isključi mrežu usred odgovora** → „Odgovor nije poslat — proveri vezu."
+   i tabla ostaje tamo gde je bila. Dete sme odmah da pokuša ponovo.
+10. [ ] **Nigde nema tajmera, bodova ni niza.** Ovaj ekran se koristi u sekciji
+    gde deca vide ekrane jedno drugom.
