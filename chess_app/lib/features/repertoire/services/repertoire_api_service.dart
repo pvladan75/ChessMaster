@@ -2140,6 +2140,7 @@ class RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
+    List<String> alongPath = const [],
     int? minRating,
     int maxPly = 16,
     String? gateUci,
@@ -2150,6 +2151,17 @@ class RepertoireApiService {
         'color': color,
         'rootFen': rootFen,
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
+        // The line the reader is standing on, in SAN from `rootFen`. The walk
+        // follows it whatever the breadth says, so the drawing always holds a
+        // card for the position on the board.
+        //
+        // The same shape as `maxPly` beside it, and for the same reason: the
+        // picture has to be able to reach the reader. That was fixed for depth
+        // on 4.9.2026; this is the other half of it, for width. Without it a
+        // move played outside the cut left the board on a position the drawing
+        // had no card for, and the highlight fell back to the repertoire's
+        // root — being thrown to the beginning mid-thought.
+        if (alongPath.isNotEmpty) 'alongPath': alongPath.join(' '),
         if (minRating != null) 'minRating': '$minRating',
         'maxPly': '$maxPly',
         // The gate: with it the picture is one opening, which is the whole

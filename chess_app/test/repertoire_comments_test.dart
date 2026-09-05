@@ -64,6 +64,7 @@ class _FakeApi extends RepertoireApiService {
     int maxPly = 16,
     String? gateUci,
     String? breadth,
+    List<String> alongPath = const [],
   }) async =>
       const RepertoireTree(
         rootFen: advance,

@@ -128,20 +128,31 @@ already has tests, and the rule is two conditions.
 ends on the reader's own move; a position with exactly one gap still yields it;
 existing walkthrough tests unchanged.
 
-## Phase 5 — the two that are not decided (lead, blocked)
+## Phase 5 — decided 5.9.2026, and no longer blocked (lead)
 
 **Reach probability.** The data exists — every opponent reply carries `share`,
 and the probability of arriving is their product along the line, the reader's
-own moves entering as 1. What is undecided is that it is a *conditional*
-probability: it assumes the opponent stays inside what has been prepared, and
-breadth changes it. At „samo glavna linija" the product reads far too high. The
-number needs its sentence beside it or it misleads, and where it is shown — the
-banner, the card, the walkthrough — is a product decision.
+own moves entering as 1 because they are decisions rather than frequencies.
 
-**„Prikaži samo ovu liniju" / „samo od ove pozicije".** Before a filter is
-written, check whether this is the repertoire gate under a second name
-(`rootFen` + `gateUci`, which „Vežbaj X" already uses). Two different „only this
-branch" in one app is exactly the shape that drifts apart later. Note also that
+**Decided:** it goes **on the move card**, as a percentage, labelled
+
+> „Šansa linije: X% (u okviru pokrivenog repertoara)"
+
+The parenthesis is not decoration and must not be trimmed to fit. The number is
+**conditional** — it assumes the opponent stays inside what has been prepared,
+and the breadth changes it: at „samo glavna linija" the product runs over one
+reply a position and reads far too high. A percentage without that clause is a
+number that lies quietly, which is the one failure mode this codebase keeps
+paying for.
+
+**„Prikaži samo ovu liniju" / „samo od ove pozicije".**
+
+**Decided:** it **is** the repertoire gate under another name, and it reuses the
+existing server mechanism — `rootFen` + `gateUci`, the same pair „Vežbaj X"
+already runs on. **No second filter is written.** Two different „only this
+branch" in one app is exactly the shape that drifts apart later, and this one
+would have drifted against a rule the tree, the coverage, the drill and the
+delete sweep all read. Note also that
 the eval filter deleted on 4.9.2026 argues nothing against this one: that hid
 branches on the engine's opinion, this follows the reader's own line.
 

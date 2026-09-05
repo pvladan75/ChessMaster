@@ -476,6 +476,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       gateUci: widget.gateUci,
       breadth: _breadth,
       maxPly: _treeDepth(),
+      // Wide enough to contain the reader, the same way `maxPly` makes it deep
+      // enough. A move played outside the current width was written and then
+      // not drawn, and the highlight fell back to the repertoire's root — which
+      // reads as being thrown to the beginning mid-thought. Reported live
+      // 5.9.2026: „ne treba gubiti fokus u stablu poteza, mora se zadržati na
+      // poslednjem odobrenom potezu".
+      alongPath: _node?.path ?? const [],
       // Deep enough to contain the reader.
       //
       // The default is sixteen plies — eight moves — and it was never sent, so
@@ -679,8 +686,28 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final root = _treeRoot;
     final fen = _standingAfter?.fen ?? _current;
     if (root == null || fen == null) return null;
-    return findNodeByFen(root, fen) ?? root;
+    // **No `?? root` here.** It used to fall back to the repertoire's root when
+    // the drawing did not contain the position on the board, and that is the
+    // whole of „baca me negde": the highlight jumped to move one while the
+    // reader was four moves deep, every time they played something the current
+    // width did not follow.
+    //
+    // The walk now follows the line they are standing on (`alongPath`), so the
+    // card is there. If it somehow is not, the last card stays lit rather than
+    // the first — being left where you were is recoverable, being sent to the
+    // beginning is not.
+    final found = findNodeByFen(root, fen);
+    if (found != null) {
+      _lastActiveFen = fen;
+      return found;
+    }
+    final back = _lastActiveFen;
+    return back == null ? root : (findNodeByFen(root, back) ?? root);
   }
+
+  /// The last position that had a card, so a drawing that cannot reach the
+  /// board leaves the highlight where it was instead of at move one.
+  String? _lastActiveFen;
 
   /// Takes the board to a position in the tree.
   ///

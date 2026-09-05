@@ -40,6 +40,14 @@ class _FakeApi extends RepertoireApiService {
 
   int treeCalls = 0;
 
+  /// The line the screen said the reader is standing on.
+  List<String>? lastAlongPath;
+
+  /// The path the frontier's open node carries. Non-empty in the test that
+  /// checks the line is forwarded — with an empty one that assertion cannot
+  /// fail, because the parameter defaults to `const []`.
+  List<String> nodePath = const [];
+
   /// Whether the branch below the student's move was cut.
   bool cutTree = false;
 
@@ -123,11 +131,12 @@ class _FakeApi extends RepertoireApiService {
     String? gateUci,
     String? breadth,
   }) async =>
-      const RepertoireFrontier(
+      RepertoireFrontier(
         // One open position — the root — so the screen has a board rather than
         // the "nothing left in the queue" state.
         open: [
-          FrontierNode(fen: advance, path: [], reach: 1, kind: 'undecided')
+          FrontierNode(
+              fen: advance, path: nodePath, reach: 1, kind: 'undecided')
         ],
         decided: 1,
       );
@@ -141,8 +150,10 @@ class _FakeApi extends RepertoireApiService {
     int maxPly = 16,
     String? gateUci,
     String? breadth,
+    List<String> alongPath = const [],
   }) async {
     treeCalls += 1;
+    lastAlongPath = alongPath;
     if (cutTree) {
       return const RepertoireTree(
         rootFen: advance,
@@ -280,13 +291,16 @@ void main() {
     Future<List<AnalysisLine>> Function(String fen, int depth, int multiPV)?
         analyse,
     bool cutTree = false,
+    List<String> nodePath = const [],
     OpeningJudgeService? judge,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    api = _FakeApi()..cutTree = cutTree;
+    api = _FakeApi()
+      ..cutTree = cutTree
+      ..nodePath = nodePath;
     await tester.pumpWidget(MaterialApp(
       home: RepertoireBuildScreen(
         name: 'French Defense: Advance — crni',
@@ -649,6 +663,31 @@ void main() {
     // The same thing said the other way: the book under the board belongs to
     // the position the board is standing on.
     expect(api.bookReads.last, judge.lastAsked);
+  });
+
+  group('the drawing is asked to reach the reader', () {
+    testWidgets('the tree read carries the line the board is standing on',
+        (tester) async {
+      // The other half of the fix reported live 5.9.2026: „ne treba gubiti
+      // fokus u stablu poteza". The picture is drawn at the repertoire's width,
+      // and a move played outside that width was written and then not drawn —
+      // so the highlight fell back to the repertoire's root, which reads as
+      // being thrown to the beginning mid-thought.
+      //
+      // The server follows this line whatever the breadth says
+      // (`coveredReplies`, and its own tests). What this test holds is the half
+      // that lives here: the screen has to actually send it. It is the same
+      // shape as `maxPly`, which was added for depth on 4.9.2026 — a picture
+      // that cannot reach the reader is the bug, and width was the other half.
+      // A non-empty path on purpose. `alongPath` defaults to `const []`, so
+      // with an empty one this assertion passes whether or not the screen sends
+      // anything — which is a test that cannot fail, and this codebase has
+      // shipped two of those.
+      await pump(tester, const Size(1200, 900), nodePath: const ['c5', 'c3']);
+
+      expect(api.treeCalls, greaterThan(0));
+      expect(api.lastAlongPath, ['c5', 'c3']);
+    });
   });
 
   group('the unconfirmed banner has room for its own label', () {

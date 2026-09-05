@@ -73,6 +73,7 @@ class _FakeApi extends RepertoireApiService {
     int maxPly = 16,
     String? gateUci,
     String? breadth,
+    List<String> alongPath = const [],
   }) async {
     treeGates.add(gateUci);
     // The server does the narrowing; the fake answers with what a gated read

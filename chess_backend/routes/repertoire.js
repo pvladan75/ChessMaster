@@ -883,7 +883,7 @@ router.get('/frontier', authenticateToken, (req, res) => {
 // thousands of moves and nobody reads a drawing of all of them; the answer says
 // when the depth was reached.
 router.get('/tree', authenticateToken, (req, res) => {
-  const { color, rootFen, rootPath, minRating, maxPly } = req.query;
+  const { color, rootFen, rootPath, alongPath, minRating, maxPly } = req.query;
   answer(
     res,
     repertoireTree(pool, req.user.id, {
@@ -892,6 +892,13 @@ router.get('/tree', authenticateToken, (req, res) => {
       gateUci: gateOf(req.query),
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
+        : [],
+      // The line the reader is standing on, in SAN from `rootFen` — the same
+      // encoding `rootPath` uses, because it is the same kind of thing. The
+      // walk follows it whatever the breadth says, so the drawing always
+      // contains the position the board is showing. See `coveredReplies`.
+      alongPath: typeof alongPath === 'string' && alongPath.trim() !== ''
+        ? alongPath.trim().split(/\s+/)
         : [],
       breadth: breadthOf(req.query),
       minRating: Number(minRating) || 0,

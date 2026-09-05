@@ -147,7 +147,7 @@ function gateMoves(kept, rootKey, gateUci) {
 /// time — which the stored `share` on every row makes possible.
 async function coveredReplies(
   pool, userId, color, keys, minRating, breadth = DEFAULT_BREADTH,
-  { fens = null, kept = null } = {},
+  { fens = null, kept = null, standing = null } = {},
 ) {
   if (keys.length === 0) return new Map();
   const wide = requireBreadth(breadth);
@@ -199,13 +199,36 @@ async function coveredReplies(
     // grow past their own decisions. Off when the caller passes no board — the
     // landing position cannot be computed without one, and a caller that does
     // not care keeps exactly the behaviour it had.
+    // ...and every reply that lands on the line the reader is **standing on**.
+    //
+    // The same argument as the clause above, one step further: a breadth is a
+    // reading of the book, and the reader is not the book. Reported live
+    // 5.9.2026 — „ne treba gubiti fokus u stablu poteza" — and the mechanism
+    // was `findNodeByFen(root, fen) ?? root` in the build screen: a position the
+    // drawing did not contain sent the highlight back to the repertoire's root,
+    // which reads as being thrown to the beginning mid-thought.
+    //
+    // The drawing did not contain it because the move had fallen outside the
+    // breadth. **This is the same bug depth already had**, fixed on 4.9.2026 by
+    // sending a `maxPly` deep enough to hold the reader; `standing` is the other
+    // half of it, for width.
+    //
+    // It is the whole line rather than its last position on purpose. A chain
+    // reached one link at a time still needs every earlier link followed, and
+    // a walk that only knew the final square would never arrive at it.
+    //
+    // Like the clause above it, this can only add positions the reader has
+    // actually walked to, so the walk cannot grow past where somebody stood.
     const here = fens === null ? null : fens.get(key);
     const followed = (here === null || here === undefined || kept === null)
       ? list.filter((row) => inside.has(row.uci))
       : list.filter((row) => {
         if (inside.has(row.uci)) return true;
         const landed = step(here, row.uci);
-        return landed !== null && kept.has(fenKey(landed.fen));
+        if (landed === null) return false;
+        const landedKey = fenKey(landed.fen);
+        return kept.has(landedKey)
+          || (standing !== null && standing.has(landedKey));
       });
     if (followed.length > 0) {
       // Games order, like `withinBreadth` hands its own back: a reply is not

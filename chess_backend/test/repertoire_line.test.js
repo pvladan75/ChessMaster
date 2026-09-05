@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { Chess } = require('chess.js');
 
 const {
-  drillLine, drillBranches, tree, walkLines, lineOrder,
+  drillLine, drillBranches, tree, walkLines, lineOrder, keysAlong,
 } = require('../services/repertoireLine');
 const { fenKey } = require('../services/repertoireService');
 
@@ -341,6 +341,74 @@ test('the reading and the drawing are the same walk', async () => {
     lineOrder(nodes, root, kept).slice(1).map((n) => n.key),
     onScreen,
   );
+});
+
+/// 1.e4 with two answers, and **one of them is outside the cut**: 1...c5 is
+/// covered, 1...a6 is not, so no breadth follows it.
+///
+/// And **nothing is decided after 1...a6** — that is the whole point of the
+/// fixture. `coveredReplies` already follows a reply that lands somewhere the
+/// student has decided, so a position with a move in it was never the case that
+/// broke. The one that breaks is the reader standing where they have just
+/// arrived and not yet answered: „izborom poteza za protivnika pozicija ostaje
+/// na tom mestu, ali se u stablo dodaje odmah potez protivnika".
+const OFF_THE_CUT = {
+  moves: [
+    { fen_key: fenKey(START), uci: 'e2e4', san: 'e4', role: 'primary' },
+  ],
+  replies: [
+    {
+      fen_key: keyAfter('e2e4'),
+      uci: 'c7c5', san: 'c5', games: 500, share: '0.50000', covered: true,
+    },
+    {
+      fen_key: keyAfter('e2e4'),
+      uci: 'a7a6', san: 'a6', games: 20, share: '0.02000', covered: false,
+    },
+  ],
+};
+
+test('the walk reaches where the reader is standing, whatever the breadth says',
+  async () => {
+    // The live report of 5.9.2026: „ne treba gubiti fokus u stablu poteza".
+    // The mechanism was `findNodeByFen(root, fen) ?? root` in the build screen,
+    // and the reason the position was missing is here — the move had fallen
+    // outside the cut, so nothing followed it and the drawing had no card for
+    // the board. This is the same bug depth already had, fixed on 4.9.2026 by
+    // sending a `maxPly` deep enough to hold the reader.
+    const without = await walkLines(stubPool(OFF_THE_CUT), 7, {
+      color: 'w', rootFen: START,
+    });
+    assert.equal(without.nodes.has(keyAfter('e2e4', 'a7a6')), false,
+      'fiksture ne valja: 1...a6 je i bez putanje u šetnji');
+
+    const with_ = await walkLines(stubPool(OFF_THE_CUT), 7, {
+      color: 'w', rootFen: START, alongPath: ['e4', 'a6'],
+    });
+    assert.equal(with_.nodes.has(keyAfter('e2e4', 'a7a6')), true);
+    // And the covered reply is still there: this adds a position, it does not
+    // narrow the walk to the reader's own line.
+    assert.equal(with_.nodes.has(keyAfter('e2e4', 'c7c5')), true);
+  });
+
+test('the drawing gets the card for it, not just the walk', async () => {
+  // The walk reaching a position and the picture holding a card for it are two
+  // different facts — `tree` builds from `kept` rather than from what was
+  // reached — and it is the card the reader's focus lands on.
+  const drawn = await tree(stubPool(OFF_THE_CUT), 7, {
+    color: 'w', rootFen: START, alongPath: ['e4', 'a6'],
+  });
+  const replies = drawn.children[0].children.map((n) => n.san);
+  assert.deepEqual(replies.includes('a6'), true);
+});
+
+test('a path that does not replay is refused, not trimmed', () => {
+  // Returning the prefix that happened to work would restore exactly the
+  // behaviour this exists to remove, and would do it silently.
+  assert.throws(() => keysAlong(START, ['e4', 'Qh8']), RangeError);
+  // And an empty path is not an error: every caller written before this asks
+  // for the walk it always got.
+  assert.equal(keysAlong(START, []).size, 0);
 });
 
 /// The same Sicilian, plus a second first move with a line of its own:

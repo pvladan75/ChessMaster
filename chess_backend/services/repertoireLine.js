@@ -41,6 +41,7 @@ const {
   MAX_NODES,
   MAX_PLY,
 } = require('./repertoireFrontier');
+const { Chess } = require('chess.js');
 const {
   fenKey, skippedKeys, requireBreadth, DEFAULT_BREADTH,
 } = require('./repertoireService');
@@ -49,6 +50,41 @@ const {
   drillStats,
   KNOWN_REPETITIONS,
 } = require('./repertoireDrillService');
+
+/// The positions the reader walked through on the way to where they stand.
+///
+/// `alongPath` is SAN from `rootFen`, the same encoding `rootPath` already uses
+/// on this route — and it is the server's own words coming back: the client
+/// sends the `path` a previous walk handed it.
+///
+/// **A path that does not replay is refused rather than trimmed.** Returning
+/// the prefix that happened to work would restore exactly the behaviour this
+/// exists to remove — the reader's position missing from the drawing — and it
+/// would do it silently, one layer away from anything that could notice. That
+/// is the shape of fault this codebase keeps paying for.
+function keysAlong(rootFen, alongPath) {
+  const keys = new Set();
+  const moves = Array.isArray(alongPath)
+    ? alongPath.filter((san) => typeof san === 'string' && san !== '')
+    : [];
+  if (moves.length === 0) return keys;
+
+  const board = new Chess(rootFen);
+  for (const san of moves) {
+    let played = null;
+    try {
+      played = board.move(san);
+    } catch {
+      played = null;
+    }
+    if (!played) {
+      throw new RangeError(
+        `Potez „${san}" iz putanje ne može da se odigra iz zadate pozicije.`);
+    }
+    keys.add(fenKey(board.fen()));
+  }
+  return keys;
+}
 
 /// Every position in the repertoire, with the moves that lead to it.
 ///
@@ -65,7 +101,7 @@ const {
 /// line to be rehearsed down.
 async function walkLines(pool, userId, {
   color, rootFen, minRating = 0, maxPly = MAX_PLY, onlyChosen = false,
-  gateUci = null, breadth = DEFAULT_BREADTH,
+  gateUci = null, breadth = DEFAULT_BREADTH, alongPath = [],
 } = {}) {
   if (color !== 'w' && color !== 'b') {
     throw new RangeError(`Boja mora biti "w" ili "b", a ne "${color}".`);
@@ -83,6 +119,9 @@ async function walkLines(pool, userId, {
   const cut = await skippedKeys(pool, userId, color);
   const band = Number(minRating) || 0;
   const wide = requireBreadth(breadth);
+  // Where the reader is standing, so the walk reaches them whatever the breadth
+  // says. See `coveredReplies`; computed once here rather than per wave.
+  const standing = keysAlong(rootFen, alongPath);
   const root = {
     key: rootKey, fen: rootFen, parent: null, ply: 0, path: [], moves: [],
   };
@@ -126,7 +165,7 @@ async function walkLines(pool, userId, {
     // breadth. See `coveredReplies`.
     const fens = new Map(branches.map((b) => [fenKey(b.after.fen), b.after.fen]));
     const book = await coveredReplies(
-      pool, userId, color, keys, band, wide, { fens, kept });
+      pool, userId, color, keys, band, wide, { fens, kept, standing });
 
     const next = [];
     for (const branch of branches) {
@@ -209,10 +248,10 @@ async function walkLines(pool, userId, {
 /// the answer says when it was reached.
 async function tree(pool, userId, {
   color, rootFen, rootPath = [], minRating = 0, maxPly = 16, gateUci = null,
-  breadth = DEFAULT_BREADTH,
+  breadth = DEFAULT_BREADTH, alongPath = [],
 } = {}) {
   const { nodes, root, truncated, kept, cut } = await walkLines(pool, userId, {
-    color, rootFen, minRating, maxPly, gateUci, breadth,
+    color, rootFen, minRating, maxPly, gateUci, breadth, alongPath,
   });
 
   const byParent = new Map();
@@ -794,5 +833,5 @@ async function drillBranches(pool, userId, {
 
 module.exports = {
   drillLine, drillBranches, walkLines, tree, lineOrder, chainTo, subtree,
-  doorsOf,
+  doorsOf, keysAlong,
 };
