@@ -603,6 +603,69 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
 
+## Interaktivna lekcija — plan napisan 5.9.2026, faza 0 urađena
+
+`PLAN-INTERAKTIVNA-LEKCIJA.md`. Trener sprema lekciju o jednom konceptu: korak
+koji se **čita** (pozicija, linija, strelice, rečenica, glas) i korak koji
+**pita** (`ask_move` — nađi potez na tabli; `ask_choice` — izaberi ideju
+rečima).
+
+**Dve namene, i druga nije naknadna misao:** domaći kod kuće, i **živ rad u
+sekciji** — trener otvori istu lekciju celoj grupi, svako dete radi na svom
+uređaju svojim tempom, trener obilazi one koji zapnu. Zato „bez tajmera i bodova"
+prestaje da bude ukus i postaje pravilo: u jednoj prostoriji deca vide ekrane
+jedno drugom, i sve što ih poređa pretvara čas u trku koju najsporije dete gubi
+javno.
+
+**Nije nov resurs.** `saved_lessons.position_list` i `services/lessonSteps.js`
+već drže korak, a `solutionSan` je odavno upisan i namerno nekorišćen. Korak
+dobija `kind`, i odsutan `kind` znači `show` — svaka postojeća lekcija je time
+već ispravna interaktivna lekcija, bez migracije.
+
+**Dva duga se plaćaju pre ijednog novog polja**, i vrede i ako se funkcija
+otkaže:
+
+1. **Korak nema stabilan identitet.** `review_items UNIQUE(user_id, lesson_id,
+   position)` i `assignment_items(assignment_id, position)` vezuju pamćenje
+   učenika i njegove odgovore za **indeks**. Ubaci se korak na mesto 2 i svaki
+   takav red ćutke pokazuje na drugu poziciju. Ništa ne pukne i ništa se ne
+   upiše u log — poznati oblik kvara iz `CLAUDE.md`. Faza 1: `step_key`.
+2. **Pregledač lekcije čita liniju slabijim parserom.** `PgnParser.parse` briše
+   `{komentare}` pa `(varijacije)`, a komentari se čitaju `MoveTree.parsePgn`-om
+   koji ih čuva — i ako se dva ne slože oko broja poteza, ne prikaže se nijedan
+   komentar. Faza 2 nije pisanje parsera nego brisanje upotrebe: `parsePgn` već
+   ume varijacije, komentare i `[%cal]`. Fali mu `[%csl]`.
+
+Grupni čas je **razliveni domaći**, ne drugi režim: jedan klik pravi po jedan
+zadatak po detetu, ekran deteta je isti i dete ne može da zna kojim putem mu je
+lekcija stigla. Grupe (`student_groups`) postoje ali su vezane **samo** za pozive
+u sobu — `routes/assignments.js` ne zna za grupu, pa je razlivanje jedini nov
+posao sa podacima koji ova namena donosi.
+
+**Pitanje koje čeka vlasnika, i faza 8 ne kreće bez odgovora:** da li grupni
+zadatak troši jednu jedinicu kvote ili N? `POST /assignments/lesson` stoji iza
+`requireQuota(ENT.ASSIGNMENTS)`; petnaestoro dece na jedan klik troši petnaest
+jedinica, što je možda tačno a možda čini upravo taj slučaj neisplativim. To je
+cena, ne inženjering — vidi `CENA-I-PRETPLATA.md`.
+
+**Faza 0 je urađena 5.9.2026** i nije na `master`-u: njen proizvod je **crven
+paket**. `chess_backend/test/lesson_step_kinds.test.js`, 19 testova, svi padaju
+— `npm test` čita 914 / 895 prolaza / 19 padova, a tih 895 je ceo postojeći
+paket, nedirnut. Isto i sa sklonjenim `.env`-om, pa fajl ne uvlači lanac servera.
+Pravilo je isto kao za fazu 4 `PLAN-JEDNOSTAVNOST`-a: tvrdnje idu na granu,
+grana je crvena, `master` ostaje zelen, a faza koja ih pozeleni ocenjuje se po
+tome što ih **nije menjala**.
+
+**Provera skenera je pozitivna:** `scanIntake.prepareRow` vraća
+`{ fen, solutionSan, instruction, needsReview }` — tačno `ask_move` korak.
+`deriveInstruction` već piše „Beli matira u jednom potezu" za proveren mat u
+jednom, pa skenirana strana može stići sa već napisanim pitanjem.
+
+Odlučeno sa vlasnikom 5.9.2026: oba tipa pitanja idu u v1, `acceptedSans` za
+više jednako tačnih poteza, trener sastavlja u Analysis Studiju, „Pokaži mi"
+posle dva promašaja. Devet faza, faze 1–3 su vodeće (diraju podatke i ugovore),
+4–6 mogu biti paketi za radnika, 8 je razlivanje na grupu.
+
 ## ODAKLE SUTRA — 5.9.2026, kraj dana
 
 `PLAN-TABLA-I-STABLO.md` je **završen u celini**: svih pet faza je na masteru, plus
