@@ -32,6 +32,9 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
   /// Passed straight through to the graph. See `MoveTreeNodeLook`.
   final MoveTreeNodeLook? Function(AnalysisNode node)? nodeLook;
 
+  /// A sentence for one card. See `VisualMoveTreeWidget.nodeTooltip`.
+  final String? Function(AnalysisNode node)? nodeTooltip;
+
   const AnalysisMoveTreeWidget({
     super.key,
     required this.rootNode,
@@ -43,6 +46,7 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
     this.extraLabel,
     this.onExtra,
     this.nodeLook,
+    this.nodeTooltip,
   });
 
   @override
@@ -178,6 +182,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       deleteLabel: widget.deleteLabel,
                       extraLabel: widget.extraLabel,
                       nodeLook: widget.nodeLook,
+                      nodeTooltip: widget.nodeTooltip,
                       onExtra: widget.onExtra,
                     )
                   : SingleChildScrollView(
@@ -249,6 +254,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       deleteLabel: widget.deleteLabel,
                       extraLabel: widget.extraLabel,
                       nodeLook: widget.nodeLook,
+                      nodeTooltip: widget.nodeTooltip,
                       onExtra: widget.onExtra,
                     ),
                   ),

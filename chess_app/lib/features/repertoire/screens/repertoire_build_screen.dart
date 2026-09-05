@@ -225,6 +225,23 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// What each drawn card is, by node id, rebuilt with the drawing itself.
   Map<String, MoveTreeNodeLook> _looks = {};
 
+  /// How likely each card is to be arrived at, keyed the way `_looks` is.
+  Map<String, double> _reaches = {};
+
+  /// The drawing narrowed to one branch, or null for the whole repertoire.
+  ///
+  /// **This is the repertoire's gate, asked for a different position** — the
+  /// same `rootFen` + `gateUci` pair „Vežbaj X" already runs on, and the reason
+  /// no second filter was written for it. Two different „only this branch" in
+  /// one app is the shape that drifts apart later, and this one would have
+  /// drifted against a rule the tree, the coverage, the drill and the delete
+  /// sweep all read.
+  String? _viewFrom;
+
+  /// The line from the repertoire's own root down to [_viewFrom], so the
+  /// breadcrumb still reads from move one and `alongPath` can be made relative.
+  List<String> _viewPath = const [];
+
   AnalysisNode? _findNode(String fen, AnalysisNode? root) =>
       root == null ? null : findNodeByFen(root, fen);
 
@@ -461,6 +478,60 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (keepBoard) await _loadKept();
   }
 
+  /// The line the board is standing on, said from whichever root the drawing
+  /// is being asked for.
+  ///
+  /// `_node.path` runs from the repertoire's own root. When the drawing is
+  /// narrowed the walk starts further down, so the same line has to be handed
+  /// over with that prefix removed — an absolute path against a relative root
+  /// is a path that will not replay, and the server refuses one rather than
+  /// trimming it.
+  List<String> _standingPathFor(String? from) {
+    final path = _node?.path ?? const <String>[];
+    if (from == null) return path;
+    if (path.length < _viewPath.length) return const [];
+    for (var i = 0; i < _viewPath.length; i++) {
+      if (path[i] != _viewPath[i]) return const [];
+    }
+    return path.sublist(_viewPath.length);
+  }
+
+  /// Narrows the drawing to the position on the board, and widens it back.
+  ///
+  /// Widening is offered whenever it is narrowed, and happens on its own when
+  /// the board walks out of the branch: a drawing rooted at a position the
+  /// reader has left is a picture of somewhere else.
+  void _narrowToHere() {
+    final at = _node;
+    if (at == null) return;
+    setState(() {
+      _viewFrom = at.fen;
+      _viewPath = List<String>.from(at.path);
+    });
+    _loadTree();
+  }
+
+  void _widenToWhole() {
+    if (_viewFrom == null) return;
+    setState(() {
+      _viewFrom = null;
+      _viewPath = const [];
+    });
+    _loadTree();
+  }
+
+  /// True when the board has walked above or outside the narrowed branch.
+  bool get _leftTheNarrowing {
+    if (_viewFrom == null) return false;
+    final path = _node?.path;
+    if (path == null) return false;
+    if (path.length < _viewPath.length) return true;
+    for (var i = 0; i < _viewPath.length; i++) {
+      if (path[i] != _viewPath[i]) return true;
+    }
+    return false;
+  }
+
   int _treeDepth() => treeDepthFor(_node?.path.length ?? 0);
 
   /// Re-reads the picture. Called after anything that changes the store, and
@@ -468,12 +539,24 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   Future<void> _loadTree() async {
     // Both at once, and both free: one reads what was decided, the other what
     // the engine was asked. Neither spends a Lichess request.
+    // A drawing rooted at a position the reader has walked out of is a picture
+    // of somewhere else, so the narrowing lets go by itself. The button stays
+    // on the panel for the times the board has not moved.
+    if (_leftTheNarrowing) {
+      _viewFrom = null;
+      _viewPath = const [];
+    }
+    final from = _viewFrom;
     final drawing = _api.repertoireTree(
       color: widget.color,
-      rootFen: widget.rootFen,
-      rootPath: widget.rootPath,
+      rootFen: from ?? widget.rootFen,
+      rootPath:
+          from == null ? widget.rootPath : [...widget.rootPath, ..._viewPath],
       minRating: widget.minRating,
-      gateUci: widget.gateUci,
+      // The gate belongs to the repertoire, not to this view: narrowing asks
+      // the walk to start further down, and a gate from the repertoire's own
+      // root means nothing there.
+      gateUci: from == null ? widget.gateUci : null,
       breadth: _breadth,
       maxPly: _treeDepth(),
       // Wide enough to contain the reader, the same way `maxPly` makes it deep
@@ -482,7 +565,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       // reads as being thrown to the beginning mid-thought. Reported live
       // 5.9.2026: „ne treba gubiti fokus u stablu poteza, mora se zadržati na
       // poslednjem odobrenom potezu".
-      alongPath: _node?.path ?? const [],
+      alongPath: _standingPathFor(from),
       // Deep enough to contain the reader.
       //
       // The default is sixteen plies — eight moves — and it was never sent, so
@@ -510,7 +593,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _notes = notes;
       _comments = comments;
       _looks = {};
-      _treeRoot = repertoireTreeToNodes(tree, showCut: _showCut, looks: _looks);
+      _reaches = {};
+      _treeRoot = repertoireTreeToNodes(tree,
+          showCut: _showCut, looks: _looks, reaches: _reaches);
     });
   }
 
@@ -526,7 +611,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       // are minted by this call, so a map kept from the previous drawing would
       // colour nothing and quietly draw every card as an ordinary one.
       _looks = {};
-      _treeRoot = repertoireTreeToNodes(tree, showCut: _showCut, looks: _looks);
+      _reaches = {};
+      _treeRoot = repertoireTreeToNodes(tree,
+          showCut: _showCut, looks: _looks, reaches: _reaches);
     });
   }
 
@@ -2692,6 +2779,14 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       root: root,
       active: active,
       nodeLook: (node) => _looks[node.id],
+      // The chance of ever arriving here, said as a sentence rather than as
+      // a second number: the card's own label already carries how often the
+      // opponent plays *this* reply, and two percentages side by side on a
+      // card that narrow would be read as one.
+      nodeTooltip: (node) => reachSentence(_reaches[node.id]),
+      narrowed: _viewFrom != null,
+      onNarrow: _node == null ? null : _narrowToHere,
+      onWiden: _widenToWhole,
       onSelect: _jumpTo,
       onPromote: _promoteFromTree,
       onDelete: _deleteFromTree,

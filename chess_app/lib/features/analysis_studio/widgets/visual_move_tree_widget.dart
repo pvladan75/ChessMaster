@@ -67,6 +67,14 @@ class VisualMoveTreeWidget extends StatefulWidget {
   /// so a board with nothing to add is drawn exactly as it was.
   final MoveTreeNodeLook? Function(AnalysisNode node)? nodeLook;
 
+  /// A sentence for one card, shown on hover and on long press.
+  ///
+  /// The card's own label is a few characters wide and already carries the
+  /// move, the mark and — for the opponent's moves — how often that reply is
+  /// played. Anything that needs a sentence goes here instead, where it costs
+  /// no width and cannot be mistaken for a second number beside the first.
+  final String? Function(AnalysisNode node)? nodeTooltip;
+
   /// Fired on a direct tap on a node card, in addition to [onSelectNode] —
   /// lets a host (e.g. the fullscreen dialog) react to *manual* navigation
   /// specifically, without also firing for the auto-player's own steps.
@@ -83,6 +91,7 @@ class VisualMoveTreeWidget extends StatefulWidget {
     this.extraLabel,
     this.onExtra,
     this.nodeLook,
+    this.nodeTooltip,
     this.onNodeTapped,
   });
 
@@ -335,6 +344,14 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     // Black's move increments the counter, so the number belonging to it is
     // the one before.
     return node.fen.contains(' b ') ? '$fullmove. ' : '${fullmove - 1}... ';
+  }
+
+  /// [child] under a tooltip when there is a sentence for it, and untouched
+  /// when there is not — a `Tooltip` with an empty message still swallows a
+  /// long press, which on a phone is how a card's own menu is opened.
+  Widget _tipped(String? message, Widget child) {
+    if (message == null || message.trim().isEmpty) return child;
+    return Tooltip(message: message, child: child);
   }
 
   void _zoomBy(double factor, {Offset? focalViewportPoint}) {
@@ -696,6 +713,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
       label = '${_moveNumberOf(node)}${node.moveSan ?? ""}${node.nag ?? ""}';
     }
 
+    final tip = node.isRoot ? null : widget.nodeTooltip?.call(node);
+
     return Positioned(
       left: pn.x,
       top: pn.y,
@@ -704,59 +723,63 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                _focusNode.requestFocus();
-                _stopPlay();
-                widget.onSelectNode(node);
-                widget.onNodeTapped?.call();
-              },
-              onLongPress: node.isRoot
-                  ? null
-                  : () =>
-                      _showNodeContextMenu(context, node, transpositionGroup),
-              onSecondaryTap: node.isRoot
-                  ? null
-                  : () =>
-                      _showNodeContextMenu(context, node, transpositionGroup),
-              borderRadius: radius,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 6, vertical: AppSpacing.xs),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: radius,
-                  border: Border.all(color: borderColor, width: borderWidth),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                              color:
-                                  context.colors.accent.withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              spreadRadius: 1)
-                        ]
-                      : null,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style:
-                            (bold ? AppText.bodyBold : AppText.body).copyWith(
-                          fontWeight: bold ? FontWeight.bold : FontWeight.w600,
-                          color: textColor,
+          _tipped(
+            tip,
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  _focusNode.requestFocus();
+                  _stopPlay();
+                  widget.onSelectNode(node);
+                  widget.onNodeTapped?.call();
+                },
+                onLongPress: node.isRoot
+                    ? null
+                    : () =>
+                        _showNodeContextMenu(context, node, transpositionGroup),
+                onSecondaryTap: node.isRoot
+                    ? null
+                    : () =>
+                        _showNodeContextMenu(context, node, transpositionGroup),
+                borderRadius: radius,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: AppSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: radius,
+                    border: Border.all(color: borderColor, width: borderWidth),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                                color: context.colors.accent
+                                    .withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                spreadRadius: 1)
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style:
+                              (bold ? AppText.bodyBold : AppText.body).copyWith(
+                            fontWeight:
+                                bold ? FontWeight.bold : FontWeight.w600,
+                            color: textColor,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

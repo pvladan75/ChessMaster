@@ -43,6 +43,17 @@ class _FakeApi extends RepertoireApiService {
   /// The line the screen said the reader is standing on.
   List<String>? lastAlongPath;
 
+  /// Which root the drawing was asked for — the repertoire's, or the
+  /// position the reader narrowed to.
+  String? lastTreeRootFen;
+  List<String>? lastTreeRootPath;
+  String? lastTreeGate;
+
+  /// The position the frontier's open node stands on. Different from the
+  /// repertoire's own root in the narrowing tests — with the two the same,
+  /// narrowing to "here" asks for the root again and proves nothing.
+  String nodeFen = advance;
+
   /// The path the frontier's open node carries. Non-empty in the test that
   /// checks the line is forwarded — with an empty one that assertion cannot
   /// fail, because the parameter defaults to `const []`.
@@ -136,7 +147,7 @@ class _FakeApi extends RepertoireApiService {
         // the "nothing left in the queue" state.
         open: [
           FrontierNode(
-              fen: advance, path: nodePath, reach: 1, kind: 'undecided')
+              fen: nodeFen, path: nodePath, reach: 1, kind: 'undecided')
         ],
         decided: 1,
       );
@@ -154,6 +165,9 @@ class _FakeApi extends RepertoireApiService {
   }) async {
     treeCalls += 1;
     lastAlongPath = alongPath;
+    lastTreeRootFen = rootFen;
+    lastTreeRootPath = rootPath;
+    lastTreeGate = gateUci;
     if (cutTree) {
       return const RepertoireTree(
         rootFen: advance,
@@ -292,6 +306,8 @@ void main() {
         analyse,
     bool cutTree = false,
     List<String> nodePath = const [],
+    String nodeFen = advance,
+    String? gateUci,
     OpeningJudgeService? judge,
   }) async {
     tester.view.physicalSize = size;
@@ -300,13 +316,15 @@ void main() {
 
     api = _FakeApi()
       ..cutTree = cutTree
-      ..nodePath = nodePath;
+      ..nodePath = nodePath
+      ..nodeFen = nodeFen;
     await tester.pumpWidget(MaterialApp(
       home: RepertoireBuildScreen(
         name: 'French Defense: Advance — crni',
         color: 'b',
         rootFen: advance,
         rootPath: const ['e4', 'e6', 'd4', 'd5', 'e5'],
+        gateUci: gateUci,
         api: api,
         judge: judge ?? _SilentJudge(),
         analyse: analyse ?? (fen, depth, multiPV) async => const [],
@@ -751,6 +769,55 @@ void main() {
     });
   });
 
+  group('showing only one branch', () {
+    testWidgets('narrowing asks the drawing for the position on the board',
+        (tester) async {
+      // The owner's decision of 5.9.2026: this is the repertoire's own gate
+      // asked for a different position — `rootFen` plus the path down to it —
+      // and *not* a second filter written beside it. Two different „only this
+      // branch" in one app is the shape that drifts apart later.
+      // With a real gate on the screen: dropping it while narrowed is one of
+      // the two things this test holds, and a null gate would prove neither.
+      await pump(tester, const Size(1200, 900),
+          nodePath: const ['c5', 'c3'], nodeFen: afterC3, gateUci: 'c7c5');
+      final wholeRoot = api.lastTreeRootFen;
+      expect(api.lastTreeGate, 'c7c5');
+
+      await tester.tap(find.text('Prikaži samo od ove pozicije'));
+      await tester.pumpAndSettle();
+
+      expect(api.lastTreeRootFen, afterC3);
+      expect(api.lastTreeRootFen, isNot(wholeRoot),
+          reason: 'crtež je i dalje tražen od korena repertoara');
+      // The breadcrumb still reads from move one: the repertoire's own path,
+      // then the line down to where the reader narrowed.
+      expect(api.lastTreeRootPath,
+          containsAllInOrder(const ['e4', 'e6', 'd4', 'd5', 'e5', 'c5', 'c3']));
+      // And the repertoire's gate is dropped, because a gate out of a root the
+      // walk no longer starts at means nothing.
+      expect(api.lastTreeGate, isNull);
+      // The standing line is said from the new root, not from the repertoire's.
+      // Handed over absolute it would not replay from this position, and the
+      // server refuses a path that does not replay rather than trimming it —
+      // so this would be a 500 rather than a wrong drawing.
+      expect(api.lastAlongPath, isEmpty);
+    });
+
+    testWidgets('widening puts the whole repertoire back', (tester) async {
+      await pump(tester, const Size(1200, 900),
+          nodePath: const ['c5', 'c3'], nodeFen: afterC3);
+      final wholeRoot = api.lastTreeRootFen;
+
+      await tester.tap(find.text('Prikaži samo od ove pozicije'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Prikaži ceo repertoar'));
+      await tester.pumpAndSettle();
+
+      expect(api.lastTreeRootFen, wholeRoot);
+      expect(api.lastTreeRootPath, const ['e4', 'e6', 'd4', 'd5', 'e5']);
+    });
+  });
+
   group('the drawing is asked to reach the reader', () {
     testWidgets('the tree read carries the line the board is standing on',
         (tester) async {
@@ -769,7 +836,8 @@ void main() {
       // with an empty one this assertion passes whether or not the screen sends
       // anything — which is a test that cannot fail, and this codebase has
       // shipped two of those.
-      await pump(tester, const Size(1200, 900), nodePath: const ['c5', 'c3']);
+      await pump(tester, const Size(1200, 900),
+          nodePath: const ['c5', 'c3'], nodeFen: afterC3);
 
       expect(api.treeCalls, greaterThan(0));
       expect(api.lastAlongPath, ['c5', 'c3']);

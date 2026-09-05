@@ -43,9 +43,10 @@ AnalysisNode repertoireTreeToNodes(
   RepertoireTree tree, {
   bool showCut = false,
   Map<String, MoveTreeNodeLook>? looks,
+  Map<String, double>? reaches,
 }) {
   final root = AnalysisNode(fen: tree.rootFen);
-  void add(AnalysisNode parent, RepertoireTreeMove move) {
+  void add(AnalysisNode parent, RepertoireTreeMove move, double reachSoFar) {
     if (!showCut && move.state == 'cut') return;
     final node = parent.addChild(
       childFen: move.fen,
@@ -54,16 +55,22 @@ AnalysisNode repertoireTreeToNodes(
     );
     node.nag = markOfRepertoireMove(move);
     looks?[node.id] = lookOfRepertoireMove(move);
+    // How likely this position is to arrive at all, from the root of the
+    // drawing. The opponent's replies multiply — they are frequencies — and the
+    // reader's own moves do not, because which of them they play is a decision
+    // and a decision has no probability.
+    final reach = move.mine ? reachSoFar : reachSoFar * move.share;
+    reaches?[node.id] = reach;
     // No engine number on the card. That was already true here before a node
     // stopped carrying one at all — the drawing's job is to show the holes,
     // and an opinion about a move the reader already decided is not one.
     for (final child in move.children) {
-      add(node, child);
+      add(node, child, reach);
     }
   }
 
   for (final child in tree.children) {
-    add(root, child);
+    add(root, child, 1);
   }
   return root;
 }
@@ -85,6 +92,25 @@ String? shareLabel(double share) {
   final percent = share * 100;
   if (percent <= 0) return null;
   return percent < 1 ? '<1%' : '${percent.round()}%';
+}
+
+/// „Šansa linije" for one card, as the reader is told it.
+///
+/// **The clause is not decoration and must not be trimmed to fit.** The number
+/// is conditional: it is the chance of arriving *while the opponent stays
+/// inside what this repertoire prepares*, so a narrow breadth makes it read
+/// high — at „samo glavna linija" the product runs over one reply a position
+/// and can say 100% about a line the opponent leaves at move two. A percentage
+/// without that sentence beside it is a number that lies quietly, which is the
+/// failure this codebase keeps paying for.
+///
+/// Null where there is nothing to say, so a card with no number carries no
+/// tooltip rather than an empty one.
+String? reachSentence(double? reach) {
+  if (reach == null) return null;
+  final said = shareLabel(reach);
+  if (said == null) return null;
+  return 'Šansa linije: $said (u okviru pokrivenog repertoara)';
 }
 
 String? markOfRepertoireMove(RepertoireTreeMove move) {
@@ -176,12 +202,16 @@ class RepertoireTreePanel extends StatelessWidget {
     this.cutHidden = 0,
     this.showCut = false,
     this.onToggleCut,
+    this.narrowed = false,
+    this.onNarrow,
+    this.onWiden,
     this.minRating,
     this.breadth,
     this.deleteLabel,
     this.extraLabel,
     this.onExtra,
     this.nodeLook,
+    this.nodeTooltip,
   });
 
   final AnalysisNode root;
@@ -211,6 +241,18 @@ class RepertoireTreePanel extends StatelessWidget {
   final bool showCut;
   final VoidCallback? onToggleCut;
 
+  /// The drawing is showing one branch rather than the whole repertoire.
+  ///
+  /// It is the repertoire's own gate doing it — the same `rootFen` + `gateUci`
+  /// pair „Vežbaj X" runs on — asked for a different position. A second filter
+  /// written beside that one is how two „only this branch" in one app start
+  /// disagreeing, so there is not one.
+  final bool narrowed;
+
+  /// Narrow the drawing to the position on the board, and widen it back.
+  final VoidCallback? onNarrow;
+  final VoidCallback? onWiden;
+
   /// The two settings this drawing is made of: which games the book answers
   /// from, and how much of their answer is taken.
   ///
@@ -233,6 +275,9 @@ class RepertoireTreePanel extends StatelessWidget {
   /// `lookOfRepertoireMove`.
   final MoveTreeNodeLook? Function(AnalysisNode node)? nodeLook;
 
+  /// A sentence for one card. See `VisualMoveTreeWidget.nodeTooltip`.
+  final String? Function(AnalysisNode node)? nodeTooltip;
+
   static const _widthNames = {
     'main': 'samo glavni odgovor',
     'standard': 'uobičajeno 80%',
@@ -247,8 +292,8 @@ class RepertoireTreePanel extends StatelessWidget {
         Text(
           'Uz protivnikov potez stoji koliko se često igra. ★ je vaš glavni '
           'potez, ? pozicija bez vaše odluke, … odluka bez uzetih odgovora, '
-          '✂ grana koju ne spremam. Broj u zagradi je ocena motora — dubina i datum '
-          'stoje u panelu uz tablu. Dodirnite potez da tabla ode tamo, a '
+          '✂ grana koju ne spremam. Zadržite pokazivač nad kartom da vidite '
+          'šansu linije. Dodirnite potez da tabla ode tamo, a '
           'dugim pritiskom (ili desnim klikom) otvorite izmene.',
           style: AppText.micro.copyWith(color: context.colors.textMuted),
         ),
@@ -280,6 +325,18 @@ class RepertoireTreePanel extends StatelessWidget {
                 ? 'Sakrij grane koje ne spremam ($cutHidden)'
                 : 'Prikaži grane koje ne spremam ($cutHidden)'),
           ),
+        if (narrowed && onWiden != null)
+          TextButton.icon(
+            onPressed: onWiden,
+            icon: const Icon(Icons.unfold_more, size: 16),
+            label: const Text('Prikaži ceo repertoar'),
+          )
+        else if (!narrowed && onNarrow != null)
+          TextButton.icon(
+            onPressed: onNarrow,
+            icon: const Icon(Icons.unfold_less, size: 16),
+            label: const Text('Prikaži samo od ove pozicije'),
+          ),
         if (truncatedAt != null) ...[
           const SizedBox(height: AppSpacing.xxs),
           Text(
@@ -290,6 +347,7 @@ class RepertoireTreePanel extends StatelessWidget {
         const SizedBox(height: AppSpacing.xs),
         AnalysisMoveTreeWidget(
           nodeLook: nodeLook,
+          nodeTooltip: nodeTooltip,
           rootNode: root,
           activeNode: active,
           onSelectNode: onSelect,
