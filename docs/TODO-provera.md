@@ -3917,3 +3917,25 @@ više ne stiže kroz dijalog koji usput upiše celu liniju predloga).
 10. [ ] **U turi „Upoznaj repertoar" taj red nije dugme.** Tura je pregled, ne
     mesto za menjanje repertoara.
 
+## 106. Crtež stiže do table posle „Idi" — 5.9.2026, nije viđeno uživo
+
+Prijava od 5.9.2026: „posle izbora poteza protivnika, taj potez se ne prikazuje
+na stablu poteza, a trebalo bi — da vidim i u stablu na šta treba da
+odgovaram." Server je bio ispravan; klijent je crtež ponovo čitao samo kad se
+nešto upiše, a crtež se od 4.9. čita **od mesta gde je tabla**.
+
+1. [ ] **Dodirni svoj potez u stablu**, pa u spisku „Posle <potez> — šta igra
+   protivnik" pritisni **„Idi"** na odgovoru koji je već u pripremi.
+2. [ ] **Taj protivnikov potez se vidi u stablu**, i to je **osvetljena**
+   kartica — dakle vidi se i gde si i na šta odgovaraš.
+3. [ ] **Isto važi dublje u liniji.** Ponovi to nekoliko poteza zaredom: svaki
+   put kartica postoji i osvetljena je. Ranije je osvetljenje ostajalo na
+   prethodnom potezu.
+4. [ ] **Kretanje unutar crteža je i dalje trenutno** — dodirivanje kartica
+   koje se već vide ne pravi novo učitavanje i ne trese sliku.
+5. [ ] **Zum se pri tome ne menja** (stavke 104-G i 104-H). Ponovno čitanje
+   crteža ne sme da vrati razmeru na 100%.
+6. [ ] **Ako se potez i dalje ne vidi**, zapiši koji je, na kojoj širini i na
+   kojoj dubini — tada je uzrok server (transpozicija ili knjiga bez tog reda),
+   a ne ovo.
+

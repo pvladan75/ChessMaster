@@ -580,7 +580,10 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   int _treeDepth() => treeDepthFor(_node?.path.length ?? 0);
 
   /// Re-reads the picture. Called after anything that changes the store, and
-  /// never on a plain advance: the tree only moves when the moves do.
+  /// after a move of the board that lands somewhere the drawing does not hold
+  /// — the read is made from where the board is (`alongPath`, `maxPly`), so
+  /// „the tree only moves when the moves do" has not been true since 4.9.2026.
+  /// See the end of `_show`.
   Future<void> _loadTree() async {
     // Both at once, and both free: one reads what was decided, the other what
     // the engine was asked. Neither spends a Lichess request.
@@ -1308,6 +1311,31 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (fen == null) return;
     _boardController.loadFen(fen);
     await _loadKept();
+    // The drawing has to contain the position the board is on.
+    //
+    // Reported live 5.9.2026, through „Idi" on the opponent's reply: „posle
+    // izbora poteza protivnika, taj potez se ne prikazuje na stablu poteza, a
+    // trebalo bi — da vidim i u stablu na šta treba da odgovaram."
+    //
+    // `_loadTree` used to say it is never called on a plain advance, because
+    // „the tree only moves when the moves do". That stopped being true twice:
+    // the read now carries `maxPly` computed from where the board is (4.9.2026)
+    // and `alongPath`, the line it is standing on (5.9.2026). Both are
+    // functions of the board, so a picture read at an earlier position can
+    // genuinely lack the card for this one — and `_activeNode` then leaves the
+    // highlight on the previous move, which is exactly „I cannot see what I am
+    // answering".
+    //
+    // Asked only when the card is actually missing, so walking around inside a
+    // drawing that already holds the line costs nothing. One attempt, never a
+    // loop: if the re-read still does not reach here, the highlight stays where
+    // it was, which is the behaviour `_activeNode` documents.
+    //
+    // And only when there *is* a drawing: with none, this is the screen opening
+    // and `_resume` is about to read one — asking here as well would read it
+    // twice on every start, which is a request per launch for nothing.
+    final drawn = _treeRoot;
+    if (drawn != null && findNodeByFen(drawn, fen) == null) await _loadTree();
   }
 
   /// The line that leads to the board in front of the student, numbered the way

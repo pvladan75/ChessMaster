@@ -1033,13 +1033,40 @@ pravilo (`manual ⊆ main ⊆ standard ⊆ broad`), ali dira serverski hod, dril
 mapu pokrivenosti, i menja šta „pokrivenost" znači: bez knjige nema sa čim da
 poredi, pa bi radar morao da kaže da meri nešto drugo.
 
-**Druga prijava iste večeri, još neodgovorena:** „posle izbora poteza
-protivnika, taj potez se ne prikazuje u stablu, a trebalo bi — da vidim na šta
-treba da odgovaram." Izmereno na serveru istog trenutka (`tree()` sa lažnim
-poolom, tri širine): odgovor uzet rukom (`repertoire_extra_replies`) crta se na
-**svakoj** širini, uključujući `main`, a crta se i onaj na kome čitalac samo
-stoji (`alongPath`). Dakle mehanizam radi — pa je pitanje kojim putem je potez
-izabran; čeka odgovor vlasnika pre nego što se piše ijedan red.
+## Crtež uvek sadrži poziciju na kojoj tabla stoji — 5.9.2026
+
+Druga prijava iste večeri: „posle izbora poteza protivnika, taj potez se ne
+prikazuje u stablu, a trebalo bi — da vidim i u stablu na šta treba da
+odgovaram." Put je, na pitanje, bio **dugme „Idi"** na protivnikovom odgovoru
+koji je već u pripremi.
+
+**Prvo je izmeren server, i on nije kriv.** `tree()` sa lažnim poolom, tri
+širine: odgovor uzet rukom (`repertoire_extra_replies`) crta se na **svakoj**
+širini, uključujući `main`, a crta se i onaj na kome čitalac samo stoji
+(`alongPath`). Dakle pravilo „ono što je čovek sam uradio se ne skriva" radi
+tamo gde je napisano.
+
+**Kvar je u klijentu, i to je zastarela pretpostavka a ne previd.**
+`_loadTree` je nosio komentar: „nikad na običnom pomeranju — stablo se pomera
+kad se pomere potezi." To je bilo tačno dok se crtež nije počeo čitati **od
+mesta gde je tabla**: `maxPly` se od 4.9.2026 računa iz dubine na kojoj se
+stoji, a `alongPath` je od 5.9.2026 linija na kojoj se stoji. Oba su funkcije
+table, pa crtež pročitan na ranijoj poziciji zaista može da nema karticu za
+ovu — a `_activeNode` tada (ispravno, po pravilu iz faze 1) ostavlja
+osvetljenje na prethodnom potezu. Čitaocu to izgleda tačno onako kako je
+prijavio: potez koji je upravo izabrao nije nigde.
+
+**Pravilo koje je sada zapisano:** posle svakog pomeranja table, ako crtež ne
+sadrži poziciju na kojoj se stalo — pročitaj ga ponovo. Jednom, ne u petlji:
+ako ni novi crtež ne stigne dotle, osvetljenje ostaje gde je bilo. I samo ako
+crtež uopšte postoji — bez njega je to otvaranje ekrana, gde `_resume` ionako
+čita, pa bi provera značila dva čitanja pri svakom pokretanju. To je i uhvatio
+postojeći test (`treeCalls`), pre nego što je stigao do telefona.
+
+Cena je nula za kretanje unutar crteža koji već sadrži liniju — što je i drugi
+test u paru.
+
+Provera uživo: `docs/TODO-provera.md`, stavka **106**.
 
 ## Otvorena pitanja dizajna
 
