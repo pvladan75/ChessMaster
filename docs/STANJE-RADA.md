@@ -603,7 +603,7 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
 
-## Interaktivna lekcija — plan napisan 5.9.2026, faza 0 urađena
+## Interaktivna lekcija — faze 0–4a gotove, 4b kod radnika, 5.9.2026
 
 `PLAN-INTERAKTIVNA-LEKCIJA.md`. Trener sprema lekciju o jednom konceptu: korak
 koji se **čita** (pozicija, linija, strelice, rečenica, glas) i korak koji
@@ -647,6 +647,25 @@ zadatak troši jednu jedinicu kvote ili N? `POST /assignments/lesson` stoji iza
 `requireQuota(ENT.ASSIGNMENTS)`; petnaestoro dece na jedan klik troši petnaest
 jedinica, što je možda tačno a možda čini upravo taj slučaj neisplativim. To je
 cena, ne inženjering — vidi `CENA-I-PRETPLATA.md`.
+
+**Gde smo na kraju dana:** faze 0, 1, 2, 3 i 4a su na grani
+`feat/interactive-lessons`, master je netaknut i zelen. Paket 4b (ekran koji
+pita) je predat radniku i **još nije ocenjen** — kad izveštaj stigne, ocenjuje
+se dijff a ne proza, i sve što tvrdi da je dokazao meri se ponovo.
+
+Dva nalaza iz ovih faza koja nadživljavaju ovu funkciju:
+
+1. **`getDue` nikad nije radio.** `stepsOfLesson` se poziva unutra a nikad nije
+   uvezen, pa je svaki poziv bacao `ReferenceError` — od `60648ba`, komita čija
+   poruka glasi „the review screen knew less about a lesson than three other
+   readers". `npm test` je ostajao zelen jer `sources_compile` **kompajlira**
+   izvore, a nedostajuće ime nije sintaksna greška. Red za ponavljanje u
+   razmacima stoji u `TODO-provera.md` kao „tested in code, never run live"; ovo
+   je ono što je ta rupa krila. Popravljeno, i `test/review_due_runs.test.js`
+   sada stvarno poziva funkciju.
+2. **Tvrdnja koju sam sâm napisao u fazi 0 bila je pogrešna, a stari test ju je
+   uhvatio.** Detalji su u planu. Pouka: testovi koji već prolaze su dokaz o
+   ugovoru, ne samo o kodu.
 
 **Faza 0 je urađena 5.9.2026** i nije na `master`-u: njen proizvod je **crven
 paket**. `chess_backend/test/lesson_step_kinds.test.js`, 19 testova, svi padaju
