@@ -14,6 +14,8 @@ import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
+import 'package:chess_app/widgets/action_banner.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 
 /// Lets a student work through an assigned lesson on their own.
 ///
@@ -26,16 +28,18 @@ class LessonViewerScreen extends StatefulWidget {
     super.key,
     required this.session,
     required this.detail,
+    this.api,
   });
 
   final UserSession session;
   final AssignmentDetail detail;
+  final AssignmentApiService? api;
 
   @override
-  State<LessonViewerScreen> createState() => _LessonViewerScreenState();
+  State<LessonViewerScreen> createState() => LessonViewerScreenState();
 }
 
-class _LessonViewerScreenState extends State<LessonViewerScreen> {
+class LessonViewerScreenState extends State<LessonViewerScreen> {
   late final AssignmentApiService _api;
   final ChessBoardController _board = ChessBoardController();
 
@@ -74,7 +78,7 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
   @override
   void initState() {
     super.initState();
-    _api = AssignmentApiService(authToken: widget.session.token);
+    _api = widget.api ?? AssignmentApiService(authToken: widget.session.token);
     _seen = widget.detail.items
         .where((i) => i.isDone)
         .map((i) => i.position)
@@ -130,11 +134,136 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
       _comments = comments;
       _moveIndex = 0;
       _explored = false;
+      _wrongAnswers = 0;
+      _sending = false;
+      _verdict = null;
+      _reveal = null;
       _orientation = _sideToMove(step.fen);
     });
     _board.loadFen(step.fen);
 
     _markSeen();
+  }
+
+  int _wrongAnswers = 0;
+  bool _sending = false;
+  StepAnswerResult? _verdict;
+  StepRevealResult? _reveal;
+
+  static String? _sanFor(String fen, String from, String to, String promotion) {
+    try {
+      final game = chess.Chess.fromFEN(fen);
+      if (!game.move({
+        'from': from,
+        'to': to,
+        'promotion': promotion.isEmpty ? 'q' : promotion,
+      })) {
+        return null;
+      }
+      final made = game.history.last.move;
+      game.undo_move();
+      return game.move_to_san(made);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> submitMove(String moveSan) async {
+    if (_sending || _verdict?.correct == true || _reveal != null) return;
+
+    setState(() => _sending = true);
+
+    final result = await _api.answerLessonStep(
+      assignmentId: widget.detail.assignment.id,
+      position: _stepIndex,
+      moveSan: moveSan,
+    );
+
+    if (!mounted) return;
+    if (result == null) {
+      setState(() => _sending = false);
+      _board.loadFen(_lessonFen);
+      AppFeedback.show(
+        context,
+        () => const SnackBar(
+            content: Text('Odgovor nije poslat — proveri vezu.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _sending = false;
+      _verdict = result;
+      if (!result.correct) {
+        _wrongAnswers++;
+      }
+    });
+
+    // A wrong move goes back where it came from, which is what every other
+    // board in this app does — `wrong_move_board_test.dart` is named after the
+    // rule. It is not only a convention: the second try is read off
+    // `_lessonFen`, so a board left standing on the first wrong move offers the
+    // child moves that resolve to nothing from the position being judged, and
+    // the board then snaps back with nothing said. A correct alternative is
+    // left where the child put it on purpose — §2.5 answers that with the
+    // sentence about where the lesson goes on from, not by moving the pieces.
+    if (!result.correct) {
+      _board.loadFen(_lessonFen);
+    }
+  }
+
+  Future<void> submitChoice(int index) async {
+    if (_sending || _verdict?.correct == true || _reveal != null) return;
+
+    setState(() => _sending = true);
+
+    final result = await _api.answerLessonStep(
+      assignmentId: widget.detail.assignment.id,
+      position: _stepIndex,
+      choiceIndex: index,
+    );
+
+    if (!mounted) return;
+    if (result == null) {
+      setState(() => _sending = false);
+      AppFeedback.show(
+        context,
+        () => const SnackBar(
+            content: Text('Odgovor nije poslat — proveri vezu.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _sending = false;
+      _verdict = result;
+      if (!result.correct) {
+        _wrongAnswers++;
+      }
+    });
+  }
+
+  Future<void> _revealSolution() async {
+    if (_sending) return;
+    setState(() => _sending = true);
+    final result = await _api.revealLessonStep(
+      assignmentId: widget.detail.assignment.id,
+      position: _stepIndex,
+    );
+    if (!mounted) return;
+    if (result == null) {
+      setState(() => _sending = false);
+      AppFeedback.show(
+        context,
+        () => const SnackBar(
+            content: Text('Odgovor nije poslat — proveri vezu.')),
+      );
+      return;
+    }
+    setState(() {
+      _sending = false;
+      _reveal = result;
+    });
   }
 
   static PlayerColor _sideToMove(String fen) {
@@ -241,24 +370,34 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
                           controller: _board,
                           boardOrientation: _orientation,
                           boardSize: size,
-                          // Playable, but only for trying things: the move is
-                          // not sent anywhere and nothing about the lesson
-                          // changes. A step that asks for a mate and refuses to
-                          // let the child play one is a screen promising what it
-                          // will not do.
-                          isAllowedToMove: true,
+                          // Playable on show and ask_move, locked on ask_choice
+                          isAllowedToMove:
+                              _step.kind != LessonStepKind.askChoice,
                           isDrawingMode: false,
                           drawingStartSquare: null,
                           arrows: const [],
                           engineArrows: const [],
-                          onMove: (_, __, ___) {
-                            if (!_explored) setState(() => _explored = true);
+                          onMove: (from, to, promotion) {
+                            if (_step.kind == LessonStepKind.askMove &&
+                                _verdict?.correct != true &&
+                                _reveal == null) {
+                              final san =
+                                  _sanFor(_lessonFen, from, to, promotion);
+                              if (san != null) {
+                                submitMove(san);
+                              } else {
+                                _board.loadFen(_lessonFen);
+                              }
+                            } else {
+                              if (!_explored) setState(() => _explored = true);
+                            }
                           },
                           onSquareTapForDrawing: (_) {},
                         ),
                       ),
                     ),
                     const SizedBox(height: 10),
+                    _buildStepTasks(),
                     if (_explored) _buildRestore(),
                     _buildMoveComment(),
                     if (_moves.isNotEmpty) _buildMoveControls(),
@@ -270,6 +409,70 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
             },
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStepTasks() {
+    if (_step.kind == LessonStepKind.show) return const SizedBox.shrink();
+
+    if (_sending) {
+      return const Padding(
+        padding: EdgeInsets.all(AppSpacing.md),
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_reveal != null) {
+      return ActionBanner(
+        tone: ActionTone.calm,
+        text: 'Rešenje: ${_reveal!.solutionSan}',
+      );
+    }
+
+    if (_verdict != null) {
+      if (_verdict!.correct) {
+        final san = _verdict!.solutionSan;
+        return ActionBanner(
+          tone: ActionTone.calm,
+          text: san != null ? 'Tačno. Mi nastavljamo posle $san.' : 'Tačno.',
+        );
+      } else {
+        return Column(
+          children: [
+            ActionBanner(
+              tone: ActionTone.problem,
+              text: _verdict!.reason,
+              actionLabel: _wrongAnswers >= 2 ? 'Pokaži mi' : null,
+              onAction: _wrongAnswers >= 2 ? _revealSolution : null,
+            ),
+            if (_step.kind == LessonStepKind.askChoice) _buildChoices(),
+          ],
+        );
+      }
+    }
+
+    if (_step.kind == LessonStepKind.askChoice) {
+      return _buildChoices();
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildChoices() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.center,
+        children: [
+          for (var i = 0; i < _step.choices.length; i++)
+            OutlinedButton(
+              onPressed: () => submitChoice(i),
+              child: Text(_step.choices[i]),
+            ),
+        ],
       ),
     );
   }

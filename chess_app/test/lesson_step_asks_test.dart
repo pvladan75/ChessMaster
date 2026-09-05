@@ -210,6 +210,28 @@ void main() {
 
       expect(find.text('Tačno. Mi nastavljamo posle Ra8#.'), findsOneWidget);
     });
+
+    testWidgets('a wrong move puts the position back', (tester) async {
+      // Added by the lead while grading batch 48, which left the wrong move
+      // standing. The next attempt is read off the step's own FEN, so a board
+      // showing something else offers the child moves that resolve to nothing
+      // in the position being judged — and the board then snaps back with
+      // nothing said. `wrong_move_board_test.dart` is the same rule on the
+      // puzzle screen; this screen may not be the one place it does not hold.
+      final api = _FakeApi(correct: false, reason: 'nije traženi potez');
+      await open(tester, detailOf([moveStep()]), api);
+
+      final board = tester
+          .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
+      board.controller.makeMove(from: 'a1', to: 'a7');
+      await tester.pumpAndSettle();
+      expect(board.controller.game.fen, isNot(mateFen),
+          reason: 'the child has played, and the board shows it');
+
+      await api.pretendMove(tester, 'Ra7');
+
+      expect(board.controller.game.fen, mateFen);
+    });
   });
 
   group('nobody gets stuck', () {
