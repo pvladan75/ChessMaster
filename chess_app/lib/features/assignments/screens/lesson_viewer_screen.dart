@@ -4,7 +4,6 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
-import 'package:chess_app/pgn_parser.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -98,24 +97,27 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
     // it is what lets the student walk the variation instead of staring at the
     // final position.
     //
-    // PgnParser always replays from the standard starting position and drops the
-    // PGN tags, so a lesson that began from a custom position would come back as
-    // a different game entirely. The parsed line is therefore only trusted when
-    // its first position matches the step's own — otherwise the step is shown as
-    // a still position, which is wrong-free rather than wrong.
+    // One reader, since phase 2 of `docs/PLAN-INTERAKTIVNA-LEKCIJA.md`. The line
+    // and the notes used to come from two different parsers and were thrown away
+    // whenever the two disagreed about how many moves there were; `mainLine()`
+    // builds them in one walk, so they cannot.
+    //
+    // `MoveTree.parsePgn` is also told where the line starts, which is what the
+    // old `_sameFen` guard was working around: `PgnParser` always replayed from
+    // the standard position, so a step out of an endgame book came back as a
+    // different game and had to be rejected on sight.
     List<String> fens = const [];
     List<String> moves = const [];
     List<String> comments = const [];
     final pgn = step.pgn;
     if (pgn != null && pgn.trim().isNotEmpty) {
       try {
-        final parsed = PgnParser.parse(pgn);
-        if (parsed != null &&
-            parsed.fens.isNotEmpty &&
-            _sameFen(parsed.fens.first, step.fen)) {
-          fens = parsed.fens;
-          moves = parsed.movesSan;
-          comments = _mainLineComments(pgn, step.fen, moves.length);
+        final tree = MoveTree.parsePgn(pgn, startingFen: step.fen);
+        final line = tree?.mainLine();
+        if (line != null && !line.isEmpty) {
+          fens = line.fens;
+          moves = line.movesSan;
+          comments = line.hasNoNotes ? const [] : line.comments;
         }
       } catch (_) {
         // Fall through to the still position.
@@ -133,49 +135,6 @@ class _LessonViewerScreenState extends State<LessonViewerScreen> {
     _board.loadFen(step.fen);
 
     _markSeen();
-  }
-
-  /// The trainer's note on each move of the main line, in step with the moves
-  /// [PgnParser] found.
-  ///
-  /// Read with a second parser rather than by extending the first: [PgnParser]
-  /// strips `{...}` before handing the game to the `chess` package, and the
-  /// quirks it works around are the reason it is written the way it is.
-  /// [MoveTree] already reads comments, variations and arrows, so the notes are
-  /// taken from there and the line itself is still the one being displayed.
-  ///
-  /// Returns nothing at all when the two readings disagree about how many moves
-  /// the line has. A comment shown against the wrong move is worse than no
-  /// comment: it is the trainer appearing to say something they did not.
-  static List<String> _mainLineComments(String pgn, String fen, int moveCount) {
-    if (moveCount == 0) return const [];
-    try {
-      final tree = MoveTree.parsePgn(pgn, startingFen: fen);
-      if (tree == null) return const [];
-
-      final comments = <String>[];
-      var node = tree.root;
-      while (node.children.isNotEmpty) {
-        node = node.children.first;
-        comments.add(node.comment);
-      }
-
-      if (comments.length != moveCount) return const [];
-      if (comments.every((c) => c.isEmpty)) return const [];
-      return comments;
-    } catch (_) {
-      return const [];
-    }
-  }
-
-  /// Compares the board part of two FENs. Move counters differ harmlessly
-  /// between a stored position and a replayed one, so comparing whole strings
-  /// would reject lines that are in fact the same.
-  static bool _sameFen(String a, String b) {
-    final left = a.trim().split(' ');
-    final right = b.trim().split(' ');
-    if (left.isEmpty || right.isEmpty) return false;
-    return left.take(4).join(' ') == right.take(4).join(' ');
   }
 
   static PlayerColor _sideToMove(String fen) {

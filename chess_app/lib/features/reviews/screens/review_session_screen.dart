@@ -4,7 +4,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
-import 'package:chess_app/pgn_parser.dart';
+import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
@@ -81,20 +81,20 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
     final item = _current;
     if (item == null) return;
 
-    // Same guard as the lesson viewer: PgnParser replays from the standard
-    // starting position, so a line is only trusted when its first position is
-    // the step's own. Otherwise the position is shown without a continuation.
+    // Same reader as the lesson viewer, and for the same reason — one dialect,
+    // read in one place. `MoveTree.parsePgn` is told where the line starts, so
+    // a step out of an endgame book replays from its own position rather than
+    // from move one; that is what the old `_sameFen` guard was compensating for.
     List<String> fens = const [];
     List<String> moves = const [];
     final pgn = item.step.pgn;
     if (pgn != null && pgn.trim().isNotEmpty) {
       try {
-        final parsed = PgnParser.parse(pgn);
-        if (parsed != null &&
-            parsed.fens.isNotEmpty &&
-            _sameFen(parsed.fens.first, item.step.fen)) {
-          fens = parsed.fens;
-          moves = parsed.movesSan;
+        final line =
+            MoveTree.parsePgn(pgn, startingFen: item.step.fen)?.mainLine();
+        if (line != null && !line.isEmpty) {
+          fens = line.fens;
+          moves = line.movesSan;
         }
       } catch (_) {
         // Fall through to the still position.
@@ -109,13 +109,6 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
       _orientation = _sideToMove(item.step.fen);
     });
     _board.loadFen(item.step.fen);
-  }
-
-  static bool _sameFen(String a, String b) {
-    final left = a.trim().split(' ');
-    final right = b.trim().split(' ');
-    if (left.isEmpty || right.isEmpty) return false;
-    return left.take(4).join(' ') == right.take(4).join(' ');
   }
 
   static PlayerColor _sideToMove(String fen) {

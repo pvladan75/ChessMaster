@@ -11,6 +11,26 @@ class ChessArrow {
   String toString() => '$colorCode$from$to';
 }
 
+/// A square the author coloured in — PGN's `[%csl]`.
+///
+/// The counterpart to [ChessArrow], and it uses the same colour codes so a
+/// trainer drawing a red arrow and a red square is drawing in one palette.
+///
+/// It exists because half of what these lessons are about is a *square* rather
+/// than a move: a weak square, an outpost, the hole a pawn left behind. Every
+/// other chess tool records that as `[%csl]`; this one used to drop it, and
+/// worse than drop it — the tag was not stripped from the comment either, so it
+/// arrived on screen as words in the middle of the trainer's sentence.
+class SquareMark {
+  final String square;
+  final String colorCode; // 'G', 'R', 'B', 'O', 'Y'
+
+  SquareMark({required this.square, required this.colorCode});
+
+  @override
+  String toString() => '$colorCode$square';
+}
+
 class MoveNode {
   final String san;
   final String fen;
@@ -20,6 +40,7 @@ class MoveNode {
   MoveNode? parent;
   final List<MoveNode> children = [];
   List<ChessArrow> arrows = [];
+  List<SquareMark> squares = [];
 
   MoveNode({
     required this.san,
@@ -29,12 +50,48 @@ class MoveNode {
     this.comment = '',
     this.parent,
     List<ChessArrow>? arrows,
-  }) : arrows = arrows ?? [];
+    List<SquareMark>? squares,
+  })  : arrows = arrows ?? [],
+        squares = squares ?? [];
 
   @override
   String toString() {
     return 'MoveNode($san, comment: "$comment", arrowsCount: ${arrows.length}, childrenCount: ${children.length})';
   }
+}
+
+/// One line of a tree, flattened — with everything that hangs off each move.
+///
+/// The point of this type is that all six lists come out of **one walk**. The
+/// lesson viewer used to take its moves from one parser and its notes from
+/// another and then compare the lengths, throwing every note away when they
+/// disagreed; a note under the wrong move is the trainer appearing to say
+/// something they did not, so discarding them was right for a design that
+/// should not have existed. Read once, and "they disagree" is not a state this
+/// code can reach.
+///
+/// [fens] holds the position **before** the first move followed by one entry
+/// per move, so it is always one longer than the other lists — that is the
+/// shape [LinearMoveCursor] already expects.
+class PgnLine {
+  final List<String> fens;
+  final List<String> movesSan;
+  final List<String> comments;
+  final List<List<ChessArrow>> arrows;
+  final List<List<SquareMark>> squares;
+
+  const PgnLine({
+    required this.fens,
+    required this.movesSan,
+    required this.comments,
+    required this.arrows,
+    required this.squares,
+  });
+
+  bool get isEmpty => movesSan.isEmpty;
+
+  /// True when the trainer wrote nothing at all on this line.
+  bool get hasNoNotes => comments.every((c) => c.isEmpty);
 }
 
 class PgnGameInfo {
@@ -119,21 +176,7 @@ class MoveTree {
 
     sb.write('${mainChild.san} ');
 
-    // Write comment and arrows if any
-    final mainCommentBuffer = StringBuffer();
-    if (mainChild.comment.isNotEmpty) {
-      mainCommentBuffer.write(mainChild.comment);
-    }
-    if (mainChild.arrows.isNotEmpty) {
-      if (mainCommentBuffer.isNotEmpty) {
-        mainCommentBuffer.write(' ');
-      }
-      mainCommentBuffer.write(
-          '[%cal ${mainChild.arrows.map((a) => a.toString()).join(',')}]');
-    }
-    if (mainCommentBuffer.isNotEmpty) {
-      sb.write('{ ${mainCommentBuffer.toString()} } ');
-    }
+    _writeComment(mainChild, sb);
 
     // Variations
     for (int i = 1; i < node.children.length; i++) {
@@ -148,20 +191,7 @@ class MoveTree {
 
       sb.write('${varChild.san} ');
 
-      final varCommentBuffer = StringBuffer();
-      if (varChild.comment.isNotEmpty) {
-        varCommentBuffer.write(varChild.comment);
-      }
-      if (varChild.arrows.isNotEmpty) {
-        if (varCommentBuffer.isNotEmpty) {
-          varCommentBuffer.write(' ');
-        }
-        varCommentBuffer.write(
-            '[%cal ${varChild.arrows.map((a) => a.toString()).join(',')}]');
-      }
-      if (varCommentBuffer.isNotEmpty) {
-        sb.write('{ ${varCommentBuffer.toString()} } ');
-      }
+      _writeComment(varChild, sb);
 
       _writePgnNode(varChild, sb, false);
       sb.write(') ');
@@ -169,6 +199,27 @@ class MoveTree {
 
     final nextShowMoveNumber = node.children.length > 1;
     _writePgnNode(mainChild, sb, nextShowMoveNumber);
+  }
+
+  /// Writes one node's `{ words [%cal …] [%csl …] }`, or nothing.
+  ///
+  /// One function rather than the two near-identical blocks that used to sit in
+  /// [_writePgnNode] — one for the main line and one for variations. They were
+  /// already the place where an annotation could be taught to half the tree:
+  /// adding `[%csl]` to the first copy and not the second would have written
+  /// squares on the main line and silently dropped them from every sideline,
+  /// which is the sort of fault that only shows up in somebody's lesson.
+  static void _writeComment(MoveNode node, StringBuffer sb) {
+    final parts = <String>[];
+    if (node.comment.isNotEmpty) parts.add(node.comment);
+    if (node.arrows.isNotEmpty) {
+      parts.add('[%cal ${node.arrows.map((a) => a.toString()).join(',')}]');
+    }
+    if (node.squares.isNotEmpty) {
+      parts.add('[%csl ${node.squares.map((s) => s.toString()).join(',')}]');
+    }
+    if (parts.isEmpty) return;
+    sb.write('{ ${parts.join(' ')} } ');
   }
 
   static List<ChessArrow> parsePgnArrows(String commentText) {
@@ -190,8 +241,74 @@ class MoveTree {
     return result;
   }
 
+  /// The squares an author coloured in — PGN's `[%csl Rd5,Gf5]`.
+  ///
+  /// Three characters per token: the colour, then the square. Anything else is
+  /// skipped rather than guessed at, the same way [parsePgnArrows] treats a
+  /// token that is not five characters long.
+  static List<SquareMark> parsePgnSquares(String commentText) {
+    final List<SquareMark> result = [];
+    final match = RegExp(r'\[%csl\s+([^\]]+)\]').firstMatch(commentText);
+    if (match != null) {
+      for (var token in match.group(1)!.split(',')) {
+        token = token.trim();
+        if (token.length == 3) {
+          result.add(SquareMark(
+            square: token.substring(1, 3),
+            colorCode: token.substring(0, 1),
+          ));
+        }
+      }
+    }
+    return result;
+  }
+
+  /// The words of a comment, with every annotation tag taken out.
+  ///
+  /// Both tags, and that is the fix: this stripped `[%cal]` and nothing else,
+  /// so a PGN written in Lichess or ChessBase — where `[%csl]` is ordinary —
+  /// put „[%csl Rd5]" on screen in the middle of the trainer's sentence.
   static String cleanPgnComment(String commentText) {
-    return commentText.replaceAll(RegExp(r'\[%cal\s+[^\]]+\]'), '').trim();
+    return commentText
+        .replaceAll(RegExp(r'\[%(cal|csl)\s+[^\]]+\]'), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  /// The main line, with every move's words, arrows and squares beside it.
+  ///
+  /// First children all the way down — the same definition of "the main line"
+  /// that [MoveTreeCursor.last] and the PGN export already use, so a lesson
+  /// shows the line it was saved as.
+  ///
+  /// This is the function that ended the two-parser arrangement. Everything a
+  /// step displays now comes from one walk of one tree, which is why there is
+  /// no length check anywhere: the lists are built together and cannot come out
+  /// different lengths.
+  PgnLine mainLine() {
+    final fens = <String>[root.fen];
+    final movesSan = <String>[];
+    final comments = <String>[];
+    final arrows = <List<ChessArrow>>[];
+    final squares = <List<SquareMark>>[];
+
+    var node = root;
+    while (node.children.isNotEmpty) {
+      node = node.children.first;
+      fens.add(node.fen);
+      movesSan.add(node.san);
+      comments.add(node.comment);
+      arrows.add(node.arrows);
+      squares.add(node.squares);
+    }
+
+    return PgnLine(
+      fens: fens,
+      movesSan: movesSan,
+      comments: comments,
+      arrows: arrows,
+      squares: squares,
+    );
   }
 
   // Parse a cleaned single-game PGN string into this tree
@@ -236,6 +353,7 @@ class MoveTree {
         collectingComment = false;
         final commentStr = currentCommentTokens.join(' ').trim();
         currentNode.arrows = parsePgnArrows(commentStr);
+        currentNode.squares = parsePgnSquares(commentStr);
         currentNode.comment = cleanPgnComment(commentStr);
         continue;
       }
