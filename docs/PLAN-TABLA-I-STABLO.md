@@ -128,7 +128,7 @@ already has tests, and the rule is two conditions.
 ends on the reader's own move; a position with exactly one gap still yields it;
 existing walkthrough tests unchanged.
 
-## Phase 5 — decided 5.9.2026, and no longer blocked (lead)
+## Phase 5 — **DONE 5.9.2026**, `ec57723` (lead)
 
 **Reach probability.** The data exists — every opponent reply carries `share`,
 and the probability of arriving is their product along the line, the reader's

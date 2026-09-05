@@ -3757,6 +3757,27 @@ provere.
     manja stranica), a ispod nje ima oko 100 px više. Ako ti je tabla premala,
     to je jedan broj koji se menja.
 
+### D. Šansa linije i pogled na jednu granu (faza 5)
+
+15. [ ] **Zadrži pokazivač nad kartom u stablu** (ili je dugo pritisni na
+    telefonu): piše „Šansa linije: X% (u okviru pokrivenog repertoara)".
+    Rečenica mora da bude cela — zagrada nije ukras, bez nje broj laže.
+16. [ ] **Broj ima smisla.** Na tvom potezu je isti kao na poziciji pre njega
+    (tvoj izbor nije verovatnoća), a na protivnikovom se množi njegovom
+    učestalošću. Dublje u liniji broj pada.
+17. [ ] **Uporedi na dve širine.** Na „samo glavna linija" isti čvor pokazuje
+    osetno veći procenat nego na „standard" — to je tačno i baš zato stoji
+    zagrada. Ako ti ta rečenica i dalje deluje nejasno, reci kako bi je ti
+    napisao.
+18. [ ] **„Prikaži samo od ove pozicije".** Dugme iznad stabla: crtež se svede
+    na granu ispod pozicije na tabli, a putanja iznad stabla i dalje čita od
+    prvog poteza.
+19. [ ] **„Prikaži ceo repertoar" vraća sve.**
+20. [ ] **Suženje se samo pušta** kad tablom odeš iznad te pozicije ili u drugu
+    granu — crtež se vrati na ceo repertoar bez pritiska na dugme.
+21. [ ] **Na kartici nema ocene motora**, a legenda iznad stabla je više ne
+    pominje (ostatak od brisanja iz stavke 103).
+
 ### B. Lepeza neodgovorenih odgovora u turi (faza 4)
 
 6. [ ] **„Upoznaj repertoar" na poziciji gde protivnik ima više odgovora i ni na
