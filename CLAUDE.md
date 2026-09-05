@@ -20,9 +20,9 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1257 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1341 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 895 tests, all green
+cd chess_backend && npm test          # node --test, 945 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -49,6 +49,14 @@ is wrong with a book instead of blaming the font for all of them: six in the
 app for the sentence each code gets, four on the backend for the classification
 and its route through `scanDocument`, and five for an upload that fails before
 the scan starts.
+
+Both counts were measured again on 6.9.2026, on `master`, after
+`PLAN-INTERAKTIVNA-LEKCIJA.md` phases 0–7 merged: **1341 in the app and 945 on
+the backend**, the backend identical with `.env` moved aside. A hundred and two
+of the app's came with a lesson step that asks something back — the kind
+discriminator and the screen that shows it, the ring `[%csl]` is drawn as, the
+narration, the trainer's editor — and fifty on the backend with the judging
+route, step identity, and the rename that no longer deletes a lesson's steps.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
