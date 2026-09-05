@@ -34,11 +34,11 @@ const {
   solutionPlaysIn,
   deriveInstruction,
   MAX_POSITIONS_PER_CONFIRM,
+  MAX_DOCUMENT_BYTES,
+  uploadRejection,
 } = require('../services/scanIntake');
 
 const router = express.Router();
-
-const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -357,6 +357,18 @@ router.get('/puzzles', authenticateToken, async (req, res) => {
     logger.error(`[SCAN] Lista pozicija nije učitana: ${err.message}`);
     res.status(500).json({ error: 'Greška pri učitavanju pozicija.' });
   }
+});
+
+/// Multer's own failures arrive here rather than as a 500 with no explanation.
+/// The upload aborts mid-stream, so the route above never runs: without this,
+/// a book over the ceiling reads to the trainer as an internal server error.
+/// Same shape as the archive route, which has answered this way since 20.8.2026.
+// eslint-disable-next-line no-unused-vars
+router.use((err, req, res, next) => {
+  const rejection = uploadRejection(err);
+  if (!rejection) return next();
+  logger.warn(`[SCAN] Otpremanje odbijeno: ${err.message}`);
+  return res.status(rejection.status).json(rejection.body);
 });
 
 module.exports = router;

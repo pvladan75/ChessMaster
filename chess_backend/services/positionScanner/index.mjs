@@ -15,12 +15,24 @@
 //     them would cost more than the scan. Without them the side to move is
 //     simply unknown, which is a thing the confirmation screen can ask.
 import { openPdf, pageSpans, fontNames } from './pdf.mjs';
-import { selectFontMap, unknownGlyphs } from './fonts.mjs';
-import { extractDiagrams } from './diagrams.mjs';
+import { selectFontMap } from './fonts.mjs';
+import { extractDiagrams, classifyUnreadable } from './diagrams.mjs';
 import { readSolutions } from './solutions.mjs';
 import { buildPosition } from './verify.mjs';
 
 export const MAX_PAGES_PER_SCAN = 40;
+
+// Why a book could not be read. Three problems that used to share the third
+// sentence — the only one of the three that asks anyone for a glyph map.
+const UNREADABLE_MESSAGE = {
+  no_text:
+    'Na tim stranama nema nikakvog teksta — knjiga je skenirana kao slika. ' +
+    'Skener čita samo dijagrame složene šahovskim fontom.',
+  no_diagram_text:
+    'Na tim stranama ima teksta, ali nijedan red nema oblik dijagrama — dijagrami ' +
+    'su slike ili crteži. Skener čita samo dijagrame složene šahovskim fontom.',
+  unknown_font: 'Dijagrami u ovoj knjizi koriste font koji još ne znamo da čitamo.',
+};
 
 export class ScanError extends Error {
   constructor(message, { code = 'scan_failed', details = null } = {}) {
@@ -103,19 +115,26 @@ export async function scanDocument({
   // alphabet, not font name: the second test book calls its diagram font
   // `TTE2BEAF20t00`, which identifies nothing.
   const sample = [];
+  const sampled = []; // the same pages kept whole, and apart, for the diagnosis
   const step = Math.max(1, Math.floor((end - start) / 8));
   for (let p = start; p <= end && sample.length < 400; p += step) {
-    for (const s of await pageSpans(doc, p)) {
+    const spans = await pageSpans(doc, p);
+    sampled.push(spans);
+    for (const s of spans) {
       if (!/\s/.test(s.text) && s.text.length >= 8 && s.text.length <= 12) sample.push(s.text);
     }
   }
 
   const picked = selectFontMap(sample);
   if (!picked) {
-    throw new ScanError(
-      'Dijagrami u ovoj knjizi koriste font koji još ne znamo da čitamo.',
-      { code: 'unknown_font', details: { unknownGlyphs: unknownGlyphs(sample).slice(0, 20) } }
-    );
+    // Which of the three it is decides what the trainer does next: look for a
+    // different book, or send this one to have a map derived from it. Saying
+    // "unknown font" to all three sent everyone down the second road.
+    const verdict = classifyUnreadable(sampled);
+    throw new ScanError(UNREADABLE_MESSAGE[verdict.code], {
+      code: verdict.code,
+      details: { unknownGlyphs: verdict.unknownGlyphs.slice(0, 20) },
+    });
   }
   const map = picked.map;
 

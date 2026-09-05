@@ -4,7 +4,7 @@
 // book numbers every diagram, the second numbers none, and a parser that keys on
 // the number finds 0 of 211 diagrams in the second book while reporting success.
 // Eight rows of diagram glyphs stacked in one column *is* the diagram.
-import { rowToFenRank } from './fonts.mjs';
+import { rowToFenRank, unknownGlyphs } from './fonts.mjs';
 import { mergeSpans } from './pdf.mjs';
 
 const COLUMN_TOLERANCE = 3; // px; rows of one diagram share an x almost exactly
@@ -50,6 +50,48 @@ function runsByColumn(rows) {
     if (run.length) runs.push(run);
   }
   return runs;
+}
+
+// The longest row any map accepts: eight squares, plus the margin coordinate
+// and border glyphs a book may set on the same line.
+const MAX_ROW_LENGTH = 12;
+
+/**
+ * Why nothing could be read — and these are three different problems.
+ *
+ * They used to share one message, "the diagrams use a font we cannot read yet",
+ * which is untrue in two of the three cases and sends the reader off to derive
+ * a glyph map that cannot exist. Measured on four books on 5.9.2026: two were
+ * image scans with no text on the page at all; one was an OCR text layer whose
+ * diagrams are pictures, and it reported the letters of English prose (`e` 26
+ * times, `t` 5) as unknown chess glyphs; one drew its boards as vector paths.
+ * Not one of the four had a font to write a map for.
+ *
+ * `pages` is one array of spans per sampled page, kept apart because x and y
+ * only mean something within a page.
+ *
+ * The test for "is there a diagram here at all" is this pipeline's own
+ * definition minus the alphabet: eight row-shaped runs stacked in one column.
+ * Anything narrower would be guessing, and the whole point of the three answers
+ * is to stop guessing out loud.
+ */
+export function classifyUnreadable(pages) {
+  if (!pages.some((spans) => spans.length > 0)) {
+    return { code: 'no_text', unknownGlyphs: [] };
+  }
+
+  const stacked = [];
+  for (const spans of pages) {
+    const shaped = mergeSpans(spans).filter(
+      (s) => !/\s/.test(s.text) && s.text.length >= 8 && s.text.length <= MAX_ROW_LENGTH
+    );
+    for (const run of runsByColumn(shaped)) {
+      if (run.length >= 8) stacked.push(...run);
+    }
+  }
+
+  if (stacked.length === 0) return { code: 'no_diagram_text', unknownGlyphs: [] };
+  return { code: 'unknown_font', unknownGlyphs: unknownGlyphs(stacked.map((s) => s.text)) };
 }
 
 /**

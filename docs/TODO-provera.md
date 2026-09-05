@@ -3955,3 +3955,25 @@ nešto upiše, a crtež se od 4.9. čita **od mesta gde je tabla**.
    kojoj dubini — tada je uzrok server (transpozicija ili knjiga bez tog reda),
    a ne ovo.
 
+
+## 107. Skener kaže koji je od tri problema — 5.9.2026, nije viđeno uživo
+
+Napravljeno 5.9.2026 posle četiri knjige koje su pale iz četiri različita
+razloga uz istu poruku. Odeljak „Skener kaže koji je od tri problema" u
+[STANJE-RADA.md](STANJE-RADA.md) ima brojke.
+
+Za ovu proveru trebaju tri fajla: bilo koja **skenirana** knjiga (strane su
+slike), knjiga sa **tekstom ali slikama umesto dijagrama** (npr. bilo šta sa
+archive.org što se može selektovati mišem), i bilo koji PDF **veći od 25 MB**.
+
+1. [ ] **Skenirana knjiga** → poruka kaže da je knjiga slika i da u njoj nema
+   teksta. Ne sme da pomene font.
+2. [ ] **Knjiga sa tekstom, dijagrami slike** → poruka kaže da teksta ima ali da
+   su dijagrami slike. Ni ovde se font ne pominje.
+3. [ ] **PDF veći od 25 MB** → poruka imenuje granicu („veća od 25 MB") i kaže
+   da se PDF podeli. Ranije je pisalo „Skeniranje nije uspelo (500)".
+4. [ ] **Knjiga koja radi i dalje radi.** `chessboard.pdf`, strane 1–40: 31
+   pozicija, font `SkakNew-Diagram (LaTeX skak)`. Ovo je jedina stavka koja
+   proverava da popravka nije ništa pokvarila.
+5. [ ] **Nijedna poruka se ne pojavi dvaput** i nijedna ne ostane na ekranu
+   posle sledećeg skeniranja.

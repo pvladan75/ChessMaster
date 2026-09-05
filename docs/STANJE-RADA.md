@@ -1136,6 +1136,60 @@ B (lepeza u turi, 6–9), C/13 (visina dugmeta banera, odluka), D/22, E/23–24
 (telefon), F/28–30, G/33–34 i cela **H** (zum preživi promenu veličine prozora,
 35–39) — H je pisana danas i još nije prošla.
 
+## Skener kaže koji je od tri problema — 5.9.2026, nije viđeno uživo
+
+Vlasnik je 5.9.2026 pokušao četiri knjige. Sve četiri su pale, **svaka iz drugog
+razloga**, a aplikacija je za sve četiri prijavila isti — i pogrešan — uzrok.
+
+**Šta je izmereno** (pdfjs, sve strane svake knjige):
+
+| knjiga | šta je zapravo | šta je aplikacija rekla |
+|---|---|---|
+| Reinfeld, 1001 žrtvovanje | 252 strane, **0 znakova teksta**, jedna slika po strani (92 dpi) | nepoznat font |
+| Complete Book of Chess Strategy | 388 strana, **0 znakova teksta**, jedna slika po strani (400 dpi) | nepoznat font |
+| Back to Basics: Openings | tekst postoji (OCR), ali su dijagrami slike — 433 slike na 224 strane | nepoznat font, uz glifove `e` (26×), `.` (18×), `t` (5×) — slova engleske proze |
+| Grandmaster Codex | 4513 strana, LaTeX tekst, table crtane vektorski (177 putanja i 71 popuna u kvadratu 288×288) | „Skeniranje nije uspelo (500)" |
+
+Nijedna od četiri nema font za koji bi se pisala mapa. Peta, `chessboard.pdf`,
+prošla je bez ijedne izmene (`SkakNew`, 31 dijagram, 0 grešaka u glifovima) —
+ali je to **uputstvo za LaTeX paket `chessboard`**, pa su joj „pozicije" primeri
+sloga: 13 različitih na 31 nađenu, 9× početna pozicija, 9× ista tabla sa dva
+kralja, i četiri nemoguće table koje su sve uredno označene.
+
+**Prva popravka — tri odgovora umesto jednog.** `classifyUnreadable`
+(`services/positionScanner/diagrams.mjs`) razlikuje `no_text` (na stranama nema
+nikakvog teksta), `no_diagram_text` (teksta ima, ali nijedan red nema oblik
+dijagrama) i `unknown_font` (redovi postoje, azbuka je nepoznata). Pravilo za
+srednji slučaj je **definicija samog cevovoda bez azbuke**: osam redova oblika
+reda složenih u jednu kolonu, preko `runsByColumn` koji izvlačenje ionako
+koristi. Spisak nepoznatih glifova se sada računa **samo iz tih redova**, pa
+proza ne može da se prijavi kao šahovski glif.
+
+Zašto je to bitno: stara poruka je slala čitaoca da izvede mapu za font kog u
+fajlu nema. Pogrešno imenovan uzrok je gori od neimenovanog.
+
+**Druga popravka — 43 MB više ne izgleda kao pad servera.** `uploadRejection`
+(`services/scanIntake.js`) i rukovalac greškom na kraju `routes/scans.js`:
+`LIMIT_FILE_SIZE` daje **413** i rečenicu koja imenuje granicu (25 MB) i kaže
+šta da se radi, sve ostalo 400 sa multerovom porukom. Ranije je multer prekidao
+otpremanje pre nego što ruta uopšte krene, greška je odlazila Expressu, a klijent
+je štampao samo broj statusa. Isti oblik je od 20.8.2026 na ruti za arhivu.
+
+Klijent bira rečenicu po kodu (`scanFailureMessage` u
+`scanner_api_service.dart`), a sve što ne prepoznaje pušta serverovu poruku —
+zato što server zna brojeve koje ekran ne zna, kao što je granica u megabajtima.
+
+**Testovi:** 9 novih na serveru (`positionScanner.test.mjs` +4, uključujući
+prolaz kroz `scanDocument` sa sintetičkim PDF-om bez teksta;
+`test/scan_upload_limits.test.js` +5, uključujući čitanje samog rutera — sloj
+greške se prepoznaje po arnosti 4, ne po tekstu fajla) i 6 u aplikaciji
+(`test/scan_failure_message_test.dart`). Sva četiri su dokazana mutacijom:
+spuštanje praga sa 8 na 1 obara dva testa, vraćanje `unknown_font` u
+`scanDocument` obara treći, uklanjanje rukovaoca greškom iz rute obara četvrti,
+a spajanje dve poruke u jednu obara dartov.
+
+**Ostaje:** provera uživo, stavka 107 u [TODO-provera.md](TODO-provera.md).
+
 ## Otvorena pitanja dizajna
 
 Ona koja tek treba odlučiti stoje u [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md),

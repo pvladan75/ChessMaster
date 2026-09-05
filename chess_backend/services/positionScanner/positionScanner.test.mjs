@@ -7,7 +7,11 @@ import assert from 'node:assert/strict';
 import { normalizeSan, splitFirstMove, parseSolutionLines } from './solutions.mjs';
 import { rowToFenRank, FONT_MAPS, selectFontMap } from './fonts.mjs';
 import { buildPosition, materialProblem } from './verify.mjs';
-import { flagDuplicateNumbers } from './index.mjs';
+import { flagDuplicateNumbers, scanDocument } from './index.mjs';
+import { classifyUnreadable } from './diagrams.mjs';
+import { writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const skak = FONT_MAPS[0];
 
@@ -132,4 +136,91 @@ test('a number printed over two diagrams binds to neither', () => {
 
   assert.equal(positions[2].problem, null, 'a unique number is left alone');
   assert.equal(positions[3].problem, null, 'an unnumbered diagram has nothing to collide with');
+});
+
+// A book this scanner cannot read is not one problem but three, and only the
+// third of them wants a glyph map. Reported as one, the other two send the
+// reader off to derive a map for a font that is not in the file at all.
+
+function span(text, x, y, fontId = 'f1') {
+  return { text, x, y, width: text.length * 6, height: 9, fontId };
+}
+
+test('nothing on the page is reported as a scan, not as an unknown font', () => {
+  // Two of the books tried on 5.9.2026: 252 and 388 pages, one image per page,
+  // zero text spans in either. The old code reached the same message here with
+  // an empty list of unknown glyphs and did not notice the list was empty.
+  assert.equal(classifyUnreadable([[], []]).code, 'no_text');
+});
+
+test('prose without diagrams is not an alphabet we failed to recognise', () => {
+  // An OCR text layer over picture diagrams. Its words are 8 to 12 characters
+  // with no space in them, exactly like a diagram row, and the book that hit
+  // this reported "e" 26 times and "t" 5 as unknown chess glyphs.
+  const prose = [
+    span('Nowadays this move is rarely seen at', 34, 200),
+    span('the top level, and only then as a', 34, 212),
+    span('Nowadays', 34, 224),
+    span('eliminate', 120, 236),
+    span('exchanging', 210, 248),
+  ];
+
+  const verdict = classifyUnreadable([prose]);
+  assert.equal(verdict.code, 'no_diagram_text');
+  assert.deepEqual(verdict.unknownGlyphs, [], 'no letter of English prose is a chess glyph');
+});
+
+test('eight rows stacked in a column are a diagram, and then the font is the problem', () => {
+  const prose = [
+    span('Nowadays this move is rarely seen at', 34, 200),
+    span('eliminate', 120, 236),
+  ];
+  const rows = [];
+  for (let i = 0; i < 8; i += 1) rows.push(span('§§§§§§§§', 100, 300 + i * 11, 'f2'));
+
+  const verdict = classifyUnreadable([[...prose, ...rows]]);
+  assert.equal(verdict.code, 'unknown_font');
+  assert.deepEqual(verdict.unknownGlyphs, [['§', 64]]);
+  assert.ok(
+    !verdict.unknownGlyphs.some(([glyph]) => glyph === 'e'),
+    'the glyph list names the diagram, never the prose around it'
+  );
+});
+
+test('a PDF with no text reaches the caller as no_text, not as unknown_font', async (t) => {
+  // End to end through scanDocument, because the classification being right
+  // and the scanner asking it are two different things.
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << >> >>',
+  ];
+  const lines = ['%PDF-1.4'];
+  const offsets = [];
+  let length = lines[0].length + 1;
+  objects.forEach((body, i) => {
+    offsets.push(length);
+    const object = [`${i + 1} 0 obj`, body, 'endobj'];
+    lines.push(...object);
+    length += object.reduce((sum, line) => sum + line.length + 1, 0);
+  });
+
+  const startxref = length;
+  lines.push('xref', `0 ${objects.length + 1}`, '0000000000 65535 f ');
+  for (const at of offsets) lines.push(`${String(at).padStart(10, '0')} 00000 n `);
+  lines.push('trailer', `<< /Size ${objects.length + 1} /Root 1 0 R >>`, 'startxref', `${startxref}`, '%%EOF', '');
+  const pdf = lines.join('\n');
+
+  const file = join(tmpdir(), 'scanner-no-text-' + process.pid + '.pdf');
+  await writeFile(file, Buffer.from(pdf, 'latin1'));
+  t.after(() => rm(file, { force: true }));
+
+  await assert.rejects(
+    () => scanDocument({ filePath: file, fromPage: 1, toPage: 1 }),
+    (err) => {
+      assert.equal(err.code, 'no_text');
+      assert.match(err.message, /nema nikakvog teksta/);
+      return true;
+    }
+  );
 });

@@ -120,9 +120,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     });
 
     if (!outcome.ok) {
-      _toast(outcome.code == 'unknown_font'
-          ? 'Dijagrami u ovoj knjizi koriste font koji još ne umemo da čitamo.'
-          : outcome.error ?? 'Skeniranje nije uspelo.');
+      _toast(scanFailureMessage(outcome));
     } else if (outcome.result!.positions.isEmpty) {
       _toast('Na tim stranama nema dijagrama koje umemo da pročitamo.');
     }

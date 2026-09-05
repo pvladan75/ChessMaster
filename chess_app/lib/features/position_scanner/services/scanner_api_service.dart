@@ -14,11 +14,39 @@ class ScanOutcome {
   final ScanResult? result;
   final String? error;
 
-  /// `unknown_font` and `range_too_large` are worth telling apart in the UI:
-  /// one is asking for less, the other is a book we cannot read at all yet.
+  /// Worth telling apart in the UI, because each asks the trainer for
+  /// something different: `range_too_large` asks for fewer pages,
+  /// `file_too_large` for a smaller file, and the three unreadable codes
+  /// (`no_text`, `no_diagram_text`, `unknown_font`) for a different book —
+  /// all but the last, which asks for a glyph map and nothing from the trainer.
   final String? code;
 
   bool get ok => result != null;
+}
+
+/// The sentence a trainer reads when a scan refuses.
+///
+/// Three unreadable books used to share one message — "the diagrams use a font
+/// we cannot read yet" — and it was true of none of the three tried on
+/// 5.9.2026: two were image scans with no text at all, and one had an OCR text
+/// layer with picture diagrams. Naming the wrong cause is worse than naming
+/// none, because it sends the reader looking for a font that is not there.
+///
+/// Anything else keeps the server's own words: it knows numbers this screen
+/// does not, such as the size ceiling a book just went over.
+String scanFailureMessage(ScanOutcome outcome) {
+  switch (outcome.code) {
+    case 'no_text':
+      return 'Ova knjiga je skenirana kao slika — u njoj nema teksta. '
+          'Skener čita samo knjige u kojima su dijagrami složeni šahovskim fontom.';
+    case 'no_diagram_text':
+      return 'Na tim stranama ima teksta, ali su dijagrami slike ili crteži. '
+          'Skener čita samo dijagrame složene šahovskim fontom.';
+    case 'unknown_font':
+      return 'Dijagrami u ovoj knjizi koriste font koji još ne umemo da čitamo.';
+    default:
+      return outcome.error ?? 'Skeniranje nije uspelo.';
+  }
 }
 
 /// What a confirmation actually did.

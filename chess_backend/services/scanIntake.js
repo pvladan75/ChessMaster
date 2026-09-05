@@ -10,10 +10,41 @@
 // and flagged, because the board can still be worth studying when the move
 // printed next to it was misread.
 const crypto = require('crypto');
+const multer = require('multer');
 const { Chess } = require('chess.js');
 
 const MAX_POSITIONS_PER_CONFIRM = 300;
 const MAX_THEMES = 12;
+const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
+
+/**
+ * What to answer when the *upload* failed, before any scanning happened.
+ *
+ * Multer aborts mid-stream, so the route handler never runs and its own error
+ * handling never gets a turn: the error walks out to Express, which answers
+ * with an HTML page and a bare 500. A trainer then reads "Skeniranje nije
+ * uspelo (500)" for the most ordinary thing that can go wrong — a book bigger
+ * than the ceiling — and has no way to guess that a smaller file would work.
+ *
+ * Returns null when there is nothing to refuse, so the caller can pass the
+ * request on untouched.
+ */
+function uploadRejection(err) {
+  if (!err) return null;
+  if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+    return {
+      status: 413,
+      body: {
+        error: `Knjiga je veća od ${Math.round(MAX_DOCUMENT_BYTES / (1024 * 1024))} MB. Podeli PDF na manje delove pa skeniraj deo po deo.`,
+        code: 'file_too_large',
+      },
+    };
+  }
+  return {
+    status: 400,
+    body: { error: err.message || 'Dokument nije prihvaćen.', code: 'upload_rejected' },
+  };
+}
 
 function cleanThemes(value) {
   if (!Array.isArray(value)) return [];
@@ -224,6 +255,8 @@ function deriveInstruction(fen, solutionSan) {
 
 module.exports = {
   prepareRow,
+  uploadRejection,
+  MAX_DOCUMENT_BYTES,
   prepareRows,
   mergePlan,
   withSideToMove,

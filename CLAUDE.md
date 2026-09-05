@@ -20,9 +20,9 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1251 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1257 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 886 tests, all green
+cd chess_backend && npm test          # node --test, 895 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -44,6 +44,11 @@ across the 840 dp layout change, and eight with the width becoming a setting of
 its own rather than a side effect of proposing a main line. The number in this
 file had been left at 1234 for a day while the suite was 1239 — a floor below
 the suite hides exactly what it is for, so measure before quoting it.
+Fifteen more came on 5.9.2026 with the scanner saying **which** of three things
+is wrong with a book instead of blaming the font for all of them: six in the
+app for the sentence each code gets, four on the backend for the classification
+and its route through `scanDocument`, and five for an upload that fails before
+the scan starts.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
