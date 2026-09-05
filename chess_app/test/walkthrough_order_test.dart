@@ -196,4 +196,48 @@ void main() {
       expect(linesOf(walkthroughOrder(tree)), ['e4', 'e4 e5', 'e4 a6']);
     });
   });
+
+  group('a fan of gaps', () {
+    test('a fan is collapsed', () {
+      final tree = treeOf([
+        mine('e4', children: [
+          theirs('e5', 0.50, state: 'open'),
+          theirs('c5', 0.30, state: 'open'),
+          theirs('e6', 0.20, state: 'open'),
+        ]),
+      ]);
+      expect(linesOf(walkthroughOrder(tree)), ['e4']);
+    });
+
+    test('a lone gap survives', () {
+      final tree = treeOf([
+        mine('e4', children: [
+          theirs('e5', 0.50, state: 'open'),
+        ]),
+      ]);
+      expect(linesOf(walkthroughOrder(tree)), ['e4', 'e4 e5']);
+    });
+
+    test('a mixed position', () {
+      final tree = treeOf([
+        mine('e4', children: [
+          theirs('e5', 0.50, state: 'open'),
+          theirs('c5', 0.30, children: [mine('Nf3')]),
+        ]),
+      ]);
+      expect(linesOf(walkthroughOrder(tree)),
+          ['e4', 'e4 c5', 'e4 c5 Nf3', 'e4 e5']);
+    });
+
+    test('nothing else moved', () {
+      final tree = treeOf([
+        mine('e4', children: [
+          theirs('e5', 0.50, children: [mine('Nf3')]),
+          theirs('c5', 0.30, children: [mine('Nf3')]),
+        ]),
+      ]);
+      expect(linesOf(walkthroughOrder(tree)),
+          ['e4', 'e4 e5', 'e4 e5 Nf3', 'e4 c5', 'e4 c5 Nf3']);
+    });
+  });
 }

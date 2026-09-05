@@ -109,16 +109,26 @@ List<RepertoireTreeMove> _ordered(List<RepertoireTreeMove> moves) {
 List<WalkthroughStop> walkthroughOrder(RepertoireTree tree) {
   final stops = <WalkthroughStop>[];
 
-  void visit(RepertoireTreeMove move, List<String> above) {
-    final path = [...above, move.san];
-    stops.add(WalkthroughStop(move: move, path: path));
-    for (final child in _ordered(move.children)) {
-      visit(child, path);
+  void walkList(List<RepertoireTreeMove> children, List<String> above) {
+    final ordered = _ordered(children);
+    int gapCount = 0;
+    for (final child in ordered) {
+      if (lookOfRepertoireMove(child) == MoveTreeNodeLook.gap) {
+        gapCount++;
+      }
+    }
+
+    for (final child in ordered) {
+      if (gapCount >= 2 &&
+          lookOfRepertoireMove(child) == MoveTreeNodeLook.gap) {
+        continue;
+      }
+      final path = [...above, child.san];
+      stops.add(WalkthroughStop(move: child, path: path));
+      walkList(child.children, path);
     }
   }
 
-  for (final child in _ordered(tree.children)) {
-    visit(child, const []);
-  }
+  walkList(tree.children, const []);
   return stops;
 }
