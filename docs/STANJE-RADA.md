@@ -603,6 +603,43 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
 
+## ODAKLE SUTRA — 5.9.2026, kraj dana
+
+`PLAN-TABLA-I-STABLO.md` je **završen u celini**: svih pet faza je na masteru, plus
+dve izmene koje su došle iz vlasnikovih snimaka ekrana istog dana (visina table na
+desktopu, i oba banera u zaglavlju).
+
+**Ništa od toga nije gledano uživo osim jedne stavke.** Sve čeka u
+`docs/TODO-provera.md`, **stavka 104**, koja je narasla na šest delova:
+
+| deo | šta | stanje |
+|---|---|---|
+| A | fokus u stablu, širina ne skriva gde stojiš | čeka |
+| B | lepeza neodgovorenih odgovora u turi | čeka |
+| C | fiksna tabla i sažet baner | čeka |
+| D | šansa linije i pogled na jednu granu | čeka |
+| E | prostor ispod table | **potvrđeno na desktopu**, telefon čeka |
+| F | oba banera u zaglavlju iznad 1200 dp | čeka |
+
+**Prvo pitanje za sledeći put:** proći 104 od početka. Dve stvari u njoj su
+odluke a ne provere, i vlasnik ih jedini može doneti — dugme banera je sada 32 px
+visoko umesto 48 (deo C, stavka 13), a u zaglavlju uz „N nepotvrđenih" nema
+zvučnika (deo F, stavka 29).
+
+**Brojke na kraju dana:** Flutter 1234 (1 preskočen), backend 886, `flutter
+analyze` istih 29 poznatih `info` stavki.
+
+**Radna stabla:** `mislisha-batch-b` je odrađen i spojen. **`mislisha-batch-a`
+drži odbačeni posao** — worker je uradio baner (uzet) i fiksnu tablu (odbijena:
+sopstvena tri testa su mu padala jer traže `BoardWithCoordinates`, a izveštaj je
+navodio brojeve koje njegov paket testova demantuje). Sve što je vredelo je
+preuzeto; to stablo se može resetovati bez gubitka.
+
+**Sitnica koja će se ponoviti:** `orchestrate.py` je pucao na `UnicodeEncodeError`
+pri ispisu radnikovog izveštaja u cp1250 konzolu — posle rada, pre ijedne kapije
+— pa su oba paketa izgledala kao prolaz a nijedna kapija nije bila pokrenuta.
+Popravljeno 5.9.2026, ali tek posle oba pokretanja.
+
 ## Prijave sa provere 4.9–5.9.2026 — zabeleženo, nije rađeno
 
 Vlasnik ih je izričito prijavio kao **sugestije, ne kvarove**, i tražio da se
