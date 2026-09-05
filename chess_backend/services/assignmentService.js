@@ -251,15 +251,22 @@ async function createLessonAssignment(pool, {
     );
     const assignment = assignmentRes.rows[0];
 
+    // `position` orders the items; `step_key` says which step each one *is*.
+    //
+    // Both are written because they answer different questions, and the second
+    // one is what bridges this assignment to the lesson's schedule. Before it,
+    // that bridge was an index into a snapshot used as an index into the live
+    // lesson — so a trainer editing the lesson re-aimed a child's enrolment at
+    // a different board without anything failing.
     const values = [];
-    const tuples = lesson.steps.map((_, index) => {
-      const base = index * 2;
-      values.push(assignment.id, index);
-      return `($${base + 1}, $${base + 2})`;
+    const tuples = lesson.steps.map((step, index) => {
+      const base = index * 3;
+      values.push(assignment.id, index, step.id);
+      return `($${base + 1}, $${base + 2}, $${base + 3})`;
     });
 
     await client.query(
-      `INSERT INTO assignment_items (assignment_id, position) VALUES ${tuples.join(', ')}`,
+      `INSERT INTO assignment_items (assignment_id, position, step_key) VALUES ${tuples.join(', ')}`,
       values
     );
 
@@ -293,7 +300,7 @@ async function markLessonStepDone(pool, { studentId, assignmentId, position }) {
        AND a.kind = 'lesson'
        AND ai.position = $3
        AND ai.attempted_at IS NULL
-     RETURNING ai.id, a.lesson_id`,
+     RETURNING ai.id, ai.step_key, a.lesson_id`,
     [assignmentId, studentId, position]
   );
 
@@ -302,14 +309,18 @@ async function markLessonStepDone(pool, { studentId, assignmentId, position }) {
   // Reading a step enrols it for review. Without this the schedule would only
   // ever fill from grading, and nothing would be there to grade — the student
   // would have to seek out a review session for material it does not yet hold.
-  const lessonId = result.rows[0].lesson_id;
-  if (lessonId) {
+  const { lesson_id: lessonId, step_key: stepKey } = result.rows[0];
+  if (lessonId && stepKey) {
     try {
-      await ensureReviewItem(pool, { userId: studentId, lessonId, position });
+      // Enrolled by the step's own name, not by where it sat in this
+      // assignment. The item was a snapshot taken when the homework was set;
+      // the schedule belongs to the lesson, which the trainer may have edited
+      // since. Only the key survives both.
+      await ensureReviewItem(pool, { userId: studentId, lessonId, stepKey, position });
     } catch (err) {
       // Enrolment is a bonus on top of marking homework; failing it must not
       // undo the step the student just completed.
-      logger.error({ studentId, lessonId, position }, `Review enrolment failed: ${err.message}`);
+      logger.error({ studentId, lessonId, stepKey }, `Review enrolment failed: ${err.message}`);
     }
   }
 

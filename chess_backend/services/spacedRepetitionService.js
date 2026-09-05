@@ -8,6 +8,7 @@
 // they know cold.
 
 const logger = require('./logger');
+const { stepsOfLesson, stepByKey } = require('./lessonSteps');
 
 /// How a student rates their recall, mapped to SM-2's 0–5 quality scale.
 ///
@@ -105,30 +106,36 @@ function describeInterval(intervalDays) {
 ///
 /// New items are due immediately, so a step read today shows up in the first
 /// review session rather than a day later.
-async function ensureItem(pool, { userId, lessonId, position }) {
+async function ensureItem(pool, { userId, lessonId, stepKey, position = 0 }) {
+  // `position` is still written, and is still only an ordering: it is what the
+  // review list sorts a lesson's items by. `stepKey` is what says *which step*,
+  // and it is the only thing this row is looked up by.
   const result = await pool.query(
-    `INSERT INTO review_items (user_id, lesson_id, position)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (user_id, lesson_id, position) DO NOTHING
+    `INSERT INTO review_items (user_id, lesson_id, step_key, position)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (user_id, lesson_id, step_key) DO NOTHING
      RETURNING *`,
-    [userId, lessonId, position]
+    [userId, lessonId, stepKey, position]
   );
   if (result.rows.length > 0) return result.rows[0];
 
   const existing = await pool.query(
-    'SELECT * FROM review_items WHERE user_id = $1 AND lesson_id = $2 AND position = $3',
-    [userId, lessonId, position]
+    'SELECT * FROM review_items WHERE user_id = $1 AND lesson_id = $2 AND step_key = $3',
+    [userId, lessonId, stepKey]
   );
   return existing.rows[0] || null;
 }
 
 /// Records a grade and writes the resulting schedule.
-async function grade(pool, { userId, lessonId, position, quality }, now = new Date()) {
+async function grade(pool, { userId, lessonId, stepKey, position = 0, quality }, now = new Date()) {
   if (!isValidGrade(quality)) {
     return { ok: false, reason: 'Ocena mora biti ceo broj od 0 do 5.' };
   }
+  if (typeof stepKey !== 'string' || stepKey === '') {
+    return { ok: false, reason: 'Nedostaje oznaka koraka.' };
+  }
 
-  const current = await ensureItem(pool, { userId, lessonId, position });
+  const current = await ensureItem(pool, { userId, lessonId, stepKey, position });
   if (!current) {
     return { ok: false, reason: 'Stavka za ponavljanje nije pronađena.' };
   }
@@ -145,7 +152,7 @@ async function grade(pool, { userId, lessonId, position, quality }, now = new Da
   );
 
   logger.info(
-    { userId, lessonId, position, quality, intervalDays: next.intervalDays },
+    { userId, lessonId, stepKey, quality, intervalDays: next.intervalDays },
     'Review graded'
   );
 
@@ -163,7 +170,7 @@ async function grade(pool, { userId, lessonId, position, quality }, now = new Da
 /// Oldest-due first so a backlog is worked off in the order it built up.
 async function getDue(pool, userId, { limit = 30, now = new Date() } = {}) {
   const result = await pool.query(
-    `SELECT r.id, r.lesson_id, r.position, r.interval_days, r.repetitions, r.due_at,
+    `SELECT r.id, r.lesson_id, r.step_key, r.position, r.interval_days, r.repetitions, r.due_at,
             l.title AS lesson_title, l.fen AS lesson_fen, l.pgn AS lesson_pgn,
             l.position_list
      FROM review_items r
@@ -182,14 +189,21 @@ async function getDue(pool, userId, { limit = 30, now = new Date() } = {}) {
       pgn: row.lesson_pgn,
     });
 
-    // A lesson edited down to fewer steps can leave a schedule row pointing past
-    // the end; such rows are surfaced as null and skipped by the caller rather
-    // than crashing the whole review session.
-    const step = steps[row.position] || null;
+    // A step the trainer has since deleted leaves a row naming nothing; such
+    // rows are surfaced as null and skipped by the caller rather than crashing
+    // the whole review session.
+    //
+    // This used to read `steps[row.position]`, which had a second failure it
+    // could not report: a row still *inside* the array after an edit resolved
+    // to whatever step had inherited its index, and the student was asked about
+    // a board they had never been shown. `stepByKey` returns null or the right
+    // step, and never a neighbour.
+    const step = stepByKey(steps, row.step_key);
 
     return {
       id: row.id,
       lessonId: row.lesson_id,
+      stepKey: row.step_key,
       position: row.position,
       lessonTitle: row.lesson_title,
       intervalDays: row.interval_days,

@@ -27,6 +27,15 @@ enum ReviewGrade {
 class ReviewItem {
   final int id;
   final int lessonId;
+
+  /// Which step this is, as the lesson names it.
+  ///
+  /// [position] only says where the step sat when this row was written, and a
+  /// trainer who inserts a step ahead of it makes that number point somewhere
+  /// else. The key is the half that survives an edit, and it is what the grade
+  /// is sent back under. See `docs/PLAN-INTERAKTIVNA-LEKCIJA.md`, phase 1.
+  final String stepKey;
+
   final int position;
   final String lessonTitle;
   final int repetitions;
@@ -35,6 +44,7 @@ class ReviewItem {
   const ReviewItem({
     required this.id,
     required this.lessonId,
+    required this.stepKey,
     required this.position,
     required this.lessonTitle,
     required this.repetitions,
@@ -48,6 +58,7 @@ class ReviewItem {
   factory ReviewItem.fromJson(Map<String, dynamic> json) => ReviewItem(
         id: (json['id'] as num?)?.toInt() ?? 0,
         lessonId: (json['lessonId'] as num?)?.toInt() ?? 0,
+        stepKey: json['stepKey']?.toString() ?? '',
         position: (json['position'] as num?)?.toInt() ?? 0,
         lessonTitle: json['lessonTitle']?.toString() ?? '',
         repetitions: (json['repetitions'] as num?)?.toInt() ?? 0,
@@ -120,6 +131,7 @@ class ReviewApiService {
   /// ("sutra", "za 2 nedelje"), or null if it could not be saved.
   Future<String?> grade({
     required int lessonId,
+    required String stepKey,
     required int position,
     required ReviewGrade grade,
   }) async {
@@ -130,6 +142,11 @@ class ReviewApiService {
             headers: _headers,
             body: jsonEncode({
               'lessonId': lessonId,
+              // Both, on purpose. The key is what the server keys the schedule
+              // on; the position is still sent because it is the order a
+              // lesson's due items are listed in, and because a server that has
+              // not been updated yet still understands it.
+              if (stepKey.isNotEmpty) 'stepKey': stepKey,
               'position': position,
               'quality': grade.quality,
             }),

@@ -147,6 +147,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
     setState(() => _grading = true);
     final description = await _api.grade(
       lessonId: item.lessonId,
+      stepKey: item.stepKey,
       position: item.position,
       grade: grade,
     );

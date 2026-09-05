@@ -11,6 +11,7 @@ const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const srs = require('../services/spacedRepetitionService');
 const { acceptedTrainersOf } = require('../services/relationshipService');
+const { stepsOfLesson } = require('../services/lessonSteps');
 
 // GET /reviews/due — positions ready to be reviewed now.
 router.get('/due', authenticateToken, async (req, res) => {
@@ -44,8 +45,23 @@ router.post('/grade', authenticateToken, async (req, res) => {
   const position = Number.parseInt(req.body.position, 10);
   const quality = Number.parseInt(req.body.quality, 10);
 
-  if (!Number.isInteger(lessonId) || !Number.isInteger(position) || position < 0) {
-    return res.status(400).json({ error: 'lessonId i position su obavezni.' });
+  // `stepKey` names the step; `position` only orders it. A client that still
+  // sends `position` alone is one built before this change, and it is answered
+  // rather than refused — but the fallback resolves the index against the
+  // lesson as it is *now*, which is exactly the drift this phase removed. It is
+  // a bridge, not a second way of doing this.
+  //
+  // Remove it once the shipped app sends `stepKey`, which it does from the
+  // build that carries `docs/PLAN-INTERAKTIVNA-LEKCIJA.md` phase 1.
+  const stepKey = typeof req.body.stepKey === 'string' && req.body.stepKey !== ''
+    ? req.body.stepKey
+    : null;
+
+  if (!Number.isInteger(lessonId)) {
+    return res.status(400).json({ error: 'lessonId je obavezan.' });
+  }
+  if (!stepKey && (!Number.isInteger(position) || position < 0)) {
+    return res.status(400).json({ error: 'stepKey ili position su obavezni.' });
   }
 
   try {
@@ -65,10 +81,31 @@ router.post('/grade', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Nemate pristup toj lekciji.' });
     }
 
+    // The bridge for an older client: turn its index into the step's name,
+    // using the same reader every other caller uses.
+    let key = stepKey;
+    if (!key) {
+      const lesson = await pool.query(
+        'SELECT title, fen, pgn, position_list FROM saved_lessons WHERE id = $1',
+        [lessonId]
+      );
+      const steps = lesson.rows.length === 0 ? [] : stepsOfLesson({
+        positionList: lesson.rows[0].position_list,
+        title: lesson.rows[0].title,
+        fen: lesson.rows[0].fen,
+        pgn: lesson.rows[0].pgn,
+      });
+      key = steps[position] ? steps[position].id : null;
+      if (!key) {
+        return res.status(404).json({ error: 'Taj korak više ne postoji u lekciji.' });
+      }
+    }
+
     const result = await srs.grade(pool, {
       userId: req.user.id,
       lessonId,
-      position,
+      stepKey: key,
+      position: Number.isInteger(position) && position >= 0 ? position : 0,
       quality,
     });
 

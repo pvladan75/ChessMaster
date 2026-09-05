@@ -721,6 +721,28 @@ async function initDB() {
         ON assignment_items(assignment_id, position) WHERE puzzle_id IS NULL;
     `);
 
+    // Which *step* a lesson item is, as opposed to where it sits.
+    //
+    // `position` was doing both jobs, and the second one silently: a trainer who
+    // inserted a step at the front renumbered every item after it, so a row
+    // recording an answer now described a different board. Nothing threw and
+    // nothing logged — the failure shape this codebase keeps paying for.
+    //
+    // Backfilled as `p<position>`, which is exactly what the index means for
+    // every row written before ids existed; `stepsOfLesson` names legacy steps
+    // the same way, so the two sides agree by construction rather than by
+    // coincidence. `position` stays, and from here it orders and nothing else.
+    await client.query(`
+      ALTER TABLE assignment_items
+        ADD COLUMN IF NOT EXISTS step_key VARCHAR(16);
+      UPDATE assignment_items
+         SET step_key = 'p' || position
+       WHERE step_key IS NULL AND puzzle_id IS NULL;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_assignment_items_step_key
+        ON assignment_items(assignment_id, step_key) WHERE step_key IS NOT NULL;
+    `);
+    logger.info('Verified column & index: assignment_items.step_key');
+
     // What the student tried, not only whether it was accepted.
     //
     // `solved` alone cannot be un-lost: a wrong answer that is one square off
@@ -796,7 +818,28 @@ async function initDB() {
       CREATE INDEX IF NOT EXISTS idx_review_items_due
         ON review_items(user_id, due_at);
     `);
-    logger.info('Verified database table & indexes: review_items');
+
+    // The schedule follows the step, not its place in the list.
+    //
+    // `UNIQUE (user_id, lesson_id, position)` tied a student's memory to an
+    // index, so editing the lesson re-aimed every row in it at a different
+    // board — quietly, because an index is always valid. `getDue` already
+    // guarded the visible half of this (a row pointing past the end is skipped);
+    // this is the half that could not be seen.
+    //
+    // The old constraint is dropped only after the backfill has run, and the
+    // backfill is `'p' || position` because that is precisely what those rows
+    // have always meant. Same naming as `stepsOfLesson` gives a step with no id.
+    await client.query(`
+      ALTER TABLE review_items
+        ADD COLUMN IF NOT EXISTS step_key VARCHAR(16);
+      UPDATE review_items SET step_key = 'p' || position WHERE step_key IS NULL;
+      ALTER TABLE review_items ALTER COLUMN step_key SET NOT NULL;
+      ALTER TABLE review_items DROP CONSTRAINT IF EXISTS review_items_user_id_lesson_id_position_key;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_review_items_step
+        ON review_items(user_id, lesson_id, step_key);
+    `);
+    logger.info('Verified column, backfill & index: review_items.step_key');
 
     // Create student_reports table.
     //

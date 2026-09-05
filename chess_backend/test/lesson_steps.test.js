@@ -48,13 +48,30 @@ test('only the fields a step is made of get through', () => {
   const built = buildLessonStep({
     fen: FEN,
     title: 'Korak',
-    id: 7,
     owner_id: 3,
     needs_review: true,
     themes: ['mate'],
   });
 
-  assert.deepEqual(Object.keys(built.entry).sort(), ['fen', 'title']);
+  // `id` joined this list in phase 1 of PLAN-INTERAKTIVNA-LEKCIJA: it is the
+  // step's own identity, written here and kept for the step's whole life.
+  // Everything else a caller happened to send still stays out.
+  assert.deepEqual(Object.keys(built.entry).sort(), ['fen', 'id', 'title']);
+});
+
+test("a row's own database id is not a step id", () => {
+  // This used to be part of the test above, where `id: 7` was stripped along
+  // with `owner_id` and `themes`. It cannot be stripped any more — `id` now
+  // means something here — so it is refused instead.
+  //
+  // Refusing beats ignoring. A caller passing a library or puzzle row straight
+  // through is a caller whose steps would otherwise adopt that table's ids, and
+  // two lessons built that way would claim the same keys. Silently generating a
+  // fresh id instead would hide the same bug one layer further on.
+  const built = buildLessonStep({ fen: FEN, title: 'Korak', id: 7 });
+
+  assert.equal(built.ok, false);
+  assert.equal(built.status, 400);
 });
 
 test('a step with no name still gets one, rather than an empty title', () => {
