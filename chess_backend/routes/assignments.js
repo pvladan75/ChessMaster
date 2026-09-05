@@ -19,6 +19,7 @@ const { OWN_GAMES_SQL } = require('../services/archiveScope');
 const { notify } = require('../services/notifications');
 const reports = require('../services/reportService');
 const { judgeAttempt } = require('../services/customPuzzleJudge');
+const { stepsOfLesson } = require('../services/lessonSteps');
 const { buildReview } = require('../services/assignmentReview');
 const notes = require('../services/assignmentNotes');
 const { markReviewed } = require('../services/trainerPanelService');
@@ -360,6 +361,138 @@ router.post('/:id/step/:position', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Greška pri beleženju koraka.' });
   }
 });
+
+// POST /assignments/:id/step/:position/answer — the student answers a step.
+//
+// Judged here, never on the client. `getAssignmentDetail` redacts the answer
+// out of what the student is served, so the client could not mark its own work
+// even if it wanted to — which is the point.
+router.post('/:id/step/:position/answer', authenticateToken, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  const position = Number.parseInt(req.params.position, 10);
+  if (!Number.isInteger(id) || !Number.isInteger(position) || position < 0) {
+    return res.status(400).json({ error: 'Neispravan zadatak ili korak.' });
+  }
+
+  try {
+    const step = await lessonStepOfAssignment(pool, id, req.user.id, position);
+    if (!step) {
+      return res.status(404).json({ error: 'Taj korak nije deo tvog zadatka.' });
+    }
+
+    let verdict;
+    if (step.kind === 'ask_move') {
+      verdict = judgeAttempt({
+        fen: step.fen,
+        solutionSan: step.solutionSan,
+        acceptedSans: step.acceptedSans || [],
+        moveSan: String(req.body?.moveSan || ''),
+      });
+      // The client and this server disagreeing about the position is not a
+      // wrong answer, and must not pass in silence — nothing else would ever
+      // show it.
+      if (verdict.playedSan === null) {
+        logger.warn({ assignmentId: id, position, moveSan: req.body?.moveSan },
+          'Lesson step attempt could not be resolved to a move');
+      }
+    } else if (step.kind === 'ask_choice') {
+      const picked = Number.parseInt(req.body?.choiceIndex, 10);
+      const choices = Array.isArray(step.choices) ? step.choices : [];
+      if (!Number.isInteger(picked) || picked < 0 || picked >= choices.length) {
+        return res.status(400).json({ error: 'Nije izabran nijedan odgovor.' });
+      }
+      verdict = {
+        correct: choices[picked].correct === true,
+        reason: choices[picked].correct === true ? 'tačan odgovor' : 'netačan odgovor',
+        playedSan: null,
+      };
+    } else {
+      return res.status(409).json({ error: 'Ovaj korak se čita, ne rešava.' });
+    }
+
+    await assignments.recordLessonStepAnswer(pool, {
+      studentId: req.user.id,
+      assignmentId: id,
+      position,
+      correct: verdict.correct,
+      playedSan: verdict.playedSan,
+    });
+
+    // The solution is released only now, once the question has been answered.
+    res.json({
+      correct: verdict.correct,
+      reason: verdict.reason,
+      playedSan: verdict.playedSan,
+      solutionSan: step.solutionSan ?? null,
+      correctIndex: step.kind === 'ask_choice'
+        ? step.choices.findIndex((c) => c.correct === true)
+        : null,
+    });
+  } catch (err) {
+    logger.error('Error judging lesson step:', err);
+    res.status(500).json({ error: 'Greška pri proveri odgovora.' });
+  }
+});
+
+// POST /assignments/:id/step/:position/reveal — „Pokaži mi".
+//
+// The escape that keeps a stuck child from being unable to finish. Recorded as
+// its own thing rather than as a wrong answer: „rešenje otkriveno" and
+// „netačno" are different facts about a child.
+router.post('/:id/step/:position/reveal', authenticateToken, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  const position = Number.parseInt(req.params.position, 10);
+  if (!Number.isInteger(id) || !Number.isInteger(position) || position < 0) {
+    return res.status(400).json({ error: 'Neispravan zadatak ili korak.' });
+  }
+
+  try {
+    const step = await lessonStepOfAssignment(pool, id, req.user.id, position);
+    if (!step) {
+      return res.status(404).json({ error: 'Taj korak nije deo tvog zadatka.' });
+    }
+
+    await assignments.revealLessonStep(pool, {
+      studentId: req.user.id, assignmentId: id, position,
+    });
+
+    res.json({
+      solutionSan: step.solutionSan ?? null,
+      acceptedSans: step.acceptedSans ?? [],
+      correctIndex: step.kind === 'ask_choice'
+        ? step.choices.findIndex((c) => c.correct === true)
+        : null,
+    });
+  } catch (err) {
+    logger.error('Error revealing lesson step:', err);
+    res.status(500).json({ error: 'Greška pri prikazivanju rešenja.' });
+  }
+});
+
+/// The step, **with** its answer, for the caller's own lesson assignment.
+///
+/// One query establishes both that this is the student's own homework and which
+/// lesson it came from. Returns null for "not yours" and for "no such step", so
+/// a guessed id cannot be used to find out which assignments exist.
+async function lessonStepOfAssignment(pool, assignmentId, studentId, position) {
+  const found = await pool.query(
+    `SELECT l.title, l.fen, l.pgn, l.position_list
+       FROM assignments a
+       JOIN saved_lessons l ON l.id = a.lesson_id
+      WHERE a.id = $1 AND a.student_id = $2 AND a.kind = 'lesson'`,
+    [assignmentId, studentId]
+  );
+  if (found.rowCount === 0) return null;
+
+  const lesson = found.rows[0];
+  const steps = stepsOfLesson({
+    positionList: lesson.position_list,
+    title: lesson.title,
+    fen: lesson.fen,
+    pgn: lesson.pgn,
+  });
+  return steps[position] || null;
+}
 
 // GET /assignments/mine — what the caller has been set.
 router.get('/mine', authenticateToken, async (req, res) => {

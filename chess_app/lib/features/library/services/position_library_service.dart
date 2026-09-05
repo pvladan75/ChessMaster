@@ -7,12 +7,13 @@ import 'package:chess_app/services/app_logger.dart';
 
 import '../models/library_entry.dart';
 
-/// Reads the trainer's positions as one shelf, and puts one onto a lesson.
+/// Reads the trainer's positions as one shelf.
 ///
-/// Everything here is a read except [appendStep], which appends a single
-/// step server-side rather than reading a lesson, pushing onto it and writing
-/// the whole thing back — two people editing the same lesson that way lose one
-/// of the edits, silently.
+/// Every method here is a read. It used to carry one write — `appendStep`,
+/// which its own comment already called the odd one out — and phase 7a moved
+/// that onto `LessonApiService`, where the rest of what this app does to
+/// `saved_lessons` now lives. A service that reads one table and writes another
+/// is a service two features will reach for and one of them will be surprised.
 class PositionLibraryService {
   PositionLibraryService({required this.authToken});
 
@@ -79,55 +80,6 @@ class PositionLibraryService {
     } catch (e) {
       AppLogger.log('Course list failed: $e', name: 'PositionLibrary');
       return null;
-    }
-  }
-
-  /// Appends one position to an existing course.
-  ///
-  /// Returns null on success, or the server's own explanation. The refusals
-  /// worth reading are its own words: a lesson that is really a single board,
-  /// or a position no board could load.
-  ///
-  /// [instruction] and [solutionSan] are passed on rather than dropped. The
-  /// task is what the student reads — a step without it is a board with no
-  /// question — and the solution travels so the same step can later become
-  /// homework without the move having been lost on the way in.
-  Future<String?> appendStep({
-    required int lessonId,
-    required String title,
-    required String fen,
-    String? pgn,
-    String? instruction,
-    String? solutionSan,
-  }) async {
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$backendUrl/lessons/$lessonId/steps'),
-            headers: _headers,
-            body: jsonEncode({
-              'step': {
-                'title': title,
-                'fen': fen,
-                if (pgn != null) 'pgn': pgn,
-                if (instruction != null) 'instruction': instruction,
-                if (solutionSan != null) 'solutionSan': solutionSan,
-              },
-            }),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 201) return null;
-      try {
-        return (jsonDecode(response.body) as Map<String, dynamic>)['error']
-                ?.toString() ??
-            'Dodavanje nije uspelo (${response.statusCode}).';
-      } catch (_) {
-        return 'Dodavanje nije uspelo (${response.statusCode}).';
-      }
-    } catch (e) {
-      AppLogger.log('Append step failed: $e', name: 'PositionLibrary');
-      return 'Nije moguće doći do servera.';
     }
   }
 }

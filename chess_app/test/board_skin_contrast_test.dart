@@ -267,4 +267,64 @@ void main() {
       }
     });
   });
+
+  group('the [%csl] ring', () {
+    test('the csl ring keeps an edge on every square of every skin', () {
+      // The same invariant as the brackets above, for the ring `[%csl]` is
+      // drawn as, and it matters more here. An arrow is a shape with a
+      // direction and survives with no colour at all; a coloured *square* is
+      // only its colour unless something else carries it — so the two
+      // achromatic passes are not a refinement of the ring, they are the ring.
+      for (final board in BoardSkin.all) {
+        for (final (side, square) in [
+          ('light', board.lightSquare),
+          ('dark', board.darkSquare),
+        ]) {
+          forEachVision((vision) {
+            final shade = contrastAs(
+                ChessBoardPainter.squareMarkHaloShade, square, vision);
+            final light = contrastAs(
+                ChessBoardPainter.squareMarkHaloLight, square, vision);
+            final best = shade > light ? shade : light;
+
+            expectAtLeast(
+                best, 3.0, 'csl ring on ${board.id} $side square', vision);
+          });
+        }
+      }
+    });
+
+    test('the ring outline carries no hue, for any eye', () {
+      for (final halo in [
+        ChessBoardPainter.squareMarkHaloShade,
+        ChessBoardPainter.squareMarkHaloLight,
+      ]) {
+        forEachVision((vision) {
+          expect(simulate(halo, vision).toARGB32(), halo.toARGB32(),
+              reason:
+                  'the ring outline must look the same for ${vision.label}');
+        });
+      }
+    });
+
+    test('the ring stays inside its own square', () {
+      // Arithmetic rather than a rendering: the widest pass is the black one,
+      // so the ring's outer edge is `radius + shade / 2` from the centre and
+      // that has to stay under half a side, or a mark bleeds onto the square
+      // next to it and reads as two.
+      const core = ChessBoardPainter.squareMarkCoreFraction;
+      const shade = ChessBoardPainter.squareMarkShadeFraction;
+      const light = ChessBoardPainter.squareMarkLightFraction;
+
+      // The radius the painter computes, as a fraction of one side.
+      const radius = 0.5 - shade / 2 - 0.03;
+      expect(radius + shade / 2, lessThan(0.5));
+
+      // And the three passes are in the order the doctrine needs: widest
+      // first, colour last and narrowest, or the halo covers what it is there
+      // to make legible.
+      expect(shade, greaterThan(light));
+      expect(light, greaterThan(core));
+    });
+  });
 }

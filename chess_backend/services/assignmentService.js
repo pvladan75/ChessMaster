@@ -18,7 +18,7 @@ const WEAK_THEME_ACCURACY = 50;
 const { assignableProblem } = require('./customPuzzleJudge');
 const { trainableThemes } = require('./puzzleSelectionService');
 const { ensureItem: ensureReviewItem } = require('./spacedRepetitionService');
-const { stepsOfLesson } = require('./lessonSteps');
+const { stepsOfLesson, redactStepForStudent } = require('./lessonSteps');
 
 /// Ceiling on one assignment, so a mis-typed count cannot materialise thousands
 /// of rows or hand a child an impossible pile of work.
@@ -251,15 +251,22 @@ async function createLessonAssignment(pool, {
     );
     const assignment = assignmentRes.rows[0];
 
+    // `position` orders the items; `step_key` says which step each one *is*.
+    //
+    // Both are written because they answer different questions, and the second
+    // one is what bridges this assignment to the lesson's schedule. Before it,
+    // that bridge was an index into a snapshot used as an index into the live
+    // lesson — so a trainer editing the lesson re-aimed a child's enrolment at
+    // a different board without anything failing.
     const values = [];
-    const tuples = lesson.steps.map((_, index) => {
-      const base = index * 2;
-      values.push(assignment.id, index);
-      return `($${base + 1}, $${base + 2})`;
+    const tuples = lesson.steps.map((step, index) => {
+      const base = index * 3;
+      values.push(assignment.id, index, step.id);
+      return `($${base + 1}, $${base + 2}, $${base + 3})`;
     });
 
     await client.query(
-      `INSERT INTO assignment_items (assignment_id, position) VALUES ${tuples.join(', ')}`,
+      `INSERT INTO assignment_items (assignment_id, position, step_key) VALUES ${tuples.join(', ')}`,
       values
     );
 
@@ -293,7 +300,7 @@ async function markLessonStepDone(pool, { studentId, assignmentId, position }) {
        AND a.kind = 'lesson'
        AND ai.position = $3
        AND ai.attempted_at IS NULL
-     RETURNING ai.id, a.lesson_id`,
+     RETURNING ai.id, ai.step_key, a.lesson_id`,
     [assignmentId, studentId, position]
   );
 
@@ -302,14 +309,95 @@ async function markLessonStepDone(pool, { studentId, assignmentId, position }) {
   // Reading a step enrols it for review. Without this the schedule would only
   // ever fill from grading, and nothing would be there to grade — the student
   // would have to seek out a review session for material it does not yet hold.
-  const lessonId = result.rows[0].lesson_id;
-  if (lessonId) {
+  const { lesson_id: lessonId, step_key: stepKey } = result.rows[0];
+  if (lessonId && stepKey) {
     try {
-      await ensureReviewItem(pool, { userId: studentId, lessonId, position });
+      // Enrolled by the step's own name, not by where it sat in this
+      // assignment. The item was a snapshot taken when the homework was set;
+      // the schedule belongs to the lesson, which the trainer may have edited
+      // since. Only the key survives both.
+      await ensureReviewItem(pool, { userId: studentId, lessonId, stepKey, position });
     } catch (err) {
       // Enrolment is a bonus on top of marking homework; failing it must not
       // undo the step the student just completed.
-      logger.error({ studentId, lessonId, position }, `Review enrolment failed: ${err.message}`);
+      logger.error({ studentId, lessonId, stepKey }, `Review enrolment failed: ${err.message}`);
+    }
+  }
+
+  await markCompleteIfDone(pool, assignmentId);
+  return true;
+}
+
+/// Records what a student answered on one step of a lesson, and how it went.
+///
+/// The verdict is the caller's — the route judges, because the answer lives on
+/// the server and never travels to the client. This writes it down.
+///
+/// `played_san` is the move as the board understood it rather than as the
+/// client spelled it, and is null for a choice step, where there is no move.
+async function recordLessonStepAnswer(pool, {
+  studentId, assignmentId, position, correct, playedSan = null,
+}) {
+  const result = await pool.query(
+    `UPDATE assignment_items ai
+     SET attempted_at = COALESCE(ai.attempted_at, CURRENT_TIMESTAMP),
+         solved = $4,
+         played_san = COALESCE($5, ai.played_san)
+     FROM assignments a
+     WHERE ai.assignment_id = a.id
+       AND a.id = $1
+       AND a.student_id = $2
+       AND a.kind = 'lesson'
+       AND ai.position = $3
+     RETURNING ai.id, ai.step_key, a.lesson_id`,
+    [assignmentId, studentId, position, correct === true, playedSan]
+  );
+
+  if (result.rows.length === 0) return false;
+
+  const { lesson_id: lessonId, step_key: stepKey } = result.rows[0];
+  if (lessonId && stepKey) {
+    try {
+      await ensureReviewItem(pool, { userId: studentId, lessonId, stepKey, position });
+    } catch (err) {
+      logger.error({ studentId, lessonId, stepKey }, `Review enrolment failed: ${err.message}`);
+    }
+  }
+
+  await markCompleteIfDone(pool, assignmentId);
+  return true;
+}
+
+/// Marks that the student asked to be shown the answer.
+///
+/// Not recorded as a wrong answer: „rešenje otkriveno" and „netačno" are
+/// different facts about a child, and the trainer reading the review needs to
+/// tell them apart. The step still counts as done — the escape exists so a
+/// stuck child can finish — and it still enrols for review, arguably more than
+/// a solved one would.
+async function revealLessonStep(pool, { studentId, assignmentId, position }) {
+  const result = await pool.query(
+    `UPDATE assignment_items ai
+     SET revealed_at = COALESCE(ai.revealed_at, CURRENT_TIMESTAMP),
+         attempted_at = COALESCE(ai.attempted_at, CURRENT_TIMESTAMP)
+     FROM assignments a
+     WHERE ai.assignment_id = a.id
+       AND a.id = $1
+       AND a.student_id = $2
+       AND a.kind = 'lesson'
+       AND ai.position = $3
+     RETURNING ai.id, ai.step_key, a.lesson_id`,
+    [assignmentId, studentId, position]
+  );
+
+  if (result.rows.length === 0) return false;
+
+  const { lesson_id: lessonId, step_key: stepKey } = result.rows[0];
+  if (lessonId && stepKey) {
+    try {
+      await ensureReviewItem(pool, { userId: studentId, lessonId, stepKey, position });
+    } catch (err) {
+      logger.error({ studentId, lessonId, stepKey }, `Review enrolment failed: ${err.message}`);
     }
   }
 
@@ -569,6 +657,16 @@ async function getAssignmentDetail(pool, assignmentId, userId) {
         fen: lesson.fen,
         pgn: lesson.pgn,
       });
+
+      // The student gets the question; the trainer who set it gets the answer.
+      //
+      // The same rule the custom-position block below already keeps, and it has
+      // to be applied here too now that a step can *ask* something: sending the
+      // solution so the client could mark its own work would hand the student
+      // the very thing being asked of them.
+      if (assignment.student_id === userId && assignment.trainer_id !== userId) {
+        steps = steps.map(redactStepForStudent);
+      }
     }
   }
 
@@ -718,6 +816,8 @@ module.exports = {
   loadAssignableLesson,
   createLessonAssignment,
   markLessonStepDone,
+  recordLessonStepAnswer,
+  revealLessonStep,
   markCompleteIfDone,
   recordPuzzleResult,
   getStudentAssignments,

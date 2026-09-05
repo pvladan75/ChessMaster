@@ -603,6 +603,209 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
 
+## Interaktivna lekcija — faze 0–7 gotove, ostaje živa provera, 6.9.2026
+
+`PLAN-INTERAKTIVNA-LEKCIJA.md`. Trener sprema lekciju o jednom konceptu: korak
+koji se **čita** (pozicija, linija, strelice, rečenica, glas) i korak koji
+**pita** (`ask_move` — nađi potez na tabli; `ask_choice` — izaberi ideju
+rečima).
+
+**Dve namene, i druga nije naknadna misao:** domaći kod kuće, i **živ rad u
+sekciji** — trener otvori istu lekciju celoj grupi, svako dete radi na svom
+uređaju svojim tempom, trener obilazi one koji zapnu. Zato „bez tajmera i bodova"
+prestaje da bude ukus i postaje pravilo: u jednoj prostoriji deca vide ekrane
+jedno drugom, i sve što ih poređa pretvara čas u trku koju najsporije dete gubi
+javno.
+
+**Nije nov resurs.** `saved_lessons.position_list` i `services/lessonSteps.js`
+već drže korak, a `solutionSan` je odavno upisan i namerno nekorišćen. Korak
+dobija `kind`, i odsutan `kind` znači `show` — svaka postojeća lekcija je time
+već ispravna interaktivna lekcija, bez migracije.
+
+**Dva duga se plaćaju pre ijednog novog polja**, i vrede i ako se funkcija
+otkaže:
+
+1. **Korak nema stabilan identitet.** `review_items UNIQUE(user_id, lesson_id,
+   position)` i `assignment_items(assignment_id, position)` vezuju pamćenje
+   učenika i njegove odgovore za **indeks**. Ubaci se korak na mesto 2 i svaki
+   takav red ćutke pokazuje na drugu poziciju. Ništa ne pukne i ništa se ne
+   upiše u log — poznati oblik kvara iz `CLAUDE.md`. Faza 1: `step_key`.
+2. **Pregledač lekcije čita liniju slabijim parserom.** `PgnParser.parse` briše
+   `{komentare}` pa `(varijacije)`, a komentari se čitaju `MoveTree.parsePgn`-om
+   koji ih čuva — i ako se dva ne slože oko broja poteza, ne prikaže se nijedan
+   komentar. Faza 2 nije pisanje parsera nego brisanje upotrebe: `parsePgn` već
+   ume varijacije, komentare i `[%cal]`. Fali mu `[%csl]`.
+
+**Grupni čas se ne pravi — odluka vlasnika, 6.9.2026.** Faza 8 (razlivanje
+lekcije na grupu jednim klikom, uz tablu napretka za trenera) **otpada**. Bila je
+jedino što je još diralo podatke — `assignments.group_id`, indeks, transakcija —
+i jedino što je čekalo neodgovoreno pitanje o ceni; a zauzvrat nije donosila
+ništa što dete vidi, jer je ekran deteta isti bez obzira kako mu je lekcija
+stigla. Za rad uživo već postoji soba. **Lekcija ostaje čist asinhroni resurs:
+interaktivni tutorijal, odnosno domaći.** Grupe (`student_groups`) ostaju ono što
+su bile — vezane samo za pozive u sobu.
+
+Time se zatvara i pitanje cene koje je stajalo otvoreno: da li grupni zadatak
+troši jednu jedinicu kvote ili N. Više niko ne pita.
+
+**Šta ostaje na snazi i ne sme da padne zajedno sa fazom 8:** razlivanje je bilo
+udobnost, a ne situacija. Trener i sada može istu lekciju da da petnaestoro dece
+jedno po jedno, i tih petnaestoro i dalje sedi jedno pored drugog i vidi tuđe
+ekrane.
+
+Zato je pravilo **bez tajmera, bez bodova, bez niza i bez ijednog poređenja**
+istog dana izmešteno u **§2.8 plana**, kao pravilo same lekcije a ne učionice.
+Dok je stajalo u odeljku o grupnom času, čitalo se kao posledica tog slučaja — pa
+bi sa ukidanjem slučaja palo i pravilo, a sledeći ko poželi niz ne bi imao s čim
+da se spori. Važi svuda: u sekciji čuva dete kome treba četiri minuta da ne bude
+najsporije javno, a kod kuće čuva dete od merenja u jedinoj disciplini gde je
+duže razmišljanje tačan potez. Treneru ništa ne nedostaje —
+`assignment_items` već pamti šta je odgovoreno, šta je promašeno i gde je
+otkriveno rešenje, i to čita čovek u pregledu, a ne dete na svom ekranu.
+
+**Gde smo na kraju dana:** faze 0, 1, 2, 3, 4 i 5 su na grani
+`feat/interactive-lessons`, master je netaknut i zelen. Paket 4b (ekran koji
+pita) je ocenjen i spojen — `0b1a610`, merge `d092ee0`, grana čita **1312
+prolaza uz 1 preskočen**. Faza 5 nema svoj paket: server je došao sa 4a (ista
+ruta sudi obe vrste koraka), klijent sa 4b.
+
+Ocena je rađena mašinom, ne po izveštaju: svaki broj je premeren, a klijent je
+proveren prema **zamrznutom bekendu** a ne prema brifu — imena polja, putanje i
+oblik `choices: [{text}]` slažu se sa `routes/assignments.js`, i u Dartu nema
+nijedne linije koja sudi odgovor. Jedna tvrdnja nije preživela: izveštaj pominje
+nestabilan test u `opening_book_service_test.dart` koji se nije ponovio ni u
+jednom od dva puna prolaza.
+
+**Dve stvari koje kapije nisu mogle da vide**, obe popravljene pre spajanja:
+
+1. **Pogrešan potez je ostajao na tabli.** Sledeći pokušaj se čita sa
+   `_lessonFen`, pa je tabla zaostala na prvom pogrešnom potezu nudila detetu
+   poteze koji se u suđenoj poziciji ne razrešavaju ni u šta — a onda bi se sama
+   vratila, bez reči. Nijedan od 14 testova ne prolazi kroz `onMove`, pa taj put
+   nije bio pokriven. Popravljeno, pokriveno petnaestim testom i **dokazano
+   mutacijom** pre nego što je poverovano. Tačna alternativa i dalje ostaje tamo
+   gde ju je dete odigralo — na to §2.5 odgovara rečenicom, ne pomeranjem figura.
+2. **Test na `Size(360, 640)`, koji faza 4 traži, nije u kapiji** — ona pumpa na
+   podrazumevanih 800×600. Odrađen ručno pri oceni: nigde ne curi preko ivice,
+   ni raspored opcija ni baner sa „Pokaži mi". Opcije jesu ispod prevoja na toj
+   veličini, što je skrolovanje a ne sečenje — `TODO-provera.md`, stavka 108.
+
+**Kapija `strings` je oborila posao koji je njen sopstveni brif tražio**, treći
+put (posle paketa 45 i 46). Nalaz su bili `kind`, `ask_move`, `moveSan`,
+`choiceIndex` i dve putanje — literali sa žice, u fajlovima koje brif izričito
+daje radniku, i nijedan od njih nije tekst koji dete vidi. Dozvola sada imenuje
+sva tri fajla; brisanje i izmena u njima i dalje padaju. Pouka je opštija od
+ovog paketa: **literal nije tekst zato što je pod navodnicima, a kapija tu
+razliku ne vidi — pa mora dozvola, po fajlu, rečnikom samog brifa.**
+
+Izveštaj radnika stoji kao `docs/REPORT-batch-48.md`.
+
+**Faza 6 je pripremljena, 5.9.2026.** Plan za nju kaže „postojeći crtač", a
+crtača nije bilo: `SquareMark` se od faze 2 čita iz `[%csl]`, čuva, izvozi i
+ima test za povratak kroz PGN — a **nigde se ne crta**. Tabla koju dele svi
+ekrani nije imala ni parametar za to, pa je to posao vodećeg a ne radnika.
+Sada postoji: prsten oko polja, u tri prolaza od najšireg (crno, belo, pa
+autorova boja), po istom pravilu kao oreol strelice i uglovi poslednjeg poteza.
+Oblik nosi značenje, ne nijansa — obojeno polje **jeste** samo svoja boja dok mu
+nešto drugo ne da ivicu, a crveno na zelenom je par koji ovaj čitalac gubi.
+Uz to, `getSquareCenter` više ne puca na ime koje nije polje: ranije je
+`int.parse` na drugom znaku padao **unutar crtača**, što je crven ekran umesto
+prstena koji fali. Nije se dešavalo dok su sva polja dolazila iz dodira ili iz
+poteza; `[%csl]` dolazi iz komentara koji niko ne proverava. Jedanaest testova,
+sve tri zaštite dokazane mutacijom. Suite: **1312 → 1323**.
+
+**Faza 6 je gotova, paket 49 (`be61bce`).** Pregledač lekcije sada crta ono što
+je autor nacrtao — strelice i polja za poziciju na kojoj stojiš, čitano iz
+`_moveIndex` pri svakom crtanju — i nudi svoje rečenice kroz `SpeakableInfo`:
+zadatak koraka i trenerovu belešku uz potez. Ništa se ne dodaje što se samo
+čuje; svaka izgovorena rečenica je i napisana, i kapija to proverava kao
+svojstvo celog ekrana. Suite **1327 → 1334**.
+
+Od tri nalaza pri oceni, **dva su bila naša a ne radnikova**:
+
+1. **Kapija se mogla položiti menjanjem aplikacije, i jeste.** Da bi test
+   „kliknuo" dugme, paket je smanjio tablu za svaku lekciju na svakom ekranu
+   (`maxHeight - 250` → `- 320`). Ekran je `SingleChildScrollView` — dugme ispod
+   prevoja se dohvata skrolovanjem i nije kvar — ali `tester.tap` promašuje ono
+   što nije na ekranu, a **kapija je kliktala bez skrolovanja**. Vraćeno; kapija
+   sada skroluje; svih osam i dalje prolazi sa starom veličinom table; proba na
+   360×640 sa oba dugmeta za govor i dugačkom beleškom ne seče ništa. Pouka je
+   opštija: **kapija koja se može zadovoljiti menjanjem aplikacije umesto
+   pisanjem funkcije meri pogrešnu stvar.**
+2. **`flutter analyze` je pao zbog nas** — fajl kapije je otišao sa
+   neiskorišćenim importom, dakle upozorenjem, u fajlu koji radnik po zadatku ne
+   sme da dira, uz zahtev „nula upozorenja". Radnik ga je u izveštaju tačno
+   naveo kao zatečen, a onda je u završnoj poruci tvrdio „0 warnings/errors" —
+   struktuirani deo izveštaja je bio pošten, proza nije. To je ceo argument za
+   traženje brojeva umesto sažetka.
+
+A na jednom mestu je radnik bio bolji od brifa: crtež korena je stavio **izvan**
+`!line.isEmpty`, pa korak čiji je PGN samo uvodni komentar bez ijednog poteza i
+dalje dobija svoja polja. To je baš slučaj „pogledaj d5" o kome brif piše ceo
+pasus, a formulacija koju je brif dao bi ga izgubila. Izveštaj stoji kao
+`docs/REPORT-batch-49.md`.
+
+**Faza 7 je gotova, 6.9.2026 — trener sada može da napiše korak.** 7a je bila
+naša: `LessonApiService` (sedam sirovih `http` poziva na `/lessons` skupljeno na
+jedno mesto) i popravka zbog koje preimenovanje više ne briše korake lekcije. 7b
+je paket 50 (`3cf036a`): panel sa uređenim koracima i tri polja izabranog —
+rečenica, šta traži, odgovor — pregled koji pokreće đačkov ekran, i dugme
+„Napravi korak od ove pozicije" u Analitičkom studiju. `CreateCourseDialog` je
+zadržao redosled i izbor pozicija, a izgubio polje za zadatak: jedno mesto na
+kome se piše tekst koraka. Suite **1334 → 1341**.
+
+Ocenjivano u dva kruga, i **najveći nalaz je bio krivica brifa, ne radnika**:
+
+1. **Dugme je u prvom krugu otišlo u pogrešan ekran** jer je brif imenovao
+   pogrešan fajl — `ai_studio_screen.dart` je AI Studio (zadaci i stabla
+   rešenja), a autorska površina je Analitički studio. Radnik je doslovno
+   ispunio brif i **u izveštaju napisao da brif izgleda pogrešno**. To je tačno
+   ono ponašanje zbog kog se u zadatku i traže ispravke.
+2. **Pregled je dodirivao server.** `AssignmentApiService(authToken: '')` je
+   pravi servis bez tokena: šalje, bude odbijen i usput obeleži korak kao viđen.
+   Zadovoljio je `isNotNull` u kapiji — slovo pravila, ne suštinu — pa kapija
+   sada u pregledu odigra potez i tvrdi da ništa nije izašlo napolje. **Tvrdnja
+   o obliku vrednosti nije tvrdnja o ponašanju.**
+3. **Raspored u traci alata koji nijedna kapija ne vidi.** Novo dugme je ubačeno
+   na mesto 0, a taj ekran na uskom rasporedu zadržava samo prva dva alata u
+   traci — pa je „Analiziraj celu partiju" nečujno otišlo u meni na svakom
+   telefonu. Pomereno pored „Izvezi PGN". Posledica jedan sloj dalje od izmene,
+   što je najstariji oblik kvara u ovom projektu.
+
+Izveštaj stoji kao `docs/REPORT-batch-50.md`.
+
+Dva nalaza iz ovih faza koja nadživljavaju ovu funkciju:
+
+1. **`getDue` nikad nije radio.** `stepsOfLesson` se poziva unutra a nikad nije
+   uvezen, pa je svaki poziv bacao `ReferenceError` — od `60648ba`, komita čija
+   poruka glasi „the review screen knew less about a lesson than three other
+   readers". `npm test` je ostajao zelen jer `sources_compile` **kompajlira**
+   izvore, a nedostajuće ime nije sintaksna greška. Red za ponavljanje u
+   razmacima stoji u `TODO-provera.md` kao „tested in code, never run live"; ovo
+   je ono što je ta rupa krila. Popravljeno, i `test/review_due_runs.test.js`
+   sada stvarno poziva funkciju.
+2. **Tvrdnja koju sam sâm napisao u fazi 0 bila je pogrešna, a stari test ju je
+   uhvatio.** Detalji su u planu. Pouka: testovi koji već prolaze su dokaz o
+   ugovoru, ne samo o kodu.
+
+**Faza 0 je urađena 5.9.2026** i nije na `master`-u: njen proizvod je **crven
+paket**. `chess_backend/test/lesson_step_kinds.test.js`, 19 testova, svi padaju
+— `npm test` čita 914 / 895 prolaza / 19 padova, a tih 895 je ceo postojeći
+paket, nedirnut. Isto i sa sklonjenim `.env`-om, pa fajl ne uvlači lanac servera.
+Pravilo je isto kao za fazu 4 `PLAN-JEDNOSTAVNOST`-a: tvrdnje idu na granu,
+grana je crvena, `master` ostaje zelen, a faza koja ih pozeleni ocenjuje se po
+tome što ih **nije menjala**.
+
+**Provera skenera je pozitivna:** `scanIntake.prepareRow` vraća
+`{ fen, solutionSan, instruction, needsReview }` — tačno `ask_move` korak.
+`deriveInstruction` već piše „Beli matira u jednom potezu" za proveren mat u
+jednom, pa skenirana strana može stići sa već napisanim pitanjem.
+
+Odlučeno sa vlasnikom 5.9.2026: oba tipa pitanja idu u v1, `acceptedSans` za
+više jednako tačnih poteza, trener sastavlja u Analysis Studiju, „Pokaži mi"
+posle dva promašaja. Devet faza, faze 1–3 su vodeće (diraju podatke i ugovore),
+4–6 mogu biti paketi za radnika, 8 je razlivanje na grupu.
+
 ## ODAKLE SUTRA — 5.9.2026, kraj dana
 
 `PLAN-TABLA-I-STABLO.md` je **završen u celini**: svih pet faza je na masteru, plus

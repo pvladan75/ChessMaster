@@ -128,6 +128,8 @@ class AssignmentItem {
       );
 }
 
+enum LessonStepKind { show, askMove, askChoice }
+
 /// One board position in an assigned lesson.
 class LessonStep {
   final String title;
@@ -143,20 +145,84 @@ class LessonStep {
   /// than inventing a task.
   final String? instruction;
 
+  final LessonStepKind kind;
+  final List<String> choices;
+
   const LessonStep({
     required this.title,
     required this.fen,
     this.pgn,
     this.instruction,
+    this.kind = LessonStepKind.show,
+    this.choices = const [],
   });
 
-  factory LessonStep.fromJson(Map<String, dynamic> json) => LessonStep(
-        title: json['title']?.toString() ?? '',
-        fen: json['fen']?.toString() ?? '',
-        pgn: json['pgn']?.toString(),
-        instruction: (json['instruction']?.toString().trim().isEmpty ?? true)
-            ? null
-            : json['instruction'].toString().trim(),
+  factory LessonStep.fromJson(Map<String, dynamic> json) {
+    LessonStepKind parsedKind = LessonStepKind.show;
+    if (json['kind'] == 'ask_move') {
+      parsedKind = LessonStepKind.askMove;
+    } else if (json['kind'] == 'ask_choice') {
+      parsedKind = LessonStepKind.askChoice;
+    }
+
+    return LessonStep(
+      title: json['title']?.toString() ?? '',
+      fen: json['fen']?.toString() ?? '',
+      pgn: json['pgn']?.toString(),
+      instruction: (json['instruction']?.toString().trim().isEmpty ?? true)
+          ? null
+          : json['instruction'].toString().trim(),
+      kind: parsedKind,
+      choices: (json['choices'] as List?)
+              ?.map((c) => (c as Map)['text'].toString())
+              .toList() ??
+          const [],
+    );
+  }
+}
+
+class StepAnswerResult {
+  const StepAnswerResult({
+    required this.correct,
+    required this.reason,
+    this.playedSan,
+    this.solutionSan,
+    this.correctIndex,
+  });
+
+  final bool correct;
+  final String reason;
+  final String? playedSan;
+  final String? solutionSan;
+  final int? correctIndex;
+
+  factory StepAnswerResult.fromJson(Map<String, dynamic> json) =>
+      StepAnswerResult(
+        correct: json['correct'] == true,
+        reason: json['reason']?.toString() ?? '',
+        playedSan: json['playedSan']?.toString(),
+        solutionSan: json['solutionSan']?.toString(),
+        correctIndex: (json['correctIndex'] as num?)?.toInt(),
+      );
+}
+
+class StepRevealResult {
+  const StepRevealResult({
+    this.solutionSan,
+    this.acceptedSans,
+    this.correctIndex,
+  });
+
+  final String? solutionSan;
+  final List<String>? acceptedSans;
+  final int? correctIndex;
+
+  factory StepRevealResult.fromJson(Map<String, dynamic> json) =>
+      StepRevealResult(
+        solutionSan: json['solutionSan']?.toString(),
+        acceptedSans:
+            (json['acceptedSans'] as List?)?.map((e) => e.toString()).toList(),
+        correctIndex: (json['correctIndex'] as num?)?.toInt(),
       );
 }
 

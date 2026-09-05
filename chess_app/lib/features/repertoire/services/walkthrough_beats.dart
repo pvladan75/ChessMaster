@@ -1,3 +1,4 @@
+import 'package:chess_app/core/services/tour_walk.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/repertoire/services/walkthrough_order.dart';
 
@@ -34,65 +35,27 @@ class WalkthroughBeat {
   final RepertoireTreeMove? next;
 }
 
-bool _startsWith(List<String> path, List<String> prefix) {
-  if (path.length < prefix.length) return false;
-  for (var i = 0; i < prefix.length; i++) {
-    if (path[i] != prefix[i]) return false;
-  }
-  return true;
-}
-
-bool _isChildOf(WalkthroughStop child, WalkthroughStop parent) =>
-    child.path.length == parent.path.length + 1 &&
-    _startsWith(child.path, parent.path);
-
 /// The tour, as the reader is actually walked through it.
 ///
-/// Every stop, in `walkthroughOrder`'s order and exactly once — that contract
-/// is not touched here — with a returning beat inserted wherever the tour
-/// climbs back out of a finished line to start another.
-///
-/// A climb is any step whose next stop is not a child of the current one. The
-/// fork it climbs to is the parent of the stop about to be visited, which is
-/// always a stop the tour has already been through (or the root), so the
-/// returning beat never shows the reader a position out of nowhere.
+/// The arithmetic lives in `core/services/tour_walk.dart` and knows nothing
+/// about repertoires — it was extracted there in phase 3 of
+/// `PLAN-INTERAKTIVNA-LEKCIJA.md` so a lesson step's line can be walked the
+/// same way, with the same return to the fork. This function is the adapter:
+/// it hands over the paths and turns the indices that come back into the moves
+/// this feature speaks in.
 List<WalkthroughBeat> walkthroughBeats(List<WalkthroughStop> stops) {
-  final beats = <WalkthroughBeat>[];
+  final beats = tourBeats([for (final stop in stops) stop.path]);
 
-  for (var k = 0; k < stops.length; k++) {
-    if (k > 0 && !_isChildOf(stops[k], stops[k - 1])) {
-      final parentPath = stops[k].path.sublist(0, stops[k].path.length - 1);
+  RepertoireTreeMove? moveAt(int index) =>
+      index < 0 || index >= stops.length ? null : stops[index].move;
 
-      // The fork itself. Empty path means the two lines part at the root.
-      var parentIndex = -1;
-      for (var j = 0; j < k; j++) {
-        if (stops[j].path.length == parentPath.length &&
-            _startsWith(stops[j].path, parentPath)) {
-          parentIndex = j;
-          break;
-        }
-      }
-
-      // The branch just finished is the sibling immediately before this one:
-      // the walk is depth-first, so the tour cannot have been anywhere else.
-      RepertoireTreeMove? done;
-      for (var j = k - 1; j >= 0; j--) {
-        if (stops[j].path.length == parentPath.length + 1 &&
-            _startsWith(stops[j].path, parentPath)) {
-          done = stops[j].move;
-          break;
-        }
-      }
-
-      beats.add(WalkthroughBeat(
-        stopIndex: parentIndex,
-        returning: true,
-        done: done,
-        next: stops[k].move,
-      ));
-    }
-    beats.add(WalkthroughBeat(stopIndex: k));
-  }
-
-  return beats;
+  return [
+    for (final beat in beats)
+      WalkthroughBeat(
+        stopIndex: beat.stopIndex,
+        returning: beat.returning,
+        done: moveAt(beat.doneIndex),
+        next: moveAt(beat.nextIndex),
+      ),
+  ];
 }

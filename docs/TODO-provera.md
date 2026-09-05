@@ -3977,3 +3977,87 @@ archive.org što se može selektovati mišem), i bilo koji PDF **veći od 25 MB*
    proverava da popravka nije ništa pokvarila.
 5. [ ] **Nijedna poruka se ne pojavi dvaput** i nijedna ne ostane na ekranu
    posle sledećeg skeniranja.
+
+
+## 108. Interaktivna lekcija — korak koji pita (faza 9)
+
+Napravljeno 5–6.9.2026, faze 0–7 na grani `feat/interactive-lessons`. Ovo je
+živa provera iz faze 9 plana [PLAN-INTERAKTIVNA-LEKCIJA.md](PLAN-INTERAKTIVNA-LEKCIJA.md).
+**Više ne čeka ništa** — trenerski uređivač je gotov, pa se korak pravi u
+aplikaciji a ne ručno u `position_list`.
+
+Redosled je namerno ovakav: prvo se korak **napravi** (stavke 17–22), pa se onda
+proverava kako izgleda **detetu** (stavke 1–16). Treba jedna lekcija sa tri
+koraka: jedan `show`, jedan `ask_move` (sa `acceptedSans`, da se vidi i druga
+tačna varijanta) i jedan `ask_choice`.
+
+1. [ ] **Stara lekcija bez `kind`-a i dalje radi** — otvori bilo koji postojeći
+   zadatak lekcije. Tabla se igra, ništa ne pita, nema banera. Ovo je jedina
+   stavka koja proverava da ništa nije pokvareno.
+2. [ ] **`ask_move`, tačan potez** → „Tačno." i ništa više.
+3. [ ] **`ask_move`, druga tačna varijanta** → „Tačno. Mi nastavljamo posle
+   `<potez>`." Figure ostaju tamo gde si ih ti odigrao — rečenica kaže odakle
+   lekcija ide dalje, tabla se ne pomera sama.
+4. [ ] **`ask_move`, pogrešan potez** → poruka je **serverova** („taj potez nije
+   moguć u ovoj poziciji" i „nije traženi potez" su dve različite poruke i moraju
+   da se razlikuju), a **figure se vrate na početnu poziciju koraka**. Odigraj
+   odmah drugi potez: mora da bude primljen normalno, bez pritiska na išta.
+5. [ ] **„Pokaži mi" se ne nudi posle prve greške**, a posle druge se pojavi.
+   Pritisni ga: pokaže „Rešenje: `<potez>`".
+6. [ ] **`ask_choice`** → opcije se vide, **tabla se ne igra** (probaj da
+   povučeš figuru — ne sme da se pomeri), izbor šalje odgovor i verdikt stiže.
+7. [ ] **Tačno i netačno se razlikuju i bez boje.** Vlasnik je daltonista:
+   gledaj ikonicu i oblik banera, ne nijansu.
+8. [ ] **Na telefonu (360 dp) ništa nije odsečeno.** Izmereno u testu 5.9.2026 i
+   čisto je, ali release build ne crta upozorenje pa se gleda okom. **Opcije kod
+   `ask_choice` su ispod prevoja** — treba skrolovati ispod table da bi se
+   videle. To nije kvar; odluka je da li je prihvatljivo detetu koje prvi put
+   vidi ekran.
+9. [ ] **Isključi mrežu usred odgovora** → „Odgovor nije poslat — proveri vezu."
+   i tabla ostaje tamo gde je bila. Dete sme odmah da pokuša ponovo.
+10. [ ] **Nigde nema tajmera, bodova ni niza.** Ovaj ekran se koristi u sekciji
+    gde deca vide ekrane jedno drugom.
+
+Uz to, faza 6 (crtež i glas, paket 49) — za ovo treba korak čiji PGN nosi
+`[%csl]` i `[%cal]`, jedan pre prvog poteza i jedan uz potez:
+
+11. [ ] **Polje koje je autor obojio se vidi kao prsten**, i vidi se **pre**
+    prvog poteza. Prsten ima crnu i belu ivicu oko boje — to je ono što ga drži
+    čitljivim na svakoj tabli i za svako oko; ako se vidi samo boja, nešto nije
+    nacrtano kako treba.
+12. [ ] **Prsten se ne meša sa poslednjim potezom** (uglovi) ni sa poljem sa
+    kog trener crta (pun krug). Razlika je oblik, ne nijansa.
+13. [ ] **Korak napred menja crtež**, korak nazad ga vraća. Prođi liniju do
+    kraja i natrag.
+14. [ ] **`[%csl Yd5]` daje siv prsten**, jer paleta nema žutu. To je poznato i
+    zapisano; pitanje za uživo je da li je sivo dovoljno ili paleti treba šesta
+    boja — a šesta se **meri** u postojeći skup (1.5:1 na svaki par, pod
+    protanopijom i deuteranopijom), ne bira.
+15. [ ] **Zvučnik pored zadatka i pored beleške radi**, i čita **tačno ono što
+    piše**. Ništa se ne izgovara što nije napisano.
+16. [ ] **Sa isključenim govorom ekran ne gubi ništa** — svaka rečenica koja bi
+    se čula i dalje stoji napisana.
+
+Trenerova strana, faza 7 (paket 50) — ovim se lekcija iz gornjih stavki i pravi:
+
+17. [ ] **„Napravi korak od ove pozicije" postoji u Analitičkom studiju**, pored
+    „Izvezi PGN". Proveri i na telefonu: **„Analiziraj celu partiju" mora i dalje
+    da bude u traci**, ne u meniju — dugme je jednom bilo ubačeno na prvo mesto i
+    tiho ga izbacilo.
+18. [ ] **Korak napravljen iz studija nosi crtež.** Nacrtaj strelicu i oboji
+    polje u studiju, napravi korak, pa ga otvori kao đak — strelica i prsten su
+    tu. To je i razlog zašto dugme stoji baš na tom ekranu.
+19. [ ] **Tri polja rade:** rečenica, vrsta koraka, odgovor. Tačan potez se
+    **odigra na tabli**, ne kuca.
+20. [ ] **Server odbija, a trener vidi zašto.** Napravi `ask_move` bez rešenja i
+    sačuvaj: poruka mora da kaže koje je pravilo prekršeno, a ne „Čuvanje nije
+    uspelo". Isto za `ask_choice` sa dva tačna odgovora.
+21. [ ] **Izmena ne gubi korake.** Otvori postojeću lekciju, promeni tekst
+    jednog koraka, sačuvaj, pa je otvori ponovo — svi koraci su tu, istim
+    redom. Zatim **preimenuj jednu pojedinačnu poziciju** i proveri da lekcija
+    sa koracima nije dirnuta (to je popravka iz 7a).
+22. [ ] **„Pregled" pokazuje đačkov ekran i ništa ne šalje.** Odigraj potez u
+    pregledu: piše da je ovo pregled i da potez nije poslat na proveru. Ne sme
+    da se pojavi „Odgovor nije poslat — proveri vezu." ni ocena.
+23. [ ] **U `CreateCourseDialog` više nema unosa zadatka** — samo redosled i
+    izbor pozicija. Tekst koraka se piše u studiju.

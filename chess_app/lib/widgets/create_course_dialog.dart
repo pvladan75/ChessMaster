@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
+import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/library/widgets/position_picker_dialog.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -36,6 +34,9 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descController = TextEditingController();
   final List<Map<String, dynamic>> selectedPositions = [];
+
+  late final LessonApiService _api =
+      LessonApiService(authToken: widget.userSession.token);
   bool isSaving = false;
   bool isAddingFromLibrary = false;
 
@@ -145,52 +146,6 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
     return step;
   }
 
-  /// Lets the trainer say what the student should do at this step.
-  ///
-  /// The step's title is a name, and a name is not a task — a student opening
-  /// the lesson otherwise gets a board with no question on it. Kept per step
-  /// rather than per lesson because each position asks something different.
-  Future<void> _editInstruction(int index) async {
-    final controller = TextEditingController(
-        text: selectedPositions[index]['instruction']?.toString() ?? '');
-    final text = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Šta učenik treba da uradi?'),
-        content: SizedBox(
-          width: 360,
-          child: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLines: 3,
-            maxLength: 500,
-            decoration: const InputDecoration(
-              hintText: 'npr. Beli je na potezu — nađi dobitak figure',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Odustani')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, controller.text.trim()),
-              child: const Text('Sačuvaj')),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (text == null || !mounted) return;
-    setState(() {
-      if (text.isEmpty) {
-        selectedPositions[index].remove('instruction');
-      } else {
-        selectedPositions[index]['instruction'] = text;
-      }
-    });
-  }
-
   Future<void> _submit({required bool asNew}) async {
     final title = titleController.text.trim();
     final desc = descController.text.trim();
@@ -204,47 +159,42 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
     }
 
     setState(() => isSaving = true);
-    try {
-      final updateInPlace = isEditing && !asNew;
-      final uri = updateInPlace
-          ? Uri.parse('$backendUrl/lessons/${widget.existingLesson!['id']}')
-          : Uri.parse('$backendUrl/lessons/save');
-      final body = jsonEncode({
-        'title': title,
-        'description': desc,
-        'tags': ['lekcija_kurs'],
-        'positionList': selectedPositions,
-      });
-      final headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${widget.userSession.token}',
-      };
+    final updateInPlace = isEditing && !asNew;
+    // `selectedPositions` holds each stored step whole, so `id`, `kind`,
+    // `solutionSan` and `choices` travel back untouched. That is what keeps the
+    // server's 409 from firing on an edit made here, and it is why this dialog
+    // can go on ordering steps it does not know how to author.
+    final error = updateInPlace
+        ? await _api.update(
+            id: widget.existingLesson!['id'] as int,
+            title: title,
+            description: desc,
+            tags: const ['lekcija_kurs'],
+            positionList: selectedPositions,
+          )
+        : await _api.save(
+            title: title,
+            description: desc,
+            tags: const ['lekcija_kurs'],
+            positionList: selectedPositions,
+          );
 
-      final response = updateInPlace
-          ? await http.put(uri, headers: headers, body: body)
-          : await http.post(uri, headers: headers, body: body);
+    if (!mounted) return;
+    setState(() => isSaving = false);
 
-      if (!mounted) return;
-
-      final ok = updateInPlace
-          ? response.statusCode == 200
-          : response.statusCode == 201;
-      if (ok) {
-        _showSuccess(updateInPlace
-            ? 'Lekcija je izmenjena (${selectedPositions.length} koraka)!'
-            : 'Lekcija sa ${selectedPositions.length} koraka je sačuvana!');
-        widget.onCourseCreated();
-        Navigator.pop(context);
-      } else {
-        _showError(updateInPlace
-            ? 'Neuspešna izmena lekcije.'
-            : 'Neuspešno kreiranje lekcije.');
-      }
-    } catch (e) {
-      _showError('Greška na mreži.');
-    } finally {
-      if (mounted) setState(() => isSaving = false);
+    if (error != null) {
+      // The server's own sentence. `buildLessonStep` refuses a step with a
+      // reason a trainer can act on, and „Neuspešna izmena lekcije." — which is
+      // what stood here — threw away the only part that helps.
+      _showError(error);
+      return;
     }
+
+    _showSuccess(updateInPlace
+        ? 'Lekcija je izmenjena (${selectedPositions.length} koraka)!'
+        : 'Lekcija sa ${selectedPositions.length} koraka je sačuvana!');
+    widget.onCourseCreated();
+    Navigator.pop(context);
   }
 
   @override
@@ -374,13 +324,8 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.edit_note, size: 18),
-                                  tooltip: 'Zadatak za učenika',
-                                  onPressed: () => _editInstruction(index),
-                                ),
-                                IconButton(
                                   icon: Icon(Icons.close,
-                                      size: 18, color: colors.danger),
+                                      size: 18, color: context.colors.danger),
                                   tooltip: 'Ukloni',
                                   onPressed: () => setState(
                                       () => selectedPositions.removeAt(index)),

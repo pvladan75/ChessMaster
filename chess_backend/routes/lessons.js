@@ -4,7 +4,23 @@ const router = express.Router();
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { acceptedTrainersOf } = require('../services/relationshipService');
-const { buildLessonStep } = require('../services/lessonSteps');
+const { buildLessonStep, buildLessonSteps } = require('../services/lessonSteps');
+
+/// Runs a submitted step list through the one builder, or answers the caller.
+///
+/// Returns the built entries, or null after having already sent the refusal —
+/// so a route reads `if (steps === null) return;`.
+function buildOrReject(res, positionList) {
+  if (!positionList || (Array.isArray(positionList) && positionList.length === 0)) {
+    return [];
+  }
+  const built = buildLessonSteps(positionList);
+  if (!built.ok) {
+    res.status(built.status).json({ error: built.error });
+    return null;
+  }
+  return built.entries;
+}
 
 // POST /lessons/save
 router.post('/save', authenticateToken, async (req, res) => {
@@ -16,10 +32,14 @@ router.post('/save', authenticateToken, async (req, res) => {
 
   const initialFen = fen || (positionList && positionList.length > 0 ? positionList[0].fen : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 
+  // Every step gets its id here, once, and keeps it for the rest of its life.
+  const steps = buildOrReject(res, positionList);
+  if (steps === null) return;
+
   try {
     const result = await pool.query(
       'INSERT INTO saved_lessons (user_id, trainer_id, title, description, tags, fen, pgn, position_list) VALUES ($1, $1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [req.user.id, title, description || null, tags || null, initialFen, pgn || null, positionList ? JSON.stringify(positionList) : null]
+      [req.user.id, title, description || null, tags || null, initialFen, pgn || null, steps.length > 0 ? JSON.stringify(steps) : null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -28,9 +48,35 @@ router.post('/save', authenticateToken, async (req, res) => {
   }
 });
 
+/// Did this request say anything at all about the steps?
+///
+/// The difference between "leave them alone" and "there are none now", and the
+/// two used to be one thing. `_editSinglePosition` in the app renames a saved
+/// position and sends no `positionList` — which wrote `position_list = NULL`
+/// over whatever was there, because a missing list and an empty one both came
+/// out of `buildOrReject` as `[]`.
+///
+/// Nothing lost data, and only because the *caller* was careful: the list in
+/// the app offers that rename for a single position and the course dialog for a
+/// course, so the nulling path was never handed a lesson with steps in it. That
+/// is a guarantee living in a widget's `isCourse ? ... : ...`, two files and one
+/// refactor away from the write that would destroy every step of a lesson —
+/// silently, since nothing joins on them and nothing would log it. The same
+/// shape as every bug in the CLAUDE.md list.
+///
+/// `lesson_rename_keeps_steps.test.js` drives the mounted route rather than
+/// this function: the helper being right and the route asking it are two
+/// different things, and on the last occasion it was the second one missing.
+function sentPositionList(body) {
+  return Object.prototype.hasOwnProperty.call(body || {}, 'positionList')
+    && body.positionList !== null
+    && body.positionList !== undefined;
+}
+
 // PUT /lessons/:id — update a lesson you own (either creator or the trainer who shared it)
 router.put('/:id', authenticateToken, async (req, res) => {
   const { title, description, tags, fen, pgn, positionList } = req.body;
+  const touchesSteps = sentPositionList(req.body);
 
   if (!title || (!fen && (!positionList || positionList.length === 0))) {
     return res.status(400).json({ error: 'Title and either FEN or positionList are required' });
@@ -38,14 +84,56 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
   const initialFen = fen || (positionList && positionList.length > 0 ? positionList[0].fen : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 
+  const steps = touchesSteps ? buildOrReject(res, positionList) : [];
+  if (steps === null) return;
+
   try {
-    const result = await pool.query(
-      `UPDATE saved_lessons
-       SET title = $1, description = $2, tags = $3, fen = $4, pgn = $5, position_list = $6
-       WHERE id = $7 AND (user_id = $8 OR trainer_id = $8)
-       RETURNING *`,
-      [title, description || null, tags || null, initialFen, pgn || null, positionList ? JSON.stringify(positionList) : null, req.params.id, req.user.id]
+    // A client that sends back a list of the same length with every id stripped
+    // has lost the ids it was given, and writing it would orphan every schedule
+    // row and every recorded answer naming those steps — silently, because
+    // nothing joins on them.
+    //
+    // So it fails loudly instead. A lesson whose stored steps never had ids has
+    // nothing to lose and is let through; this only fires where a real identity
+    // would be destroyed.
+    const stored = await pool.query(
+      'SELECT position_list FROM saved_lessons WHERE id = $1 AND (user_id = $2 OR trainer_id = $2)',
+      [req.params.id, req.user.id]
     );
+    const storedList = Array.isArray(stored.rows[0]?.position_list) ? stored.rows[0].position_list : [];
+    const hasId = (s) => typeof s?.id === 'string' && s.id !== '';
+    if (
+      touchesSteps
+      && storedList.length > 0
+      && storedList.length === steps.length
+      && storedList.some(hasId)
+      && !(positionList || []).some(hasId)
+    ) {
+      return res.status(409).json({
+        error: 'Koraci su stigli bez svojih oznaka. Osvežite lekciju pa je sačuvajte ponovo.',
+      });
+    }
+
+    // A request that said nothing about the steps leaves the column alone. It
+    // is written as two statements rather than one clever `CASE`, because the
+    // thing being protected here is a list that cannot be reconstructed once it
+    // is gone, and the reader of this file should be able to see which
+    // statement runs without evaluating an expression in their head.
+    const result = touchesSteps
+      ? await pool.query(
+        `UPDATE saved_lessons
+         SET title = $1, description = $2, tags = $3, fen = $4, pgn = $5, position_list = $6
+         WHERE id = $7 AND (user_id = $8 OR trainer_id = $8)
+         RETURNING *`,
+        [title, description || null, tags || null, initialFen, pgn || null, steps.length > 0 ? JSON.stringify(steps) : null, req.params.id, req.user.id]
+      )
+      : await pool.query(
+        `UPDATE saved_lessons
+         SET title = $1, description = $2, tags = $3, fen = $4, pgn = $5
+         WHERE id = $6 AND (user_id = $7 OR trainer_id = $7)
+         RETURNING *`,
+        [title, description || null, tags || null, initialFen, pgn || null, req.params.id, req.user.id]
+      );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Lekcija nije pronađena ili nemate dozvolu za izmenu.' });
     }

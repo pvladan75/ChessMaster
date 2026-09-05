@@ -117,9 +117,20 @@ class PgnExporterService {
     final commentParts = <String>[];
     // No `[%eval …]` any more. A node stopped carrying the engine's number on
     // 4.9.2026, and an export writes what the tree holds — the reader's own
-    // comment, and the NAG above.
+    // comment, the NAG above, and what they drew.
     if (node.comment.isNotEmpty) {
       commentParts.add(node.comment);
+    }
+    // The same two tags `MoveTree` writes, in the same order. A studio export is
+    // read back by `MoveTree.parsePgn`, so if these two disagreed about the
+    // dialect an arrow would survive one direction and not the other.
+    if (node.arrows.isNotEmpty) {
+      commentParts
+          .add('[%cal ${node.arrows.map((a) => a.toString()).join(',')}]');
+    }
+    if (node.squares.isNotEmpty) {
+      commentParts
+          .add('[%csl ${node.squares.map((s) => s.toString()).join(',')}]');
     }
 
     if (commentParts.isNotEmpty) {

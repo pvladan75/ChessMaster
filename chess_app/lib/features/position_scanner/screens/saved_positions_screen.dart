@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
+import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -37,6 +38,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
       ScannerApiService(authToken: widget.session.token);
   late final PositionLibraryService _library =
       PositionLibraryService(authToken: widget.session.token);
+  late final LessonApiService _lessons =
+      LessonApiService(authToken: widget.session.token);
 
   List<SavedPosition>? _positions;
   bool _loading = true;
@@ -157,14 +160,16 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     var added = 0;
     String? firstError;
     for (final position in chosen) {
-      final error = await _library.appendStep(
+      final error = await _lessons.appendStep(
         lessonId: course.id,
-        title: position.sourceLabel == null
-            ? 'Pozicija sa strane ${position.sourcePage ?? '?'}'
-            : '#${position.sourceLabel} · ${position.sourceTitle ?? 'knjiga'}',
-        fen: position.fen,
-        instruction: position.instruction,
-        solutionSan: position.solutionSan,
+        step: {
+          'title': position.sourceLabel == null
+              ? 'Pozicija sa strane ${position.sourcePage ?? '?'}'
+              : '#${position.sourceLabel} · ${position.sourceTitle ?? 'knjiga'}',
+          'fen': position.fen,
+          if (position.instruction != null) 'instruction': position.instruction,
+          if (position.solutionSan != null) 'solutionSan': position.solutionSan,
+        },
       );
       if (error == null) {
         added++;
