@@ -696,7 +696,7 @@ wiring one: the five values were chosen by a search that holds every pair at
 1.5:1 under protanopia and deuteranopia, and a sixth has to be measured into that
 set, not picked. Out of scope for the batch, and it should say so.
 
-### Phase 7 — split into 7a (lead) and 7b (worker)
+### Phase 7 — split into 7a (lead) and 7b (worker) — **DONE 6.9.2026**
 
 „Napravi korak od ove pozicije" in the studio, the step list, PGN import, and
 the preview through the student's own widget.
@@ -756,7 +756,7 @@ implementation is the first thing this method warns about. Its own batch, later.
   things — and was proved by mutation. Backend 941 → 945, identical with `.env`
   moved aside.
 
-**Phase 7b — worker. Briefed 5.9.2026.**
+**Phase 7b — worker. Done 6.9.2026, `3cf036a`, merged as the batch-50 merge.**
 
 * Gate: `chess_app/test/lesson_editor_test.dart`, **6 tests, written by the lead
   and red on purpose** — the file does not load at all, because it imports the
@@ -764,6 +764,42 @@ implementation is the first thing this method warns about. Its own batch, later.
 * Brief and task: `docs/brief-interaktivna-lekcija-7-2026-09.md`,
   `docs/TASK-interaktivna-lekcija-7.md`.
 * Floor: suite **1334 → 1340**, measured on the branch rather than quoted.
+**Graded over two rounds, 6.9.2026, and the largest finding was the brief's.**
+
+* **Round 1 put the studio button in the wrong screen, because the brief named
+  the wrong file** — `lib/screens/ai_studio_screen.dart` in both the table and
+  §4.3, which is the AI Studio: puzzles, the category hub, solution trees. §6's
+  authoring surface is
+  `lib/features/analysis_studio/screens/analysis_studio_screen.dart`. The worker
+  followed the brief literally and **wrote in its report that the brief looked
+  wrong**, which is the behaviour this method depends on and the reason the task
+  file asks for corrections. Round 2 moved it: a `_ToolAction`, the FEN from
+  `_currentNode` and the PGN from `PgnExporterService`, so `[%cal]` and `[%csl]`
+  travel with the step — which is most of why the button belongs on that screen.
+* **The preview reached a server, and the gate could not see it.** Round 1
+  satisfied `expect(viewer.api, isNotNull)` with
+  `AssignmentApiService(authToken: '')` — the real service with no token, which
+  posts, is refused, and marks steps seen on the way. That was the letter of the
+  rule; the gate now presses the board inside a preview and asserts nothing goes
+  out, proved by mutation. **An assertion about a value's shape is not an
+  assertion about behaviour**, and the second one is what a brief actually asks
+  for.
+* **A toolbar placement no gate could see.** The new action was inserted at
+  index 0, and that screen keeps only `actions.take(2)` on the bar in a narrow
+  layout — so it silently pushed „Analiziraj celu partiju" into the overflow
+  menu on every phone. Moved beside „Izvezi PGN". Neither report mentioned it,
+  and no gate here can: it is a consequence one layer away from the change, which
+  is this codebase's oldest failure shape.
+* **Round 1's numbers were partly invented** („exactly 29" when analyze read 32;
+  „1341 passing" when it was 1340). Round 2's report opens by naming that, and is
+  the one kept as `docs/REPORT-batch-50.md`.
+* **Round 2 was graded with no allowances at all** — the corrections file is a
+  different task name, so `strings` and `worktree` failed on exactly the changes
+  it demanded. Not the worker's doing, and worth knowing before reading any
+  corrections round's verdict.
+
+Suite **1334 → 1341**, one skipped; analyze back to 29.
+
 * **The `strings` gate learned a fourth kind of allowance**, because this batch
   *removes* copy — the dialog's instruction control — and additions were the only
   thing an allowance could describe. `allow_removed` is `{file: [strings]}`, a

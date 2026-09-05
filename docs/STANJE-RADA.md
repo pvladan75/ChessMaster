@@ -603,7 +603,7 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
 
-## Interaktivna lekcija — faze 0–6 gotove, 5.9.2026
+## Interaktivna lekcija — faze 0–7 gotove, ostaje živa provera, 6.9.2026
 
 `PLAN-INTERAKTIVNA-LEKCIJA.md`. Trener sprema lekciju o jednom konceptu: korak
 koji se **čita** (pozicija, linija, strelice, rečenica, glas) i korak koji
@@ -744,6 +744,35 @@ A na jednom mestu je radnik bio bolji od brifa: crtež korena je stavio **izvan*
 dalje dobija svoja polja. To je baš slučaj „pogledaj d5" o kome brif piše ceo
 pasus, a formulacija koju je brif dao bi ga izgubila. Izveštaj stoji kao
 `docs/REPORT-batch-49.md`.
+
+**Faza 7 je gotova, 6.9.2026 — trener sada može da napiše korak.** 7a je bila
+naša: `LessonApiService` (sedam sirovih `http` poziva na `/lessons` skupljeno na
+jedno mesto) i popravka zbog koje preimenovanje više ne briše korake lekcije. 7b
+je paket 50 (`3cf036a`): panel sa uređenim koracima i tri polja izabranog —
+rečenica, šta traži, odgovor — pregled koji pokreće đačkov ekran, i dugme
+„Napravi korak od ove pozicije" u Analitičkom studiju. `CreateCourseDialog` je
+zadržao redosled i izbor pozicija, a izgubio polje za zadatak: jedno mesto na
+kome se piše tekst koraka. Suite **1334 → 1341**.
+
+Ocenjivano u dva kruga, i **najveći nalaz je bio krivica brifa, ne radnika**:
+
+1. **Dugme je u prvom krugu otišlo u pogrešan ekran** jer je brif imenovao
+   pogrešan fajl — `ai_studio_screen.dart` je AI Studio (zadaci i stabla
+   rešenja), a autorska površina je Analitički studio. Radnik je doslovno
+   ispunio brif i **u izveštaju napisao da brif izgleda pogrešno**. To je tačno
+   ono ponašanje zbog kog se u zadatku i traže ispravke.
+2. **Pregled je dodirivao server.** `AssignmentApiService(authToken: '')` je
+   pravi servis bez tokena: šalje, bude odbijen i usput obeleži korak kao viđen.
+   Zadovoljio je `isNotNull` u kapiji — slovo pravila, ne suštinu — pa kapija
+   sada u pregledu odigra potez i tvrdi da ništa nije izašlo napolje. **Tvrdnja
+   o obliku vrednosti nije tvrdnja o ponašanju.**
+3. **Raspored u traci alata koji nijedna kapija ne vidi.** Novo dugme je ubačeno
+   na mesto 0, a taj ekran na uskom rasporedu zadržava samo prva dva alata u
+   traci — pa je „Analiziraj celu partiju" nečujno otišlo u meni na svakom
+   telefonu. Pomereno pored „Izvezi PGN". Posledica jedan sloj dalje od izmene,
+   što je najstariji oblik kvara u ovom projektu.
+
+Izveštaj stoji kao `docs/REPORT-batch-50.md`.
 
 Dva nalaza iz ovih faza koja nadživljavaju ovu funkciju:
 

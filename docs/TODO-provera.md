@@ -3981,13 +3981,15 @@ archive.org što se može selektovati mišem), i bilo koji PDF **veći od 25 MB*
 
 ## 108. Interaktivna lekcija — korak koji pita (faza 9)
 
-Napravljeno 5.9.2026, faze 0–5 na grani `feat/interactive-lessons`. Ovo je živa
-provera iz faze 9 plana [PLAN-INTERAKTIVNA-LEKCIJA.md](PLAN-INTERAKTIVNA-LEKCIJA.md);
-otvara se tek kad postoji način da se korak koji pita **napravi** — trenerski
-uređivač je faza 7, pa dotle korak mora da se upiše ručno u `position_list`.
+Napravljeno 5–6.9.2026, faze 0–7 na grani `feat/interactive-lessons`. Ovo je
+živa provera iz faze 9 plana [PLAN-INTERAKTIVNA-LEKCIJA.md](PLAN-INTERAKTIVNA-LEKCIJA.md).
+**Više ne čeka ništa** — trenerski uređivač je gotov, pa se korak pravi u
+aplikaciji a ne ručno u `position_list`.
 
-Treba jedan zadatak sa tri koraka: jedan `show`, jedan `ask_move` (sa
-`acceptedSans`, da se vidi i druga tačna varijanta) i jedan `ask_choice`.
+Redosled je namerno ovakav: prvo se korak **napravi** (stavke 17–22), pa se onda
+proverava kako izgleda **detetu** (stavke 1–16). Treba jedna lekcija sa tri
+koraka: jedan `show`, jedan `ask_move` (sa `acceptedSans`, da se vidi i druga
+tačna varijanta) i jedan `ask_choice`.
 
 1. [ ] **Stara lekcija bez `kind`-a i dalje radi** — otvori bilo koji postojeći
    zadatak lekcije. Tabla se igra, ništa ne pita, nema banera. Ovo je jedina
@@ -4035,3 +4037,27 @@ Uz to, faza 6 (crtež i glas, paket 49) — za ovo treba korak čiji PGN nosi
     piše**. Ništa se ne izgovara što nije napisano.
 16. [ ] **Sa isključenim govorom ekran ne gubi ništa** — svaka rečenica koja bi
     se čula i dalje stoji napisana.
+
+Trenerova strana, faza 7 (paket 50) — ovim se lekcija iz gornjih stavki i pravi:
+
+17. [ ] **„Napravi korak od ove pozicije" postoji u Analitičkom studiju**, pored
+    „Izvezi PGN". Proveri i na telefonu: **„Analiziraj celu partiju" mora i dalje
+    da bude u traci**, ne u meniju — dugme je jednom bilo ubačeno na prvo mesto i
+    tiho ga izbacilo.
+18. [ ] **Korak napravljen iz studija nosi crtež.** Nacrtaj strelicu i oboji
+    polje u studiju, napravi korak, pa ga otvori kao đak — strelica i prsten su
+    tu. To je i razlog zašto dugme stoji baš na tom ekranu.
+19. [ ] **Tri polja rade:** rečenica, vrsta koraka, odgovor. Tačan potez se
+    **odigra na tabli**, ne kuca.
+20. [ ] **Server odbija, a trener vidi zašto.** Napravi `ask_move` bez rešenja i
+    sačuvaj: poruka mora da kaže koje je pravilo prekršeno, a ne „Čuvanje nije
+    uspelo". Isto za `ask_choice` sa dva tačna odgovora.
+21. [ ] **Izmena ne gubi korake.** Otvori postojeću lekciju, promeni tekst
+    jednog koraka, sačuvaj, pa je otvori ponovo — svi koraci su tu, istim
+    redom. Zatim **preimenuj jednu pojedinačnu poziciju** i proveri da lekcija
+    sa koracima nije dirnuta (to je popravka iz 7a).
+22. [ ] **„Pregled" pokazuje đačkov ekran i ništa ne šalje.** Odigraj potez u
+    pregledu: piše da je ovo pregled i da potez nije poslat na proveru. Ne sme
+    da se pojavi „Odgovor nije poslat — proveri vezu." ni ocena.
+23. [ ] **U `CreateCourseDialog` više nema unosa zadatka** — samo redosled i
+    izbor pozicija. Tekst koraka se piše u studiju.
