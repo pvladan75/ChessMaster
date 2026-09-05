@@ -3715,3 +3715,42 @@ hoće da je zapamti, upisuje je kao komentar. Ovo je brisanje, pa se proverava i
     radi — s tim da mu evaluacija više ne stiže kao ulaz, pa se oslanja na
     taktičke i pozicione nalaze. Ako ispadne primetno slabiji nego ranije,
     zabeležiti; to je poznata posledica, ne kvar.
+
+## 104. Fokus u stablu i lepeza u turi — 5.9.2026, nije viđeno uživo
+
+Faze 1 i 4 iz `docs/PLAN-TABLA-I-STABLO.md`. Faza 3 (fiksna tabla) ide u zasebnu
+stavku kad se spoji.
+
+### A. Crtež stiže do pozicije na kojoj stojiš (faza 1)
+
+Ovo se vidi **samo pri užoj širini**, jer pri „standard" i „broad" retko koji
+potez ispadne iz reza. Postaviti repertoar na **„Samo glavna linija"** pre
+provere.
+
+1. [ ] **Odigraj potez za protivnika koji nije glavni odgovor** (drugi ili treći
+   po učestalosti). U stablu se **odmah pojavi kartica** za tu poziciju, a
+   označena je **ta** kartica — ne koren repertoara.
+2. [ ] **Isto važi i kad potez prihvatiš iz spiska ispod table** („Potvrdi",
+   „Uzmi …"), ne samo kad ga povučeš po tabli. Pravilo visi o tome da si potez
+   odobrio, ne kojim putem.
+3. [ ] **Idi dva-tri poteza dublje niz tu granu.** Fokus ostaje na poslednjem
+   potezu na svakom koraku — nijednom se ne vrati na početak. Ovo je „baca me
+   negde" iz prijave.
+4. [ ] **Ostatak stabla nije nestao.** Glavna linija i sve ostalo su i dalje
+   nacrtani; ovo dodaje tvoju poziciju, ne sužava crtež na nju.
+5. [ ] **Prebaci širinu na „standard" i nazad.** Ništa se ne gubi ni ne duplira.
+
+### B. Lepeza neodgovorenih odgovora u turi (faza 4)
+
+6. [ ] **„Upoznaj repertoar" na poziciji gde protivnik ima više odgovora i ni na
+   jedan nemaš odgovor.** Tura se **ne zaustavlja** ni na jednom od njih —
+   linija se završava **tvojim** potezom, a račva pre njega ih je već nabrojala
+   („Odavde protivnik ima N odgovora: …").
+7. [ ] **Usamljena rupa se i dalje pokazuje.** Pozicija sa **tačno jednim**
+   neodgovorenim odgovorom i dalje ima svoje stajanje i i dalje kaže „Na …
+   nemate odgovor." Ovo je izuzetak koji je namerno zadržan.
+8. [ ] **Mešana pozicija.** Gde je jedan odgovor odgovoren a drugi nije: u
+   odgovoreni se ulazi kao i pre, a neodgovoreni ostaje kao stajanje (jer je
+   sam).
+9. [ ] **Govor je ređi nego ranije** na takvim mestima — jedna rečenica umesto
+   pet. Ako ti se čini da se i dalje ponavlja, zabeleži gde.
