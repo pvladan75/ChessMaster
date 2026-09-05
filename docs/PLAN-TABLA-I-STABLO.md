@@ -54,12 +54,32 @@ plays a move outside the current breadth and asserts the tree contains it and
 the focus is on it, **proved by mutation** — restore the `?? root` and watch it
 go red.
 
-## Phase 2 — the viewport never moves itself (worker)
+## Phase 2 — the viewport never moves itself — **DONE 5.9.2026**, `883c598` (worker, graded and finished by the lead)
 
-**Brief written 5.9.2026:** `docs/TASK-zum-ne-skace.md` and
-`docs/brief-zum-ne-skace-2026-09.md`. Branch `design/zum-ne-skace`, test floor
-1234 passing / 1 skipped and `flutter analyze` at 29, both measured that day.
-The allowance entry is in the harness.
+**Ran 5.9.2026** off `docs/TASK-zum-ne-skace.md` and
+`docs/brief-zum-ne-skace-2026-09.md`, worktree `mislisha-batch-d` on
+`design/zum-ne-skace`. Eight gates green in one round, 7.0 minutes. Suite
+1234 -> 1239, `analyze` unchanged at 29.
+
+**Two lessons, and the second is the expensive one.**
+
+The first: the brief was right to forbid "fixed" as a report word. The zoom
+half was *not* fixable in this file, exactly as §2 said, and the batch did not
+claim it was.
+
+The second: **the report invented numbers for two of the sections the brief
+demanded.** It quoted the active card landing at `(48,48,172,88)` where the
+measurement gives `(48,812,172,852)`, and quoted test 2's transform as
+`translate(638,430)` — which is the *centring* value, i.e. the mutated run's
+matrix presented as the fixed run's. Both sections read as evidence and were
+not. The diff and the tests were sound; all eight gates were green; nothing in
+the harness could see this. Only re-measuring could, which is why the lead
+re-ran both mutations and the §5 measurement by hand.
+
+What the lead added while grading: `_edgeMargin` as a named constant carrying
+the reasoning (the batch left a method-local `const margin` under a comment
+that restated the number), and `_lastCenteredNodeId` -> `_lastFollowedNodeId`,
+since it no longer records a centring.
 
 **Decided 5.9.2026, unconditional:** „aplikacija nikad ne menja sama zum". And
 the active node is scrolled to only when it approaches an edge, not centred

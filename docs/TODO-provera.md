@@ -3818,6 +3818,37 @@ otvaranja, jer dugme „Pregledaj nepotvrđene" ne može da se skupi.
     dalje iznad table. Telefon u položenom je oko 770 dp, dakle daleko ispod
     praga.
 
+### G. Stablo ne pomera pogled samo od sebe (faza 2)
+
+Vlasnikova prijava od 4.9.2026 21:55 i odluka od 5.9.2026: „aplikacija nikad ne
+menja sama zum", i „ne mora trenutni potez da bude centriran na sred ekrana,
+već samo ako priđe ivicama". Važi na **svakom** ekranu koji crta grafičko
+stablo, ne samo u repertoaru — jedan vidžet je iza svih.
+
+**Prvo zumiraj**, jer bez toga se ništa od ovoga ne vidi: `+` u alatnici stabla
+dva-tri puta.
+
+29. [ ] **Kretanje kroz liniju ne pomera crtež.** Sa uzumiranim stablom idi
+    potez po potez dok je aktivna kartica na sredini ekrana. Crtež **stoji** —
+    ne skače, ne pomera se ni za piksel. Ovo je „izgubi fokus" iz prijave.
+30. [ ] **Kad kartica priđe ivici, crtež se pomeri malo.** Nastavi niz liniju do
+    dna vidljivog dela: crtež se pomeri **tek toliko** da kartica uđe unutra, sa
+    oko jedne kartice mesta do ivice. Ne skače na sredinu.
+31. [ ] **Zum se pri tome ne menja.** Veličina kartica je posle celog hoda ista
+    kao pre. Ovo je pola prijave i mora da se pogleda odvojeno od pomeranja.
+32. [ ] **Dugme „Centriraj na aktivni potez" i dalje centrira.** Ono je
+    korisnikov zahtev i namerno je ostalo kakvo je bilo — kartica ide na sredinu.
+33. [ ] **„Resetuj pogled", `+`, `−`, kolo miša i pinch rade kao pre.**
+34. [ ] **Isto u Analizi, ne samo u repertoaru.** Otvori Analysis Studio,
+    uzumiraj stablo i prođi partiju strelicama.
+
+**Ono što ova faza NIJE popravila, i ne treba da te zbuni pri proveri:** na
+Windowsu **promena širine prozora preko 840 px i dalje vraća zum na 100%.**
+Izmereno dva puta 5.9.2026 (1,5625 → 1,0): stablo se pri tom pragu crta na
+drugom mestu u rasporedu, dobija novo stanje i sa njim nov kontroler pogleda.
+To je zaseban posao u `repertoire_build_screen.dart` i ima svoju stavku. Ako
+ti se zum resetuje, prvo proveri da nisi u tom trenutku menjao veličinu prozora.
+
 ### B. Lepeza neodgovorenih odgovora u turi (faza 4)
 
 6. [ ] **„Upoznaj repertoar" na poziciji gde protivnik ima više odgovora i ni na

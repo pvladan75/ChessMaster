@@ -725,12 +725,34 @@ vlasnik opisuje, i „samo kad priđe ivici" je izmena unutar `_centerOnActive`.
 menja sama zum, to treba da bude korisnikov izbor". Merenje ispod ostaje, ali
 kao dijagnostika (gde se menja), ne kao odluka (sme li).
 
-**Druga polovina traži merenje:** `_centerOnActive` **čuva** razmeru — čita
-`getMaxScaleOnAxis()` i vraća je istu. Znači da promena zuma koju vlasnik vidi
-ne dolazi odatle. Kandidati: platno se proširi kad se dodaju potezi (`InteractiveViewer`
-tada drugačije ograničava pomeraj, pa isti zum izgleda drugačije), ili se
-kontroler negde resetuje pri ponovnom učitavanju stabla. **Ne popravljati dok se
-ne izmeri koji je od ta dva** — inače se popravlja simptom.
+**Prva polovina je urađena 5.9.2026** (`883c598`, faza 2 iz
+`docs/PLAN-TABLA-I-STABLO.md`): pogled se pomera samo kad aktivna kartica priđe
+ivici, i to tačno toliko da uđe unutra. Prag je `_edgeMargin` = 48 px vidljivog
+dela. Dugme „Centriraj na aktivni potez" i dalje centrira — to je korisnikov
+zahtev, a pravilo zabranjuje samo ono što aplikacija radi sama. Živo nije
+gledano: `docs/TODO-provera.md`, stavka 104-G.
+
+**Druga polovina je izmerena i nije popravljena, i sada zna svoje ime.**
+`_centerOnActive` **čuva** razmeru — čita `getMaxScaleOnAxis()` i vraća je istu
+— a u celom fajlu matricu upisuju samo tri mesta i dva su korisnikova (zum i
+reset). Dakle promena zuma ne dolazi iz računa u tom vidžetu.
+
+**Dolazi od gubitka stanja, izmereno dva puta 5.9.2026: 1,5625 → 1,0.**
+`repertoire_build_screen.dart` crta stablo na **dva različita mesta** u
+rasporedu — unutar kolone sa tablom kad je usko (linija 3064) i u svojoj koloni
+pored table kad je široko (linija 2768) — a prelaz je `Breakpoints.wide` = 840.
+Vidžet koji se premesti u drugi slot dobija **novo** `State`, pa nov
+`TransformationController`, pa razmeru 1,0. Isti oblik zamke koji je u tom
+fajlu već zapisan za `OpeningBanner._lastNamed`.
+
+**Zašto nije popravljeno u istom potezu:** popravka je u
+`repertoire_build_screen.dart`, koji je faza 3 tek prepisala, a batch je
+namerno bio ograđen na jedan vidžet. Rešenja su dva i treba izabrati:
+kontroler pogleda da se drži na ekranu i preda vidžetu kao parametar, ili jedan
+`GlobalKey` da isti `State` preživi prelaz. Prvo je čistije i skuplje, drugo je
+jedan red i lako se zaboravi zašto stoji. **Vlasnik ovo vidi kao „zum mi se
+resetuje kad promenim veličinu prozora" — dakle prijava ostaje otvorena dok se
+ovo ne uradi.**
 
 ### 4. Fokus na liniju, i dugme za način prikaza (22:00)
 
@@ -829,8 +851,12 @@ odgovor koji vodi u poziciju gde korisnik ima odluku, na svakoj širini) — dak
 > automatski, već to korisnik radi. Dakle, aplikacija nikad ne menja sama zum."
 
 Ovo **zatvara pitanje ostavljeno otvoreno u stavci 3** gore: zahtev je sada
-bezuslovan, pa nije bitno odakle promena dolazi — ne sme da postoji. Merenje
-odakle dolazi i dalje treba, ali kao dijagnostika, ne kao odluka.
+bezuslovan, pa nije bitno odakle promena dolazi — ne sme da postoji.
+
+**Izmereno 5.9.2026, i stavka 3 gore nosi ceo nalaz:** stablo samo od sebe ne
+menja zum ni na jednom mestu u svom vidžetu; zum se gubi zato što vidžet pri
+prelazu preko 840 px dobija novo stanje. Ostaje da se uradi, u
+`repertoire_build_screen.dart`.
 
 ### 6. Banere iznad srednje kolone na desktopu (5.9.2026, ideja vlasnika)
 
