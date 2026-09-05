@@ -56,6 +56,11 @@ go red.
 
 ## Phase 2 — the viewport never moves itself (worker)
 
+**Brief written 5.9.2026:** `docs/TASK-zum-ne-skace.md` and
+`docs/brief-zum-ne-skace-2026-09.md`. Branch `design/zum-ne-skace`, test floor
+1234 passing / 1 skipped and `flutter analyze` at 29, both measured that day.
+The allowance entry is in the harness.
+
 **Decided 5.9.2026, unconditional:** „aplikacija nikad ne menja sama zum". And
 the active node is scrolled to only when it approaches an edge, not centred
 after every move.
