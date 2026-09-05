@@ -477,7 +477,7 @@ Three notes for whoever builds on it:
   phase 6 needs it on screen; unused production code is worse than a proven
   seam.
 
-### Phase 4 — worker. `ask_move`
+### Phase 4 — split into 4a (lead) and 4b (worker)
 
 Server: the schema from §4 in `buildLessonStep`; `judgeAttempt` gains
 `acceptedSans`; a route that judges, records `played_san`, and releases the
@@ -490,10 +490,57 @@ route test that the student's payload contains no answer. A widget test at
 `Size(360, 640)` — board plus prompt plus buttons is exactly the row that has
 been clipped in a release build three times.
 
-### Phase 5 — worker. `ask_choice`
+**Why it split, 5.9.2026.** The phase was briefed as one worker batch and could
+not be. Phase 0's 19 tests are **Node**, and the orchestrator's gates are all
+Flutter — no gate can see them. And the backend carries a schema change
+(`revealed_at`), which the standing rule keeps with the lead. The batch method's
+own first step settles it: the contract is landed and frozen *before* the batch,
+and here the backend **is** the contract.
 
-The same shape, smaller. Serbian option text, one correct answer, judged
-server-side, `revealed_at` honoured.
+**Phase 4a — lead. Done 5.9.2026, `c9d0513`.** Kinds, `acceptedSans` on
+`judgeAttempt` (defaulting to empty, so every existing caller is unchanged), the
+`answer` and `reveal` routes, `assignment_items.revealed_at`, and redaction at
+`getAssignmentDetail`. Backend 941 / 941, identical with `.env` moved aside.
+Phase 5's server half came with it — `ask_choice` is judged by the same route —
+so phase 5 is now client-only and rides in the same batch.
+
+**One of phase 0's own assertions was wrong, and an older test caught it.** It
+said a `show` step drops `solutionSan`, reasoning that an answer nothing judges
+is also an answer nothing redacts. The second half is false — the redaction
+strips it whatever the kind — and the first half would have **deleted data**:
+every step the course builder makes from the library has carried `solutionSan`
+since before kinds existed, so a trainer saving an old lesson would have lost
+the move scanned out of the book. `lesson_steps.test.js` said so from the day it
+was written. The contract was changed, not the older test. Worth remembering
+when writing a contract before the code: **the tests that already pass are
+evidence about the contract, not just about the code.**
+
+**Phase 4b — worker. Launched 5.9.2026, not yet graded.** The client half:
+`LessonStepKind`, `LessonStep.choices`, the two service calls, and the viewer
+asking the question and showing the server's verdict.
+
+* Gate: `chess_app/test/lesson_step_asks_test.dart`, **14 tests, written by the
+  lead and red on purpose** (`1a771f0`). Pass condition is turning them green
+  **without editing them**.
+* Brief and task: `docs/brief-interaktivna-lekcija-4b-2026-09.md`,
+  `docs/TASK-interaktivna-lekcija-4b.md`, both at `40f8da2` so they are present
+  in the worktree the worker is given.
+* Floor: suite **1297 → 1311**, measured on the branch rather than quoted.
+* Allowance for the `strings` gate added to the orchestrator, keyed by the task
+  file: one file gains user-facing strings
+  (`lesson_viewer_screen.dart`), and the five strings are listed in §4 of the
+  brief so the allowance and the brief cannot drift apart.
+
+**When the report comes back:** grade the diff, not the prose. Re-measure
+anything it claims to have proved — the `zum-ne-skace` report was two-thirds
+honest and the invented third was the part that read most like evidence.
+
+### Phase 5 — folded into 4a and 4b, 5.9.2026
+
+The server half shipped with 4a (one route judges both kinds) and the client
+half is in the 4b batch. It was never big enough to be its own batch once the
+route existed, and splitting it would have meant two workers touching one
+screen.
 
 *Verification:* as phase 4, plus the redaction test for `choices[].correct`.
 
