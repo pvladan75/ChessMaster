@@ -638,7 +638,10 @@ je pisana sa budžetom „najviše četiri izgovorene rečenice na dvanaest pote
 trunka" (`walkthrough_speech.dart`), i jedna ovakva lepeza ga potroši na jednom
 mestu. Rupa **ostaje prijavljena** — u račvi, gde je već imenovana.
 
-**Predlog pravila za plan** (nije pisan nijedan red):
+**Odluka vlasnika, 5.9.2026: prihvaćeno po ovom pravilu.** Nije pisan nijedan
+red u trenutku pisanja ovog reda.
+
+**Pravilo:**
 
 - Ne silaziti u protivnikov potez koji je rupa **kada ih na toj poziciji ima
   dvoje ili više**; račva ih je već imenovala.

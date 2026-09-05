@@ -4,7 +4,8 @@ Five items collected from the owner's checks of 4.9 and 5.9.2026, recorded in
 `STANJE-RADA.md` under „Prijave sa provere 4.9–5.9.2026". This is the order they
 should be built in, who builds each, and what each is graded by.
 
-Three of the five are decided. Two are not, and they are last on purpose.
+Four of the five are decided. The fifth is two questions rather than one job,
+and it is last on purpose.
 
 ## The dependency that sets the order
 
@@ -109,18 +110,18 @@ batch is actually for.
 computation), `unconfirmed_banner.dart`. **Not** the tree widget — Phase 2 owns
 that file in a parallel worktree.
 
-## Phase 4 — a fan of unanswered replies is one stop, not four (worker, needs a yes)
+## Phase 4 — a fan of unanswered replies is one stop, not four (worker)
 
-**Not yet decided.** The owner's report is right and the rule proposed for it is
-narrow: do not descend into an opponent's move that is a gap **when the position
-holds two or more of them**, because the fork sentence one move earlier has
+**Decided 5.9.2026**, on the narrow rule and with the lone-gap exception kept:
+do not descend into an opponent's move that is a gap **when the position holds
+two or more of them**, because the fork sentence one move earlier has
 already named them all; keep a lone gap, because the fork sentence only fires
 above one reply and that stop is then the only place the hole is said at all.
 
 Today one such position spends five spoken sentences on one fact, against the
 tour's own budget of at most four in a twelve-move trunk.
 
-**Why it suits a worker once decided:** `walkthrough_order.dart` is small, pure,
+**Why it suits a worker:** `walkthrough_order.dart` is small, pure,
 already has tests, and the rule is two conditions.
 
 **Gates:** a position with three gap replies yields no gap stops and the line
