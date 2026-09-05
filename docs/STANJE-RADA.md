@@ -1068,6 +1068,70 @@ test u paru.
 
 Provera uživo: `docs/TODO-provera.md`, stavka **106**.
 
+## Provera uživo 5.9.2026 popodne — 35 stavki zeleno, tri nalaza
+
+Vlasnik je prošao stavke 104 (A, C, D, F, G), 105 i 106 u release bildu na
+Windowsu. **Trideset pet stavki je potvrđeno**, uključujući ceo deo G (crtež
+stoji dok se ide kroz liniju, pomeri se tek uz ivicu, zum se pri tome ne menja,
+dugme za centriranje i dalje centrira), celu stavku 106 i devet od deset u 105.
+
+Zabeleženo iz alata (`D:\Projekti\mislisha-test\qa`, `stanje.json`), i ovde
+stoji ono što se ne vidi iz kvačica.
+
+**Nijedan od tri nalaza nije kvar u aplikaciji.**
+
+### 1. „Ne vidim baner" — stavke 104-F/25 i 105/5
+
+Obe su pisane preko banera „N nepotvrđenih". Sa vlasnikovih slika se vidi zašto
+ga nema: red ispod table kaže „odlučeno 12 · otvoreno 6 · bez odgovora 5%" i
+**ne kaže „nepotvrđeno N"**, a taj deo rečenice postoji samo kad je
+`walk.draft > 0`. Dakle repertoar je imao nula nepotvrđenih poteza i baner se
+ispravno nije crtao — nema šta da prijavi.
+
+Ime otvaranja **jeste** bilo u zaglavlju na obe slike („C54 · Italian Game:
+Classical Variation, Giuoco Pianissimo"), pa polovina stavke 25 koja se mogla
+proveriti prošla je; stavka 26 (dugme iz zaglavlja radi) je zelena.
+
+**Popravljene su stavke, ne kod.** 105/5 sada traži broj iz reda ispod table,
+koji postoji uvek; 104-F/25 kaže da prvo treba napraviti nepotvrđene poteze.
+Pouka je opštija i vredi je pamtiti: **stavka provere koja se oslanja na
+indikator koji postoji samo u jednom stanju je stavka koja se u drugom stanju
+čita kao kvar.**
+
+### 2. Suženje se ne pušta samo — stavka 104-D/20
+
+Vlasnik: „ne pušta se, može samo u okviru stabla trenutno prikazanog, ali nije
+problem, meni odgovara." Pravilo `_leftTheNarrowing` radi, ali nema šta da ga
+okine: dok je crtež sužen, kretanje ide kroz ono što je nacrtano, pa se iz grane
+i ne može izaći. Izlaz je dugme „Prikaži ceo repertoar". **Prihvaćeno kako
+jeste**, stavka prepisana i zatvorena.
+
+### 3. Poteze ne mogu da povlačim po tabli — uz stavku 104-A/2
+
+Vlasnik je stavku označio kao **prolaz** i uz nju napisao ovu rečenicu, pa nije
+jasno da li je smetnja ili opaska. Tabla je namerno zaključana dok su odgovori
+gore ili dok se stoji posle sopstvenog poteza (`_afterMyMove`) — potez povučen
+tada bi bio suđen kao igračev. Na poziciji koja pita „Šta igrate belim?"
+povlačenje treba da radi. **Nije dirano; pitanje je vraćeno vlasniku.**
+
+### Zamka u alatu za proveru, nađena pri ovom upisu
+
+`izvuci.py` deli id-jeve **po redosledu u fajlu** (`i%04d`, prosto brojanje), a
+`stanje.json` je kljucan po tom id-u. Dakle **nova stavka umetnuta iznad
+postojećih pomera id-jeve svemu ispod nje**, i odgovori se tiho zalepe za
+druge stavke. Zaglavlje samog alata na to upozorava.
+
+Danas je prošlo bez štete — deo H je umetnut iznad dela B, a B nije imao
+nijedan odgovor, i tada iza 104 nije bilo ničega. Pravilo za ubuduće: **nove
+stavke idu na kraj fajla**, ili bar iza svake koja već ima odgovor; a ako baš
+moraju u sredinu, treba prvo prebrojati odgovore ispod tog mesta.
+
+### Šta u 104 još nije gledano
+
+B (lepeza u turi, 6–9), C/13 (visina dugmeta banera, odluka), D/22, E/23–24
+(telefon), F/28–30, G/33–34 i cela **H** (zum preživi promenu veličine prozora,
+35–39) — H je pisana danas i još nije prošla.
+
 ## Otvorena pitanja dizajna
 
 Ona koja tek treba odlučiti stoje u [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md),

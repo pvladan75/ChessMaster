@@ -3716,7 +3716,7 @@ hoće da je zapamti, upisuje je kao komentar. Ovo je brisanje, pa se proverava i
     taktičke i pozicione nalaze. Ako ispadne primetno slabiji nego ranije,
     zabeležiti; to je poznata posledica, ne kvar.
 
-## 104. Fokus u stablu i lepeza u turi — 5.9.2026, nije viđeno uživo
+## 104. Fokus u stablu i lepeza u turi — 5.9.2026, delimično potvrđeno
 
 Faze 1 i 4 iz `docs/PLAN-TABLA-I-STABLO.md`. Faza 3 (fiksna tabla) ide u zasebnu
 stavku kad se spoji.
@@ -3727,55 +3727,60 @@ Ovo se vidi **samo pri užoj širini**, jer pri „standard" i „broad" retko k
 potez ispadne iz reza. Postaviti repertoar na **„Samo glavna linija"** pre
 provere.
 
-1. [ ] **Odigraj potez za protivnika koji nije glavni odgovor** (drugi ili treći
+1. [x] **Odigraj potez za protivnika koji nije glavni odgovor** (drugi ili treći
    po učestalosti). U stablu se **odmah pojavi kartica** za tu poziciju, a
    označena je **ta** kartica — ne koren repertoara.
-2. [ ] **Isto važi i kad potez prihvatiš iz spiska ispod table** („Potvrdi",
+2. [x] **Isto važi i kad potez prihvatiš iz spiska ispod table** („Potvrdi",
    „Uzmi …"), ne samo kad ga povučeš po tabli. Pravilo visi o tome da si potez
    odobrio, ne kojim putem.
-3. [ ] **Idi dva-tri poteza dublje niz tu granu.** Fokus ostaje na poslednjem
+3. [x] **Idi dva-tri poteza dublje niz tu granu.** Fokus ostaje na poslednjem
    potezu na svakom koraku — nijednom se ne vrati na početak. Ovo je „baca me
    negde" iz prijave.
-4. [ ] **Ostatak stabla nije nestao.** Glavna linija i sve ostalo su i dalje
+4. [x] **Ostatak stabla nije nestao.** Glavna linija i sve ostalo su i dalje
    nacrtani; ovo dodaje tvoju poziciju, ne sužava crtež na nju.
-5. [ ] **Prebaci širinu na „standard" i nazad.** Ništa se ne gubi ni ne duplira.
+5. [x] **Prebaci širinu na „standard" i nazad.** Ništa se ne gubi ni ne duplira.
 
 ### C. Tabla stoji, ostatak se skroluje (faza 3)
 
-10. [ ] **Skroluj ispod table na telefonu.** Tabla i navigaciona paleta ispod
+10. [x] **Skroluj ispod table na telefonu.** Tabla i navigaciona paleta ispod
     nje **ostaju na mestu**; pomera se samo ono ispod — komentar, pitanje,
     odgovori, kontrole, stablo.
-11. [ ] **Tabla nije isečena ni na jednom ekranu**, a ispod palete uvek ima šta
+11. [x] **Tabla nije isečena ni na jednom ekranu**, a ispod palete uvek ima šta
     da se skroluje. Proveriti i na uskom prozoru na Windowsu, ne samo na
     telefonu.
-12. [ ] **Baner je niži.** „N nepotvrđenih u grafu" sada zauzima oko pola
+12. [x] **Baner je niži.** „N nepotvrđenih u grafu" sada zauzima oko pola
     prostora koliko ranije. Natpisi su isti — ništa nije skraćeno.
 13. [ ] **Dugme „Pregledaj nepotvrđene" se i dalje lako pogađa prstom.** Ovo je
     jedina stvar koju je sažimanje moglo da pokvari: dugme je sada niže (32 px
     umesto 48). Ako je nezgodno pogoditi ga, reci — vraća se u jednom redu.
-14. [ ] **Tabla je možda malo manja nego ranije** na običnom telefonu (oko 16 px
+14. [x] **Tabla je možda malo manja nego ranije** na običnom telefonu (oko 16 px
     manja stranica), a ispod nje ima oko 100 px više. Ako ti je tabla premala,
     to je jedan broj koji se menja.
 
 ### D. Šansa linije i pogled na jednu granu (faza 5)
 
-15. [ ] **Zadrži pokazivač nad kartom u stablu** (ili je dugo pritisni na
+15. [x] **Zadrži pokazivač nad kartom u stablu** (ili je dugo pritisni na
     telefonu): piše „Šansa linije: X% (u okviru pokrivenog repertoara)".
     Rečenica mora da bude cela — zagrada nije ukras, bez nje broj laže.
-16. [ ] **Broj ima smisla.** Na tvom potezu je isti kao na poziciji pre njega
+16. [x] **Broj ima smisla.** Na tvom potezu je isti kao na poziciji pre njega
     (tvoj izbor nije verovatnoća), a na protivnikovom se množi njegovom
     učestalošću. Dublje u liniji broj pada.
-17. [ ] **Uporedi na dve širine.** Na „samo glavna linija" isti čvor pokazuje
+17. [x] **Uporedi na dve širine.** Na „samo glavna linija" isti čvor pokazuje
     osetno veći procenat nego na „standard" — to je tačno i baš zato stoji
     zagrada. Ako ti ta rečenica i dalje deluje nejasno, reci kako bi je ti
     napisao.
-18. [ ] **„Prikaži samo od ove pozicije".** Dugme iznad stabla: crtež se svede
+18. [x] **„Prikaži samo od ove pozicije".** Dugme iznad stabla: crtež se svede
     na granu ispod pozicije na tabli, a putanja iznad stabla i dalje čita od
     prvog poteza.
-19. [ ] **„Prikaži ceo repertoar" vraća sve.**
-20. [ ] **Suženje se samo pušta** kad tablom odeš iznad te pozicije ili u drugu
+19. [x] **„Prikaži ceo repertoar" vraća sve.**
+20. [x] **Suženje se samo pušta** kad tablom odeš iznad te pozicije ili u drugu
     granu — crtež se vrati na ceo repertoar bez pritiska na dugme.
-21. [ ] **Na kartici nema ocene motora**, a legenda iznad stabla je više ne
+    **Provereno 5.9.2026: ne pušta se, i vlasnik je to prihvatio** („može samo u
+    okviru stabla trenutno prikazanog, ali nije problem, meni odgovara").
+    Razlog: dok je suženo, kretanje ide kroz ono što je nacrtano, pa nema načina
+    da se izađe iz grane — pravilo koje pušta suženje nema šta da okine. Izlaz
+    je dugme „Prikaži ceo repertoar", i to je za sada dovoljno.
+21. [x] **Na kartici nema ocene motora**, a legenda iznad stabla je više ne
     pominje (ostatak od brisanja iz stavke 103).
 
 ### E. Prostor ispod table na desktopu (5.9.2026)
@@ -3802,9 +3807,14 @@ otvaranja, jer dugme „Pregledaj nepotvrđene" ne može da se skupi.
 25. [ ] **Na širokom prozoru (preko 1200 dp) i ime otvaranja i „N nepotvrđenih"
     stoje u zaglavlju**, pored naziva repertoara. Iznad table nema nijedne
     kartice — tabla je odmah ispod zaglavlja.
-26. [ ] **Dugme „Pregledaj nepotvrđene" iz zaglavlja radi** i vodi na prvu
+    **Prvo napravi nepotvrđene poteze** („Predloži glavnu liniju"), inače se
+    baner ne crta ni na jednom mestu i stavka se ne može proveriti. Provera
+    5.9.2026 je pala baš na tome: na slici je repertoar sa nula nepotvrđenih —
+    ime otvaranja **jeste** bilo u zaglavlju, a banera nije bilo jer ga nema šta
+    da prijavi. Kontrola: red ispod table tada ne kaže „nepotvrđeno N".
+26. [x] **Dugme „Pregledaj nepotvrđene" iz zaglavlja radi** i vodi na prvu
     nepotvrđenu poziciju, isto kao ranije.
-27. [ ] **Suzi prozor ispod 1200 dp.** Oba se vraćaju iznad table i sve radi kao
+27. [x] **Suzi prozor ispod 1200 dp.** Oba se vraćaju iznad table i sve radi kao
     pre. Proširi nazad — vraćaju se gore.
 28. [ ] **Ime otvaranja ne nestaje pri promeni veličine prozora.** Ovo je jedina
     prava zamka u ovoj izmeni: baner pamti **poslednje imenovano** otvaranje, pa
@@ -3828,15 +3838,15 @@ stablo, ne samo u repertoaru — jedan vidžet je iza svih.
 **Prvo zumiraj**, jer bez toga se ništa od ovoga ne vidi: `+` u alatnici stabla
 dva-tri puta.
 
-29. [ ] **Kretanje kroz liniju ne pomera crtež.** Sa uzumiranim stablom idi
+29. [x] **Kretanje kroz liniju ne pomera crtež.** Sa uzumiranim stablom idi
     potez po potez dok je aktivna kartica na sredini ekrana. Crtež **stoji** —
     ne skače, ne pomera se ni za piksel. Ovo je „izgubi fokus" iz prijave.
-30. [ ] **Kad kartica priđe ivici, crtež se pomeri malo.** Nastavi niz liniju do
+30. [x] **Kad kartica priđe ivici, crtež se pomeri malo.** Nastavi niz liniju do
     dna vidljivog dela: crtež se pomeri **tek toliko** da kartica uđe unutra, sa
     oko jedne kartice mesta do ivice. Ne skače na sredinu.
-31. [ ] **Zum se pri tome ne menja.** Veličina kartica je posle celog hoda ista
+31. [x] **Zum se pri tome ne menja.** Veličina kartica je posle celog hoda ista
     kao pre. Ovo je pola prijave i mora da se pogleda odvojeno od pomeranja.
-32. [ ] **Dugme „Centriraj na aktivni potez" i dalje centrira.** Ono je
+32. [x] **Dugme „Centriraj na aktivni potez" i dalje centrira.** Ono je
     korisnikov zahtev i namerno je ostalo kakvo je bilo — kartica ide na sredinu.
 33. [ ] **„Resetuj pogled", `+`, `−`, kolo miša i pinch rade kao pre.**
 34. [ ] **Isto u Analizi, ne samo u repertoaru.** Otvori Analysis Studio,
@@ -3888,36 +3898,42 @@ otvaranja, pa isto stanje preživi selidbu.
 9. [ ] **Govor je ređi nego ranije** na takvim mestima — jedna rečenica umesto
    pet. Ako ti se čini da se i dalje ponavlja, zabeleži gde.
 
-## 105. Širina se menja iz legende, bez pisanja poteza — 5.9.2026, nije viđeno uživo
+## 105. Širina se menja iz legende, bez pisanja poteza — potvrđeno 5.9.2026
 
 Prijava od 5.9.2026 uveče: „nema smisla da biram šta igra protivnik, kad mi se
 potezi sami dodaju." Odgovor je u dva dela — objašnjenje (protivnikovi odgovori
 dolaze iz statistike, a širina kaže koliko ih se uzima) i popravka (do širine se
 više ne stiže kroz dijalog koji usput upiše celu liniju predloga).
 
-1. [ ] **Ispod crteža stoji „Koliko odgovora: uobičajeno 80%" i to je dugme** —
+1. [x] **Ispod crteža stoji „Koliko odgovora: uobičajeno 80%" i to je dugme** —
    ima ikonicu i otvara se na dodir. Ranije je bio običan tekst.
-2. [ ] **Otvara se dijalog „Koliko odgovora spremamo"**, sa tri izbora i bez
+2. [x] **Otvara se dijalog „Koliko odgovora spremamo"**, sa tri izbora i bez
    ijedne dubine. Naslova „Predloži glavnu liniju odavde" nema.
-3. [ ] **Dijalog je otvoren na širini koju repertoar već ima** — ne na
+3. [x] **Dijalog je otvoren na širini koju repertoar već ima** — ne na
    „Uobičajeno" bez obzira na stanje.
-4. [ ] **„Sačuvaj" menja crtež odmah.** Izaberi „Samo glavni odgovor": ispod
+4. [x] **„Sačuvaj" menja crtež odmah.** Izaberi „Samo glavni odgovor": ispod
    svakog tvog poteza ostaje **jedan** protivnikov odgovor umesto talasa, a red
    legende sada kaže „samo glavni odgovor".
-5. [ ] **Ništa nije upisano.** Broj u baneru „N nepotvrđenih" se nije uvećao i
-   nijedan nov potez se nije pojavio u stablu. Ovo je cela poenta izmene.
-6. [ ] **„Odustani" ne menja ništa** — ni širinu, ni crtež.
-7. [ ] **Ono što si sam uzeo ostaje i na najužoj širini.** Ako si negde
+5. [ ] **Ništa nije upisano.** Nijedan nov potez se nije pojavio u stablu, a red
+   ispod table kaže isto što je govorio pre promene širine — „odlučeno N ·
+   otvoreno M", i „nepotvrđeno K" **samo ako ga je i pre bilo**. Ovo je cela
+   poenta izmene.
+   Stavka je 5.9.2026 prvo bila napisana preko banera „N nepotvrđenih", koji na
+   repertoaru bez nepotvrđenih poteza uopšte ne postoji — pa je izgledala kao
+   kvar („ne vidim baner"). Broj u redu ispod table je isti podatak i vidi se
+   uvek.
+6. [x] **„Odustani" ne menja ništa** — ni širinu, ni crtež.
+7. [x] **Ono što si sam uzeo ostaje i na najužoj širini.** Ako si negde
    pritisnuo „Spremi i ovo", taj protivnikov potez mora da se vidi i na „Samo
    glavni odgovor". Isto važi za pozicije u kojima si već odlučio.
-8. [ ] **Vrati na „Uobičajeno (80%)"** — sve se vraća kako je bilo. Širine su
+8. [x] **Vrati na „Uobičajeno (80%)"** — sve se vraća kako je bilo. Širine su
    ugnežđene, pa proširivanje sme samo da dodaje.
-9. [ ] **Zatvori i otvori repertoar iz spiska** — širina je i dalje ona koju si
+9. [x] **Zatvori i otvori repertoar iz spiska** — širina je i dalje ona koju si
    izabrao, dakle upisana je u red repertoara, a ne samo u ekran.
-10. [ ] **U turi „Upoznaj repertoar" taj red nije dugme.** Tura je pregled, ne
+10. [x] **U turi „Upoznaj repertoar" taj red nije dugme.** Tura je pregled, ne
     mesto za menjanje repertoara.
 
-## 106. Crtež stiže do table posle „Idi" — 5.9.2026, nije viđeno uživo
+## 106. Crtež stiže do table posle „Idi" — potvrđeno 5.9.2026
 
 Prijava od 5.9.2026: „posle izbora poteza protivnika, taj potez se ne prikazuje
 na stablu poteza, a trebalo bi — da vidim i u stablu na šta treba da
@@ -3926,16 +3942,16 @@ nešto upiše, a crtež se od 4.9. čita **od mesta gde je tabla**.
 
 1. [ ] **Dodirni svoj potez u stablu**, pa u spisku „Posle <potez> — šta igra
    protivnik" pritisni **„Idi"** na odgovoru koji je već u pripremi.
-2. [ ] **Taj protivnikov potez se vidi u stablu**, i to je **osvetljena**
+2. [x] **Taj protivnikov potez se vidi u stablu**, i to je **osvetljena**
    kartica — dakle vidi se i gde si i na šta odgovaraš.
-3. [ ] **Isto važi dublje u liniji.** Ponovi to nekoliko poteza zaredom: svaki
+3. [x] **Isto važi dublje u liniji.** Ponovi to nekoliko poteza zaredom: svaki
    put kartica postoji i osvetljena je. Ranije je osvetljenje ostajalo na
    prethodnom potezu.
-4. [ ] **Kretanje unutar crteža je i dalje trenutno** — dodirivanje kartica
+4. [x] **Kretanje unutar crteža je i dalje trenutno** — dodirivanje kartica
    koje se već vide ne pravi novo učitavanje i ne trese sliku.
-5. [ ] **Zum se pri tome ne menja** (stavke 104-G i 104-H). Ponovno čitanje
+5. [x] **Zum se pri tome ne menja** (stavke 104-G i 104-H). Ponovno čitanje
    crteža ne sme da vrati razmeru na 100%.
-6. [ ] **Ako se potez i dalje ne vidi**, zapiši koji je, na kojoj širini i na
+6. [x] **Ako se potez i dalje ne vidi**, zapiši koji je, na kojoj širini i na
    kojoj dubini — tada je uzrok server (transpozicija ili knjiga bez tog reda),
    a ne ovo.
 
