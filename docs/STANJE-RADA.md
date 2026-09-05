@@ -603,7 +603,7 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
 
-## Četiri sugestije sa provere 4.9.2026, 21:20–22:00 — zabeleženo, nije rađeno
+## Prijave sa provere 4.9–5.9.2026 — zabeleženo, nije rađeno
 
 Vlasnik ih je izričito prijavio kao **sugestije, ne kvarove**, i tražio da se
 samo zabeleže: „kad ih skupimo dovoljno, možemo jednim planom popravke sve da
@@ -707,6 +707,67 @@ Isti vidžet kao 3, i to dvoje ide zajedno u plan.
   ekran „Vežbaj X" ga koristi. Pre pisanja novog filtra treba proveriti da li je
   ovo isti pojam pod drugim imenom — dva različita „samo ova grana" u istoj
   aplikaciji je tačno onaj oblik koji se kasnije razilazi.
+
+### 5. Tabla mora da stoji, a stablo da ne gubi fokus (5.9.2026, 08:35)
+
+Jedna prijava, četiri zahteva u njoj. Vlasnikov tekst je u alatu za proveru
+(`stanje.json`, `n1788590120398`), uz sliku.
+
+**a) Tabla i navigaciona paleta ne smeju da odskroluju.**
+
+> „Tabla sa navigacionom paletom ispod se skrolovanjem ne vidi, treba da bude
+> statična, a da se pomera samo ono što je ispod."
+
+`_buildBoardColumn` (`repertoire_build_screen.dart`) je jedan
+`SingleChildScrollView` oko jednog `Column`-a, pa se **sve** pomera zajedno:
+traka nepotvrđenih, tabla, `_buildNavigation`, pa komentar, pitanje, odgovori,
+presuda, uzeti potezi i knjiga. Traženi oblik je `Column[ nepomični deo,
+Expanded(SingleChildScrollView(ostatak)) ]`.
+
+**Ograničenje koje treba rešiti pre pisanja:** na 360×640 tabla plus paleta već
+troše skoro ceo ekran. Ako se zakuju, deo koji se skroluje spada na nekoliko
+piksela, a tabla se iseca — dakle veličina table mora da se računa **od visine
+prozora**, ne samo od širine, i to je pravi posao ove stavke.
+
+**b) Traka „N nepotvrđenih u grafu" jede prostor iznad table.** Na slici uz
+prijavu je baš ona. Vlasnikov predlog: izbaciti je ili pomeriti. Vredi
+razmisliti da postane deo nepomičnog zaglavlja ili da se skupi u jedan red sa
+dugmetom, umesto zasebne kartice.
+
+**c) Fokus u stablu se ne sme gubiti pri gradnji.**
+
+> „Ako korisnik izabere potez za svoju boju, taj potez treba odmah da se vidi u
+> stablu poteza i da se pozicija na tabli i fokus u stablu poteza postavi na tu
+> poziciju. Izborom poteza za protivnika pozicija ostaje na tom mestu, ali se u
+> stablo dodaje odmah potez protivnika, a fokus je usklađen sa tablom, jer
+> korisnik može da doda i druge, alternativne poteze protivnika."
+
+Ovo je **ista prijava** kao ranija, nezabeležena, od 4.9.2026 13:29
+(`n1788510593557`): „aplikacija ne upisuje taj potez u stablo odmah… i posle
+mog izbora šta igra protivnik, baca me negde".
+
+**Arhitektura je već prava, i to je dobra vest:** `_activeNode` se izvodi iz
+FEN-a table (`_standingAfter?.fen ?? _current`), pa fokus **prati tablu** po
+konstrukciji — tačno kako vlasnik traži. Sumnjiv je jedan red:
+
+    return findNodeByFen(root, fen) ?? root;
+
+`?? root` znači da pozicija koju novi crtež ne sadrži tiho vraća fokus na koren
+repertoara — što je verovatno ono „baca me negde". A crtež je ne sadrži kada
+potez ispadne izvan trenutne širine, što je **isti uzrok** koji je već imenovan
+na drugom mestu istog fajla (poruka „Ova pozicija je izvan onoga što spremate").
+Znači: pre nego što se dira fokus, treba odlučiti šta se radi kada je upisani
+potez van širine — jer „odmah se vidi u stablu" i „širina ga skriva" ne mogu oba
+da važe.
+
+**d) Zum se nikad ne menja sam.**
+
+> „Zum (veličina prikaza) u grafičkom stablu poteza ne treba da se menja
+> automatski, već to korisnik radi. Dakle, aplikacija nikad ne menja sama zum."
+
+Ovo **zatvara pitanje ostavljeno otvoreno u stavci 3** gore: zahtev je sada
+bezuslovan, pa nije bitno odakle promena dolazi — ne sme da postoji. Merenje
+odakle dolazi i dalje treba, ali kao dijagnostika, ne kao odluka.
 
 ## Otvorena pitanja dizajna
 
