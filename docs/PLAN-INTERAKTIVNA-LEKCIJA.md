@@ -183,23 +183,48 @@ quota unit or N (`CENA-I-PRETPLATA.md`). Nothing asks any more. And whether
 „Pokaži mi" should be withholdable so a trainer can help before the answer
 appears — that was a classroom flag, and it goes with the classroom.
 
-**What survives, and must not be dropped with the rest of this section.** The
-fan-out was a convenience, not the situation. A trainer can already give one
-lesson to fifteen children through the assign dialog, one at a time, and those
-fifteen children still sit side by side in a section with their screens facing
-each other. So:
+**What survives, and does not live here any more.** „No timer, no score, no
+streak" was written down in this section and nowhere else, which made it a rule
+resting on a feature — delete the dropped feature and the rule goes with it. It
+is now **§2.8**, where it belongs: a rule of the lesson, not of the classroom.
 
-* **No timer, no score, no streak, and no visible comparison with anyone.** At
-  home this is a preference; in a room where a child can see the next child's
-  screen it is the rule that keeps whoever needs four minutes from being the
-  slowest child in public. This is the *only* place that argument was written
-  down, which is why the section keeps its number instead of being deleted.
-* **The child never learns how the lesson reached them.** One assignment or
-  fifteen, the screen is the same. That was the premise of the fan-out and it is
-  what makes dropping it free.
+**The child never learns how the lesson reached them.** One assignment or
+fifteen, the screen is the same. That was the fan-out's premise, and it is what
+makes dropping it free.
 
 `student_groups` and `student_group_members` go back to being what they were:
 wired to room invites and to nothing else.
+
+### 2.8 No timer, no score, no streak — a rule of the lesson, not of the classroom
+
+**A lesson never times a child, never scores one, and never shows one child's
+progress against another's.** No stopwatch, no points, no streak, no „5/7
+tačno", no ordering by speed, no badge for finishing first, and nothing that
+survives a step to be compared later.
+
+Moved here on 6.9.2026, at the owner's instruction, out of the section about the
+classroom. That is not filing: while it lived there it read as a **consequence
+of the group case**, so dropping the group case would have taken it with it, and
+the next person to want a streak would have found nothing to argue against. It
+is a pedagogical rule of the resource itself and it holds in every setting the
+lesson is ever used in.
+
+* **In a section** it is the rule that keeps whoever needs four minutes from
+  being the slowest child in public. Fifteen children at their own pace with
+  their screens facing each other is the situation, and it happens whether or
+  not the app knows a group exists — §2.7.
+* **At home** it is the same rule for a quieter reason. A child who is timed
+  optimises for the clock, and a chess lesson is the one place thinking longer
+  is the correct move. The child also compares themselves to yesterday, and a
+  streak turns a missed day into a reason not to come back.
+* **For the trainer** nothing is lost: `assignment_items` already records what
+  was answered, what was wrong, and what was revealed. Everything a trainer
+  needs to know about a child is in the review, where a person reads it — not on
+  the child's screen, where a number teaches.
+
+The consequences elsewhere in this plan follow from this section rather than
+restating it: §5's screen rule, and the exclusion in §8. If a future feature
+needs the child's speed for anything, this is the section it has to argue with.
 
 ## 3. What is reused, and what is genuinely new
 
@@ -275,12 +300,9 @@ Built inside `LessonViewerScreen`, not beside it.
 * **A wrong answer gets a reason, not „netačno".** `judgeAttempt` already
   separates „taj potez nije moguć u ovoj poziciji" from „nije traženi potez",
   and the two mean very different things to a child.
-* **No timer, no score, no streak, and no visible comparison with anyone.** At
-  home this is a preference; in a room where children can see each other's
-  screens it is the rule that keeps whoever needs four minutes from being the
-  slowest child in public. After 6.9.2026 there is only one way a lesson
-  arrives — as homework — and a section is fifteen children doing the same
-  homework at once. §2.7.
+* **No timer, no score, no streak, and no visible comparison with anyone.**
+  §2.8, which is where the argument lives and where anything wanting a child's
+  speed has to go and argue.
 * **It has to survive a school tablet.** 360 dp, a weak GPU, and wifi that
   drops. A step that has been fetched stays readable; only submitting an answer
   needs the network, and failing to submit says so and keeps the answer.
@@ -797,7 +819,7 @@ by reading a test.
   real-time feed is a separate feature with its own justification, not a v1
   detail — and a leaderboard is not a scope question at all, it is the rule in
   §2.7.
-* **Video, scoring, streaks, timers.**
+* **Video, scoring, streaks, timers.** §2.8 — a rule, not a scope decision.
 * **Authoring on a phone.** The studio is a desktop surface; the student's
   screen is the one that has to work at 360 dp.
 * **Anything recorded from the child beyond moves and choices.** A lesson is not

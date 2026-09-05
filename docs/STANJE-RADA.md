@@ -651,9 +651,17 @@ troši jednu jedinicu kvote ili N. Više niko ne pita.
 **Šta ostaje na snazi i ne sme da padne zajedno sa fazom 8:** razlivanje je bilo
 udobnost, a ne situacija. Trener i sada može istu lekciju da da petnaestoro dece
 jedno po jedno, i tih petnaestoro i dalje sedi jedno pored drugog i vidi tuđe
-ekrane. Zato **nema tajmera, bodova, niza ni ijednog poređenja** — kod kuće je to
-ukus, a u učionici pravilo koje čuva dete kome treba četiri minuta da ne bude
-najsporije javno. To je jedino mesto gde je taj argument zapisan.
+ekrane.
+
+Zato je pravilo **bez tajmera, bez bodova, bez niza i bez ijednog poređenja**
+istog dana izmešteno u **§2.8 plana**, kao pravilo same lekcije a ne učionice.
+Dok je stajalo u odeljku o grupnom času, čitalo se kao posledica tog slučaja — pa
+bi sa ukidanjem slučaja palo i pravilo, a sledeći ko poželi niz ne bi imao s čim
+da se spori. Važi svuda: u sekciji čuva dete kome treba četiri minuta da ne bude
+najsporije javno, a kod kuće čuva dete od merenja u jedinoj disciplini gde je
+duže razmišljanje tačan potez. Treneru ništa ne nedostaje —
+`assignment_items` već pamti šta je odgovoreno, šta je promašeno i gde je
+otkriveno rešenje, i to čita čovek u pregledu, a ne dete na svom ekranu.
 
 **Gde smo na kraju dana:** faze 0, 1, 2, 3, 4 i 5 su na grani
 `feat/interactive-lessons`, master je netaknut i zelen. Paket 4b (ekran koji
