@@ -5,7 +5,7 @@ A bounded job for an outside agent. **This file plus
 are the only context you get** — do not rely on any conversation before them.
 When the work is merged, this file is deleted.
 
-Branch: `batch/interaktivna-lekcija-4b`, off `1a771f0`. Commit as
+Branch: `batch/interaktivna-lekcija-4b`, off `40f8da2` — the commit that carries this file and the brief. Commit as
 `batch 48 — interaktivna lekcija, ekran koji pita`. **Do not commit.** Leave the
 worktree dirty; the lead reads the diff.
 
