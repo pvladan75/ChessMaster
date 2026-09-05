@@ -228,6 +228,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// How likely each card is to be arrived at, keyed the way `_looks` is.
   Map<String, double> _reaches = {};
 
+  /// How many drafts the banner would advertise, wherever it is drawn.
+  ///
+  /// One reading, because the banner now has two homes — the app bar on a wide
+  /// window, above the board on a narrow one — and two copies of this condition
+  /// is how the two start disagreeing about whether there is anything to say.
+  int get _draftsToReview => _frontier?.draft ?? 0;
+
   /// The drawing narrowed to one branch, or null for the whole repertoire.
   ///
   /// **This is the repertoire's gate, asked for a different position** — the
@@ -2620,7 +2627,31 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: Text(widget.name),
+        // The space beside the title, which was empty on every wide window.
+        //
+        // The owner asked for it on 5.9.2026, and it is the one home for this
+        // banner that costs no column any height: over the tree it would only
+        // move the cost from the left column to the middle one. Below
+        // `Breakpoints.wide` there is no room and it stays above the board,
+        // where it has always been.
+        title: Breakpoints.isWide(context) && _draftsToReview > 0
+            ? Row(
+                children: [
+                  Flexible(child: Text(widget.name)),
+                  const SizedBox(width: AppSpacing.lg),
+                  // `Expanded`, not `Flexible`: the banner's sentence sits in
+                  // an `Expanded` of its own and needs a definite width to
+                  // shrink into. Given a loose one it overflows the bar.
+                  Expanded(
+                    child: UnconfirmedBanner(
+                      total: _draftsToReview,
+                      onOpenWizard: _reviewDrafts,
+                      bare: true,
+                    ),
+                  ),
+                ],
+              )
+            : Text(widget.name),
         elevation: 0,
         actions: [
           const SpeechToggleButton(),
@@ -2864,9 +2895,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                   fen: _standingAfter?.fen ?? _current!,
                   lookup: widget.openingLookup,
                 ),
-              if (_frontier != null && _frontier!.draft > 0)
+              // Not here when the app bar is carrying it — see the `AppBar`
+              // above. `Breakpoints.isWide` reads the same width the body's
+              // `LayoutBuilder` does, so the two cannot both draw it.
+              if (!Breakpoints.isWide(context) && _draftsToReview > 0)
                 UnconfirmedBanner(
-                  total: _frontier!.draft,
+                  total: _draftsToReview,
                   // The walk is re-read when the review closes. Its number is a
                   // snapshot taken when the screen opened, and the review is the
                   // one thing on this screen that changes it — so without this the

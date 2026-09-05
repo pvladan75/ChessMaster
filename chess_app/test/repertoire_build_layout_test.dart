@@ -50,6 +50,11 @@ class _FakeApi extends RepertoireApiService {
   List<String>? lastTreeRootPath;
   String? lastTreeGate;
 
+  /// How many drafts the frontier reports. Non-zero in the banner tests: at
+  /// zero the banner draws nothing anywhere and every assertion about where it
+  /// sits passes for the wrong reason.
+  int drafts = 0;
+
   /// The position the frontier's open node stands on. Different from the
   /// repertoire's own root in the narrowing tests — with the two the same,
   /// narrowing to "here" asks for the root again and proves nothing.
@@ -151,7 +156,27 @@ class _FakeApi extends RepertoireApiService {
               fen: nodeFen, path: nodePath, reach: 1, kind: 'undecided')
         ],
         decided: 1,
+        draft: drafts,
       );
+
+  /// How many times the draft review was asked for — the banner's button is an
+  /// action, and after moving it to the app bar this is what proves it still
+  /// does something rather than merely being drawn.
+  int unconfirmedCalls = 0;
+
+  @override
+  Future<RepertoireUnconfirmedWalk?> unconfirmedPositions({
+    required String color,
+    required String rootFen,
+    List<String> rootPath = const [],
+    String? gateUci,
+    String? breadth,
+    int? minRating,
+    int? limit,
+  }) async {
+    unconfirmedCalls += 1;
+    return const RepertoireUnconfirmedWalk();
+  }
 
   @override
   Future<RepertoireTree?> repertoireTree({
@@ -308,6 +333,7 @@ void main() {
     bool cutTree = false,
     List<String> nodePath = const [],
     String nodeFen = advance,
+    int drafts = 0,
     String? gateUci,
     OpeningJudgeService? judge,
   }) async {
@@ -318,7 +344,8 @@ void main() {
     api = _FakeApi()
       ..cutTree = cutTree
       ..nodePath = nodePath
-      ..nodeFen = nodeFen;
+      ..nodeFen = nodeFen
+      ..drafts = drafts;
     await tester.pumpWidget(MaterialApp(
       home: RepertoireBuildScreen(
         name: 'French Defense: Advance — crni',
@@ -682,6 +709,55 @@ void main() {
     // The same thing said the other way: the book under the board belongs to
     // the position the board is standing on.
     expect(api.bookReads.last, judge.lastAsked);
+  });
+
+  group('the unconfirmed banner rides in the app bar when there is room', () {
+    // The owner asked on 5.9.2026 whether the empty space beside the title
+    // could be used. It is the one home for this banner that costs no column
+    // any height — over the tree it would only move the cost to the middle one.
+    testWidgets('wide: it is in the bar, and not above the board',
+        (tester) async {
+      await pump(tester, const Size(1400, 900), drafts: 9);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(UnconfirmedBanner), findsOneWidget,
+          reason: 'nacrtan je na oba mesta odjednom');
+      // Inside the app bar means above the board, and above the body entirely.
+      final banner = tester.getRect(find.byType(UnconfirmedBanner));
+      final board = tester.getRect(find.byType(BoardWithCoordinates));
+      expect(banner.bottom, lessThanOrEqualTo(kToolbarHeight + 8),
+          reason: 'baner nije u zaglavlju');
+      expect(board.top, lessThan(banner.bottom + 80),
+          reason: 'tabla nije podignuta pošto je baner otišao');
+    });
+
+    testWidgets('narrow: it stays above the board', (tester) async {
+      await pump(tester, const Size(360, 640), drafts: 9);
+
+      expect(find.byType(UnconfirmedBanner), findsOneWidget);
+      final banner = tester.getRect(find.byType(UnconfirmedBanner));
+      expect(banner.top, greaterThan(kToolbarHeight),
+          reason: 'na telefonu u zaglavlju nema mesta za njega');
+    });
+
+    testWidgets('the button works from the bar', (tester) async {
+      // It is an action, not a label. Moving it must not have left it inert.
+      await pump(tester, const Size(1400, 900), drafts: 9);
+      final before = api.treeCalls;
+
+      // The banner's button, not the one in the controls under the board —
+      // both carry this label, and tapping "the text" would have proved the
+      // wrong one still works.
+      await tester.tap(find.descendant(
+        of: find.byType(UnconfirmedBanner),
+        matching: find.text('Pregledaj nepotvrđene'),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(api.unconfirmedCalls, greaterThan(0),
+          reason: 'dugme u zaglavlju ne radi ništa');
+      expect(api.treeCalls, greaterThanOrEqualTo(before));
+    });
   });
 
   group('the board does not scroll away from its own question', () {

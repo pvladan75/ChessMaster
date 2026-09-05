@@ -865,7 +865,23 @@ mesta, pa i dalje gubi nošeno ime na svakom prelasku praga. Dva rešenja:
 postane bezstanjen i prima ime kao parametar. Drugo rešenje uklanja krhkost
 umesto da je zaobiđe.
 
-**Nije počet nijedan red.** Vlasnik prvo gleda stavku 104-E na svežem bildu.
+**Urađeno 5.9.2026 za baner nepotvrđenih** (`Breakpoints.isWide`, `bare: true`).
+Ime otvaranja je i dalje kartica u levoj koloni — očigledan sledeći kandidat, ali
+nije traženo.
+
+**Nađeno pri radu, i vredi zapamtiti:** `SpeakableInfo` je `Row` od `Expanded`-a
+i `IconButton`-a, a ta ikonica ne može da se skupi. U zaglavlju, gde dugme
+„Pregledaj nepotvrđene" traži 326 od 381 px koliko baner dobija, rečenici ostane
+devetnaest — i ikonica ispadne jedanaest piksela van. U zaglavlju zato ide obična
+`Text` sa skraćivanjem, bez sopstvenog zvučnika; zaglavlje ima svoj prekidač za
+govor. **Uhvaćeno testom koji je već postojao** (`repertoire_counts_refresh_test`),
+a u release bildu bi to bilo jedanaest piksela ćutanja.
+
+**Pejzaž na telefonu nije diran** i vlasnik je izričito rekao da se za sada ne
+dira (5.9.2026). Telefon u pejzažu je oko 770 dp — **ispod praga od 840** — pa
+ostaje uski raspored: baner iznad table preko cele širine, tabla po sredini, a
+visina je tada oko 340 dp, gde pravilo `_boardShare` daje malu tablu. To je
+zasebna stavka kad na nju dođe red.
 
 ## Otvorena pitanja dizajna
 
