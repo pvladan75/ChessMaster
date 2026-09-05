@@ -10,6 +10,8 @@ import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
+import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
+import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
 import 'package:chess_app/features/repertoire/widgets/unconfirmed_banner.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -319,6 +321,12 @@ class _SilentJudge implements OpeningJudgeService {
   void clearCache() {}
 }
 
+/// An opening the fixture can actually name, so the banner draws something.
+final _entry = OpeningBookEntry(
+    eco: 'C54', name: 'Italian Game: Giuoco Pianissimo', pgn: '');
+const _openingLabel = 'C54 · Italian Game: Giuoco Pianissimo';
+OpeningBookEntry? _named(String fen) => _entry;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -335,6 +343,7 @@ void main() {
     String nodeFen = advance,
     int drafts = 0,
     String? gateUci,
+    OpeningBookEntry? Function(String fen)? openingLookup,
     OpeningJudgeService? judge,
   }) async {
     tester.view.physicalSize = size;
@@ -353,6 +362,7 @@ void main() {
         rootFen: advance,
         rootPath: const ['e4', 'e6', 'd4', 'd5', 'e5'],
         gateUci: gateUci,
+        openingLookup: openingLookup,
         api: api,
         judge: judge ?? _SilentJudge(),
         analyse: analyse ?? (fen, depth, multiPV) async => const [],
@@ -757,6 +767,78 @@ void main() {
       expect(api.unconfirmedCalls, greaterThan(0),
           reason: 'dugme u zaglavlju ne radi ništa');
       expect(api.treeCalls, greaterThanOrEqualTo(before));
+    });
+  });
+
+  group('the opening name rides in the app bar too', () {
+    testWidgets('wide: in the bar; narrow: above the board', (tester) async {
+      // Handed a lookup that names the position. Without one the banner draws
+      // `SizedBox.shrink()` and every assertion below is about a zero-sized box
+      // sitting wherever the layout left it — which is how the first version of
+      // these tests passed with the whole move reverted.
+      await pump(tester, const Size(1400, 900),
+          drafts: 9, openingLookup: _named);
+      expect(tester.takeException(), isNull);
+      expect(find.text(_openingLabel), findsOneWidget,
+          reason: 'ime otvaranja se uopšte ne crta');
+      // Exactly one, always. A `GlobalKey` in two places throws, and the key is
+      // what keeps the carried name across the move.
+      expect(find.byType(OpeningBanner), findsOneWidget);
+      expect(tester.getRect(find.text(_openingLabel)).bottom,
+          lessThanOrEqualTo(kToolbarHeight + 8),
+          reason: 'ime otvaranja nije u zaglavlju');
+
+      await pump(tester, const Size(360, 640),
+          drafts: 9, openingLookup: _named);
+      expect(find.byType(OpeningBanner), findsOneWidget);
+      expect(tester.getRect(find.text(_openingLabel)).top,
+          greaterThan(kToolbarHeight),
+          reason: 'na telefonu u zaglavlju nema mesta za njega');
+    });
+
+    testWidgets('the carried name survives crossing the breakpoint',
+        (tester) async {
+      // The whole reason `_openingKey` exists. `_lastNamed` is State, and a
+      // widget that changes parent normally gets a new one — which would blank
+      // the opening's name every time a window is dragged past 840 dp.
+      // A lookup that answers **once**. That is the situation the carried name
+      // exists for: the opening was named at some earlier position and the
+      // board has since walked into unnamed ones. A lookup that always answers
+      // would let a fresh `State` find the name again, and the test would pass
+      // with the key removed — which is exactly what it did at first.
+      var answers = 1;
+      OpeningBookEntry? once(String fen) => answers-- > 0 ? _entry : null;
+
+      await pump(tester, const Size(1400, 900), drafts: 9, openingLookup: once);
+      expect(find.text(_openingLabel), findsOneWidget,
+          reason: 'ništa nije imenovano ni pre praga');
+
+      // Same screen, resized across the threshold rather than rebuilt.
+      tester.view.physicalSize = const Size(900, 900);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OpeningBanner), findsOneWidget);
+      expect(find.text(_openingLabel), findsOneWidget,
+          reason: 'nošeno ime je nestalo pri prelasku praga');
+    });
+
+    testWidgets('between the thresholds it stays in the column',
+        (tester) async {
+      // 900 dp is not wide enough for either: measured 25 px past the edge
+      // with the repertoire's name and the banner alone, 139 with the opening's
+      // name as well, because the banner's button cannot shrink. So both wait
+      // for `ultraWide` and both stay in the column below it.
+      await pump(tester, const Size(900, 800),
+          drafts: 9, openingLookup: _named);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(OpeningBanner), findsOneWidget);
+      expect(tester.getRect(find.text(_openingLabel)).top,
+          greaterThan(kToolbarHeight),
+          reason: 'ime otvaranja je u zaglavlju gde za njega nema mesta');
+      expect(tester.getRect(find.byType(UnconfirmedBanner)).top,
+          greaterThan(kToolbarHeight),
+          reason: 'baner je u zaglavlju gde za njega nema mesta');
     });
   });
 

@@ -1596,9 +1596,20 @@ void main() {
     // widget's own test passed the whole time — it pumps the banner directly
     // and never sees the key the screen supplies.
     //
-    // Hence a composition assertion rather than a behavioural one. There is no
-    // key this screen could legitimately need: opening another repertoire
-    // pushes a whole new screen.
+    // Hence a composition assertion rather than a behavioural one.
+    //
+    // **This guard used to demand no key at all**, on the reasoning that there
+    // was no key the screen could legitimately need. That stopped being true on
+    // 5.9.2026, when the banner gained a second home: it draws in the app bar
+    // above 1200 dp and above the board below it, and a widget that changes
+    // parent gets a **new** State unless it is identified by a `GlobalKey`. So
+    // the carried name would now be lost by having no key, which is the very
+    // fault this test was written about.
+    //
+    // The rule was never „no key". It was **no key that changes as the walk
+    // advances** — the one that shipped was `ValueKey(_boardJumpCount)`. A
+    // `GlobalKey` held in the State is made once and never changes, so it is
+    // required here and a `ValueKey` still fails.
     await tester.runAsync(() async {});
     await pump(tester,
         openingLookup: (fen) => OpeningBookEntry(
@@ -1608,7 +1619,9 @@ void main() {
             ));
 
     final banner = tester.widget<OpeningBanner>(find.byType(OpeningBanner));
-    expect(banner.key, isNull,
+    expect(banner.key, isA<GlobalKey>(),
+        reason: 'bez stabilnog ključa se nošeno ime gubi pri selidbi');
+    expect(banner.key, isNot(isA<ValueKey>()),
         reason: 'a changing key resets the carried opening name');
     expect(find.text('B21 · Sicilijanka, Smit-Mora'), findsOneWidget);
   });

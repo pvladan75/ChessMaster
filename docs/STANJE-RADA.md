@@ -865,9 +865,16 @@ mesta, pa i dalje gubi nošeno ime na svakom prelasku praga. Dva rešenja:
 postane bezstanjen i prima ime kao parametar. Drugo rešenje uklanja krhkost
 umesto da je zaobiđe.
 
-**Urađeno 5.9.2026 za baner nepotvrđenih** (`Breakpoints.isWide`, `bare: true`).
-Ime otvaranja je i dalje kartica u levoj koloni — očigledan sledeći kandidat, ali
-nije traženo.
+**Urađeno 5.9.2026 za oba**, uz `bare: true`. Levoj koloni je time skinuto oko
+106 px fiksnih kartica iznad table.
+
+**Prag je `ultraWide` (1200), ne `wide` (840), i to je izmereno.** Dugme
+„Pregledaj nepotvrđene" ne može da se skupi, pa se na 900 dp zaglavlje prelilo
+25 px već sa imenom repertoara i banerom, a 139 px kad se doda i ime otvaranja.
+1200 je postojeći odgovor ove aplikacije na pitanje „ima li ovde mesta za treću
+stvar" i njegov sopstveni komentar to kaže, pa je iskorišćen umesto da se
+izmišlja nov broj. Ispod praga oba ostaju iznad table — što uključuje i telefon
+u pejzažu, koji je oko 770 dp.
 
 **Nađeno pri radu, i vredi zapamtiti:** `SpeakableInfo` je `Row` od `Expanded`-a
 i `IconButton`-a, a ta ikonica ne može da se skupi. U zaglavlju, gde dugme

@@ -3793,6 +3793,31 @@ provere.
 24. [ ] **Isto pravilo važi i na telefonu** — tabla i tamo uzima pola visine.
     Proveri da nije ispalo premala na malom ekranu.
 
+### F. Oba banera u zaglavlju na širokom prozoru (5.9.2026)
+
+Prag je **1200 dp** (`ultraWide`), ne 840 — izmereno: na 900 dp zaglavlje se
+prelilo 25 px sa imenom repertoara i banerom, a 139 px kad se doda i ime
+otvaranja, jer dugme „Pregledaj nepotvrđene" ne može da se skupi.
+
+25. [ ] **Na širokom prozoru (preko 1200 dp) i ime otvaranja i „N nepotvrđenih"
+    stoje u zaglavlju**, pored naziva repertoara. Iznad table nema nijedne
+    kartice — tabla je odmah ispod zaglavlja.
+26. [ ] **Dugme „Pregledaj nepotvrđene" iz zaglavlja radi** i vodi na prvu
+    nepotvrđenu poziciju, isto kao ranije.
+27. [ ] **Suzi prozor ispod 1200 dp.** Oba se vraćaju iznad table i sve radi kao
+    pre. Proširi nazad — vraćaju se gore.
+28. [ ] **Ime otvaranja ne nestaje pri promeni veličine prozora.** Ovo je jedina
+    prava zamka u ovoj izmeni: baner pamti **poslednje imenovano** otvaranje, pa
+    ga treba dovesti u poziciju bez imena (dublje u liniji), pa vući ivicu
+    prozora preko 1200 dp gore-dole. Ime mora da ostane.
+29. [ ] **U zaglavlju nema zvučnika uz „N nepotvrđenih".** Namerno: ta ikonica ne
+    može da se skupi i gurala je zaglavlje preko ivice. Zaglavlje ima svoj
+    prekidač za govor, ali to **nije ista kontrola** — ako ti nedostaje čitanje
+    baš te rečenice, reci.
+30. [ ] **Na telefonu (uspravno i položeno) ništa se nije promenilo** — oba su i
+    dalje iznad table. Telefon u položenom je oko 770 dp, dakle daleko ispod
+    praga.
+
 ### B. Lepeza neodgovorenih odgovora u turi (faza 4)
 
 6. [ ] **„Upoznaj repertoar" na poziciji gde protivnik ima više odgovora i ni na

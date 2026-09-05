@@ -11,7 +11,16 @@ class OpeningBanner extends StatefulWidget {
     super.key,
     required this.fen,
     this.lookup,
+    this.bare = false,
   });
+
+  /// Without the bordered card around it, for a place that already frames it.
+  ///
+  /// Since 5.9.2026 this rides in the screen's app bar on a wide window, beside
+  /// the repertoire's own name. There it is one line of text that may
+  /// ellipsize: the bar is the frame, and a bordered pill inside a bar reads as
+  /// a mistake.
+  final bool bare;
 
   @override
   State<OpeningBanner> createState() => _OpeningBannerState();
@@ -49,6 +58,17 @@ class _OpeningBannerState extends State<OpeningBanner> {
       return const SizedBox.shrink();
     }
 
+    final said = '${_lastNamed!.eco} · ${_lastNamed!.name}';
+
+    if (widget.bare) {
+      return Text(
+        said,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
+      );
+    }
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -63,7 +83,7 @@ class _OpeningBannerState extends State<OpeningBanner> {
         ),
       ),
       child: Text(
-        "${_lastNamed!.eco} · ${_lastNamed!.name}",
+        said,
         style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
         textAlign: TextAlign.center,
       ),

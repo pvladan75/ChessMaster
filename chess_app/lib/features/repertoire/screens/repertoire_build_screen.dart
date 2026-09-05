@@ -228,6 +228,25 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// How likely each card is to be arrived at, keyed the way `_looks` is.
   Map<String, double> _reaches = {};
 
+  /// The opening banner's identity, so its `State` survives changing parents.
+  ///
+  /// Since 5.9.2026 the banner has two homes — the app bar on a wide window,
+  /// above the board on a narrow one — and its `State` is the **carried name**:
+  /// `_lastNamed` holds the last *named* opening, so a run of unnamed positions
+  /// still says where you are. A widget that changes parent normally gets a new
+  /// `State`, which would blank that name on every crossing of 840 dp, and on
+  /// Windows that is dragging a window edge.
+  ///
+  /// The comment this replaces warned against a key that **changes as the walk
+  /// advances** — that would throw the State away on every move. This one is
+  /// made once and never changes, which is the opposite thing and the
+  /// documented way to move a widget without losing what it remembers.
+  ///
+  /// It also means the banner must never be drawn twice at once; a `GlobalKey`
+  /// in two places throws. `Breakpoints.isWide` decides both homes and a test
+  /// holds it to exactly one.
+  final GlobalKey _openingKey = GlobalKey();
+
   /// How many drafts the banner would advertise, wherever it is drawn.
   ///
   /// One reading, because the banner now has two homes — the app bar on a wide
@@ -2629,26 +2648,48 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       appBar: AppBar(
         // The space beside the title, which was empty on every wide window.
         //
-        // The owner asked for it on 5.9.2026, and it is the one home for this
-        // banner that costs no column any height: over the tree it would only
-        // move the cost from the left column to the middle one. Below
-        // `Breakpoints.wide` there is no room and it stays above the board,
-        // where it has always been.
-        title: Breakpoints.isWide(context) && _draftsToReview > 0
+        // The owner asked for it on 5.9.2026, and it is the one home for these
+        // two that costs no column any height: over the tree they would only
+        // move the cost from the left column to the middle one.
+        //
+        // **`ultraWide`, not `wide`,** and it was measured rather than chosen.
+        // The banner's button cannot shrink, so at 900 dp the bar overflowed by
+        // 25 px with the repertoire's name beside it and by 139 with the
+        // opening's name as well. 1200 is this app's existing answer to „is
+        // there room for a third thing here" — its own doc says so — so it is
+        // reused rather than a new number invented.
+        //
+        // Below it both stay above the board, where they have always been. A
+        // phone in landscape is about 770 dp and is therefore untouched.
+        title: Breakpoints.isUltraWide(context)
             ? Row(
                 children: [
-                  Flexible(child: Text(widget.name)),
-                  const SizedBox(width: AppSpacing.lg),
+                  Flexible(
+                      child: Text(widget.name,
+                          maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  if (_current != null) ...[
+                    const SizedBox(width: AppSpacing.md),
+                    Flexible(
+                      child: OpeningBanner(
+                        key: _openingKey,
+                        fen: _standingAfter?.fen ?? _current!,
+                        lookup: widget.openingLookup,
+                        bare: true,
+                      ),
+                    ),
+                  ],
+                  if (_draftsToReview > 0) const SizedBox(width: AppSpacing.lg),
                   // `Expanded`, not `Flexible`: the banner's sentence sits in
                   // an `Expanded` of its own and needs a definite width to
                   // shrink into. Given a loose one it overflows the bar.
-                  Expanded(
-                    child: UnconfirmedBanner(
-                      total: _draftsToReview,
-                      onOpenWizard: _reviewDrafts,
-                      bare: true,
+                  if (_draftsToReview > 0)
+                    Expanded(
+                      child: UnconfirmedBanner(
+                        total: _draftsToReview,
+                        onOpenWizard: _reviewDrafts,
+                        bare: true,
+                      ),
                     ),
-                  ),
                 ],
               )
             : Text(widget.name),
@@ -2885,20 +2926,19 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (_current != null)
-                // Deliberately unkeyed. A key that changes as the walk advances
-                // destroys the banner's State, and its State is the carried
-                // name — the whole point of the last-named rule. Opening another
-                // repertoire pushes a new screen, so there is nothing a key here
-                // could reset that is not reset already.
+              // Not here when the app bar is carrying it — see the `AppBar`
+              // above, and `_openingKey` for why it keeps its name across the
+              // move.
+              if (!Breakpoints.isUltraWide(context) && _current != null)
                 OpeningBanner(
+                  key: _openingKey,
                   fen: _standingAfter?.fen ?? _current!,
                   lookup: widget.openingLookup,
                 ),
               // Not here when the app bar is carrying it — see the `AppBar`
               // above. `Breakpoints.isWide` reads the same width the body's
               // `LayoutBuilder` does, so the two cannot both draw it.
-              if (!Breakpoints.isWide(context) && _draftsToReview > 0)
+              if (!Breakpoints.isUltraWide(context) && _draftsToReview > 0)
                 UnconfirmedBanner(
                   total: _draftsToReview,
                   // The walk is re-read when the review closes. Its number is a
