@@ -16,7 +16,7 @@ AnalysisNode _root() => AnalysisNode(
     );
 
 Future<void> _pump(WidgetTester tester,
-    {int? minRating, String? breadth}) async {
+    {int? minRating, String? breadth, VoidCallback? onChangeBreadth}) async {
   tester.view.physicalSize = const Size(360, 640);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
@@ -31,6 +31,7 @@ Future<void> _pump(WidgetTester tester,
           onSelect: (_) {},
           minRating: minRating,
           breadth: breadth,
+          onChangeBreadth: onChangeBreadth,
         ),
       ),
     ),
@@ -64,6 +65,40 @@ void main() {
     // reach it — the twenty-first assertion, and the one the automated pass
     // over the table could not do.
     expect(find.textContaining('Koliko odgovora:'), findsNothing);
+  });
+
+  group('the width is turned where it is named', () {
+    // The legend is the line that says what the drawing was made at, so it is
+    // the honest place to change it — the same rule the cut branches follow,
+    // counted next to the switch that brings them back. Reported live
+    // 5.9.2026: the only door to this dial was the spine dialog, which writes
+    // moves.
+    testWidgets('a caller that can change it gets a button', (tester) async {
+      var opened = 0;
+      await _pump(tester,
+          breadth: 'standard', onChangeBreadth: () => opened += 1);
+
+      // The same sentence as without it — a reader must not have to learn two
+      // wordings for one fact.
+      expect(find.text('Koliko odgovora: uobičajeno 80%'), findsOneWidget);
+      await tester.tap(find.text('Koliko odgovora: uobičajeno 80%'));
+      await tester.pump();
+      expect(opened, 1);
+    });
+
+    testWidgets('a caller that cannot leaves plain text', (tester) async {
+      // The walkthrough draws this panel too, and a tour is not the place to
+      // change a repertoire-wide setting.
+      await _pump(tester, breadth: 'standard');
+
+      expect(find.text('Koliko odgovora: uobičajeno 80%'), findsOneWidget);
+      expect(
+          find.ancestor(
+            of: find.text('Koliko odgovora: uobičajeno 80%'),
+            matching: find.byType(TextButton),
+          ),
+          findsNothing);
+    });
   });
 
   group('finding the node a position stands on', () {

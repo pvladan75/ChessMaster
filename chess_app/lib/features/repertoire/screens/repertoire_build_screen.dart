@@ -2444,6 +2444,51 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     await _advance();
   }
 
+  /// Changes how many of the opponent's replies this repertoire prepares,
+  /// without writing a single move.
+  ///
+  /// Reported live 5.9.2026: „ručno dodajem poteze i kad izaberem potez za
+  /// protivnika, dodaju mi se još nekoliko alternativa". They are not added —
+  /// they are the book's replies inside the width, computed at every read —
+  /// but the only door to that dial was the spine dialog, which saves the
+  /// width **only** if the reader also lets it write a line of proposals. A
+  /// reader narrowing the repertoire because it writes too much had to let it
+  /// write more to do it.
+  ///
+  /// The queue is rebuilt rather than merged. The width decides what the walk
+  /// contains, so positions enqueued at the old one are not a smaller part of
+  /// the new answer — they are an answer to a different question, and keeping
+  /// them would go on asking about branches the reader just said they do not
+  /// prepare. The board stays where it is: nothing about it changed.
+  Future<void> _changeBreadth() async {
+    if (_busy) return;
+    final chosen = await showDialog<String>(
+      context: context,
+      builder: (context) => BreadthSettingDialog(
+        id: widget.id,
+        api: _api,
+        current: _breadth,
+      ),
+    );
+    if (chosen == null || !mounted || chosen == _breadth) return;
+
+    setState(() {
+      _busy = true;
+      _breadth = chosen;
+      _queue.clear();
+      _seen.clear();
+    });
+    await _resume(keepBoard: true);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _note = 'Spremamo: ${breadthName(chosen).toLowerCase()}.';
+    });
+    // The banner over the board counts what the walk holds, and the walk just
+    // changed. Not awaited: the reader is already looking at the drawing.
+    _refreshCounts();
+  }
+
   /// Builds the trunk from the position on the board.
   ///
   /// The answer to "thirty questions before it looks like an opening". What it
@@ -2878,6 +2923,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     return RepertoireTreePanel(
       key: _treeKey,
       root: root,
+      // The width is turned where the legend says what it is. Null without an
+      // id: `setBreadth` writes to the repertoire's row, and a repertoire
+      // opened without one cannot be written to — offering the button there
+      // would be offering a setting that silently does nothing.
+      onChangeBreadth: widget.id == null ? null : _changeBreadth,
       active: active,
       nodeLook: (node) => _looks[node.id],
       // The chance of ever arriving here, said as a sentence rather than as

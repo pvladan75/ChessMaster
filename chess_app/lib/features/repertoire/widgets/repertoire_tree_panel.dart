@@ -212,6 +212,7 @@ class RepertoireTreePanel extends StatelessWidget {
     this.onExtra,
     this.nodeLook,
     this.nodeTooltip,
+    this.onChangeBreadth,
   });
 
   final AnalysisNode root;
@@ -278,6 +279,19 @@ class RepertoireTreePanel extends StatelessWidget {
   /// A sentence for one card. See `VisualMoveTreeWidget.nodeTooltip`.
   final String? Function(AnalysisNode node)? nodeTooltip;
 
+  /// Change the width, from the line that already says what it is.
+  ///
+  /// The legend below names the two settings the drawing was made at, and one
+  /// of them is the answer to „why does the app keep adding opponent moves I
+  /// did not choose" — so the place that states the width is the place to turn
+  /// it, the same way the cut branches are counted next to the switch that
+  /// brings them back.
+  ///
+  /// Null where changing it makes no sense (the walkthrough is a tour, not an
+  /// edit) or is impossible (a repertoire read without its id), and then the
+  /// width is drawn as plain text exactly as before.
+  final VoidCallback? onChangeBreadth;
+
   static const _widthNames = {
     'main': 'samo glavni odgovor',
     'standard': 'uobičajeno 80%',
@@ -310,9 +324,29 @@ class RepertoireTreePanel extends StatelessWidget {
                     style: AppText.micro
                         .copyWith(color: context.colors.textSecondary)),
               if (breadth != null)
-                Text('Koliko odgovora: ${_widthNames[breadth] ?? breadth}',
-                    style: AppText.micro
-                        .copyWith(color: context.colors.textSecondary)),
+                // The same sentence either way — only the way in changes, and
+                // it is an icon rather than a colour, because a colour is not
+                // a thing every reader can see.
+                if (onChangeBreadth == null)
+                  Text('Koliko odgovora: ${_widthNames[breadth] ?? breadth}',
+                      style: AppText.micro
+                          .copyWith(color: context.colors.textSecondary))
+                else
+                  TextButton.icon(
+                    onPressed: onChangeBreadth,
+                    icon: const Icon(Icons.tune, size: 14),
+                    style: TextButton.styleFrom(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      foregroundColor: context.colors.textSecondary,
+                    ),
+                    label: Text(
+                        'Koliko odgovora: ${_widthNames[breadth] ?? breadth}',
+                        style: AppText.micro
+                            .copyWith(color: context.colors.textSecondary)),
+                  ),
             ],
           ),
         ],

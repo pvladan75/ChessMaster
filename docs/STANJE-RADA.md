@@ -976,6 +976,71 @@ ostaje uski raspored: baner iznad table preko cele širine, tabla po sredini, a
 visina je tada oko 340 dp, gde pravilo `_boardShare` daje malu tablu. To je
 zasebna stavka kad na nju dođe red.
 
+## Širina se menja bez pisanja ijednog poteza — 5.9.2026
+
+Prijava vlasnika, ista večer: „ručno dodajem poteze i kad izaberem potez za
+protivnika, dodaju mi se još nekoliko alternativa (a hoću samo da se dodaje taj
+jedan koji sam izabrao)... nema smisla da biram šta igra protivnik, kad mi se
+potezi sami dodaju."
+
+**Prvo šta se zapravo dešava, jer prijava opisuje pogrešan mehanizam.** Ti
+potezi **nisu upisani** kao njegove odluke. Čuva se samo ono što potvrdi i ono
+na šta sam pritisne „Spremi i ovo". Kartice o kojima govori računaju se pri
+svakom čitanju, iz `opening_replies`, a koliko ih se uzme odlučuje **širina
+repertoara** (`coveredReplies` / `withinBreadth`). Na podrazumevanom
+`Uobičajeno (80%)` to je svaki protivnikov odgovor unutar 80% odigranih
+partija, pa biranje jednog ne uklanja ostale — oni nikad nisu ni bili njegov
+izbor.
+
+Nisu bezazleni: isti hod puni i red pitanja, pa svaka takva pozicija stoji u
+stablu kao rupa i vraća se kao pitanje.
+
+**Kvar koji je prijava otkrila usput, i on je pravi.** Širina se do sada mogla
+promeniti **samo** kroz dijalog dugmeta „Predloži glavnu liniju", i čuvala se
+**tek ako se izabere i dubina** — „Odustani" baca izbor. Dakle: čovek koji
+sužava repertoar zato što mu aplikacija upisuje previše, morao je da joj dopusti
+da upiše još jednu liniju da bi to uradio. To je oblik koji ovaj projekat već
+zna: radnja i podešavanje spojeni u jedno dugme.
+
+**Urađeno 5.9.2026:**
+
+* `BreadthSettingDialog` — širina sama, bez dubine i bez kičme. Čuva na
+  „Sačuvaj", vraća izabranu širinu pozivaocu (da je ekran usvoji odmah, što je
+  bug zbog kog `current` uopšte postoji), i ostaje otvoren ako server odbije.
+* Ulaz je **legenda ispod crteža**, red koji ionako kaže „Koliko odgovora:
+  uobičajeno 80%". Mesto koje činjenicu izgovara je mesto na kome se menja —
+  isto pravilo po kome odsečene grane stoje uz prekidač koji ih vraća. Ikonica,
+  ne boja, jer boja nije nešto što svaki čitalac vidi.
+* `onChangeBreadth` je opcion: tura (`repertoire_walkthrough_screen`) ga ne
+  prosleđuje i tamo red ostaje običan tekst, a i ekran bez `id` repertoara ga
+  ne nudi — `setBreadth` piše u red repertoara, pa bi dugme tamo bilo
+  podešavanje koje tiho ne radi ništa.
+* Red se **ponovo gradi**, ne dopunjava: širina odlučuje šta hod sadrži, pa
+  pozicije upisane na staroj nisu manji deo novog odgovora nego odgovor na
+  drugo pitanje. Tabla ostaje gde je.
+* Tekst dijaloga kaže i šta sužavanje **ne** košta: potezi uzeti rukom i
+  pozicije u kojima je već odlučeno prate se na svakoj širini (to je pravilo iz
+  `coveredReplies` od 4.9.2026). Zato je rečenica u starom dijalogu — „Manje
+  odgovora skriva grane koje ste već pripremili" — sada netačna i ispravljena;
+  dva dijaloga koja o istom brojčaniku govore suprotno je tačno onaj oblik koji
+  se kasnije razilazi.
+
+Provera uživo: `docs/TODO-provera.md`, stavka **105**.
+
+**Ostaje otvoreno, i vlasnik ga je izričito ostavio za posle:** „samo moji
+odgovori" — širina sa **nula** automatskih odgovora. Uklapa se u postojeće
+pravilo (`manual ⊆ main ⊆ standard ⊆ broad`), ali dira serverski hod, dril i
+mapu pokrivenosti, i menja šta „pokrivenost" znači: bez knjige nema sa čim da
+poredi, pa bi radar morao da kaže da meri nešto drugo.
+
+**Druga prijava iste večeri, još neodgovorena:** „posle izbora poteza
+protivnika, taj potez se ne prikazuje u stablu, a trebalo bi — da vidim na šta
+treba da odgovaram." Izmereno na serveru istog trenutka (`tree()` sa lažnim
+poolom, tri širine): odgovor uzet rukom (`repertoire_extra_replies`) crta se na
+**svakoj** širini, uključujući `main`, a crta se i onaj na kome čitalac samo
+stoji (`alongPath`). Dakle mehanizam radi — pa je pitanje kojim putem je potez
+izabran; čeka odgovor vlasnika pre nego što se piše ijedan red.
+
 ## Otvorena pitanja dizajna
 
 Ona koja tek treba odlučiti stoje u [PITANJA-ZA-ODLUKU.md](PITANJA-ZA-ODLUKU.md),

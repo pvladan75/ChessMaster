@@ -3887,3 +3887,33 @@ otvaranja, pa isto stanje preživi selidbu.
    sam).
 9. [ ] **Govor je ređi nego ranije** na takvim mestima — jedna rečenica umesto
    pet. Ako ti se čini da se i dalje ponavlja, zabeleži gde.
+
+## 105. Širina se menja iz legende, bez pisanja poteza — 5.9.2026, nije viđeno uživo
+
+Prijava od 5.9.2026 uveče: „nema smisla da biram šta igra protivnik, kad mi se
+potezi sami dodaju." Odgovor je u dva dela — objašnjenje (protivnikovi odgovori
+dolaze iz statistike, a širina kaže koliko ih se uzima) i popravka (do širine se
+više ne stiže kroz dijalog koji usput upiše celu liniju predloga).
+
+1. [ ] **Ispod crteža stoji „Koliko odgovora: uobičajeno 80%" i to je dugme** —
+   ima ikonicu i otvara se na dodir. Ranije je bio običan tekst.
+2. [ ] **Otvara se dijalog „Koliko odgovora spremamo"**, sa tri izbora i bez
+   ijedne dubine. Naslova „Predloži glavnu liniju odavde" nema.
+3. [ ] **Dijalog je otvoren na širini koju repertoar već ima** — ne na
+   „Uobičajeno" bez obzira na stanje.
+4. [ ] **„Sačuvaj" menja crtež odmah.** Izaberi „Samo glavni odgovor": ispod
+   svakog tvog poteza ostaje **jedan** protivnikov odgovor umesto talasa, a red
+   legende sada kaže „samo glavni odgovor".
+5. [ ] **Ništa nije upisano.** Broj u baneru „N nepotvrđenih" se nije uvećao i
+   nijedan nov potez se nije pojavio u stablu. Ovo je cela poenta izmene.
+6. [ ] **„Odustani" ne menja ništa** — ni širinu, ni crtež.
+7. [ ] **Ono što si sam uzeo ostaje i na najužoj širini.** Ako si negde
+   pritisnuo „Spremi i ovo", taj protivnikov potez mora da se vidi i na „Samo
+   glavni odgovor". Isto važi za pozicije u kojima si već odlučio.
+8. [ ] **Vrati na „Uobičajeno (80%)"** — sve se vraća kako je bilo. Širine su
+   ugnežđene, pa proširivanje sme samo da dodaje.
+9. [ ] **Zatvori i otvori repertoar iz spiska** — širina je i dalje ona koju si
+   izabrao, dakle upisana je u red repertoara, a ne samo u ekran.
+10. [ ] **U turi „Upoznaj repertoar" taj red nije dugme.** Tura je pregled, ne
+    mesto za menjanje repertoara.
+
