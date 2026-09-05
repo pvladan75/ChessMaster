@@ -3780,10 +3780,14 @@ provere.
 
 ### E. Prostor ispod table na desktopu (5.9.2026)
 
-22. [ ] **Na širokom prozoru ispod table ima osetno više mesta** nego na slici
+22. [x] **Potvrdio vlasnik 5.9.2026, na svežem bildu.** „Mnogo bolje" — na
+    slici se ispod table vide i paleta, i traka linije, i napomena o kapiji, i
+    pitanje sa brojkama, sve bez skrolovanja.
+    **Na širokom prozoru ispod table ima osetno više mesta** nego na slici
     od 5.9.2026 ujutru. Tabla je manja (oko 470 umesto 560 na prozoru visine
     1000), a ispod nje staje pitanje sa odgovorima bez skrolovanja.
-23. [ ] **Tabla nije premala.** Ovo je jedan broj (`_boardShare`, sada 0,50) i
+23. [x] **Potvrdio vlasnik 5.9.2026**: 472 px je ostalo dovoljno krupno za rad.
+    **Tabla nije premala.** Ovo je jedan broj (`_boardShare`, sada 0,50) i
     menja se u minutu. Ako ti je tabla sada premala a prostor ispod prevelik,
     reci u kom pravcu.
 24. [ ] **Isto pravilo važi i na telefonu** — tabla i tamo uzima pola visine.
