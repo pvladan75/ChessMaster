@@ -1106,13 +1106,17 @@ okine: dok je crtež sužen, kretanje ide kroz ono što je nacrtano, pa se iz gr
 i ne može izaći. Izlaz je dugme „Prikaži ceo repertoar". **Prihvaćeno kako
 jeste**, stavka prepisana i zatvorena.
 
-### 3. Poteze ne mogu da povlačim po tabli — uz stavku 104-A/2
+### 3. Poteze ne mogu da povlačim po tabli — uz stavku 104-A/2, zatvoreno
 
-Vlasnik je stavku označio kao **prolaz** i uz nju napisao ovu rečenicu, pa nije
-jasno da li je smetnja ili opaska. Tabla je namerno zaključana dok su odgovori
-gore ili dok se stoji posle sopstvenog poteza (`_afterMyMove`) — potez povučen
-tada bi bio suđen kao igračev. Na poziciji koja pita „Šta igrate belim?"
-povlačenje treba da radi. **Nije dirano; pitanje je vraćeno vlasniku.**
+Vlasnik je stavku označio kao prolaz i uz nju napisao tu rečenicu, pa je pitanje
+vraćeno njemu. Odgovor istog dana: **nije kvar** — probao je dok nije bio na
+potezu. „Mogu da povlačim kad sam ja i tada je ista procedura kao da sam ga
+izabrao sa liste — bila je opaska, nisam smatrao da mi smeta kao korisniku,
+ovako je još bolje."
+
+To je tačno ono što `isAllowedToMove` propisuje (`!_busy && _proposalUci == null
+&& !_afterMyMove`), i potvrđuje pravilo iz faze 1: oba ulaza — potez povučen po
+tabli i potez uzet sa spiska — vode kroz isti put.
 
 ### Zamka u alatu za proveru, nađena pri ovom upisu
 
