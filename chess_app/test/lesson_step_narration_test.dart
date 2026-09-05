@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -79,6 +78,22 @@ void main() {
   ChessBoardWithOverlay board(WidgetTester tester) => tester
       .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay).first);
 
+  /// Walks the line by pressing the control a child presses.
+  ///
+  /// Scrolled to first, and that is not a detail. This screen is a
+  /// `SingleChildScrollView`, so a button below the fold is reached by
+  /// scrolling and is not a defect — but `tester.tap` on an off-screen widget
+  /// misses. Without this the batch was handed a test it could only pass by
+  /// making the board smaller for every lesson on every screen, and it did
+  /// exactly that. A gate that can be satisfied by changing the app instead of
+  /// writing the feature is a gate that is measuring the wrong thing.
+  Future<void> step(WidgetTester tester, String tooltip) async {
+    await tester.ensureVisible(find.byTooltip(tooltip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(tooltip));
+    await tester.pumpAndSettle();
+  }
+
   /// Every sentence this screen is offering to read out.
   List<SpeakableInfo> spoken(WidgetTester tester) =>
       tester.widgetList<SpeakableInfo>(find.byType(SpeakableInfo)).toList();
@@ -117,8 +132,7 @@ void main() {
     testWidgets('a move’s drawing replaces it', (tester) async {
       await open(tester, [drawnStep()]);
 
-      await tester.tap(find.byTooltip('Sledeći potez'));
-      await tester.pumpAndSettle();
+      await step(tester, 'Sledeći potez');
 
       final marks = board(tester).squares;
       expect(marks.length, 1);
@@ -134,10 +148,8 @@ void main() {
       // Read off the move index every build, not set once when the step loads.
       await open(tester, [drawnStep()]);
 
-      await tester.tap(find.byTooltip('Sledeći potez'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Prethodni potez'));
-      await tester.pumpAndSettle();
+      await step(tester, 'Sledeći potez');
+      await step(tester, 'Prethodni potez');
 
       expect(board(tester).squares.single.square, 'd5');
       expect(board(tester).arrows.single.toString(), 'Gf3d5');
@@ -178,8 +190,7 @@ void main() {
         const LessonStep(title: 'Centar', fen: startFen, pgn: drawnPgn),
       ]);
 
-      await tester.tap(find.byTooltip('Sledeći potez'));
-      await tester.pumpAndSettle();
+      await step(tester, 'Sledeći potez');
 
       expect(spoken(tester).map((p) => p.text), contains('Zauzima centar.'));
     });

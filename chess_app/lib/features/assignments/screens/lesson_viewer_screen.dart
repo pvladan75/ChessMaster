@@ -16,6 +16,7 @@ import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
 import 'package:chess_app/widgets/action_banner.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/speakable_info.dart';
 
 /// Lets a student work through an assigned lesson on their own.
 ///
@@ -56,6 +57,27 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   /// all, or when they could not be lined up with the moves.
   List<String> _comments = const [];
   int _moveIndex = 0;
+
+  List<List<ChessArrow>> _arrows = const [];
+  List<List<SquareMark>> _squares = const [];
+  List<ChessArrow> _rootArrows = const [];
+  List<SquareMark> _rootSquares = const [];
+
+  List<ChessArrow> get _currentArrows {
+    if (_moveIndex == 0) return _rootArrows;
+    if (_moveIndex > 0 && _moveIndex <= _arrows.length) {
+      return _arrows[_moveIndex - 1];
+    }
+    return const [];
+  }
+
+  List<SquareMark> get _currentSquares {
+    if (_moveIndex == 0) return _rootSquares;
+    if (_moveIndex > 0 && _moveIndex <= _squares.length) {
+      return _squares[_moveIndex - 1];
+    }
+    return const [];
+  }
 
   PlayerColor _orientation = PlayerColor.white;
 
@@ -113,15 +135,25 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     List<String> fens = const [];
     List<String> moves = const [];
     List<String> comments = const [];
+    List<List<ChessArrow>> arrows = const [];
+    List<List<SquareMark>> squares = const [];
+    List<ChessArrow> rootArrows = const [];
+    List<SquareMark> rootSquares = const [];
     final pgn = step.pgn;
     if (pgn != null && pgn.trim().isNotEmpty) {
       try {
         final tree = MoveTree.parsePgn(pgn, startingFen: step.fen);
         final line = tree?.mainLine();
-        if (line != null && !line.isEmpty) {
-          fens = line.fens;
-          moves = line.movesSan;
-          comments = line.hasNoNotes ? const [] : line.comments;
+        if (line != null) {
+          if (!line.isEmpty) {
+            fens = line.fens;
+            moves = line.movesSan;
+            comments = line.hasNoNotes ? const [] : line.comments;
+            arrows = line.arrows;
+            squares = line.squares;
+          }
+          rootArrows = line.rootArrows;
+          rootSquares = line.rootSquares;
         }
       } catch (_) {
         // Fall through to the still position.
@@ -132,6 +164,10 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       _fens = fens;
       _moves = moves;
       _comments = comments;
+      _arrows = arrows;
+      _squares = squares;
+      _rootArrows = rootArrows;
+      _rootSquares = rootSquares;
       _moveIndex = 0;
       _explored = false;
       _wrongAnswers = 0;
@@ -375,7 +411,8 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
                               _step.kind != LessonStepKind.askChoice,
                           isDrawingMode: false,
                           drawingStartSquare: null,
-                          arrows: const [],
+                          arrows: _currentArrows,
+                          squares: _currentSquares,
                           engineArrows: const [],
                           onMove: (from, to, promotion) {
                             if (_step.kind == LessonStepKind.askMove &&
@@ -503,7 +540,13 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
             Icon(Icons.chat_bubble_outline,
                 size: 16, color: context.colors.textSecondary),
             const SizedBox(width: AppSpacing.sm),
-            Expanded(child: Text(comment, style: AppText.bodyLarge)),
+            Expanded(
+              child: SpeakableInfo(
+                text: comment,
+                autoSpeak: false,
+                child: Text(comment, style: AppText.bodyLarge),
+              ),
+            ),
           ],
         ),
       ),
@@ -563,12 +606,16 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
                         size: 16, color: context.colors.accent),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
-                      child: Text(
-                        _step.instruction!,
-                        style: TextStyle(
-                            fontSize: 13.5,
-                            color: context.colors.textPrimary,
-                            fontWeight: FontWeight.w500),
+                      child: SpeakableInfo(
+                        text: _step.instruction!,
+                        autoSpeak: false,
+                        child: Text(
+                          _step.instruction!,
+                          style: TextStyle(
+                              fontSize: 13.5,
+                              color: context.colors.textPrimary,
+                              fontWeight: FontWeight.w500),
+                        ),
                       ),
                     ),
                   ],
