@@ -23,7 +23,7 @@ falls back to the root, and the bug survives underneath a green suite.
 
 Phase 3 is layout only, in different files, and is safe to run beside Phase 2.
 
-## Phase 1 — the focus contract (lead)
+## Phase 1 — the focus contract (lead) — **DONE 5.9.2026**, `975495c`
 
 **Decided 5.9.2026.** The silent `?? root` goes; a user standing on a move sees
 that move in the tree, even when the breadth would otherwise hide it; nobody is
@@ -83,7 +83,7 @@ without anybody having to find it first.
 viewport causes no transform change at all; the existing suite's floor; `dart
 format`; `flutter analyze` list unchanged.
 
-## Phase 3 — the board stays, the rest scrolls (worker)
+## Phase 3 — the board stays, the rest scrolls — **DONE 5.9.2026**, `b7f0c27` (banner from the batch, the rest lead's after it failed grading)
 
 **Decided 5.9.2026.** Board and navigation strip fixed at the top, everything
 below them scrolls, and the „N nepotvrđenih u grafu" banner is compressed into
@@ -110,7 +110,7 @@ batch is actually for.
 computation), `unconfirmed_banner.dart`. **Not** the tree widget — Phase 2 owns
 that file in a parallel worktree.
 
-## Phase 4 — a fan of unanswered replies is one stop, not four (worker)
+## Phase 4 — a fan of unanswered replies is one stop, not four — **DONE 5.9.2026**, `f3747de`
 
 **Decided 5.9.2026**, on the narrow rule and with the lone-gap exception kept:
 do not descend into an opponent's move that is a gap **when the position holds

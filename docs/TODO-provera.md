@@ -3740,6 +3740,23 @@ provere.
    nacrtani; ovo dodaje tvoju poziciju, ne sužava crtež na nju.
 5. [ ] **Prebaci širinu na „standard" i nazad.** Ništa se ne gubi ni ne duplira.
 
+### C. Tabla stoji, ostatak se skroluje (faza 3)
+
+10. [ ] **Skroluj ispod table na telefonu.** Tabla i navigaciona paleta ispod
+    nje **ostaju na mestu**; pomera se samo ono ispod — komentar, pitanje,
+    odgovori, kontrole, stablo.
+11. [ ] **Tabla nije isečena ni na jednom ekranu**, a ispod palete uvek ima šta
+    da se skroluje. Proveriti i na uskom prozoru na Windowsu, ne samo na
+    telefonu.
+12. [ ] **Baner je niži.** „N nepotvrđenih u grafu" sada zauzima oko pola
+    prostora koliko ranije. Natpisi su isti — ništa nije skraćeno.
+13. [ ] **Dugme „Pregledaj nepotvrđene" se i dalje lako pogađa prstom.** Ovo je
+    jedina stvar koju je sažimanje moglo da pokvari: dugme je sada niže (32 px
+    umesto 48). Ako je nezgodno pogoditi ga, reci — vraća se u jednom redu.
+14. [ ] **Tabla je možda malo manja nego ranije** na običnom telefonu (oko 16 px
+    manja stranica), a ispod nje ima oko 100 px više. Ako ti je tabla premala,
+    to je jedan broj koji se menja.
+
 ### B. Lepeza neodgovorenih odgovora u turi (faza 4)
 
 6. [ ] **„Upoznaj repertoar" na poziciji gde protivnik ima više odgovora i ni na
