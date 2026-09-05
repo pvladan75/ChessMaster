@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1241 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1249 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 886 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -40,9 +40,10 @@ with the arrows and the return to the fork.
 Seven more came on 5.9.2026 with
 `PLAN-TABLA-I-STABLO.md`: five with the tree following the active move to the
 edge instead of centring on it, and two with the drawing keeping its zoom
-across the 840 dp layout change. The number in this file had been left at 1234
-for a day while the suite was 1239 — a floor below the suite hides exactly what
-it is for, so measure before quoting it.
+across the 840 dp layout change, and eight with the width becoming a setting of
+its own rather than a side effect of proposing a main line. The number in this
+file had been left at 1234 for a day while the suite was 1239 — a floor below
+the suite hides exactly what it is for, so measure before quoting it.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
