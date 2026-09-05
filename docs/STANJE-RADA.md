@@ -835,6 +835,36 @@ Vlasnikovih 500 px traži `_boardShare` oko 0,53.
    ali se mora rešiti, inače je to tiha regresija tačno one vrste koju ovaj
    projekat stalno plaća.
 
+**Bolja varijanta iste ideje, vlasnikova, isti dan:** „Možemo li iskoristiti
+prostor pored *Italian Game: Giuoco Piano — beli*?" — dakle u **zaglavlje**, ne
+iznad srednje kolone.
+
+Bolja je zato što srednja kolona ne plaća ništa: zaglavlje već postoji, već je
+visoko 56 px, i na širokom prozoru mu desno stoji prazno. Selidba iznad stabla
+oslobađa levu kolonu ali trošak seli u srednju; u zaglavlju trošak nestaje.
+
+**Mere na prozoru od 1920** (naslov ~340, radnje sa zvučnikom, mrežom i
+„upita: 0" ~172, vodeća strelica ~56): slobodno ostaje **oko 1350 px**. Čip sa
+imenom otvaranja je oko 400, sažeti red nepotvrđenih oko 390 — zajedno oko 790,
+staje sa viškom.
+
+**Prag, i on je odluka a ne detalj:** na 1200 slobodnog prostora ima oko 630, što
+prima jedno od to dvoje. Ispod `Breakpoints.wide` (840) ne prima nijedno i oba
+ostaju gde su danas. Dakle tri stanja, ne dva.
+
+**Zaglavlje je izvan `LayoutBuilder`-a**, pa širinu čita iz
+`Breakpoints.isWide(context)` / `MediaQuery`, kako to isti ekran već radi na
+jednom mestu.
+
+**Vizuelno:** baner u zaglavlju verovatno ne treba svoju obojenu karticu sa
+ivicom — zaglavlje ga već odvaja. Tekst i dugme, bez okvira.
+
+**Cena oko `OpeningBanner`-a ostaje ista i tu** — i dalje se seli između dva
+mesta, pa i dalje gubi nošeno ime na svakom prelasku praga. Dva rešenja:
+`GlobalKey` na baneru, ili — čistije — da `_lastNamed` živi na ekranu, a baner
+postane bezstanjen i prima ime kao parametar. Drugo rešenje uklanja krhkost
+umesto da je zaobiđe.
+
 **Nije počet nijedan red.** Vlasnik prvo gleda stavku 104-E na svežem bildu.
 
 ## Otvorena pitanja dizajna
