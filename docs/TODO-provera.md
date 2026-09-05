@@ -3778,6 +3778,17 @@ provere.
 21. [ ] **Na kartici nema ocene motora**, a legenda iznad stabla je više ne
     pominje (ostatak od brisanja iz stavke 103).
 
+### E. Prostor ispod table na desktopu (5.9.2026)
+
+22. [ ] **Na širokom prozoru ispod table ima osetno više mesta** nego na slici
+    od 5.9.2026 ujutru. Tabla je manja (oko 470 umesto 560 na prozoru visine
+    1000), a ispod nje staje pitanje sa odgovorima bez skrolovanja.
+23. [ ] **Tabla nije premala.** Ovo je jedan broj (`_boardShare`, sada 0,50) i
+    menja se u minutu. Ako ti je tabla sada premala a prostor ispod prevelik,
+    reci u kom pravcu.
+24. [ ] **Isto pravilo važi i na telefonu** — tabla i tamo uzima pola visine.
+    Proveri da nije ispalo premala na malom ekranu.
+
 ### B. Lepeza neodgovorenih odgovora u turi (faza 4)
 
 6. [ ] **„Upoznaj repertoar" na poziciji gde protivnik ima više odgovora i ni na

@@ -2725,7 +2725,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// a phone layout wearing a desktop. Wide, it grows — but never past what the
   /// height allows, or the question below it goes off the bottom, which is the
   /// one thing worse than a small board.
-  /// How much of a phone's height the board may take.
+  /// How much of the window's height the board may take, on any layout.
   ///
   /// **Derived rather than tuned.** The rest of the column carries the two
   /// banners (66 px measured 5.9.2026), the navigation palette (~48) and the
@@ -2734,10 +2734,17 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// 480, that leaves 480 − 138 − 100 = 242, and 242/480 is very close to a
   /// half.
   ///
-  /// A half also bites gently on an ordinary phone: 320 px at 360x640 against
-  /// the 336 the width rule asks for. Sixteen pixels of board bought a hundred
-  /// under it, which is the trade the owner asked for in the first place.
-  static const double _phoneBoardShare = 0.50;
+  /// It bites gently on an ordinary phone: 320 px at 360x640 against the 336
+  /// the width rule asks for. Sixteen pixels of board bought a hundred under
+  /// it, which is the trade the owner asked for in the first place.
+  ///
+  /// **One constant for both layouts**, since 5.9.2026. The wide branch used to
+  /// subtract a flat 280, which never bit on a desktop window: at 1920x1015 the
+  /// board sat on its 560 ceiling and left 189 px to scroll, which is what the
+  /// owner was looking at when he asked whether the panes could be resized. The
+  /// same half gives 463 there and 286 under it — and one number that means the
+  /// same thing everywhere is easier to move than two that do not.
+  static const double _boardShare = 0.50;
 
   double _boardSize(BoxConstraints constraints, bool wide) {
     if (!wide) {
@@ -2756,12 +2763,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       // was compacted from 134 px to 66. A share cannot rot that way: it is
       // wrong by a few pixels always, rather than right until somebody edits a
       // widget it never mentions.
-      final byHeight = constraints.maxHeight * _phoneBoardShare;
+      final byHeight = constraints.maxHeight * _boardShare;
       return byHeight < byWidth ? byHeight.clamp(200.0, 420.0) : byWidth;
     }
     final byWidth = (constraints.maxWidth * 0.42).clamp(420.0, 620.0) - 24;
-    final byHeight =
-        constraints.maxHeight.isFinite ? constraints.maxHeight - 280 : byWidth;
+    final byHeight = constraints.maxHeight.isFinite
+        ? constraints.maxHeight * _boardShare
+        : byWidth;
     final smaller = byWidth < byHeight ? byWidth : byHeight;
     return smaller.clamp(200.0, 560.0);
   }

@@ -12,6 +12,7 @@ import 'package:chess_app/features/repertoire/services/repertoire_api_service.da
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
 import 'package:chess_app/features/repertoire/widgets/unconfirmed_banner.dart';
 import 'package:chess_app/models/analysis_models.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 
@@ -755,6 +756,32 @@ void main() {
       final palette = tester.getRect(find.byType(MoveNavigationControls));
       expect(480.0 - palette.bottom, greaterThan(60.0),
           reason: 'na niskom ekranu ispod palete nije ostalo ništa');
+    });
+
+    testWidgets('a desktop window keeps room under the board too',
+        (tester) async {
+      // The owner's screenshot of 5.9.2026: at 1920x1015 the board sat on its
+      // 560 ceiling and left 189 px under it, because the wide branch clamped
+      // by a flat `maxHeight - 280` that never bit on a real window. The share
+      // rule is the phone's, and it is now the same constant.
+      await pump(tester, const Size(1920, 1000));
+
+      expect(tester.takeException(), isNull);
+      // Measured on `BoardWithCoordinates`, which is the widget `_boardSize`
+      // is handed to. `ChessBoardWithOverlay` inside it is the board *minus*
+      // its coordinate gutter, and asserting on that is how the first version
+      // of this test passed with the rule reverted: 540 is under 560 either
+      // way.
+      final board = tester.getRect(find.byType(BoardWithCoordinates));
+      final palette = tester.getRect(find.byType(MoveNavigationControls));
+
+      // With the old flat `maxHeight - 280` this window gave a board of exactly
+      // 560 — its ceiling — and 300 px under the palette. Measured 5.9.2026,
+      // both numbers, before and after.
+      expect(board.height, lessThan(560.0),
+          reason: 'tabla je i dalje na plafonu — pravilo po visini ne ujeda');
+      expect(1000.0 - palette.bottom, greaterThan(340.0),
+          reason: 'ispod table na desktopu nije ostalo više nego ranije');
     });
 
     testWidgets('there is something left to scroll', (tester) async {
