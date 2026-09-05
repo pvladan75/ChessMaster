@@ -16,12 +16,15 @@ step into a side line and come back to the main thread.
 
 1. **Asynchronously** — homework at home, at the child's own pace, between
    lessons.
-2. **Live, in a classroom or a section** — the trainer opens the same lesson for
-   the whole group at once, every child solves the steps on their own device at
-   their own speed, and the trainer walks the room helping whoever is stuck.
+2. **Live, in a classroom or a section** — the same lesson given to each child,
+   every one of them solving the steps on their own device at their own speed,
+   and the trainer walking the room helping whoever is stuck.
 
-The second use is what makes two rules in this plan load-bearing rather than
-merely tasteful. **A stripped screen** matters more when fifteen children have
+**The second use is a setting, not a feature.** The app does not know a section
+is happening: there is no group mode and no fan-out, and the trainer gives the
+lesson the same way they give any homework — decided 6.9.2026, §2.7. What the
+setting does not change is that it is real, and it is what makes two rules in
+this plan load-bearing rather than merely tasteful. **A stripped screen** matters more when fifteen children have
 fifteen different devices and the trainer cannot lean over every one of them.
 And **no timer, no score, no streak** stops being a preference: in one room,
 children working at different speeds can see each other's screens, and anything
@@ -156,69 +159,47 @@ time is precisely what that comment warns against. One new column,
 „netačno". A revealed step still enrols for review — arguably more than a solved
 one — but is never scored as success.
 
-### 2.7 The classroom is the same lesson, fanned out — not a second mode
+### 2.7 A lesson is asynchronous. Group teaching is **not in this plan** — dropped 6.9.2026
 
-A group lesson creates **one assignment per child**, from one click. Nothing
-about the step, the viewer or the judging differs from homework; the child
-cannot tell which way the lesson reached them, and should not be able to. That
-is the whole reason this is a fan-out rather than a "live mode": a second code
-path would need its own progress, its own resume and its own review, and would
-be wrong in a different way from the first one within a month.
+This section used to specify a fan-out: one click, one assignment per child in a
+group, plus a progress board for the trainer. It was phase 8, it was independent
+of everything else here, and it is **dropped** — by the owner, before it was
+built, and while the phase 7 batch was still running.
 
-**What exists and what does not.** `student_groups` / `student_group_members`
-exist, `ownsGroup` and `addMember` are written, and `addMember` already refuses
-a student without an accepted edge. But groups are wired **only** to room
-invites (`inviteToRoom`) — `routes/assignments.js` does not mention a group
-anywhere. Fan-out is genuinely new, and it is the one new piece of data work
-this use case adds.
+**The reasoning, because it generalises.** It was the only remaining piece that
+touched stored data — `assignments.group_id`, an index, a transaction — and the
+only one still blocked on a question nobody had answered (below). Against that
+it bought no capability a child can see: §2.7's own premise was that the student's
+screen is identical either way and the child must not be able to tell which way
+the lesson reached them. A feature that adds a column and a code path to save a
+trainer fifteen clicks, in an app that already has a live surface for live work,
+is the kind of thing this project has learned to remove **before** it is built
+rather than after. **A lesson stays one thing: an asynchronous resource — an
+interactive tutorial, or homework.** Live teaching is the lesson room, which
+exists.
 
-Five things follow, and one of them is not mine to decide:
+**What was open and is now closed with it:** whether a group assignment costs one
+quota unit or N (`CENA-I-PRETPLATA.md`). Nothing asks any more. And whether
+„Pokaži mi" should be withholdable so a trainer can help before the answer
+appears — that was a classroom flag, and it goes with the classroom.
 
-* **A child who cannot be given the lesson is named, not skipped.** The
-  relationship may be pending, or a minor's edge may still be
-  `awaiting_parent`. Dropping them silently means the trainer finds out when
-  Marko is the only one staring at a home screen — with a room full of children
-  waiting. The fan-out reports who it could not reach and why.
-* **The database learns what a group hand-out is: `assignments.group_id`.**
-  Without it, „how is the group doing on this lesson" is an implicit join —
-  same `lesson_id`, same trainer, created at roughly the same second — and
-  implicit joins in this codebase go wrong quietly. One nullable column,
-  `REFERENCES student_groups(id) ON DELETE SET NULL`, because deleting a group
-  must never delete children's homework. NULL means the assignment was given to
-  one student, which is every row that exists today.
+**What survives, and must not be dropped with the rest of this section.** The
+fan-out was a convenience, not the situation. A trainer can already give one
+lesson to fifteen children through the assign dialog, one at a time, and those
+fifteen children still sit side by side in a section with their screens facing
+each other. So:
 
-  *Known limit, accepted:* the same lesson given to the same group twice reads
-  as one pile. Telling two hand-outs apart needs a second column (a batch id),
-  and it is not worth one until a trainer says the pile bothers them. The
-  marker is here so the next person knows it was a decision and not an
-  oversight.
-* **No dashboard in v1. Decided 5.9.2026, to keep the scope closed.** `GET
-  /assignments/given` already returns every assignment a trainer has given, with
-  progress, and `fetchGiven` already takes an **optional** `studentId` — its one
-  caller, `StudentProgressScreen`, simply always passes one. So the classroom
-  view is a *grouping over an endpoint that already exists*, shown on the
-  existing `GroupsScreen`, refreshed by pull-to-refresh and a modest poll while
-  it is open. No new endpoint, no new transport, no socket.
-* **Real live streaming of lesson events is a later phase, not this one.** It
-  would be cheaper per request and worse where it counts: school wifi drops, and
-  a channel that quietly stops makes the board read „nobody is working" — a
-  message taking down the thing it reports on, which this codebase has already
-  paid for twice. `realtime.js` has `emitToUser` for the day it earns its place.
-* **The board is the trainer's, and is never projected.** No leaderboard, no
-  „ko je završio", no ordering by speed. It exists so the trainer knows which
-  desk to walk to.
-* **Open, and the owner's call: does a group assignment cost one quota unit or
-  N?** `POST /assignments/lesson` runs behind `requireQuota(ENT.ASSIGNMENTS)`.
-  Fanning out to fifteen children would spend fifteen units on one click, which
-  may be exactly right or may make the classroom case unaffordable for the very
-  trainers it is for. This is pricing, not engineering — see
-  `CENA-I-PRETPLATA.md`. **Phase 8 does not start until it is answered.**
+* **No timer, no score, no streak, and no visible comparison with anyone.** At
+  home this is a preference; in a room where a child can see the next child's
+  screen it is the rule that keeps whoever needs four minutes from being the
+  slowest child in public. This is the *only* place that argument was written
+  down, which is why the section keeps its number instead of being deleted.
+* **The child never learns how the lesson reached them.** One assignment or
+  fifteen, the screen is the same. That was the premise of the fan-out and it is
+  what makes dropping it free.
 
-One question left open on purpose: whether „Pokaži mi" should be withholdable in
-a classroom, so the trainer gets to help before the answer appears. The argument
-for is that the trainer is standing right there; the argument against is that a
-shy child will not raise their hand. Decide it after watching one real section,
-not now — it is a flag on the assignment either way.
+`student_groups` and `student_group_members` go back to being what they were:
+wired to room invites and to nothing else.
 
 ## 3. What is reused, and what is genuinely new
 
@@ -232,13 +213,9 @@ not now — it is a flag on the assignment either way.
 **Extracted, no behaviour change:** `walkthroughBeats` and `WalkthroughCursor`,
 today typed on repertoire types.
 
-**Reused, but never yet for this:** `student_groups`, `student_group_members`,
-`ownsGroup` and `addMember` — written for room invites, and this is their second
-reader.
-
 **Genuinely new:** the `kind` discriminator and its two answer shapes; step
-identity that survives editing; the reveal; the studio's authoring surface;
-`[%csl]`; and the group fan-out with the trainer's progress board.
+identity that survives editing; the reveal; the studio's authoring surface; and
+`[%csl]`. The group fan-out was here too until 6.9.2026 — see §2.7.
 
 **One free win, worth checking before the schema is frozen.**
 `services/scanIntake.js` produces `{ fen, solutionSan, instruction }` — the
@@ -299,10 +276,11 @@ Built inside `LessonViewerScreen`, not beside it.
   separates „taj potez nije moguć u ovoj poziciji" from „nije traženi potez",
   and the two mean very different things to a child.
 * **No timer, no score, no streak, and no visible comparison with anyone.** At
-  home this is a preference; in a classroom it is the rule that keeps a child
-  who needs four minutes from being the slowest child in a room that can see it.
-  The screen is identical either way — the child never learns which way the
-  lesson reached them.
+  home this is a preference; in a room where children can see each other's
+  screens it is the rule that keeps whoever needs four minutes from being the
+  slowest child in public. After 6.9.2026 there is only one way a lesson
+  arrives — as homework — and a section is fifteen children doing the same
+  homework at once. §2.7.
 * **It has to survive a school tablet.** 360 dp, a weak GPU, and wifi that
   drops. A step that has been fetched stays readable; only submitting an answer
   needs the network, and failing to submit says so and keeps the answer.
@@ -773,49 +751,52 @@ implementation is the first thing this method warns about. Its own batch, later.
   and would have on 50. **When a gate fails work that was asked for, the answer
   is a way to state what was asked, never a way to stop asking.**
 
-### Phase 8 — lead. The classroom: one click, N assignments
+### Phase 8 — **dropped 6.9.2026.** The classroom fan-out
 
-§2.7. **Independent of phases 1–7** — it touches `assignments`, not steps — so it
-can be pulled forward the moment the quota question is answered, and it is
-**blocked until then**.
+§2.7 carries the reasoning. It specified `assignments.group_id`, a `groupId` on
+`POST /assignments/lesson` fanning out in one transaction, refusals returned by
+name, and a progress board grouped on the existing `GroupsScreen`.
 
-* `assignments` gains `group_id INTEGER REFERENCES student_groups(id) ON DELETE
-  SET NULL`, and an index on `(trainer_id, group_id, created_at DESC)`.
-* `POST /assignments/lesson` accepts a `groupId` beside a `studentId`, guarded
-  by `ownsGroup`, and creates one assignment per member **in one transaction** —
-  a fan-out that half-succeeds leaves a room of children in two different
-  states, which is worse than one that fails.
-* Members it cannot serve are returned by name and reason, not dropped.
-* The trainer's view: `fetchGiven()` **without** a `studentId` — already
-  supported, never yet called that way — grouped by `group_id` on the existing
-  `GroupsScreen`. One row per child, ordered by name and never by progress.
-  Pull-to-refresh, plus a poll while the view is open. Nothing else.
+Nothing of it was built, and nothing that was built depends on it — the phase was
+written as independent of 1–7 on purpose, which is exactly what makes it cheap to
+drop. **The number is kept rather than reused.** Phase 9 is cited by number from
+`TODO-provera.md` item 108 and from this file, and renumbering to close a gap is
+how a citation starts pointing at the wrong thing — the same reason the item
+numbers in `TODO-provera.md` were not renumbered when it was split.
 
-*Verification:* a fan-out over a group containing one pending edge and one
-`awaiting_parent` minor creates assignments for the rest and names both refusals.
-A forced failure mid-fan-out leaves **zero** assignments, not some. A test that
-the view's ordering is stable and independent of progress. A test that
-`ON DELETE SET NULL` holds — delete the group, and the homework survives with
-`group_id` NULL.
+If it ever comes back, the two things worth re-reading are in git rather than
+here: the transaction rule (a fan-out that half-succeeds leaves a room of
+children in two different states, which is worse than one that fails) and the
+`ON DELETE SET NULL` on the group reference (deleting a group must never delete
+children's homework).
 
 ### Phase 9 — lead. Watched running
 
-Items into `TODO-provera.md`, checked live by the owner, the way 97–101 were.
-**Two passes, not one:** one child at home, and one real section with a group —
-the second is the only place the fan-out, the poll and the shared-room rules can
-actually be judged.
+Items into `TODO-provera.md` — item 108 is written and waiting — checked live by
+the owner, the way 97–101 were.
+
+**Still two passes, and the second one's reason changed with phase 8.** One child
+at home, and one real section. There is no fan-out and no poll to watch any more,
+but the section is the only place the rule in §2.7 can actually be judged: fifteen
+children at their own pace, screens facing each other, and nothing on any of them
+that says who is ahead. That is a thing you confirm by standing in the room, not
+by reading a test.
 
 ## 8. Deliberately not in this plan
 
 * **Adaptive paths** — a next step chosen by the answer. §2.2.
 * **Offline `ask_*` steps.** §2.4.
-* **A live "classroom mode".** The group case is a fan-out of the same lesson,
-  §2.7. A shared board, a synchronised step everyone is held on, or a lesson the
-  trainer drives from the front is a *different feature* — that is the lesson
-  room, which already exists.
-* **A live event stream from a running section, and any leaderboard.** §2.7.
-  The trainer sees who has got how far by refreshing a list that already exists.
-  A real-time feed is a later phase with its own justification, not a v1 detail.
+* **Group hand-out of any kind**, including the one-click fan-out this plan
+  specified until 6.9.2026. §2.7. A trainer gives the lesson to each child the
+  way they already do; a lesson is an asynchronous resource and nothing here
+  knows what a group is.
+* **A live "classroom mode".** A shared board, a synchronised step everyone is
+  held on, or a lesson the trainer drives from the front is a *different
+  feature* — that is the lesson room, which already exists.
+* **A live event stream from a running section, and any leaderboard.** §2.7. A
+  real-time feed is a separate feature with its own justification, not a v1
+  detail — and a leaderboard is not a scope question at all, it is the rule in
+  §2.7.
 * **Video, scoring, streaks, timers.**
 * **Authoring on a phone.** The studio is a desktop surface; the student's
   screen is the one that has to work at 360 dp.

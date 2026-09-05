@@ -636,17 +636,24 @@ otkaže:
    komentar. Faza 2 nije pisanje parsera nego brisanje upotrebe: `parsePgn` već
    ume varijacije, komentare i `[%cal]`. Fali mu `[%csl]`.
 
-Grupni čas je **razliveni domaći**, ne drugi režim: jedan klik pravi po jedan
-zadatak po detetu, ekran deteta je isti i dete ne može da zna kojim putem mu je
-lekcija stigla. Grupe (`student_groups`) postoje ali su vezane **samo** za pozive
-u sobu — `routes/assignments.js` ne zna za grupu, pa je razlivanje jedini nov
-posao sa podacima koji ova namena donosi.
+**Grupni čas se ne pravi — odluka vlasnika, 6.9.2026.** Faza 8 (razlivanje
+lekcije na grupu jednim klikom, uz tablu napretka za trenera) **otpada**. Bila je
+jedino što je još diralo podatke — `assignments.group_id`, indeks, transakcija —
+i jedino što je čekalo neodgovoreno pitanje o ceni; a zauzvrat nije donosila
+ništa što dete vidi, jer je ekran deteta isti bez obzira kako mu je lekcija
+stigla. Za rad uživo već postoji soba. **Lekcija ostaje čist asinhroni resurs:
+interaktivni tutorijal, odnosno domaći.** Grupe (`student_groups`) ostaju ono što
+su bile — vezane samo za pozive u sobu.
 
-**Pitanje koje čeka vlasnika, i faza 8 ne kreće bez odgovora:** da li grupni
-zadatak troši jednu jedinicu kvote ili N? `POST /assignments/lesson` stoji iza
-`requireQuota(ENT.ASSIGNMENTS)`; petnaestoro dece na jedan klik troši petnaest
-jedinica, što je možda tačno a možda čini upravo taj slučaj neisplativim. To je
-cena, ne inženjering — vidi `CENA-I-PRETPLATA.md`.
+Time se zatvara i pitanje cene koje je stajalo otvoreno: da li grupni zadatak
+troši jednu jedinicu kvote ili N. Više niko ne pita.
+
+**Šta ostaje na snazi i ne sme da padne zajedno sa fazom 8:** razlivanje je bilo
+udobnost, a ne situacija. Trener i sada može istu lekciju da da petnaestoro dece
+jedno po jedno, i tih petnaestoro i dalje sedi jedno pored drugog i vidi tuđe
+ekrane. Zato **nema tajmera, bodova, niza ni ijednog poređenja** — kod kuće je to
+ukus, a u učionici pravilo koje čuva dete kome treba četiri minuta da ne bude
+najsporije javno. To je jedino mesto gde je taj argument zapisan.
 
 **Gde smo na kraju dana:** faze 0, 1, 2, 3, 4 i 5 su na grani
 `feat/interactive-lessons`, master je netaknut i zelen. Paket 4b (ekran koji
