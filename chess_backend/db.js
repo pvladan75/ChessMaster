@@ -743,6 +743,23 @@ async function initDB() {
     `);
     logger.info('Verified column & index: assignment_items.step_key');
 
+    // When a student asked to be shown the answer.
+    //
+    // „Pokaži mi" after two wrong tries, so a stuck child can finish the step.
+    // Without an escape they never write `completed_at`, and the trainer's
+    // unreviewed count can then never reach zero — the exact failure
+    // `assignments.reviewed_at` was added to fix.
+    //
+    // Its own column rather than a value squeezed into `played_san`, whose own
+    // comment already warns that NULL means three different things. A fourth
+    // meaning there would make the trainer's review unable to tell „netačno"
+    // from „rešenje otkriveno", which are different facts about a child.
+    await client.query(`
+      ALTER TABLE assignment_items
+        ADD COLUMN IF NOT EXISTS revealed_at TIMESTAMPTZ;
+    `);
+    logger.info('Verified column: assignment_items.revealed_at');
+
     // What the student tried, not only whether it was accepted.
     //
     // `solved` alone cannot be un-lost: a wrong answer that is one square off

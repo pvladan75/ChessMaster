@@ -50,10 +50,20 @@ test('an unknown kind is refused rather than treated as show', () => {
   assert.match(built.error, /korak/i);
 });
 
-test('a show step carries no answer fields even if it was sent some', () => {
-  // Only the fields a step is made of, as the file already does for everything
-  // else. A `show` step with a solution attached would be judged by nothing and
-  // redacted by nothing, which is the worst of both.
+test('a show step keeps its solution but never its choices', () => {
+  // **This assertion was rewritten by the lead on 5.9.2026, before the batch.**
+  // It first said a `show` step drops the solution too, reasoning that an
+  // answer nothing judges is also an answer nothing redacts. The second half is
+  // false — `redactStepForStudent` takes it out whatever the kind — and the
+  // first half would have deleted data: every step the course builder makes
+  // from the library has carried `solutionSan` since before kinds existed, so a
+  // trainer saving an old lesson would have lost the move scanned out of the
+  // book. `lesson_steps.test.js` said so from the day it was written, and it
+  // was right.
+  //
+  // Choices are gated, and that half stands: options have no meaning without a
+  // question, and a step carrying some is a step whose author thinks they asked
+  // something.
   const built = buildLessonStep({
     fen: FEN,
     kind: 'show',
@@ -62,7 +72,7 @@ test('a show step carries no answer fields even if it was sent some', () => {
   });
 
   assert.equal(built.ok, true);
-  assert.equal(built.entry.solutionSan, undefined);
+  assert.equal(built.entry.solutionSan, 'Ra8#');
   assert.equal(built.entry.choices, undefined);
 });
 

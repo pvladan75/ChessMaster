@@ -18,7 +18,7 @@ const WEAK_THEME_ACCURACY = 50;
 const { assignableProblem } = require('./customPuzzleJudge');
 const { trainableThemes } = require('./puzzleSelectionService');
 const { ensureItem: ensureReviewItem } = require('./spacedRepetitionService');
-const { stepsOfLesson } = require('./lessonSteps');
+const { stepsOfLesson, redactStepForStudent } = require('./lessonSteps');
 
 /// Ceiling on one assignment, so a mis-typed count cannot materialise thousands
 /// of rows or hand a child an impossible pile of work.
@@ -328,6 +328,83 @@ async function markLessonStepDone(pool, { studentId, assignmentId, position }) {
   return true;
 }
 
+/// Records what a student answered on one step of a lesson, and how it went.
+///
+/// The verdict is the caller's — the route judges, because the answer lives on
+/// the server and never travels to the client. This writes it down.
+///
+/// `played_san` is the move as the board understood it rather than as the
+/// client spelled it, and is null for a choice step, where there is no move.
+async function recordLessonStepAnswer(pool, {
+  studentId, assignmentId, position, correct, playedSan = null,
+}) {
+  const result = await pool.query(
+    `UPDATE assignment_items ai
+     SET attempted_at = COALESCE(ai.attempted_at, CURRENT_TIMESTAMP),
+         solved = $4,
+         played_san = COALESCE($5, ai.played_san)
+     FROM assignments a
+     WHERE ai.assignment_id = a.id
+       AND a.id = $1
+       AND a.student_id = $2
+       AND a.kind = 'lesson'
+       AND ai.position = $3
+     RETURNING ai.id, ai.step_key, a.lesson_id`,
+    [assignmentId, studentId, position, correct === true, playedSan]
+  );
+
+  if (result.rows.length === 0) return false;
+
+  const { lesson_id: lessonId, step_key: stepKey } = result.rows[0];
+  if (lessonId && stepKey) {
+    try {
+      await ensureReviewItem(pool, { userId: studentId, lessonId, stepKey, position });
+    } catch (err) {
+      logger.error({ studentId, lessonId, stepKey }, `Review enrolment failed: ${err.message}`);
+    }
+  }
+
+  await markCompleteIfDone(pool, assignmentId);
+  return true;
+}
+
+/// Marks that the student asked to be shown the answer.
+///
+/// Not recorded as a wrong answer: „rešenje otkriveno" and „netačno" are
+/// different facts about a child, and the trainer reading the review needs to
+/// tell them apart. The step still counts as done — the escape exists so a
+/// stuck child can finish — and it still enrols for review, arguably more than
+/// a solved one would.
+async function revealLessonStep(pool, { studentId, assignmentId, position }) {
+  const result = await pool.query(
+    `UPDATE assignment_items ai
+     SET revealed_at = COALESCE(ai.revealed_at, CURRENT_TIMESTAMP),
+         attempted_at = COALESCE(ai.attempted_at, CURRENT_TIMESTAMP)
+     FROM assignments a
+     WHERE ai.assignment_id = a.id
+       AND a.id = $1
+       AND a.student_id = $2
+       AND a.kind = 'lesson'
+       AND ai.position = $3
+     RETURNING ai.id, ai.step_key, a.lesson_id`,
+    [assignmentId, studentId, position]
+  );
+
+  if (result.rows.length === 0) return false;
+
+  const { lesson_id: lessonId, step_key: stepKey } = result.rows[0];
+  if (lessonId && stepKey) {
+    try {
+      await ensureReviewItem(pool, { userId: studentId, lessonId, stepKey, position });
+    } catch (err) {
+      logger.error({ studentId, lessonId, stepKey }, `Review enrolment failed: ${err.message}`);
+    }
+  }
+
+  await markCompleteIfDone(pool, assignmentId);
+  return true;
+}
+
 /// Stamps an assignment as finished the moment its last item lands, and tells
 /// the trainer — who otherwise had to keep opening the list to find out.
 ///
@@ -580,6 +657,16 @@ async function getAssignmentDetail(pool, assignmentId, userId) {
         fen: lesson.fen,
         pgn: lesson.pgn,
       });
+
+      // The student gets the question; the trainer who set it gets the answer.
+      //
+      // The same rule the custom-position block below already keeps, and it has
+      // to be applied here too now that a step can *ask* something: sending the
+      // solution so the client could mark its own work would hand the student
+      // the very thing being asked of them.
+      if (assignment.student_id === userId && assignment.trainer_id !== userId) {
+        steps = steps.map(redactStepForStudent);
+      }
     }
   }
 
@@ -729,6 +816,8 @@ module.exports = {
   loadAssignableLesson,
   createLessonAssignment,
   markLessonStepDone,
+  recordLessonStepAnswer,
+  revealLessonStep,
   markCompleteIfDone,
   recordPuzzleResult,
   getStudentAssignments,

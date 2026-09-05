@@ -25,7 +25,7 @@ function bareSan(san) {
  * understands it, so the caller can record what was actually tried rather than
  * what was typed.
  */
-function judgeAttempt({ fen, solutionSan, moveSan }) {
+function judgeAttempt({ fen, solutionSan, moveSan, acceptedSans = [] }) {
   if (!fen || !solutionSan) {
     return { correct: false, reason: 'nedostaje pozicija ili rešenje', playedSan: null };
   }
@@ -50,6 +50,17 @@ function judgeAttempt({ fen, solutionSan, moveSan }) {
   // The author's move is always right.
   if (bareSan(played.san) === bareSan(solutionSan)) {
     return { correct: true, reason: 'autorov potez', playedSan: played.san };
+  }
+
+  // A move the author listed as also right.
+  //
+  // Chess positions frequently have several equally good answers, and a child
+  // who finds a different sound defence must not read „netačno". The author's
+  // move stays the one the lesson continues on — the caller says so — but the
+  // verdict here is simply correct.
+  const accepted = Array.isArray(acceptedSans) ? acceptedSans : [];
+  if (accepted.some((san) => bareSan(san) === bareSan(played.san))) {
+    return { correct: true, reason: 'drugi tačan potez', playedSan: played.san };
   }
 
   // A different mate is still a mate, and the task was to mate.

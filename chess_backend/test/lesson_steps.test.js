@@ -53,10 +53,14 @@ test('only the fields a step is made of get through', () => {
     themes: ['mate'],
   });
 
-  // `id` joined this list in phase 1 of PLAN-INTERAKTIVNA-LEKCIJA: it is the
-  // step's own identity, written here and kept for the step's whole life.
-  // Everything else a caller happened to send still stays out.
-  assert.deepEqual(Object.keys(built.entry).sort(), ['fen', 'id', 'title']);
+  // Two fields joined this list from PLAN-INTERAKTIVNA-LEKCIJA: `id` in phase 1,
+  // the step's own identity, kept for its whole life; and `kind` in phase 4,
+  // what the step asks, which is `show` when nobody said. Everything else a
+  // caller happened to send still stays out.
+  assert.deepEqual(
+    Object.keys(built.entry).sort(),
+    ['fen', 'id', 'kind', 'title'],
+  );
 });
 
 test("a row's own database id is not a step id", () => {
