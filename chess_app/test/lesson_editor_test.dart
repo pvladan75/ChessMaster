@@ -180,6 +180,34 @@ void main() {
       // looking.
       expect(find.text('Nađi mat u jednom potezu.'), findsWidgets);
     });
+
+    testWidgets('a move played in the preview reaches no server at all',
+        (tester) async {
+      // Added by the lead on 6.9.2026, after batch 50 satisfied the assertion
+      // above with `AssignmentApiService(authToken: '')` — a real service with
+      // no token, which posts, is refused, and marks steps seen against nobody.
+      // `isNotNull` was the letter of the rule and this is the substance of it:
+      // press the board in a preview and nothing may go out.
+      //
+      // A service that does reach the network answers null here (the test
+      // harness refuses every request), and the viewer says «Odgovor nije
+      // poslat — proveri vezu.» — so the failure is visible rather than
+      // theoretical.
+      await openEditor(tester, _FakeApi());
+
+      await tester.tap(find.text('Pregled'));
+      await tester.pumpAndSettle();
+
+      final state = tester
+          .state<LessonViewerScreenState>(find.byType(LessonViewerScreen));
+      await state.submitMove('Ra8#');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Odgovor nije poslat — proveri vezu.'), findsNothing,
+          reason: 'the preview tried to send the answer somewhere');
+      expect(find.text('Tačno.'), findsNothing,
+          reason: 'and it must not have judged it either');
+    });
   });
 
   group('one place a step’s words are written', () {

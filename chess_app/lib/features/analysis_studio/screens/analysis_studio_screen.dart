@@ -56,6 +56,10 @@ import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialo
     as dialogs;
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board/skinned_chess_board.dart';
+import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
+import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/features/library/services/position_library_service.dart';
+import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
 
 class AnalysisStudioScreen extends StatefulWidget {
   final UserSession userSession;
@@ -258,6 +262,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           'Produži granu (najbolja linija motora)', _showQuickExtendDialog),
       _ToolAction(Icons.extension, context.colors.accent, 'Sačuvane vežbe',
           _showSavedPuzzleSetsDialog),
+      _ToolAction(Icons.add_task, context.colors.success,
+          'Napravi korak od ove pozicije', _createStepFromPosition),
       _ToolAction(Icons.share, context.colors.info, 'Izvezi PGN', _exportPgn),
       _ToolAction(Icons.cloud_outlined, context.colors.info, 'Sačuvane analize',
           _showSavedAnalysesDialog),
@@ -1132,6 +1138,46 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _createStepFromPosition() async {
+    final library = PositionLibraryService(authToken: widget.userSession.token);
+    final lessons = LessonApiService(authToken: widget.userSession.token);
+
+    final course = await showDialog(
+      context: context,
+      builder: (context) => CoursePickerDialog(service: library, count: 1),
+    );
+    if (course == null || !mounted) return;
+
+    final fen = _currentNode.fen;
+    final pgn = PgnExporterService.exportToPgn(_rootNode);
+
+    final error = await lessons.appendStep(
+      lessonId: course.id,
+      step: {
+        'fen': fen,
+        'pgn': pgn,
+        'title': 'Novi zadatak',
+      },
+    );
+
+    if (!mounted) return;
+    if (error != null) {
+      AppFeedback.show(
+          context,
+          () => SnackBar(
+                content: Text(error),
+                backgroundColor: context.colors.danger,
+              ));
+    } else {
+      AppFeedback.show(
+          context,
+          () => SnackBar(
+                content: const Text('Korak uspešno dodat u lekciju.'),
+                backgroundColor: context.colors.success,
+              ));
+    }
   }
 
   void _exportPgn() {

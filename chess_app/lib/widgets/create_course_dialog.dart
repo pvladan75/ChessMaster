@@ -146,52 +146,6 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
     return step;
   }
 
-  /// Lets the trainer say what the student should do at this step.
-  ///
-  /// The step's title is a name, and a name is not a task — a student opening
-  /// the lesson otherwise gets a board with no question on it. Kept per step
-  /// rather than per lesson because each position asks something different.
-  Future<void> _editInstruction(int index) async {
-    final controller = TextEditingController(
-        text: selectedPositions[index]['instruction']?.toString() ?? '');
-    final text = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Šta učenik treba da uradi?'),
-        content: SizedBox(
-          width: 360,
-          child: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLines: 3,
-            maxLength: 500,
-            decoration: const InputDecoration(
-              hintText: 'npr. Beli je na potezu — nađi dobitak figure',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Odustani')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, controller.text.trim()),
-              child: const Text('Sačuvaj')),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (text == null || !mounted) return;
-    setState(() {
-      if (text.isEmpty) {
-        selectedPositions[index].remove('instruction');
-      } else {
-        selectedPositions[index]['instruction'] = text;
-      }
-    });
-  }
-
   Future<void> _submit({required bool asNew}) async {
     final title = titleController.text.trim();
     final desc = descController.text.trim();
@@ -370,13 +324,8 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.edit_note, size: 18),
-                                  tooltip: 'Zadatak za učenika',
-                                  onPressed: () => _editInstruction(index),
-                                ),
-                                IconButton(
                                   icon: Icon(Icons.close,
-                                      size: 18, color: colors.danger),
+                                      size: 18, color: context.colors.danger),
                                   tooltip: 'Ukloni',
                                   onPressed: () => setState(
                                       () => selectedPositions.removeAt(index)),
