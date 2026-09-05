@@ -681,6 +681,10 @@ centrira na aktivni čvor **posle svake promene poteza**
 (`_lastCenteredNodeId != widget.activeNode.id`). To je upravo skakanje koje
 vlasnik opisuje, i „samo kad priđe ivici" je izmena unutar `_centerOnActive`.
 
+**Odluka vlasnika, 5.9.2026:** pravilo je **bezuslovno** — „aplikacija nikad ne
+menja sama zum, to treba da bude korisnikov izbor". Merenje ispod ostaje, ali
+kao dijagnostika (gde se menja), ne kao odluka (sme li).
+
 **Druga polovina traži merenje:** `_centerOnActive` **čuva** razmeru — čita
 `getMaxScaleOnAxis()` i vraća je istu. Znači da promena zuma koju vlasnik vidi
 ne dolazi odatle. Kandidati: platno se proširi kad se dodaju potezi (`InteractiveViewer`
@@ -724,6 +728,10 @@ traka nepotvrđenih, tabla, `_buildNavigation`, pa komentar, pitanje, odgovori,
 presuda, uzeti potezi i knjiga. Traženi oblik je `Column[ nepomični deo,
 Expanded(SingleChildScrollView(ostatak)) ]`.
 
+**Odluka vlasnika, 5.9.2026:** prihvaćeno — tabla i navigaciona traka ostaju
+fiksirane na vrhu, ostatak se skroluje, a **proračun veličine table mora da uzme
+i visinu ekrana**, izričito za male telefone (360 dp).
+
 **Ograničenje koje treba rešiti pre pisanja:** na 360×640 tabla plus paleta već
 troše skoro ceo ekran. Ako se zakuju, deo koji se skroluje spada na nekoliko
 piksela, a tabla se iseca — dakle veličina table mora da se računa **od visine
@@ -733,6 +741,9 @@ prozora**, ne samo od širine, i to je pravi posao ove stavke.
 prijavu je baš ona. Vlasnikov predlog: izbaciti je ili pomeriti. Vredi
 razmisliti da postane deo nepomičnog zaglavlja ili da se skupi u jedan red sa
 dugmetom, umesto zasebne kartice.
+
+**Odluka vlasnika, 5.9.2026:** baner se **sažima u jedan kompaktan red u ravni
+sa dugmetom**, da ne gura tablu nadole. Ne briše se.
 
 **c) Fokus u stablu se ne sme gubiti pri gradnji.**
 
@@ -756,9 +767,21 @@ konstrukciji — tačno kako vlasnik traži. Sumnjiv je jedan red:
 repertoara — što je verovatno ono „baca me negde". A crtež je ne sadrži kada
 potez ispadne izvan trenutne širine, što je **isti uzrok** koji je već imenovan
 na drugom mestu istog fajla (poruka „Ova pozicija je izvan onoga što spremate").
-Znači: pre nego što se dira fokus, treba odlučiti šta se radi kada je upisani
-potez van širine — jer „odmah se vidi u stablu" i „širina ga skriva" ne mogu oba
-da važe.
+**Odluka vlasnika, 5.9.2026, i ona rešava baš taj sudar:**
+
+- **Tihi `?? root` se ukida.** Korisnik nikada ne sme da bude vraćen na početak
+  dok istražuje poteze.
+- Ako korisnik odigra potez, **stablo mora odmah da prikaže taj potez**.
+  „Odigra" znači **oba ulaza**, pojašnjeno 5.9.2026: i potez povučen na tabli, i
+  potez prihvaćen iz spiska ispod table („Potvrdi", „Uzmi …", odgovori). Pravilo
+  visi o tome da je čovek potez odobrio, ne o tome kojim ga je putem odobrio.
+- Ako je potez bio van filtera širine, **privremeno se otkriva** — jer korisnik
+  je eksplicitno na njemu. Širina ostaje ono što je bila za sve ostalo; ovo je
+  izuzetak za poziciju na kojoj čovek stoji, ne promena širine.
+
+To je isti oblik pravila koje već postoji na serveru (`coveredReplies` prati
+odgovor koji vodi u poziciju gde korisnik ima odluku, na svakoj širini) — dakle
+„ono što je čovek sam uradio se ne skriva" važi i ovde.
 
 **d) Zum se nikad ne menja sam.**
 
