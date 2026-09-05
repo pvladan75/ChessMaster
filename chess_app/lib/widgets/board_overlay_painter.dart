@@ -25,11 +25,30 @@ class EngineArrow {
   });
 }
 
+/// Where a named square's centre is, or [Offset.zero] if the name is not one.
+///
+/// Every caller already reads `Offset.zero` as "skip this one", because the
+/// length check below has always been able to answer it. The name check is
+/// newer, and it is why the whole function is worth reading twice: `int.parse`
+/// on a second character that is not a digit **throws**, inside a
+/// `CustomPainter`, which is a red screen rather than a missing ring. Nothing
+/// reached it while the only squares on a board came from a tap or from a move
+/// the engine had already made. `[%csl]` changes that — its squares come out of
+/// a PGN somebody typed, in a comment nothing validates, and a book's typo must
+/// cost the reader one mark and not the board.
+///
+/// This closes the same hole for `[%cal]` arrows, which never had a reason to
+/// be safe either.
 Offset getSquareCenter(
     String square, double boardSize, PlayerColor orientation) {
   if (square.length < 2) return Offset.zero;
-  final file = square.codeUnitAt(0) - 'a'.codeUnitAt(0); // 0 to 7
-  final rank = int.parse(square[1]) - 1; // 0 to 7
+  final fileChar = square.codeUnitAt(0) - 'a'.codeUnitAt(0);
+  final rankDigit = square.codeUnitAt(1) - '1'.codeUnitAt(0);
+  if (fileChar < 0 || fileChar > 7 || rankDigit < 0 || rankDigit > 7) {
+    return Offset.zero;
+  }
+  final file = fileChar; // 0 to 7
+  final rank = rankDigit; // 0 to 7
 
   double col = file.toDouble();
   double row = 7.0 - rank.toDouble();
@@ -73,6 +92,15 @@ String getSquareFromOffset(
 
 class ChessBoardPainter extends CustomPainter {
   final List<ChessArrow> arrows;
+
+  /// The squares an author coloured in — PGN's `[%csl]`.
+  ///
+  /// Defaulted rather than required, unlike [arrows]: every screen that draws a
+  /// board would otherwise have to be edited to say it has no marks, and a
+  /// dozen call sites changed to pass an empty list is a diff that hides the
+  /// one call site that matters.
+  final List<SquareMark> squares;
+
   final List<EngineArrow>? engineArrows;
   final double boardSize;
   final PlayerColor orientation;
@@ -117,6 +145,33 @@ class ChessBoardPainter extends CustomPainter {
   static const ui.Color arrowHaloShade = ui.Color(0xFF000000);
   static const ui.Color arrowHaloLight = ui.Color(0xFFFFFFFF);
 
+  /// The two colours every `[%csl]` ring is drawn between.
+  ///
+  /// A third pair of names for the same two values, and the reason is the one
+  /// given for the second pair: these outline a ring, and somebody retuning the
+  /// ring should not silently move the arrows or the last-move marker. The
+  /// argument for the values is identical and was not re-derived — black clears
+  /// 4.4:1 against every square of every skin and white clears 3.0:1 against
+  /// every dark one, so drawing both means an edge whatever the ring lands on,
+  /// and neither has a hue to lose under a colour-vision simulation.
+  ///
+  /// This matters more here than it does for an arrow. An arrow is a shape with
+  /// a direction and it is legible with no colour at all; a coloured square is
+  /// **only** its colour unless something else carries it. `board_skin_contrast
+  /// _test.dart` measures this pair the same way it measures the other two.
+  static const ui.Color squareMarkHaloShade = ui.Color(0xFF000000);
+  static const ui.Color squareMarkHaloLight = ui.Color(0xFFFFFFFF);
+
+  /// The ring's stroke widths, as fractions of one square's side.
+  ///
+  /// Fractions rather than the arrows' absolute 5.0 and 2.5, because an arrow
+  /// spans squares and a ring lives inside one: at the 45 px square of a 360 dp
+  /// phone the arrow's halo widths would leave a ring that is almost entirely
+  /// black outline with a thread of colour in it.
+  static const double squareMarkCoreFraction = 0.055;
+  static const double squareMarkLightFraction = squareMarkCoreFraction * 1.8;
+  static const double squareMarkShadeFraction = squareMarkCoreFraction * 2.8;
+
   /// How much wider than the arrow each outline pass is drawn.
   static const double arrowHaloShadeWidth = 5.0;
   static const double arrowHaloLightWidth = 2.5;
@@ -144,6 +199,7 @@ class ChessBoardPainter extends CustomPainter {
 
   ChessBoardPainter({
     required this.arrows,
+    this.squares = const [],
     this.engineArrows,
     required this.boardSize,
     required this.orientation,
@@ -218,6 +274,46 @@ class ChessBoardPainter extends CustomPainter {
     );
   }
 
+  /// One `[%csl]` square: a ring, drawn in three passes like an arrow.
+  ///
+  /// **A ring rather than a filled square, and the shape is the point.** This
+  /// painter draws over the pieces, so a wash would bury the piece standing on
+  /// the very square the reader is being sent to look at — the same finding
+  /// that turned the last-move highlight from a fill into a frame. A ring
+  /// leaves the middle alone.
+  ///
+  /// It also has to be distinguishable from the two other things that can
+  /// appear on a square, and by shape, not by colour: the last move is four
+  /// corner brackets, and the square a trainer has started drawing from is a
+  /// filled disc. An outlined circle is neither.
+  ///
+  /// Widest first: black, then white inside it, then the author's colour on
+  /// top. A coloured square is only its colour, so without the two achromatic
+  /// passes a green ring on a green square is nothing at all — and for the
+  /// reader this is drawn for, red on green is the pair that vanishes.
+  void _paintSquareMark(Canvas canvas, Rect square, ui.Color color) {
+    final side = square.width;
+    final core = side * squareMarkCoreFraction;
+    final shade = side * squareMarkShadeFraction;
+    // Half the widest stroke plus a hair, so the ring stays inside its own
+    // square rather than bleeding onto the neighbouring one.
+    final radius = side / 2 - shade / 2 - side * 0.03;
+    if (radius <= 0) return;
+
+    void ring(ui.Color c, double width) => canvas.drawCircle(
+          square.center,
+          radius,
+          Paint()
+            ..color = c
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = width,
+        );
+
+    ring(squareMarkHaloShade, shade);
+    ring(squareMarkHaloLight, side * squareMarkLightFraction);
+    ring(color, core);
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     final effectiveBoardSize = (size.width > 0 && size.width != double.infinity)
@@ -279,6 +375,23 @@ class ChessBoardPainter extends CustomPainter {
         ..color = drawingModeColor.withValues(alpha: 0.4)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(center, squareSize * 0.4, paint);
+    }
+
+    // Draw the author's coloured squares, under the arrows on purpose: a mark
+    // says "look here" and an arrow says "this goes there", and where both are
+    // on one square the sentence reads in that order.
+    for (final mark in squares) {
+      final center =
+          getSquareCenter(mark.square, effectiveBoardSize, orientation);
+      // `getSquareCenter` answers Offset.zero for a square it cannot read, and
+      // a1 is a real square whose centre is never zero — so this skips the
+      // malformed token rather than drawing a ring in the corner for it.
+      if (center == Offset.zero) continue;
+      _paintSquareMark(
+        canvas,
+        Rect.fromCenter(center: center, width: squareSize, height: squareSize),
+        _getColor(mark.colorCode),
+      );
     }
 
     // Draw user drawn arrows
@@ -507,6 +620,7 @@ class ChessBoardPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant ChessBoardPainter oldDelegate) {
     return oldDelegate.arrows != arrows ||
+        oldDelegate.squares != squares ||
         oldDelegate.engineArrows != engineArrows ||
         oldDelegate.boardSize != boardSize ||
         oldDelegate.orientation != orientation ||

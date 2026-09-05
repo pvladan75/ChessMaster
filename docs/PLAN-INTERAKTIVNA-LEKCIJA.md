@@ -596,6 +596,52 @@ painter, the voice budget reused rather than re-decided.
 spoken string is on screen. Arrow contrast through the existing
 `arrow_color_contrast_test` rules.
 
+**„the existing painter" did not exist, and the lead landed it first — 5.9.2026.**
+`SquareMark` had been parsed, stored, exported and round-trip tested since phase
+2, and was **drawn nowhere**: it appeared in `move_tree.dart` and
+`analysis_node.dart` and in no painter at all, and `ChessBoardWithOverlay` had no
+parameter for it. So `[%csl]` in this phase meant adding a painted concept to the
+board every screen in the app shares — which the standing rule keeps with the
+lead, and which is why this was checked before the brief was written rather than
+after the batch came back.
+
+What shipped:
+
+* `ChessBoardPainter.squares`, defaulted rather than required, so no other screen
+  changes; the board widget passes it to **both** painters, because the drawing
+  one is mounted exactly when a trainer is looking at the marks.
+* A **ring**, drawn in three passes widest-first — black, white, then the
+  author's colour — the same doctrine as the arrow halo and the last-move
+  brackets. The shape is load-bearing twice over: this painter draws over the
+  pieces, so a filled square would bury the piece on the one square the reader
+  was sent to look at; and a mark has to be told apart from the last move (corner
+  brackets) and the drawing-mode origin (a filled disc) **by shape, not by
+  colour**. A coloured square is only its colour — without the two achromatic
+  passes a green ring on a green square is nothing at all, and red on green is
+  the pair this reader loses.
+* `getSquareCenter` now answers `Offset.zero` for a name that is not a square.
+  It used to `int.parse` the second character, inside a `CustomPainter` — a red
+  screen rather than a missing ring. Nothing had reached it while every square
+  came from a tap or from a move the engine had made; `[%csl]` squares come out
+  of a comment nothing validates, so a book's typo now costs one mark and not the
+  board. The same hole is closed for `[%cal]`.
+* Eleven tests: eight in `test/square_marks_test.dart`, three in
+  `board_skin_contrast_test.dart` measuring the new halo pair against every
+  square of every skin under both modelled deficiencies. **All three guards
+  proved by mutation** — the pass-through, the repaint, and the name check each
+  watched to fail before being believed.
+
+Suite **1312 → 1323**. What is left for the batch is genuinely wiring: hand the
+current node's `arrows` and `squares` to the board the viewer already builds, and
+put the step's sentence in `SpeakableInfo`.
+
+**One thing the batch must not quietly fix:** the palette has no yellow.
+`ArrowColor` is R/O/G/B/P and `byId` falls back to grey, so a `[%csl Yd5]` — and
+Lichess writes those — draws a grey ring. That is a colour decision, not a
+wiring one: the five values were chosen by a search that holds every pair at
+1.5:1 under protanopia and deuteranopia, and a sixth has to be measured into that
+set, not picked. Out of scope for the batch, and it should say so.
+
 ### Phase 7 — lead. The trainer's editor
 
 „Napravi korak od ove pozicije" in the studio, the step list, PGN import, and

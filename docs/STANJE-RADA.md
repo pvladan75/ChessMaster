@@ -685,6 +685,20 @@ razliku ne vidi — pa mora dozvola, po fajlu, rečnikom samog brifa.**
 
 Izveštaj radnika stoji kao `docs/REPORT-batch-48.md`.
 
+**Faza 6 je pripremljena, 5.9.2026.** Plan za nju kaže „postojeći crtač", a
+crtača nije bilo: `SquareMark` se od faze 2 čita iz `[%csl]`, čuva, izvozi i
+ima test za povratak kroz PGN — a **nigde se ne crta**. Tabla koju dele svi
+ekrani nije imala ni parametar za to, pa je to posao vodećeg a ne radnika.
+Sada postoji: prsten oko polja, u tri prolaza od najšireg (crno, belo, pa
+autorova boja), po istom pravilu kao oreol strelice i uglovi poslednjeg poteza.
+Oblik nosi značenje, ne nijansa — obojeno polje **jeste** samo svoja boja dok mu
+nešto drugo ne da ivicu, a crveno na zelenom je par koji ovaj čitalac gubi.
+Uz to, `getSquareCenter` više ne puca na ime koje nije polje: ranije je
+`int.parse` na drugom znaku padao **unutar crtača**, što je crven ekran umesto
+prstena koji fali. Nije se dešavalo dok su sva polja dolazila iz dodira ili iz
+poteza; `[%csl]` dolazi iz komentara koji niko ne proverava. Jedanaest testova,
+sve tri zaštite dokazane mutacijom. Suite: **1312 → 1323**.
+
 Dva nalaza iz ovih faza koja nadživljavaju ovu funkciju:
 
 1. **`getDue` nikad nije radio.** `stepsOfLesson` se poziva unutra a nikad nije

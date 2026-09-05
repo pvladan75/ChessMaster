@@ -8,7 +8,7 @@ import 'package:chess_app/core/services/board_on_screen.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart'
     show SelectedSquarePainter;
-import 'package:chess_app/move_tree.dart' show ChessArrow;
+import 'package:chess_app/move_tree.dart' show ChessArrow, SquareMark;
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
@@ -41,6 +41,15 @@ class ChessBoardWithOverlay extends StatefulWidget {
   final bool isDrawingMode;
   final String? drawingStartSquare;
   final List<ChessArrow> arrows;
+
+  /// The squares the author coloured in — PGN's `[%csl]`, drawn as rings.
+  ///
+  /// Defaulted, so a screen that has no marks says nothing. Half of what a
+  /// lesson is about is a *square* rather than a move — a weak square, an
+  /// outpost, the hole a pawn left behind — and until now this board could draw
+  /// the arrow and not the square.
+  final List<SquareMark> squares;
+
   final List<EngineArrow> engineArrows;
   final String? lastMoveFrom;
   final String? lastMoveTo;
@@ -63,6 +72,7 @@ class ChessBoardWithOverlay extends StatefulWidget {
     required this.isDrawingMode,
     required this.drawingStartSquare,
     required this.arrows,
+    this.squares = const [],
     required this.engineArrows,
     required this.onMove,
     required this.onSquareTapForDrawing,
@@ -302,6 +312,7 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
                   drawingModeColor: context.colors.accent,
                   badgeBorderColor: context.colors.canvas,
                   arrows: widget.arrows,
+                  squares: widget.squares,
                   engineArrows: widget.engineArrows,
                   boardSize: widget.boardSize,
                   orientation: widget.boardOrientation,
@@ -322,6 +333,7 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
                   drawingModeColor: context.colors.accent,
                   badgeBorderColor: context.colors.canvas,
                   arrows: widget.arrows,
+                  squares: widget.squares,
                   engineArrows: widget.engineArrows,
                   boardSize: widget.boardSize,
                   orientation: widget.boardOrientation,
