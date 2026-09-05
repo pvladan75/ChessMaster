@@ -181,6 +181,54 @@ class AssignmentApiService {
     }
   }
 
+  Future<StepAnswerResult?> answerLessonStep({
+    required int assignmentId,
+    required int position,
+    String? moveSan,
+    int? choiceIndex,
+  }) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse(
+                '$backendUrl/assignments/$assignmentId/step/$position/answer'),
+            headers: _headers,
+            body: jsonEncode({
+              if (moveSan != null) 'moveSan': moveSan,
+              if (choiceIndex != null) 'choiceIndex': choiceIndex,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode != 200) return null;
+      return StepAnswerResult.fromJson(
+          jsonDecode(res.body) as Map<String, dynamic>);
+    } catch (e) {
+      AppLogger.log('[Assignments] Odgovor nije poslat: $e');
+      return null;
+    }
+  }
+
+  Future<StepRevealResult?> revealLessonStep({
+    required int assignmentId,
+    required int position,
+  }) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse(
+                '$backendUrl/assignments/$assignmentId/step/$position/reveal'),
+            headers: _headers,
+          )
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode != 200) return null;
+      return StepRevealResult.fromJson(
+          jsonDecode(res.body) as Map<String, dynamic>);
+    } catch (e) {
+      AppLogger.log('[Assignments] Rešenje nije otkriveno: $e');
+      return null;
+    }
+  }
+
   Future<List<Assignment>> fetchMine() =>
       _fetchList('$backendUrl/assignments/mine');
 
