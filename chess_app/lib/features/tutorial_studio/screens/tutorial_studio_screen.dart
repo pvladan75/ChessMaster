@@ -154,8 +154,15 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       _draft.section.cursorNode = handover.root;
       if (handover.blackOrientation) _orientation = PlayerColor.black;
     }
-    _titleController.text = _draft.title;
-    _boardController.loadFen(_root.fen);
+    // Every field of the open part, not just the two that used to be set here
+    // by hand. `_loadSelectedSection` is the one place a part's kind, task,
+    // offered answers, recorded move and orientation are read into the editor —
+    // and until 7.9.2026 the opening path skipped it, so those fields sat at
+    // their defaults and the first `_persist()` wrote the defaults back over
+    // the part. Reopening a saved question and pressing „Sačuvaj tutorijal"
+    // turned it into a plain position, silently. See
+    // `test/tutorial_reopen_test.dart`.
+    _loadSelectedSection();
     unawaited(_adoptStoredDraft());
   }
 
