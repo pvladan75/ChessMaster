@@ -380,10 +380,24 @@ propust.
 **P6a je gotov** (batch 59, gore) — ostaje da se vidi uživo, tačka 115 u
 `docs/TODO-provera.md`, koja ide zajedno sa 113 i 114.
 
-**Sledeći je P6b**, i za njega ništa nije napisano: uređivanje komentara i
-pitanja u samim karticama, pa vađenje polja iz desne kolone. To je batch koji
-menja *ponašanje* ekrana, pa mu kapija mora da tvrdi nad onim što se sačuva, ne
-nad onim što se nacrta.
+**Sledeći je P6b — batch 60, i sve za njega je napisano**: uređivanje komentara
+i pitanja u samim karticama, pa vađenje polja iz desne kolone. To je batch koji
+menja *ponašanje* ekrana, pa njegova kapija tvrdi nad onim što se sačuva, ne nad
+onim što se nacrta — `docs/gates/tutorial_tok_edit_test.dart`, devet testova, na
+`master`-u izmereno **2 prolaze i 7 pada** (7.9.2026). Zadatak i brief su
+[TASK-studio-polja.md](TASK-studio-polja.md) i
+[brief-studio-polja-2026-09.md](brief-studio-polja-2026-09.md); grana
+`batch/studio-polja`. Ostaje samo dozvola u `orchestrate.py` pre pokretanja.
+
+Probni build je i ovde platio, pre nego što je brief napisan: našao je da
+sačuvan tutorijal nikada nije učitavao *tip* dela u editor (`ad8c11a`, sa
+`test/tutorial_reopen_test.dart`), i suzio tvrdnju u
+`tutorial_authoring_test.dart` koju bi ispravan P6b oborio (`3c9d481`). Oba su
+na `master`-u, pa batch ne bi trebalo da dira nijedan postojeći test.
+
+**Stanje `master`-a mereno 7.9.2026, ničim drugim uz to: 1554 testa u
+aplikaciji, 1 preskočen; `flutter analyze` — 29 stavki, sve `info`.** Backend
+nije diran i ostaje na 956.
 
 Posle P6: P7 (izdvajanje `BoardAnnotationController` iz sobe, nezavisno od svega
 i može bilo kad), pa P8 (odbrane iz starog editora pa gašenje njegovog ulaza na

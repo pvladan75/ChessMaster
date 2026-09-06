@@ -18,7 +18,7 @@
 // ---------------------------------------------------------------------------
 // THE FROZEN CONTRACT FOR BATCH 60
 //
-// **The keys do not move away; they move house.** Twenty-six references across
+// **The keys do not move away; they move house.** Twenty-three references across
 // five test files drive this screen by key, one of them the frozen gate that
 // asserts on the `POST` body. Every one of them keeps working:
 //
@@ -219,7 +219,7 @@ void main() {
       final api = await open(tester);
 
       expect(find.byKey(const Key('example-sentence')), findsOneWidget,
-          reason: 'twenty-six references in five files drive this screen by '
+          reason: 'twenty-three references in five files drive this screen by '
               'that key, one of them the gate that asserts on the POST body');
 
       await typeIn(tester, 'example-sentence', 'Ovde stojim.');
