@@ -104,6 +104,97 @@ void main() {
     expect(find.text('Mat na osmom redu.'), findsOneWidget);
   });
 
+  testWidgets('the note about the starting position is shown before move one',
+      (tester) async {
+    // PGN keeps this note ahead of move one rather than on a move, and the
+    // viewer read it out of the parse and then showed nothing — so „pogledaj
+    // polje d5", which is most of what a still step says, made it the whole way
+    // here and was dropped on the last step. The arrows drawn on that same
+    // position were shown all along, which is what made the gap hard to see.
+    await tester.pumpWidget(MaterialApp(
+      home: LessonViewerScreen(
+        session: session,
+        detail: AssignmentDetail(
+          assignment: const Assignment(
+            id: 7,
+            title: 'Mat topom',
+            kind: AssignmentKind.lesson,
+            totalItems: 1,
+          ),
+          items: const [AssignmentItem(puzzleId: null, position: 0)],
+          steps: const [
+            LessonStep(
+              title: 'Zadnji red',
+              fen: endgameFen,
+              pgn:
+                  '{ Crni kralj nema vazduha. } 1. Ra8# { Mat na osmom redu. }',
+            ),
+          ],
+        ),
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.text('Crni kralj nema vazduha.'), findsOneWidget);
+
+    // And it belongs to the position it was written about: stepping onto the
+    // move replaces it with that move's note rather than showing both.
+    await tester.tap(find.byTooltip('Sledeći potez'));
+    await tester.pump();
+
+    expect(find.text('Crni kralj nema vazduha.'), findsNothing);
+    expect(find.text('Mat na osmom redu.'), findsOneWidget);
+
+    // Back to the diagram, and the note about it comes back.
+    await tester.tap(find.byTooltip('Prethodni potez'));
+    await tester.pump();
+
+    expect(find.text('Crni kralj nema vazduha.'), findsOneWidget);
+  });
+
+  testWidgets('a step with no note about its position says nothing there',
+      (tester) async {
+    // An empty root comment must not draw an empty card.
+    await open(tester);
+
+    expect(find.byIcon(Icons.chat_bubble_outline), findsNothing);
+  });
+
+  testWidgets('a step whose line does not replay still shows its position',
+      (tester) async {
+    // Steps saved before the studio checked the pair: the `pgn` was written
+    // from the root of the tree and the `fen` names a position several plies
+    // in, so not one move can be played. Nothing new is saved this way, but
+    // what is already in the database must still open — as the still board it
+    // has effectively always been.
+    await tester.pumpWidget(MaterialApp(
+      home: LessonViewerScreen(
+        session: session,
+        detail: AssignmentDetail(
+          assignment: const Assignment(
+            id: 8,
+            title: 'Stari korak',
+            kind: AssignmentKind.lesson,
+            totalItems: 1,
+          ),
+          items: const [AssignmentItem(puzzleId: null, position: 0)],
+          steps: const [
+            LessonStep(
+              title: 'Zadnji red',
+              fen: endgameFen,
+              pgn: '1. e4 e5 2. Nf3',
+            ),
+          ],
+        ),
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.byTooltip('Sledeći potez'), findsNothing,
+        reason: 'there is no line to walk');
+    expect(find.text('Zadnji red'), findsOneWidget);
+  });
+
   testWidgets('the trainer\'s note reaches the student', (tester) async {
     await open(tester);
 

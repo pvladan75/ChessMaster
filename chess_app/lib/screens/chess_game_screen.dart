@@ -16,6 +16,7 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/features/lessons/widgets/lesson_step_editor_panel.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -62,11 +63,17 @@ class ChessGamePage extends StatefulWidget {
   final UserSession userSession;
   final String? initialRole;
 
+  /// Injectable for tests. The real one talks to the backend, and a widget test
+  /// that reached it would be asserting against whatever a server happened to
+  /// answer. Same seam as `LessonViewerScreen.api`.
+  final LessonApiService? lessonApi;
+
   const ChessGamePage({
     super.key,
     required this.roomCode,
     required this.userSession,
     this.initialRole,
+    this.lessonApi,
   });
 
   @override
@@ -160,8 +167,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// Everything this screen does to `saved_lessons`. Phase 7a pulled five
   /// raw `http` calls out of this file and onto it; the editor batch needs a
   /// seam a test can fake, and this file is 4,346 lines long.
-  late final LessonApiService _lessonApi =
-      LessonApiService(authToken: widget.userSession.token);
+  late LessonApiService _lessonApi;
   final TextEditingController fenPasteController = TextEditingController();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController commentController = TextEditingController();
@@ -212,6 +218,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
   @override
   void initState() {
     super.initState();
+    _lessonApi = widget.lessonApi ??
+        LessonApiService(authToken: widget.userSession.token);
     if (widget.roomCode == 'STUDIO') {
       activeRole = 'host';
       boardOrientation = PlayerColor.white;
@@ -1792,11 +1800,89 @@ class _ChessGamePageState extends State<ChessGamePage> {
     });
   }
 
+  void _openTutorialEditor(Map<String, dynamic> lesson) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(
+          title: Text(lesson['title']?.toString() ?? 'Koraci tutorijala'),
+        ),
+        body: LessonStepEditorPanel(
+          session: widget.userSession,
+          api: _lessonApi,
+          lesson: lesson,
+        ),
+      ),
+    ));
+  }
+
+  Future<void> _renameTutorial(Map<String, dynamic> lesson) async {
+    final controller =
+        TextEditingController(text: lesson['title']?.toString() ?? '');
+    final newTitle = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Preimenuj tutorijal'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Naziv tutorijala'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Otkaži')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              child: const Text('Sačuvaj')),
+        ],
+      ),
+    );
+    if (newTitle == null || newTitle.isEmpty || newTitle == lesson['title']) {
+      return;
+    }
+
+    final error = await _lessonApi.update(
+      id: lesson['id'] as int,
+      title: newTitle,
+      description: lesson['description'] as String?,
+      tags: (lesson['tags'] as List?)?.map((e) => e.toString()).toList(),
+      fen: lesson['fen'] as String?,
+      pgn: lesson['pgn'] as String?,
+      // positionList is OMITTED deliberately
+    );
+
+    if (!mounted) return;
+    if (error != null) {
+      _showError(error);
+    } else {
+      _showSuccess('Tutorijal preimenovan.');
+      fetchLessons();
+    }
+  }
+
+  Future<void> _cloneTutorial(Map<String, dynamic> lesson) async {
+    final newId = await _lessonApi.clone(id: lesson['id'] as int);
+    if (!mounted) return;
+    if (newId == null) {
+      _showError(_lessonApi.cloneError ?? 'Greška pri kopiranju.');
+      return;
+    }
+
+    _showSuccess('Tutorijal sačuvan kao nova verzija.');
+    await fetchLessons();
+
+    if (!mounted) return;
+    final cloned = lessons.firstWhere((l) => l['id'] == newId,
+        orElse: () => <String, dynamic>{});
+    if (cloned.isNotEmpty) {
+      _openTutorialEditor(Map<String, dynamic>.from(cloned));
+    }
+  }
+
   Future<void> _confirmDeleteLesson(Map<String, dynamic> lesson) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Obriši lekciju?'),
+        title: const Text('Obriši tutorijal?'),
         content: Text('"${lesson['title']}" će biti trajno obrisana.'),
         actions: [
           TextButton(
@@ -1818,7 +1904,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       _showError(error);
       return;
     }
-    _showSuccess('Lekcija obrisana.');
+    _showSuccess('Tutorijal obrisan.');
     fetchLessons();
   }
 
@@ -1905,7 +1991,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       _showError(error);
       return;
     }
-    _showSuccess('Lekcija sa varijacijama je uspešno sačuvana!');
+    _showSuccess('Tutorijal sa varijacijama je uspešno sačuvan!');
     fetchLessons();
   }
 
@@ -1935,7 +2021,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           'pgn': pgn,
         });
 
-        _showSuccess('Lekcija sa varijacijama je učitana!');
+        _showSuccess('Tutorijal sa varijacijama je učitan!');
         _triggerEngineAnalysis();
         return;
       }
@@ -1945,7 +2031,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       controller.loadFen(fen);
       moveTree = MoveTree(startingFen: fen);
       commentController.text = '';
-      moveHistory.add('Učitana lekcija/FEN pozicija');
+      moveHistory.add('Učitan tutorijal / FEN pozicija');
     });
 
     socket.emit('move', {
@@ -2807,7 +2893,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Lekcije i Pozicije',
+                'Tutorijali i pozicije',
                 style: AppText.headline,
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -2852,7 +2938,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   child: ElevatedButton.icon(
                     onPressed: _showCreateCourseDialog,
                     icon: const Icon(Icons.collections_bookmark, size: 16),
-                    label: const Text('Kreiraj lekciju (Više pozicija)'),
+                    label: const Text('Kreiraj tutorijal (više pozicija)'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: context.colors.accentAlt,
                       foregroundColor: context.colors.canvas,
@@ -2902,7 +2988,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               ),
               const Divider(height: 24),
               Text(
-                'Pretraga lekcija',
+                'Pretraga tutorijala',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: context.colors.textMuted),
@@ -3005,7 +3091,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           child: Padding(
                             padding: const EdgeInsets.all(AppSpacing.lg),
                             child: Text(
-                              'Nema sačuvanih lekcija u ovoj kategoriji.',
+                              'Nema sačuvanih tutorijala u ovoj kategoriji.',
                               style: TextStyle(color: context.colors.textMuted),
                             ),
                           ),
@@ -3046,7 +3132,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 children: [
                                   if (isTrainerLesson)
                                     Text(
-                                      'Sačuvana lekcija od trenera',
+                                      'Sačuvan tutorijal od trenera',
                                       style: TextStyle(
                                           fontSize: 10,
                                           color: context.colors.warning,
@@ -3054,7 +3140,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     ),
                                   if (isCourse)
                                     Text(
-                                      'Kurs od ${positionList.length} pozicija',
+                                      'Tutorijal od ${positionList.length} pozicija',
                                       style: TextStyle(
                                           fontSize: 10,
                                           color: context.colors.brand,
@@ -3078,20 +3164,66 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   : Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        IconButton(
-                                          icon: Icon(Icons.edit_outlined,
-                                              size: 18,
-                                              color: context.colors.textMuted),
-                                          tooltip: 'Izmeni',
-                                          onPressed: () => isCourse
-                                              ? _showCreateCourseDialog(
-                                                  existingLesson:
-                                                      Map<String, dynamic>.from(
-                                                          lesson))
-                                              : _editSinglePosition(
-                                                  Map<String, dynamic>.from(
-                                                      lesson)),
-                                        ),
+                                        if (isCourse)
+                                          PopupMenuButton<String>(
+                                            icon: Icon(Icons.more_vert,
+                                                size: 18,
+                                                color:
+                                                    context.colors.textMuted),
+                                            tooltip: 'Opcije',
+                                            onSelected: (value) {
+                                              if (value == 'uredi') {
+                                                _openTutorialEditor(
+                                                    Map<String, dynamic>.from(
+                                                        lesson));
+                                              } else if (value == 'preimenuj') {
+                                                _renameTutorial(
+                                                    Map<String, dynamic>.from(
+                                                        lesson));
+                                              } else if (value == 'pozicije') {
+                                                // The step editor cannot add,
+                                                // remove or reorder steps until
+                                                // batch F, and this menu
+                                                // replaced the only way in.
+                                                _showCreateCourseDialog(
+                                                    existingLesson: Map<String,
+                                                        dynamic>.from(lesson));
+                                              } else if (value == 'kloniraj') {
+                                                _cloneTutorial(
+                                                    Map<String, dynamic>.from(
+                                                        lesson));
+                                              }
+                                            },
+                                            itemBuilder: (context) => [
+                                              const PopupMenuItem(
+                                                  value: 'uredi',
+                                                  child:
+                                                      Text('Uredi tutorijal')),
+                                              const PopupMenuItem(
+                                                  value: 'preimenuj',
+                                                  child: Text('Preimenuj')),
+                                              const PopupMenuItem(
+                                                  value: 'pozicije',
+                                                  child:
+                                                      Text('Izmeni pozicije')),
+                                              const PopupMenuItem(
+                                                  value: 'kloniraj',
+                                                  child: Text(
+                                                      'Sačuvaj kao novu verziju')),
+                                            ],
+                                          )
+                                        else
+                                          IconButton(
+                                            icon: Icon(Icons.edit_outlined,
+                                                size: 18,
+                                                color:
+                                                    context.colors.textMuted),
+                                            tooltip: 'Izmeni',
+                                            onPressed: () =>
+                                                _editSinglePosition(
+                                                    Map<String, dynamic>.from(
+                                                        lesson)),
+                                          ),
                                         IconButton(
                                           icon: Icon(Icons.delete_outline,
                                               size: 18,
@@ -3114,7 +3246,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   loadLessonPosition(
                                       firstPos['fen'], firstPos['pgn']);
                                   _showSuccess(
-                                      'Učitan korak 1/${positionList.length} iz kursa: "${firstPos['title'] ?? lesson['title']}"');
+                                      'Učitan korak 1/${positionList.length} iz tutorijala: „${firstPos['title'] ?? lesson['title']}"');
                                 } else {
                                   setState(() => _activeCourseItems = null);
                                   loadLessonPosition(

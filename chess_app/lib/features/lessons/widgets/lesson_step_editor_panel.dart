@@ -6,6 +6,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart';
+import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -34,8 +35,18 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
   int _selectedIndex = 0;
   bool _isSaving = false;
 
+  late TextEditingController _titleCtrl;
   late TextEditingController _instructionCtrl;
   final ChessBoardController _boardCtrl = ChessBoardController();
+
+  /// Bumped when a kind change is refused, so the dropdown is rebuilt from the
+  /// step instead of keeping the selection the trainer took back.
+  ///
+  /// `DropdownButtonFormField` is a form field: it holds the value the user
+  /// picked in its own state, and a rebuild alone will not move it back. Without
+  /// this the dropdown reads „Traži potez na tabli" over a step that is still
+  /// a demonstration — the trainer believes they asked something and did not.
+  int _kindEpoch = 0;
 
   @override
   void initState() {
@@ -43,12 +54,14 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     _steps = ((widget.lesson['position_list'] as List?) ?? [])
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
+    _titleCtrl = TextEditingController();
     _instructionCtrl = TextEditingController();
     _loadStep();
   }
 
   @override
   void dispose() {
+    _titleCtrl.dispose();
     _instructionCtrl.dispose();
     _boardCtrl.dispose();
     super.dispose();
@@ -57,9 +70,118 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
   void _loadStep() {
     if (_steps.isEmpty || _selectedIndex >= _steps.length) return;
     final step = _steps[_selectedIndex];
+    _titleCtrl.text = step['title']?.toString() ?? '';
     _instructionCtrl.text = step['instruction']?.toString() ?? '';
     final fen = step['fen']?.toString() ?? '8/8/8/8/8/8/8/8 w - - 0 1';
     _boardCtrl.loadFen(fen);
+  }
+
+  void _syncCurrentStepControllers() {
+    if (_steps.isEmpty || _selectedIndex >= _steps.length) return;
+    final title = _titleCtrl.text.trim();
+    if (title.isEmpty) {
+      _steps[_selectedIndex].remove('title');
+    } else {
+      _steps[_selectedIndex]['title'] = title;
+    }
+    final instr = _instructionCtrl.text.trim();
+    if (instr.isEmpty) {
+      _steps[_selectedIndex].remove('instruction');
+    } else {
+      _steps[_selectedIndex]['instruction'] = instr;
+    }
+  }
+
+  void _addStep() {
+    _syncCurrentStepControllers();
+    final insertIndex = _selectedIndex + 1;
+    final currentFen = (_steps.isNotEmpty && _selectedIndex < _steps.length)
+        ? _steps[_selectedIndex]['fen']
+        : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    final newStep = <String, dynamic>{
+      'fen': currentFen,
+    };
+    setState(() {
+      _steps.insert(insertIndex, newStep);
+      _selectedIndex = insertIndex;
+      _kindEpoch++;
+    });
+    _loadStep();
+  }
+
+  Future<void> _deleteStep() async {
+    if (_steps.length <= 1) {
+      AppFeedback.show(
+        context,
+        () => SnackBar(
+          content: const Text('Poslednji korak ne može biti obrisan.'),
+          backgroundColor: context.colors.danger,
+        ),
+      );
+      return;
+    }
+
+    final titleInCtrl = _titleCtrl.text.trim();
+    final currentTitle = titleInCtrl.isNotEmpty
+        ? titleInCtrl
+        : _steps[_selectedIndex]['title']?.toString().trim();
+    final displayName = (currentTitle != null && currentTitle.isNotEmpty)
+        ? currentTitle
+        : 'Korak ${_selectedIndex + 1}';
+
+    final drop = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Brisanje koraka'),
+        content: Text('Da li želiš da obrišeš korak „$displayName"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Odustani'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    if (drop != true) return;
+
+    setState(() {
+      _steps.removeAt(_selectedIndex);
+      if (_selectedIndex >= _steps.length) {
+        _selectedIndex = _steps.length - 1;
+      }
+      _kindEpoch++;
+    });
+    _loadStep();
+  }
+
+  void _moveUp() {
+    if (_selectedIndex <= 0) return;
+    _syncCurrentStepControllers();
+    setState(() {
+      final step = _steps.removeAt(_selectedIndex);
+      _selectedIndex--;
+      _steps.insert(_selectedIndex, step);
+      _kindEpoch++;
+    });
+    _loadStep();
+  }
+
+  void _moveDown() {
+    if (_selectedIndex >= _steps.length - 1) return;
+    _syncCurrentStepControllers();
+    setState(() {
+      final step = _steps.removeAt(_selectedIndex);
+      _selectedIndex++;
+      _steps.insert(_selectedIndex, step);
+      _kindEpoch++;
+    });
+    _loadStep();
   }
 
   void _updateStep(String key, dynamic value) {
@@ -73,13 +195,106 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     });
   }
 
+  /// Whether [step] carries a line the child can walk.
+  ///
+  /// Read through `LessonStepLine`, which is the one reader of a step's line in
+  /// this app and the same read the student's screen performs. A second opinion
+  /// about what a PGN contains is how this codebase ended up with two parsers.
+  static bool _hasLine(Map<String, dynamic> step) {
+    final pgn = step['pgn']?.toString() ?? '';
+    if (pgn.trim().isEmpty) return false;
+    final read = LessonStepLine.read(
+      fen: step['fen']?.toString() ?? '',
+      pgn: pgn,
+    );
+    return read.line.movesSan.isNotEmpty;
+  }
+
+  /// True for a step that would hand the child its own answer.
+  static bool _leaksAnswer(Map<String, dynamic> step) =>
+      step['kind']?.toString() == 'ask_move' && _hasLine(step);
+
+  /// The kind the trainer picked, and the one question worth asking about it.
+  ///
+  /// A step's `pgn` is not redacted on its way to the child — the line *is* the
+  /// lesson — and `LessonViewerScreen` draws the move strip for every kind. So a
+  /// question whose line runs on from the very position being asked about shows
+  /// the answer to anyone who presses „Sledeći potez".
+  ///
+  /// Asked rather than done: deleting a trainer's line and their words inside it
+  /// because they touched a dropdown is not a repair, it is a loss they did not
+  /// agree to. Refusing outright is no better — it leaves them with a position
+  /// they cannot ask about and no way forward. The demonstration belongs in the
+  /// step *before* the question, which the viewer joins without reloading the
+  /// board.
+  Future<void> _chooseKind(String? value) async {
+    if (value == null || _steps.isEmpty || _selectedIndex >= _steps.length) {
+      return;
+    }
+
+    if (value == 'ask_move' && _hasLine(_steps[_selectedIndex])) {
+      final drop = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Dete bi videlo odgovor'),
+          content: const Text(
+            'Ovaj korak nosi liniju, a dete može da je prolista dugmetom '
+            '„Sledeći potez" pre nego što odgovori. Demonstracija ide u korak '
+            'ispred pitanja — pitanje ostaje samo pozicija.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Odustani'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Ukloni liniju i postavi pitanje'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+      if (drop != true) {
+        setState(() => _kindEpoch += 1);
+        return;
+      }
+      _updateStep('pgn', null);
+    }
+
+    _updateStep('kind', value == 'show' ? null : value);
+  }
+
   Future<void> _save() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
 
-    // Save current instruction
-    final instr = _instructionCtrl.text.trim();
-    _updateStep('instruction', instr.isEmpty ? null : instr);
+    _syncCurrentStepControllers();
+
+    // The one refusal this editor makes, and it is not a copy of one of the
+    // server's: the server stores `pgn` as opaque text and has no PGN reader,
+    // so it cannot make this one, and giving it one would be a second parser
+    // disagreeing with this app's. The combination was reachable for as long as
+    // this panel has existed, so a lesson opened today may already be in it —
+    // and the quiet version of this bug is a child who stops getting anything
+    // wrong.
+    final leaking = _steps.where(_leaksAnswer).toList();
+    if (leaking.isNotEmpty) {
+      final names = leaking
+          .map((s) => '„${s['title']?.toString() ?? 'Korak'}"')
+          .join(', ');
+      setState(() => _isSaving = false);
+      AppFeedback.show(
+        context,
+        () => SnackBar(
+          content: Text('Nije sačuvano. $names nosi liniju u kojoj je odgovor '
+              '— ukloni liniju ili promeni tip zadatka.'),
+          backgroundColor: context.colors.danger,
+        ),
+      );
+      return;
+    }
 
     final err = await widget.api.update(
       id: widget.lesson['id'],
@@ -112,9 +327,7 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
   }
 
   void _preview() {
-    // Save instruction to map before previewing
-    final instr = _instructionCtrl.text.trim();
-    _updateStep('instruction', instr.isEmpty ? null : instr);
+    _syncCurrentStepControllers();
 
     final detail = AssignmentDetail(
       assignment: Assignment(
@@ -156,6 +369,46 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Shown on a step that already asks for a move and already carries a line.
+  ///
+  /// Those exist: the combination was reachable for as long as this panel has
+  /// been, so the fix cannot only be a question asked at the moment the kind is
+  /// chosen. A trainer opening an old lesson has to be told which step is
+  /// showing children its own answer, and be able to fix it where they are
+  /// standing.
+  Widget _buildAnswerLeakWarning() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceRaised,
+        borderRadius: AppRadii.roundedSm,
+        border: Border.all(color: context.colors.danger),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Dete bi videlo odgovor',
+              style: AppText.bodyBold.copyWith(color: context.colors.danger)),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Ovo pitanje nosi liniju koju dete može da prolista dugmetom '
+            '„Sledeći potez" pre nego što odgovori. Dok je tu, korak se ne čuva.',
+            style: AppText.body.copyWith(color: context.colors.textPrimary),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton(
+              onPressed: () => _updateStep('pgn', null),
+              child: const Text('Ukloni liniju'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildChoicesEditor(Map<String, dynamic> step) {
@@ -233,10 +486,34 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     final orientation = isBlackToMove ? PlayerColor.black : PlayerColor.white;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_leaksAnswer(step)) _buildAnswerLeakWarning(),
+          TextField(
+            key: const Key('step-title'),
+            controller: _titleCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Naziv koraka',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: (val) {
+              final clean = val.trim();
+              setState(() {
+                if (clean.isEmpty) {
+                  _steps[_selectedIndex].remove('title');
+                } else {
+                  _steps[_selectedIndex]['title'] = clean;
+                }
+              });
+            },
+          ),
+          const SizedBox(height: AppSpacing.xs),
           TextField(
             key: const Key('step-instruction'),
             controller: _instructionCtrl,
@@ -244,65 +521,84 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
               labelText: 'Zadatak za učenika',
               hintText: 'npr. Beli je na potezu — nađi dobitak figure',
               border: OutlineInputBorder(),
+              isDense: true,
             ),
+            // Two lines, as it was. The batch shortened it to one while making
+            // room for four new controls; the task is up to 500 characters and
+            // nobody asked for it to get harder to read.
             maxLines: 2,
           ),
-          const SizedBox(height: AppSpacing.md),
-          DropdownButtonFormField<String>(
-            initialValue: kind,
-            items: const [
-              DropdownMenuItem(value: 'show', child: Text('Samo prikaži')),
-              DropdownMenuItem(
-                  value: 'ask_move', child: Text('Traži potez na tabli')),
-              DropdownMenuItem(
-                  value: 'ask_choice', child: Text('Traži odgovor iz liste')),
-            ],
-            onChanged: (val) {
-              if (val != null) _updateStep('kind', val == 'show' ? null : val);
-            },
-            decoration: const InputDecoration(
-              labelText: 'Tip zadatka',
-              border: OutlineInputBorder(),
-            ),
-          ),
+          const SizedBox(height: AppSpacing.xs),
+          // The subtree's key changes with the step, with the kind, and every
+          // time a change is taken back — see [_kindEpoch] — which tears the
+          // field down and builds it from the step again. Without that it goes
+          // on showing a kind the step does not have. The field's own key stays
+          // put, because it is the handle the tests reach it by.
+          KeyedSubtree(
+              key: ValueKey('kind-$_selectedIndex-$kind-$_kindEpoch'),
+              child: DropdownButtonFormField<String>(
+                key: const Key('step-kind'),
+                initialValue: kind,
+                isExpanded: true,
+                items: const [
+                  DropdownMenuItem(value: 'show', child: Text('Samo prikaži')),
+                  DropdownMenuItem(
+                      value: 'ask_move', child: Text('Traži potez na tabli')),
+                  DropdownMenuItem(
+                      value: 'ask_choice',
+                      child: Text('Traži odgovor iz liste')),
+                ],
+                onChanged: _chooseKind,
+                decoration: const InputDecoration(
+                  labelText: 'Tip zadatka',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              )),
           if (kind == 'ask_choice') _buildChoicesEditor(step),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.xs),
           if (kind == 'ask_move') ...[
             Text('Odigraj tačan potez na tabli', style: AppText.bodyBold),
             if (step['solutionSan'] != null)
               Text('Tačan potez: ${step['solutionSan']}',
                   style: AppText.body.copyWith(color: context.colors.success)),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.xs),
           ],
           Center(
-            child: BoardWithCoordinates(
-              size: 300,
-              orientation: orientation,
-              builder: (size) => ChessBoardWithOverlay(
-                controller: _boardCtrl,
-                boardOrientation: orientation,
-                boardSize: size,
-                isAllowedToMove: kind == 'ask_move',
-                isDrawingMode: false,
-                drawingStartSquare: null,
-                arrows: const [],
-                squares: const [],
-                engineArrows: const [],
-                onMove: (from, to, promotion) {
-                  if (kind == 'ask_move') {
-                    final fen = step['fen']?.toString() ?? '';
-                    final san = _sanFor(fen, from, to, promotion);
-                    if (san != null) {
-                      _updateStep('solutionSan', san);
-                    }
-                    _boardCtrl.loadFen(fen); // Revert board to step fen
-                  }
-                },
-                onSquareTapForDrawing: (_) {},
-              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final boardSize =
+                    constraints.maxWidth < 300 ? constraints.maxWidth : 300.0;
+                return BoardWithCoordinates(
+                  size: boardSize,
+                  orientation: orientation,
+                  builder: (size) => ChessBoardWithOverlay(
+                    controller: _boardCtrl,
+                    boardOrientation: orientation,
+                    boardSize: size,
+                    isAllowedToMove: kind == 'ask_move',
+                    isDrawingMode: false,
+                    drawingStartSquare: null,
+                    arrows: const [],
+                    squares: const [],
+                    engineArrows: const [],
+                    onMove: (from, to, promotion) {
+                      if (kind == 'ask_move') {
+                        final fen = step['fen']?.toString() ?? '';
+                        final san = _sanFor(fen, from, to, promotion);
+                        if (san != null) {
+                          _updateStep('solutionSan', san);
+                        }
+                        _boardCtrl.loadFen(fen); // Revert board to step fen
+                      }
+                    },
+                    onSquareTapForDrawing: (_) {},
+                  ),
+                );
+              },
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -324,25 +620,70 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final canMoveUp = _selectedIndex > 0;
+    final canMoveDown = _selectedIndex < _steps.length - 1;
+
     return Row(
       children: [
         SizedBox(
-          width: 150,
-          child: ListView.builder(
-            itemCount: _steps.length,
-            itemBuilder: (context, i) {
-              return ListTile(
-                title: Text(_steps[i]['title']?.toString() ?? 'Korak ${i + 1}'),
-                selected: i == _selectedIndex,
-                onTap: () {
-                  // Save current instruction before switching
-                  final instr = _instructionCtrl.text.trim();
-                  _updateStep('instruction', instr.isEmpty ? null : instr);
-                  setState(() => _selectedIndex = i);
-                  _loadStep();
-                },
-              );
-            },
+          width: 170,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.xs),
+                child: Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Tooltip(
+                      message: 'Pomeri gore',
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_upward),
+                        onPressed: canMoveUp ? _moveUp : null,
+                      ),
+                    ),
+                    Tooltip(
+                      message: 'Pomeri dole',
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_downward),
+                        onPressed: canMoveDown ? _moveDown : null,
+                      ),
+                    ),
+                    OutlinedButton(
+                      onPressed: _addStep,
+                      child: const Text('Dodaj korak'),
+                    ),
+                    OutlinedButton(
+                      onPressed: _deleteStep,
+                      child: const Text('Obriši korak'),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _steps.length,
+                  itemBuilder: (context, i) {
+                    final title = _steps[i]['title']?.toString().trim();
+                    final label = (title != null && title.isNotEmpty)
+                        ? title
+                        : 'Korak ${i + 1}';
+                    return ListTile(
+                      title: Text(label),
+                      selected: i == _selectedIndex,
+                      onTap: () {
+                        _syncCurrentStepControllers();
+                        setState(() => _selectedIndex = i);
+                        _loadStep();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
         const VerticalDivider(width: 1),

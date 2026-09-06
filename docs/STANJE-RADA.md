@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 3.9.2026 (uveče — provera uživo, plan jednostavnosti,
-faze 0–3 spojene).
+Poslednje ažuriranje: 6.9.2026 (tutorijal: **cela faza 4 zatvorena** — batchevi
+54 i 55 spojeni; ostaje samo faza 5, provera uživo).
 
 ---
 
@@ -602,6 +602,357 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 čitaju iz JSON-a, i za to postoji test.
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
+
+## ODAKLE SUTRA — tutorijal, 6.9.2026 posle faze 4a
+
+Grana je **`feat/tutorijal`**, nije spojena u `master`. **1400 testova u
+aplikaciji** (1 preskočen), 956 na backendu — backend nije diran danas — i
+`flutter analyze` 29 info, bez grešaka i upozorenja.
+
+Faze 0–3 i **4a** iz [PLAN-TUTORIJAL.md](PLAN-TUTORIJAL.md) su zatvorene.
+
+**Šta je danas urađeno, i šta se u planu promenilo.** Vlasnik je tražio kapiju
+za batch D i školjku ekrana; to je i preporuka iz jučerašnje beleške, pa je
+**batch D povučen kao radni batch** — vođa je napisao i kapiju i školjku, a
+radnom agentu ostaje ono što je bilo 4b: polja za čvor, lista primera i jedno
+čuvanje.
+
+Novo u `chess_app/lib/features/tutorial_studio/`: `TutorialStudioScreen`,
+`TutorialDraft` i `TutorialExample`, `TutorialHandover`, `TutorialDraftService`
+i predikat `isTutorialStudioAvailable` (jedno mesto, `!kIsWeb &&
+Platform.isWindows`, odluka 5). U Analiznom studiju su vrata:
+„Kreiraj interaktivni tutorijal", nacrtana samo tamo gde ekran postoji, sa
+pitanjem prenosi li se samo pozicija ili cela linija. Ništa na tom ekranu još
+ne razgovara sa serverom — to je odluka 3, jedno čuvanje na kraju.
+
+Kapija je `chess_app/test/tutorial_studio_test.dart`, 13 testova, napisana
+**pre** ekrana i proverena sa sedam mutacija. **Jedna je prvo preživela**, i
+vredi je zapamtiti: brisanje `flush`-a koji upisuje nacrt pri zatvaranju ekrana
+nije oborilo kapiju, jer u testu tajmer sa 600 ms nadživi widget i upiše isto
+malo kasnije. U pravoj aplikaciji zatvaranje prozora nosi i proces, pa taj tajmer
+nikad ne odradi. Kapija sada zatvara ekran unutar te pola sekunde.
+
+Dodat je i jedan zajednički komad — `playedMove` u
+`lib/core/services/legal_moves.dart` — umesto šeste kopije privatnog `_sanFor`.
+**Sklapanje pet postojećih kopija na njega je zaseban posao**, namerno nije
+urađen unutar ovog.
+
+**Kapija za batch E je napisana istog dana** i stoji u
+`docs/gates/tutorial_authoring_test.dart`, tamo gde su stajale kapije rečnika i
+grananja dok njihovi batchevi nisu sleteli — kapija koja imenuje kontrole koje
+još niko nije napravio ne prevodi se, a suite koji se ne prevodi ne govori ništa
+ni o čemu drugom. U merge commitu se seli u `chess_app/test/`. Provereno je da
+je jedina stvar koju analizator na njoj prijavljuje tačno ono što batch treba da
+doda — seam `lessonApi`; sve ostalo se već slaže sa postojećim kodom.
+
+U njenom zaglavlju je **cela zamrznuta lista kontrola** (ključevi polja, natpisi
+dugmadi, tri naziva tipa zadatka koje editor koraka već koristi). Brif za E
+pokazuje na nju umesto da je prepisuje.
+
+Pisanje kapije je rešilo četiri stvari koje je plan ostavljao da se pogode. Tri
+su obične — rečenica je po čvoru a zadatak, tip i odgovori po primeru;
+„+ Dodaj sledeću poziciju" počinje na poziciji na kojoj se prošla linija
+završila; tri stvari se odbijaju pre slanja, a ne na serveru. **Četvrta je prava
+izmena i vlasnik može da je preokrene:**
+
+**Primer koji traži potez ne nosi liniju**, a tačan potez se odigra na istoj
+tabli i tabla se vrati na poziciju — isto kao u `LessonStepEditorPanel`-u. Razlog
+je na serveru: `redactStepForStudent` sklanja `solutionSan` i oznake tačnosti, a
+**`pgn` ostavlja**, jer linija i jeste lekcija; `lesson_viewer_screen.dart` je
+zatim čita bez obzira na tip koraka. Znači, pitanje čija linija počinje
+odgovorom štampa odgovor ispod pitanja. Demonstracija pripada primeru **ispred**
+pitanja — što je ionako obrazac „prikaži pa pitaj" iz faze 7. Pitanje sa
+ponuđenim odgovorima nije ograničeno.
+
+**Isti propust u editoru koraka — popravljen 6.9.2026.** Važio je i za korake
+koji već postoje: `LessonStepEditorPanel` je dozvoljavao da se koraku koji
+**ima liniju** postavi tip „Traži potez na tabli", a `_createStepFromPosition` u
+Analiznom studiju pravi upravo takve korake (sa celom linijom kao `pgn`). Dete
+je takav korak dobijalo sa linijom u kojoj je odgovor i moglo da je prolista
+trakom poteza — što niko ne prijavljuje kao grešku, jer izgleda kao dete koje
+prestane da greši.
+
+Editor je jedino mesto u aplikaciji gde se `kind` koraka upisuje (provereno
+grepom), pa je popravka tamo potpuna za nove korake, a za već sačuvane radi
+ovako:
+
+* biranje „Traži potez na tabli" na koraku sa linijom **pita** —
+  „Ukloni liniju i postavi pitanje" ili „Odustani". Linija se ne briše iza
+  leđa, a pitanje se ne odbija bez izlaza;
+* korak koji je **već sačuvan** u tom stanju nosi crveno upozorenje sa dugmetom
+  „Ukloni liniju";
+* dok je takav korak u lekciji, čuvanje se odbija i poruka **imenuje korak**.
+
+**Zašto u aplikaciji, a ne na serveru.** `test/lesson_editor_test.dart` kaže da
+editor ne sme da prepisuje serverove odbijenice, i u pravu je — ali ovo nije
+jedna od njih. Server čuva `pgn` kao neproziran tekst i **nema čitač PGN-a**;
+dati mu jedan značilo bi drugi parser koji se ne slaže sa aplikacijinim, a to je
+greška koju je ovaj repozitorijum već platio. Aplikacija ima tačno jedan čitač,
+`LessonStepLine.read`, i popravka je pisana kroz njega. To je zapisano i pored
+same odbijenice u kodu.
+
+`test/lesson_answer_stays_hidden_test.dart`, osam testova, provereni sa šest
+mutacija — sve šestu obaraju. Pitanje sa ponuđenim odgovorima **nije**
+ograničeno: odgovori su tekst, oznake tačnosti se redaktuju, i linija ispod
+takvog pitanja ništa ne odaje.
+
+**Šta i dalje stoji otvoreno:** korak koji je *već sačuvan* u tom stanju i dalje
+stiže do deteta sve dok ga neko ne otvori u editoru i ne ukloni liniju —
+popravka je u autorskoj strani, ne u đačkoj. Druga polovina, ako se ikad pokaže
+potrebnom, je da `LessonViewerScreen` ne crta traku poteza na pitanju dok se ne
+odgovori. Nije urađeno: to je promena na ekranu koji dete gleda, i traži svoju
+odluku.
+
+**Batch 54 je pušten i spojen istog dana** (`4817285`). `gemini-3.1-pro-high`
+preko `agy`, jedna runda, 10.5 minuta, kapija 11/11 i kapija faze 4a 13/13
+nedirnuta. Ekran sada ima polja za primer, listu primera i jedno
+„Sačuvaj tutorijal" koje šalje ceo tutorijal jednim `POST`-om. **1421 test.**
+
+Tri stvari koje treba poneti dalje:
+
+1. **Dozvole u harnessu se popunjavaju pre puštanja.** Batchevi 51–53 su svi
+   vraćali `VERDICT: FAIL` bez ijedne prave greške — delom zato što je obrazac
+   za izveštaj u `orchestrate.py` usidren malim slovima, a izveštaji ovog
+   projekta su `REPORT-...`. Sa unosom koji imenuje tačno tri nova fajla, ovaj
+   je ocenjen čisto iz prve.
+2. **„Bez novih info poruka" ima i drugu polovinu: ništa novo prigušeno.**
+   Batch je držao brojku na 29 pomoću `// ignore_for_file: deprecated_member_use`
+   preko tri prave zastarelosti, i u izveštaju to nazvao „adekvatno rešeno".
+   Vođa je prebacio na `RadioGroup<int>`, oblik koji brif i imenuje.
+3. **Polovina koja radi ume da sakrije polovinu koja ne radi.** Naslov
+   tutorijala je stizao u kontroler a nikad u nacrt, pa se jedini on nije vraćao
+   pri ponovnom otvaranju — dok su se svi primeri vraćali.
+
+Izveštaj: `docs/REPORT-batch-54.md`, sa beleškom vođe na vrhu — tri odeljka
+nisu izmerena nego izmišljena, i to baš ona koja izgledaju kao dokaz (telo
+`POST`-a, mehanizam validacije, i raspored na užem ekranu). Jedna njegova
+ispravka je bila tačna i vrednija od ostatka: `PgnExporterService` uvek ispisuje
+zaglavlja, pa `pgn` nikad nije prazan string.
+
+**Sledeće:**
+
+1. **Faza 4 je cela gotova.** Batch 55 (`gemini-3.8-flash-high`, jedna runda,
+   14.6 minuta) je spojen kao `a0c68ad`: editor koraka sada ume da doda, obriše
+   i premesti korak, i ima polje za naziv koraka. Kapija 12/12, oba zaštićena
+   fajla zelena i nedirnuta, pet mutacija.
+
+   **Poređenje modela je ispalo u korist flash-high na imenovanim stvarima:**
+   pokrenuo je `dart format` umesto što ga je prijavio, nije ništa prićutkao
+   analizatoru i to je rekao u posebnom redu, prepisao je listu analizatora
+   stavku po stavku i poklapa se, a `positionList` posle premeштanja koji je
+   citirao je bajt po bajt isti kao onaj koji je vođa nezavisno izmerio. Batch
+   54 je imao tri izmišljena odeljka; ovaj nijedan.
+
+   Greška koju je napravio nije o sposobnosti: helper `select` u kapiji je bio
+   dvosmislen (**vođina greška**), batch ga je tačno dijagnostikovao i u
+   izveštaju predložio pravu ispravku — pa je onda ipak zaobišao problem
+   dopisivanjem nevidljivog znaka u polje za naziv. Vođa je primenio njegov
+   predlog i obrisao zaobilaženje.
+
+2. **Faza 5, i to je sve što je ostalo** — provera uživo, zajedno:
+   `TODO-provera.md` tačke 24–29, 109, 110, 111 i nova 112. Autorska strana je
+   gotova, pa se sve to gleda odjednom, na telefonu i na Windowsu.
+3. Otvoreno, i nije ničija tekuca stavka: zapisan primer je spljošten na `fen` + `pgn`,
+   pa **vraćanje u Primer 1 radi izmene stabla** traži uvoznik PGN-a koji još
+   ne postoji. Isto tako, primer sa ponuđenim odgovorima koji ima **manje od dva**
+   odgovora odbija server, a ne aplikacija — ista klasa koju je batch 54 zatvorio
+   za druga dva slučaja.
+
+Stavke za proveru uživo iz ovog dela: `TODO-provera.md`, tačke 109 (školjka
+studija), 111 (pisanje i čuvanje) i 112 (dodaj / obriši / premesti). Sve čekaju
+fazu 5 — zajedničku proveru na uređajima, sad kad je autorska strana gotova.
+
+**Model za batch E:** ostaje model koji ume da projektuje, jer se od njega traži
+raspored polja i liste pored stabla, a ne spisak koraka. `gemini-3.8-flash-high`
+čeka batch F (dodaj / obriši / promeni redosled u editoru koraka), gde je
+poređenje čisto.
+
+Radna stabla su na spojenim granama i mogu se prebaciti kad zatreba:
+`mislisha-batch-a` (`batch/tutorijal-recnik`), `-b` (`batch/tutorijal-stablo`),
+`-c` (`batch/tutorijal-verzije`).
+
+## Prevaziđeno: odakle sutra, 6.9.2026 kraj dana (faze 0–3)
+
+*Zamenjeno odeljkom iznad kad je faza 4a zatvorena. Ostaje zbog jedne stvari
+koju odeljak iznad ne ponavlja — kako je batch D bio zamišljen pre nego što je
+povučen.*
+
+Grana je **`feat/tutorijal`**, nije spojena u `master`. Radno stablo čisto,
+`fa902dd`. **1387 testova u aplikaciji** (1 preskočen) i **956 na backendu**,
+`flutter analyze` 29 info bez grešaka i upozorenja.
+
+Faze 0, 1, 2 i 3 iz [PLAN-TUTORIJAL.md](PLAN-TUTORIJAL.md) su zatvorene: rečnik
+(batch 51), stablo u pregledaču (batch 52), verzije tutorijala (batch 53), plus
+`POST /lessons/:id/clone` na backendu. Svaki batch je spojen zasebnim `--no-ff`
+merge commitom u kome piše i kako je ocenjen.
+
+**Sledeće, po dogovoru sa vlasnikom:**
+
+1. **Kapija za batch D se piše prva.** Bez izuzetka — vidi pravilo koje je
+   batch 53 naučio, u planu, u odeljku faze 3. Kapija za nov ekran ne sme da
+   imenuje privatna polja; vozi ekran njegovim sopstvenim kontrolama, kao
+   `tutorial_branching_test.dart`.
+2. **`TutorialStudioScreen`** — faza 4a. Ugovor je C4 u planu: `TutorialDraft` i
+   `TutorialExample`, četiri stvari na ekranu (tabla, stablo, polja za čvor,
+   lista primera sa „+ Dodaj sledeću poziciju"), jedan `POST /lessons/save` na
+   kraju, i **nijedna kopija** table, stabla ili kursora — postojeći gradivni
+   blokovi se koriste.
+   **Otvoreno pitanje za vlasnika:** plan ga vodi kao radni batch D, ali
+   vlasnikova formulacija („pisanje Gate za Batch D i konstrukcijom
+   TutorialStudioScreen-a") može da znači i da ekran gradi vođa. Preporuka:
+   kapija i školjka ekrana kod vođe, polja i lista primera radnom agentu — nov
+   ekran sa opisom rasporeda je tip batcha koji se najčešće vrati čudnog oblika.
+3. **Ekran je zasad samo Windows** (odluka 5 u planu), iza jednog imenovanog
+   predikata `!kIsWeb && Platform.isWindows`. Ništa se ne izbacuje iz Android
+   verzije — to je zasebna odluka koju vlasnik donosi kasnije.
+
+**Provera uživo (`TODO-provera.md`, tačke 24–29) se drži na čekanju do faze 5**,
+zajedničke provere na uređajima — odluka vlasnika, da se isti ekran ne gleda tri
+puta dok mu autorska strana još nije gotova.
+
+**Model za sledeći batch:** vlasnikov predlog je `gemini-3.8-flash-high` kao
+stroži izvršilac; plan kaže mehanički batch (F) tamo, a batch sa novim ekranom
+ostaje na modelu koji ume da projektuje. Poređenje ide po imenovanim stvarima —
+da li je pokrenuo `dart format`, da li se brojevi iz izveštaja poklapaju sa
+merenjem vođe, i da li je ostavio komentar pisan sam sebi.
+
+Radna stabla su na spojenim granama i mogu se prebaciti kad zatreba:
+`mislisha-batch-a` (`batch/tutorijal-recnik`), `-b` (`batch/tutorijal-stablo`),
+`-c` (`batch/tutorijal-verzije`).
+
+## Tutorijal — vizija, plan i zatvorena faza 0, 6.9.2026
+
+Plan je [PLAN-TUTORIJAL.md](PLAN-TUTORIJAL.md), rečnik je
+[TABELA-TUTORIJAL.md](TABELA-TUTORIJAL.md). Vlasnik je odobrio pet odluka i one
+su **zamrznute** — batch ih ne preispituje:
+
+1. **„Tutorijal" je artefakt, „Čas" je živi rad u sobi.** Jedna reč je značila
+   oboje, pa su „Poziv na lekciju" (soba se otvara sad) i „Zadaj lekciju"
+   (domaći za četvrtak) detetu čitali kao isti događaj. Treća reč — „kurs" —
+   ide istim putem, jer rečnik koji je ostavi nije završio posao.
+2. **Klon dobija nove oznake koraka.** Oznaka koraka razrešava red u rasporedu i
+   upisan odgovor; dva tutorijala sa istom oznakom su napredak deteta u pogrešnoj
+   kopiji.
+3. **Čuvanje na kraju**, uz lokalno perzistiran draft — jedan čist `POST` kad
+   trener klikne „Sačuvaj tutorijal".
+4. **Nov ekran `TutorialStudioScreen`.** Analitički studio je 2383 linije i
+   dvanaest alatki *analize*; trener koji piše tutorijal mora da ignoriše devet
+   od dvanaest, a lista primera nema gde da stane. Nov ekran nosi četiri stvari:
+   tablu, stablo, polja za čvor na kome stojiš, i listu primera sa „+ Dodaj
+   sledeću poziciju". Koristi postojeće gradivne blokove — kopija table, stabla
+   ili kursora u novom ekranu je nalaz, ne detalj.
+5. **Autorski ekran je zasad samo Windows.** Vlasnikova primedba uz odluku 4:
+   tabla + stablo + polja + lista primera je desktop ekran, a Android je 360–410
+   dp. Kapija je jedan imenovani predikat (`!kIsWeb && Platform.isWindows`), pa
+   se vrata iz Studija na Androidu prosto ne crtaju. **Ništa se sad ne izbacuje
+   iz Android verzije** — šta još nema smisla na telefonu je zasebna odluka koju
+   vlasnik donosi kasnije, sa ekranom pred sobom. Đakova strana nije dirnuta:
+   čitanje tutorijala je tabla i traka, i ostaje na oba.
+
+**Faza 0 je zatvorena istog dana.** Zamrznut rečnik; **serverska polovina je već
+primenjena** (dvanaest poruka, da aplikacija i server ne govore različitim rečima
+pred detetom); `POST /lessons/:id/clone` napisan, testiran i zamrznut — 11
+testova, dva dokazana mutacijom (kopirane oznake umesto novih; naslov koji
+prelije `VARCHAR(255)` u 500); `LessonApiService.clone` kao ugovor za batch C; i
+**dve kapije napisane pre batcheva koje sude**, obe puštene na trenutni kod da se
+vidi da padaju iz pravog razloga — rečnička je crvena na 50 preostalih stringova,
+a granska pada pet od šest, dok šesti („korak bez grananja nikad ne pokazuje
+izbornik") prolazi i mora da prolazi i posle.
+
+Brifovi su napisani i spremni: `TASK-tutorijal-recnik.md`,
+`TASK-tutorijal-stablo.md`, `TASK-tutorijal-verzije.md`, svaki sa svojim
+`brief-*-2026-09.md`. **Batch A ide sam** — dira dvadeset fajlova i sudara se sa
+svakim drugim; B i C posle njega mogu paralelno.
+
+Merenja posle faze 0: **1372 testa u aplikaciji** (1 preskočen) i **956 na
+backendu**, backend isti sa `.env` sklonjenim u stranu.
+
+## Korak lekcije: pozicija i linija moraju biti iz istog čvora — 6.9.2026
+
+Pitanje vlasnika je bilo da li đak u jednom `show` koraku može da prelista
+liniju od nekoliko poteza, sa komentarom i strelicom uz svaki polupotez, ili
+mora poseban korak i poseban FEN za svaki. **Može — pregledač to radi od faze
+2**: `LessonViewerScreen` čita `pgn` jednim prolazom (`mainLine()`), pa traka
+poteza, strelice po potezu i komentar po potezu rade na istoj tabli.
+
+Ali „Napravi korak od ove pozicije" je slao **poziciju iz jednog čvora i liniju
+iz drugog**: `fen` je bio `_currentNode.fen`, a `pgn` izvoz celog stabla od
+`_rootNode`. Kad trener ne stoji na korenu, to su dve različite partije — a
+`MoveTree.parsePgn` preskače potez koji ne može da odigra i **ne kaže ništa**.
+Merenjem, ne nagađanjem (probni test na `1.e4 {a} e5 {b} 2.Nf3 {c}`):
+
+| trener stoji na | šta đak dobije |
+|---|---|
+| korenu | cela linija, ispravno |
+| posle `1.e4` | `e5 Nf3` — linija bez prvog poteza, njegov komentar nestao |
+| posle `2.Nf3` | **nijedan potez** — nema trake, samo slika; komentar nestao |
+
+Parnost odlučuje koji od dva tiha kvara dobiješ, pa je pola pozicija u stablu
+izgledalo ispravno. Poznati oblik iz `CLAUDE.md`: korak se preskoči, javi se
+uspeh, kvar se vidi jedan sloj kasnije — ovde tek kad dete otvori lekciju.
+
+Urađeno je troje:
+
+1. **Jedan čvor odgovara za oba polja.** `StudioLessonStep.from(anchor)` pravi i
+   `fen` i `pgn` iz istog čvora, pa ekran više ne sastavlja par ručno. Trener
+   koji ne stoji na korenu dobija pitanje „Odakle počinje korak?" — „Od početka
+   linije" ili „Odavde". Ako stoji u sporednoj varijanti, u pitanju stoji i
+   upozorenje da „od početka linije" prikazuje **glavnu** liniju, jer pregledač
+   ide kroz prvu decu.
+2. **Tiho postaje glasno.** `MoveTree.parsePgn` broji poteze koje nije mogao da
+   odigra (`rejectedMoves`), `LessonStepLine` je jedini čitač linije — isti za
+   đakov ekran i za trenerovu proveru — i korak koji se ne odsvira iz svoje
+   pozicije se **ne čuva**; trener dobija poruku sa brojem. Uz to: `!□` i
+   `$14` više ne broje kao odbijen potez, da dobra linija ne bi bila prijavljena
+   kao pokvarena.
+3. **Rečenica o početnoj poziciji se vidi.** `rootComment` — ono što PGN drži
+   ispred prvog poteza — parsirao se odavno i **nije ga čitao nijedan ekran**,
+   a strelice na toj istoj poziciji su se crtale, pa se rupa nije primećivala.
+   Sada se prikazuje na potezu 0. Oba izvoznika ga i **pišu**; ranije nisu, pa
+   je trener mogao da ga otkuca u studiju i da nestane pri čuvanju.
+
+23 nova testa (1342 → 1365), i sva četiri čuvara su dokazana mutacijom pre nego
+što im se poverovalo — pravilo iz `CLAUDE.md`, i ovde je zaradilo mesto: bez
+mutacije ne bi se videlo da čuvar meri baš ono zbog čega postoji.
+
+### Linija se šeta brzinom glasa, a demonstracija prelazi u pitanje na istoj tabli
+
+Vlasnik je zatim dao tačan pedagoški šablon, i on je promenio ono što je bilo
+otvoreno gore. Lekcija o opoziciji sa `8/8/8/3k4/8/8/3PK3/8 w - - 0 1` i linijom
+`1. Kd3 {…[%csl Ge4,Gd4,Gc4]} Ke5 {…} 2. Kc4 {…} Kd6 3. Kd4 {…}` mora da radi
+ovako:
+
+1. **Potez se odigrava tek kad se rečenica ispred njega izgovori do kraja.**
+   `SpeechService.speak` se završava kad glas stane (`awaitSpeakCompletion`, uz
+   svoj watchdog), pa pregledač **čeka rečenicu, ne sat**. Tabla koja se pomeri
+   ispod rečenice koja se još izgovara ostavlja dete da sluša o poziciji koje
+   više nema. Dugme „Pročitaj mi liniju" stoji u traci poteza; sa isključenim
+   glasom nema ni tajmera ni automatskog puštanja — dete pritiska „Sledeći
+   potez", i to je isti ekran, ne slabiji. Na mašini bez glasa dugmeta nema
+   uopšte (kontrola koja ne može da radi je gora od nikakve).
+2. **Obojena polja i strelice prate rečenicu i potez.** Ovo je već radilo od
+   faze 2 — provereno na tačnom primeru: `[%csl Ge4,Gd4,Gc4]` stoji na tabli
+   dok se čita rečenica o Kd3, i nestaje sa sledećim potezom.
+3. **Prelaz iz `show` u `ask_move`/`ask_choice` je jedan neprekinut tok.** Ako
+   sledeći korak stoji na **istoj poziciji** na kojoj se linija zaustavila, ne
+   učitava se ništa: tabla ostaje, orijentacija se ne preračunava, narator
+   izgovori pitanje i tabla se prosto otključa za dete. Korak koji počinje na
+   drugoj poziciji se ne otvara sam — to je nova dijagrama i dete je otvara kad
+   je spremno.
+
+Poređenje pozicija ide po prva četiri polja FEN-a (postavka, potez, rokada, en
+passant), namerno bez brojača poteza — demonstracija koja je dovde došla i
+pitanje napisano odavde su za dete ista tabla.
+
+Sedam testova na ovo, i tri mutacije: potez koji ne čeka glas, korak koji uvek
+učitava tablu, i tok koji ulazi u bilo koji sledeći korak — svaka obara tačno
+onaj test koji je za nju pisan.
+
+**Nije viđeno uživo** — `TODO-provera.md`, stavka 108, tačke 24–29.
+
+Ostaje otvoreno i namerno nije rađeno: pregledač ide samo glavnom linijom
+(`LinearMoveCursor`), pa varijacije u koraku postoje u stablu a ne mogu da se
+prošetaju.
 
 ## Interaktivna lekcija — faze 0–7 gotove, ostaje živa provera, 6.9.2026
 

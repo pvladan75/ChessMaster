@@ -334,7 +334,7 @@ router.post('/lesson', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (
   } catch (err) {
     await refundQuota(req);
     logger.error('Error creating lesson assignment:', err);
-    res.status(500).json({ error: 'Greška pri zadavanju lekcije.' });
+    res.status(500).json({ error: 'Greška pri zadavanju tutorijala.' });
   }
 });
 

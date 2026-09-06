@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/core/models/move_cursor.dart';
+import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -30,11 +32,16 @@ class LessonViewerScreen extends StatefulWidget {
     required this.session,
     required this.detail,
     this.api,
+    this.speech,
   });
 
   final UserSession session;
   final AssignmentDetail detail;
   final AssignmentApiService? api;
+
+  /// Injectable for tests. The real one is a singleton that talks to the
+  /// machine running the suite.
+  final SpeechService? speech;
 
   @override
   State<LessonViewerScreen> createState() => LessonViewerScreenState();
@@ -42,42 +49,20 @@ class LessonViewerScreen extends StatefulWidget {
 
 class LessonViewerScreenState extends State<LessonViewerScreen> {
   late final AssignmentApiService _api;
+  late final SpeechService _speech;
   final ChessBoardController _board = ChessBoardController();
 
   late int _stepIndex;
   late final Set<int> _seen;
 
-  /// Positions of the current step's line, when it was saved from an analysis
-  /// tree. Empty when the step is a single position.
-  List<String> _fens = const [];
-  List<String> _moves = const [];
+  /// The parsed variation tree, or a single-node tree if this step has no line.
+  MoveTree? _tree;
 
-  /// One entry per move, in step with [_moves] — empty string where the trainer
-  /// wrote nothing. Empty as a whole when the lesson carries no comments at
-  /// all, or when they could not be lined up with the moves.
-  List<String> _comments = const [];
-  int _moveIndex = 0;
+  /// The node the walk is currently standing on.
+  MoveNode? _node;
 
-  List<List<ChessArrow>> _arrows = const [];
-  List<List<SquareMark>> _squares = const [];
-  List<ChessArrow> _rootArrows = const [];
-  List<SquareMark> _rootSquares = const [];
-
-  List<ChessArrow> get _currentArrows {
-    if (_moveIndex == 0) return _rootArrows;
-    if (_moveIndex > 0 && _moveIndex <= _arrows.length) {
-      return _arrows[_moveIndex - 1];
-    }
-    return const [];
-  }
-
-  List<SquareMark> get _currentSquares {
-    if (_moveIndex == 0) return _rootSquares;
-    if (_moveIndex > 0 && _moveIndex <= _squares.length) {
-      return _squares[_moveIndex - 1];
-    }
-    return const [];
-  }
+  List<ChessArrow> get _currentArrows => _node?.arrows ?? const [];
+  List<SquareMark> get _currentSquares => _node?.squares ?? const [];
 
   PlayerColor _orientation = PlayerColor.white;
 
@@ -101,6 +86,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   void initState() {
     super.initState();
     _api = widget.api ?? AssignmentApiService(authToken: widget.session.token);
+    _speech = widget.speech ?? SpeechService.instance;
     _seen = widget.detail.items
         .where((i) => i.isDone)
         .map((i) => i.position)
@@ -112,6 +98,11 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
 
   @override
   void dispose() {
+    // The loop checks this before every step, so leaving the screen ends the
+    // walk rather than letting it go on talking to nobody.
+    _narrationRun += 1;
+    _narrating = false;
+    _speech.stop();
     _board.dispose();
     super.dispose();
   }
@@ -128,55 +119,51 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     // whenever the two disagreed about how many moves there were; `mainLine()`
     // builds them in one walk, so they cannot.
     //
-    // `MoveTree.parsePgn` is also told where the line starts, which is what the
-    // old `_sameFen` guard was working around: `PgnParser` always replayed from
-    // the standard position, so a step out of an endgame book came back as a
-    // different game and had to be rejected on sight.
-    List<String> fens = const [];
-    List<String> moves = const [];
-    List<String> comments = const [];
-    List<List<ChessArrow>> arrows = const [];
-    List<List<SquareMark>> squares = const [];
-    List<ChessArrow> rootArrows = const [];
-    List<SquareMark> rootSquares = const [];
-    final pgn = step.pgn;
-    if (pgn != null && pgn.trim().isNotEmpty) {
-      try {
-        final tree = MoveTree.parsePgn(pgn, startingFen: step.fen);
-        final line = tree?.mainLine();
-        if (line != null) {
-          if (!line.isEmpty) {
-            fens = line.fens;
-            moves = line.movesSan;
-            comments = line.hasNoNotes ? const [] : line.comments;
-            arrows = line.arrows;
-            squares = line.squares;
-          }
-          rootArrows = line.rootArrows;
-          rootSquares = line.rootSquares;
-        }
-      } catch (_) {
-        // Fall through to the still position.
-      }
-    }
+    // The reader is told where the line starts, which is what the old `_sameFen`
+    // guard was working around: `PgnParser` always replayed from the standard
+    // position, so a step out of an endgame book came back as a different game
+    // and had to be rejected on sight.
+    //
+    // It is `LessonStepLine` rather than `MoveTree` directly, because the
+    // trainer's studio checks a step against the same reader before saving it.
+    // A step that does not replay is refused there; here it simply shows its
+    // still position, which is what an older step with a broken line does.
+    final line = LessonStepLine.read(fen: step.fen, pgn: step.pgn);
+    final tree = line.tree ?? MoveTree(startingFen: step.fen);
+
+    // Does this step go on from where the board already stands? A lesson moves
+    // from showing to asking on **one** board: the demonstration walks to
+    // 2...Kd6, the next step asks „Kako beli sada ponovo zauzima opoziciju?"
+    // from that same position, and all that may happen on screen is that the
+    // board becomes the child's to play on. Reloading the FEN and recomputing
+    // the orientation there is a visible jump that says a new exercise has
+    // started — which is exactly what it is not.
+    final continues =
+        _shownFen.isNotEmpty && _samePosition(step.fen, _shownFen);
 
     setState(() {
-      _fens = fens;
-      _moves = moves;
-      _comments = comments;
-      _arrows = arrows;
-      _squares = squares;
-      _rootArrows = rootArrows;
-      _rootSquares = rootSquares;
-      _moveIndex = 0;
-      _explored = false;
+      _tree = tree;
+      _node = tree.root;
       _wrongAnswers = 0;
       _sending = false;
       _verdict = null;
       _reveal = null;
-      _orientation = _sideToMove(step.fen);
+      // A continuing step keeps the board the child is looking at, whichever
+      // way round it is. Only a step that opens a different position gets to
+      // decide the orientation.
+      if (!continues) _orientation = _sideToMove(step.fen);
     });
-    _board.loadFen(step.fen);
+
+    // The pieces are only put back if they are not there already — a step that
+    // continues from this position has nothing to load, and a child who has
+    // been trying moves out has.
+    if (!continues || _explored) {
+      _board.loadFen(step.fen);
+    }
+    // After the board is settled: a step the child had been playing on is a
+    // step whose pieces have just been put back.
+    if (_explored) setState(() => _explored = false);
+    _shownFen = step.fen;
 
     _markSeen();
   }
@@ -323,27 +310,191 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     );
   }
 
-  void _goToStep(int index) {
+  void _goToStep(int index, {bool keepNarration = false}) {
     if (index < 0 || index >= _steps.length) return;
+    if (!keepNarration) _stopNarration();
     setState(() => _stepIndex = index);
     _loadStep();
   }
 
-  /// Jumps to the position after [count] moves of the step's line.
-  void _applyMovesUpTo(int count) {
-    if (_fens.isEmpty) return;
-    final index = count.clamp(0, _fens.length - 1);
+  /// Whether the next step simply goes on from the position on the board.
+  ///
+  /// That is the join the lesson is built around — a demonstration and the
+  /// question about the position it arrived at are two steps and one board —
+  /// and it is the only case where the walk carries on by itself. A next step
+  /// that starts somewhere else is a new diagram, and the child opens it when
+  /// they are ready.
+  bool get _nextStepContinuesHere {
+    if (_stepIndex + 1 >= _steps.length) return false;
+    return _samePosition(_steps[_stepIndex + 1].fen, _lessonFen);
+  }
+
+  /// The position the board was last put on by the lesson.
+  ///
+  /// Kept because a step is not always a new picture: a step that asks
+  /// something usually stands on the position the step before it walked to,
+  /// and in that case the board must not be reloaded and the orientation must
+  /// not be recomputed. Empty until the first step is loaded.
+  String _shownFen = '';
+
+  /// Whether two FENs are the same position.
+  ///
+  /// Placement, side to move, castling and en passant — not the halfmove clock
+  /// or the move number. A demonstration that walked here and a question
+  /// written from here are the same board to a child, and comparing the whole
+  /// string would make the continuity depend on two counters nobody can see.
+  static bool _samePosition(String a, String b) {
+    List<String> head(String fen) {
+      final parts = fen.trim().split(RegExp(r'\s+'));
+      return parts.length >= 4 ? parts.sublist(0, 4) : parts;
+    }
+
+    final x = head(a);
+    final y = head(b);
+    if (x.length != y.length) return false;
+    for (var i = 0; i < x.length; i++) {
+      if (x[i] != y[i]) return false;
+    }
+    return true;
+  }
+
+  /// True while the step's line is walking itself, a sentence at a time.
+  bool _narrating = false;
+
+  /// Bumped to end whatever loop is running. A run that finds the number
+  /// changed underneath it stops without touching the screen — cheaper and
+  /// safer than trying to cancel a chain of futures.
+  int _narrationRun = 0;
+
+  /// How long a move with nothing written about it stays on the board.
+  ///
+  /// Only reached inside a narrated walk, where the alternative is a move that
+  /// appears and is gone before it is seen.
+  static const _silentStep = Duration(milliseconds: 1400);
+
+  /// Whether the machine can actually read the step out.
+  ///
+  /// Not "is speech switched on": a reader with speech off is offered the
+  /// button and switching it on is what pressing it does, the same rule
+  /// `SpeakableInfo` follows. A machine with no voice at all is a different
+  /// answer — there the button is not drawn, because a control that cannot
+  /// work is worse than no control.
+  bool get _canNarrate =>
+      _speech.state != SpeechState.noVoice &&
+      _speech.state != SpeechState.failed;
+
+  /// Walks the line the way it is taught: the sentence about the position is
+  /// read out, and the next move is played when the voice has finished it.
+  ///
+  /// The pedagogical shape this exists for, in the owner's words: a step is one
+  /// board, and „1. Kd3 {…} Ke5 {…} 2. Kc4 {…}" is one lesson on it. The child
+  /// hears why the move was played, sees the squares it is about, and only then
+  /// does the answer appear — a board that moves under a sentence still being
+  /// spoken leaves the listener hearing about a position that is no longer
+  /// there.
+  ///
+  /// It waits on the sentence rather than on a clock. `SpeechService.speak`
+  /// completes when the voice stops (`awaitSpeakCompletion`), and carries its
+  /// own watchdog for the platforms that never report it — so a machine that
+  /// goes quiet without saying so still walks on instead of freezing.
+  ///
+  /// With speech off there is no timer and no autoplay: the child presses
+  /// „Sledeći potez" and reads. That is the same screen, not a lesser one.
+  Future<void> _narrate() async {
+    if (_narrating || _tree == null || _tree!.root.children.isEmpty) return;
+
+    if (!_speech.enabled) {
+      // Pressing play with speech off means "read it to me", so it is switched
+      // on here rather than answered with nothing.
+      await _speech.setEnabled(true);
+      if (!mounted) return;
+    }
+    if (_speech.state != SpeechState.ready) {
+      AppFeedback.show(
+        context,
+        () => const SnackBar(
+            content: Text('Nema glasa na ovom uređaju — listaj dugmadima.')),
+      );
+      return;
+    }
+
+    final run = ++_narrationRun;
+    setState(() => _narrating = true);
+
+    while (mounted && _narrating && run == _narrationRun) {
+      // The reader can switch speech off from anywhere while this runs. Without
+      // this the loop would race to the end of the line in silence, since
+      // `speak` returns at once when it has nothing to speak with.
+      if (!_speech.enabled || _speech.state != SpeechState.ready) break;
+
+      final text = _node?.comment ?? '';
+      if (text.isEmpty) {
+        await Future<void>.delayed(_silentStep);
+      } else {
+        // `force`, because two moves in a row can carry the same sentence and
+        // the service otherwise says it once — which here would not just skip
+        // the words, it would skip the wait.
+        await _speech.speak(text, force: true);
+      }
+
+      if (!mounted || !_narrating || run != _narrationRun) return;
+
+      if (_node != null && _node!.children.isNotEmpty) {
+        // At a fork the walk stops and the child chooses. Taking the first
+        // child silently would make every sideline unreachable for exactly the
+        // child who is listening rather than pressing — which is the child this
+        // feature is for.
+        if (_node!.children.length > 1) break;
+        _applyNode(_node!.children.first);
+        continue;
+      }
+
+      // The line has run out. If the next step stands on this very position,
+      // the lesson has not stopped — it is about to ask something about the
+      // board the child is already looking at, so the walk goes on through the
+      // join instead of ending at a „Sledeći korak" button.
+      if (!_nextStepContinuesHere) break;
+
+      _goToStep(_stepIndex + 1, keepNarration: true);
+      if (!mounted || !_narrating || run != _narrationRun) return;
+
+      if (_step.kind != LessonStepKind.show) {
+        // The question is read out, and then the voice stops. The board is
+        // already the child's — nothing was reloaded and nothing moved; what
+        // changed is whose turn it is to act.
+        final question = _step.instruction;
+        if (question != null && question.isNotEmpty) {
+          await _speech.speak(question, force: true);
+        }
+        break;
+      }
+    }
+
+    if (mounted && run == _narrationRun) setState(() => _narrating = false);
+  }
+
+  /// Ends the walk. Called by everything the reader does — a button on the
+  /// strip, a move of their own, the next step, leaving.
+  void _stopNarration() {
+    if (!_narrating) return;
+    _narrationRun += 1;
+    _speech.stop();
+    if (mounted) setState(() => _narrating = false);
+  }
+
+  /// Jumps to a specific node in the tree.
+  void _applyNode(MoveNode node) {
     setState(() {
-      _moveIndex = index;
+      _node = node;
       _explored = false;
     });
-    _board.loadFen(_fens[index]);
+    _shownFen = node.fen;
+    _board.loadFen(node.fen);
   }
 
   /// The position the lesson is showing right now — the step's own board, or
   /// wherever the student has walked to along its line.
-  String get _lessonFen =>
-      _fens.isEmpty ? _step.fen : _fens[_moveIndex.clamp(0, _fens.length - 1)];
+  String get _lessonFen => _node?.fen ?? _step.fen;
 
   /// Puts the pieces back where the lesson had them.
   void _restore() {
@@ -356,7 +507,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     if (_steps.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.detail.assignment.title)),
-        body: const Center(child: Text('Ova lekcija nema nijedan korak.')),
+        body: const Center(child: Text('Ovaj tutorijal nema nijedan korak.')),
       );
     }
 
@@ -426,6 +577,10 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
                                 _board.loadFen(_lessonFen);
                               }
                             } else {
+                              // The child has taken the board. Whatever was
+                              // being read is about a position they have just
+                              // left.
+                              _stopNarration();
                               if (!_explored) setState(() => _explored = true);
                             }
                           },
@@ -437,7 +592,8 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
                     _buildStepTasks(),
                     if (_explored) _buildRestore(),
                     _buildMoveComment(),
-                    if (_moves.isNotEmpty) _buildMoveControls(),
+                    if (_tree != null && _tree!.root.children.isNotEmpty)
+                      _buildMoveControls(),
                     const SizedBox(height: 10),
                     _buildStepControls(),
                   ],
@@ -514,15 +670,15 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     );
   }
 
-  /// What the trainer wrote about the move now on the board.
+  /// What the trainer wrote about the position now on the board.
   ///
-  /// Index 0 is the position before the first move, which nobody wrote a note
-  /// about, so the note for move n lives at n - 1.
+  /// Index 0 is the position before the first move. Somebody does write about
+  /// that one — it is the diagram the step opens on — and PGN keeps that note
+  /// ahead of move one rather than on a move, which is why it lives in its own
+  /// field. Notes about moves start at index 1, so the note for move n lives
+  /// at n - 1.
   Widget _buildMoveComment() {
-    if (_moveIndex <= 0 || _moveIndex > _comments.length) {
-      return const SizedBox.shrink();
-    }
-    final comment = _comments[_moveIndex - 1];
+    final comment = _node?.comment ?? '';
     if (comment.isEmpty) return const SizedBox.shrink();
 
     return Padding(
@@ -657,21 +813,78 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   /// The one cursor this screen is walked by. The strip's buttons and the arrow
   /// keys read it from here rather than each building their own, so there is no
   /// second copy to fall out of step.
-  MoveCursor _moveCursor() => LinearMoveCursor(
-        fens: _fens,
-        index: _moveIndex,
-        onSeek: _applyMovesUpTo,
-      );
+  MoveCursor _moveCursor() {
+    if (_tree == null || _node == null) {
+      return LinearMoveCursor(fens: const [], index: 0, onSeek: (_) {});
+    }
+    return MoveTreeCursor(
+      moveTree: _tree!,
+      currentNode: _node!,
+      // Taking the strip or the arrow keys is the reader saying they would
+      // rather drive. The walk stops, and so does the voice.
+      onSelect: (node) {
+        _stopNarration();
+        _applyNode(node);
+      },
+    );
+  }
+
+  /// How far along the line the child has walked, and how long that line is.
+  ///
+  /// Both numbers are about **the line they are on**, not about the tree: the
+  /// first is the depth of the current node, the second that depth plus what
+  /// still follows it down first children. On a step with no branches those are
+  /// exactly the old „Potez N od M" — the line's length either way. On a step
+  /// that branches they are the only honest answer, because there is no single
+  /// number of moves in a tree: stepping into a shorter sideline shortens the
+  /// line, and saying so is the point.
+  ({int at, int of}) _lineProgress() {
+    var at = 0;
+    for (var node = _node; node?.parent != null; node = node!.parent) {
+      at++;
+    }
+
+    var of = at;
+    for (var node = _node;
+        node != null && node.children.isNotEmpty;
+        node = node.children.first) {
+      of++;
+    }
+
+    return (at: at, of: of);
+  }
 
   Widget _buildMoveControls() {
+    final progress = _lineProgress();
+
     return MoveNavigationControls(
       cursor: _moveCursor(),
-      centerLabel: 'Potez $_moveIndex od ${_moves.length}',
+      centerLabel: 'Potez ${progress.at} od ${progress.of}',
       onFlipBoard: () => setState(() {
         _orientation = _orientation == PlayerColor.white
             ? PlayerColor.black
             : PlayerColor.white;
       }),
+      trailing: [_buildNarrationButton()],
+    );
+  }
+
+  /// Starts and stops the narrated walk down the line.
+  ///
+  /// Wrapped in a builder on the speech service so that installing a voice, or
+  /// switching speech off in another screen, is reflected here without the
+  /// reader having to reopen the lesson.
+  Widget _buildNarrationButton() {
+    return AnimatedBuilder(
+      animation: _speech,
+      builder: (context, _) {
+        if (!_canNarrate) return const SizedBox.shrink();
+        return IconButton(
+          icon: Icon(_narrating ? Icons.stop : Icons.play_arrow),
+          tooltip: _narrating ? 'Zaustavi čitanje' : 'Pročitaj mi liniju',
+          onPressed: _narrating ? _stopNarration : _narrate,
+        );
+      },
     );
   }
 

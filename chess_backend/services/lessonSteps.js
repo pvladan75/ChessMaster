@@ -301,7 +301,7 @@ function withBackfilledId(step, index) {
 /// missing.
 function buildLessonSteps(list) {
   if (!Array.isArray(list)) {
-    return { ok: false, status: 400, error: 'Lekcija mora imati listu koraka.' };
+    return { ok: false, status: 400, error: 'Tutorijal mora imati listu koraka.' };
   }
 
   const entries = [];
@@ -319,7 +319,7 @@ function buildLessonSteps(list) {
       return {
         ok: false,
         status: 400,
-        error: `Korak ${i + 1}: oznaka „${built.entry.id}" je već uzeta u ovoj lekciji.`,
+        error: `Korak ${i + 1}: oznaka „${built.entry.id}" je već uzeta u ovom tutorijalu.`,
       };
     }
     seen.add(built.entry.id);

@@ -22,9 +22,9 @@ void showInviteDialog(
     barrierDismissible: false,
     builder: (context) {
       return AlertDialog(
-        title: const Text('Poziv na lekciju'),
+        title: const Text('Poziv na čas'),
         content: Text(
-          'Trener $trainerName vas poziva na lekciju. Da li želite da se pridružite?',
+          'Trener $trainerName vas poziva na čas. Da li želite da se pridružite?',
         ),
         actions: [
           TextButton(
@@ -457,7 +457,7 @@ void showScheduleSessionDialog(
               TextField(
                 controller: titleCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Naslov sesije / lekcije',
+                  labelText: 'Naslov časa',
                   hintText: 'npr. Sicilijanska odbrana - Predavanje',
                   border: OutlineInputBorder(),
                 ),
@@ -656,7 +656,7 @@ void showPremiumModal(
 }) {
   final colors = context.colors;
   const benefits = [
-    'Neograničeno sačuvanih pozicija i lekcija (besplatno: do 20)',
+    'Neograničeno sačuvanih pozicija i tutorijala (besplatno: do 20)',
     'Neograničeno živih sesija mesečno (besplatno: do 5)',
     'Izvoz snimljenih časova u MP4 video format',
     'Veća mesečna kvota za AI komentare',

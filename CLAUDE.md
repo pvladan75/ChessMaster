@@ -20,9 +20,9 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1342 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1436 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 945 tests, all green
+cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -57,6 +57,95 @@ of the app's came with a lesson step that asks something back — the kind
 discriminator and the screen that shows it, the ring `[%csl]` is drawn as, the
 narration, the trainer's editor — and fifty on the backend with the judging
 route, step identity, and the rename that no longer deletes a lesson's steps.
+
+Twenty-three more on 6.9.2026, when a lesson step stopped being able to carry a
+position from one node and a line from another: eleven for the one reader of a
+step's line and the count of moves it could not play, seven for the pair the
+studio builds from a single node, three on the student's screen — the note about
+the starting position, and an older broken step still opening as the still board
+it always was — and two for that note surviving the round trip through both
+exporters. Seven more the same day for the shape those fixes were for: a step's
+line walked at the speed of the voice — the move is played when the sentence in
+front of it has been read out, not on a clock — and the join where showing turns
+into asking, which is one board and not two screens. Five more with batch 51,
+the vocabulary sweep that split one word in two: **Tutorijal** is the artefact a
+trainer writes and a child walks through alone, **Čas** is the live session in a
+room. `tutorial_vocabulary_test.dart` is what keeps them split — the old word
+comes back one careless string at a time, and it also fails on „Ova tutorijal",
+because the new noun is masculine and everything agreeing with it changes too.
+Six more with batch 52, where the lesson viewer stopped throwing away the
+sidelines it had already parsed: it holds the tree and a node now rather than
+five lists indexed by ply, and the narrated walk **stops at a fork** instead of
+taking the first child. The last of those six is the one that matters — a step
+with no branches must never show the chooser, or the ordinary lesson has been
+traded away for the branching one. Four more with batch 53 — edit, rename, save
+as a new version — of which the one that earns its place asserts on the
+**request** and not on the screen: a rename must not mention `positionList` at
+all, because a body that mentions it can write `position_list = NULL` and take
+every step of a tutorial with it.
+
+Eleven more on the backend the same day, with `POST /lessons/:id/clone` — „save
+this tutorial as a new version" — which is phase 0 of
+`docs/PLAN-TUTORIJAL.md`. Two of them were proved by mutation, and they are the
+two worth knowing about: a clone **mints a fresh id for every copied step**
+(a step id resolves a schedule row and a recorded answer, so two tutorials
+carrying one is a child's progress appearing in the wrong copy), and it shortens
+a long title rather than letting `VARCHAR(255)` overflow into a 500 that reads
+as „cloning is broken".
+
+Thirteen more on 6.9.2026, and they were written **before** the screen they
+judge — `TutorialStudioScreen`, phase 4a. Five drive the screen through its own
+controls (the board reporting a move, the strip, the sheet at a fork), four pin
+the draft's wire shape, and four say what the screen must never become: no
+second board, tree or cursor of its own, and one named predicate deciding where
+the door to it is drawn. Seven mutations were run against them; **one survived
+at first** — deleting the flush that writes the draft when the screen closes
+left the gate green, because in a test the debounced timer outlives the widget
+and writes the same thing a moment later. The gate now closes the screen inside
+that half-second. That is the general lesson, not a footnote: a timer that fires
+after the thing it belongs to is gone proves nothing about a window that took
+the whole process with it.
+
+Eight more on 6.9.2026, for a question that carried the line answering it. A
+step's `pgn` is not redacted on its way to a child — the line *is* the lesson —
+and the viewer draws the move strip for every kind, so an `ask_move` step with a
+line showed the answer to anyone who pressed „Sledeći potez". The editor is the
+one place a step's kind is written, and it now asks before making that
+combination, warns on a step already in it, and refuses to save one. **That is
+the single refusal the editor makes on its own**, and the reason is written
+beside it: the server stores `pgn` as opaque text and has no PGN reader, so it
+cannot make this one, and giving it one would be a second parser disagreeing
+with the app's. Six mutations, all six caught.
+
+Thirteen more with batch 54, the authoring half of the tutorial studio: the
+eleven of its gate, one of the batch's own, and one the lead added while grading
+— the tutorial's **name** reached the controller and never the draft, so it was
+the one thing that did not come back when the screen was reopened, with every
+example beside it that did. Two things that batch is worth remembering for.
+**A `// ignore_for_file` kept the analyzer at 29 by hiding three new infos**
+rather than by not adding them, and the report called that „adequately
+resolved" — so *compare the list* is not enough on its own; check that nothing
+new is suppressed. And three of its report's sections were written rather than
+measured, all three shaped like proof, while its one genuine correction was
+worth more than the rest of the document put together.
+
+Fifteen more with batch 55, which gave the step editor add, remove and reorder
+— twelve of its gate and three of the batch's own. The gate is written the way
+it is because **the server's guard against a lost step id cannot fire for that
+batch**: `PUT /lessons/:id` answers 409 only when the stored and sent lists are
+the same length, and adding or removing a step changes the length. A step id is
+what `assignment_items` and `review_items` name a step by, and nothing joins on
+it.
+
+Two lessons about the lead's own gates came out of it. **A test that rules out
+one wrong answer has not proved the right one**: „the selection follows the
+step" only checked that a particular other step's sentence was absent, and a
+mutation leaving the selection on the old slot passed it. And **a finder that is
+unique today stops being unique when the same gate mandates a second place for
+the same string** — `find.text` on a step's name, once a title field exists.
+The batch worked around that second one by appending a zero-width space to the
+title in the editing field; it declared it and recommended the right fix, which
+is what got applied.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
@@ -174,6 +263,20 @@ machine with a `.env` the require succeeds and the suite is green; CI has no
 it. **A test that reaches a route must set the environment that route's imports
 demand, and the way to check is to run `npm test` with `.env` moved aside** —
 that is the environment CI actually has.
+
+One more on 6.9.2026, and it is the oldest shape in this list wearing a new
+coat. „Napravi korak od ove pozicije" sent a lesson step's `fen` from
+`_currentNode` and its `pgn` from an export of `_rootNode`, and
+`MoveTree.parsePgn` skips a move it cannot play **without a word** — so a
+trainer standing anywhere but the root of their tree saved a step whose line
+could not be replayed, was told „Korak uspešno dodat", and found out when a
+child opened a board with no moves on it. Parity decided whether the student got
+an empty line or a shortened one, so half the positions in any tree looked
+correct. The fix is two rules worth copying: **one node answers for both
+fields** (`StudioLessonStep.from`), and **the writer reads its own work back
+through the reader's parser before saving it** — `LessonStepLine` is that one
+parser, `rejectedMoves` is the number it reports, and a step that does not
+replay is refused rather than stored.
 
 ## Two ways a Flutter release build hides a mistake
 

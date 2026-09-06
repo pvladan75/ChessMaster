@@ -111,8 +111,8 @@ class _AccountStatsCardState extends State<AccountStatsCard> {
               dense: true,
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.bookmark, color: context.colors.accent),
-              title:
-                  Text('Sačuvane lekcije / pozicije', style: AppText.bodyLarge),
+              title: Text('Sačuvani tutorijali / pozicije',
+                  style: AppText.bodyLarge),
               trailing: Text(
                 _limit(stats?['savedLessonsCount'], limits?['maxSavedLessons'],
                     20),

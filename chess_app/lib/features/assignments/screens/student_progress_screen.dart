@@ -115,7 +115,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     if (created == true && mounted) {
       AppFeedback.show(
         context,
-        () => const SnackBar(content: Text('Lekcija je poslata učeniku.')),
+        () => const SnackBar(content: Text('Tutorijal je poslat učeniku.')),
       );
       _refresh();
     }
@@ -213,7 +213,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
               heroTag: 'assign-lesson',
               onPressed: _assignLesson,
               icon: const Icon(Icons.menu_book),
-              label: const Text('Zadaj lekciju'),
+              label: const Text('Zadaj tutorijal'),
             ),
             const SizedBox(height: 10),
             FloatingActionButton.extended(

@@ -160,6 +160,19 @@ class MoveTree {
   final MoveNode root;
   MoveNode current;
 
+  /// How many move tokens [parsePgn] could not play from the position it had
+  /// reached.
+  ///
+  /// The parser skips them, and skipping is right: a PGN with one unreadable
+  /// token is still worth most of its moves. What was wrong was that it skipped
+  /// them *silently*, so a line replayed against the wrong starting position —
+  /// every token illegal — came back as an empty tree that looked exactly like
+  /// a step with no line in it. A caller that saves a line for somebody else to
+  /// read must be able to tell those apart; see `LessonStepLine.from`.
+  ///
+  /// Zero for a tree that was built rather than parsed.
+  int rejectedMoves = 0;
+
   MoveTree({required String startingFen})
       : root = MoveNode(san: 'Root', fen: startingFen, from: '', to: ''),
         current = MoveNode(san: 'Root', fen: startingFen, from: '', to: '') {
@@ -175,6 +188,11 @@ class MoveTree {
       sb.writeln('[FEN "${root.fen}"]');
       sb.writeln();
     }
+    // What the author wrote about the starting position, ahead of move one —
+    // where PGN puts it and where [parsePgn] reads it from. It was parsed and
+    // never written, so a note about a still diagram survived being read and
+    // did not survive being saved.
+    _writeComment(root, sb);
     _writePgnNode(root, sb, true);
     return sb.toString().trim();
   }
@@ -404,9 +422,19 @@ class MoveTree {
       } else {
         // Clean move number prefixes (e.g. "1.e4" -> "e4", "1...e5" -> "e5") and evaluation annotations (e.g. "e5?!" -> "e5")
         var cleanedToken = token.replaceAll(RegExp(r'^\d+\.{1,3}'), '');
-        cleanedToken = cleanedToken.replaceAll(RegExp(r'[!?]+$'), '');
+        // Trailing annotation glyphs. `□` is in the studio's own NAG list
+        // ('!□') and was not in this class, so `Kf1!□` reached `chess` with the
+        // glyph still on it and could not be played. That was invisible while
+        // a rejected token cost nothing; it is not invisible now that
+        // [rejectedMoves] is read as "this line does not belong to this
+        // position".
+        cleanedToken = cleanedToken.replaceAll(RegExp(r'[!?□]+$'), '');
 
         if (cleanedToken.isEmpty) continue;
+
+        // A numeric NAG annotates the move before it. It is not a move, so not
+        // playing it is not a rejection.
+        if (RegExp(r'^\$\d+$').hasMatch(cleanedToken)) continue;
 
         // Skip purely numeric/result tokens
         if (RegExp(r'^\d+(\.+)?$').hasMatch(cleanedToken) ||
@@ -421,7 +449,9 @@ class MoveTree {
           final tempGame = chess.Chess();
           tempGame.load(currentNode.fen);
           final success = tempGame.move(cleanedToken);
-          if (success) {
+          if (!success) {
+            tree.rejectedMoves += 1;
+          } else {
             final lastMove = tempGame.history.last.move;
             final newNode = MoveNode(
               san: cleanedToken,
@@ -435,6 +465,7 @@ class MoveTree {
           }
         } catch (_) {
           // Skip invalid move tokens in fallback parse
+          tree.rejectedMoves += 1;
         }
       }
     }

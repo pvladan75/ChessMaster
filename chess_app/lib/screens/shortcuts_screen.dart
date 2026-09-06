@@ -56,7 +56,7 @@ const kShortcutGroups = <ShortcutGroup>[
   ),
   ShortcutGroup(
     'Kretanje kroz poteze',
-    'Svuda gde ispod table stoji traka sa potezima: analiza, soba, lekcija, '
+    'Svuda gde ispod table stoji traka sa potezima: analiza, soba, tutorijal, '
         'ponavljanje, vežbe i šetnja kroz partiju. Dok je fokus u polju za '
         'tekst, strelice pripadaju polju.',
     [

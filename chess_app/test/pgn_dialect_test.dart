@@ -158,6 +158,40 @@ void main() {
       expect(reread.root.children.single.san, 'Ra8#');
       expect(reread.root.children.single.comment, 'Mat.');
     });
+
+    test('what is written about the starting position round trips', () {
+      // The note ahead of move one, which both writers used to parse and
+      // neither used to write. It is the only place a sentence about a *still*
+      // position can live, and a still position is most of what a lesson step
+      // is — so it was the one thing an export could not carry.
+      final tree = _treeWith((t) {
+        t.root.comment = 'Pogledaj polje d5.';
+        t.root.squares = [SquareMark(square: 'd5', colorCode: 'R')];
+        MoveTree.appendLine(t.root, ['e2e4']);
+      });
+
+      final reread =
+          MoveTree.parsePgn(tree.exportToPgn(), startingFen: _startFen)!;
+
+      expect(reread.root.comment, 'Pogledaj polje d5.');
+      expect(reread.root.squares.single.square, 'd5');
+      expect(reread.root.children.single.san, 'e4',
+          reason: 'the note must not swallow the first move');
+    });
+
+    test('the studio writes the same note in the same place', () {
+      final root = AnalysisNode(fen: _startFen);
+      root.comment = 'Pogledaj polje d5.';
+      root.addChild(childFen: _afterE4, san: 'e4', uci: 'e2e4');
+
+      final reread = MoveTree.parsePgn(
+        PgnExporterService.exportToPgn(root),
+        startingFen: _startFen,
+      )!;
+
+      expect(reread.root.comment, 'Pogledaj polje d5.');
+      expect(reread.root.children.single.san, 'e4');
+    });
   });
 
   group('annotations are never shown to the reader as words', () {

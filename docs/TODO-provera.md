@@ -4065,3 +4065,137 @@ Trenerova strana, faza 7 (paket 50) — ovim se lekcija iz gornjih stavki i prav
     da se pojavi „Odgovor nije poslat — proveri vezu." ni ocena.
 23. [ ] **U `CreateCourseDialog` više nema unosa zadatka** — samo redosled i
     izbor pozicija. Tekst koraka se piše u studiju.
+
+Popravke od 6.9.2026 — korak nosi liniju, ne samo sliku:
+
+24. [ ] **Korak napravljen usred linije zaista nosi poteze.** U studiju odigraj
+    liniju od bar tri poteza sa komentarom uz svaki, stani na treći potez i
+    napravi korak. Kao đak: traka „Potez N od M" postoji, listanje menja
+    poziciju, i uz svaki potez stoji komentar koji si napisao. Ranije se ovde
+    dobijala **nepomična slika**, bez trake i bez ijednog komentara, a trener je
+    pri čuvanju video „Korak uspešno dodat".
+25. [ ] **Pitanje „Odakle počinje korak?"** iskoči kad ne stojiš na početnoj
+    poziciji stabla — „Od početka linije" daje celu liniju, „Odavde" samo ono
+    što sledi. Ako stojiš u **sporednoj varijanti**, u pitanju stoji i
+    upozorenje da „od početka linije" prikazuje glavnu, a ne tvoju liniju.
+    Kad stojiš na korenu, pitanja nema.
+26. [ ] **Rečenica o početnoj poziciji stiže do đaka.** U studiju napiši
+    komentar dok tabla stoji na **prvoj** poziciji koraka (pre ijednog poteza),
+    napravi korak, otvori kao đak: rečenica se vidi odmah, na potezu 0. Kreni
+    napred — zameni je komentar prvog poteza; vrati se nazad — opet je tu.
+
+Pedagoški šablon iz 6.9.2026 — lekcija se sluša, pa se pita.
+
+**Tačke 24–29 se namerno drže na čekanju do faze 5 `PLAN-TUTORIJAL.md`** —
+zajedničke provere uživo na uređajima, odluka vlasnika 6.9.2026. Razlog je da se
+ne proverava tri puta isti ekran: pregledač je od tada dobio i grananje (batch
+52), pa se sve ovo gleda odjednom, na telefonu i na Windowsu, kad autorska
+strana bude gotova. Ništa od ovoga nije viđeno kako radi.
+
+
+27. [ ] **Linija se šeta brzinom glasa.** Uključi govor, otvori korak sa
+    linijom i pritisni „Pročitaj mi liniju" u traci poteza. Svaki potez se
+    odigra **tek kad se rečenica ispred njega dovrši** — ne ranije, i ne po
+    tajmeru. Test za ovo je lekcija o opoziciji iz razgovora:
+    `8/8/8/3k4/8/8/3PK3/8 w - - 0 1` sa `1. Kd3 … Ke5 … 2. Kc4 … Kd6 3. Kd4`.
+    Proveri i da zelena polja e4/d4/c4 stoje **dok** se čita rečenica o Kd3, i
+    da nestanu sa sledećim potezom.
+27a. [ ] **Dete može da preuzme.** Pritisak na „Prethodni potez", na strelicu,
+    ili potez odigran rukom — zaustavlja čitanje i glas ućuti. „Zaustavi
+    čitanje" isto. Sa isključenim govorom dugmeta za čitanje nema, a listanje
+    radi kao i pre.
+28. [ ] **Demonstracija prelazi u pitanje bez skoka.** Napravi lekciju od dva
+    koraka: `show` sa linijom koja se zaustavi na nekoj poziciji, pa
+    `ask_move` **na toj istoj poziciji**. Sa uključenim govorom: po kraju
+    linije lekcija sama pređe na pitanje, narator ga izgovori, i tabla se
+    otključa — **bez treptaja, bez okretanja table, bez učitavanja novog
+    ekrana**. Ovo je tačka koju treba gledati u oči: ako se tabla makar na
+    trenutak „resetuje", nije dobro.
+28a. [ ] **Isto važi i rukom.** Sa isključenim govorom dođi do kraja linije i
+    pritisni „Sledeći korak" — ista tabla, ista orijentacija, samo se otključa.
+29. [ ] **Korak koji počinje drugde se ne otvara sam.** Ako sledeći korak stoji
+    na nekoj **drugoj** poziciji, čitanje stane na kraju linije i čeka dete.
+
+## 109. Studio za tutorijal — školjka — 6.9.2026, nije viđeno uživo
+
+Faza 4a iz `docs/PLAN-TUTORIJAL.md`. **Samo Windows** — na Androidu vrata nisu
+nacrtana i to je jedna od stavki. Kao i tačke 24–29, **čeka fazu 5**: ekran je
+tek pola gotov (polja i lista primera su batch E), pa se gleda odjednom kad
+autorska strana bude cela.
+
+1. [ ] **Vrata postoje tamo gde treba.** U Analiznom studiju na Windowsu, u
+   traci alata, stoji „Kreiraj interaktivni tutorijal". **Na telefonu ga
+   nema** — ni u traci, ni u meniju „Još alata".
+2. [ ] **Pozicija se prenosi.** Stani na neku poziciju bez nastavka i otvori
+   vrata: novi ekran se otvori na **toj** poziciji, sa istom stranom table.
+3. [ ] **Cela linija se prenosi.** Stani na potez iza kojeg ima nastavka i
+   varijanti; na pitanje odgovori „Celu liniju". U stablu novog ekrana su svi
+   ti potezi i sve varijante.
+4. [ ] **Analiza se ne menja.** Vrati se u Analizni studio i proveri da je
+   stablo tamo netaknuto — potez odigran u tutorijalu ga ne sme dirati.
+5. [ ] **Grananje pita.** Na novom ekranu odigraj potez, vrati se nazad, pa
+   odigraj **drugi** potez iz iste pozicije. Vrati se na početak i pritisni
+   „Sledeći potez": pojavi se izbor sa oba poteza, ne šeta u prvi sam.
+6. [ ] **Nacrt preživi zatvaranje.** Odigraj par poteza i **zatvori prozor
+   odmah**, ne čekajući — pa otvori ekran ponovo. Sve je tu, i tabla stoji na
+   potezu na kojem si stao. Ovo je tačka koju treba gledati u oči: greška bi se
+   videla samo ako se zatvori u prvoj sekundi.
+7. [ ] **Strelice na tastaturi šetaju liniju**, kao u Analiznom studiju.
+
+## 110. Pitanje ne nosi odgovor — 6.9.2026, nije viđeno uživo
+
+Popravka od 6.9.2026 u `LessonStepEditorPanel`. Kao i tačke 24–29 i 109, ide u
+zajedničku proveru uz fazu 5 `PLAN-TUTORIJAL.md`.
+
+1. [ ] **Pita pre nego što se desi.** Otvori tutorijal čiji korak nosi liniju i
+   postavi mu tip „Traži potez na tabli". Pojavi se pitanje „Dete bi videlo
+   odgovor"; „Odustani" vraća tip na ono što je bio — proveri da padajući meni
+   **stvarno pokazuje stari tip**, ne novi.
+2. [ ] **„Ukloni liniju i postavi pitanje"** ukloni liniju i postavi pitanje; u
+   „Pregled" se vidi da trake poteza više nema.
+3. [ ] **Stari korak se prijavi sam.** Ako neki već sačuvan korak ima i liniju i
+   „Traži potez na tabli", pri otvaranju stoji crveno upozorenje, čuvanje se
+   odbija i poruka imenuje baš taj korak. Posle „Ukloni liniju" čuvanje prođe i
+   **tačan potez ostaje zapisan**.
+4. [ ] **Pitanje sa ponuđenim odgovorima i dalje sme da nosi liniju** — ništa ne
+   pita i ništa ne odbija.
+
+## 111. Studio za tutorijal — pisanje i čuvanje — 6.9.2026, nije viđeno uživo
+
+Faza 4b (batch 54). Ide zajedno sa tačkom 109, uz fazu 5.
+
+1. [ ] **Napiši tutorijal od dva primera u jednom dahu.** Ime tutorijala, pa
+   linija sa rečenicom uz svaki potez, pa „+ Dodaj sledeću poziciju u
+   tutorijal" — tabla ostaje na poziciji na kojoj se linija završila. Drugi
+   primer postavi kao „Traži potez na tabli" i odigraj tačan potez: piše
+   „Tačan potez: …", a potez **se ne dodaje u liniju**.
+2. [ ] **Do „Sačuvaj tutorijal" ništa nije otišlo na server** — tutorijal se ne
+   pojavljuje u biblioteci dok ne pritisneš to dugme.
+3. [ ] **Otvori sačuvani tutorijal kao đak.** Primer 1 se čita kao linija sa
+   rečenicama, pa se bez učitavanja table pređe na pitanje.
+4. [ ] **Ime preživi zatvaranje.** Upiši ime, zatvori prozor odmah, otvori
+   ponovo — i ime i primeri su tu. (Ovo je popravka vođe pri spajanju; ime je
+   bilo jedino što se nije vraćalo.)
+5. [ ] **Pitanje sa ponuđenim odgovorima:** dodaj dva odgovora, označi tačan,
+   sačuvaj; pa probaj da sačuvaš bez označenog — odbija se **pre** slanja.
+
+## 112. Koraci tutorijala — dodaj, obriši, premesti — 6.9.2026, nije viđeno uživo
+
+Faza 4c (batch 55), u editoru koraka. Ide uz tačke 109 i 111, uz fazu 5.
+
+1. [ ] **Premesti korak.** Otvori tutorijal sa tri koraka, stani na treći,
+   „Pomeri gore". Redosled se promeni, a **editor i dalje pokazuje taj isti
+   korak** — naziv u polju je njegov, ne od suseda. Sačuvaj, pa ponovo otvori
+   tutorijal: redosled je zapamćen.
+2. [ ] **Dodaj korak.** Stani na neki korak, „Dodaj korak" — novi se pojavi
+   **odmah ispod** njega, na istoj poziciji, prazan (bez pitanja i bez rešenja).
+   Daj mu naziv, sačuvaj, pa ponovo otvori: tu je, pod tim nazivom.
+3. [ ] **Ovo je tačka koju treba gledati u oči.** Ako je neki đak već radio taj
+   tutorijal, posle dodavanja i čuvanja **njegov napredak na ostalim koracima
+   mora da ostane**. To je ceo razlog zbog kojeg su oznake koraka pisane ovako;
+   proveri na nalogu koji je već odgovarao bar jedan korak.
+4. [ ] **Obriši korak.** Pita pre brisanja i **imenuje korak**. „Odustani" ga
+   ostavlja. Posle brisanja ostali koraci su netaknuti.
+5. [ ] **Poslednji korak se ne briše.** Na tutorijalu sa jednim korakom
+   „Obriši korak" kaže da ne može i ništa ne pita.
+6. [ ] **Strelice na krajevima su ugasene** — gore na prvom, dole na poslednjem.

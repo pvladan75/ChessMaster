@@ -28,7 +28,10 @@ import 'package:chess_app/services/app_logger.dart';
 ///   copies to keep in step, and the one that drifts is the one nobody is
 ///   testing.
 class LessonApiService {
-  LessonApiService({required this.authToken});
+  LessonApiService({required this.authToken, http.Client? client})
+      : _client = client ?? http.Client();
+
+  final http.Client _client;
 
   final String authToken;
 
@@ -65,7 +68,7 @@ class LessonApiService {
         if (excludeTags.isNotEmpty) 'excludeTags': excludeTags.join(','),
         'matchMode': matchMode,
       };
-      final res = await http
+      final res = await _client
           .get(
             Uri.parse('$backendUrl/lessons').replace(queryParameters: params),
             headers: _headers,
@@ -83,7 +86,7 @@ class LessonApiService {
   /// The labels this user has used, for the filter panel.
   Future<List<String>> fetchLabels() async {
     try {
-      final res = await http
+      final res = await _client
           .get(Uri.parse('$backendUrl/lessons/labels'), headers: _headers)
           .timeout(const Duration(seconds: 20));
       if (res.statusCode != 200) return const [];
@@ -105,7 +108,7 @@ class LessonApiService {
     List<Map<String, dynamic>>? positionList,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse('$backendUrl/lessons/save'),
             headers: _headers,
@@ -146,7 +149,7 @@ class LessonApiService {
     List<Map<String, dynamic>>? positionList,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .put(
             Uri.parse('$backendUrl/lessons/$id'),
             headers: _headers,
@@ -171,7 +174,7 @@ class LessonApiService {
   /// Deletes a lesson. Returns the server's error, or null.
   Future<String?> delete(int id) async {
     try {
-      final res = await http
+      final res = await _client
           .delete(Uri.parse('$backendUrl/lessons/$id'), headers: _headers)
           .timeout(const Duration(seconds: 20));
       if (res.statusCode == 200) return null;
@@ -198,7 +201,7 @@ class LessonApiService {
     required Map<String, dynamic> step,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse('$backendUrl/lessons/$lessonId/steps'),
             headers: _headers,
@@ -212,4 +215,47 @@ class LessonApiService {
       return 'Nije moguće doći do servera.';
     }
   }
+
+  /// Saves a tutorial as a new version, and returns the copy's id.
+  ///
+  /// Phase 3a of `docs/PLAN-TUTORIJAL.md`. The trainer keeps one tutorial and
+  /// makes an easier or harder version of it for another group; the original
+  /// comes out untouched, which is why this is one call to the server rather
+  /// than a read, an edit and a PUT — two of those racing lose an edit, and the
+  /// loser is never told.
+  ///
+  /// The server mints a fresh id for every copied step. Null [title] means the
+  /// server names it, `naslov (kopija)`.
+  ///
+  /// Returns the new id, or null with the reason in [cloneError] — the odd
+  /// signature in this class, because the caller has to open what it just made.
+  Future<int?> clone({required int id, String? title}) async {
+    cloneError = null;
+    try {
+      final res = await _client
+          .post(
+            Uri.parse('$backendUrl/lessons/$id/clone'),
+            headers: _headers,
+            body: jsonEncode({if (title != null) 'title': title}),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 201) {
+        final body = jsonDecode(res.body);
+        final newId = body is Map ? body['id'] : null;
+        if (newId is int) return newId;
+        cloneError = 'Kopija je napravljena, ali je server nije imenovao.';
+        return null;
+      }
+      cloneError =
+          _errorFrom(res.body, 'Kopiranje nije uspelo (${res.statusCode}).');
+      return null;
+    } catch (e) {
+      AppLogger.log('[Lessons] Kopiranje nije uspelo: $e');
+      cloneError = 'Nije moguće doći do servera.';
+      return null;
+    }
+  }
+
+  /// Why the last [clone] returned null. Null when it succeeded.
+  String? cloneError;
 }
