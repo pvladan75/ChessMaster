@@ -469,7 +469,7 @@ does. Say so in batch E's brief rather than letting it be discovered.
 #### 4b — done 6.9.2026, as batch 54
 
 `gemini-3.1-pro-high` through `agy`, one round, 10.5 minutes, gate 11/11 and
-phase 4a's 13 green and untouched. Merged as `b8963bd`. Four mutations by the
+phase 4a's 13 green and untouched. Merged as `4817285`. Four mutations by the
 lead confirm the gate measures the work rather than passing beside it.
 
 Three lessons, and the first is about the harness rather than the worker:

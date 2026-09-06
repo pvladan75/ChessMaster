@@ -703,7 +703,7 @@ potrebnom, je da `LessonViewerScreen` ne crta traku poteza na pitanju dok se ne
 odgovori. Nije urađeno: to je promena na ekranu koji dete gleda, i traži svoju
 odluku.
 
-**Batch 54 je pušten i spojen istog dana** (`b8963bd`). `gemini-3.1-pro-high`
+**Batch 54 je pušten i spojen istog dana** (`4817285`). `gemini-3.1-pro-high`
 preko `agy`, jedna runda, 10.5 minuta, kapija 11/11 i kapija faze 4a 13/13
 nedirnuta. Ekran sada ima polja za primer, listu primera i jedno
 „Sačuvaj tutorijal" koje šalje ceo tutorijal jednim `POST`-om. **1421 test.**
