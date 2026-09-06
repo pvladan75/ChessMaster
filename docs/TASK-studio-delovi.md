@@ -82,7 +82,7 @@ The three that will cost you if you get them wrong:
 4. Build until both are entirely green.
 5. `dart format` every Dart file you touched. Run it; do not report it as run.
 6. `flutter test` and `flutter analyze` again. The suite must be higher by the
-   fifteen tests of the new file and lower by none; the analyzer list must be
+   fourteen tests of the new file and lower by none; the analyzer list must be
    the same list, with **nothing new suppressed** — no new `// ignore:` and no
    new `ignore_for_file`.
 

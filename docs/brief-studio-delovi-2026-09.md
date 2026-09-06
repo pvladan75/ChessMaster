@@ -95,13 +95,14 @@ rename is a separate vocabulary batch with a table, the way batch 51 was done.
 
 By exit code, not by the report:
 
-* **`test/tutorial_delovi_test.dart`** — fifteen tests, the contract. It is
+* **`test/tutorial_delovi_test.dart`** — fourteen tests, the contract. It is
   0/14 green today; all of it must be green.
 * **`test/tutorial_authoring_test.dart`** — the replacement copy. 8 of 11 green
   today; all of it must be green. **The three that fail are the add flow. Every
   other assertion in that file is about the single `POST` body and must not
   move.**
-* **`flutter test`** — every other test still green, count up by exactly fifteen.
+* **`flutter test`** — every other test still green, count up by exactly
+  fourteen: 1497 -> 1511 on this tree, measured by the lead on 6.9.2026.
 * **`flutter analyze`** — the same list, nothing newly suppressed. Holding a
   count steady by adding an `ignore_for_file` is a fail; a previous batch did
   exactly that and it was caught by hand.
