@@ -188,6 +188,24 @@ void main() {
       await close(tester);
     });
 
+    testWidgets('the name of the tutorial outlives it too', (tester) async {
+      // Found by the lead while grading batch 54, and by no gate: the title was
+      // read back out of the draft on restore and never written into it, so a
+      // trainer who named their tutorial, closed the window and came back found
+      // every example still there and the name gone. The half that works is the
+      // half that makes the other half invisible.
+      await open(tester, handover: TutorialHandover.position(openingFen));
+      await tester.enterText(
+          find.byKey(const Key('tutorial-title')), 'Opozicija');
+      await play(tester, 'e2', 'e4');
+      await close(tester);
+
+      await open(tester);
+      expect(find.text('Opozicija'), findsOneWidget,
+          reason: 'the tutorial came back nameless');
+      await close(tester);
+    });
+
     testWidgets('the draft outlives the screen', (tester) async {
       await open(tester, handover: TutorialHandover.position(openingFen));
       await play(tester, 'e2', 'e4');

@@ -328,7 +328,8 @@ void main() {
   });
 
   group('the running list is what the child will read', () {
-    testWidgets('the examples are numbered as they are written', (tester) async {
+    testWidgets('the examples are numbered as they are written',
+        (tester) async {
       await open(tester);
       expect(find.text('Primer 1'), findsOneWidget);
       expect(find.text('Primer 2'), findsNothing);
@@ -443,8 +444,8 @@ void main() {
       final step = Map<String, dynamic>.from(
           (api.saves.single['positionList'] as List).single as Map);
       expect(step['solutionSan'], 'e4');
-      expect(step['pgn'] == null || (step['pgn'] as String).trim().isEmpty,
-          isTrue,
+      expect(
+          step['pgn'] == null || (step['pgn'] as String).trim().isEmpty, isTrue,
           reason: 'the question travelled with a line after all');
       await close(tester);
     });
