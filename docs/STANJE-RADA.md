@@ -313,6 +313,50 @@ nacrt. Sada su `_titleField()` i `_sectionsPanel()`. **Kapija za stringove je to
 i primetila** — prijavila je ta dva literala kao *dodata*, što je ono što druga
 kopija izgleda spolja.
 
+### P6a — hronologija „Tok", 7.9.2026, batch 59
+
+`gemini-3.8-flash-high`, `flutter_feature_builder`, jedna runda, devet kapija
+zeleno iz prve. **1551 test u aplikaciji, 1 preskočen** (bilo 1539); backend
+nije diran i ostaje na 956.
+
+Autor je svoj tutorijal do sada mogao da pročita samo kao stablo poteza — pravi
+oblik za uređivanje linije, pogrešan za pitanje „kako će ovo izgledati". „Tok"
+je isti tutorijal u redosledu kojim ga dete sreće: kartica po taktu, rečenica
+**između** poteza koji je stigao i poteza koji odlazi, i čip po odgovoru na
+grananju. „Stablo" ostaje pored, jer je grananje stvar oblika stabla.
+
+**Lead-ova polovina je bila `beatsOf`** (`3a4fe2e`): čista funkcija, petnaest
+testova bez ijednog widgeta, devet mutacija — sve uhvaćene. Uz nju su izašle
+dve stvari kojih u planu nije bilo. Broj poteza se **ne može brojati od korena**
+(deo tutorijala može da počne iz bilo koje pozicije, pa samo FEN zna odakle
+brojanje kreće) — to pravilo je bilo privatno u `VisualMoveTreeWidget`-u i sada
+je `AnalysisNode.moveNumberLabel`, sa starim pozivaocem preusmerenim na njega. I
+„koren" koji i sam ima roditelja je ovde dostižan — ekran drži `_rootNode` i
+`_currentNode` preko izmena — pa je prva verzija beskonačno rekurzirala; sada se
+zaustavlja, sa testom.
+
+**Proba je i ovde platila.** Ceo panel je jednom napravljen pa bačen, i našla je
+pravilo koje ne bi našao niko: `IndexedStack` drži skrivenu karticu **van
+scene**, a `find.byType` podrazumevano preskače takve widgete. To je obaralo
+`tree()` pomoćnu funkciju u **tri postojeća fajla** i sa njom dvadeset tvrdnji,
+nijednu o karticama. Pripremljeno je na `master`-u pre batch-a, pa batch nije
+morao da dira nijedan test.
+
+**Jedna od tih dvadeset nije bila stvar pomoćne funkcije nego pretvrde tvrdnje.**
+`tutorial_authoring_test.dart` je tražio da rečenice **nema nigde na ekranu**,
+misleći „polje je više ne drži" — a hronologija je crta na svojoj kartici, s
+pravom. Ispravna funkcija bi oborila taj test. Sada pita za `TextField`. Ista
+porodica kao pretraživač iz batch-a 55: **tvrdnja o odsustvu je tvrdnja o celom
+ekranu, a ekran stalno raste.**
+
+Radnik je uradio dve stvari preko onoga što je traženo, i obe se zadržavaju:
+tekući takt je označen na četiri načina (podloga, jači okvir, deblja slova i
+ikonica), kao i uzeti čip — dakle ništa ne zavisi od same boje; i svaka kartica
+ima najmanje 48 dp visine sa čipovima u `Wrap`-u. Vođa je pokrenuo još jednu
+mutaciju preko četiri koje je batch prijavio, onu koju testovi crtanja ne mogu
+da vide: zamena `IndexedStack`-a običnim uslovom crta isto, a obara „stablo se
+ne pregrađuje pri promeni kartice".
+
 ### Šta je otvoreno — ODAKLE SUTRA
 
 **P5a je gotov** (batch 57, gore) — ostaje da se vidi uživo, tačka 113 u
@@ -333,31 +377,22 @@ propust.
 **P5b je gotov** (batch 58, gore) — ostaje da se vidi uživo, tačka 114 u
 `docs/TODO-provera.md`, koja ide zajedno sa 113.
 
-**P6 je podeljen na dva batch-a** (vlasnik, 6.9.2026), po uzoru na P5: **P6a
-crta**, P6b uređuje. Lead-ova polovina je gotova i na `master`-u (`3a4fe2e`):
-`beatsOf` sa petnaest testova i devet mutacija, i `AnalysisNode.moveNumberLabel`
-izvučen iz `VisualMoveTreeWidget`-a da broj poteza ne bi bio napisan dvaput.
+**P6a je gotov** (batch 59, gore) — ostaje da se vidi uživo, tačka 115 u
+`docs/TODO-provera.md`, koja ide zajedno sa 113 i 114.
 
-**P6a je spreman za pokretanje.** Kapija (`docs/gates/tutorial_tok_test.dart`,
-dvanaest testova, **izmereno 0 prošlo / 12 palo**), zadatak i brief su na
-`master`-u; dozvola je uneta u `orchestrate.py`. Ceo panel je jednom napravljen
-kao proba pa bačen — otud dve stvari koje su već sređene pre batch-a:
-`IndexedStack` drži skrivenu karticu **van scene**, pa `find.byType` ne vidi
-stablo dok je „Tok" napred; tri postojeća fajla su zato dobila
-`skipOffstage: false`, a jedna pretvrda tvrdnja u `tutorial_authoring_test.dart`
-(„te rečenice nema nigde na ekranu") suzena je na polje, jer je hronologija crta
-na svojoj kartici — s pravom. Sa tom pripremom proba je dala **ceo paket zelen**,
-što znači da batch ne treba da dira nijedan postojeći test.
-
-P6b uređuje komentar i pitanje u samim karticama i vadi polja iz kolone.
+**Sledeći je P6b**, i za njega ništa nije napisano: uređivanje komentara i
+pitanja u samim karticama, pa vađenje polja iz desne kolone. To je batch koji
+menja *ponašanje* ekrana, pa mu kapija mora da tvrdi nad onim što se sačuva, ne
+nad onim što se nacrta.
 
 Posle P6: P7 (izdvajanje `BoardAnnotationController` iz sobe, nezavisno od svega
 i može bilo kad), pa P8 (odbrane iz starog editora pa gašenje njegovog ulaza na
 Windows-u — ništa se ne gasi dok mu odbrane ne postoje drugde).
 
-**Dozvole za batch-eve 57 i 58 su izbrisane iz `orchestrate.py` pri spajanju**, a
-staging kopije kapija su otišle iz `docs/gates/` u `chess_app/test/` u samim
-merge commit-ima — `docs/gates/` je sada prazan, kako i treba između batch-eva.
+**Dozvole za batch-eve 57, 58 i 59 su izbrisane iz `orchestrate.py` pri
+spajanju**, a staging kopije kapija su otišle iz `docs/gates/` u
+`chess_app/test/` u samim merge commit-ima — `docs/gates/` je sada prazan, kako
+i treba između batch-eva.
 
 Redosled, podela posla i kapije su u §8 [PLAN-STUDIO-REDIZAJN.md](PLAN-STUDIO-REDIZAJN.md).
 Za rad sa radnikom: `D:\Projekti\mislisha-test\orchestrator\HANDOFF.md`, prvi

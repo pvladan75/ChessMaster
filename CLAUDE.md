@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1539 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1551 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -340,6 +340,14 @@ that sentence on its own card — correctly. A working feature would have failed
 it. It asks about the `TextField` now. Same family as batch 55's finder that
 stopped being unique once a second place for the string existed: **an assertion
 of absence is a claim about the whole screen, and the screen keeps growing.**
+
+Twelve more with batch 59, the „Tok" timeline — **1551 in the app, 1 skipped**;
+the backend is untouched at 956. Nine gates green in one round, no existing test
+edited, and the diff is a rendering of a function that was already gated. **Where
+a batch has a pure core, land it as the lead's own commit before the widget
+batch, not inside it**: everything about *what* the timeline says was decided in
+`beatsOf` and proved by mutation, so the widget batch had nothing left to be
+wrong about.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

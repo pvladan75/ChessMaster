@@ -4252,3 +4252,28 @@ isti prolaz.
    traka. Sačuvaj je i dalje u traci na vrhu.
 6. [ ] **Spisak delova sa mnogo delova.** Na tutorijalu sa desetak delova gornja
    polovina skroluje **unutar sebe**, a donja ostaje gde je bila.
+
+## 115. Hronologija „Tok" — 7.9.2026, nije viđeno uživo
+
+P6a (batch 59), u studiju za tutorijale, na dnu desne kolone. Ide zajedno sa
+tačkama 113 i 114 — isti ekran, isti prolaz.
+
+1. [ ] **„Tok" je ono što se otvori.** Otvori sačuvan tutorijal: dole stoje dve
+   kartice, „Tok" je napred, i linija se čita odozgo nadole — „Polazna
+   pozicija", pa „posle 1. e4", pa dalje.
+2. [ ] **Rečenica stoji između dva poteza.** Na taktu na kome si nešto napisao,
+   tekst je **ispod** naslova a **iznad** „pa se igra: …". Tako to dete i dobija:
+   prvo mu se kaže šta da vidi, pa se onda odigra potez.
+3. [ ] **Brojevi poteza su tačni**, i na delu koji počinje iz sredine partije —
+   napravi deo iz pozicije sa, recimo, 12. potezom i proveri da piše „posle
+   12. …", a ne „posle 1. …".
+4. [ ] **Klik na karticu pomera tablu.** Klikni na neki takt: tabla ode na tu
+   poziciju, a oznaka tekućeg takta se preseli na tu karticu.
+5. [ ] **Grananje.** Na delu sa sporednom linijom, na taktu grananja stoje čipovi
+   sa oba odgovora. Pritisni onaj koji nije uzet — **hronologija se precrta niz
+   tu granu**, a stara se više ne vidi.
+6. [ ] **„Stablo" je i dalje tu.** Prebaci na „Stablo": stablo je isto kao pre.
+   Zumiraj ga, prebaci na „Tok" pa nazad — **zum je ostao**. (To je razlog zbog
+   kog obe kartice ostaju napravljene.)
+7. [ ] **Pogledaj oznake.** Tekući takt i uzeti čip razlikuju se po podlozi,
+   okviru, debljini slova i ikonici — ništa ne sme da zavisi od same boje.
