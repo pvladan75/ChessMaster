@@ -155,7 +155,8 @@ void main() {
         ],
       };
 
-  Future<void> open(WidgetTester tester, {String pgn = '1. e4 e5 2. Nf3'}) async {
+  Future<void> open(WidgetTester tester,
+      {String pgn = '1. e4 e5 2. Nf3'}) async {
     tester.view.physicalSize = const Size(1600, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -345,8 +346,8 @@ void main() {
       await tapKey(tester, 'stablo-tab');
 
       expect(
-          tester.state(
-              find.byType(AnalysisMoveTreeWidget, skipOffstage: false)),
+          tester
+              .state(find.byType(AnalysisMoveTreeWidget, skipOffstage: false)),
           same(first),
           reason: 'the tree lost its state on a tab switch');
 
