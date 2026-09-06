@@ -208,7 +208,7 @@ a batch, which is the only reason a contract is frozen in the first place.
 | 3a | `POST /lessons/:id/clone` + `LessonApiService.clone` | **lead** | decision 2 |
 | 3b | Uredi / Preimenuj / Sačuvaj kao novu verziju | **worker** batch C | **done 6.9.2026** |
 | 4a | `TutorialStudioScreen`: board, tree, handover from the Studio, draft model | **lead** | **done 6.9.2026** |
-| 4b | per-node fields, „+ Dodaj sledeću poziciju", the running list, one save | **worker** batch E | 4a merged |
+| 4b | per-node fields, „+ Dodaj sledeću poziciju", the running list, one save | **worker** batch 54 | **done 6.9.2026** |
 | 4c | the step editor gains add / remove / reorder | **worker** batch F | 4b |
 | 5 | live check with the owner | lead + owner | all |
 
@@ -466,7 +466,39 @@ work.
 that does not exist yet. Adding an example does not need it; editing one back
 does. Say so in batch E's brief rather than letting it be discovered.
 
-#### 4b — the next worker batch, and its gate
+#### 4b — done 6.9.2026, as batch 54
+
+`gemini-3.1-pro-high` through `agy`, one round, 10.5 minutes, gate 11/11 and
+phase 4a's 13 green and untouched. Merged as `b8963bd`. Four mutations by the
+lead confirm the gate measures the work rather than passing beside it.
+
+Three lessons, and the first is about the harness rather than the worker:
+
+1. **Fill the allowances before launching.** Batches 51–53 each came back
+   `VERDICT: FAIL` with nothing wrong, partly because the harness's report
+   pattern is anchored lower-case and this project's reports are `REPORT-...`.
+   With an entry naming the three files this batch was asked to create, the run
+   graded clean on the first round.
+2. **„No new infos" needs a second half: nothing new suppressed.** This batch
+   held the count at 29 with a file-level `ignore_for_file: deprecated_member_use`
+   over three real deprecations, and its report called that adequately resolved.
+   The lead replaced it with `RadioGroup<int>` — the shape the brief actually
+   named.
+3. **The half that works can make the other half invisible.** The tutorial's
+   title reached the controller and never the draft, so it alone did not survive
+   a reopen while every example did.
+
+The batch's own correction was the most valuable thing in its report:
+`PgnExporterService` always writes headers, so `pgn` is never the empty string
+and an example with no moves must carry `''` explicitly. The gate had assumed
+otherwise.
+
+*Still open for a later batch:* an `ask_choice` example with fewer than two
+answers is refused by the server rather than in the app — the sentence is good
+and arrives late, which is the same class this batch fixed for the other two
+cases.
+
+#### The gate as it was written, before the batch
 
 Unchanged in substance: the per-node fields, the running list with „+ Dodaj
 sledeću poziciju u tutorijal", and the one `POST /lessons/save`. They go in

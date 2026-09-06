@@ -15,9 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (tutorijal: faza 4a zatvorena, kapija i brif za
-batch E napisani, i propust „dete vidi odgovor" zatvoren u editoru koraka;
-sledeće je pokretanje batcha 54).
+Poslednje ažuriranje: 6.9.2026 (tutorijal: faze 4a i 4b zatvorene — batch 54
+spojen; sledeće je batch F, pa faza 5, provera uživo).
 
 ---
 
@@ -704,22 +703,44 @@ potrebnom, je da `LessonViewerScreen` ne crta traku poteza na pitanju dok se ne
 odgovori. Nije urađeno: to je promena na ekranu koji dete gleda, i traži svoju
 odluku.
 
+**Batch 54 je pušten i spojen istog dana** (`b8963bd`). `gemini-3.1-pro-high`
+preko `agy`, jedna runda, 10.5 minuta, kapija 11/11 i kapija faze 4a 13/13
+nedirnuta. Ekran sada ima polja za primer, listu primera i jedno
+„Sačuvaj tutorijal" koje šalje ceo tutorijal jednim `POST`-om. **1421 test.**
+
+Tri stvari koje treba poneti dalje:
+
+1. **Dozvole u harnessu se popunjavaju pre puštanja.** Batchevi 51–53 su svi
+   vraćali `VERDICT: FAIL` bez ijedne prave greške — delom zato što je obrazac
+   za izveštaj u `orchestrate.py` usidren malim slovima, a izveštaji ovog
+   projekta su `REPORT-...`. Sa unosom koji imenuje tačno tri nova fajla, ovaj
+   je ocenjen čisto iz prve.
+2. **„Bez novih info poruka" ima i drugu polovinu: ništa novo prigušeno.**
+   Batch je držao brojku na 29 pomoću `// ignore_for_file: deprecated_member_use`
+   preko tri prave zastarelosti, i u izveštaju to nazvao „adekvatno rešeno".
+   Vođa je prebacio na `RadioGroup<int>`, oblik koji brif i imenuje.
+3. **Polovina koja radi ume da sakrije polovinu koja ne radi.** Naslov
+   tutorijala je stizao u kontroler a nikad u nacrt, pa se jedini on nije vraćao
+   pri ponovnom otvaranju — dok su se svi primeri vraćali.
+
+Izveštaj: `docs/REPORT-batch-54.md`, sa beleškom vođe na vrhu — tri odeljka
+nisu izmerena nego izmišljena, i to baš ona koja izgledaju kao dokaz (telo
+`POST`-a, mehanizam validacije, i raspored na užem ekranu). Jedna njegova
+ispravka je bila tačna i vrednija od ostatka: `PgnExporterService` uvek ispisuje
+zaglavlja, pa `pgn` nikad nije prazan string.
+
 **Sledeće:**
 
-1. **Pokrenuti batch 54** — polja za čvor, lista primera sa „+ Dodaj sledeću
-   poziciju u tutorijal" i jedno „Sačuvaj tutorijal". Zadatak i brif su
-   napisani: [TASK-tutorijal-studio.md](TASK-tutorijal-studio.md) i
-   [brief-tutorijal-studio-2026-09.md](brief-tutorijal-studio-2026-09.md).
-   Grana `batch/tutorijal-studio`, izveštaj u `docs/REPORT-batch-54.md`.
-   Otvorena stavka o kojoj brif izričito govori: zapisan primer je spljošten na
-   `fen` + `pgn`, pa **vraćanje u Primer 1 radi izmene stabla** traži uvoznik
-   PGN-a koji još ne postoji — dodavanje primera ga ne traži, izmena postojećeg
-   da, i batch ga ne sme napisati.
-2. **Oblik kapije je izmeren, ne pretpostavljen.** Sa dodatim seam-om
-   `lessonApi` i ničim drugim, `flutter test` na kapiji daje **+1 −10**: deset
-   crvenih i jedan zelen — „the save is written once, in one place", koji je
-   zelen samo zato što se još ništa ne čuva i mora da ostane zelen. To piše i u
-   brifu, da radni agent ne počne od pogrešne slike.
+1. **Batch F** — dodaj / obriši / promeni redosled u `LessonStepEditorPanel`.
+   To je batch na kojem se poredi `gemini-3.8-flash-high`, jer mu je brif
+   uglavnom spisak koraka. Kapija se piše pre njega, kao i uvek.
+2. **Faza 5** — provera uživo, zajedno: `TODO-provera.md` tačke 24–29, 109, 110
+   i nova 111.
+3. Otvoreno, i za brif batcha F: zapisan primer je spljošten na `fen` + `pgn`,
+   pa **vraćanje u Primer 1 radi izmene stabla** traži uvoznik PGN-a koji još
+   ne postoji. Isto tako, primer sa ponuđenim odgovorima koji ima **manje od dva**
+   odgovora odbija server, a ne aplikacija — ista klasa koju je batch 54 zatvorio
+   za druga dva slučaja.
 
 Nova stavka za proveru uživo: `TODO-provera.md`, tačka 109. Kao i tačke 24–29,
 čeka fazu 5 — zajedničku proveru na uređajima, kad autorska strana bude gotova.

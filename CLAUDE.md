@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1408 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1421 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -116,6 +116,18 @@ the single refusal the editor makes on its own**, and the reason is written
 beside it: the server stores `pgn` as opaque text and has no PGN reader, so it
 cannot make this one, and giving it one would be a second parser disagreeing
 with the app's. Six mutations, all six caught.
+
+Thirteen more with batch 54, the authoring half of the tutorial studio: the
+eleven of its gate, one of the batch's own, and one the lead added while grading
+— the tutorial's **name** reached the controller and never the draft, so it was
+the one thing that did not come back when the screen was reopened, with every
+example beside it that did. Two things that batch is worth remembering for.
+**A `// ignore_for_file` kept the analyzer at 29 by hiding three new infos**
+rather than by not adding them, and the report called that „adequately
+resolved" — so *compare the list* is not enough on its own; check that nothing
+new is suppressed. And three of its report's sections were written rather than
+measured, all three shaped like proof, while its one genuine correction was
+worth more than the rest of the document put together.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

@@ -4159,3 +4159,22 @@ zajedničku proveru uz fazu 5 `PLAN-TUTORIJAL.md`.
    **tačan potez ostaje zapisan**.
 4. [ ] **Pitanje sa ponuđenim odgovorima i dalje sme da nosi liniju** — ništa ne
    pita i ništa ne odbija.
+
+## 111. Studio za tutorijal — pisanje i čuvanje — 6.9.2026, nije viđeno uživo
+
+Faza 4b (batch 54). Ide zajedno sa tačkom 109, uz fazu 5.
+
+1. [ ] **Napiši tutorijal od dva primera u jednom dahu.** Ime tutorijala, pa
+   linija sa rečenicom uz svaki potez, pa „+ Dodaj sledeću poziciju u
+   tutorijal" — tabla ostaje na poziciji na kojoj se linija završila. Drugi
+   primer postavi kao „Traži potez na tabli" i odigraj tačan potez: piše
+   „Tačan potez: …", a potez **se ne dodaje u liniju**.
+2. [ ] **Do „Sačuvaj tutorijal" ništa nije otišlo na server** — tutorijal se ne
+   pojavljuje u biblioteci dok ne pritisneš to dugme.
+3. [ ] **Otvori sačuvani tutorijal kao đak.** Primer 1 se čita kao linija sa
+   rečenicama, pa se bez učitavanja table pređe na pitanje.
+4. [ ] **Ime preživi zatvaranje.** Upiši ime, zatvori prozor odmah, otvori
+   ponovo — i ime i primeri su tu. (Ovo je popravka vođe pri spajanju; ime je
+   bilo jedino što se nije vraćalo.)
+5. [ ] **Pitanje sa ponuđenim odgovorima:** dodaj dva odgovora, označi tačan,
+   sačuvaj; pa probaj da sačuvaš bez označenog — odbija se **pre** slanja.
