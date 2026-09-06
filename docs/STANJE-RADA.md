@@ -218,12 +218,71 @@ ispiše — „30 issues found“ — rekao bi to bez ikakvog obrasca.
 **1497 testova u aplikaciji, 1 preskočen, sve zeleno** (bilo 1482). 29 info-a,
 nula upozorenja i grešaka, mereno obrascem koji ume da ih vidi.
 
-### Šta je otvoreno
+### Šta je otvoreno — ODAKLE SUTRA
 
-P5 nadalje: podeljeni raspored studija (tabla levo, delovi gore desno, „Tok“ i
-„Stablo“ dole desno), pa P6 (hronologija), P7 (crtanje strelica) i P8 (odbrane
-iz starog editora pa gašenje njegovog ulaza na Windows-u). Redosled i podela
-posla su u §8 plana.
+**P5a je sledeći, i odluka je već doneta** (6.9.2026, vlasnik izabrao između tri
+ponuđene): P5 se **deli na dva batch-a**, jer ekran koji istovremeno dobija nov
+raspored i novo ponašanje daje diff koji niko ne može da oceni popodne.
+
+* **P5a — panel „Delovi tutorijala"**: lista delova sa rednim brojem i nazivom,
+  izbor (tabla, stablo i polja prate izabrani deo), ▲/▼, kloniranje, brisanje sa
+  pitanjem, „+ Dodaj deo" sa dva odgovora iz odluke D9, i spojnica u listi
+  između dva dela koja stoje na istoj poziciji. Model sve ovo već ume
+  (`addSection`, `removeSection`, `moveSection`, `cloneSection`, `selected`) —
+  ovo je čist UI nad zamrznutim modelom. Radnik: `gemini-3.8-flash-high`, isti
+  kao batch 56.
+* **P5b — podeljeni raspored**: tabla levo, paneli desno, tabovi „Tok"/„Stablo".
+
+**Zamka koju treba znati pre pisanja kapije za P5a, izmerena a ne pretpostavljena.**
+`test/tutorial_authoring_test.dart` je vezan za stari tok dodavanja: traži dugme
+„Dodaj sledeću poziciju" (linije 247, 340, 359) i tekstove „Primer 1"/„Primer 2"
+(336–344). P5a menja upravo to dugme u „+ Dodaj deo" sa dijalogom od dva
+odgovora, pa **ta kapija ne može da ostane nedirnuta** — a ne sme ni da pocrveni
+na `master`-u pre nego što batch stigne.
+
+Rešenje je isto kao za svaku kapiju ovde: lead napiše **izmenjenu** verziju tog
+fajla u `docs/gates/` pored nove kapije za P5a, a zadatak kaže radniku da
+kopira **oba** u `test/`, pri čemu jedan zamenjuje postojeći. Njegove tvrdnje o
+telu `POST`-a ostaju iste; menja se samo pomoćna funkcija koja klikće „dodaj".
+
+**D7 („Deo" umesto „Primer") namerno NIJE u P5a.** Plan ga je vezao za ekran, ali
+preimenovanje je ovde uvek posao za sebe: tabela u `docs/TABELA-TUTORIJAL.md` i
+`tutorial_vocabulary_test.dart` kao zaštita, po uzoru na batch 51. Tako P5a
+ostaje strukturalna izmena, a rečnik dobija tretman koji rečnik ovde dobija.
+
+Posle toga: P6 (hronologija „Tok" — `beatsOf` je čista funkcija i njena kapija je
+lead-ov posao), P7 (izdvajanje `BoardAnnotationController` iz sobe, nezavisno od
+svega i može bilo kad), P8 (odbrane iz starog editora pa gašenje njegovog ulaza
+na Windows-u — ništa se ne gasi dok mu odbrane ne postoje drugde).
+
+**`master` nije gurnut.** CI se okida na push, pa je to svesna odluka vlasnika, ne
+propust.
+
+**P5a je spreman za pokretanje — sve je napisano, ostaje samo komanda.**
+Kapija, zadatak i brief su na `master`-u; `mislisha-batch-f` je već na grani
+`batch/studio-delovi`; dozvola je uneta u `orchestrate.py`. Iz
+`D:\Projekti\mislisha-test\orchestrator`:
+
+```
+python orchestrate.py run docs/TASK-studio-delovi.md ^
+  --repo D:/Projekti/mislisha-batch-f --agent flutter_feature_builder ^
+  --model gemini-3.8-flash-high --yolo --timeout 90 --expect-tests 1497
+```
+
+(Kosa crta u `--repo`, ne obrnuta — obrnute se pojedu pre nego što ih Python
+vidi. Pusti je u pozadini.)
+
+**Obe kapije su izmerene crvene, a ne pretpostavljene:**
+`tutorial_delovi_test.dart` je **0 prošlo / 14 palo**, a zamenski
+`tutorial_authoring_test.dart` **8 prošlo / 3 palo** — te tri su tok dodavanja
+dela, sve ostale tvrdnje o telu `POST`-a su netaknute i moraju ostati zelene.
+
+Posle merge-a: obriši dozvolu iz `orchestrate.py` (blok to i kaže) i staging
+kopije iz `docs/gates/`.
+
+Redosled, podela posla i kapije su u §8 [PLAN-STUDIO-REDIZAJN.md](PLAN-STUDIO-REDIZAJN.md).
+Za rad sa radnikom: `D:\Projekti\mislisha-test\orchestrator\HANDOFF.md`, prvi
+odeljak je batch 56.
 
 ---
 
