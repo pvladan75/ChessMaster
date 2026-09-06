@@ -16,6 +16,7 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_flow_panel.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_sections_panel.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
@@ -111,6 +112,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// — the trainer believing they asked something they did not. The same trap
   /// `LessonStepEditorPanel._kindEpoch` was written for.
   int _fieldsEpoch = 0;
+  int _selectedTab = 0;
 
   /// The line being written, and where the trainer is standing on it.
   AnalysisNode get _root => _draft.section.root;
@@ -859,16 +861,81 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           const SizedBox(height: AppSpacing.sm),
         ],
         const SizedBox(height: AppSpacing.md),
-        Text('Linija ovog dela',
-            style:
-                AppText.bodyBold.copyWith(color: context.colors.textPrimary)),
+        Row(
+          children: [
+            _tabButton(
+              key: const Key('tok-tab'),
+              label: 'Tok',
+              isSelected: _selectedTab == 0,
+              onTap: () => setState(() => _selectedTab = 0),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            _tabButton(
+              key: const Key('stablo-tab'),
+              label: 'Stablo',
+              isSelected: _selectedTab == 1,
+              onTap: () => setState(() => _selectedTab = 1),
+            ),
+          ],
+        ),
         const SizedBox(height: AppSpacing.xs),
-        AnalysisMoveTreeWidget(
-          rootNode: _root,
-          activeNode: _current,
-          onSelectNode: _jumpTo,
+        IndexedStack(
+          index: _selectedTab,
+          children: [
+            TutorialFlowPanel(
+              root: _root,
+              current: _current,
+              onSelect: _jumpTo,
+            ),
+            AnalysisMoveTreeWidget(
+              rootNode: _root,
+              activeNode: _current,
+              onSelectNode: _jumpTo,
+            ),
+          ],
         ),
       ],
+    );
+  }
+
+  Widget _tabButton({
+    required Key key,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      key: key,
+      color: isSelected ? context.colors.surfaceRaised : context.colors.surface,
+      borderRadius: AppRadii.roundedSm,
+      child: InkWell(
+        borderRadius: AppRadii.roundedSm,
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 64),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: AppRadii.roundedSm,
+            border: Border.all(
+              color: isSelected
+                  ? context.colors.borderStrong
+                  : context.colors.border,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: (isSelected ? AppText.bodyBold : AppText.body).copyWith(
+              color: isSelected
+                  ? context.colors.textPrimary
+                  : context.colors.textSecondary,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
