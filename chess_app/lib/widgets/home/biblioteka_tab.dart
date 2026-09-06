@@ -7,6 +7,7 @@ import 'package:chess_app/theme/app_typography.dart';
 /// board, and reading positions out of the trainer's own book. Stateless — all
 /// three actions just navigate.
 class HomeBibliotekaTab extends StatelessWidget {
+  final Widget? tutorialCard;
   final VoidCallback onOpenStudio;
   final VoidCallback onOpenAnalysis;
   final VoidCallback onOpenScanner;
@@ -14,6 +15,7 @@ class HomeBibliotekaTab extends StatelessWidget {
 
   const HomeBibliotekaTab({
     super.key,
+    this.tutorialCard,
     required this.onOpenStudio,
     required this.onOpenAnalysis,
     required this.onOpenScanner,
@@ -30,6 +32,9 @@ class HomeBibliotekaTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Spacing is the card's own — see TutorialLibraryCard. The tab
+              // cannot tell a card that draws nothing from one that is absent.
+              if (tutorialCard != null) tutorialCard!,
               Card(
                 shape: AppRadii.cardShape,
                 child: Padding(

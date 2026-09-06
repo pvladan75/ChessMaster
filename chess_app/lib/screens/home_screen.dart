@@ -28,6 +28,7 @@ import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 import 'package:chess_app/widgets/home/home_dialogs.dart' as dialogs;
 import 'package:chess_app/widgets/home/dashboard_tab.dart';
 import 'package:chess_app/widgets/home/biblioteka_tab.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 import 'package:chess_app/widgets/home/friends_tab.dart';
 import 'package:chess_app/models/relationship_request_target.dart';
 import 'package:chess_app/features/trainer_panel/models/trainer_panel.dart';
@@ -1095,6 +1096,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         case 2:
           return HomeBibliotekaTab(
+            tutorialCard: TutorialLibraryCard(session: widget.session),
             onOpenStudio: _openStudioRoom,
             onOpenAnalysis: () => context.push(AppRoutes.analysis),
             onOpenScanner: () => context.push(AppRoutes.scan),
