@@ -4141,3 +4141,21 @@ autorska strana bude cela.
    potezu na kojem si stao. Ovo je tačka koju treba gledati u oči: greška bi se
    videla samo ako se zatvori u prvoj sekundi.
 7. [ ] **Strelice na tastaturi šetaju liniju**, kao u Analiznom studiju.
+
+## 110. Pitanje ne nosi odgovor — 6.9.2026, nije viđeno uživo
+
+Popravka od 6.9.2026 u `LessonStepEditorPanel`. Kao i tačke 24–29 i 109, ide u
+zajedničku proveru uz fazu 5 `PLAN-TUTORIJAL.md`.
+
+1. [ ] **Pita pre nego što se desi.** Otvori tutorijal čiji korak nosi liniju i
+   postavi mu tip „Traži potez na tabli". Pojavi se pitanje „Dete bi videlo
+   odgovor"; „Odustani" vraća tip na ono što je bio — proveri da padajući meni
+   **stvarno pokazuje stari tip**, ne novi.
+2. [ ] **„Ukloni liniju i postavi pitanje"** ukloni liniju i postavi pitanje; u
+   „Pregled" se vidi da trake poteza više nema.
+3. [ ] **Stari korak se prijavi sam.** Ako neki već sačuvan korak ima i liniju i
+   „Traži potez na tabli", pri otvaranju stoji crveno upozorenje, čuvanje se
+   odbija i poruka imenuje baš taj korak. Posle „Ukloni liniju" čuvanje prođe i
+   **tačan potez ostaje zapisan**.
+4. [ ] **Pitanje sa ponuđenim odgovorima i dalje sme da nosi liniju** — ništa ne
+   pita i ništa ne odbija.
