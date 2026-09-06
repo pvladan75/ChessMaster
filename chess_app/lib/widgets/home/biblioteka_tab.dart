@@ -43,7 +43,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                               color: context.colors.accent, size: 28),
                           const SizedBox(width: AppSpacing.md),
                           Text(
-                            'Biblioteka Pozicija i Lekcija',
+                            'Biblioteka pozicija i tutorijala',
                             style: AppText.headline
                                 .copyWith(color: context.colors.textPrimary),
                           ),
@@ -51,7 +51,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'Upravljajte vašim sačuvanim pozicijama, PGN fajlovima i kursevima.',
+                        'Upravljajte vašim sačuvanim pozicijama, PGN fajlovima i tutorijalima.',
                         style: AppText.body
                             .copyWith(color: context.colors.textSecondary),
                       ),

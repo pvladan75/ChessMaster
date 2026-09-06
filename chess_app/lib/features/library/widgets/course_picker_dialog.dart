@@ -74,8 +74,8 @@ class _CoursePickerDialogState extends State<CoursePickerDialog> {
       title: Text(
         widget.title ??
             (widget.count == 1
-                ? 'U koju lekciju?'
-                : 'U koju lekciju? (${widget.count} pozicije)'),
+                ? 'U koji tutorijal?'
+                : 'U koji tutorijal? (${widget.count} pozicije)'),
         style: const TextStyle(fontSize: 16),
       ),
       // Fixed width, for the same reason as everywhere else in this codebase:
@@ -119,7 +119,7 @@ class _CoursePickerDialogState extends State<CoursePickerDialog> {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
         child: Text(
-          'Nema nijedne lekcije sa koracima. Napravite je preko „Kreiraj lekciju".',
+          'Nema nijednog tutorijala sa koracima. Napravite ga preko „Kreiraj tutorijal".',
           textAlign: TextAlign.center,
           style: AppText.body.copyWith(color: colors.textSecondary),
         ),

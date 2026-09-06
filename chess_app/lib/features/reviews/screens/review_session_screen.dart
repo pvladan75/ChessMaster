@@ -395,7 +395,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
             Text(
               nothingDue
                   ? _stats.total == 0
-                      ? 'Kada prođete kroz zadatu lekciju, pozicije iz nje počinju da se '
+                      ? 'Kada prođete kroz zadati tutorijal, pozicije iz njega počinju da se '
                           'vraćaju na ponavljanje.'
                       : 'Sve pozicije su ponovljene. Vratite se kasnije.'
                   : 'Ponovili ste $_completed ${_completed == 1 ? 'poziciju' : 'pozicija'}.',

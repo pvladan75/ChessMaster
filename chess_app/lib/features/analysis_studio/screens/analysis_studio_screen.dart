@@ -266,7 +266,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       _ToolAction(Icons.add_task, context.colors.success,
           'Napravi korak od ove pozicije', _createStepFromPosition),
       _ToolAction(Icons.edit_note, context.colors.success,
-          'Uredi korake lekcije', _editLessonSteps),
+          'Uredi korake tutorijala', _editLessonSteps),
       _ToolAction(Icons.share, context.colors.info, 'Izvezi PGN', _exportPgn),
       _ToolAction(Icons.cloud_outlined, context.colors.info, 'Sačuvane analize',
           _showSavedAnalysesDialog),
@@ -1162,7 +1162,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       context: context,
       builder: (context) => CoursePickerDialog(
         service: library,
-        title: 'Koju lekciju uređuješ?',
+        title: 'Koji tutorijal uređuješ?',
       ),
     );
     if (course == null || !mounted) return;
@@ -1184,7 +1184,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (lesson == null) {
       AppFeedback.show(
         context,
-        () => const SnackBar(content: Text('Lekcija nije pronađena.')),
+        () => const SnackBar(content: Text('Tutorijal nije pronađen.')),
       );
       return;
     }
@@ -1193,7 +1193,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     await Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => Scaffold(
         appBar: AppBar(
-          title: Text(opened['title']?.toString() ?? 'Koraci lekcije'),
+          title: Text(opened['title']?.toString() ?? 'Koraci tutorijala'),
         ),
         body: LessonStepEditorPanel(
           session: widget.userSession,
@@ -1336,7 +1336,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       AppFeedback.show(
           context,
           () => SnackBar(
-                content: const Text('Korak uspešno dodat u lekciju.'),
+                content: const Text('Korak uspešno dodat u tutorijal.'),
                 backgroundColor: context.colors.success,
               ));
     }

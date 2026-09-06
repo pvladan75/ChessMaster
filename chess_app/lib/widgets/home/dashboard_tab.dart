@@ -272,7 +272,7 @@ class HomeDashboardTab extends StatelessWidget {
                                         many: '$dueReviewCount pozicija čeka '
                                             'na ponavljanje.',
                                       )
-                                    : 'Pozicije iz lekcija vraćaju se na ponavljanje kad im dođe vreme.',
+                                    : 'Pozicije iz tutorijala vraćaju se na ponavljanje kad im dođe vreme.',
                                 style: AppText.caption
                                     .copyWith(color: colors.textSecondary),
                               ),

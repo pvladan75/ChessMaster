@@ -74,8 +74,8 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
       if (detail.steps.isEmpty) {
         AppFeedback.show(
           context,
-          () =>
-              const SnackBar(content: Text('Ova lekcija više nije dostupna.')),
+          () => const SnackBar(
+              content: Text('Ovaj tutorijal više nije dostupan.')),
         );
         return;
       }

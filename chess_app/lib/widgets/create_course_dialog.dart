@@ -150,7 +150,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
     final title = titleController.text.trim();
     final desc = descController.text.trim();
     if (title.isEmpty) {
-      _showError('Unesite naziv lekcije.');
+      _showError('Unesite naziv tutorijala.');
       return;
     }
     if (selectedPositions.isEmpty) {
@@ -191,8 +191,8 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
     }
 
     _showSuccess(updateInPlace
-        ? 'Lekcija je izmenjena (${selectedPositions.length} koraka)!'
-        : 'Lekcija sa ${selectedPositions.length} koraka je sačuvana!');
+        ? 'Tutorijal je izmenjen (${selectedPositions.length} koraka)!'
+        : 'Tutorijal sa ${selectedPositions.length} koraka je sačuvan!');
     widget.onCourseCreated();
     Navigator.pop(context);
   }
@@ -206,7 +206,10 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
         children: [
           Icon(Icons.collections_bookmark, color: colors.brand),
           const SizedBox(width: AppSpacing.sm),
-          Text(isEditing ? 'Izmeni lekciju' : 'Kreiraj lekciju (Više koraka)',
+          Text(
+              isEditing
+                  ? 'Izmeni tutorijal'
+                  : 'Kreiraj tutorijal (više koraka)',
               style: AppText.title),
         ],
       ),
@@ -226,7 +229,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                 TextField(
                   controller: titleController,
                   decoration: const InputDecoration(
-                    labelText: 'Naziv lekcije / kursa',
+                    labelText: 'Naziv tutorijala',
                     hintText: 'Npr. Završnice sa skakačem - Kompletna modul',
                   ),
                 ),
@@ -234,7 +237,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                 TextField(
                   controller: descController,
                   decoration: const InputDecoration(
-                    labelText: 'Opis kursa (opciono)',
+                    labelText: 'Opis tutorijala (opciono)',
                     hintText: 'Kratak opis zadataka...',
                   ),
                   maxLines: 2,
@@ -365,7 +368,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : Text(isEditing ? 'Sačuvaj izmene' : 'Sačuvaj lekciju'),
+              : Text(isEditing ? 'Sačuvaj izmene' : 'Sačuvaj tutorijal'),
         ),
       ],
     );
