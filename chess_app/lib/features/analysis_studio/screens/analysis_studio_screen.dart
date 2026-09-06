@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/services/studio_lesson_step.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
@@ -56,7 +57,6 @@ import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialo
     as dialogs;
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board/skinned_chess_board.dart';
-import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/lessons/widgets/lesson_step_editor_panel.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
@@ -1204,9 +1204,96 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     ));
   }
 
+  /// Where the step being saved begins.
+  ///
+  /// There is a choice here because both answers are things a trainer wants: a
+  /// lesson about the opposition is the whole line from the diagram, and a
+  /// lesson about the position five moves in is what follows *it*. There used
+  /// to be no choice and no question — see [_createStepFromPosition].
+  ///
+  /// Whichever is picked, the step's `fen` and its `pgn` come from the same
+  /// node. That is the entire point of the type.
+  Future<AnalysisNode?> _askStepAnchor() async {
+    // Nothing to ask when the board is standing on the root: both answers are
+    // the same node.
+    if (identical(_currentNode, _rootNode)) return _rootNode;
+
+    // The viewer walks first children, so "from the start" means the main
+    // line — which is not the trainer's line when they are standing in a
+    // sideline. Said out loud rather than discovered later: it is the one way
+    // the two answers differ in kind and not only in length.
+    final offMainLine = !_isOnMainLine(_currentNode);
+
+    return showDialog<AnalysisNode>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Odakle počinje korak?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Učenik dobija tablu na početnoj poziciji koraka i lista poteze '
+              'jedan po jedan, sa tvojim komentarom uz svaki.',
+            ),
+            if (offMainLine) ...[
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Trenutni potez je u sporednoj varijanti. Korak „od početka '
+                'linije" prikazuje glavnu liniju, ne ovu.',
+                style: TextStyle(color: context.colors.warning),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Odustani'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(_currentNode),
+            child: const Text('Odavde'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(_rootNode),
+            child: const Text('Od početka linije'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Whether [node] can be reached from the root by taking first children —
+  /// the same walk the lesson viewer makes.
+  bool _isOnMainLine(AnalysisNode node) {
+    var walk = _rootNode;
+    while (true) {
+      if (identical(walk, node)) return true;
+      if (walk.children.isEmpty) return false;
+      walk = walk.children.first;
+    }
+  }
+
+  /// Saves the position — and the line that runs through it — as one lesson
+  /// step.
+  ///
+  /// The step is one step, not one per half-move: the viewer replays a `pgn`
+  /// and shows each move's comment and arrows as the student walks it.
+  ///
+  /// What it did before, and why the check below exists: it sent
+  /// `_currentNode.fen` as the position and the whole tree from `_rootNode` as
+  /// the line. Standing anywhere but the root, those two describe different
+  /// games — and `MoveTree.parsePgn` skips a move it cannot play without a
+  /// word, so the student's screen showed a still picture and the trainer was
+  /// told the step had been saved. Two things fix it: one node answers for
+  /// both fields, and the step is read back here before it is sent.
   Future<void> _createStepFromPosition() async {
     final library = PositionLibraryService(authToken: widget.userSession.token);
     final lessons = LessonApiService(authToken: widget.userSession.token);
+
+    final anchor = await _askStepAnchor();
+    if (anchor == null || !mounted) return;
 
     final course = await showDialog(
       context: context,
@@ -1214,16 +1301,27 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     );
     if (course == null || !mounted) return;
 
-    final fen = _currentNode.fen;
-    final pgn = PgnExporterService.exportToPgn(_rootNode);
+    // One node answers for the position and for the line, and the step is read
+    // back exactly the way the student's screen will read it. A line that does
+    // not replay from its own position is not saved: a step that quietly loses
+    // its moves is worse than a step that was never made, because the trainer
+    // finds out from a child.
+    final step = StudioLessonStep.from(anchor);
+    if (!step.replays) {
+      AppFeedback.show(
+        context,
+        () => SnackBar(
+          content: Text('Korak nije sačuvan: ${step.rejectedMoves} '
+              'poteza iz linije ne može da se odigra iz ove pozicije.'),
+          backgroundColor: context.colors.danger,
+        ),
+      );
+      return;
+    }
 
     final error = await lessons.appendStep(
       lessonId: course.id,
-      step: {
-        'fen': fen,
-        'pgn': pgn,
-        'title': 'Novi zadatak',
-      },
+      step: step.toJson(title: 'Novi zadatak'),
     );
 
     if (!mounted) return;

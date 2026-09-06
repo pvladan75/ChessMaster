@@ -1,0 +1,421 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_chess_board/flutter_chess_board.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:chess_app/core/services/speech_text.dart';
+import 'package:chess_app/features/assignments/models/assignment.dart';
+import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
+import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/services/speech_service.dart';
+import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+
+/// The shape a lesson step is meant to have: one board, a line walked a
+/// sentence at a time, and the question about the position it arrives at asked
+/// on that same board without anything being reloaded.
+///
+/// Two rules are pinned here, and both are about *timing* rather than about
+/// what is on screen:
+///
+///  * a move is played once the sentence in front of it has been read out, not
+///    on a clock — a board that moves under a voice still speaking leaves the
+///    listener hearing about a position that is no longer there;
+///  * the step that asks is reached without a reset — same board, same
+///    orientation, and all that changes is whose turn it is to act.
+
+/// A synthesiser that reports completion when the test says so.
+class FakeTts implements TtsEngine {
+  FakeTts({this.instant = false});
+
+  /// Complete each utterance as soon as it starts, for the tests about the
+  /// route rather than about the waiting.
+  final bool instant;
+
+  final List<String> spoken = [];
+  Completer<void>? _pending;
+
+  /// Ends the utterance, the way an engine reporting completion would.
+  void finish() {
+    final pending = _pending;
+    _pending = null;
+    if (pending != null && !pending.isCompleted) pending.complete();
+  }
+
+  @override
+  Future<List<String>> languages() async => ['sr-RS'];
+
+  @override
+  Future<void> setLanguage(String language) async {}
+
+  @override
+  Future<void> setSpeechRate(double rate) async {}
+
+  @override
+  Future<void> speak(String text) {
+    spoken.add(text);
+    if (instant) return Future<void>.value();
+    final completer = Completer<void>();
+    _pending = completer;
+    return completer.future;
+  }
+
+  @override
+  Future<void> stop() async => finish();
+}
+
+/// A machine that has a synthesiser and no voice for Serbian — the ordinary
+/// state of a Windows install until somebody goes hunting for one.
+class VoicelessTts implements TtsEngine {
+  @override
+  Future<List<String>> languages() async => ['en-US'];
+
+  @override
+  Future<void> setLanguage(String language) async {}
+
+  @override
+  Future<void> setSpeechRate(double rate) async {}
+
+  @override
+  Future<void> speak(String text) async {}
+
+  @override
+  Future<void> stop() async {}
+}
+
+void main() {
+  const startFen = '8/8/8/3k4/8/8/3PK3/8 w - - 0 1';
+  const afterKd3 = '8/8/8/3k4/8/3K4/3P4/8 b - - 1 1';
+  const afterKc4 = '8/8/8/4k3/8/3K4/3P4/8 w - - 2 2';
+  const afterKd6 = '8/8/3k4/8/2K5/8/3P4/8 w - - 4 3';
+
+  // The lesson exactly as the trainer writes it in the studio.
+  const kd3Note =
+      'Ovde potezom Kd3 beli dovodi crnog u opoziciju primoravajući ga da u '
+      'sledećem potezu dozvoli pristup belom kralju nekom od polja e4, d4 ili '
+      'c4.';
+  const ke5Note = 'Pretpostavimo da crni kralj odigra na e5.';
+  const kc4Note = 'Sada beli kralj ide napred sa Kc4.';
+  const kd4Note =
+      'Posle sekvence poteza beli opet dovodi crnog kralja u opoziciju.';
+
+  const oppositionPgn = '1. Kd3 {$kd3Note [%csl Ge4,Gd4,Gc4]} '
+      'Ke5 {$ke5Note} 2. Kc4 {$kc4Note} Kd6 3. Kd4 {$kd4Note}';
+
+  const question = 'Kako beli sada ponovo zauzima opoziciju?';
+
+  final session = UserSession(
+    token: 't',
+    id: 1,
+    email: 'a@b.c',
+    name: 'Učenik',
+    role: 'ucenik',
+  );
+
+  Future<SpeechService> readyService(FakeTts engine) async {
+    final service = SpeechService.forTesting(engine);
+    await service.init(enabled: true, rate: 0.5, engine: engine);
+    expect(service.state, SpeechState.ready);
+    return service;
+  }
+
+  Future<SpeechService> voicelessService() async {
+    final service = SpeechService.forTesting(VoicelessTts());
+    await service.init(enabled: true, rate: 0.5, engine: VoicelessTts());
+    expect(service.state, SpeechState.noVoice);
+    return service;
+  }
+
+  AssignmentDetail lesson(List<LessonStep> steps) => AssignmentDetail(
+        assignment: Assignment(
+          id: 1,
+          title: 'Opozicija',
+          kind: AssignmentKind.lesson,
+          totalItems: steps.length,
+        ),
+        items: [
+          for (var i = 0; i < steps.length; i++)
+            AssignmentItem(puzzleId: null, position: i),
+        ],
+        steps: steps,
+      );
+
+  ChessBoardWithOverlay board(WidgetTester tester) => tester
+      .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay).first);
+
+  /// Runs the walk to its end.
+  ///
+  /// Not `pumpAndSettle`: that returns the moment no frame is scheduled, and a
+  /// move waiting out a pause schedules none — so it would report the lesson
+  /// finished while it had not started moving.
+  Future<void> walkThrough(WidgetTester tester) async {
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+  }
+
+  Future<void> open(
+    WidgetTester tester,
+    AssignmentDetail detail,
+    SpeechService speech,
+  ) async {
+    await tester.pumpWidget(MaterialApp(
+      home: LessonViewerScreen(
+        session: session,
+        detail: detail,
+        speech: speech,
+      ),
+    ));
+    await tester.pump();
+  }
+
+  group('the line is walked at the speed of the voice', () {
+    testWidgets('a move waits for the sentence in front of it to end',
+        (tester) async {
+      final tts = FakeTts();
+      final speech = await readyService(tts);
+
+      await open(
+        tester,
+        lesson(const [
+          LessonStep(title: 'Opozicija', fen: startFen, pgn: oppositionPgn),
+        ]),
+        speech,
+      );
+
+      await tester.tap(find.byTooltip('Pročitaj mi liniju'));
+      await tester.pump();
+
+      // Nothing is written about the position the line starts from, so the
+      // first move comes after a pause rather than after a sentence.
+      expect(find.text('Potez 0 od 5'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 1400));
+      await tester.pump();
+
+      expect(find.text('Potez 1 od 5'), findsOneWidget);
+      // The service says notation as words — „Kd3" is heard as „kralj d tri" —
+      // so the comparison is against what a listener would hear.
+      expect(tts.spoken.last, speakable(kd3Note),
+          reason: 'the sentence about Kd3 is read with Kd3 on the board');
+
+      // The squares that sentence is about are on the board while it is being
+      // said — that is the whole reason the two travel together.
+      expect(
+        board(tester).squares.map((s) => s.toString()).toList(),
+        ['Ge4', 'Gd4', 'Gc4'],
+      );
+
+      // And the board does not move on while the voice is still going, however
+      // long that takes.
+      await tester.pump(const Duration(seconds: 3));
+      expect(find.text('Potez 1 od 5'), findsOneWidget,
+          reason: 'Ke5 must not be played under the sentence about Kd3');
+      expect(tts.spoken.length, 1);
+
+      tts.finish();
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Potez 2 od 5'), findsOneWidget);
+      expect(tts.spoken.last, speakable(ke5Note));
+      expect(board(tester).squares, isEmpty,
+          reason: 'the marks belong to the move they were drawn on');
+
+      tts.finish();
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Potez 3 od 5'), findsOneWidget);
+      expect(tts.spoken.last, speakable(kc4Note));
+
+      // Stopping is the reader taking over, and it holds.
+      await tester.tap(find.byTooltip('Zaustavi čitanje'));
+      await tester.pump();
+
+      final spokenSoFar = tts.spoken.length;
+      await tester.pump(const Duration(seconds: 5));
+      expect(find.text('Potez 3 od 5'), findsOneWidget);
+      expect(tts.spoken.length, spokenSoFar,
+          reason: 'a stopped walk stays stopped');
+    });
+
+    testWidgets('taking the strip ends the walk', (tester) async {
+      final tts = FakeTts();
+      final speech = await readyService(tts);
+
+      await open(
+        tester,
+        lesson(const [
+          LessonStep(title: 'Opozicija', fen: startFen, pgn: oppositionPgn),
+        ]),
+        speech,
+      );
+
+      await tester.tap(find.byTooltip('Pročitaj mi liniju'));
+      await tester.pump(const Duration(milliseconds: 1400));
+      await tester.pump();
+      expect(find.text('Potez 1 od 5'), findsOneWidget);
+
+      // The child decides to go back and look again.
+      await tester.tap(find.byTooltip('Prethodni potez'));
+      await tester.pump();
+
+      expect(find.text('Potez 0 od 5'), findsOneWidget);
+      expect(find.byTooltip('Pročitaj mi liniju'), findsOneWidget,
+          reason: 'the walk stopped, so the button offers to start it again');
+
+      final spokenSoFar = tts.spoken.length;
+      await tester.pump(const Duration(seconds: 5));
+      expect(tts.spoken.length, spokenSoFar);
+    });
+
+    testWidgets('a machine with no voice is not offered the button',
+        (tester) async {
+      // Not a no-op control: where nothing can be read out, the child walks the
+      // line with the strip and reads it, and no button promises otherwise.
+      final speech = await voicelessService();
+
+      await open(
+        tester,
+        lesson(const [
+          LessonStep(title: 'Opozicija', fen: startFen, pgn: oppositionPgn),
+        ]),
+        speech,
+      );
+
+      expect(find.byTooltip('Pročitaj mi liniju'), findsNothing);
+      expect(find.byTooltip('Sledeći potez'), findsOneWidget,
+          reason: 'the line is still there to be walked by hand');
+    });
+  });
+
+  group('showing turns into asking on the same board', () {
+    /// A demonstration that walks to 2...Kd6, and the question about that exact
+    /// position.
+    AssignmentDetail demoThenQuestion() => lesson(const [
+          LessonStep(
+            title: 'Opozicija',
+            fen: startFen,
+            pgn: '1. Kd3 {$kd3Note} Ke5 {$ke5Note} 2. Kc4 {$kc4Note} Kd6',
+          ),
+          LessonStep(
+            title: 'Sada ti',
+            fen: afterKd6,
+            instruction: question,
+            kind: LessonStepKind.askMove,
+          ),
+        ]);
+
+    testWidgets('the walk carries on through the join and asks the question',
+        (tester) async {
+      final tts = FakeTts(instant: true);
+      final speech = await readyService(tts);
+
+      await open(tester, demoThenQuestion(), speech);
+
+      expect(find.text('1/2'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Pročitaj mi liniju'));
+      await walkThrough(tester);
+
+      // Nobody pressed „Sledeći korak": the line ran out on a position the next
+      // step stands on, so the lesson went on by itself.
+      expect(find.text('2/2'), findsOneWidget);
+      expect(tts.spoken.last, speakable(question));
+      expect(
+        tts.spoken,
+        containsAllInOrder(
+            [speakable(kd3Note), speakable(ke5Note), speakable(kc4Note)]),
+      );
+
+      // The same board, now the child's to play on.
+      expect(board(tester).isAllowedToMove, isTrue);
+      expect(find.text(question), findsOneWidget);
+    });
+
+    testWidgets('the board is not turned around at the join', (tester) async {
+      // The visible half of "no reset". The question stands on a position with
+      // black to move, so recomputing the orientation from the step — which is
+      // what every step used to do — would spin the board round under the child
+      // at the moment they are asked to answer.
+      final tts = FakeTts(instant: true);
+      final speech = await readyService(tts);
+
+      await open(
+        tester,
+        lesson(const [
+          LessonStep(
+              title: 'Opozicija', fen: startFen, pgn: '1. Kd3 {$kd3Note}'),
+          LessonStep(
+            title: 'Sada ti',
+            fen: afterKd3,
+            instruction: 'Kuda crni kralj?',
+            kind: LessonStepKind.askMove,
+          ),
+        ]),
+        speech,
+      );
+
+      expect(board(tester).boardOrientation, PlayerColor.white);
+
+      await tester.tap(find.byTooltip('Pročitaj mi liniju'));
+      await walkThrough(tester);
+
+      expect(find.text('2/2'), findsOneWidget);
+      expect(board(tester).boardOrientation, PlayerColor.white,
+          reason: 'the child is looking at the board they just watched');
+    });
+
+    testWidgets('a step that starts somewhere else is not walked into',
+        (tester) async {
+      // The join is a continuation, not a page-turn: a next step on a different
+      // diagram is opened by the child when they are ready for it.
+      final tts = FakeTts(instant: true);
+      final speech = await readyService(tts);
+
+      await open(
+        tester,
+        lesson(const [
+          LessonStep(
+              title: 'Opozicija', fen: startFen, pgn: '1. Kd3 {$kd3Note}'),
+          LessonStep(
+            title: 'Druga pozicija',
+            fen: afterKc4,
+            instruction: 'Nešto sasvim drugo.',
+            kind: LessonStepKind.askMove,
+          ),
+        ]),
+        speech,
+      );
+
+      await tester.tap(find.byTooltip('Pročitaj mi liniju'));
+      await walkThrough(tester);
+
+      expect(find.text('1/2'), findsOneWidget);
+      expect(tts.spoken, isNot(contains(speakable('Nešto sasvim drugo.'))));
+    });
+
+    testWidgets('pressing the step button by hand does not jump either',
+        (tester) async {
+      // The same rule with the sound off, which is how most of these lessons
+      // will actually be read.
+      final speech = await voicelessService();
+
+      await open(tester, demoThenQuestion(), speech);
+
+      await tester.tap(find.byTooltip('Idi na kraj'));
+      await tester.pump();
+      expect(find.text('Potez 4 od 4'), findsOneWidget);
+
+      final before = board(tester).boardOrientation;
+
+      await tester.tap(find.text('Sledeći korak'));
+      await tester.pump();
+
+      expect(find.text('2/2'), findsOneWidget);
+      expect(board(tester).boardOrientation, before);
+      expect(board(tester).isAllowedToMove, isTrue);
+      expect(find.text(question), findsOneWidget);
+    });
+  });
+}

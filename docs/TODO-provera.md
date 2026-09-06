@@ -4065,3 +4065,46 @@ Trenerova strana, faza 7 (paket 50) — ovim se lekcija iz gornjih stavki i prav
     da se pojavi „Odgovor nije poslat — proveri vezu." ni ocena.
 23. [ ] **U `CreateCourseDialog` više nema unosa zadatka** — samo redosled i
     izbor pozicija. Tekst koraka se piše u studiju.
+
+Popravke od 6.9.2026 — korak nosi liniju, ne samo sliku:
+
+24. [ ] **Korak napravljen usred linije zaista nosi poteze.** U studiju odigraj
+    liniju od bar tri poteza sa komentarom uz svaki, stani na treći potez i
+    napravi korak. Kao đak: traka „Potez N od M" postoji, listanje menja
+    poziciju, i uz svaki potez stoji komentar koji si napisao. Ranije se ovde
+    dobijala **nepomična slika**, bez trake i bez ijednog komentara, a trener je
+    pri čuvanju video „Korak uspešno dodat".
+25. [ ] **Pitanje „Odakle počinje korak?"** iskoči kad ne stojiš na početnoj
+    poziciji stabla — „Od početka linije" daje celu liniju, „Odavde" samo ono
+    što sledi. Ako stojiš u **sporednoj varijanti**, u pitanju stoji i
+    upozorenje da „od početka linije" prikazuje glavnu, a ne tvoju liniju.
+    Kad stojiš na korenu, pitanja nema.
+26. [ ] **Rečenica o početnoj poziciji stiže do đaka.** U studiju napiši
+    komentar dok tabla stoji na **prvoj** poziciji koraka (pre ijednog poteza),
+    napravi korak, otvori kao đak: rečenica se vidi odmah, na potezu 0. Kreni
+    napred — zameni je komentar prvog poteza; vrati se nazad — opet je tu.
+
+Pedagoški šablon iz 6.9.2026 — lekcija se sluša, pa se pita:
+
+27. [ ] **Linija se šeta brzinom glasa.** Uključi govor, otvori korak sa
+    linijom i pritisni „Pročitaj mi liniju" u traci poteza. Svaki potez se
+    odigra **tek kad se rečenica ispred njega dovrši** — ne ranije, i ne po
+    tajmeru. Test za ovo je lekcija o opoziciji iz razgovora:
+    `8/8/8/3k4/8/8/3PK3/8 w - - 0 1` sa `1. Kd3 … Ke5 … 2. Kc4 … Kd6 3. Kd4`.
+    Proveri i da zelena polja e4/d4/c4 stoje **dok** se čita rečenica o Kd3, i
+    da nestanu sa sledećim potezom.
+27a. [ ] **Dete može da preuzme.** Pritisak na „Prethodni potez", na strelicu,
+    ili potez odigran rukom — zaustavlja čitanje i glas ućuti. „Zaustavi
+    čitanje" isto. Sa isključenim govorom dugmeta za čitanje nema, a listanje
+    radi kao i pre.
+28. [ ] **Demonstracija prelazi u pitanje bez skoka.** Napravi lekciju od dva
+    koraka: `show` sa linijom koja se zaustavi na nekoj poziciji, pa
+    `ask_move` **na toj istoj poziciji**. Sa uključenim govorom: po kraju
+    linije lekcija sama pređe na pitanje, narator ga izgovori, i tabla se
+    otključa — **bez treptaja, bez okretanja table, bez učitavanja novog
+    ekrana**. Ovo je tačka koju treba gledati u oči: ako se tabla makar na
+    trenutak „resetuje", nije dobro.
+28a. [ ] **Isto važi i rukom.** Sa isključenim govorom dođi do kraja linije i
+    pritisni „Sledeći korak" — ista tabla, ista orijentacija, samo se otključa.
+29. [ ] **Korak koji počinje drugde se ne otvara sam.** Ako sledeći korak stoji
+    na nekoj **drugoj** poziciji, čitanje stane na kraju linije i čeka dete.

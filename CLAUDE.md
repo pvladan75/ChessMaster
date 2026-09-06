@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1342 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1372 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 945 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -57,6 +57,17 @@ of the app's came with a lesson step that asks something back — the kind
 discriminator and the screen that shows it, the ring `[%csl]` is drawn as, the
 narration, the trainer's editor — and fifty on the backend with the judging
 route, step identity, and the rename that no longer deletes a lesson's steps.
+
+Twenty-three more on 6.9.2026, when a lesson step stopped being able to carry a
+position from one node and a line from another: eleven for the one reader of a
+step's line and the count of moves it could not play, seven for the pair the
+studio builds from a single node, three on the student's screen — the note about
+the starting position, and an older broken step still opening as the still board
+it always was — and two for that note surviving the round trip through both
+exporters. Seven more the same day for the shape those fixes were for: a step's
+line walked at the speed of the voice — the move is played when the sentence in
+front of it has been read out, not on a clock — and the join where showing turns
+into asking, which is one board and not two screens.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
@@ -174,6 +185,20 @@ machine with a `.env` the require succeeds and the suite is green; CI has no
 it. **A test that reaches a route must set the environment that route's imports
 demand, and the way to check is to run `npm test` with `.env` moved aside** —
 that is the environment CI actually has.
+
+One more on 6.9.2026, and it is the oldest shape in this list wearing a new
+coat. „Napravi korak od ove pozicije" sent a lesson step's `fen` from
+`_currentNode` and its `pgn` from an export of `_rootNode`, and
+`MoveTree.parsePgn` skips a move it cannot play **without a word** — so a
+trainer standing anywhere but the root of their tree saved a step whose line
+could not be replayed, was told „Korak uspešno dodat", and found out when a
+child opened a board with no moves on it. Parity decided whether the student got
+an empty line or a shortened one, so half the positions in any tree looked
+correct. The fix is two rules worth copying: **one node answers for both
+fields** (`StudioLessonStep.from`), and **the writer reads its own work back
+through the reader's parser before saving it** — `LessonStepLine` is that one
+parser, `rejectedMoves` is the number it reports, and a step that does not
+replay is refused rather than stored.
 
 ## Two ways a Flutter release build hides a mistake
 

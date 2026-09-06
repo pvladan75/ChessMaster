@@ -37,6 +37,15 @@ class PgnExporterService {
     });
     buffer.writeln();
 
+    // The note about the starting position goes ahead of move one. A step is
+    // often nothing but a diagram and a sentence about it — „pogledaj polje
+    // d5" — and until this line that sentence was the one thing an export
+    // could not carry.
+    final rootComment = _commentText(rootNode);
+    if (rootComment != null) {
+      buffer.write('$rootComment ');
+    }
+
     // Format tree recursively
     final isWhiteToMove = rootNode.fen.contains(' w ');
     final startMoveNum = _extractMoveNumberFromFen(rootNode.fen);
@@ -114,28 +123,37 @@ class PgnExporterService {
       buffer.write(node.nag);
     }
 
-    final commentParts = <String>[];
+    final comment = _commentText(node);
+    if (comment != null) {
+      buffer.write(' $comment');
+    }
+  }
+
+  /// One node's `{ words [%cal …] [%csl …] }`, or null when it has nothing to
+  /// say.
+  ///
+  /// One builder rather than one per call site: the root's note and a move's
+  /// note must be written in the same dialect, since both are read back by the
+  /// same parser.
+  static String? _commentText(AnalysisNode node) {
+    final parts = <String>[];
     // No `[%eval …]` any more. A node stopped carrying the engine's number on
     // 4.9.2026, and an export writes what the tree holds — the reader's own
     // comment, the NAG above, and what they drew.
     if (node.comment.isNotEmpty) {
-      commentParts.add(node.comment);
+      parts.add(node.comment);
     }
     // The same two tags `MoveTree` writes, in the same order. A studio export is
     // read back by `MoveTree.parsePgn`, so if these two disagreed about the
     // dialect an arrow would survive one direction and not the other.
     if (node.arrows.isNotEmpty) {
-      commentParts
-          .add('[%cal ${node.arrows.map((a) => a.toString()).join(',')}]');
+      parts.add('[%cal ${node.arrows.map((a) => a.toString()).join(',')}]');
     }
     if (node.squares.isNotEmpty) {
-      commentParts
-          .add('[%csl ${node.squares.map((s) => s.toString()).join(',')}]');
+      parts.add('[%csl ${node.squares.map((s) => s.toString()).join(',')}]');
     }
-
-    if (commentParts.isNotEmpty) {
-      buffer.write(' { ${commentParts.join(" ")} }');
-    }
+    if (parts.isEmpty) return null;
+    return '{ ${parts.join(" ")} }';
   }
 
   static int _extractMoveNumberFromFen(String fen) {

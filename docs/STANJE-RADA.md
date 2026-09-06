@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 3.9.2026 (uveče — provera uživo, plan jednostavnosti,
-faze 0–3 spojene).
+Poslednje ažuriranje: 6.9.2026 (korak lekcije — pozicija i linija iz istog
+čvora; linija se šeta brzinom glasa; demonstracija i pitanje na istoj tabli).
 
 ---
 
@@ -602,6 +602,93 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 čitaju iz JSON-a, i za to postoji test.
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
+
+## Korak lekcije: pozicija i linija moraju biti iz istog čvora — 6.9.2026
+
+Pitanje vlasnika je bilo da li đak u jednom `show` koraku može da prelista
+liniju od nekoliko poteza, sa komentarom i strelicom uz svaki polupotez, ili
+mora poseban korak i poseban FEN za svaki. **Može — pregledač to radi od faze
+2**: `LessonViewerScreen` čita `pgn` jednim prolazom (`mainLine()`), pa traka
+poteza, strelice po potezu i komentar po potezu rade na istoj tabli.
+
+Ali „Napravi korak od ove pozicije" je slao **poziciju iz jednog čvora i liniju
+iz drugog**: `fen` je bio `_currentNode.fen`, a `pgn` izvoz celog stabla od
+`_rootNode`. Kad trener ne stoji na korenu, to su dve različite partije — a
+`MoveTree.parsePgn` preskače potez koji ne može da odigra i **ne kaže ništa**.
+Merenjem, ne nagađanjem (probni test na `1.e4 {a} e5 {b} 2.Nf3 {c}`):
+
+| trener stoji na | šta đak dobije |
+|---|---|
+| korenu | cela linija, ispravno |
+| posle `1.e4` | `e5 Nf3` — linija bez prvog poteza, njegov komentar nestao |
+| posle `2.Nf3` | **nijedan potez** — nema trake, samo slika; komentar nestao |
+
+Parnost odlučuje koji od dva tiha kvara dobiješ, pa je pola pozicija u stablu
+izgledalo ispravno. Poznati oblik iz `CLAUDE.md`: korak se preskoči, javi se
+uspeh, kvar se vidi jedan sloj kasnije — ovde tek kad dete otvori lekciju.
+
+Urađeno je troje:
+
+1. **Jedan čvor odgovara za oba polja.** `StudioLessonStep.from(anchor)` pravi i
+   `fen` i `pgn` iz istog čvora, pa ekran više ne sastavlja par ručno. Trener
+   koji ne stoji na korenu dobija pitanje „Odakle počinje korak?" — „Od početka
+   linije" ili „Odavde". Ako stoji u sporednoj varijanti, u pitanju stoji i
+   upozorenje da „od početka linije" prikazuje **glavnu** liniju, jer pregledač
+   ide kroz prvu decu.
+2. **Tiho postaje glasno.** `MoveTree.parsePgn` broji poteze koje nije mogao da
+   odigra (`rejectedMoves`), `LessonStepLine` je jedini čitač linije — isti za
+   đakov ekran i za trenerovu proveru — i korak koji se ne odsvira iz svoje
+   pozicije se **ne čuva**; trener dobija poruku sa brojem. Uz to: `!□` i
+   `$14` više ne broje kao odbijen potez, da dobra linija ne bi bila prijavljena
+   kao pokvarena.
+3. **Rečenica o početnoj poziciji se vidi.** `rootComment` — ono što PGN drži
+   ispred prvog poteza — parsirao se odavno i **nije ga čitao nijedan ekran**,
+   a strelice na toj istoj poziciji su se crtale, pa se rupa nije primećivala.
+   Sada se prikazuje na potezu 0. Oba izvoznika ga i **pišu**; ranije nisu, pa
+   je trener mogao da ga otkuca u studiju i da nestane pri čuvanju.
+
+23 nova testa (1342 → 1365), i sva četiri čuvara su dokazana mutacijom pre nego
+što im se poverovalo — pravilo iz `CLAUDE.md`, i ovde je zaradilo mesto: bez
+mutacije ne bi se videlo da čuvar meri baš ono zbog čega postoji.
+
+### Linija se šeta brzinom glasa, a demonstracija prelazi u pitanje na istoj tabli
+
+Vlasnik je zatim dao tačan pedagoški šablon, i on je promenio ono što je bilo
+otvoreno gore. Lekcija o opoziciji sa `8/8/8/3k4/8/8/3PK3/8 w - - 0 1` i linijom
+`1. Kd3 {…[%csl Ge4,Gd4,Gc4]} Ke5 {…} 2. Kc4 {…} Kd6 3. Kd4 {…}` mora da radi
+ovako:
+
+1. **Potez se odigrava tek kad se rečenica ispred njega izgovori do kraja.**
+   `SpeechService.speak` se završava kad glas stane (`awaitSpeakCompletion`, uz
+   svoj watchdog), pa pregledač **čeka rečenicu, ne sat**. Tabla koja se pomeri
+   ispod rečenice koja se još izgovara ostavlja dete da sluša o poziciji koje
+   više nema. Dugme „Pročitaj mi liniju" stoji u traci poteza; sa isključenim
+   glasom nema ni tajmera ni automatskog puštanja — dete pritiska „Sledeći
+   potez", i to je isti ekran, ne slabiji. Na mašini bez glasa dugmeta nema
+   uopšte (kontrola koja ne može da radi je gora od nikakve).
+2. **Obojena polja i strelice prate rečenicu i potez.** Ovo je već radilo od
+   faze 2 — provereno na tačnom primeru: `[%csl Ge4,Gd4,Gc4]` stoji na tabli
+   dok se čita rečenica o Kd3, i nestaje sa sledećim potezom.
+3. **Prelaz iz `show` u `ask_move`/`ask_choice` je jedan neprekinut tok.** Ako
+   sledeći korak stoji na **istoj poziciji** na kojoj se linija zaustavila, ne
+   učitava se ništa: tabla ostaje, orijentacija se ne preračunava, narator
+   izgovori pitanje i tabla se prosto otključa za dete. Korak koji počinje na
+   drugoj poziciji se ne otvara sam — to je nova dijagrama i dete je otvara kad
+   je spremno.
+
+Poređenje pozicija ide po prva četiri polja FEN-a (postavka, potez, rokada, en
+passant), namerno bez brojača poteza — demonstracija koja je dovde došla i
+pitanje napisano odavde su za dete ista tabla.
+
+Sedam testova na ovo, i tri mutacije: potez koji ne čeka glas, korak koji uvek
+učitava tablu, i tok koji ulazi u bilo koji sledeći korak — svaka obara tačno
+onaj test koji je za nju pisan.
+
+**Nije viđeno uživo** — `TODO-provera.md`, stavka 108, tačke 24–29.
+
+Ostaje otvoreno i namerno nije rađeno: pregledač ide samo glavnom linijom
+(`LinearMoveCursor`), pa varijacije u koraku postoje u stablu a ne mogu da se
+prošetaju.
 
 ## Interaktivna lekcija — faze 0–7 gotove, ostaje živa provera, 6.9.2026
 
