@@ -458,6 +458,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             tooltip: 'Unos pozicije',
             onPressed: _showSetupDialog,
           ),
+          FilledButton(
+            onPressed: _saveTutorial,
+            child: const Text('Sačuvaj tutorijal'),
+          ),
+          const SizedBox(width: AppSpacing.sm),
         ],
       ),
       // Arrow keys drive the same cursor the strip's buttons do. This screen is
@@ -474,9 +479,12 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             // board never takes more height than it has: a `Row` wider than the
             // screen is clipped in silence in a release build, and this screen
             // is the one that has the most to put in a row.
+            final boardPaneWidth =
+                constraints.maxWidth - 460 - AppSpacing.md * 3;
+            final maxHeightLimit =
+                (constraints.maxHeight - 120).clamp(280.0, double.infinity);
             final boardSize = wide
-                ? (constraints.maxWidth * 0.45)
-                    .clamp(280.0, constraints.maxHeight - 120)
+                ? boardPaneWidth.clamp(280.0, maxHeightLimit)
                 : constraints.maxWidth - AppSpacing.lg * 2;
 
             final board = _boardColumn(boardSize.toDouble());
@@ -489,13 +497,18 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             return Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SingleChildScrollView(child: board),
-                  const SizedBox(width: AppSpacing.md),
                   Expanded(
-                    child: SingleChildScrollView(child: _authoringColumn()),
+                    key: const Key('board-pane'),
+                    child: Center(
+                      child: SingleChildScrollView(
+                        child: board,
+                      ),
+                    ),
                   ),
+                  const SizedBox(width: AppSpacing.md),
+                  _authoringPaneWide(),
                 ],
               ),
             );
@@ -661,34 +674,84 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     }
   }
 
+  /// The tutorial's name, written once and drawn by both layouts.
+  ///
+  /// Both halves of this screen need it and batch 58 arrived with the field —
+  /// and the four lines of comment explaining it — copied into each. A widget
+  /// written twice is a widget that gets fixed once.
+  Widget _titleField() {
+    return TextField(
+      key: const Key('tutorial-title'),
+      controller: _titleController,
+      decoration: const InputDecoration(labelText: 'Naziv tutorijala'),
+      // Written into the draft rather than only held in the controller. The
+      // draft is what `TutorialDraftService` stores, so a title that lives only
+      // here comes back empty next time — with every part still in place, which
+      // is what made it invisible.
+      onChanged: (value) {
+        _draft.title = value;
+        _persist();
+      },
+    );
+  }
+
+  /// The table of contents, wired to the screen that owns the draft.
+  Widget _sectionsPanel() {
+    return TutorialSectionsPanel(
+      draft: _draft,
+      onSelect: _selectSection,
+      onAdd: _addSection,
+      onMove: _moveSection,
+      onClone: _cloneSection,
+      onRemove: _removeSection,
+    );
+  }
+
+  Widget _authoringPaneWide() {
+    return SizedBox(
+      key: const Key('authoring-pane'),
+      width: 460,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _titleField(),
+          const SizedBox(height: AppSpacing.sm),
+          Expanded(
+            key: const Key('sections-half'),
+            flex: 2,
+            child: _sectionsPanel(),
+          ),
+          const Divider(),
+          Expanded(
+            key: const Key('editor-half'),
+            flex: 3,
+            child: SingleChildScrollView(
+              child: _editorFields(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// The tree of the part being written, and everything written *about* it.
   Widget _authoringColumn() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          key: const Key('tutorial-title'),
-          controller: _titleController,
-          decoration: const InputDecoration(labelText: 'Naziv tutorijala'),
-          // Written into the draft rather than only held in the controller.
-          // The draft is what `TutorialDraftService` stores, so a title that
-          // lives only here comes back empty next time — with every part
-          // still in place, which is what made it invisible.
-          onChanged: (value) {
-            _draft.title = value;
-            _persist();
-          },
-        ),
+        _titleField(),
         const SizedBox(height: AppSpacing.md),
-        TutorialSectionsPanel(
-          draft: _draft,
-          onSelect: _selectSection,
-          onAdd: _addSection,
-          onMove: _moveSection,
-          onClone: _cloneSection,
-          onRemove: _removeSection,
-        ),
+        _sectionsPanel(),
         const SizedBox(height: AppSpacing.md),
+        _editorFields(),
+      ],
+    );
+  }
+
+  Widget _editorFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         TextField(
           key: const Key('example-sentence'),
           controller: _sentenceController,
@@ -795,11 +858,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
-        const SizedBox(height: AppSpacing.lg),
-        ElevatedButton(
-          onPressed: _saveTutorial,
-          child: const Text('Sačuvaj tutorijal'),
-        ),
         const SizedBox(height: AppSpacing.md),
         Text('Linija ovog dela',
             style:
