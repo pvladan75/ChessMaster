@@ -103,6 +103,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
@@ -182,7 +183,8 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: TutorialStudioScreen(
         session: session,
-        handover: handover ?? TutorialHandover.position(startFen),
+        entry: TutorialEntry.fromAnalysis(
+            handover ?? TutorialHandover.position(startFen)),
         lessonApi: api,
       ),
     ));

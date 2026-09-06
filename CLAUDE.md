@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1473 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1482 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -206,6 +206,17 @@ start from a part written by hand, it went red for the mutation **and stayed
 red** after that fix, which is when the real bug came out. A surviving mutation
 is a question, not a verdict: it says this test cannot see, and what it cannot
 see is sometimes not the thing you were mutating.
+
+Nine more with P3b, the entry flow — **1482 in the app, 1 skipped** — and one
+lesson about gates rather than about code. Two phases of that plan had to edit
+files the plan itself had said would „pass unedited": once to widen a
+source-reading check from one file to a directory when the code it watches moved
+one layer down, and once because a screen's constructor changed. Both times the
+assertions were untouched and green. **„Passes unedited" is the right instinct
+and the wrong words** — a fixture is not a claim about behaviour, and holding a
+file literally unedited would have meant keeping a redundant second way to open a
+screen so that a constructor call need not move. Say „its assertions are
+unchanged", and then say which fixtures moved.
 
 One more, about running the suite rather than about the code:
 `test/opening_book_service_test.dart` takes ~20 s to load the bundled ECO

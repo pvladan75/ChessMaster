@@ -459,7 +459,7 @@ warnings — and nothing newly suppressed.
 | **P1** | `MoveTree → AnalysisNode` converter; `TutorialSection` with a tree; `TutorialChoice`; `stepId` round trip | **lead** | D2 and D3 are the two places a trainer's work or a child's schedule can be destroyed silently. No UI. ~250 lines, headless tests |
 | **P2** | Hydration: `TutorialDraft.fromLesson()`, and the round-trip test | **lead** | the whole safety story is one assertion: load a saved tutorial, change nothing, save — `positionList` byte-identical, **ids included** |
 | **P3a** | `LessonApiService` write results (§6); `commitDraft`, the POST-then-PUT routing | **lead** | it decides whether a second „Sačuvaj" edits or duplicates, and it writes step ids. Headless |
-| **P3b** | The draft slot gains identity; `TutorialEntry`; the „unfinished draft" prompt | worker, mechanical | closes 1.1. Bounded, list-shaped brief — the `flash-high` comparison batch |
+| **P3b** | The draft slot gains identity; `TutorialEntry`; the „unfinished draft" prompt | **lead** | closes 1.1. It changes what an existing gate asserts, so it stayed with the lead |
 | **P4** | Biblioteka card: „Novi tutorijal" / „Otvori sačuvani tutorijal", both behind `isTutorialStudioAvailable`; the Analysis door demoted to „send this line into the studio" | worker, mechanical | pure UI, no model |
 | **P5** | The split-view shell: board pane, sections panel with add/remove/reorder/clone, the tree tab where it is today | worker, high-reasoning | layout; reuses batch 55's semantics wholesale |
 | **P6** | The timeline: `beatsOf`, `_BeatCard`, fork chips, inline editing of comment and question | **lead writes `beatsOf` + its gate; worker builds the panel** | the pure function is the contract; the widget is replaceable |
@@ -625,6 +625,59 @@ no errors, no warnings, nothing newly suppressed. Backend untouched.
 *Still open in P3b:* `TutorialEntry`, the draft slot's identity check and the
 „unfinished draft" prompt — D4. Until those land the screen still restores the
 stored draft on open, which is complaint 1.1.
+
+### P3b — done 6.9.2026, by the lead
+
+`TutorialEntry`, and a screen that is told **why** it is being opened. Nine
+tests in `test/tutorial_entry_test.dart`, written first, proved by five
+mutations, all five caught.
+
+This is complaint 1.1 closed at its cause. The screen used to take an optional
+handover and call `_restoreDraft` unconditionally, so the one stored draft slot
+was adopted on every open — the title and every finished part came back
+whatever the trainer had asked for. `entry` is required and has no default: a
+screen that can be opened without saying why is a screen that has to guess.
+
+* **`TutorialEntry.blank(title)`** — nothing is adopted. If the slot holds
+  anything, the trainer is asked **by name**: „Prošli put ste pisali tutorijal
+  „Opozicija" (3 dela)." „Odbaci" clears the slot, because a draft that has just
+  been declined must not be waiting tomorrow.
+* **`TutorialEntry.saved(lesson)`** — the lesson is the draft, and a stored
+  draft is adopted **only when its `lessonId` matches**. A draft of another
+  tutorial is somebody else's unfinished business: left where it is, and not
+  even mentioned.
+* **`TutorialEntry.fromAnalysis(handover, intoOpenDraft:)`** — today's
+  behaviour, now explicit. The parts already written come back and the
+  handed-over line becomes the open one, which is the flow the door exists for.
+
+**The door's question is answered at the door.** D4 says a handover either joins
+the tutorial being written or starts a new one; that question belongs beside the
+line, while the trainer can still see it, so the Analysis Studio asks it and
+passes the answer in `intoOpenDraft`. Wiring that question is P4; the parameter
+and both behaviours exist and are tested now.
+
+**One existing gate changed what it asserts, and it is the point of the phase.**
+`test/tutorial_studio_test.dart` had two tests that reopened the screen with no
+argument and expected the draft back in silence — the behaviour D4 removes. They
+now answer the question the screen asks; every assertion in them is unchanged
+and the draft still comes back.
+
+**And `tutorial_authoring_test.dart` needed a second mechanical edit** — its one
+construction of the screen, because the constructor changed. Taken with the
+source-scope widening in P1, the honest statement of §8's rule is narrower than
+how it was written: **its assertions are all unchanged and green; two fixtures
+moved.** „Passes unedited" was the right instinct and the wrong words — a
+constructor is not a claim about behaviour, and pretending otherwise would have
+meant keeping a redundant second way to open the screen purely so a fixture
+would not move.
+
+**1482 app tests, 1 skipped, all green** (1473 before). Analyzer still 29 infos,
+no errors, no warnings, nothing newly suppressed. Backend untouched.
+
+*P3 is complete.* Next is P4 — the Biblioteka card with „Novi tutorijal" and
+„Otvori sačuvani tutorijal", both behind `isTutorialStudioAvailable`, and the
+Analysis door demoted to asking where its line should go. Every entry it needs
+now exists.
 
 ## 9. What this plan does not do
 

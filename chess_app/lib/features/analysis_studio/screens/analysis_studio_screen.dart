@@ -61,6 +61,7 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/lessons/widgets/lesson_step_editor_panel.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
+import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
@@ -1346,7 +1347,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => TutorialStudioScreen(
         session: widget.userSession,
-        handover: handover,
+        entry: TutorialEntry.fromAnalysis(handover),
       ),
     ));
   }

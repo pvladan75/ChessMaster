@@ -29,6 +29,7 @@ import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.da
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
+import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
@@ -66,15 +67,31 @@ void main() {
 
   /// A desktop window: the screen is Windows-only by decision 5, and a board
   /// beside a tree needs the width it was designed for.
-  Future<void> open(WidgetTester tester, {TutorialHandover? handover}) async {
+  Future<void> open(WidgetTester tester,
+      {TutorialHandover? handover, bool resumeDraft = true}) async {
     tester.view.physicalSize = const Size(1600, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(MaterialApp(
-      home: TutorialStudioScreen(session: session, handover: handover),
+      home: TutorialStudioScreen(
+        session: session,
+        entry: handover == null
+            ? const TutorialEntry.blank('')
+            : TutorialEntry.fromAnalysis(handover),
+      ),
     ));
     await tester.pumpAndSettle();
+
+    // D4 of docs/PLAN-STUDIO-REDIZAJN.md, approved 6.9.2026: opening the studio
+    // to start something new no longer adopts the stored draft in silence — it
+    // says which tutorial is waiting and lets the trainer choose. Two tests
+    // below reopen the screen to prove the draft survived, so they answer the
+    // question. What they assert is unchanged, and the draft still comes back.
+    if (resumeDraft && find.text('Nastavi').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Nastavi'));
+      await tester.pumpAndSettle();
+    }
   }
 
   /// Tears the tree down — and deliberately does **not** wait out the draft's

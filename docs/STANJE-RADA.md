@@ -15,9 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (redizajn studija: **P0–P2 i P3a gotove** — deo
-tutorijala čuva svoje stablo, a drugi „Sačuvaj" menja tutorijal umesto da pravi
-novi; ostaje P3b nadalje. Tutorijal: cela
+Poslednje ažuriranje: 6.9.2026 (redizajn studija: **P0–P3 gotove** — deo
+tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi
+novi, i ekran više ne nasleđuje tuđ nacrt; ostaje P4 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
@@ -122,12 +122,46 @@ nosi.
 
 **1473 testa u aplikaciji, 1 preskočen, sve zeleno** (bilo 1458).
 
+### P3b — zašto se ekran otvara, 6.9.2026
+
+`TutorialEntry`, i ekran kome se **mora** reći zašto se otvara. Ovo je prijava 1.1
+zatvorena u korenu: ekran je ranije uzimao neobavezan handover i bezuslovno
+učitavao jedini slot za nacrt, pa su naziv i svi završeni delovi dolazili natrag
+šta god trener tražio.
+
+* **`blank(naziv)`** — ništa se ne preuzima. Ako u slotu nešto stoji, trener se
+  pita **imenom**: „Prošli put ste pisali tutorijal „Opozicija“ (3 dela).“
+  „Odbaci“ briše slot — nacrt koji je upravo odbijen ne sme da čeka sutra.
+* **`saved(lekcija)`** — sačuvan nacrt se preuzima **samo ako mu se `lessonId`
+  poklapa**. Nacrt drugog tutorijala je tuđ nedovršen posao: ostaje gde jeste i o
+  njemu se ne pita.
+* **`fromAnalysis(handover, intoOpenDraft:)`** — dosadašnje ponašanje, sada
+  izričito.
+
+**Pitanje sa vrata postavljaju — vrata.** Gde linija treba da ode pita Studio za
+analizu, dok trener još gleda tu liniju, pa se odgovor prenosi u `intoOpenDraft`.
+Same veze idu u P4; oba ponašanja već postoje i testirana su.
+
+**Jedna postojeća kapija je promenila ono što tvrdi, i to je suština faze.** U
+`tutorial_studio_test.dart` dva testa su ponovo otvarala ekran bez argumenta i
+očekivala nacrt natrag — u tišini. Sada odgovaraju na pitanje koje ekran
+postavlja; sve njihove tvrdnje su nepromenjene i nacrt se i dalje vraća.
+
+**A `tutorial_authoring_test.dart` je tražio još jednu mehaničku izmenu** — jedno
+mesto gde pravi ekran, jer se konstruktor promenio. Zajedno sa proširenjem iz P1,
+pošteno pravilo glasi uže nego što je zapisano: **sve njegove tvrdnje su
+nepromenjene i zelene; pomerila su se dva pomoćna mesta.** Alternativa bi bila
+zadržati suvišan drugi način da se ekran otvori samo da se test ne pomeri.
+
+**Pet mutacija, sve uhvaćene.** **1482 testa u aplikaciji, 1 preskočen, sve
+zeleno** (bilo 1473).
+
 ### Šta je otvoreno
 
-P3b nadalje: `TutorialEntry`, identitet slota za nacrt i pitanje „imate nezavršen
-tutorijal — nastavi ili odbaci" (odluka D4). Dok to ne stigne, ekran i dalje sam
-vraća sačuvan nacrt pri otvaranju — a to je prijava 1.1. Redosled i podela posla
-su u §8 plana.
+P4 nadalje: kartica u „Biblioteci“ sa „Novi tutorijal“ i „Otvori sačuvani
+tutorijal“ (obe iza `isTutorialStudioAvailable`), i vrata iz Analize koja pitaju
+gde linija ide. Svi ulazi koji su za to potrebni sada postoje. Redosled i podela
+posla su u §8 plana.
 
 ---
 

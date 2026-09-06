@@ -12,6 +12,7 @@ import 'package:chess_app/features/assignments/models/assignment.dart'
     show LessonStepKind;
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
+import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
@@ -57,18 +58,18 @@ class TutorialStudioScreen extends StatefulWidget {
   const TutorialStudioScreen({
     super.key,
     required this.session,
-    this.handover,
+    required this.entry,
     this.lessonApi,
   });
 
   final UserSession session;
 
-  /// The position — or the whole line — the Analysis Studio handed over.
+  /// Why the screen is being opened — D4 of `docs/PLAN-STUDIO-REDIZAJN.md`.
   ///
-  /// Null when the trainer opened the screen on its own, in which case the
-  /// board starts on the position a game starts on and the draft they left last
-  /// time comes back.
-  final TutorialHandover? handover;
+  /// Required, and with no default. The screen used to take an optional
+  /// handover and load the one stored draft slot regardless, which is exactly
+  /// how opening it to start something new came up carrying the last tutorial.
+  final TutorialEntry entry;
 
   /// The seam a test watches the single save through.
   ///
@@ -114,23 +115,46 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   AnalysisNode get _root => _draft.section.root;
   AnalysisNode get _current => _draft.section.cursorNode;
 
+  /// The handed-over line, when the screen was opened through the Studio's
+  /// door. Null for every other way in.
+  TutorialHandover? get _handover => switch (widget.entry) {
+        TutorialEntryFromAnalysis(:final handover) => handover,
+        _ => null,
+      };
+
   @override
   void initState() {
     super.initState();
-    final handover = widget.handover;
-    _draft = TutorialDraft(sections: [
-      TutorialSection.blank(
-        fen: handover?.root.fen ?? TutorialDraft.startFen,
-        title: 'Primer 1',
-      ),
-    ]);
+    final handover = _handover;
+
+    _draft = switch (widget.entry) {
+      // The saved tutorial is the draft. Nothing is taken out of the local slot
+      // until it has said which tutorial it belongs to — see
+      // [_adoptStoredDraft].
+      TutorialEntrySaved(:final lesson) => TutorialDraft.fromLesson(lesson),
+      TutorialEntryBlank(:final title) => TutorialDraft(
+          title: title,
+          sections: [
+            TutorialSection.blank(
+                fen: TutorialDraft.startFen, title: 'Primer 1'),
+          ],
+        ),
+      TutorialEntryFromAnalysis() => TutorialDraft(sections: [
+          TutorialSection.blank(
+            fen: handover?.root.fen ?? TutorialDraft.startFen,
+            title: 'Primer 1',
+          ),
+        ]),
+    };
+
     if (handover != null) {
       _draft.section.root = handover.root;
       _draft.section.cursorNode = handover.root;
+      if (handover.blackOrientation) _orientation = PlayerColor.black;
     }
-    if (handover?.blackOrientation ?? false) _orientation = PlayerColor.black;
+    _titleController.text = _draft.title;
     _boardController.loadFen(_root.fen);
-    unawaited(_restoreDraft());
+    unawaited(_adoptStoredDraft());
   }
 
   @override
@@ -149,36 +173,113 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     super.dispose();
   }
 
-  /// Brings back what was being written.
+  /// Decides what to do with the draft left in the local slot.
   ///
-  /// A handover wins over the stored working tree — the trainer just said which
-  /// position they want — but the parts already written come back either way,
-  /// because that is the flow the door exists for: work the next part out in
-  /// the Studio, hand it over, carry on with the same tutorial.
+  /// One slot, one draft, and until P3b it was loaded on every open regardless
+  /// of what the trainer had asked for — which is complaint 1.1 of
+  /// `docs/PLAN-STUDIO-REDIZAJN.md`, in one line. What the entry says now
+  /// decides:
   ///
-  /// Giving the slot an identity, so that opening a *different* tutorial can no
-  /// longer come up carrying this one's parts, is D4 of
-  /// `docs/PLAN-STUDIO-REDIZAJN.md` and lands with the entry flow in P3.
-  Future<void> _restoreDraft() async {
-    final restored = await TutorialDraftService.instance.load();
-    if (!mounted || restored == null) return;
+  /// * **from the Studio's door** — the parts already written come back, and
+  ///   the handed-over line becomes the open one. That is the flow the door
+  ///   exists for: work the next part out in the Studio, hand it over, carry on
+  ///   with the same tutorial. Unless the door said otherwise, in which case
+  ///   nothing is adopted.
+  /// * **a saved tutorial** — only a draft **of that tutorial** is adopted. A
+  ///   draft of another one is somebody else's unfinished business, and is left
+  ///   exactly where it is and unmentioned.
+  /// * **a new tutorial** — nothing is adopted, and if the slot holds anything
+  ///   the trainer is asked, by name. Silence is what made this feel haunted.
+  Future<void> _adoptStoredDraft() async {
+    final stored = await TutorialDraftService.instance.load();
+    if (!mounted || stored == null) return;
 
-    final handover = widget.handover;
-    setState(() {
-      _draft = restored;
-      if (handover != null) {
-        // The parts already written stay; the one being written is the line the
-        // trainer just handed over.
-        _draft.selected = _draft.sections.length - 1;
-        _draft.section.root = handover.root;
-        _draft.section.cursorNode = handover.root;
-      } else {
-        _orientation = _draft.section.blackOrientation
-            ? PlayerColor.black
-            : PlayerColor.white;
-      }
-      _loadSelectedSection();
-    });
+    switch (widget.entry) {
+      case TutorialEntryFromAnalysis(:final intoOpenDraft):
+        if (!intoOpenDraft) return;
+        final handover = _handover!;
+        setState(() {
+          _draft = stored;
+          // The parts already written stay; the one being written is the line
+          // the trainer just handed over.
+          _draft.selected = _draft.sections.length - 1;
+          _draft.section.root = handover.root;
+          _draft.section.cursorNode = handover.root;
+          _draft.section.storedPgn = null;
+          _loadSelectedSection();
+        });
+
+      case TutorialEntrySaved():
+        // A draft that never belonged to a tutorial, or belonged to a different
+        // one, says nothing about this one.
+        if (stored.lessonId == null || stored.lessonId != _draft.lessonId) {
+          return;
+        }
+        setState(() {
+          _draft = stored;
+          _loadSelectedSection();
+        });
+
+      case TutorialEntryBlank():
+        if (_isEmptyDraft(stored)) return;
+        final resume = await _askAboutStoredDraft(stored);
+        if (!mounted) return;
+        if (resume) {
+          setState(() {
+            _draft = stored;
+            _loadSelectedSection();
+          });
+        } else {
+          // Thrown away rather than left behind: a draft the trainer has just
+          // declined must not be waiting for them the next time they start
+          // something.
+          await TutorialDraftService.instance.clear();
+        }
+    }
+  }
+
+  /// Nothing worth offering: one part, no moves, no words, no name.
+  static bool _isEmptyDraft(TutorialDraft draft) =>
+      draft.title.trim().isEmpty &&
+      draft.sections.length == 1 &&
+      draft.sections.single.root.children.isEmpty &&
+      draft.sections.single.root.comment.trim().isEmpty;
+
+  /// Asks about the draft in the slot, **by name**.
+  ///
+  /// The name is the whole point. „You have an unfinished draft" is a question
+  /// nobody can answer; „Opozicija, 3 dela" is one they can.
+  Future<bool> _askAboutStoredDraft(TutorialDraft stored) async {
+    final name =
+        stored.title.trim().isEmpty ? 'bez naziva' : stored.title.trim();
+    final answer = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Imate nezavr\u0161en tutorijal'),
+        content: Text(
+          'Pro\u0161li put ste pisali tutorijal \u201E$name\u201D '
+          '(${stored.sections.length} ${_partsWord(stored.sections.length)}). '
+          'Nastavite tamo gde ste stali, ili ga odbacite i po\u010Dnite nov?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Odbaci'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Nastavi'),
+          ),
+        ],
+      ),
+    );
+    return answer ?? false;
+  }
+
+  static String _partsWord(int count) {
+    if (count == 1) return 'deo';
+    if (count >= 2 && count <= 4) return 'dela';
+    return 'delova';
   }
 
   /// Fills the fields from the part that is open. Every write in this direction
