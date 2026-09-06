@@ -288,8 +288,39 @@ poseban batch sa tabelom u `docs/TABELA-TUTORIJAL.md` i
 **`master` nije gurnut.** CI se okida na push, pa je to svesna odluka vlasnika, ne
 propust.
 
-**P5b je sledeći, i za njega još ništa nije napisano** — ni kapija, ni zadatak,
-ni brief. Podeljeni raspored: tabla levo, paneli desno, tabovi „Tok"/„Stablo".
+**P5b je spreman za pokretanje — sve je napisano, ostaje samo komanda.**
+Kapija (`docs/gates/tutorial_raspored_test.dart`, devet testova), zadatak i
+brief su na `master`-u; dozvola je uneta u `orchestrate.py`. Iz
+`D:\Projekti\mislisha-test\orchestrator`, pošto se `mislisha-batch-f` prebaci
+na novu granu:
+
+```
+python orchestrate.py run docs/TASK-studio-raspored.md ^
+  --repo D:/Projekti/mislisha-batch-f --agent flutter_feature_builder ^
+  --model gemini-3.8-flash-high --yolo --timeout 90 --expect-tests 1515
+```
+
+(Kosa crta u `--repo`, ne obrnuta. Pusti je u pozadini.)
+
+**Kapija je izmerena crvena, a ne pretpostavljena: 2 prošla, 7 palo.** Ona dva
+koja prolaze opisuju ono što se **ne sme** promeniti — tabla drži ceo prozor
+ispod praga, i prozor od 700 px se iscrtava bez prelivanja.
+
+**Ceo raspored je jednom napravljen kao proba pa bačen**, da bi se videlo da li
+je kapija uopšte zadovoljiva i šta ugovor košta. Tri stvari su otuda ušle u
+brief umesto da ih radnik otkriva: „Sačuvaj tutorijal" ide **u AppBar** (prikucan
+ispod donje polovine, stajao je tačno tamo gde `AppFeedback` crta poruku — a
+`tutorial_authoring_test.dart` ga dodiruje šest puta); panel delova traži
+`Flexible`, ne `Expanded`, jer u uskom rasporedu ima neograničenu visinu; a
+centriranje se meri na `BoardWithCoordinates`, jer oznake redova i kolona stoje
+sa dve strane, pa je sama tabla namerno van centra u svom vidžetu. Sa saveom u
+AppBar-u proba je dala **1524 prošla, 1 preskočen, bez ijedne izmene u
+postojećim testovima**.
+
+Usput nađeno i **namerno ostavljeno**: na širini telefona (360 px) studio već
+preliva za 47 px, na `master`-u, pre ovog batch-a. Prava greška, ali nije
+posao ovog batch-a, pa kapija gleda 700 px.
+
 Posle toga P6 (hronologija „Tok" — `beatsOf` je čista funkcija i njena kapija je
 lead-ov posao), P7 (izdvajanje `BoardAnnotationController` iz sobe, nezavisno od
 svega i može bilo kad), P8 (odbrane iz starog editora pa gašenje njegovog ulaza
