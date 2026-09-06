@@ -83,6 +83,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
@@ -201,15 +202,32 @@ void main() {
       // quietly moves a trainer's sentence onto the wrong move.
       final api = await open(tester);
 
+      // Stand on the last beat first, so „the node the author happens to be
+      // standing on" is neither the root nor the card being typed into. The
+      // first version of this test skipped this and read the saved `pgn` by
+      // string position — and a mutation writing every sentence onto the
+      // *current* node passed it, because a comment on the root is exported
+      // ahead of move one and „before e5" was true of it too.
+      await tester.tap(find.byKey(const Key('beat-3')));
+      await tester.pumpAndSettle();
+
       await typeIn(tester, 'beat-comment-1', 'Beli zauzima centar.');
 
       final list = await save(tester, api);
-      final pgn = list.single['pgn'].toString();
 
-      expect(pgn, contains('Beli zauzima centar.'));
-      expect(pgn.indexOf('Beli zauzima centar.'), lessThan(pgn.indexOf('e5')),
-          reason: 'the sentence was stored against a later move than the card '
-              'it was typed into');
+      // Read back through the reader the child's screen uses, which is the
+      // only thing that can say *which move* a comment belongs to.
+      final step = LessonStepLine.read(
+        fen: list.single['fen'].toString(),
+        pgn: list.single['pgn'].toString(),
+      );
+
+      expect(step.replays, isTrue);
+      expect(step.line.movesSan, ['e4', 'e5', 'Nf3']);
+      expect(step.line.comments.first, 'Beli zauzima centar.',
+          reason: 'the sentence was stored against a different move than the '
+              'card it was typed into: the line came back as '
+              '${step.line.comments}');
 
       await close(tester);
     });
@@ -257,8 +275,7 @@ void main() {
       expect(
           find.descendant(
               of: find.byKey(const Key('beat-1')),
-              matching: find.widgetWithText(
-                  TextField, 'Beli zauzima centar.')),
+              matching: find.widgetWithText(TextField, 'Beli zauzima centar.')),
           findsOneWidget,
           reason: 'the comment travelled in the pgn and belongs in the field '
               'of the move it was written about');
@@ -274,8 +291,8 @@ void main() {
           pgn: '1. e4 e5 {Klasičan odgovor.} (1... c5 {Sicilijanka.} 2. Nf3) '
               '2. Nc3');
 
-      expect(find.widgetWithText(TextField, 'Klasičan odgovor.'),
-          findsOneWidget);
+      expect(
+          find.widgetWithText(TextField, 'Klasičan odgovor.'), findsOneWidget);
 
       await tester.tap(find.text('1... c5').first);
       await tester.pumpAndSettle();
@@ -363,7 +380,8 @@ void main() {
       await open(tester);
 
       final tabs = tester.getRect(find.byKey(const Key('tok-tab')));
-      final sentence = tester.getRect(find.byKey(const Key('example-sentence')));
+      final sentence =
+          tester.getRect(find.byKey(const Key('example-sentence')));
       expect(sentence.top, greaterThan(tabs.top),
           reason: 'a field left above the tabs is a second place to write the '
               'same sentence');

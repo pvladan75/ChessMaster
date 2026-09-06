@@ -96,7 +96,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   String? _lastMoveTo;
 
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _sentenceController = TextEditingController();
   final TextEditingController _instructionController = TextEditingController();
   LessonStepKind _currentKind = LessonStepKind.show;
   final List<TextEditingController> _choiceControllers = [];
@@ -169,7 +168,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   @override
   void dispose() {
     _titleController.dispose();
-    _sentenceController.dispose();
     _instructionController.dispose();
     for (final c in _choiceControllers) {
       c.dispose();
@@ -296,7 +294,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   void _loadSelectedSection() {
     final section = _draft.section;
     _titleController.text = _draft.title;
-    _sentenceController.text = _current.comment;
     _instructionController.text = section.instruction ?? '';
     _currentKind = section.kind;
     for (final c in _choiceControllers) {
@@ -362,7 +359,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       _boardController.loadFen(node.fen);
       _lastMoveFrom = null;
       _lastMoveTo = null;
-      _sentenceController.text = node.comment;
     });
     _persist();
   }
@@ -405,7 +401,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       _boardController.loadFen(played.fen);
       _lastMoveFrom = from;
       _lastMoveTo = to;
-      _sentenceController.text = child.comment;
     });
     _persist();
   }
@@ -422,7 +417,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       _boardController.loadFen(fen);
       _lastMoveFrom = null;
       _lastMoveTo = null;
-      _sentenceController.text = '';
     });
     _persist();
   }
@@ -757,117 +751,129 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
+  Widget _questionCard() {
+    return Material(
+      key: const Key('question-card'),
+      color: context.colors.surface,
+      borderRadius: AppRadii.roundedMd,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        decoration: BoxDecoration(
+          borderRadius: AppRadii.roundedMd,
+          border: Border.all(
+            color: context.colors.border,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // The subtree is rebuilt whenever the fields are refilled from the
+            // model — see [_fieldsEpoch]. The field's own key stays put, because it
+            // is the handle the tests reach it by.
+            KeyedSubtree(
+              key: ValueKey('kind-$_fieldsEpoch'),
+              child: DropdownButtonFormField<LessonStepKind>(
+                key: const Key('example-kind'),
+                initialValue: _currentKind,
+                decoration: const InputDecoration(labelText: 'Tip zadatka'),
+                items: const [
+                  DropdownMenuItem(
+                      value: LessonStepKind.show, child: Text('Samo prikaži')),
+                  DropdownMenuItem(
+                      value: LessonStepKind.askMove,
+                      child: Text('Traži potez na tabli')),
+                  DropdownMenuItem(
+                      value: LessonStepKind.askChoice,
+                      child: Text('Traži odgovor iz liste')),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      _currentKind = val;
+                    });
+                  }
+                },
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            if (_currentKind != LessonStepKind.show) ...[
+              TextField(
+                key: const Key('example-instruction'),
+                controller: _instructionController,
+                decoration:
+                    const InputDecoration(labelText: 'Zadatak za učenika'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            if (_currentKind == LessonStepKind.askMove) ...[
+              if (_currentSolutionSan != null)
+                Text('Tačan potez: $_currentSolutionSan'),
+            ],
+            if (_currentKind == LessonStepKind.askChoice) ...[
+              Text('Ponuđeni odgovori', style: AppText.bodyBold),
+              // `RadioGroup` rather than a `groupValue` on every button: that pair
+              // of arguments is deprecated, and the batch that wrote them silenced
+              // the analyzer with a file-level `ignore_for_file` instead — which
+              // kept the count at 29 by hiding three infos rather than by not
+              // adding them. This is also the shape `LessonStepEditorPanel` uses,
+              // which the brief named.
+              RadioGroup<int>(
+                groupValue: _currentCorrectChoice,
+                onChanged: (val) => setState(() => _currentCorrectChoice = val),
+                child: Column(
+                  children: [
+                    for (int i = 0; i < _choiceControllers.length; i++)
+                      Row(
+                        children: [
+                          Radio<int>(value: i),
+                          Expanded(
+                            child: TextField(
+                              key: Key('example-choice-$i'),
+                              controller: _choiceControllers[i],
+                            ),
+                          ),
+                          IconButton(
+                            key: Key('example-choice-delete-$i'),
+                            icon: const Icon(Icons.delete),
+                            onPressed: () {
+                              setState(() {
+                                _choiceControllers.removeAt(i);
+                                if (_currentCorrectChoice == i) {
+                                  _currentCorrectChoice = null;
+                                } else if (_currentCorrectChoice != null &&
+                                    _currentCorrectChoice! > i) {
+                                  _currentCorrectChoice =
+                                      _currentCorrectChoice! - 1;
+                                }
+                              });
+                            },
+                          )
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _choiceControllers.add(TextEditingController());
+                  });
+                },
+                child: const Text('Dodaj odgovor'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _editorFields() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          key: const Key('example-sentence'),
-          controller: _sentenceController,
-          decoration:
-              const InputDecoration(labelText: 'Komentar za trenutni potez'),
-          onChanged: (val) {
-            _current.comment = val;
-            _persist();
-          },
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        // The subtree is rebuilt whenever the fields are refilled from the
-        // model — see [_fieldsEpoch]. The field's own key stays put, because it
-        // is the handle the tests reach it by.
-        KeyedSubtree(
-          key: ValueKey('kind-$_fieldsEpoch'),
-          child: DropdownButtonFormField<LessonStepKind>(
-            key: const Key('example-kind'),
-            initialValue: _currentKind,
-            decoration: const InputDecoration(labelText: 'Tip zadatka'),
-            items: const [
-              DropdownMenuItem(
-                  value: LessonStepKind.show, child: Text('Samo prikaži')),
-              DropdownMenuItem(
-                  value: LessonStepKind.askMove,
-                  child: Text('Traži potez na tabli')),
-              DropdownMenuItem(
-                  value: LessonStepKind.askChoice,
-                  child: Text('Traži odgovor iz liste')),
-            ],
-            onChanged: (val) {
-              if (val != null) {
-                setState(() {
-                  _currentKind = val;
-                });
-              }
-            },
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        if (_currentKind != LessonStepKind.show) ...[
-          TextField(
-            key: const Key('example-instruction'),
-            controller: _instructionController,
-            decoration: const InputDecoration(labelText: 'Zadatak za učenika'),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-        ],
-        if (_currentKind == LessonStepKind.askMove) ...[
-          if (_currentSolutionSan != null)
-            Text('Tačan potez: $_currentSolutionSan'),
-        ],
-        if (_currentKind == LessonStepKind.askChoice) ...[
-          Text('Ponuđeni odgovori', style: AppText.bodyBold),
-          // `RadioGroup` rather than a `groupValue` on every button: that pair
-          // of arguments is deprecated, and the batch that wrote them silenced
-          // the analyzer with a file-level `ignore_for_file` instead — which
-          // kept the count at 29 by hiding three infos rather than by not
-          // adding them. This is also the shape `LessonStepEditorPanel` uses,
-          // which the brief named.
-          RadioGroup<int>(
-            groupValue: _currentCorrectChoice,
-            onChanged: (val) => setState(() => _currentCorrectChoice = val),
-            child: Column(
-              children: [
-                for (int i = 0; i < _choiceControllers.length; i++)
-                  Row(
-                    children: [
-                      Radio<int>(value: i),
-                      Expanded(
-                        child: TextField(
-                          key: Key('example-choice-$i'),
-                          controller: _choiceControllers[i],
-                        ),
-                      ),
-                      IconButton(
-                        key: Key('example-choice-delete-$i'),
-                        icon: const Icon(Icons.delete),
-                        onPressed: () {
-                          setState(() {
-                            _choiceControllers.removeAt(i);
-                            if (_currentCorrectChoice == i) {
-                              _currentCorrectChoice = null;
-                            } else if (_currentCorrectChoice != null &&
-                                _currentCorrectChoice! > i) {
-                              _currentCorrectChoice =
-                                  _currentCorrectChoice! - 1;
-                            }
-                          });
-                        },
-                      )
-                    ],
-                  ),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _choiceControllers.add(TextEditingController());
-              });
-            },
-            child: const Text('Dodaj odgovor'),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-        ],
-        const SizedBox(height: AppSpacing.md),
         Row(
           children: [
             _tabButton(
@@ -893,6 +899,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               root: _root,
               current: _current,
               onSelect: _jumpTo,
+              onCommentChanged: (node, text) {
+                node.comment = text;
+                _persist();
+              },
+              question: _questionCard(),
             ),
             AnalysisMoveTreeWidget(
               rootNode: _root,

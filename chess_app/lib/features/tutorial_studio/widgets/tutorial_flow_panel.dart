@@ -16,11 +16,15 @@ class TutorialFlowPanel extends StatelessWidget {
     required this.root,
     required this.current,
     required this.onSelect,
+    required this.onCommentChanged,
+    required this.question,
   });
 
   final AnalysisNode root;
   final AnalysisNode current;
   final void Function(AnalysisNode) onSelect;
+  final void Function(AnalysisNode, String) onCommentChanged;
+  final Widget question;
 
   @override
   Widget build(BuildContext context) {
@@ -33,26 +37,66 @@ class TutorialFlowPanel extends StatelessWidget {
         for (var i = 0; i < beats.length; i++) ...[
           if (i > 0) const SizedBox(height: AppSpacing.xs),
           _BeatCard(
+            key: ValueKey(beats[i].node.id),
             beat: beats[i],
             onSelect: onSelect,
+            onCommentChanged: onCommentChanged,
           ),
         ],
+        const SizedBox(height: AppSpacing.xs),
+        question,
       ],
     );
   }
 }
 
-class _BeatCard extends StatelessWidget {
+class _BeatCard extends StatefulWidget {
   const _BeatCard({
+    super.key,
     required this.beat,
     required this.onSelect,
+    required this.onCommentChanged,
   });
 
   final TutorialBeat beat;
   final void Function(AnalysisNode) onSelect;
+  final void Function(AnalysisNode, String) onCommentChanged;
+
+  @override
+  State<_BeatCard> createState() => _BeatCardState();
+}
+
+class _BeatCardState extends State<_BeatCard> {
+  late final TextEditingController _controller;
+
+  /// Held by the card rather than by the field.
+  ///
+  /// The field's own `Key` changes the moment this card becomes the current
+  /// one — `example-sentence` is the current beat's field and
+  /// `beat-comment-<index>` is every other — and a changed key unmounts the
+  /// element. A `TextField` that builds its own `FocusNode` therefore loses
+  /// the caret exactly when the trainer clicks into another card's sentence
+  /// to write it: the click selects the beat, the field is rebuilt under the
+  /// new key, and the typing goes nowhere. Owned here, the node outlives that
+  /// rebuild. No test could see this — `enterText` focuses the field itself.
+  final FocusNode _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.beat.node.comment);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final beat = widget.beat;
     final headerText =
         beat.index == 0 ? 'Polazna pozicija' : 'posle ${beat.arrivedLabel}';
 
@@ -64,7 +108,7 @@ class _BeatCard extends StatelessWidget {
       borderRadius: AppRadii.roundedMd,
       child: InkWell(
         borderRadius: AppRadii.roundedMd,
-        onTap: () => onSelect(beat.node),
+        onTap: () => widget.onSelect(beat.node),
         child: Container(
           constraints: const BoxConstraints(minHeight: 48),
           padding: const EdgeInsets.all(AppSpacing.sm),
@@ -102,15 +146,33 @@ class _BeatCard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (beat.node.comment.trim().isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  beat.node.comment,
-                  style: AppText.body.copyWith(
-                    color: context.colors.textPrimary,
-                  ),
-                ),
-              ],
+              const SizedBox(height: AppSpacing.xs),
+              TextField(
+                key: beat.isCurrent
+                    ? const Key('example-sentence')
+                    : Key('beat-comment-${beat.index}'),
+                controller: _controller,
+                focusNode: _focus,
+                // The label says „trenutni", and it is true of exactly one
+                // card. Beside the timeline there was one field and the word
+                // was right; on four cards, three of them would claim to be
+                // the move the trainer is standing on. The header of each card
+                // („posle 1. e4") already says which move its sentence is
+                // about, so the other cards carry the field without a label —
+                // and the label becomes one more non-colour mark of where the
+                // author is.
+                decoration: beat.isCurrent
+                    ? const InputDecoration(
+                        labelText: 'Komentar za trenutni potez',
+                      )
+                    : null,
+                onTap: () {
+                  if (!beat.isCurrent) {
+                    widget.onSelect(beat.node);
+                  }
+                },
+                onChanged: (val) => widget.onCommentChanged(beat.node, val),
+              ),
               if (beat.branches.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.xs),
                 Wrap(
@@ -137,7 +199,7 @@ class _BeatCard extends StatelessWidget {
                                 : context.colors.textSecondary,
                           ),
                         ),
-                        onPressed: () => onSelect(branch.node),
+                        onPressed: () => widget.onSelect(branch.node),
                       ),
                   ],
                 ),
