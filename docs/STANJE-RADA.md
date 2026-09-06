@@ -333,11 +333,23 @@ propust.
 **P5b je gotov** (batch 58, gore) — ostaje da se vidi uživo, tačka 114 u
 `docs/TODO-provera.md`, koja ide zajedno sa 113.
 
-**Sledeći je P6 — hronologija „Tok"**, i za njega ništa nije napisano. Podela je
-u planu već dogovorena: `beatsOf` je čista funkcija i **njena kapija je lead-ov
-posao**, a widget je radnikov. Uz P6 dolazi i `[Tok]`/`[Stablo]` traka sa
-karticama, jer tek P6 daje drugu karticu — jedna kartica u `TabBar`-u je
-kontrola koja ne radi ništa.
+**P6 je podeljen na dva batch-a** (vlasnik, 6.9.2026), po uzoru na P5: **P6a
+crta**, P6b uređuje. Lead-ova polovina je gotova i na `master`-u (`3a4fe2e`):
+`beatsOf` sa petnaest testova i devet mutacija, i `AnalysisNode.moveNumberLabel`
+izvučen iz `VisualMoveTreeWidget`-a da broj poteza ne bi bio napisan dvaput.
+
+**P6a je spreman za pokretanje.** Kapija (`docs/gates/tutorial_tok_test.dart`,
+dvanaest testova, **izmereno 0 prošlo / 12 palo**), zadatak i brief su na
+`master`-u; dozvola je uneta u `orchestrate.py`. Ceo panel je jednom napravljen
+kao proba pa bačen — otud dve stvari koje su već sređene pre batch-a:
+`IndexedStack` drži skrivenu karticu **van scene**, pa `find.byType` ne vidi
+stablo dok je „Tok" napred; tri postojeća fajla su zato dobila
+`skipOffstage: false`, a jedna pretvrda tvrdnja u `tutorial_authoring_test.dart`
+(„te rečenice nema nigde na ekranu") suzena je na polje, jer je hronologija crta
+na svojoj kartici — s pravom. Sa tom pripremom proba je dala **ceo paket zelen**,
+što znači da batch ne treba da dira nijedan postojeći test.
+
+P6b uređuje komentar i pitanje u samim karticama i vadi polja iz kolone.
 
 Posle P6: P7 (izdvajanje `BoardAnnotationController` iz sobe, nezavisno od svega
 i može bilo kad), pa P8 (odbrane iz starog editora pa gašenje njegovog ulaza na
