@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1372 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1377 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -67,7 +67,12 @@ it always was — and two for that note surviving the round trip through both
 exporters. Seven more the same day for the shape those fixes were for: a step's
 line walked at the speed of the voice — the move is played when the sentence in
 front of it has been read out, not on a clock — and the join where showing turns
-into asking, which is one board and not two screens.
+into asking, which is one board and not two screens. Five more with batch 51,
+the vocabulary sweep that split one word in two: **Tutorijal** is the artefact a
+trainer writes and a child walks through alone, **Čas** is the live session in a
+room. `tutorial_vocabulary_test.dart` is what keeps them split — the old word
+comes back one careless string at a time, and it also fails on „Ova tutorijal",
+because the new noun is masculine and everything agreeing with it changes too.
 
 Eleven more on the backend the same day, with `POST /lessons/:id/clone` — „save
 this tutorial as a new version" — which is phase 0 of

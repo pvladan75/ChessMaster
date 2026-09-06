@@ -195,7 +195,7 @@ rather than restating it.
 | # | what | owner | needs |
 |---|---|---|---|
 | 0 | contracts C1–C4, gates, the clone endpoint | lead | **done 6.9.2026** |
-| 1 | vocabulary: „Lekcija" → „Tutorijal" | **worker** batch A | C1 |
+| 1 | vocabulary: „Lekcija" → „Tutorijal" | **worker** batch A | **done 6.9.2026** |
 | 2 | tree navigation in the viewer | **worker** batch B | C2 |
 | 3a | `POST /lessons/:id/clone` + `LessonApiService.clone` | **lead** | decision 2 |
 | 3b | Uredi / Preimenuj / Sačuvaj kao novu verziju | **worker** batch C | 3a merged |
@@ -246,7 +246,23 @@ every other batch touches at least one of them. B and C can then run in
 parallel — B is the viewer and the step-line model, C is the trainer's list and
 dialogs, and they do not meet.
 
-### Phase 1 — vocabulary (worker batch A)
+### Phase 1 — vocabulary (worker batch A) — done 6.9.2026
+
+Merged as batch 51. The gate passed all five tests and moved into
+`chess_app/test/tutorial_vocabulary_test.dart`, where it stays. 18 files, 60
+changed lines, measured by the lead rather than read from the report — which had
+undercounted one file and was right about the work.
+
+**The harness's own gates said FAIL, and all three findings were wrong.** Its
+`strings` gate reported the string changes the task demanded (its header had
+already said there were no allowances for this task); its `contrast` finding at
+`dashboard_tab.dart:64` predates the batch, since that file's only change is one
+string on a different line; and its `worktree` failure was the report file the
+task told the worker to write. Worth keeping as the sharpest example yet of the
+rule that a gate needs allowances for the work its own brief demanded — and of
+why the verdict is the gate written *for this batch*, not the generic one.
+
+
 
 *Scope:* user-facing Serbian strings in `chess_app/lib` only, exactly as C1's
 table dictates.

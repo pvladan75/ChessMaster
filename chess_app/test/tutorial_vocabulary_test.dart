@@ -1,15 +1,16 @@
-// GATE — phase 1 of docs/PLAN-TUTORIJAL.md, batch A.
+// The frozen vocabulary, kept frozen: **Tutorijal** is the artefact a trainer
+// writes and a child walks through alone, **Čas** is the live session in a room.
 //
-// It lives in docs/ rather than in chess_app/test/ because it is **red until
-// the batch it judges is done**, and a suite that is red on master hides the
-// next real failure. To run it against a worker's tree:
+// One word meant both until 6.9.2026, so „Poziv na lekciju" — a room opening
+// this minute — and „Zadaj lekciju" — homework for Thursday — read to a child
+// as the same event. A third word, „kurs", named the artefact in nine more
+// places.
 //
-//   cp docs/gates/tutorial_vocabulary_test.dart <worktree>/chess_app/test/
-//   cd <worktree>/chess_app && flutter test test/tutorial_vocabulary_test.dart
-//
-// When batch A merges, this file moves into chess_app/test/ for good and
-// becomes the thing that stops the old word coming back — the same job
-// app_feedback_guard_test.dart does for ScaffoldMessenger.
+// This file was written before the sweep that made it green (batch 51 of
+// docs/PLAN-TUTORIJAL.md) and lived in docs/gates/ until then, because a suite
+// that is red hides the next real failure. It stays now for the reason
+// app_feedback_guard_test.dart stays: an answer nobody is obliged to use is not
+// an answer, and the old word comes back one careless string at a time.
 //
 // The contract it enforces is docs/TABELA-TUTORIJAL.md. If the two disagree,
 // the table wins and this file is wrong.
