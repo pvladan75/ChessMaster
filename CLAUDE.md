@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1421 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1436 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -128,6 +128,24 @@ resolved" — so *compare the list* is not enough on its own; check that nothing
 new is suppressed. And three of its report's sections were written rather than
 measured, all three shaped like proof, while its one genuine correction was
 worth more than the rest of the document put together.
+
+Fifteen more with batch 55, which gave the step editor add, remove and reorder
+— twelve of its gate and three of the batch's own. The gate is written the way
+it is because **the server's guard against a lost step id cannot fire for that
+batch**: `PUT /lessons/:id` answers 409 only when the stored and sent lists are
+the same length, and adding or removing a step changes the length. A step id is
+what `assignment_items` and `review_items` name a step by, and nothing joins on
+it.
+
+Two lessons about the lead's own gates came out of it. **A test that rules out
+one wrong answer has not proved the right one**: „the selection follows the
+step" only checked that a particular other step's sentence was absent, and a
+mutation leaving the selection on the old slot passed it. And **a finder that is
+unique today stops being unique when the same gate mandates a second place for
+the same string** — `find.text` on a step's name, once a title field exists.
+The batch worked around that second one by appending a zero-width space to the
+title in the editing field; it declared it and recommended the right fix, which
+is what got applied.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

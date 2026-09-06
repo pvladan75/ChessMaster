@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (tutorijal: faze 4a i 4b zatvorene, kapija, brif
-i dozvole za batch 55 spremni; sledeće je pokretanje batcha 55, pa faza 5).
+Poslednje ažuriranje: 6.9.2026 (tutorijal: **cela faza 4 zatvorena** — batchevi
+54 i 55 spojeni; ostaje samo faza 5, provera uživo).
 
 ---
 
@@ -731,51 +731,36 @@ zaglavlja, pa `pgn` nikad nije prazan string.
 
 **Sledeće:**
 
-1. **Batch F** — dodaj / obriši / promeni redosled u `LessonStepEditorPanel`.
-   **Kapija je napisana**: `docs/gates/lesson_step_order_test.dart`, dvanaest
-   testova, svih dvanaest crveno na današnjem panelu — izmereno, ne
-   pretpostavljeno. Prevodi se protiv trenutnog stabla, pa je jedino što je
-   deli od zelenog sam posao batcha. Brif još nije napisan.
+1. **Faza 4 je cela gotova.** Batch 55 (`gemini-3.8-flash-high`, jedna runda,
+   14.6 minuta) je spojen kao `a0c68ad`: editor koraka sada ume da doda, obriše
+   i premesti korak, i ima polje za naziv koraka. Kapija 12/12, oba zaštićena
+   fajla zelena i nedirnuta, pet mutacija.
 
-   **To je najopasniji batch u planu, i ne zato što je težak.** `id` koraka je
-   njegov identitet: `assignment_items.step_key` i `review_items.step_key` ga
-   imenuju po toj vrednosti i **ništa se ne spaja po njoj**, pa promenjen `id`
-   znuči đački raspored i njegove zapisane odgovore koji pokazuju u prazno, bez
-   ijedne greške igde. `PUT /lessons/:id` ima za to čuvara — 409 „Koraci su
-   stigli bez svojih oznaka" — **koji za ovaj batch ne može da opali**, jer
-   traži `storedList.length === steps.length`, a i dodavanje i brisanje menjaju
-   dužinu. Za dve od tri operacije kapija je jedino što stoji tu.
+   **Poređenje modela je ispalo u korist flash-high na imenovanim stvarima:**
+   pokrenuo je `dart format` umesto što ga je prijavio, nije ništa prićutkao
+   analizatoru i to je rekao u posebnom redu, prepisao je listu analizatora
+   stavku po stavku i poklapa se, a `positionList` posle premeштanja koji je
+   citirao je bajt po bajt isti kao onaj koji je vođa nezavisno izmerio. Batch
+   54 je imao tri izmišljena odeljka; ovaj nijedan.
 
-   Provereno, a ne pretpostavljeno: đačka strana već preživljava brisanje —
-   `getDue` završava sa `.filter((item) => item.step !== null)`, pa red koji
-   imenuje obrisan korak prestane da se pojavljuje umesto da posluži tablu koju
-   niko nije napisao. **Backend za 4c nije potreban i zadatak ga zabranjuje.**
+   Greška koju je napravio nije o sposobnosti: helper `select` u kapiji je bio
+   dvosmislen (**vođina greška**), batch ga je tačno dijagnostikovao i u
+   izveštaju predložio pravu ispravku — pa je onda ipak zaobišao problem
+   dopisivanjem nevidljivog znaka u polje za naziv. Vođa je primenio njegov
+   predlog i obrisao zaobilaženje.
 
-   Četiri odluke koje kapija zamrzava, sa razlozima, stoje u
-   `PLAN-TUTORIJAL.md`, odeljak „Phase 4c".
-
-   **Zadatak i brif su napisani** —
-   [TASK-tutorijal-koraci.md](TASK-tutorijal-koraci.md) i
-   [brief-tutorijal-koraci-2026-09.md](brief-tutorijal-koraci-2026-09.md).
-   Grana `batch/tutorijal-koraci`, izveštaj u `docs/REPORT-batch-55.md`,
-   dozvole u `orchestrate.py` popunjene (tri imenovana nova fajla i jedan fajl
-   za nove stringove). Model je `gemini-3.8-flash-high` — ovo je batch zbog
-   kojeg se poređenje i radi, jer mu je brif uglavnom spisak koraka.
-
-   Dve stvari iz batcha 54 su ušle u brif izričito: **ništa se ne prićut kuje
-   analizatoru** (nema `ignore_for_file`, nema `// ignore:`), i **ne piši
-   odeljak izveštaja koji nisi izmerio** — radije „nisam merio" nego pasus koji
-   neko mora da proverava.
-2. **Faza 5** — provera uživo, zajedno: `TODO-provera.md` tačke 24–29, 109, 110
-   i nova 111.
-3. Otvoreno, i za brif batcha F: zapisan primer je spljošten na `fen` + `pgn`,
+2. **Faza 5, i to je sve što je ostalo** — provera uživo, zajedno:
+   `TODO-provera.md` tačke 24–29, 109, 110, 111 i nova 112. Autorska strana je
+   gotova, pa se sve to gleda odjednom, na telefonu i na Windowsu.
+3. Otvoreno, i nije ničija tekuca stavka: zapisan primer je spljošten na `fen` + `pgn`,
    pa **vraćanje u Primer 1 radi izmene stabla** traži uvoznik PGN-a koji još
    ne postoji. Isto tako, primer sa ponuđenim odgovorima koji ima **manje od dva**
    odgovora odbija server, a ne aplikacija — ista klasa koju je batch 54 zatvorio
    za druga dva slučaja.
 
-Nova stavka za proveru uživo: `TODO-provera.md`, tačka 109. Kao i tačke 24–29,
-čeka fazu 5 — zajedničku proveru na uređajima, kad autorska strana bude gotova.
+Stavke za proveru uživo iz ovog dela: `TODO-provera.md`, tačke 109 (školjka
+studija), 111 (pisanje i čuvanje) i 112 (dodaj / obriši / premesti). Sve čekaju
+fazu 5 — zajedničku proveru na uređajima, sad kad je autorska strana gotova.
 
 **Model za batch E:** ostaje model koji ume da projektuje, jer se od njega traži
 raspored polja i liste pored stabla, a ne spisak koraka. `gemini-3.8-flash-high`

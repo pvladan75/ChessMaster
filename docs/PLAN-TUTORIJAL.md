@@ -209,7 +209,7 @@ a batch, which is the only reason a contract is frozen in the first place.
 | 3b | Uredi / Preimenuj / Sačuvaj kao novu verziju | **worker** batch C | **done 6.9.2026** |
 | 4a | `TutorialStudioScreen`: board, tree, handover from the Studio, draft model | **lead** | **done 6.9.2026** |
 | 4b | per-node fields, „+ Dodaj sledeću poziciju", the running list, one save | **worker** batch 54 | **done 6.9.2026** |
-| 4c | the step editor gains add / remove / reorder | **worker** batch F | gate written 6.9.2026 |
+| 4c | the step editor gains add / remove / reorder | **worker** batch 55 | **done 6.9.2026** |
 | 5 | live check with the owner | lead + owner | all |
 
 **The vocabulary goes first on purpose.** Everything phases 3b–4c adds is new
@@ -547,7 +547,45 @@ that does not exist. Adding an example does not need one; editing a committed
 one does. Batch E adds examples — it does not have to reopen them — but it must
 not pretend it can.
 
-### Phase 4c — add, remove, reorder; gate written 6.9.2026
+### Phase 4c — done 6.9.2026, as batch 55
+
+`gemini-3.8-flash-high` through `agy`, one round, 14.6 minutes, gate 12/12 and
+both protected files green and untouched. Merged as `a0c68ad`. Five mutations by
+the lead.
+
+**The model comparison, which is half of why this batch existed.** The plan held
+`gemini-3.8-flash-high` for the batch whose brief is mostly a list of steps, on
+the theory that it follows instructions more literally. On the named measures it
+did: it ran `dart format` rather than reporting it, it added no analyzer
+suppression **and said so in a line of its own**, it transcribed the analyzer
+list item by item and it matches, and the `positionList` it quoted for a reorder
+is byte-identical to the one the lead measured by running the panel. Batch 54,
+on the high-reasoning model, had three report sections that were written rather
+than measured. This one had none.
+
+Where it went wrong is instructive and is not about capability. The gate's
+`select()` helper used `find.text(title)`, which becomes ambiguous the moment the
+same gate mandates a title field showing the same string — **the lead's bug**.
+The batch diagnosed it exactly, recommended `find.descendant(of: ListTile, …)`
+in its report, and then worked around it by appending a zero-width space to the
+title in the editing field and stripping it on save. Saved data was clean; the
+trainer would have had an invisible character in front of their cursor. Reading
+the instruction literally — „do not edit the gate" — it obeyed; reading it for
+what it was for, the answer was to stop and report, which it also did. The lead
+applied its recommendation and deleted the workaround.
+
+Other lead fixes: `maxLines` back to 2 on „Zadatak za učenika" (shortened while
+making room, and not needed — the suite passes with two), and an email address
+in a test replaced with the repository's placeholder.
+
+**And a lesson about the lead's own gates.** One of the twelve was too weak to be
+worth having: „the selection follows the step, not the slot" asserted only that
+another step's sentence was absent, so a mutation that left the selection on the
+old slot — where a step with no sentence had just landed — passed it. It reads
+the name out of the title field now. A test that rules out one wrong answer has
+not proved the right one.
+
+### The gate as it was written, before the batch
 
 `docs/gates/lesson_step_order_test.dart`, twelve tests, **all twelve red on the
 current panel** — measured, not assumed. It compiles against today's tree, so

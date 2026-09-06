@@ -4178,3 +4178,24 @@ Faza 4b (batch 54). Ide zajedno sa tačkom 109, uz fazu 5.
    bilo jedino što se nije vraćalo.)
 5. [ ] **Pitanje sa ponuđenim odgovorima:** dodaj dva odgovora, označi tačan,
    sačuvaj; pa probaj da sačuvaš bez označenog — odbija se **pre** slanja.
+
+## 112. Koraci tutorijala — dodaj, obriši, premesti — 6.9.2026, nije viđeno uživo
+
+Faza 4c (batch 55), u editoru koraka. Ide uz tačke 109 i 111, uz fazu 5.
+
+1. [ ] **Premesti korak.** Otvori tutorijal sa tri koraka, stani na treći,
+   „Pomeri gore". Redosled se promeni, a **editor i dalje pokazuje taj isti
+   korak** — naziv u polju je njegov, ne od suseda. Sačuvaj, pa ponovo otvori
+   tutorijal: redosled je zapamćen.
+2. [ ] **Dodaj korak.** Stani na neki korak, „Dodaj korak" — novi se pojavi
+   **odmah ispod** njega, na istoj poziciji, prazan (bez pitanja i bez rešenja).
+   Daj mu naziv, sačuvaj, pa ponovo otvori: tu je, pod tim nazivom.
+3. [ ] **Ovo je tačka koju treba gledati u oči.** Ako je neki đak već radio taj
+   tutorijal, posle dodavanja i čuvanja **njegov napredak na ostalim koracima
+   mora da ostane**. To je ceo razlog zbog kojeg su oznake koraka pisane ovako;
+   proveri na nalogu koji je već odgovarao bar jedan korak.
+4. [ ] **Obriši korak.** Pita pre brisanja i **imenuje korak**. „Odustani" ga
+   ostavlja. Posle brisanja ostali koraci su netaknuti.
+5. [ ] **Poslednji korak se ne briše.** Na tutorijalu sa jednim korakom
+   „Obriši korak" kaže da ne može i ništa ne pita.
+6. [ ] **Strelice na krajevima su ugasene** — gore na prvom, dole na poslednjem.
