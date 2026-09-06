@@ -1836,8 +1836,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
         ],
       ),
     );
-    if (newTitle == null || newTitle.isEmpty || newTitle == lesson['title'])
+    if (newTitle == null || newTitle.isEmpty || newTitle == lesson['title']) {
       return;
+    }
 
     final error = await _lessonApi.update(
       id: lesson['id'] as int,

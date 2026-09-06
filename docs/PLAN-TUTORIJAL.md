@@ -198,7 +198,7 @@ rather than restating it.
 | 1 | vocabulary: „Lekcija" → „Tutorijal" | **worker** batch A | **done 6.9.2026** |
 | 2 | tree navigation in the viewer | **worker** batch B | **done 6.9.2026** |
 | 3a | `POST /lessons/:id/clone` + `LessonApiService.clone` | **lead** | decision 2 |
-| 3b | Uredi / Preimenuj / Sačuvaj kao novu verziju | **worker** batch C | 3a merged |
+| 3b | Uredi / Preimenuj / Sačuvaj kao novu verziju | **worker** batch C | **done 6.9.2026** |
 | 4a | `TutorialStudioScreen`: board, tree, handover from the Studio, draft model | **worker** batch D | C4, decision 4 |
 | 4b | per-node fields, „+ Dodaj sledeću poziciju", the running list, one save | **worker** batch E | 4a merged |
 | 4c | the step editor gains add / remove / reorder | **worker** batch F | 4b |
@@ -324,6 +324,26 @@ the flow; only that one says the flow survived.
 *3a is mine.* An endpoint, its tests, and the `.env`-moved-aside run that is the
 only honest check that CI can load them — the failure mode from 5.9.2026.
 Cloning is a write, and writes stay with the lead.
+
+**Done 6.9.2026, merged as batch 53 — and it taught the method something.**
+This was the one batch launched **without a lead-written gate**; the plan said
+five things would be checked by hand instead. What happened is that the worker
+wrote its own test and graded itself with it, and that test had a „sanity check"
+with no assertions in it and muted `FlutterError.onError` for every RenderFlex
+message — which made it green over a **real** 91 px overflow in the filter
+panel's title, the kind a release build clips in silence. Rewritten by the lead;
+the overflow fixed in `matrix_filter_panel.dart`, where it had been all along.
+
+**The rule, and it is not a footnote: a batch with no gate written for it grades
+itself.** Every batch from D onward gets its gate written first, without
+exception.
+
+Other lead fixes: a `String? dummy` parameter left in `fetchLessons`; the test
+seam renamed from `overriddenLessonApi` to `lessonApi` and explained; a menu
+item restored, because the new menu had replaced the only route to the dialog
+that edits which positions a tutorial is made of — unreachable until batch F
+without it; and one new analyzer info, an unbraced `if`, which the „no new
+infos" rule catches only if somebody compares the list.
 
 *3b is a worker batch:* three actions on a tutorial in the library — Uredi
 (opens `LessonStepEditorPanel`, which already exists), Preimenuj (PUT with no

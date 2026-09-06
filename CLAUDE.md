@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1383 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1387 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -78,7 +78,11 @@ sidelines it had already parsed: it holds the tree and a node now rather than
 five lists indexed by ply, and the narrated walk **stops at a fork** instead of
 taking the first child. The last of those six is the one that matters — a step
 with no branches must never show the chooser, or the ordinary lesson has been
-traded away for the branching one.
+traded away for the branching one. Four more with batch 53 — edit, rename, save
+as a new version — of which the one that earns its place asserts on the
+**request** and not on the screen: a rename must not mention `positionList` at
+all, because a body that mentions it can write `position_list = NULL` and take
+every step of a tutorial with it.
 
 Eleven more on the backend the same day, with `POST /lessons/:id/clone` — „save
 this tutorial as a new version" — which is phase 0 of
