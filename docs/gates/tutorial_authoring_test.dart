@@ -37,6 +37,12 @@
 //   „Dodaj sledeću poziciju u tutorijal"   commits this example, starts the next
 //   „Sačuvaj tutorijal"                    the one and only write
 //
+// The running list shows the example being written too, not only the committed
+// ones — a screen that opens with an empty list is a screen on which the
+// trainer's first example is nowhere until they leave it. So a fresh screen
+// reads „Primer 1", and after one „Dodaj sledeću poziciju" it reads „Primer 1"
+// and „Primer 2".
+//
 // The three kind labels are the ones `LessonStepEditorPanel` already uses —
 // „Samo prikaži", „Traži potez na tabli", „Traži odgovor iz liste" — as are
 // „Ponuđeni odgovori", „Dodaj odgovor" and „Tačan potez: …". A trainer who has

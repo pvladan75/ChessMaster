@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (tutorijal: faza 4a zatvorena, i kapija za batch
-E napisana; sledeće je sam batch E).
+Poslednje ažuriranje: 6.9.2026 (tutorijal: faza 4a zatvorena, kapija i brif za
+batch E napisani; sledeće je pokretanje batcha 54).
 
 ---
 
@@ -676,13 +676,20 @@ koda — odgovor čuva server, ne klijent.
 
 **Sledeće:**
 
-1. **Batch E** — polja za čvor, lista primera sa „+ Dodaj sledeću poziciju u
-   tutorijal" i jedno „Sačuvaj tutorijal". Idu u `_authoringColumn`, koji
-   postoji i u komentaru piše šta tu dolazi. Brif još nije napisan.
-2. U brifu za E mora da stoji jedna otvorena stvar: zapisan primer je spljošten
-   na `fen` + `pgn`, pa **vraćanje u Primer 1 radi izmene stabla** traži uvoznik
-   PGN-a koji još ne postoji. Dodavanje primera ga ne traži; izmena postojećeg
-   da.
+1. **Pokrenuti batch 54** — polja za čvor, lista primera sa „+ Dodaj sledeću
+   poziciju u tutorijal" i jedno „Sačuvaj tutorijal". Zadatak i brif su
+   napisani: [TASK-tutorijal-studio.md](TASK-tutorijal-studio.md) i
+   [brief-tutorijal-studio-2026-09.md](brief-tutorijal-studio-2026-09.md).
+   Grana `batch/tutorijal-studio`, izveštaj u `docs/REPORT-batch-54.md`.
+   Otvorena stavka o kojoj brif izričito govori: zapisan primer je spljošten na
+   `fen` + `pgn`, pa **vraćanje u Primer 1 radi izmene stabla** traži uvoznik
+   PGN-a koji još ne postoji — dodavanje primera ga ne traži, izmena postojećeg
+   da, i batch ga ne sme napisati.
+2. **Oblik kapije je izmeren, ne pretpostavljen.** Sa dodatim seam-om
+   `lessonApi` i ničim drugim, `flutter test` na kapiji daje **+1 −10**: deset
+   crvenih i jedan zelen — „the save is written once, in one place", koji je
+   zelen samo zato što se još ništa ne čuva i mora da ostane zelen. To piše i u
+   brifu, da radni agent ne počne od pogrešne slike.
 
 Nova stavka za proveru uživo: `TODO-provera.md`, tačka 109. Kao i tačke 24–29,
 čeka fazu 5 — zajedničku proveru na uređajima, kad autorska strana bude gotova.
