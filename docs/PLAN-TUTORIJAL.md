@@ -466,13 +466,54 @@ work.
 that does not exist yet. Adding an example does not need it; editing one back
 does. Say so in batch E's brief rather than letting it be discovered.
 
-#### 4b — the next worker batch
+#### 4b — the next worker batch, and its gate
 
 Unchanged in substance: the per-node fields, the running list with „+ Dodaj
 sledeću poziciju u tutorijal", and the one `POST /lessons/save`. They go in
-`_authoringColumn`, which exists and says so. Its gate is written before it
-starts, like this one, and it asserts the single `POST` body — every example
-present, in order, with its pgn and its question.
+`_authoringColumn`, which exists and says so.
+
+**The gate is written and lives in `docs/gates/tutorial_authoring_test.dart`**
+(6.9.2026), where the vocabulary and branching gates lived until the batches
+they judge landed — a gate naming controls nobody has built does not compile,
+and a suite that does not compile says nothing about anything else. It moves to
+`chess_app/test/tutorial_authoring_test.dart` in the merge commit. Its header
+carries the full frozen control list; the brief points at it rather than
+restating it.
+
+Writing it settled four things the plan had left to be guessed. The first three
+are ordinary; **the fourth is a real change and the owner may overrule it.**
+
+1. **The sentence is per node; the task, the kind, the offered answers and the
+   answer are per example.** „The fields for the node the trainer is standing
+   on" reads as if all four were per node, and they are not — a step is what
+   the server stores, and a kind on every node is a second model of a step.
+2. **„+ Dodaj sledeću poziciju" starts the next example on the position the
+   last line ended at**, i.e. the end of the main line. That is precisely the
+   position the child's screen joins on, so show → ask happens on one board
+   with no reset. The board editor is still there for going elsewhere.
+3. **Three things are refused before anything is sent**, each in its own
+   sentence: a tutorial with no name, an `ask_move` example that carries a
+   line, and an `ask_choice` example with no answer marked correct. The server
+   refuses all three correctly; a refusal that arrives after the trainer
+   believed they were finished is the expensive way to learn it.
+4. **An `ask_move` example carries no line, and its answer is played on the
+   same board — recorded, with the board going back to the position.** This
+   came out of the server rather than out of taste:
+   `redactStepForStudent` takes out `solutionSan`, `acceptedSans` and the
+   `correct` flags, and **leaves `pgn` alone**, because the line *is* the
+   lesson; `lesson_viewer_screen.dart` then reads that line for every kind. So
+   a question whose line begins with the answer prints the answer under the
+   question. The interaction is the one `LessonStepEditorPanel` already has, on
+   the board that is already there rather than on a second one, and the
+   demonstration belongs to the example *before* the question — which is the
+   show → ask pattern phase 7 built anyway. `ask_choice` is not restricted:
+   its answers are text and its `correct` flags are redacted.
+
+*Still open, and it goes in the brief:* a committed example is flattened to
+`fen` + `pgn`, so re-opening Primer 1 to edit its **tree** needs a PGN importer
+that does not exist. Adding an example does not need one; editing a committed
+one does. Batch E adds examples — it does not have to reopen them — but it must
+not pretend it can.
 
 ## Role split
 

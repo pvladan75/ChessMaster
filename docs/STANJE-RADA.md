@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (tutorijal: faza 4a zatvorena — kapija i
-školjka `TutorialStudioScreen`-a; sledeće je kapija za batch E).
+Poslednje ažuriranje: 6.9.2026 (tutorijal: faza 4a zatvorena, i kapija za batch
+E napisana; sledeće je sam batch E).
 
 ---
 
@@ -637,16 +637,49 @@ Dodat je i jedan zajednički komad — `playedMove` u
 **Sklapanje pet postojećih kopija na njega je zaseban posao**, namerno nije
 urađen unutar ovog.
 
+**Kapija za batch E je napisana istog dana** i stoji u
+`docs/gates/tutorial_authoring_test.dart`, tamo gde su stajale kapije rečnika i
+grananja dok njihovi batchevi nisu sleteli — kapija koja imenuje kontrole koje
+još niko nije napravio ne prevodi se, a suite koji se ne prevodi ne govori ništa
+ni o čemu drugom. U merge commitu se seli u `chess_app/test/`. Provereno je da
+je jedina stvar koju analizator na njoj prijavljuje tačno ono što batch treba da
+doda — seam `lessonApi`; sve ostalo se već slaže sa postojećim kodom.
+
+U njenom zaglavlju je **cela zamrznuta lista kontrola** (ključevi polja, natpisi
+dugmadi, tri naziva tipa zadatka koje editor koraka već koristi). Brif za E
+pokazuje na nju umesto da je prepisuje.
+
+Pisanje kapije je rešilo četiri stvari koje je plan ostavljao da se pogode. Tri
+su obične — rečenica je po čvoru a zadatak, tip i odgovori po primeru;
+„+ Dodaj sledeću poziciju" počinje na poziciji na kojoj se prošla linija
+završila; tri stvari se odbijaju pre slanja, a ne na serveru. **Četvrta je prava
+izmena i vlasnik može da je preokrene:**
+
+**Primer koji traži potez ne nosi liniju**, a tačan potez se odigra na istoj
+tabli i tabla se vrati na poziciju — isto kao u `LessonStepEditorPanel`-u. Razlog
+je na serveru: `redactStepForStudent` sklanja `solutionSan` i oznake tačnosti, a
+**`pgn` ostavlja**, jer linija i jeste lekcija; `lesson_viewer_screen.dart` je
+zatim čita bez obzira na tip koraka. Znači, pitanje čija linija počinje
+odgovorom štampa odgovor ispod pitanja. Demonstracija pripada primeru **ispred**
+pitanja — što je ionako obrazac „prikaži pa pitaj" iz faze 7. Pitanje sa
+ponuđenim odgovorima nije ograničeno.
+
+**Nalaz koji nije samo o batchu E, i nije popravljen.** Isto važi za korake koji
+već postoje: `LessonStepEditorPanel` dozvoljava da se koraku koji **ima liniju**
+postavi tip „Traži potez na tabli", a `_createStepFromPosition` u Analiznom
+studiju pravi upravo takve korake (sa celom linijom kao `pgn`). Takav korak
+dete dobije sa linijom u kojoj je odgovor, i može da ga prolista trakom poteza.
+Nije dirano danas jer je izvan onoga što je traženo — ali je isti propust, na
+ekranu koji je već spojen u `master`, i treba mu zasebna odluka: odbiti taj
+spoj u editoru, ili sakriti liniju dok se ne odgovori. Prvo je u duhu ostatka
+koda — odgovor čuva server, ne klijent.
+
 **Sledeće:**
 
-1. **Kapija za batch E se piše prva**, bez izuzetka. Ona tvrdi ono što plan traži
-   od faze 4: dva primera napisana od početka do kraja bez ijednog poziva
-   `save`, pa jedno telo `POST`-a — svaki primer prisutan, po redu, sa svojim
-   pgn-om i svojim pitanjem.
-2. **Batch E** — polja za čvor, lista primera sa „+ Dodaj sledeću poziciju u
+1. **Batch E** — polja za čvor, lista primera sa „+ Dodaj sledeću poziciju u
    tutorijal" i jedno „Sačuvaj tutorijal". Idu u `_authoringColumn`, koji
-   postoji i u komentaru piše šta tu dolazi.
-3. U brifu za E mora da stoji jedna otvorena stvar: zapisan primer je spljošten
+   postoji i u komentaru piše šta tu dolazi. Brif još nije napisan.
+2. U brifu za E mora da stoji jedna otvorena stvar: zapisan primer je spljošten
    na `fen` + `pgn`, pa **vraćanje u Primer 1 radi izmene stabla** traži uvoznik
    PGN-a koji još ne postoji. Dodavanje primera ga ne traži; izmena postojećeg
    da.
