@@ -14,7 +14,8 @@ import 'package:chess_app/move_tree.dart';
 /// indistinguishable, on screen, from a step that was always meant to be a
 /// still picture. [rejectedMoves] is the difference between those two.
 class LessonStepLine {
-  const LessonStepLine({required this.line, required this.rejectedMoves});
+  const LessonStepLine(
+      {required this.line, required this.rejectedMoves, this.tree});
 
   /// The main line, with each move's words, arrows and squares beside it.
   final PgnLine line;
@@ -23,6 +24,9 @@ class LessonStepLine {
   /// the walk had reached. Anything above zero means the `pgn` and the `fen`
   /// describe different games.
   final int rejectedMoves;
+
+  /// The parsed variation tree, if one was parsed successfully.
+  final MoveTree? tree;
 
   /// True when every move in the PGN belongs to this step's position.
   bool get replays => rejectedMoves == 0;
@@ -37,6 +41,7 @@ class LessonStepLine {
       squares: [],
     ),
     rejectedMoves: 0,
+    tree: null,
   );
 
   static LessonStepLine read({required String fen, String? pgn}) {
@@ -47,6 +52,7 @@ class LessonStepLine {
       return LessonStepLine(
         line: tree.mainLine(),
         rejectedMoves: tree.rejectedMoves,
+        tree: tree,
       );
     } catch (_) {
       // A PGN this parser cannot open at all is not a line that disagrees with

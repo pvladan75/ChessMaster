@@ -55,48 +55,14 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   late int _stepIndex;
   late final Set<int> _seen;
 
-  /// Positions of the current step's line, when it was saved from an analysis
-  /// tree. Empty when the step is a single position.
-  List<String> _fens = const [];
-  List<String> _moves = const [];
+  /// The parsed variation tree, or a single-node tree if this step has no line.
+  MoveTree? _tree;
 
-  /// One entry per move, in step with [_moves] — empty string where the trainer
-  /// wrote nothing. Empty as a whole when the lesson carries no comments at
-  /// all, or when they could not be lined up with the moves.
-  List<String> _comments = const [];
+  /// The node the walk is currently standing on.
+  MoveNode? _node;
 
-  /// What the trainer wrote about the position the step *starts* from — PGN's
-  /// comment ahead of move one.
-  ///
-  /// It was parsed into [PgnLine.rootComment] and then read by nobody, so a
-  /// note about a still diagram — which is most of a lesson: „pogledaj polje
-  /// d5" — was carried the whole way here and dropped on the last step. The
-  /// arrows drawn on that same position were shown all along, which is what
-  /// made the gap hard to see.
-  String _rootComment = '';
-
-  int _moveIndex = 0;
-
-  List<List<ChessArrow>> _arrows = const [];
-  List<List<SquareMark>> _squares = const [];
-  List<ChessArrow> _rootArrows = const [];
-  List<SquareMark> _rootSquares = const [];
-
-  List<ChessArrow> get _currentArrows {
-    if (_moveIndex == 0) return _rootArrows;
-    if (_moveIndex > 0 && _moveIndex <= _arrows.length) {
-      return _arrows[_moveIndex - 1];
-    }
-    return const [];
-  }
-
-  List<SquareMark> get _currentSquares {
-    if (_moveIndex == 0) return _rootSquares;
-    if (_moveIndex > 0 && _moveIndex <= _squares.length) {
-      return _squares[_moveIndex - 1];
-    }
-    return const [];
-  }
+  List<ChessArrow> get _currentArrows => _node?.arrows ?? const [];
+  List<SquareMark> get _currentSquares => _node?.squares ?? const [];
 
   PlayerColor _orientation = PlayerColor.white;
 
@@ -162,24 +128,8 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     // trainer's studio checks a step against the same reader before saving it.
     // A step that does not replay is refused there; here it simply shows its
     // still position, which is what an older step with a broken line does.
-    List<String> fens = const [];
-    List<String> moves = const [];
-    List<String> comments = const [];
-    List<List<ChessArrow>> arrows = const [];
-    List<List<SquareMark>> squares = const [];
-    List<ChessArrow> rootArrows = const [];
-    List<SquareMark> rootSquares = const [];
-
-    final line = LessonStepLine.read(fen: step.fen, pgn: step.pgn).line;
-    if (!line.isEmpty) {
-      fens = line.fens;
-      moves = line.movesSan;
-      comments = line.hasNoNotes ? const [] : line.comments;
-      arrows = line.arrows;
-      squares = line.squares;
-    }
-    rootArrows = line.rootArrows;
-    rootSquares = line.rootSquares;
+    final line = LessonStepLine.read(fen: step.fen, pgn: step.pgn);
+    final tree = line.tree ?? MoveTree(startingFen: step.fen);
 
     // Does this step go on from where the board already stands? A lesson moves
     // from showing to asking on **one** board: the demonstration walks to
@@ -192,15 +142,8 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
         _shownFen.isNotEmpty && _samePosition(step.fen, _shownFen);
 
     setState(() {
-      _fens = fens;
-      _moves = moves;
-      _comments = comments;
-      _arrows = arrows;
-      _squares = squares;
-      _rootArrows = rootArrows;
-      _rootSquares = rootSquares;
-      _rootComment = line.rootComment;
-      _moveIndex = 0;
+      _tree = tree;
+      _node = tree.root;
       _wrongAnswers = 0;
       _sending = false;
       _verdict = null;
@@ -429,13 +372,6 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   /// appears and is gone before it is seen.
   static const _silentStep = Duration(milliseconds: 1400);
 
-  /// What is said about the position the board is standing on.
-  String _commentAt(int index) {
-    if (index == 0) return _rootComment;
-    if (index <= _comments.length) return _comments[index - 1];
-    return '';
-  }
-
   /// Whether the machine can actually read the step out.
   ///
   /// Not "is speech switched on": a reader with speech off is offered the
@@ -465,7 +401,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   /// With speech off there is no timer and no autoplay: the child presses
   /// „Sledeći potez" and reads. That is the same screen, not a lesser one.
   Future<void> _narrate() async {
-    if (_narrating || _fens.isEmpty) return;
+    if (_narrating || _tree == null || _tree!.root.children.isEmpty) return;
 
     if (!_speech.enabled) {
       // Pressing play with speech off means "read it to me", so it is switched
@@ -491,7 +427,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       // `speak` returns at once when it has nothing to speak with.
       if (!_speech.enabled || _speech.state != SpeechState.ready) break;
 
-      final text = _commentAt(_moveIndex);
+      final text = _node?.comment ?? '';
       if (text.isEmpty) {
         await Future<void>.delayed(_silentStep);
       } else {
@@ -503,8 +439,13 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
 
       if (!mounted || !_narrating || run != _narrationRun) return;
 
-      if (_moveIndex < _fens.length - 1) {
-        _applyMovesUpTo(_moveIndex + 1);
+      if (_node != null && _node!.children.isNotEmpty) {
+        // At a fork the walk stops and the child chooses. Taking the first
+        // child silently would make every sideline unreachable for exactly the
+        // child who is listening rather than pressing — which is the child this
+        // feature is for.
+        if (_node!.children.length > 1) break;
+        _applyNode(_node!.children.first);
         continue;
       }
 
@@ -541,22 +482,19 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     if (mounted) setState(() => _narrating = false);
   }
 
-  /// Jumps to the position after [count] moves of the step's line.
-  void _applyMovesUpTo(int count) {
-    if (_fens.isEmpty) return;
-    final index = count.clamp(0, _fens.length - 1);
+  /// Jumps to a specific node in the tree.
+  void _applyNode(MoveNode node) {
     setState(() {
-      _moveIndex = index;
+      _node = node;
       _explored = false;
     });
-    _shownFen = _fens[index];
-    _board.loadFen(_fens[index]);
+    _shownFen = node.fen;
+    _board.loadFen(node.fen);
   }
 
   /// The position the lesson is showing right now — the step's own board, or
   /// wherever the student has walked to along its line.
-  String get _lessonFen =>
-      _fens.isEmpty ? _step.fen : _fens[_moveIndex.clamp(0, _fens.length - 1)];
+  String get _lessonFen => _node?.fen ?? _step.fen;
 
   /// Puts the pieces back where the lesson had them.
   void _restore() {
@@ -654,7 +592,8 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
                     _buildStepTasks(),
                     if (_explored) _buildRestore(),
                     _buildMoveComment(),
-                    if (_moves.isNotEmpty) _buildMoveControls(),
+                    if (_tree != null && _tree!.root.children.isNotEmpty)
+                      _buildMoveControls(),
                     const SizedBox(height: 10),
                     _buildStepControls(),
                   ],
@@ -739,14 +678,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   /// field. Notes about moves start at index 1, so the note for move n lives
   /// at n - 1.
   Widget _buildMoveComment() {
-    final String comment;
-    if (_moveIndex == 0) {
-      comment = _rootComment;
-    } else if (_moveIndex <= _comments.length) {
-      comment = _comments[_moveIndex - 1];
-    } else {
-      comment = '';
-    }
+    final comment = _node?.comment ?? '';
     if (comment.isEmpty) return const SizedBox.shrink();
 
     return Padding(
@@ -881,21 +813,53 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   /// The one cursor this screen is walked by. The strip's buttons and the arrow
   /// keys read it from here rather than each building their own, so there is no
   /// second copy to fall out of step.
-  MoveCursor _moveCursor() => LinearMoveCursor(
-        fens: _fens,
-        index: _moveIndex,
-        // Taking the strip or the arrow keys is the reader saying they would
-        // rather drive. The walk stops, and so does the voice.
-        onSeek: (count) {
-          _stopNarration();
-          _applyMovesUpTo(count);
-        },
-      );
+  MoveCursor _moveCursor() {
+    if (_tree == null || _node == null) {
+      return LinearMoveCursor(fens: const [], index: 0, onSeek: (_) {});
+    }
+    return MoveTreeCursor(
+      moveTree: _tree!,
+      currentNode: _node!,
+      // Taking the strip or the arrow keys is the reader saying they would
+      // rather drive. The walk stops, and so does the voice.
+      onSelect: (node) {
+        _stopNarration();
+        _applyNode(node);
+      },
+    );
+  }
+
+  /// How far along the line the child has walked, and how long that line is.
+  ///
+  /// Both numbers are about **the line they are on**, not about the tree: the
+  /// first is the depth of the current node, the second that depth plus what
+  /// still follows it down first children. On a step with no branches those are
+  /// exactly the old „Potez N od M" — the line's length either way. On a step
+  /// that branches they are the only honest answer, because there is no single
+  /// number of moves in a tree: stepping into a shorter sideline shortens the
+  /// line, and saying so is the point.
+  ({int at, int of}) _lineProgress() {
+    var at = 0;
+    for (var node = _node; node?.parent != null; node = node!.parent) {
+      at++;
+    }
+
+    var of = at;
+    for (var node = _node;
+        node != null && node.children.isNotEmpty;
+        node = node.children.first) {
+      of++;
+    }
+
+    return (at: at, of: of);
+  }
 
   Widget _buildMoveControls() {
+    final progress = _lineProgress();
+
     return MoveNavigationControls(
       cursor: _moveCursor(),
-      centerLabel: 'Potez $_moveIndex od ${_moves.length}',
+      centerLabel: 'Potez ${progress.at} od ${progress.of}',
       onFlipBoard: () => setState(() {
         _orientation = _orientation == PlayerColor.white
             ? PlayerColor.black
