@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1497 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1515 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -243,6 +243,37 @@ dataset and **times out when anything else heavy runs beside it**. It failed
 twice while a `flutter analyze` and a second `flutter test` were running in
 parallel, and passed solo both times afterwards. Measure the suite with nothing
 else running, or you will spend an hour on a regression that is not there.
+
+Eighteen more with batch 57, the „Delovi tutorijala" panel — **1515 in the app,
+1 skipped**; the backend is untouched at 956. Fourteen are the batch's gate and
+four the lead's, and the four are the entry.
+
+**A mutation the lead ran survived, and the surviving mutation was the finding.**
+Emptying the screen's `_renumberGeneratedTitles()` left all fourteen of the
+batch's tests green, because `TutorialSectionsPanel` labels any
+generated-looking title from its own **row index** — it drew the right words
+over the wrong data. `TutorialSection.toJson` sends that title to the server as
+the step's name, so a part moved to the front while its stored title still says
+„Deo 2" ships a tutorial numbered the opposite way from the screen that wrote
+it. `test/tutorial_section_titles_test.dart` asserts on the **request** for
+exactly that reason, and was watched failing on the mutation before being
+believed. Same lesson as P3a's: a surviving mutation is a question about what
+the test cannot see, not a verdict on the mutation.
+
+**A gate that cannot be satisfied is a gate that will be worked around.** The
+strings gate failed the batch for removing two *empty* literals — the
+`controller.text = ''` pair, deleted because clearing the fields now goes
+through `_loadSelectedSection()`, which is the one reader. Fixed in the gate
+rather than by an allowance: `_norm` drops empty and whitespace-only literals on
+both sides, because a string with no characters holds no wording to protect. An
+allowance would have cleared one batch and left the next refactor of a
+controller to hit the same wall.
+
+One more, small and recurring: the numbering rule arrived written in **five
+places** — four pasted loops in the screen, each compiling its `RegExp` inside a
+loop, and once more in the panel. It is `generatedSectionTitle` /
+`isGeneratedSectionTitle` in the model now. Same family as the three
+hand-written copies of one subquery that all forgot `status = 'accepted'`.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

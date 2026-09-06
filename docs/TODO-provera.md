@@ -4199,3 +4199,34 @@ Faza 4c (batch 55), u editoru koraka. Ide uz tačke 109 i 111, uz fazu 5.
 5. [ ] **Poslednji korak se ne briše.** Na tutorijalu sa jednim korakom
    „Obriši korak" kaže da ne može i ništa ne pita.
 6. [ ] **Strelice na krajevima su ugasene** — gore na prvom, dole na poslednjem.
+
+## 113. Panel „Delovi tutorijala" — 6.9.2026, nije viđeno uživo
+
+P5a (batch 57), u studiju za tutorijale. Ide uz tačku 111.
+
+1. [ ] **Izbor pomera sve.** Napravi dva dela, u svakom po jedan potez i po
+   jednu rečenicu. Klikni na „Deo 1" — **tabla, stablo i rečenica** su njegovi,
+   ne od dela u kome si upravo stajao. Ovo je jedina stvar zbog koje panel
+   postoji; ako red posivi a tabla ostane, sve ostalo je nevažno.
+2. [ ] **Ništa ne ide na server dok ne pritisneš „Sačuvaj tutorijal".**
+   Dodavanje, pomeranje, kloniranje i brisanje su lokalni.
+3. [ ] **„+ Dodaj deo" pita gde počinje.** „Nastavi odavde" otvara deo na
+   poziciji na kojoj se prethodnom linija završila; „Nova pozicija" na praznoj
+   tabli; „Otkaži" ne dodaje ništa.
+4. [ ] **Spojnica.** Posle „Nastavi odavde" drugi deo nosi znak lanca sa
+   objašnjenjem „Nastavlja se na prethodni deo". Pomeri ga gore — znak nestaje,
+   jer više ne stoji iza dela na čijem se kraju nalazio. **To je ceo razlog
+   zbog kog spojnica postoji: da autor vidi šta je razmeštanjem pokvario.**
+5. [ ] **Poslednji deo se ne briše.** Na tutorijalu sa jednim delom „Obriši
+   deo" kaže rečenicu i ništa ne pita.
+6. [ ] **Brisanje pita.** Na dva dela „Obriši deo" pita „Brisanje dela";
+   „Odustani" ga ostavlja.
+7. [ ] **Kloniranje ostavlja tebe na kopiji**, i kopija nosi rečenicu
+   originala.
+8. [ ] **Numeracija prati redosled i posle čuvanja.** Pomeri deo, sačuvaj,
+   zatvori i otvori tutorijal ponovo — imena su „Deo 1", „Deo 2" po novom
+   redosledu. (Ovo je popravka vođe; kapija radnika je gledala ekran, a ekran
+   je crtao tačne reči preko netačnih podataka.)
+9. [ ] **Pogledaj kontraste, jer ih kapija nije merila.** Izabrani red se
+   razlikuje od neizabranog i po podlozi i po debljini slova, a znak lanca ima
+   svoj oblik — ništa ne sme da zavisi od boje same.

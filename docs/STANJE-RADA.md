@@ -218,71 +218,90 @@ ispiše — „30 issues found“ — rekao bi to bez ikakvog obrasca.
 **1497 testova u aplikaciji, 1 preskočen, sve zeleno** (bilo 1482). 29 info-a,
 nula upozorenja i grešaka, mereno obrascem koji ume da ih vidi.
 
+### P5a — panel „Delovi tutorijala", 6.9.2026, batch 57
+
+`gemini-3.8-flash-high`, `flutter_feature_builder`, jedna runda, 24 minuta.
+Devet kapija zeleno. **1515 testova u aplikaciji, 1 preskočen** (bilo 1497);
+backend nije diran i ostaje na 956.
+
+Ekran koji piše tutorijal do juče je umeo samo da **dodaje**: tekuća lista je
+bila četiri reda običnog teksta, a jedino dugme je zatvaralo deo koji se piše i
+otvaralo sledeći. `TutorialSectionsPanel` je površina za sve što model već ume —
+izbor (tabla, stablo i polja idu za izabranim delom), ▲/▼, kloniranje, brisanje
+sa pitanjem, „+ Dodaj deo" sa dva odgovora — i za **spojnicu**, koju autor do
+sada nije mogao da vidi: dva dela gde drugi počinje tamo gde se prvom linija
+završila su detetu jedna tabla bez učitavanja.
+
+**D7 je delimično ušao ovde, suprotno onome što je ovaj dokument ranije rekao.**
+Kada je pisana kapija, „Deo" umesto „Primer" ušlo je **u ovaj ekran i nigde
+drugde**, jer panel je površina koja imenuje deo i besmisleno je da se zove
+jedno a piše drugo. Ostatak D7 — svaka druga pojava te reči — i dalje je poseban
+batch sa tabelom, po uzoru na batch 51.
+
+**Izveštaj radnika je treći uzastopni čist.** Brojevi se poklapaju sa lead-ovim
+merenjima do stavke, a i ono što nijedna tvrdnja u kapiji ne pokriva — FEN table
+pre promene dela — izmereno je nezavisno i ispalo je znak po znak tačno,
+uključujući polje za en-passant. Njegova jedina primedba je bila korisna: stari
+`find.byIcon(Icons.delete).first` u `tutorial_studio_fields_test.dart` hvatao bi
+dugme panela, pa je za svoje uzeo `Icons.delete_outline` **umesto da menja test
+koji mu nije dat** — tačna odluka.
+
+**Lead-ova mutacija je preživela, i to je najvredniji deo runde.** Ispražnjeno
+`_renumberGeneratedTitles()` ostavilo je svih četrnaest testova kapije zelenim,
+zato što panel ime dela crta iz **rednog broja reda** — dakle ispisivao je
+tačne reči preko netačnih podataka. A `TutorialSection.toJson` šalje baš to ime
+serveru: deo pomeren na početak, sa zapamćenim imenom „Deo 2", daje tutorijal
+čiji su koraci numerisani obrnuto od ekrana na kome su pisani.
+`test/tutorial_section_titles_test.dart` tvrdi nad **zahtevom**, i viđen je kako
+pada na toj mutaciji pre nego što mu se poverovalo. **Preživela mutacija je
+pitanje, a ne presuda** — kaže da test ne vidi, a ono što ne vidi nije uvek ono
+što si mutirao.
+
+Ostale lead-ove popravke: pravilo o numeraciji stajalo je na **pet mesta**
+(četiri prekopirane petlje u ekranu, svaka sa `RegExp` koji se prevodi unutar
+petlje, i još jednom u panelu) — sada je `generatedSectionTitle` /
+`isGeneratedSectionTitle` u modelu, ista porodica kao tri prepisana podupita
+koja su sva zaboravila `status = 'accepted'`; dve rečenice koje su ostale na
+„Primer" u tom ekranu; i pomenuti pretraživač po ključu umesto po ikoni.
+
+**Kapija za prazan string.** `strings` je pao na `-['', '']` — radnik je izbacio
+`_sentenceController.text = ''` jer čišćenje polja sada ide kroz
+`_loadSelectedSection()`, jedinog čitača. To je popravljeno **u kapiji, a ne
+dozvolom**: `_norm` više ne broji prazan literal ni sa jedne strane, jer u
+stringu bez znakova nema teksta koji bi trebalo štititi. Dozvola bi rešila jedan
+batch i ostavila sledeće preuređenje kontrolera da udari u isti zid.
+
 ### Šta je otvoreno — ODAKLE SUTRA
 
-**P5a je sledeći, i odluka je već doneta** (6.9.2026, vlasnik izabrao između tri
-ponuđene): P5 se **deli na dva batch-a**, jer ekran koji istovremeno dobija nov
-raspored i novo ponašanje daje diff koji niko ne može da oceni popodne.
+**P5a je gotov** (batch 57, gore) — ostaje da se vidi uživo, tačka 113 u
+`docs/TODO-provera.md`. Odluka da se P5 deli na dva batch-a (6.9.2026, vlasnik
+izabrao između tri ponuđene) pokazala se tačnom: ekran koji istovremeno dobija
+nov raspored i novo ponašanje daje diff koji niko ne može da oceni popodne.
 
-* **P5a — panel „Delovi tutorijala"**: lista delova sa rednim brojem i nazivom,
-  izbor (tabla, stablo i polja prate izabrani deo), ▲/▼, kloniranje, brisanje sa
-  pitanjem, „+ Dodaj deo" sa dva odgovora iz odluke D9, i spojnica u listi
-  između dva dela koja stoje na istoj poziciji. Model sve ovo već ume
-  (`addSection`, `removeSection`, `moveSection`, `cloneSection`, `selected`) —
-  ovo je čist UI nad zamrznutim modelom. Radnik: `gemini-3.8-flash-high`, isti
-  kao batch 56.
-* **P5b — podeljeni raspored**: tabla levo, paneli desno, tabovi „Tok"/„Stablo".
-
-**Zamka koju treba znati pre pisanja kapije za P5a, izmerena a ne pretpostavljena.**
-`test/tutorial_authoring_test.dart` je vezan za stari tok dodavanja: traži dugme
-„Dodaj sledeću poziciju" (linije 247, 340, 359) i tekstove „Primer 1"/„Primer 2"
-(336–344). P5a menja upravo to dugme u „+ Dodaj deo" sa dijalogom od dva
-odgovora, pa **ta kapija ne može da ostane nedirnuta** — a ne sme ni da pocrveni
-na `master`-u pre nego što batch stigne.
-
-Rešenje je isto kao za svaku kapiju ovde: lead napiše **izmenjenu** verziju tog
-fajla u `docs/gates/` pored nove kapije za P5a, a zadatak kaže radniku da
-kopira **oba** u `test/`, pri čemu jedan zamenjuje postojeći. Njegove tvrdnje o
-telu `POST`-a ostaju iste; menja se samo pomoćna funkcija koja klikće „dodaj".
-
-**D7 („Deo" umesto „Primer") namerno NIJE u P5a.** Plan ga je vezao za ekran, ali
-preimenovanje je ovde uvek posao za sebe: tabela u `docs/TABELA-TUTORIJAL.md` i
-`tutorial_vocabulary_test.dart` kao zaštita, po uzoru na batch 51. Tako P5a
-ostaje strukturalna izmena, a rečnik dobija tretman koji rečnik ovde dobija.
-
-Posle toga: P6 (hronologija „Tok" — `beatsOf` je čista funkcija i njena kapija je
-lead-ov posao), P7 (izdvajanje `BoardAnnotationController` iz sobe, nezavisno od
-svega i može bilo kad), P8 (odbrane iz starog editora pa gašenje njegovog ulaza
-na Windows-u — ništa se ne gasi dok mu odbrane ne postoje drugde).
+**D7 („Deo" umesto „Primer"): pola je ušlo u P5a, pola nije.** Ovaj dokument je
+prvobitno rekao da ništa od toga ne ide u P5a; kada je pisana kapija, odlučeno
+je drugačije za **ovaj jedan ekran** — panel je površina koja imenuje deo, pa je
+besmisleno da se zove jedno a piše drugo. Svaka druga pojava te reči i dalje je
+poseban batch sa tabelom u `docs/TABELA-TUTORIJAL.md` i
+`tutorial_vocabulary_test.dart` kao zaštitom, po uzoru na batch 51.
 
 **`master` nije gurnut.** CI se okida na push, pa je to svesna odluka vlasnika, ne
 propust.
 
-**P5a je spreman za pokretanje — sve je napisano, ostaje samo komanda.**
-Kapija, zadatak i brief su na `master`-u; `mislisha-batch-f` je već na grani
-`batch/studio-delovi`; dozvola je uneta u `orchestrate.py`. Iz
-`D:\Projekti\mislisha-test\orchestrator`:
+**P5b je sledeći, i za njega još ništa nije napisano** — ni kapija, ni zadatak,
+ni brief. Podeljeni raspored: tabla levo, paneli desno, tabovi „Tok"/„Stablo".
+Posle toga P6 (hronologija „Tok" — `beatsOf` je čista funkcija i njena kapija je
+lead-ov posao), P7 (izdvajanje `BoardAnnotationController` iz sobe, nezavisno od
+svega i može bilo kad), P8 (odbrane iz starog editora pa gašenje njegovog ulaza
+na Windows-u — ništa se ne gasi dok mu odbrane ne postoje drugde).
 
-```
-python orchestrate.py run docs/TASK-studio-delovi.md ^
-  --repo D:/Projekti/mislisha-batch-f --agent flutter_feature_builder ^
-  --model gemini-3.8-flash-high --yolo --timeout 90 --expect-tests 1497
-```
-
-(Kosa crta u `--repo`, ne obrnuta — obrnute se pojedu pre nego što ih Python
-vidi. Pusti je u pozadini.)
-
-**Obe kapije su izmerene crvene, a ne pretpostavljene:**
-`tutorial_delovi_test.dart` je **0 prošlo / 14 palo**, a zamenski
-`tutorial_authoring_test.dart` **8 prošlo / 3 palo** — te tri su tok dodavanja
-dela, sve ostale tvrdnje o telu `POST`-a su netaknute i moraju ostati zelene.
-
-Posle merge-a: obriši dozvolu iz `orchestrate.py` (blok to i kaže) i staging
-kopije iz `docs/gates/`.
+**Dozvola za batch 57 je izbrisana iz `orchestrate.py` pri spajanju**, a obe
+staging kopije iz `docs/gates/` su otišle u `chess_app/test/` u samom merge
+commit-u — `docs/gates/` je sada prazan, kako i treba između batch-eva.
 
 Redosled, podela posla i kapije su u §8 [PLAN-STUDIO-REDIZAJN.md](PLAN-STUDIO-REDIZAJN.md).
 Za rad sa radnikom: `D:\Projekti\mislisha-test\orchestrator\HANDOFF.md`, prvi
-odeljak je batch 56.
+odeljak je batch 57.
 
 ---
 
