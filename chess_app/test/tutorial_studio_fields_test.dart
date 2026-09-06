@@ -43,7 +43,7 @@ void main() {
     expect(find.byKey(const Key('example-choice-1')), findsOneWidget);
 
     // Delete the first one
-    await tester.tap(find.byIcon(Icons.delete).first);
+    await tester.tap(find.byKey(const Key('example-choice-delete-0')));
     await tester.pumpAndSettle();
 
     // Now there is only one choice left
