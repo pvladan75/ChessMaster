@@ -4084,7 +4084,14 @@ Popravke od 6.9.2026 — korak nosi liniju, ne samo sliku:
     napravi korak, otvori kao đak: rečenica se vidi odmah, na potezu 0. Kreni
     napred — zameni je komentar prvog poteza; vrati se nazad — opet je tu.
 
-Pedagoški šablon iz 6.9.2026 — lekcija se sluša, pa se pita:
+Pedagoški šablon iz 6.9.2026 — lekcija se sluša, pa se pita.
+
+**Tačke 24–29 se namerno drže na čekanju do faze 5 `PLAN-TUTORIJAL.md`** —
+zajedničke provere uživo na uređajima, odluka vlasnika 6.9.2026. Razlog je da se
+ne proverava tri puta isti ekran: pregledač je od tada dobio i grananje (batch
+52), pa se sve ovo gleda odjednom, na telefonu i na Windowsu, kad autorska
+strana bude gotova. Ništa od ovoga nije viđeno kako radi.
+
 
 27. [ ] **Linija se šeta brzinom glasa.** Uključi govor, otvori korak sa
     linijom i pritisni „Pročitaj mi liniju" u traci poteza. Svaki potez se

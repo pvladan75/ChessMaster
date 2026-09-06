@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (tutorijal: plan, zamrznut rečnik, kloniranje i
-brifovi — faza 0 zatvorena).
+Poslednje ažuriranje: 6.9.2026 (tutorijal: faze 0–3 zatvorene, tri batcha
+spojena; sledeće je kapija za batch D i `TutorialStudioScreen`).
 
 ---
 
@@ -602,6 +602,51 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 čitaju iz JSON-a, i za to postoji test.
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
+
+## ODAKLE SUTRA — tutorijal, 6.9.2026 kraj dana
+
+Grana je **`feat/tutorijal`**, nije spojena u `master`. Radno stablo čisto,
+`fa902dd`. **1387 testova u aplikaciji** (1 preskočen) i **956 na backendu**,
+`flutter analyze` 29 info bez grešaka i upozorenja.
+
+Faze 0, 1, 2 i 3 iz [PLAN-TUTORIJAL.md](PLAN-TUTORIJAL.md) su zatvorene: rečnik
+(batch 51), stablo u pregledaču (batch 52), verzije tutorijala (batch 53), plus
+`POST /lessons/:id/clone` na backendu. Svaki batch je spojen zasebnim `--no-ff`
+merge commitom u kome piše i kako je ocenjen.
+
+**Sledeće, po dogovoru sa vlasnikom:**
+
+1. **Kapija za batch D se piše prva.** Bez izuzetka — vidi pravilo koje je
+   batch 53 naučio, u planu, u odeljku faze 3. Kapija za nov ekran ne sme da
+   imenuje privatna polja; vozi ekran njegovim sopstvenim kontrolama, kao
+   `tutorial_branching_test.dart`.
+2. **`TutorialStudioScreen`** — faza 4a. Ugovor je C4 u planu: `TutorialDraft` i
+   `TutorialExample`, četiri stvari na ekranu (tabla, stablo, polja za čvor,
+   lista primera sa „+ Dodaj sledeću poziciju"), jedan `POST /lessons/save` na
+   kraju, i **nijedna kopija** table, stabla ili kursora — postojeći gradivni
+   blokovi se koriste.
+   **Otvoreno pitanje za vlasnika:** plan ga vodi kao radni batch D, ali
+   vlasnikova formulacija („pisanje Gate za Batch D i konstrukcijom
+   TutorialStudioScreen-a") može da znači i da ekran gradi vođa. Preporuka:
+   kapija i školjka ekrana kod vođe, polja i lista primera radnom agentu — nov
+   ekran sa opisom rasporeda je tip batcha koji se najčešće vrati čudnog oblika.
+3. **Ekran je zasad samo Windows** (odluka 5 u planu), iza jednog imenovanog
+   predikata `!kIsWeb && Platform.isWindows`. Ništa se ne izbacuje iz Android
+   verzije — to je zasebna odluka koju vlasnik donosi kasnije.
+
+**Provera uživo (`TODO-provera.md`, tačke 24–29) se drži na čekanju do faze 5**,
+zajedničke provere na uređajima — odluka vlasnika, da se isti ekran ne gleda tri
+puta dok mu autorska strana još nije gotova.
+
+**Model za sledeći batch:** vlasnikov predlog je `gemini-3.8-flash-high` kao
+stroži izvršilac; plan kaže mehanički batch (F) tamo, a batch sa novim ekranom
+ostaje na modelu koji ume da projektuje. Poređenje ide po imenovanim stvarima —
+da li je pokrenuo `dart format`, da li se brojevi iz izveštaja poklapaju sa
+merenjem vođe, i da li je ostavio komentar pisan sam sebi.
+
+Radna stabla su na spojenim granama i mogu se prebaciti kad zatreba:
+`mislisha-batch-a` (`batch/tutorijal-recnik`), `-b` (`batch/tutorijal-stablo`),
+`-c` (`batch/tutorijal-verzije`).
 
 ## Tutorijal — vizija, plan i zatvorena faza 0, 6.9.2026
 
