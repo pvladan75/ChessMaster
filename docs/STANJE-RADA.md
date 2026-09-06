@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (tutorijal: faze 4a i 4b zatvorene, kapija za
-batch F napisana; sledeće je brif za batch F, pa faza 5).
+Poslednje ažuriranje: 6.9.2026 (tutorijal: faze 4a i 4b zatvorene, kapija, brif
+i dozvole za batch 55 spremni; sledeće je pokretanje batcha 55, pa faza 5).
 
 ---
 
@@ -753,6 +753,19 @@ zaglavlja, pa `pgn` nikad nije prazan string.
 
    Četiri odluke koje kapija zamrzava, sa razlozima, stoje u
    `PLAN-TUTORIJAL.md`, odeljak „Phase 4c".
+
+   **Zadatak i brif su napisani** —
+   [TASK-tutorijal-koraci.md](TASK-tutorijal-koraci.md) i
+   [brief-tutorijal-koraci-2026-09.md](brief-tutorijal-koraci-2026-09.md).
+   Grana `batch/tutorijal-koraci`, izveštaj u `docs/REPORT-batch-55.md`,
+   dozvole u `orchestrate.py` popunjene (tri imenovana nova fajla i jedan fajl
+   za nove stringove). Model je `gemini-3.8-flash-high` — ovo je batch zbog
+   kojeg se poređenje i radi, jer mu je brif uglavnom spisak koraka.
+
+   Dve stvari iz batcha 54 su ušle u brif izričito: **ništa se ne prićut kuje
+   analizatoru** (nema `ignore_for_file`, nema `// ignore:`), i **ne piši
+   odeljak izveštaja koji nisi izmerio** — radije „nisam merio" nego pasus koji
+   neko mora da proverava.
 2. **Faza 5** — provera uživo, zajedno: `TODO-provera.md` tačke 24–29, 109, 110
    i nova 111.
 3. Otvoreno, i za brif batcha F: zapisan primer je spljošten na `fen` + `pgn`,
