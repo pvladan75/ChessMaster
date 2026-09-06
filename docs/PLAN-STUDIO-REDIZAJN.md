@@ -460,7 +460,7 @@ warnings — and nothing newly suppressed.
 | **P2** | Hydration: `TutorialDraft.fromLesson()`, and the round-trip test | **lead** | the whole safety story is one assertion: load a saved tutorial, change nothing, save — `positionList` byte-identical, **ids included** |
 | **P3a** | `LessonApiService` write results (§6); `commitDraft`, the POST-then-PUT routing | **lead** | it decides whether a second „Sačuvaj" edits or duplicates, and it writes step ids. Headless |
 | **P3b** | The draft slot gains identity; `TutorialEntry`; the „unfinished draft" prompt | **lead** | closes 1.1. It changes what an existing gate asserts, so it stayed with the lead |
-| **P4** | Biblioteka card: „Novi tutorijal" / „Otvori sačuvani tutorijal", both behind `isTutorialStudioAvailable`; the Analysis door demoted to „send this line into the studio" | worker, mechanical | pure UI, no model |
+| **P4** | Biblioteka card: „Novi tutorijal" / „Otvori sačuvani tutorijal", both behind `isTutorialStudioAvailable`; the Analysis door demoted to „send this line into the studio" | worker (batch 56) | pure UI, no model |
 | **P5** | The split-view shell: board pane, sections panel with add/remove/reorder/clone, the tree tab where it is today | worker, high-reasoning | layout; reuses batch 55's semantics wholesale |
 | **P6** | The timeline: `beatsOf`, `_BeatCard`, fork chips, inline editing of comment and question | **lead writes `beatsOf` + its gate; worker builds the panel** | the pure function is the contract; the widget is replaceable |
 | **P7** | `BoardAnnotationController` extracted from the room; the annotation bar; marks written onto the node | worker | one extraction, two call sites |
@@ -556,8 +556,9 @@ the wire shape they pin.
 
 **Measured on `master`, with nothing else running: 1458 app tests, 1 skipped,
 all green** (1436 before, so the 22 are the gate and nothing regressed);
-`flutter analyze` still 29 infos, no errors, no warnings, and **nothing newly
-suppressed**; the backend untouched at 956. Measure the suite alone —
+`flutter analyze` 29 infos and **nothing newly suppressed** — the „no warnings"
+half of this claim was **wrong**, and stayed wrong through P3b; see „The
+analyzer claim P0–P3 got wrong" below; the backend untouched at 956. Measure the suite alone —
 `test/opening_book_service_test.dart` takes ~20 s to load the ECO dataset and
 times out under parallel load, which cost two false failures here.
 
@@ -671,13 +672,91 @@ constructor is not a claim about behaviour, and pretending otherwise would have
 meant keeping a redundant second way to open the screen purely so a fixture
 would not move.
 
-**1482 app tests, 1 skipped, all green** (1473 before). Analyzer still 29 infos,
-no errors, no warnings, nothing newly suppressed. Backend untouched.
+**1482 app tests, 1 skipped, all green** (1473 before). Nothing newly
+suppressed, backend untouched — and the „29 infos, no warnings" reported here
+was wrong, see „The analyzer claim P0–P3 got wrong" below.
 
 *P3 is complete.* Next is P4 — the Biblioteka card with „Novi tutorijal" and
 „Otvori sačuvani tutorijal", both behind `isTutorialStudioAvailable`, and the
 Analysis door demoted to asking where its line should go. Every entry it needs
 now exists.
+
+### P4 — done 6.9.2026, as batch 56
+
+`gemini-3.8-flash-high` through `agy`, one round. Fifteen tests in
+`test/tutorial_ulaz_test.dart`, written before the batch; fourteen green on its
+first run and the fifteenth red because **it was the lead's and it asserted
+something false**. Seven mutations by the lead afterwards, all caught.
+1497 app tests, 1 skipped, all green.
+
+`TutorialLibraryCard` owns the whole way in — the card, both dialogs, and every
+string the batch adds — so the platform question is decided once and the frozen
+string list is the complete set. `HomeBibliotekaTab` gains one `tutorialCard`
+field and stays a tab. The Analysis door asks where its line goes and passes the
+answer as `intoOpenDraft`.
+
+**The batch's two best contributions were not code.**
+
+It **reported the lead's broken gate rather than working around it** — which is
+what the task asked for, and what batch 55 could not quite bring itself to do.
+The test „the platform question has exactly one home" exempted
+`engine_settings_dialog.dart` at a path that does not exist (it is in
+`lib/widgets/`, not under `analysis_studio/`) and assumed the predicate was the
+only place in `lib/` asking about Windows. Four other files ask, legitimately,
+for the desktop sign-in, the engine download, the native Stockfish binding and
+the room. **A gate naming a file that is not there cannot be noticed by
+failing** — this one was noticed only because it also asserted something else
+that was false. It pins the six known homes now and fails on a seventh.
+
+And **its report's numbers matched the lead's own measurements exactly** —
+including an analyzer warning the lead had been missing for three phases. See
+below.
+
+One decision it made that the brief had left open, and it was right to: the
+brief asked it to tell „nothing saved" from „could not reach the server", noted
+that `fetchAll` answers `[]` for both, and then said to *report* rather than
+change the service if it could not. That is a contract problem left in a brief —
+the lead's job, done badly. It added `lastFetchFailed` following the `cloneError`
+precedent named in that class's own doc: additive, no signature changed, no
+caller touched.
+
+Lead fixes while grading, three of them defects no gate reached:
+
+* the name dialog's `TextEditingController` was never disposed — and disposing
+  it when `showDialog`'s future completes is **worse**, because that future
+  finishes on `pop` while the route is still animating out and the `TextField`
+  still rebuilding, which asserts on a disposed controller. It is a small
+  `StatefulWidget` now, so the controller's life ends where the field's does.
+  The lead wrote the bad version first and the gate caught it;
+* the card owns its own bottom margin. Spaced from the tab it left 24 px of dead
+  air at the top of the Library tab on every phone, where the card is absent and
+  the tab cannot tell that from a card that is not there;
+* `identical(rawRows, const [])` dropped from beside `lastFetchFailed` — harmless
+  today, since `jsonDecode` builds a new list, but it read as though it were
+  doing the work.
+
+### The analyzer claim P0–P3 got wrong
+
+**„29 infos, no errors, no warnings" was reported three times and was false.**
+P1 left an unused import in `tutorial_studio_test.dart` — it had rewritten the
+four tests that used `LessonStepKind` — and the analyzer had been warning about
+it ever since.
+
+The check could not see it:
+
+```
+flutter analyze | grep -cE "^\s+(info|warning|error)"
+```
+
+`flutter analyze` indents `info` lines by three spaces and prints `warning` at
+column 0. `\s+` requires at least one, so the pattern counted 29 infos and
+called that the whole list — **a check structurally incapable of failing.** The
+batch harness uses `\s*` and caught it on the first run of the next batch; the
+worker's own report transcribed the warning, item by item, in plain sight.
+
+Same family as the 1600-character function slice and the idioms gate that
+matched prose. Fixed in `30b5fcc`, and the summary line `flutter analyze` prints
+on its own — „30 issues found" — would have said so without any pattern at all.
 
 ## 9. What this plan does not do
 

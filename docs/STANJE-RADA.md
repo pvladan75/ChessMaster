@@ -15,9 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (redizajn studija: **P0–P3 gotove** — deo
-tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi
-novi, i ekran više ne nasleđuje tuđ nacrt; ostaje P4 nadalje. Tutorijal: cela
+Poslednje ažuriranje: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
+tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
+ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
@@ -156,11 +156,73 @@ zadržati suvišan drugi način da se ekran otvori samo da se test ne pomeri.
 **Pet mutacija, sve uhvaćene.** **1482 testa u aplikaciji, 1 preskočen, sve
 zeleno** (bilo 1473).
 
+### P4 — ulaz u studio, 6.9.2026, batch 56
+
+Prvi posao u ovom planu koji je radio radnik (`gemini-3.8-flash-high` kroz
+`agy`), jedna runda. Kapija je napisana pre posla — petnaest testova; četrnaest
+zelenih iz prve, a petnaesti crven **zato što je bio lead-ov i tvrdio je
+neistinu**. Sedam mutacija posle toga, sve uhvaćene.
+
+„Biblioteka“ sada nosi karticu sa „Novi tutorijal“ i „Otvori sačuvani
+tutorijal“, tamo gde studio postoji. `TutorialLibraryCard` drži ceo ulaz —
+karticu, oba dijaloga i sve stringove — pa se pitanje o platformi rešava na
+jednom mestu. Vrata iz Analize pitaju gde linija ide i prosleđuju odgovor kao
+`intoOpenDraft`.
+
+**Dva najbolja doprinosa te runde nisu kod.**
+
+Radnik je **prijavio pokvarenu lead-ovu kapiju umesto da je zaobiđe** — što je
+tačno ono što je zadatak tražio, i ono što batch 55 nije umeo. Test „pitanje o
+platformi ima jedan dom“ izuzimao je `engine_settings_dialog.dart` na putanji
+koja ne postoji, i pretpostavljao da je predikat jedino mesto u `lib/` koje pita
+za Windows. Pitaju još četiri fajla, s pravom. **Kapija koja imenuje fajl koji
+ne postoji ne može da se primeti tako što padne** — ova je primećena samo zato
+što je tvrdila i nešto drugo što nije tačno. Sada nabraja šest poznatih domova i
+pada na sedmi.
+
+I **brojevi u njegovom izveštaju poklapaju se sa lead-ovim merenjima do
+poslednjeg** — uključujući upozorenje analizatora koje je lead promašivao tri
+faze.
+
+Jednu odluku koju je brief ostavio otvorenu doneo je ispravno: `fetchAll`
+odgovara `[]` i kad je prazno i kad je puklo, a brief je rekao „ako ne možeš da
+ih razlikuješ, prijavi“ — što je lead-ov problem ostavljen u briefu. Dodao je
+`lastFetchFailed` po uzoru na `cloneError`, koji je imenovan u doc-u te iste
+klase: aditivno, bez promene potpisa, nijedan pozivalac nije dirnut.
+
+Lead je posle popravio tri greške koje nijedna kapija ne hvata: nedisponovan
+`TextEditingController` u dijalogu za naziv (i **prva lead-ova popravka bila je
+gora od greške** — `showDialog` završava na `pop` dok se ruta još animira, pa
+`TextField` puca na disponovan kontroler; sada je mali `StatefulWidget`),
+razmak koji je pripadao kartici a ne tabu (na telefonu je ostavljao 24 px praznog
+prostora na vrhu „Biblioteke“, gde kartice nema), i suvišan
+`identical(rawRows, const [])` pored `lastFetchFailed`.
+
+### Tvrdnja o analizatoru koju su P0–P3 promašile
+
+**„29 info-a, bez grešaka i upozorenja“ napisano je tri puta i nije bilo
+tačno.** P1 je ostavio neiskorišćen import u `tutorial_studio_test.dart`, i
+analizator je od tada prijavljivao upozorenje.
+
+Provera nije mogla da ga vidi: `flutter analyze | grep -cE "^\s+(info|warning|error)"`
+— a `flutter analyze` uvlači `info` linije za tri razmaka, dok `warning` piše od
+**nulte kolone**. `\s+` traži bar jedan razmak, pa je obrazac brojao 29 info-a i
+to proglašavao celom listom: **provera koja ne može da padne nije provera.**
+Harness koristi `\s*` i uhvatio ju je na prvoj sledećoj rundi; radnikov izveštaj
+je to upozorenje prepisao, stavku po stavku, na vidnom mestu.
+
+Ista porodica kao odsecanje tela funkcije na 1600 znakova i kapija koja je
+poklapala komentare. Popravljeno u `30b5fcc`. Sažetak koji `flutter analyze` sam
+ispiše — „30 issues found“ — rekao bi to bez ikakvog obrasca.
+
+**1497 testova u aplikaciji, 1 preskočen, sve zeleno** (bilo 1482). 29 info-a,
+nula upozorenja i grešaka, mereno obrascem koji ume da ih vidi.
+
 ### Šta je otvoreno
 
-P4 nadalje: kartica u „Biblioteci“ sa „Novi tutorijal“ i „Otvori sačuvani
-tutorijal“ (obe iza `isTutorialStudioAvailable`), i vrata iz Analize koja pitaju
-gde linija ide. Svi ulazi koji su za to potrebni sada postoje. Redosled i podela
+P5 nadalje: podeljeni raspored studija (tabla levo, delovi gore desno, „Tok“ i
+„Stablo“ dole desno), pa P6 (hronologija), P7 (crtanje strelica) i P8 (odbrane
+iz starog editora pa gašenje njegovog ulaza na Windows-u). Redosled i podela
 posla su u §8 plana.
 
 ---

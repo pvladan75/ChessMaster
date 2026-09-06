@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1482 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1497 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -217,6 +217,25 @@ and the wrong words** — a fixture is not a claim about behaviour, and holding 
 file literally unedited would have meant keeping a redundant second way to open a
 screen so that a constructor call need not move. Say „its assertions are
 unchanged", and then say which fixtures moved.
+
+Fifteen more with batch 56, the studio's front door — **1497 in the app, 1
+skipped** — and with it the sharpest lesson of the lot, which is about how the
+analyzer was being read.
+
+**„29 infos, no errors, no warnings" was reported three times and was false.**
+The check was `flutter analyze | grep -cE "^\s+(info|warning|error)"`, and
+`flutter analyze` indents `info` lines by three spaces while printing `warning`
+at **column 0**. `\s+` requires at least one space, so the pattern could not
+match a warning at all: it counted 29 infos and called that the whole list. An
+unused import had been warning since P1. The batch harness uses `\s*` and
+caught it on the very next run; the worker's report had transcribed the warning
+in plain sight.
+
+**A check that cannot fail is not a check**, and this is the same family as the
+1600-character function slice and the idioms gate that matched prose. The
+summary line `flutter analyze` prints on its own — „30 issues found" — needs no
+pattern and would have said so. Read that, and grep with `^\s*(warning|error)`
+if you want the detail.
 
 One more, about running the suite rather than about the code:
 `test/opening_book_service_test.dart` takes ~20 s to load the bundled ECO
