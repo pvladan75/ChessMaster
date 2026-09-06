@@ -1796,7 +1796,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Obriši lekciju?'),
+        title: const Text('Obriši tutorijal?'),
         content: Text('"${lesson['title']}" će biti trajno obrisana.'),
         actions: [
           TextButton(
@@ -1818,7 +1818,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       _showError(error);
       return;
     }
-    _showSuccess('Lekcija obrisana.');
+    _showSuccess('Tutorijal obrisan.');
     fetchLessons();
   }
 
@@ -1905,7 +1905,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       _showError(error);
       return;
     }
-    _showSuccess('Lekcija sa varijacijama je uspešno sačuvana!');
+    _showSuccess('Tutorijal sa varijacijama je uspešno sačuvan!');
     fetchLessons();
   }
 
@@ -1935,7 +1935,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           'pgn': pgn,
         });
 
-        _showSuccess('Lekcija sa varijacijama je učitana!');
+        _showSuccess('Tutorijal sa varijacijama je učitan!');
         _triggerEngineAnalysis();
         return;
       }
@@ -1945,7 +1945,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       controller.loadFen(fen);
       moveTree = MoveTree(startingFen: fen);
       commentController.text = '';
-      moveHistory.add('Učitana lekcija/FEN pozicija');
+      moveHistory.add('Učitan tutorijal / FEN pozicija');
     });
 
     socket.emit('move', {
@@ -2807,7 +2807,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Lekcije i Pozicije',
+                'Tutorijali i pozicije',
                 style: AppText.headline,
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -2852,7 +2852,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   child: ElevatedButton.icon(
                     onPressed: _showCreateCourseDialog,
                     icon: const Icon(Icons.collections_bookmark, size: 16),
-                    label: const Text('Kreiraj lekciju (Više pozicija)'),
+                    label: const Text('Kreiraj tutorijal (više pozicija)'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: context.colors.accentAlt,
                       foregroundColor: context.colors.canvas,
@@ -2902,7 +2902,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               ),
               const Divider(height: 24),
               Text(
-                'Pretraga lekcija',
+                'Pretraga tutorijala',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: context.colors.textMuted),
@@ -3005,7 +3005,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           child: Padding(
                             padding: const EdgeInsets.all(AppSpacing.lg),
                             child: Text(
-                              'Nema sačuvanih lekcija u ovoj kategoriji.',
+                              'Nema sačuvanih tutorijala u ovoj kategoriji.',
                               style: TextStyle(color: context.colors.textMuted),
                             ),
                           ),
@@ -3046,7 +3046,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 children: [
                                   if (isTrainerLesson)
                                     Text(
-                                      'Sačuvana lekcija od trenera',
+                                      'Sačuvan tutorijal od trenera',
                                       style: TextStyle(
                                           fontSize: 10,
                                           color: context.colors.warning,
@@ -3054,7 +3054,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     ),
                                   if (isCourse)
                                     Text(
-                                      'Kurs od ${positionList.length} pozicija',
+                                      'Tutorijal od ${positionList.length} pozicija',
                                       style: TextStyle(
                                           fontSize: 10,
                                           color: context.colors.brand,
@@ -3114,7 +3114,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   loadLessonPosition(
                                       firstPos['fen'], firstPos['pgn']);
                                   _showSuccess(
-                                      'Učitan korak 1/${positionList.length} iz kursa: "${firstPos['title'] ?? lesson['title']}"');
+                                      'Učitan korak 1/${positionList.length} iz tutorijala: „${firstPos['title'] ?? lesson['title']}"');
                                 } else {
                                   setState(() => _activeCourseItems = null);
                                   loadLessonPosition(

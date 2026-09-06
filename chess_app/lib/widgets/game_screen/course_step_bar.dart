@@ -58,7 +58,7 @@ class CourseStepBar extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      '${courseTitle ?? 'Kurs'} — korak ${activeIndex + 1}/${items.length}',
+                      '${courseTitle ?? 'Tutorijal'} — korak ${activeIndex + 1}/${items.length}',
                       style: AppText.bodyBold
                           .copyWith(color: context.colors.onGroupedContainer),
                       overflow: TextOverflow.ellipsis,
@@ -91,7 +91,7 @@ class CourseStepBar extends StatelessWidget {
             icon: Icon(Icons.close,
                 color: context.colors.onGroupedContainer.withValues(alpha: 0.7),
                 size: 18),
-            tooltip: 'Zatvori kurs',
+            tooltip: 'Zatvori tutorijal',
             onPressed: onClose,
           ),
         ],

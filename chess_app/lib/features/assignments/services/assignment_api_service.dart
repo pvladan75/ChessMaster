@@ -121,7 +121,7 @@ class AssignmentApiService {
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       return CreateAssignmentResult(
         success: false,
-        error: body['error']?.toString() ?? 'Lekcija nije zadata.',
+        error: body['error']?.toString() ?? 'Tutorijal nije zadat.',
         quotaExceeded: body['quotaExceeded'] == true,
       );
     } catch (e) {

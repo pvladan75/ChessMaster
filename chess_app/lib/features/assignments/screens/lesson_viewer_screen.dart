@@ -569,7 +569,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     if (_steps.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.detail.assignment.title)),
-        body: const Center(child: Text('Ova lekcija nema nijedan korak.')),
+        body: const Center(child: Text('Ovaj tutorijal nema nijedan korak.')),
       );
     }
 

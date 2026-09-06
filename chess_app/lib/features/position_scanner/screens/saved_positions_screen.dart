@@ -559,7 +559,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
           OutlinedButton.icon(
             onPressed: _addToLesson,
             icon: const Icon(Icons.playlist_add),
-            label: const Text('Dodaj u lekciju'),
+            label: const Text('Dodaj u tutorijal'),
           ),
           FilledButton.icon(
             onPressed: _assign,

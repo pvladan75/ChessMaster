@@ -74,7 +74,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
       } else {
         setState(() {
           _loading = false;
-          _error = 'Ne mogu da učitam lekcije.';
+          _error = 'Ne mogu da učitam tutorijale.';
         });
       }
     } catch (e) {
@@ -101,7 +101,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
 
   Future<void> _submit() async {
     if (_selectedId == null) {
-      setState(() => _error = 'Izaberite lekciju.');
+      setState(() => _error = 'Izaberite tutorijal.');
       return;
     }
 
@@ -143,7 +143,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
     final width = (MediaQuery.of(context).size.width - 128).clamp(180.0, 420.0);
 
     return AlertDialog(
-      title: Text('Zadaj lekciju — ${widget.studentName}'),
+      title: Text('Zadaj tutorijal — ${widget.studentName}'),
       content: SizedBox(
         width: width,
         child: _loading
@@ -176,8 +176,8 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
         children: [
           Text(
             _error ??
-                'Nemate nijednu sačuvanu lekciju. Napravite je u sesiji preko '
-                    '"Kreiraj lekciju", pa je odavde možete zadati.',
+                'Nemate nijedan sačuvan tutorijal. Napravite ga preko '
+                    '„Kreiraj tutorijal", pa ga odavde možete zadati.',
             style:
                 AppText.bodyLarge.copyWith(color: context.colors.textSecondary),
           ),
@@ -189,7 +189,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Lekcija', style: Theme.of(context).textTheme.labelLarge),
+        Text('Tutorijal', style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 6),
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 220),
@@ -205,7 +205,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
                       contentPadding: EdgeInsets.zero,
                       value: (lesson['id'] as num).toInt(),
                       title: Text(
-                        lesson['title']?.toString() ?? 'Lekcija',
+                        lesson['title']?.toString() ?? 'Tutorijal',
                         style: const TextStyle(fontSize: 14),
                         overflow: TextOverflow.ellipsis,
                       ),
