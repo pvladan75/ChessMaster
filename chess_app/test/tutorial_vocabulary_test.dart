@@ -134,8 +134,7 @@ void main() {
   final sources = <String, List<String>>{};
   for (final entity in Directory('lib').listSync(recursive: true)) {
     if (entity is! File || !entity.path.endsWith('.dart')) continue;
-    sources[entity.path.replaceAll(r'\', '/')] =
-        entity.readAsLinesSync();
+    sources[entity.path.replaceAll(r'\', '/')] = entity.readAsLinesSync();
   }
 
   test('the walk actually read the app, or the rest proves nothing', () {
@@ -143,7 +142,8 @@ void main() {
     // nothing passes every other test in this file.
     expect(sources.length, greaterThan(100),
         reason: 'run this from chess_app/, not from the repo root');
-    expect(sources.containsKey('lib/widgets/create_course_dialog.dart'), isTrue);
+    expect(
+        sources.containsKey('lib/widgets/create_course_dialog.dart'), isTrue);
   });
 
   test('no string a reader sees still says lekcija or kurs', () {
