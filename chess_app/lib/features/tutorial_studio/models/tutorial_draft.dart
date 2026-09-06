@@ -25,6 +25,27 @@ class TutorialChoice {
       );
 }
 
+/// The name the studio gives a part the trainer has not named itself.
+///
+/// One rule in one place, because batch 57 wrote it in five: the same
+/// `RegExp(r'^(Deo|Primer)\s+\d+$')` stood in four mutation methods of
+/// `TutorialStudioScreen` and once more in `TutorialSectionsPanel`, each
+/// compiling it inside a loop over the parts. Three hand-written copies of one
+/// condition is how the `status = 'accepted'` bug got in, and this one decides
+/// which of a trainer's titles it is allowed to overwrite.
+String generatedSectionTitle(int index) => 'Deo ${index + 1}';
+
+/// Whether [title] is a name the studio generated rather than one the trainer
+/// wrote — the only kind [generatedSectionTitle] may renumber over.
+///
+/// „Primer" is here and not only „Deo" because tutorials written before the
+/// word changed are still on the server, and reordering one of those must
+/// renumber it rather than leave „Primer 3" standing second.
+bool isGeneratedSectionTitle(String title) =>
+    _generatedSectionTitle.hasMatch(title.trim());
+
+final RegExp _generatedSectionTitle = RegExp(r'^(Deo|Primer)\s+\d+$');
+
 /// One part of a tutorial — „Deo" to the trainer, one `position_list` entry to
 /// the server, one `LessonStep` to the child.
 ///

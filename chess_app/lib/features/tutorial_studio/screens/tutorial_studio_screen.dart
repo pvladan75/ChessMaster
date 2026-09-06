@@ -16,6 +16,7 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_sections_panel.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -135,14 +136,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       TutorialEntryBlank(:final title) => TutorialDraft(
           title: title,
           sections: [
-            TutorialSection.blank(
-                fen: TutorialDraft.startFen, title: 'Primer 1'),
+            TutorialSection.blank(fen: TutorialDraft.startFen, title: 'Deo 1'),
           ],
         ),
       TutorialEntryFromAnalysis() => TutorialDraft(sections: [
           TutorialSection.blank(
             fen: handover?.root.fen ?? TutorialDraft.startFen,
-            title: 'Primer 1',
+            title: 'Deo 1',
           ),
         ]),
     };
@@ -556,33 +556,71 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
-  /// Closes the part being written and opens the next one.
+  /// Puts the generated names back in order after the parts have moved.
   ///
-  /// It starts on the position this part's line ran out at — exactly the
-  /// position the child's screen joins on, so show → ask happens on one board
-  /// with no reset. Offering the other answer as well is D9 of
-  /// `docs/PLAN-STUDIO-REDIZAJN.md` and lands with the section panel in P5.
-  void _commitExample() {
-    setState(() {
-      _syncSelectedSection();
-      _draft.addSection(
-        continueFromEnd: true,
-        title: 'Primer ${_draft.sections.length + 1}',
-      );
-      _sentenceController.text = '';
-      _instructionController.text = '';
-      _currentKind = LessonStepKind.show;
-      for (final c in _choiceControllers) {
-        c.dispose();
+  /// Only the names the studio wrote itself — a title the trainer typed is
+  /// theirs and survives every reorder. See [isGeneratedSectionTitle], which is
+  /// the one place that rule lives.
+  void _renumberGeneratedTitles() {
+    for (var i = 0; i < _draft.sections.length; i++) {
+      final title = _draft.sections[i].title;
+      if (title.trim().isEmpty || isGeneratedSectionTitle(title)) {
+        _draft.sections[i].title = generatedSectionTitle(i);
       }
-      _choiceControllers.clear();
-      _currentCorrectChoice = null;
-      _currentSolutionSan = null;
-      _boardController.loadFen(_root.fen);
-      _lastMoveFrom = null;
-      _lastMoveTo = null;
-      _fieldsEpoch++;
-    });
+    }
+  }
+
+  void _selectSection(int index) {
+    if (index < 0 || index >= _draft.sections.length) return;
+    _syncSelectedSection();
+    _draft.selected = index;
+    _draft.section.cursorNode = _draft.section.root;
+    _loadSelectedSection();
+    setState(() {});
+    _persist();
+  }
+
+  void _addSection({required bool continueFromEnd}) {
+    _syncSelectedSection();
+    _draft.addSection(
+      continueFromEnd: continueFromEnd,
+      title: generatedSectionTitle(_draft.sections.length),
+    );
+    _renumberGeneratedTitles();
+    _loadSelectedSection();
+    setState(() {});
+    _persist();
+  }
+
+  void _moveSection(int from, int to) {
+    if (from < 0 || from >= _draft.sections.length) return;
+    if (to < 0 || to >= _draft.sections.length || from == to) return;
+    _syncSelectedSection();
+    _draft.moveSection(from, to);
+    _renumberGeneratedTitles();
+    _loadSelectedSection();
+    setState(() {});
+    _persist();
+  }
+
+  void _cloneSection(int index) {
+    if (index < 0 || index >= _draft.sections.length) return;
+    _syncSelectedSection();
+    _draft.cloneSection(index);
+    _renumberGeneratedTitles();
+    _loadSelectedSection();
+    setState(() {});
+    _persist();
+  }
+
+  void _removeSection(int index) {
+    if (!_draft.removeSection(index)) {
+      AppFeedback.info(context, 'Poslednji deo ne može biti obrisan.');
+      return;
+    }
+    _renumberGeneratedTitles();
+    _loadSelectedSection();
+    setState(() {});
     _persist();
   }
 
@@ -598,7 +636,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       if (section.kind == LessonStepKind.askMove &&
           section.pgnForSave.trim().isNotEmpty) {
         AppFeedback.error(
-            context, 'Primer koji traži potez ne sme da ima liniju.');
+            context, 'Deo koji traži potez ne sme da ima liniju.');
         return;
       }
       if (section.kind == LessonStepKind.askChoice &&
@@ -625,7 +663,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   /// The tree of the part being written, and everything written *about* it.
   Widget _authoringColumn() {
-    final written = _draft.sections.length - 1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -643,13 +680,15 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           },
         ),
         const SizedBox(height: AppSpacing.md),
-        if (written > 0) ...[
-          Text('Primeri', style: AppText.bodyBold),
-          for (int i = 0; i < written; i++) Text(_draft.sections[i].title),
-          const SizedBox(height: AppSpacing.md),
-        ],
-        Text(_draft.section.title, style: AppText.bodyBold),
-        const SizedBox(height: AppSpacing.sm),
+        TutorialSectionsPanel(
+          draft: _draft,
+          onSelect: _selectSection,
+          onAdd: _addSection,
+          onMove: _moveSection,
+          onClone: _cloneSection,
+          onRemove: _removeSection,
+        ),
+        const SizedBox(height: AppSpacing.md),
         TextField(
           key: const Key('example-sentence'),
           controller: _sentenceController,
@@ -726,6 +765,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                         ),
                       ),
                       IconButton(
+                        key: Key('example-choice-delete-$i'),
                         icon: const Icon(Icons.delete),
                         onPressed: () {
                           setState(() {
@@ -755,18 +795,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
-        const SizedBox(height: AppSpacing.md),
-        TextButton(
-          onPressed: _commitExample,
-          child: const Text('+ Dodaj sledeću poziciju u tutorijal'),
-        ),
         const SizedBox(height: AppSpacing.lg),
         ElevatedButton(
           onPressed: _saveTutorial,
           child: const Text('Sačuvaj tutorijal'),
         ),
         const SizedBox(height: AppSpacing.md),
-        Text('Linija ovog primera',
+        Text('Linija ovog dela',
             style:
                 AppText.bodyBold.copyWith(color: context.colors.textPrimary)),
         const SizedBox(height: AppSpacing.xs),

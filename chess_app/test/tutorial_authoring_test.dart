@@ -34,14 +34,20 @@
 //   Key('example-instruction')   the task, per example        „Zadatak za učenika"
 //   Key('example-kind')          the dropdown, per example    „Tip zadatka"
 //   Key('example-choice-N')      one offered answer, per example
-//   „Dodaj sledeću poziciju u tutorijal"   commits this example, starts the next
+//   „+ Dodaj deo"                       commits this part, asks where the
+//                                        next one begins, opens it
 //   „Sačuvaj tutorijal"                    the one and only write
 //
-// The running list shows the example being written too, not only the committed
+// The running list shows the part being written too, not only the finished
 // ones — a screen that opens with an empty list is a screen on which the
-// trainer's first example is nowhere until they leave it. So a fresh screen
-// reads „Primer 1", and after one „Dodaj sledeću poziciju" it reads „Primer 1"
-// and „Primer 2".
+// trainer's first part is nowhere until they leave it. So a fresh screen reads
+// „Deo 1", and after one „+ Dodaj deo" it reads „Deo 1" and „Deo 2".
+//
+// **Batch 57 moved two things in this file and nothing else**: the taps that
+// commit a part (into `addPart`, because the button gained a question), and
+// „Primer" to „Deo" in the two assertions about the list. Both are frozen in
+// `docs/gates/tutorial_delovi_test.dart`'s header. Every assertion about the
+// request is untouched.
 //
 // The three kind labels are the ones `LessonStepEditorPanel` already uses —
 // „Samo prikaži", „Traži potez na tabli", „Traži odgovor iz liste" — as are
@@ -54,10 +60,10 @@
 // that is what a lesson step is on the server. A batch that puts a kind on
 // every node has invented a second model of a step.
 //
-// **„Dodaj sledeću poziciju" starts where the last line ended.** The end of the
-// example's main line, which is exactly the position the child's screen joins
-// on — show, then ask, on one board with no reset (R2, built in phase 7). The
-// board editor is still there for a trainer who wants to go somewhere else.
+// **„Nastavi odavde" starts where the last line ended.** The end of the part's
+// main line, which is exactly the position the child's screen joins on — show,
+// then ask, on one board with no reset (R2, built in phase 7). „Nova pozicija"
+// is the other answer, and the board editor is still there as well.
 //
 // **An `ask_move` example carries no line, and its answer is played on the same
 // board.** This is the one rule here that was not in the plan, and it comes
@@ -216,6 +222,20 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Commits the part being written and opens the next one.
+  ///
+  /// **This helper is the only thing batch 57 changed in this file.** The single
+  /// „Dodaj sledeću poziciju" button became „+ Dodaj deo" with the two answers
+  /// decision D9 of `docs/PLAN-STUDIO-REDIZAJN.md` froze — „Nastavi odavde",
+  /// which is what this button always silently did, and „Nova pozicija". Every
+  /// assertion below is the one it had; only the taps that get there moved.
+  Future<void> addPart(WidgetTester tester) async {
+    await tester.tap(find.text('+ Dodaj deo').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nastavi odavde').last);
+    await tester.pumpAndSettle();
+  }
+
   Future<void> tapText(WidgetTester tester, String fragment) async {
     await tester.tap(find.textContaining(fragment).first);
     await tester.pumpAndSettle();
@@ -244,7 +264,7 @@ void main() {
       await play(tester, 'e7', 'e5');
       await type(tester, 'example-sentence', secondSentence);
 
-      await tapText(tester, 'Dodaj sledeću poziciju');
+      await addPart(tester);
       expect(api.seen, isEmpty,
           reason: 'adding an example wrote to the server; decision 3 saves '
               'once, at the end, so a tutorial abandoned halfway leaves '
@@ -333,15 +353,15 @@ void main() {
     testWidgets('the examples are numbered as they are written',
         (tester) async {
       await open(tester);
-      expect(find.text('Primer 1'), findsOneWidget);
-      expect(find.text('Primer 2'), findsNothing);
+      expect(find.text('Deo 1'), findsOneWidget);
+      expect(find.text('Deo 2'), findsNothing);
 
       await play(tester, 'e2', 'e4');
-      await tapText(tester, 'Dodaj sledeću poziciju');
+      await addPart(tester);
 
-      expect(find.text('Primer 1'), findsOneWidget,
+      expect(find.text('Deo 1'), findsOneWidget,
           reason: 'the example just committed left the list');
-      expect(find.text('Primer 2'), findsOneWidget);
+      expect(find.text('Deo 2'), findsOneWidget);
       await close(tester);
     });
 
@@ -356,7 +376,7 @@ void main() {
       await play(tester, 'e7', 'e5');
       final ended = board(tester).controller.getFen();
 
-      await tapText(tester, 'Dodaj sledeću poziciju');
+      await addPart(tester);
 
       expect(board(tester).controller.getFen().split(' ').take(2).join(' '),
           ended.split(' ').take(2).join(' '),
