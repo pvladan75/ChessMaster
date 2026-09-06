@@ -4040,10 +4040,14 @@ Uz to, faza 6 (crtež i glas, paket 49) — za ovo treba korak čiji PGN nosi
 
 Trenerova strana, faza 7 (paket 50) — ovim se lekcija iz gornjih stavki i pravi:
 
-17. [ ] **„Napravi korak od ove pozicije" postoji u Analitičkom studiju**, pored
-    „Izvezi PGN". Proveri i na telefonu: **„Analiziraj celu partiju" mora i dalje
-    da bude u traci**, ne u meniju — dugme je jednom bilo ubačeno na prvo mesto i
-    tiho ga izbacilo.
+17. [ ] **Dva dugmeta postoje u Analitičkom studiju**, pored „Izvezi PGN":
+    „Napravi korak od ove pozicije" i „Uredi korake lekcije". Proveri i na
+    telefonu: **„Analiziraj celu partiju" mora i dalje da bude u traci**, ne u
+    meniju — jedno od njih je bilo ubačeno na prvo mesto i tiho ga izbacilo.
+17a. [ ] **„Uredi korake lekcije" zaista otvara editor.** Pitanje glasi „Koju
+    lekciju uređuješ?", izbor otvara ekran sa koracima. Ovo je stavka zbog koje
+    je 7c i postojala: panel je bio napravljen i testiran, a nijedan ekran ga
+    nije otvarao.
 18. [ ] **Korak napravljen iz studija nosi crtež.** Nacrtaj strelicu i oboji
     polje u studiju, napravi korak, pa ga otvori kao đak — strelica i prsten su
     tu. To je i razlog zašto dugme stoji baš na tom ekranu.
