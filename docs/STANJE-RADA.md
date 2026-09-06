@@ -271,6 +271,48 @@ dozvolom**: `_norm` više ne broji prazan literal ni sa jedne strane, jer u
 stringu bez znakova nema teksta koji bi trebalo štititi. Dozvola bi rešila jedan
 batch i ostavila sledeće preuređenje kontrolera da udari u isti zid.
 
+### P5b — podeljeni raspored, 6.9.2026, batch 58
+
+`gemini-3.8-flash-high`, `flutter_feature_builder`, jedna runda, devet kapija
+zeleno iz prve. **1524 testa u aplikaciji, 1 preskočen** (bilo 1515); backend
+nije diran i ostaje na 956.
+
+Tabla sada uzima prozor, a desna kolona je fiksnih 460: naziv iznad, „Delovi
+tutorijala" u gornjoj polovini, polja i stablo u donjoj, **svaka polovina sa
+svojim skrolom**. Čitanje linije više ne odnosi spisak delova sa ekrana, što je
+ceo razlog zbog kog je ovaj raspored napravljen. „Sačuvaj tutorijal" je otišao
+**u AppBar**, iz oba rasporeda — tamo gde ga je §5 plana i crtao.
+
+**Najvrednije u ovoj rundi desilo se pre nego što je radnik pokrenut.** Ceo
+raspored je jednom napravljen kao proba pa bačen, samo da se vidi da li je
+kapija zadovoljiva. Nije bila: prvi oblik je Sačuvaj prikucao ispod donje
+polovine, tačno tamo gde `AppFeedback` crta poruku — pa je SnackBar prekrivao
+dugme na koje se žali, i jedan od šest dodira na njega u zamrznutoj kapiji
+`tutorial_authoring_test.dart` je pao na prekriveno dugme. Sa dugmetom u
+AppBar-u proba je dala 1524 zelena bez ijedne izmene u postojećim testovima —
+i tačno to je batch i postigao. **Kapija koju niko ne može da zadovolji košta
+rundu; pola sata probe je platilo tri takve stvari odjednom** (uz to: panel
+traži `Flexible`, ne `Expanded`, jer u uskom rasporedu ima neograničenu visinu;
+a centriranje se meri na `BoardWithCoordinates`, jer oznake redova i kolona
+stoje sa dve strane pa je sama tabla namerno van centra u svom vidžetu — prva
+verzija kapije je tražila asimetriju koja bi bila greška da ju je neko napravio).
+
+**Izveštaj radnika je četvrti uzastopni čist**, i sve u njemu je mereno:
+460 + 12 + 1104 = 1576 (širina reda na prozoru od 1600), polovine 336 i 504 —
+tačno 2:3 — i 148 px zazora sa svake strane table. Na pitanje „koji je test van
+kapije ijednom pocrveneo" odgovor je „nijedan", što se poklapa sa probom.
+
+Vođa je pokrenuo još dve mutacije preko tri koje je batch prijavio: kad se
+donjoj polovini oduzme sopstveni skrol, pada sedam od devet testova; kad se
+Sačuvaj vrati ispod nje, pada tačno jedan — onaj koji i postoji zbog SnackBar-a.
+
+Jedna popravka vođe: naziv tutorijala i poziv panela stigli su **napisani dva
+puta**, po jednom u svakoj grani rasporeda, s tim što je naziv sa sobom poneo i
+doslovnu kopiju četvororednog komentara koji objašnjava zašto se upisuje u
+nacrt. Sada su `_titleField()` i `_sectionsPanel()`. **Kapija za stringove je to
+i primetila** — prijavila je ta dva literala kao *dodata*, što je ono što druga
+kopija izgleda spolja.
+
 ### Šta je otvoreno — ODAKLE SUTRA
 
 **P5a je gotov** (batch 57, gore) — ostaje da se vidi uživo, tačka 113 u
@@ -288,47 +330,22 @@ poseban batch sa tabelom u `docs/TABELA-TUTORIJAL.md` i
 **`master` nije gurnut.** CI se okida na push, pa je to svesna odluka vlasnika, ne
 propust.
 
-**P5b je spreman za pokretanje — sve je napisano, ostaje samo komanda.**
-Kapija (`docs/gates/tutorial_raspored_test.dart`, devet testova), zadatak i
-brief su na `master`-u; dozvola je uneta u `orchestrate.py`. Iz
-`D:\Projekti\mislisha-test\orchestrator`, pošto se `mislisha-batch-f` prebaci
-na novu granu:
+**P5b je gotov** (batch 58, gore) — ostaje da se vidi uživo, tačka 114 u
+`docs/TODO-provera.md`, koja ide zajedno sa 113.
 
-```
-python orchestrate.py run docs/TASK-studio-raspored.md ^
-  --repo D:/Projekti/mislisha-batch-f --agent flutter_feature_builder ^
-  --model gemini-3.8-flash-high --yolo --timeout 90 --expect-tests 1515
-```
+**Sledeći je P6 — hronologija „Tok"**, i za njega ništa nije napisano. Podela je
+u planu već dogovorena: `beatsOf` je čista funkcija i **njena kapija je lead-ov
+posao**, a widget je radnikov. Uz P6 dolazi i `[Tok]`/`[Stablo]` traka sa
+karticama, jer tek P6 daje drugu karticu — jedna kartica u `TabBar`-u je
+kontrola koja ne radi ništa.
 
-(Kosa crta u `--repo`, ne obrnuta. Pusti je u pozadini.)
+Posle P6: P7 (izdvajanje `BoardAnnotationController` iz sobe, nezavisno od svega
+i može bilo kad), pa P8 (odbrane iz starog editora pa gašenje njegovog ulaza na
+Windows-u — ništa se ne gasi dok mu odbrane ne postoje drugde).
 
-**Kapija je izmerena crvena, a ne pretpostavljena: 2 prošla, 7 palo.** Ona dva
-koja prolaze opisuju ono što se **ne sme** promeniti — tabla drži ceo prozor
-ispod praga, i prozor od 700 px se iscrtava bez prelivanja.
-
-**Ceo raspored je jednom napravljen kao proba pa bačen**, da bi se videlo da li
-je kapija uopšte zadovoljiva i šta ugovor košta. Tri stvari su otuda ušle u
-brief umesto da ih radnik otkriva: „Sačuvaj tutorijal" ide **u AppBar** (prikucan
-ispod donje polovine, stajao je tačno tamo gde `AppFeedback` crta poruku — a
-`tutorial_authoring_test.dart` ga dodiruje šest puta); panel delova traži
-`Flexible`, ne `Expanded`, jer u uskom rasporedu ima neograničenu visinu; a
-centriranje se meri na `BoardWithCoordinates`, jer oznake redova i kolona stoje
-sa dve strane, pa je sama tabla namerno van centra u svom vidžetu. Sa saveom u
-AppBar-u proba je dala **1524 prošla, 1 preskočen, bez ijedne izmene u
-postojećim testovima**.
-
-Usput nađeno i **namerno ostavljeno**: na širini telefona (360 px) studio već
-preliva za 47 px, na `master`-u, pre ovog batch-a. Prava greška, ali nije
-posao ovog batch-a, pa kapija gleda 700 px.
-
-Posle toga P6 (hronologija „Tok" — `beatsOf` je čista funkcija i njena kapija je
-lead-ov posao), P7 (izdvajanje `BoardAnnotationController` iz sobe, nezavisno od
-svega i može bilo kad), P8 (odbrane iz starog editora pa gašenje njegovog ulaza
-na Windows-u — ništa se ne gasi dok mu odbrane ne postoje drugde).
-
-**Dozvola za batch 57 je izbrisana iz `orchestrate.py` pri spajanju**, a obe
-staging kopije iz `docs/gates/` su otišle u `chess_app/test/` u samom merge
-commit-u — `docs/gates/` je sada prazan, kako i treba između batch-eva.
+**Dozvole za batch-eve 57 i 58 su izbrisane iz `orchestrate.py` pri spajanju**, a
+staging kopije kapija su otišle iz `docs/gates/` u `chess_app/test/` u samim
+merge commit-ima — `docs/gates/` je sada prazan, kako i treba između batch-eva.
 
 Redosled, podela posla i kapije su u §8 [PLAN-STUDIO-REDIZAJN.md](PLAN-STUDIO-REDIZAJN.md).
 Za rad sa radnikom: `D:\Projekti\mislisha-test\orchestrator\HANDOFF.md`, prvi
@@ -1062,7 +1079,7 @@ zaglavlja, pa `pgn` nikad nije prazan string.
    **Poređenje modela je ispalo u korist flash-high na imenovanim stvarima:**
    pokrenuo je `dart format` umesto što ga je prijavio, nije ništa prićutkao
    analizatoru i to je rekao u posebnom redu, prepisao je listu analizatora
-   stavku po stavku i poklapa se, a `positionList` posle premeштanja koji je
+   stavku po stavku i poklapa se, a `positionList` posle premeštanja koji je
    citirao je bajt po bajt isti kao onaj koji je vođa nezavisno izmerio. Batch
    54 je imao tri izmišljena odeljka; ovaj nijedan.
 

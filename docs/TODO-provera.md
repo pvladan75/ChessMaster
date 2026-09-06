@@ -4230,3 +4230,25 @@ P5a (batch 57), u studiju za tutorijale. Ide uz tačku 111.
 9. [ ] **Pogledaj kontraste, jer ih kapija nije merila.** Izabrani red se
    razlikuje od neizabranog i po podlozi i po debljini slova, a znak lanca ima
    svoj oblik — ništa ne sme da zavisi od boje same.
+
+## 114. Podeljeni raspored studija — 6.9.2026, nije viđeno uživo
+
+P5b (batch 58), u studiju za tutorijale. Ide zajedno sa tačkom 113 — isti ekran,
+isti prolaz.
+
+1. [ ] **Dve polovine, dva skrola.** Otvori tutorijal sa nekoliko delova, pa
+   skroluj donju polovinu do stabla. **Spisak delova ostaje na mestu.** To je
+   ceo razlog zbog kog je raspored promenjen; ako se spisak pomera zajedno sa
+   poljima, ništa drugo nije važno.
+2. [ ] **Tabla raste sa prozorom, polja ne.** Razvuci prozor — tabla postaje
+   veća, desna kolona ostaje iste širine. Suzi ga nazad; ništa se ne iseca.
+3. [ ] **Tabla stoji na sredini svoje polovine**, a ne uz levu ivicu, kad je
+   prozor širok (tada je tabla ograničena visinom pa ostaje prazan prostor).
+4. [ ] **„Sačuvaj tutorijal" je u traci na vrhu** i vidi se uvek, bez obzira
+   koliko skrolovao. Sačuvaj tutorijal bez naziva: poruka o grešci se pojavi na
+   dnu i **ne prekriva dugme** — to je i razlog zašto je dugme gore.
+5. [ ] **Uzak prozor.** Suzi prozor ispod ~840 px: raspored se vraća na tablu
+   gore i jednu kolonu ispod, kao pre. Ništa se ne iseca i ne vidi se žuto-crna
+   traka. Sačuvaj je i dalje u traci na vrhu.
+6. [ ] **Spisak delova sa mnogo delova.** Na tutorijalu sa desetak delova gornja
+   polovina skroluje **unutar sebe**, a donja ostaje gde je bila.

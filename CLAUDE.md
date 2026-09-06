@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1515 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1524 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -274,6 +274,40 @@ places** — four pasted loops in the screen, each compiling its `RegExp` inside
 loop, and once more in the panel. It is `generatedSectionTitle` /
 `isGeneratedSectionTitle` in the model now. Same family as the three
 hand-written copies of one subquery that all forgot `status = 'accepted'`.
+
+Nine more with batch 58, the studio's split layout — **1524 in the app, 1
+skipped**; the backend is untouched at 956. The lesson is not in the diff, which
+was clean in one round with no existing test needing an edit.
+
+**The gate was proved satisfiable before it was handed over, by building the
+whole layout once as a throwaway and then discarding it.** It was not
+satisfiable as first written, and half an hour of trial bought three corrections
+that would otherwise have cost rounds. The largest: „Sačuvaj tutorijal" pinned
+under the scrolling half sat exactly where `AppFeedback` draws its SnackBar, so
+a refusal covered the button it was refusing — and one of the six taps on it in
+the frozen `tutorial_authoring_test.dart` failed against a covered control. In
+the AppBar the trial suite was green with **no edit to any other test**, which
+is exactly what the batch then achieved. The other two: a `Flexible`, not an
+`Expanded`, inside `TutorialSectionsPanel`, because the same widget still lays
+out in the narrow branch where its height is unbounded; and centring measured on
+`BoardWithCoordinates` rather than on the board, because the rank and file
+labels sit on two of four sides, so the board is deliberately off centre inside
+its own widget — the gate's first version demanded an asymmetry that would have
+been a bug if anyone had built it.
+
+**A gate's own helper can be the flaky part.** The first version made the lower
+half tall by tapping „Dodaj odgovor" four times, and the taps began missing as
+soon as the layout under test worked: the controls a split pushes below a fold
+are exactly the ones such a helper reaches for. It failed only in file order,
+which is the worst way to find out. Both fixtures are data now — a saved lesson
+carrying six answers, and one carrying fourteen parts.
+
+One more, from the strings gate: it reported `'tutorial-title'` and „Naziv
+tutorijala" as **added** in a batch that added no copy, which is what a *second
+copy* looks like from outside — the title field and the sections panel had been
+written once per layout branch, the title carrying a verbatim duplicate of the
+comment explaining it. A gate that counts literals catches a duplicated widget
+for free.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
