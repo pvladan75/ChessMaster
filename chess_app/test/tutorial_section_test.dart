@@ -51,6 +51,7 @@ import 'package:chess_app/features/assignments/models/assignment.dart'
     show LessonStepKind;
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
+import 'package:chess_app/move_tree.dart' show SquareMark;
 
 const String openingFen =
     'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -248,6 +249,36 @@ void main() {
           reason: 'the server mints the id; a client-invented one is refused');
       expect(written['fen'], openingFen);
       expect(written['kind'], 'show');
+    });
+
+    test('a note about the starting position is not thrown away', () {
+      // Found by a mutation on the P3a gate, and it was a real bug rather than
+      // a weak test. A part's line used to be judged by its move count alone,
+      // so a part with **no moves** sent no pgn — and the note about the
+      // starting position, the arrows and the coloured squares live on the
+      // root, which is the only place they can live. „Pogledaj polje d5" is a
+      // whole step, `PgnExporterService` was taught to write that comment ahead
+      // of move one so it could travel, and this threw it away again on the way
+      // out. The child got a bare diagram and nobody was told.
+      final section = TutorialSection.blank(fen: openingFen);
+      section.root.comment = 'Pogledaj centar.';
+
+      final pgn = section.toJson()['pgn']?.toString() ?? '';
+      expect(pgn, contains('Pogledaj centar.'));
+
+      // And it survives the round trip back through the child's own reader.
+      final back = readStepTree(fen: openingFen, pgn: pgn);
+      expect(back.root.comment, 'Pogledaj centar.');
+      expect(back.root.children, isEmpty);
+    });
+
+    test('an arrow on a still position travels too', () {
+      final section = TutorialSection.blank(fen: openingFen);
+      section.root.squares.add(SquareMark(square: 'd5', colorCode: 'G'));
+
+      final pgn = section.toJson()['pgn']?.toString() ?? '';
+      final back = readStepTree(fen: openingFen, pgn: pgn);
+      expect(back.root.squares.single.toString(), 'Gd5');
     });
 
     test('a section with no moves says nothing about a line at all', () {

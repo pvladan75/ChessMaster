@@ -458,7 +458,8 @@ warnings — and nothing newly suppressed.
 | **P0** | This document's decisions frozen; the gate for P1–P2 written and proved by mutation | lead | a batch with no gate written for it grades itself |
 | **P1** | `MoveTree → AnalysisNode` converter; `TutorialSection` with a tree; `TutorialChoice`; `stepId` round trip | **lead** | D2 and D3 are the two places a trainer's work or a child's schedule can be destroyed silently. No UI. ~250 lines, headless tests |
 | **P2** | Hydration: `TutorialDraft.fromLesson()`, and the round-trip test | **lead** | the whole safety story is one assertion: load a saved tutorial, change nothing, save — `positionList` byte-identical, **ids included** |
-| **P3** | `LessonApiService` write results (§6); the draft slot gains identity; `TutorialEntry`; the „unfinished draft" prompt | worker, mechanical | closes 1.1. Bounded, list-shaped brief — the `flash-high` comparison batch |
+| **P3a** | `LessonApiService` write results (§6); `commitDraft`, the POST-then-PUT routing | **lead** | it decides whether a second „Sačuvaj" edits or duplicates, and it writes step ids. Headless |
+| **P3b** | The draft slot gains identity; `TutorialEntry`; the „unfinished draft" prompt | worker, mechanical | closes 1.1. Bounded, list-shaped brief — the `flash-high` comparison batch |
 | **P4** | Biblioteka card: „Novi tutorijal" / „Otvori sačuvani tutorijal", both behind `isTutorialStudioAvailable`; the Analysis door demoted to „send this line into the studio" | worker, mechanical | pure UI, no model |
 | **P5** | The split-view shell: board pane, sections panel with add/remove/reorder/clone, the tree tab where it is today | worker, high-reasoning | layout; reuses batch 55's semantics wholesale |
 | **P6** | The timeline: `beatsOf`, `_BeatCard`, fork chips, inline editing of comment and question | **lead writes `beatsOf` + its gate; worker builds the panel** | the pure function is the contract; the widget is replaceable |
@@ -564,6 +565,66 @@ times out under parallel load, which cost two false failures here.
 saved row away, so nothing yet learns `lessonId` or the server's step ids. Until
 that lands, `TutorialDraft.lessonId` is written by `fromLesson` and read by
 nobody, and the screen still only ever creates.
+
+### P3a — done 6.9.2026, by the lead
+
+`commitDraft` in `lib/features/tutorial_studio/services/tutorial_save.dart`, and
+`LessonWriteResult` beside `saveTutorial` / `updateTutorial`. The studio's save
+button now routes: `POST /lessons/save` while `lessonId` is null, `PUT
+/lessons/:id` after, with every step id carried back in the body. Thirteen tests
+in `test/tutorial_save_test.dart`, written first.
+
+**The old `save` and `update` signatures survive on purpose.** Three gate files —
+`lesson_editor_test.dart`, `lesson_answer_stays_hidden_test.dart` and
+`lesson_step_order_test.dart` — fake the server by *overriding `update`*, and §8
+requires all three to pass unedited. So there is one implementation and two
+shapes: `updateTutorial` does the work and answers with the row, `update` is
+`(await updateTutorial(…)).error`. All three pass unedited, and so does every
+other file this phase touches.
+
+Eight mutations, and **two of them are the reason this section is worth
+reading**.
+
+**A mutation survived, and it was pointing at a real bug rather than at a weak
+test.** „`markSaved` forgets the stored text" passed, because the part the test
+used had arrived through `fromStep` and was already pristine — it stayed
+byte-identical whether or not the save recorded anything. Rewriting the test to
+start from a part *written here* made it fail — and then it kept failing after
+the fix, because of something else entirely:
+
+**A part with no moves was sending no line at all, and that threw away the note
+about the starting position.** `pgnForSave` judged a part by its move count, and
+a comment, an arrow or a coloured square about a still board lives on the root —
+which is the only place it can live. „Pogledaj polje d5" is a whole step;
+`PgnExporterService` had been taught to write that comment ahead of move one
+precisely so it could travel, and this discarded it on the way out. The child
+got a bare diagram and nobody was told. It is a **pre-existing fault**, inherited
+from batch 54's rule and older than this plan; the fix is three lines in
+`pgnForSave` and two regression tests in `tutorial_section_test.dart`, which also
+check it round-trips back through the child's own reader.
+
+Two smaller judgement calls, both recorded in the gate's header:
+
+* **A server that answers success but says nothing about the steps has still
+  saved.** The id is taken, no step id is guessed, and the next save meets the
+  backend's own 409 — loud, and already worded for a trainer. Inventing a second
+  refusal here would only be an earlier one that knows less.
+* **A step list of a different length is never matched up.** Position is the
+  only thing that pairs sent to stored, and pairing a list that does not line up
+  attaches a child's schedule to the wrong part of the tutorial, silently.
+
+One test-fixture lesson worth keeping: `http.Response(String, …)` encodes with
+**latin1** unless the content type says otherwise, so a mock server could not
+carry „Nađi potez." and threw — and the failure arrived dressed as „Nije moguće
+doći do servera.", a network error, for a bug in the fixture. This server's
+sentences are Serbian; a mock of it must be able to hold them.
+
+**1473 app tests, 1 skipped, all green** (1458 before). Analyzer still 29 infos,
+no errors, no warnings, nothing newly suppressed. Backend untouched.
+
+*Still open in P3b:* `TutorialEntry`, the draft slot's identity check and the
+„unfinished draft" prompt — D4. Until those land the screen still restores the
+stored draft on open, which is complaint 1.1.
 
 ## 9. What this plan does not do
 

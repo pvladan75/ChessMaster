@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (redizajn studija: **P0–P2 gotove na `master`** —
-deo tutorijala od sada čuva svoje stablo; ostaje P3 nadalje. Tutorijal: cela
+Poslednje ažuriranje: 6.9.2026 (redizajn studija: **P0–P2 i P3a gotove** — deo
+tutorijala čuva svoje stablo, a drugi „Sačuvaj" menja tutorijal umesto da pravi
+novi; ostaje P3b nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
@@ -89,12 +90,44 @@ dodirnut i ostaje 956.
    komentar, pa bi ga oborio komentar koji objašnjava zašto se izvoznik tu *ne*
    zove.
 
+### P3a — čuvanje, 6.9.2026
+
+`commitDraft` i `LessonWriteResult`: prvi „Sačuvaj" je `POST`, svaki sledeći
+`PUT` na isti tutorijal, sa `id`-jem svakog koraka u telu. Stare potpise
+`save`/`update` namerno nismo dirali — tri zaštićene kapije lažiraju server tako
+što **preklapaju `update`**, pa postoji jedna implementacija i dva oblika.
+
+**Osam mutacija, i dve su razlog što ovo piše ovde.** Jedna je preživela —
+„`markSaved` zaboravi sačuvan tekst" — i lako je bilo okriviti mutaciju. Test je
+svoj deo napravio kroz `fromStep`, a takav deo je *već* netaknut, pa test nije
+mogao da vidi razliku. Prepisan tako da deo pravi rukom, pao je na mutaciju **i
+ostao crven** posle te popravke — i tu je izašla prava greška:
+
+**Deo bez poteza nije slao liniju uopšte, pa se gubila beleška o početnoj
+poziciji.** `pgnForSave` je sudio delu po broju poteza, a komentar, strelica i
+obojeno polje o *mirnoj* poziciji žive na korenu — jedinom mestu gde mogu.
+„Pogledaj polje d5" je ceo korak, i `PgnExporterService` je baš zato naučen da
+taj komentar upiše ispred prvog poteza. Pisac ga je na izlazu ponovo bacao; dete
+je dobijalo golu dijagramu i niko ništa nije rekao. Greška je starija od ovog
+plana — nasleđena iz batch-a 54.
+
+Pouka koja se prenosi: **preživela mutacija je pitanje, a ne presuda.** Kaže da
+test ne vidi, a ono što ne vidi ponekad nije ono što si mutirao.
+
+Sitnija, ali skupa: `http.Response(String, …)` kodira **latin1** ako tip sadržaja
+ne kaže drugačije, pa lažni server nije mogao da ponese „Nađi potez." i pukao je
+— a greška je stigla obučena kao „Nije moguće doći do servera.", mrežna greška za
+bug u testu. Rečenice ovog servera su srpske; lažni server mora da ume da ih
+nosi.
+
+**1473 testa u aplikaciji, 1 preskočen, sve zeleno** (bilo 1458).
+
 ### Šta je otvoreno
 
-P3 nadalje. Prvo `LessonApiService.save`/`.update` moraju da vrate sačuvan red —
-oba rutera već odgovaraju sa `RETURNING *` — jer dok to ne stigne,
-`TutorialDraft.lessonId` upisuje `fromLesson` a ne čita niko, i drugi pritisak na
-„Sačuvaj" bi napravio drugi tutorijal. Redosled i podela posla su u §8 plana.
+P3b nadalje: `TutorialEntry`, identitet slota za nacrt i pitanje „imate nezavršen
+tutorijal — nastavi ili odbaci" (odluka D4). Dok to ne stigne, ekran i dalje sam
+vraća sačuvan nacrt pri otvaranju — a to je prijava 1.1. Redosled i podela posla
+su u §8 plana.
 
 ---
 

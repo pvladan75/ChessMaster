@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1458 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1473 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -186,6 +186,26 @@ feature made it fail on prose in a comment explaining why `PgnExporterService`
 is *not* called there. It asks about **imports** now, which is what says the code
 reaches for a class. Same family as the 1600-character slice: a source-reading
 test is only as good as the thing it actually matches.
+
+Fifteen more the same day with P3a, the save routing — **1473 in the app, 1
+skipped** — and one of them is a fault that predates the whole plan. **A part
+with no moves was sending no line at all.** `pgnForSave` judged a part by its
+move count, and the note about the starting position, the arrows and the
+coloured squares live on the **root**, which is the only place they can live:
+„pogledaj polje d5" is a whole step, and `PgnExporterService` had been taught to
+write that comment ahead of move one precisely so it could travel. The writer
+threw it away again on the way out; the child got a bare diagram and nobody was
+told. Inherited from batch 54's `movesSan.isEmpty ? '' : pgn` and true for as
+long as that line existed.
+
+**How it was found is the part worth copying.** A mutation on the P3a gate
+survived — „`markSaved` forgets the stored text" stayed green — and the reflex
+of blaming the mutation would have lost it. The test had built its part through
+`fromStep`, which arrives *already* pristine, so it could not tell. Rewritten to
+start from a part written by hand, it went red for the mutation **and stayed
+red** after that fix, which is when the real bug came out. A surviving mutation
+is a question, not a verdict: it says this test cannot see, and what it cannot
+see is sometimes not the thing you were mutating.
 
 One more, about running the suite rather than about the code:
 `test/opening_book_service_test.dart` takes ~20 s to load the bundled ECO

@@ -160,14 +160,41 @@ class TutorialSection {
   String get pgnForSave {
     if (isPristine) return storedPgn!;
     final step = StudioLessonStep.from(root);
-    // `PgnExporterService` always writes headers, so an exported empty tree is
-    // never the empty string — batch 54's correction, and it still holds.
-    return step.line.movesSan.isEmpty ? '' : step.pgn;
+    if (step.line.movesSan.isNotEmpty) return step.pgn;
+
+    // No moves. `PgnExporterService` always writes headers, so an exported
+    // empty tree is never the empty string — batch 54's correction, and it
+    // still holds for a part that carries nothing at all.
+    //
+    // **But „no moves" is not „nothing".** A note about the starting position,
+    // an arrow or a coloured square lives on the root, and the root is the only
+    // place it can live: „pogledaj polje d5" is a whole step, and the exporter
+    // was taught to write that comment ahead of move one precisely so it could
+    // travel. Judging the part by its move count alone threw it away again on
+    // the way out — silently, and the child got a bare diagram.
+    final rootCarriesSomething = root.comment.trim().isNotEmpty ||
+        root.arrows.isNotEmpty ||
+        root.squares.isNotEmpty;
+    return rootCarriesSomething ? step.pgn : '';
   }
 
   /// The step read back through the child's parser — the check that a line
   /// which cannot be replayed from its own position is never saved.
   StudioLessonStep get step => StudioLessonStep.from(root);
+
+  /// Records what the server now holds for this part.
+  ///
+  /// Called after a successful write, by `commitDraft` and nothing else. Two
+  /// things happen here and they are the same thing: the part learns its
+  /// [stepId], and its [storedPgn] becomes the text the server stored — so an
+  /// untouched part is [isPristine] again and the next save sends that text
+  /// back byte for byte rather than a fresh export with a new `[Date]` header
+  /// on it.
+  void markSaved({required String? id, required String? pgn}) {
+    if (id != null) stepId = id;
+    storedPgn = (pgn != null && pgn.trim().isNotEmpty) ? pgn : null;
+    _storedSignature = storedPgn == null ? null : treeSignature(root);
+  }
 
   /// A copy with no identity: a new part carrying the same teaching.
   ///

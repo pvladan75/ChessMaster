@@ -5,6 +5,34 @@ import 'package:http/http.dart' as http;
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/services/app_logger.dart';
 
+/// What a write to `saved_lessons` came to.
+///
+/// Both write routes answer with `RETURNING *`, so a successful write hands
+/// back the whole row — including `position_list` **with the ids the server
+/// minted**. Those ids are the identity of a step: `assignment_items.step_key`
+/// and `review_items.step_key` name one by it and nothing joins on it. Until
+/// P3a of `docs/PLAN-STUDIO-REDIZAJN.md` this class read the status code and
+/// threw the body away, which is why a client could never learn them — and why
+/// a second „Sačuvaj" would have made a second tutorial.
+class LessonWriteResult {
+  const LessonWriteResult({this.id, this.steps = const [], this.error});
+
+  /// The row's id. Null when the write failed, or when the server answered
+  /// without one.
+  final int? id;
+
+  /// `position_list` as it is now stored. Empty when the server said nothing
+  /// about the steps — which the real one never does, but a client that treats
+  /// „said nothing" as „there are none" is how `position_list = NULL` got
+  /// written the first time.
+  final List<Map<String, dynamic>> steps;
+
+  /// The server's own sentence, or null on success.
+  final String? error;
+
+  bool get ok => error == null;
+}
+
 /// Everything the app does to `saved_lessons`, in one place.
 ///
 /// Phase 7a of `docs/PLAN-INTERAKTIVNA-LEKCIJA.md`, and the reason it exists
@@ -99,7 +127,36 @@ class LessonApiService {
   }
 
   /// Saves a position or a whole course. Returns the server's error, or null.
+  ///
+  /// The thin shape, kept because three gate files fake this class by
+  /// **overriding it** — `lesson_editor_test.dart`,
+  /// `lesson_answer_stays_hidden_test.dart` and `lesson_step_order_test.dart`,
+  /// all three of which `docs/PLAN-STUDIO-REDIZAJN.md` §8 requires to pass
+  /// unedited. There is one implementation, in [saveTutorial]; this is an
+  /// adapter, not a second route.
   Future<String?> save({
+    required String title,
+    String? description,
+    List<String>? tags,
+    String? fen,
+    String? pgn,
+    List<Map<String, dynamic>>? positionList,
+  }) async =>
+      (await saveTutorial(
+        title: title,
+        description: description,
+        tags: tags,
+        fen: fen,
+        pgn: pgn,
+        positionList: positionList,
+      ))
+          .error;
+
+  /// Saves, and answers with the row the server wrote.
+  ///
+  /// The caller needs the id and the step ids to be able to save a second time
+  /// as an *edit* rather than as a new tutorial. See [LessonWriteResult].
+  Future<LessonWriteResult> saveTutorial({
     required String title,
     String? description,
     List<String>? tags,
@@ -122,11 +179,36 @@ class LessonApiService {
             }),
           )
           .timeout(const Duration(seconds: 30));
-      if (res.statusCode == 201) return null;
-      return _errorFrom(res.body, 'Čuvanje nije uspelo (${res.statusCode}).');
+      if (res.statusCode == 201) return _rowFrom(res.body);
+      return LessonWriteResult(
+        error: _errorFrom(res.body, 'Čuvanje nije uspelo (${res.statusCode}).'),
+      );
     } catch (e) {
       AppLogger.log('[Lessons] Čuvanje nije uspelo: $e');
-      return 'Nije moguće doći do servera.';
+      return const LessonWriteResult(error: 'Nije moguće doći do servera.');
+    }
+  }
+
+  /// The saved row, read out of a successful response.
+  ///
+  /// A body this cannot read is still a success — the write happened, and the
+  /// status code said so. It comes back with no id and no steps rather than as
+  /// a failure: telling a trainer their tutorial was not saved when it is in
+  /// the database is the worse of the two wrong answers.
+  LessonWriteResult _rowFrom(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is! Map) return const LessonWriteResult();
+      final rawSteps = decoded['position_list'];
+      return LessonWriteResult(
+        id: decoded['id'] is int ? decoded['id'] as int : null,
+        steps: [
+          for (final raw in rawSteps is List ? rawSteps : const [])
+            if (raw is Map) Map<String, dynamic>.from(raw),
+        ],
+      );
+    } catch (_) {
+      return const LessonWriteResult();
     }
   }
 
@@ -139,7 +221,35 @@ class LessonApiService {
   /// null` would delete every step of a course, and nothing would say so —
   /// `chess_backend/test/lesson_rename_keeps_steps.test.js` is that bug's
   /// gravestone.
+  /// The thin shape. See [save] for why it survives; the work is in
+  /// [updateTutorial].
   Future<String?> update({
+    required int id,
+    required String title,
+    String? description,
+    List<String>? tags,
+    String? fen,
+    String? pgn,
+    List<Map<String, dynamic>>? positionList,
+  }) async =>
+      (await updateTutorial(
+        id: id,
+        title: title,
+        description: description,
+        tags: tags,
+        fen: fen,
+        pgn: pgn,
+        positionList: positionList,
+      ))
+          .error;
+
+  /// Updates, and answers with the row the server wrote.
+  ///
+  /// [positionList] is omitted from the body when it is null for the reason
+  /// spelled out on [update], and that has not changed: the server tells „leave
+  /// the steps alone" from „there are no steps now" by whether the field is
+  /// there at all.
+  Future<LessonWriteResult> updateTutorial({
     required int id,
     required String title,
     String? description,
@@ -163,11 +273,13 @@ class LessonApiService {
             }),
           )
           .timeout(const Duration(seconds: 30));
-      if (res.statusCode == 200) return null;
-      return _errorFrom(res.body, 'Izmena nije uspela (${res.statusCode}).');
+      if (res.statusCode == 200) return _rowFrom(res.body);
+      return LessonWriteResult(
+        error: _errorFrom(res.body, 'Izmena nije uspela (${res.statusCode}).'),
+      );
     } catch (e) {
       AppLogger.log('[Lessons] Izmena nije uspela: $e');
-      return 'Nije moguće doći do servera.';
+      return const LessonWriteResult(error: 'Nije moguće doći do servera.');
     }
   }
 

@@ -14,6 +14,7 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -507,13 +508,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       }
     }
 
-    final error = await _lessonApi.save(
-      title: _titleController.text.trim(),
-      positionList: _draft.positionList,
-    );
+    _draft.title = _titleController.text.trim();
+    final error = await commitDraft(_draft, _lessonApi);
 
     if (!mounted) return;
     if (error == null) {
+      // The draft now knows its lesson id and every step id, so the next press
+      // of this button edits this tutorial instead of making a second one.
+      _persist();
       AppFeedback.success(context, 'Tutorijal je sačuvan.');
     } else {
       AppFeedback.error(context, error);
