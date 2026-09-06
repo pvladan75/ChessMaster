@@ -103,7 +103,9 @@ which they used to.
    it has to be edited to make your work pass, that is a finding — write it in
    the report and stop.
 6. Add your own tests for anything you had to decide that the gate does not
-   reach. Not decoration: **no test with no assertions in it, and never mute
+   reach. Put them in **one** file, `chess_app/test/tutorial_studio_fields_test.dart`
+   — named here so that a second new file is still a stray the harness can see.
+   Not decoration: **no test with no assertions in it, and never mute
    `FlutterError.onError`.** A previous batch did both, and its own test stayed
    green over a real 91 px overflow that a release build clips in silence.
 7. `dart format` every Dart file you touch. Actually run it; do not report it as
@@ -112,7 +114,7 @@ which they used to.
 
 ## What the report must contain
 
-Write it to `docs/REPORT-batch-54.md`.
+Write it to `docs/REPORT-batch-54.md`, under exactly that name.
 
 * the test count before and after, both measured by you in this run;
 * the analyzer list before and after — whether it changed, not just how many;
