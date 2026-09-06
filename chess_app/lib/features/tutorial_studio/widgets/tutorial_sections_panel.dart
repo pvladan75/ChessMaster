@@ -158,53 +158,54 @@ class TutorialSectionsPanel extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             const Divider(height: 1),
             const SizedBox(height: AppSpacing.xs),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: draft.sections.length,
-              itemBuilder: (context, i) {
-                final isSelected = i == draft.selected;
-                final rawTitle = draft.sections[i].title.trim();
-                // A tutorial written before „Primer" became „Deo" arrives from
-                // the server with its old generated names, and nothing has
-                // renumbered it yet — the screen only does that when a part is
-                // added, moved, cloned or removed.
-                final label =
-                    rawTitle.isEmpty || isGeneratedSectionTitle(rawTitle)
-                        ? generatedSectionTitle(i)
-                        : rawTitle;
-                final hasJoin = i > 0 &&
-                    _isJoined(draft.sections[i - 1], draft.sections[i]);
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: draft.sections.length,
+                itemBuilder: (context, i) {
+                  final isSelected = i == draft.selected;
+                  final rawTitle = draft.sections[i].title.trim();
+                  // A tutorial written before „Primer" became „Deo" arrives from
+                  // the server with its old generated names, and nothing has
+                  // renumbered it yet — the screen only does that when a part is
+                  // added, moved, cloned or removed.
+                  final label =
+                      rawTitle.isEmpty || isGeneratedSectionTitle(rawTitle)
+                          ? generatedSectionTitle(i)
+                          : rawTitle;
+                  final hasJoin = i > 0 &&
+                      _isJoined(draft.sections[i - 1], draft.sections[i]);
 
-                return ListTile(
-                  dense: true,
-                  selected: isSelected,
-                  selectedTileColor: context.colors.surfaceRaised,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: AppRadii.roundedSm,
-                  ),
-                  title: Text(
-                    label,
-                    style:
-                        (isSelected ? AppText.bodyBold : AppText.body).copyWith(
-                      color: isSelected
-                          ? context.colors.textPrimary
-                          : context.colors.textSecondary,
+                  return ListTile(
+                    dense: true,
+                    selected: isSelected,
+                    selectedTileColor: context.colors.surfaceRaised,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: AppRadii.roundedSm,
                     ),
-                  ),
-                  trailing: hasJoin
-                      ? Tooltip(
-                          message: 'Nastavlja se na prethodni deo',
-                          child: Icon(
-                            Icons.link,
-                            color: context.colors.accent,
-                            size: 20,
-                          ),
-                        )
-                      : null,
-                  onTap: () => onSelect(i),
-                );
-              },
+                    title: Text(
+                      label,
+                      style: (isSelected ? AppText.bodyBold : AppText.body)
+                          .copyWith(
+                        color: isSelected
+                            ? context.colors.textPrimary
+                            : context.colors.textSecondary,
+                      ),
+                    ),
+                    trailing: hasJoin
+                        ? Tooltip(
+                            message: 'Nastavlja se na prethodni deo',
+                            child: Icon(
+                              Icons.link,
+                              color: context.colors.accent,
+                              size: 20,
+                            ),
+                          )
+                        : null,
+                    onTap: () => onSelect(i),
+                  );
+                },
+              ),
             ),
           ],
         ),
