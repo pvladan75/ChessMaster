@@ -28,7 +28,10 @@ import 'package:chess_app/services/app_logger.dart';
 ///   copies to keep in step, and the one that drifts is the one nobody is
 ///   testing.
 class LessonApiService {
-  LessonApiService({required this.authToken});
+  LessonApiService({required this.authToken, http.Client? client})
+      : _client = client ?? http.Client();
+
+  final http.Client _client;
 
   final String authToken;
 
@@ -65,7 +68,7 @@ class LessonApiService {
         if (excludeTags.isNotEmpty) 'excludeTags': excludeTags.join(','),
         'matchMode': matchMode,
       };
-      final res = await http
+      final res = await _client
           .get(
             Uri.parse('$backendUrl/lessons').replace(queryParameters: params),
             headers: _headers,
@@ -83,7 +86,7 @@ class LessonApiService {
   /// The labels this user has used, for the filter panel.
   Future<List<String>> fetchLabels() async {
     try {
-      final res = await http
+      final res = await _client
           .get(Uri.parse('$backendUrl/lessons/labels'), headers: _headers)
           .timeout(const Duration(seconds: 20));
       if (res.statusCode != 200) return const [];
@@ -105,7 +108,7 @@ class LessonApiService {
     List<Map<String, dynamic>>? positionList,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse('$backendUrl/lessons/save'),
             headers: _headers,
@@ -146,7 +149,7 @@ class LessonApiService {
     List<Map<String, dynamic>>? positionList,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .put(
             Uri.parse('$backendUrl/lessons/$id'),
             headers: _headers,
@@ -171,7 +174,7 @@ class LessonApiService {
   /// Deletes a lesson. Returns the server's error, or null.
   Future<String?> delete(int id) async {
     try {
-      final res = await http
+      final res = await _client
           .delete(Uri.parse('$backendUrl/lessons/$id'), headers: _headers)
           .timeout(const Duration(seconds: 20));
       if (res.statusCode == 200) return null;
@@ -198,7 +201,7 @@ class LessonApiService {
     required Map<String, dynamic> step,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse('$backendUrl/lessons/$lessonId/steps'),
             headers: _headers,
@@ -229,7 +232,7 @@ class LessonApiService {
   Future<int?> clone({required int id, String? title}) async {
     cloneError = null;
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse('$backendUrl/lessons/$id/clone'),
             headers: _headers,

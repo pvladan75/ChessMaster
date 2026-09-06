@@ -74,9 +74,18 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
           children: [
             Icon(Icons.filter_list, size: 16, color: colors.accent),
             const SizedBox(width: 6),
-            const Text(
-              'Matrica Filter Labela',
-              style: AppText.bodyBold,
+            // Expanded, not bare: an `ExpansionTile` hands its title whatever
+            // is left after the chevron — 194 px in the library sidebar — and
+            // this label needs 285. It overflowed by 91 px, which in a release
+            // build is not a warning but a silent clip, so nobody would report
+            // it. Found while grading batch 53, whose own test had muted the
+            // overflow detector rather than say so.
+            const Expanded(
+              child: Text(
+                'Matrica Filter Labela',
+                style: AppText.bodyBold,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             if (activeCount > 0) ...[
               const SizedBox(width: 6),
