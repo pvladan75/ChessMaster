@@ -1,0 +1,222 @@
+// GATE — phase 1 of docs/PLAN-TUTORIJAL.md, batch A.
+//
+// It lives in docs/ rather than in chess_app/test/ because it is **red until
+// the batch it judges is done**, and a suite that is red on master hides the
+// next real failure. To run it against a worker's tree:
+//
+//   cp docs/gates/tutorial_vocabulary_test.dart <worktree>/chess_app/test/
+//   cd <worktree>/chess_app && flutter test test/tutorial_vocabulary_test.dart
+//
+// When batch A merges, this file moves into chess_app/test/ for good and
+// becomes the thing that stops the old word coming back — the same job
+// app_feedback_guard_test.dart does for ScaffoldMessenger.
+//
+// The contract it enforces is docs/TABELA-TUTORIJAL.md. If the two disagree,
+// the table wins and this file is wrong.
+
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+/// Lines that may keep the old word, with the reason from Table C.
+///
+/// Matched as substrings of the whole line, so they survive reformatting.
+/// Deliberately few: every entry here is a place a reader will never look.
+const _allowed = <String>[
+  // Stored data. Rows already in the database carry this tag; rewriting the
+  // written value splits one label into two that never match.
+  "tags: const ['lekcija_kurs']",
+  // Log lines are read by us, not by a child.
+  "AppLogger.log('[Assignments] Zadavanje lekcije nije uspelo",
+  "AppLogger.log('[Assignments] Učitavanje lekcija nije uspelo",
+];
+
+/// One expected new string per file the table changes.
+///
+/// The point is not to re-list the table — it is that a worker who renamed
+/// half a file, or who applied a find-and-replace and produced „Ova tutorijal",
+/// fails here. The strings chosen are the ones where the gender agreement
+/// changes, because that is what a mechanical sweep gets wrong.
+const _expected = <String, List<String>>{
+  'lib/features/analysis_studio/screens/analysis_studio_screen.dart': [
+    'Uredi korake tutorijala',
+    'Koji tutorijal uređuješ?',
+    'Tutorijal nije pronađen.',
+    'Korak uspešno dodat u tutorijal.',
+  ],
+  'lib/features/assignments/screens/lesson_viewer_screen.dart': [
+    'Ovaj tutorijal nema nijedan korak.',
+  ],
+  'lib/features/assignments/screens/my_assignments_screen.dart': [
+    'Ovaj tutorijal više nije dostupan.',
+  ],
+  'lib/features/assignments/screens/student_progress_screen.dart': [
+    'Tutorijal je poslat učeniku.',
+    'Zadaj tutorijal',
+  ],
+  'lib/features/assignments/services/assignment_api_service.dart': [
+    'Tutorijal nije zadat.',
+  ],
+  'lib/features/assignments/widgets/assign_lesson_dialog.dart': [
+    'Ne mogu da učitam tutorijale.',
+    'Izaberite tutorijal.',
+    'Nemate nijedan sačuvan tutorijal.',
+  ],
+  'lib/features/library/widgets/course_picker_dialog.dart': [
+    'U koji tutorijal?',
+    'Nema nijednog tutorijala sa koracima.',
+  ],
+  'lib/features/position_scanner/screens/saved_positions_screen.dart': [
+    'Dodaj u tutorijal',
+  ],
+  'lib/features/reviews/screens/review_session_screen.dart': [
+    'zadati tutorijal',
+  ],
+  'lib/screens/chess_game_screen.dart': [
+    'Obriši tutorijal?',
+    'Tutorijal obrisan.',
+    'Tutorijal sa varijacijama je uspešno sačuvan!',
+    'Tutorijal sa varijacijama je učitan!',
+    'Pretraga tutorijala',
+    'Sačuvan tutorijal od trenera',
+  ],
+  'lib/screens/shortcuts_screen.dart': ['tutorijal'],
+  'lib/widgets/account_stats_card.dart': ['Sačuvani tutorijali / pozicije'],
+  'lib/widgets/create_course_dialog.dart': [
+    'Unesite naziv tutorijala.',
+    'Kreiraj tutorijal',
+    'Sačuvaj tutorijal',
+    'Naziv tutorijala',
+  ],
+  'lib/widgets/game_screen/course_step_bar.dart': [
+    'Zatvori tutorijal',
+    "'Tutorijal'",
+  ],
+  'lib/widgets/home/biblioteka_tab.dart': [
+    'Biblioteka pozicija i tutorijala',
+    'tutorijalima.',
+  ],
+  'lib/widgets/home/dashboard_tab.dart': ['Pozicije iz tutorijala'],
+  'lib/widgets/home/home_dialogs.dart': [
+    // Table B: the live session, which does **not** become a tutorial.
+    'Poziv na čas',
+    'poziva na čas',
+    'Naslov časa',
+    // …and the one line in the same file that is the artefact.
+    'pozicija i tutorijala',
+  ],
+  'lib/widgets/save_position_dialog.dart': [
+    'Sačuvaj trenutni tutorijal / poziciju',
+    'Naziv tutorijala / pozicije',
+    'Unesite naziv tutorijala.',
+  ],
+};
+
+/// The gendered mistake a find-and-replace makes. „Tutorijal" is masculine.
+const _wrongGender = <String>[
+  'Ova tutorijal',
+  'ovu tutorijal',
+  'jednu tutorijal',
+  'sačuvana tutorijal',
+  'zadata tutorijal',
+  'tutorijal je poslata',
+  'tutorijal nije pronađena',
+  'tutorijal nema nijednu',
+];
+
+bool _isComment(String line) {
+  final t = line.trimLeft();
+  return t.startsWith('//') || t.startsWith('/*') || t.startsWith('*');
+}
+
+void main() {
+  final sources = <String, List<String>>{};
+  for (final entity in Directory('lib').listSync(recursive: true)) {
+    if (entity is! File || !entity.path.endsWith('.dart')) continue;
+    sources[entity.path.replaceAll(r'\', '/')] =
+        entity.readAsLinesSync();
+  }
+
+  test('the walk actually read the app, or the rest proves nothing', () {
+    // The same guard app_feedback_guard_test.dart carries: a scanner that read
+    // nothing passes every other test in this file.
+    expect(sources.length, greaterThan(100),
+        reason: 'run this from chess_app/, not from the repo root');
+    expect(sources.containsKey('lib/widgets/create_course_dialog.dart'), isTrue);
+  });
+
+  test('no string a reader sees still says lekcija or kurs', () {
+    final offenders = <String>[];
+    for (final entry in sources.entries) {
+      for (var i = 0; i < entry.value.length; i++) {
+        final line = entry.value[i];
+        if (_isComment(line)) continue;
+        final lower = line.toLowerCase();
+        if (!lower.contains('lekcij') && !lower.contains('kurs')) continue;
+        if (_allowed.any(line.contains)) continue;
+        offenders.add('${entry.key}:${i + 1}: ${line.trim()}');
+      }
+    }
+    expect(offenders, isEmpty,
+        reason: 'docs/TABELA-TUTORIJAL.md is the contract; these are left:\n'
+            '${offenders.join('\n')}');
+  });
+
+  test('every file the table changes says the new word', () {
+    final missing = <String>[];
+    for (final entry in _expected.entries) {
+      final lines = sources[entry.key];
+      if (lines == null) {
+        missing.add('${entry.key}: FILE MISSING — stop and report it');
+        continue;
+      }
+      final text = lines.join('\n');
+      for (final wanted in entry.value) {
+        if (!text.contains(wanted)) missing.add('${entry.key}: "$wanted"');
+      }
+    }
+    expect(missing, isEmpty,
+        reason: 'the replacement from the table is not there:\n'
+            '${missing.join('\n')}');
+  });
+
+  test('the new word is declined as a masculine noun', () {
+    // „Lekcija" is feminine and „tutorijal" is masculine, so every agreeing
+    // word around it changes too. This is the one thing a find-and-replace
+    // cannot get right, and the one a reader notices immediately.
+    final offenders = <String>[];
+    for (final entry in sources.entries) {
+      final text = entry.value.join('\n').toLowerCase();
+      for (final wrong in _wrongGender) {
+        if (text.contains(wrong.toLowerCase())) {
+          offenders.add('${entry.key}: "$wrong"');
+        }
+      }
+    }
+    expect(offenders, isEmpty,
+        reason: 'wrong gender agreement:\n${offenders.join('\n')}');
+  });
+
+  test('nothing outside the table was renamed', () {
+    // An identifier rename is not this batch. It is a diff nobody can review
+    // beside a string change, and it breaks the API field names the backend
+    // reads.
+    final forbidden = <String>[
+      'Tutorijal position_list',
+      "'tutorijal_kurs'",
+      'tutorialApiService',
+      'TutorialViewerScreen',
+      'tutorial_api_service.dart',
+    ];
+    final offenders = <String>[];
+    for (final entry in sources.entries) {
+      final text = entry.value.join('\n');
+      for (final word in forbidden) {
+        if (text.contains(word)) offenders.add('${entry.key}: "$word"');
+      }
+    }
+    expect(offenders, isEmpty,
+        reason: 'the word changes for the reader, not for the schema:\n'
+            '${offenders.join('\n')}');
+  });
+}

@@ -22,6 +22,21 @@ function buildOrReject(res, positionList) {
   return built.entries;
 }
 
+/// The default name for a copy, kept inside the column it has to fit.
+///
+/// `title` is `VARCHAR(255)`. Appending „ (kopija)" to a title already near the
+/// limit is a 22001 from the driver and a 500 to the trainer, which reads as
+/// „cloning is broken" rather than „your title is long" — so the base is
+/// shortened instead, and only as much as it must be.
+const COPY_SUFFIX = ' (kopija)';
+const MAX_LESSON_TITLE = 255;
+
+function copyTitle(title) {
+  const base = typeof title === 'string' ? title : '';
+  const room = MAX_LESSON_TITLE - COPY_SUFFIX.length;
+  return `${base.length > room ? base.slice(0, room) : base}${COPY_SUFFIX}`;
+}
+
 // POST /lessons/save
 router.post('/save', authenticateToken, async (req, res) => {
   const { title, description, tags, fen, pgn, positionList } = req.body;
@@ -110,7 +125,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       && !(positionList || []).some(hasId)
     ) {
       return res.status(409).json({
-        error: 'Koraci su stigli bez svojih oznaka. Osvežite lekciju pa je sačuvajte ponovo.',
+        error: 'Koraci su stigli bez svojih oznaka. Osvežite tutorijal pa ga sačuvajte ponovo.',
       });
     }
 
@@ -135,7 +150,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
         [title, description || null, tags || null, initialFen, pgn || null, req.params.id, req.user.id]
       );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Lekcija nije pronađena ili nemate dozvolu za izmenu.' });
+      return res.status(404).json({ error: 'Tutorijal nije pronađen ili nemate dozvolu za izmenu.' });
     }
     res.json(result.rows[0]);
   } catch (err) {
@@ -155,7 +170,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 router.post('/:id/steps', authenticateToken, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: 'Nepoznata lekcija.' });
+    return res.status(400).json({ error: 'Nepoznat tutorijal.' });
   }
 
   const built = buildLessonStep(req.body?.step);
@@ -183,10 +198,10 @@ router.post('/:id/steps', authenticateToken, async (req, res) => {
         [id, req.user.id]
       );
       if (existing.rows.length === 0 || existing.rows[0].mine !== true) {
-        return res.status(404).json({ error: 'Lekcija nije pronađena ili nemate dozvolu za izmenu.' });
+        return res.status(404).json({ error: 'Tutorijal nije pronađen ili nemate dozvolu za izmenu.' });
       }
       return res.status(409).json({
-        error: 'To je pojedinačna pozicija, ne lekcija sa koracima. Napravite lekciju u editoru.',
+        error: 'To je pojedinačna pozicija, ne tutorijal sa koracima. Napravite tutorijal u editoru.',
       });
     }
 
@@ -194,6 +209,72 @@ router.post('/:id/steps', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Append lesson step error:', err);
     res.status(500).json({ error: 'Server error while appending lesson step' });
+  }
+});
+
+// POST /lessons/:id/clone — save a tutorial as a new version.
+//
+// Phase 3a of `docs/PLAN-TUTORIJAL.md`. The trainer keeps one tutorial and makes
+// an easier or harder version of it for another group, and the original must
+// come out untouched — which is the whole reason this is a route and not a
+// client that reads, edits and PUTs back.
+//
+// **Every copied step gets a fresh id.** A step id is the identity of a step
+// *in this tutorial*: `stepByKey` resolves a schedule row and a recorded answer
+// by it, and two tutorials carrying one id is an ambiguity nobody would find
+// until a child's progress showed up in the wrong copy. Stripping the ids and
+// running the list back through `buildLessonSteps` mints new ones from the one
+// place allowed to build a step, and validates the copy on the way — a stored
+// list written before a validation rule existed is refused here rather than
+// duplicated.
+//
+// The copy belongs to whoever asked for it, even when they were the trainer on
+// the original rather than its owner: „sačuvaj kao novu verziju" makes *your*
+// version.
+router.post('/:id/clone', authenticateToken, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Nepoznat tutorijal.' });
+  }
+
+  const asked = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
+
+  try {
+    const found = await pool.query(
+      `SELECT title, description, tags, fen, pgn, position_list
+         FROM saved_lessons
+        WHERE id = $1 AND (user_id = $2 OR trainer_id = $2)`,
+      [id, req.user.id]
+    );
+    if (found.rows.length === 0) {
+      return res.status(404).json({ error: 'Tutorijal nije pronađen ili nemate dozvolu za izmenu.' });
+    }
+
+    const source = found.rows[0];
+    const title = asked !== '' ? asked : copyTitle(source.title);
+
+    let steps = null;
+    const stored = Array.isArray(source.position_list) ? source.position_list : [];
+    if (stored.length > 0) {
+      const stripped = stored.map((step) => {
+        const { id: _replaced, ...rest } = step || {};
+        return rest;
+      });
+      const built = buildLessonSteps(stripped);
+      if (!built.ok) {
+        return res.status(built.status).json({ error: built.error });
+      }
+      steps = built.entries;
+    }
+
+    const result = await pool.query(
+      'INSERT INTO saved_lessons (user_id, trainer_id, title, description, tags, fen, pgn, position_list) VALUES ($1, $1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [req.user.id, title, source.description || null, source.tags || null, source.fen, source.pgn || null, steps ? JSON.stringify(steps) : null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    logger.error('Clone lesson error:', err);
+    res.status(500).json({ error: 'Server error while cloning lesson' });
   }
 });
 
@@ -205,7 +286,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       [req.params.id, req.user.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Lekcija nije pronađena ili nemate dozvolu za brisanje.' });
+      return res.status(404).json({ error: 'Tutorijal nije pronađen ili nemate dozvolu za brisanje.' });
     }
     res.json({ success: true });
   } catch (err) {

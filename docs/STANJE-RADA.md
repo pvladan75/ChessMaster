@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (korak lekcije — pozicija i linija iz istog
-čvora; linija se šeta brzinom glasa; demonstracija i pitanje na istoj tabli).
+Poslednje ažuriranje: 6.9.2026 (tutorijal: plan, zamrznut rečnik, kloniranje i
+brifovi — faza 0 zatvorena).
 
 ---
 
@@ -602,6 +602,53 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 čitaju iz JSON-a, i za to postoji test.
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
+
+## Tutorijal — vizija, plan i zatvorena faza 0, 6.9.2026
+
+Plan je [PLAN-TUTORIJAL.md](PLAN-TUTORIJAL.md), rečnik je
+[TABELA-TUTORIJAL.md](TABELA-TUTORIJAL.md). Vlasnik je odobrio pet odluka i one
+su **zamrznute** — batch ih ne preispituje:
+
+1. **„Tutorijal" je artefakt, „Čas" je živi rad u sobi.** Jedna reč je značila
+   oboje, pa su „Poziv na lekciju" (soba se otvara sad) i „Zadaj lekciju"
+   (domaći za četvrtak) detetu čitali kao isti događaj. Treća reč — „kurs" —
+   ide istim putem, jer rečnik koji je ostavi nije završio posao.
+2. **Klon dobija nove oznake koraka.** Oznaka koraka razrešava red u rasporedu i
+   upisan odgovor; dva tutorijala sa istom oznakom su napredak deteta u pogrešnoj
+   kopiji.
+3. **Čuvanje na kraju**, uz lokalno perzistiran draft — jedan čist `POST` kad
+   trener klikne „Sačuvaj tutorijal".
+4. **Nov ekran `TutorialStudioScreen`.** Analitički studio je 2383 linije i
+   dvanaest alatki *analize*; trener koji piše tutorijal mora da ignoriše devet
+   od dvanaest, a lista primera nema gde da stane. Nov ekran nosi četiri stvari:
+   tablu, stablo, polja za čvor na kome stojiš, i listu primera sa „+ Dodaj
+   sledeću poziciju". Koristi postojeće gradivne blokove — kopija table, stabla
+   ili kursora u novom ekranu je nalaz, ne detalj.
+5. **Autorski ekran je zasad samo Windows.** Vlasnikova primedba uz odluku 4:
+   tabla + stablo + polja + lista primera je desktop ekran, a Android je 360–410
+   dp. Kapija je jedan imenovani predikat (`!kIsWeb && Platform.isWindows`), pa
+   se vrata iz Studija na Androidu prosto ne crtaju. **Ništa se sad ne izbacuje
+   iz Android verzije** — šta još nema smisla na telefonu je zasebna odluka koju
+   vlasnik donosi kasnije, sa ekranom pred sobom. Đakova strana nije dirnuta:
+   čitanje tutorijala je tabla i traka, i ostaje na oba.
+
+**Faza 0 je zatvorena istog dana.** Zamrznut rečnik; **serverska polovina je već
+primenjena** (dvanaest poruka, da aplikacija i server ne govore različitim rečima
+pred detetom); `POST /lessons/:id/clone` napisan, testiran i zamrznut — 11
+testova, dva dokazana mutacijom (kopirane oznake umesto novih; naslov koji
+prelije `VARCHAR(255)` u 500); `LessonApiService.clone` kao ugovor za batch C; i
+**dve kapije napisane pre batcheva koje sude**, obe puštene na trenutni kod da se
+vidi da padaju iz pravog razloga — rečnička je crvena na 50 preostalih stringova,
+a granska pada pet od šest, dok šesti („korak bez grananja nikad ne pokazuje
+izbornik") prolazi i mora da prolazi i posle.
+
+Brifovi su napisani i spremni: `TASK-tutorijal-recnik.md`,
+`TASK-tutorijal-stablo.md`, `TASK-tutorijal-verzije.md`, svaki sa svojim
+`brief-*-2026-09.md`. **Batch A ide sam** — dira dvadeset fajlova i sudara se sa
+svakim drugim; B i C posle njega mogu paralelno.
+
+Merenja posle faze 0: **1372 testa u aplikaciji** (1 preskočen) i **956 na
+backendu**, backend isti sa `.env` sklonjenim u stranu.
 
 ## Korak lekcije: pozicija i linija moraju biti iz istog čvora — 6.9.2026
 

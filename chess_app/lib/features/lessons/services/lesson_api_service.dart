@@ -212,4 +212,47 @@ class LessonApiService {
       return 'Nije moguće doći do servera.';
     }
   }
+
+  /// Saves a tutorial as a new version, and returns the copy's id.
+  ///
+  /// Phase 3a of `docs/PLAN-TUTORIJAL.md`. The trainer keeps one tutorial and
+  /// makes an easier or harder version of it for another group; the original
+  /// comes out untouched, which is why this is one call to the server rather
+  /// than a read, an edit and a PUT — two of those racing lose an edit, and the
+  /// loser is never told.
+  ///
+  /// The server mints a fresh id for every copied step. Null [title] means the
+  /// server names it, `naslov (kopija)`.
+  ///
+  /// Returns the new id, or null with the reason in [cloneError] — the odd
+  /// signature in this class, because the caller has to open what it just made.
+  Future<int?> clone({required int id, String? title}) async {
+    cloneError = null;
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$backendUrl/lessons/$id/clone'),
+            headers: _headers,
+            body: jsonEncode({if (title != null) 'title': title}),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 201) {
+        final body = jsonDecode(res.body);
+        final newId = body is Map ? body['id'] : null;
+        if (newId is int) return newId;
+        cloneError = 'Kopija je napravljena, ali je server nije imenovao.';
+        return null;
+      }
+      cloneError =
+          _errorFrom(res.body, 'Kopiranje nije uspelo (${res.statusCode}).');
+      return null;
+    } catch (e) {
+      AppLogger.log('[Lessons] Kopiranje nije uspelo: $e');
+      cloneError = 'Nije moguće doći do servera.';
+      return null;
+    }
+  }
+
+  /// Why the last [clone] returned null. Null when it succeeded.
+  String? cloneError;
 }

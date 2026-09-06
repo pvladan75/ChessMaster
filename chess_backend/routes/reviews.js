@@ -78,7 +78,7 @@ router.post('/grade', authenticateToken, async (req, res) => {
       [lessonId, req.user.id]
     );
     if (allowed.rows.length === 0) {
-      return res.status(403).json({ error: 'Nemate pristup toj lekciji.' });
+      return res.status(403).json({ error: 'Nemate pristup tom tutorijalu.' });
     }
 
     // The bridge for an older client: turn its index into the step's name,
@@ -97,7 +97,7 @@ router.post('/grade', authenticateToken, async (req, res) => {
       });
       key = steps[position] ? steps[position].id : null;
       if (!key) {
-        return res.status(404).json({ error: 'Taj korak više ne postoji u lekciji.' });
+        return res.status(404).json({ error: 'Taj korak više ne postoji u tutorijalu.' });
       }
     }
 

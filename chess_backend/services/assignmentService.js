@@ -232,10 +232,10 @@ async function createLessonAssignment(pool, {
 
   const lesson = await loadAssignableLesson(pool, trainerId, lessonId);
   if (!lesson) {
-    return { ok: false, reason: 'Lekcija nije pronađena ili nije vaša.' };
+    return { ok: false, reason: 'Tutorijal nije pronađen ili nije vaš.' };
   }
   if (lesson.steps.length === 0) {
-    return { ok: false, reason: 'Lekcija nema nijedan korak.' };
+    return { ok: false, reason: 'Tutorijal nema nijedan korak.' };
   }
 
   const client = await pool.connect();

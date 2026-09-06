@@ -22,7 +22,7 @@ several rules below.
 ```bash
 cd chess_app && flutter test          # 1372 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 945 tests, all green
+cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -68,6 +68,15 @@ exporters. Seven more the same day for the shape those fixes were for: a step's
 line walked at the speed of the voice — the move is played when the sentence in
 front of it has been read out, not on a clock — and the join where showing turns
 into asking, which is one board and not two screens.
+
+Eleven more on the backend the same day, with `POST /lessons/:id/clone` — „save
+this tutorial as a new version" — which is phase 0 of
+`docs/PLAN-TUTORIJAL.md`. Two of them were proved by mutation, and they are the
+two worth knowing about: a clone **mints a fresh id for every copied step**
+(a step id resolves a schedule row and a recorded answer, so two tutorials
+carrying one is a child's progress appearing in the wrong copy), and it shortens
+a long title rather than letting `VARCHAR(255)` overflow into a 500 that reads
+as „cloning is broken".
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
