@@ -16,7 +16,8 @@ Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla
 ako ga nema ovde, u arhivi je.
 
 Poslednje ažuriranje: 6.9.2026 (tutorijal: faza 4a zatvorena, kapija i brif za
-batch E napisani; sledeće je pokretanje batcha 54).
+batch E napisani, i propust „dete vidi odgovor" zatvoren u editoru koraka;
+sledeće je pokretanje batcha 54).
 
 ---
 
@@ -664,15 +665,44 @@ odgovorom štampa odgovor ispod pitanja. Demonstracija pripada primeru **ispred*
 pitanja — što je ionako obrazac „prikaži pa pitaj" iz faze 7. Pitanje sa
 ponuđenim odgovorima nije ograničeno.
 
-**Nalaz koji nije samo o batchu E, i nije popravljen.** Isto važi za korake koji
-već postoje: `LessonStepEditorPanel` dozvoljava da se koraku koji **ima liniju**
-postavi tip „Traži potez na tabli", a `_createStepFromPosition` u Analiznom
-studiju pravi upravo takve korake (sa celom linijom kao `pgn`). Takav korak
-dete dobije sa linijom u kojoj je odgovor, i može da ga prolista trakom poteza.
-Nije dirano danas jer je izvan onoga što je traženo — ali je isti propust, na
-ekranu koji je već spojen u `master`, i treba mu zasebna odluka: odbiti taj
-spoj u editoru, ili sakriti liniju dok se ne odgovori. Prvo je u duhu ostatka
-koda — odgovor čuva server, ne klijent.
+**Isti propust u editoru koraka — popravljen 6.9.2026.** Važio je i za korake
+koji već postoje: `LessonStepEditorPanel` je dozvoljavao da se koraku koji
+**ima liniju** postavi tip „Traži potez na tabli", a `_createStepFromPosition` u
+Analiznom studiju pravi upravo takve korake (sa celom linijom kao `pgn`). Dete
+je takav korak dobijalo sa linijom u kojoj je odgovor i moglo da je prolista
+trakom poteza — što niko ne prijavljuje kao grešku, jer izgleda kao dete koje
+prestane da greši.
+
+Editor je jedino mesto u aplikaciji gde se `kind` koraka upisuje (provereno
+grepom), pa je popravka tamo potpuna za nove korake, a za već sačuvane radi
+ovako:
+
+* biranje „Traži potez na tabli" na koraku sa linijom **pita** —
+  „Ukloni liniju i postavi pitanje" ili „Odustani". Linija se ne briše iza
+  leđa, a pitanje se ne odbija bez izlaza;
+* korak koji je **već sačuvan** u tom stanju nosi crveno upozorenje sa dugmetom
+  „Ukloni liniju";
+* dok je takav korak u lekciji, čuvanje se odbija i poruka **imenuje korak**.
+
+**Zašto u aplikaciji, a ne na serveru.** `test/lesson_editor_test.dart` kaže da
+editor ne sme da prepisuje serverove odbijenice, i u pravu je — ali ovo nije
+jedna od njih. Server čuva `pgn` kao neproziran tekst i **nema čitač PGN-a**;
+dati mu jedan značilo bi drugi parser koji se ne slaže sa aplikacijinim, a to je
+greška koju je ovaj repozitorijum već platio. Aplikacija ima tačno jedan čitač,
+`LessonStepLine.read`, i popravka je pisana kroz njega. To je zapisano i pored
+same odbijenice u kodu.
+
+`test/lesson_answer_stays_hidden_test.dart`, osam testova, provereni sa šest
+mutacija — sve šestu obaraju. Pitanje sa ponuđenim odgovorima **nije**
+ograničeno: odgovori su tekst, oznake tačnosti se redaktuju, i linija ispod
+takvog pitanja ništa ne odaje.
+
+**Šta i dalje stoji otvoreno:** korak koji je *već sačuvan* u tom stanju i dalje
+stiže do deteta sve dok ga neko ne otvori u editoru i ne ukloni liniju —
+popravka je u autorskoj strani, ne u đačkoj. Druga polovina, ako se ikad pokaže
+potrebnom, je da `LessonViewerScreen` ne crta traku poteza na pitanju dok se ne
+odgovori. Nije urađeno: to je promena na ekranu koji dete gleda, i traži svoju
+odluku.
 
 **Sledeće:**
 

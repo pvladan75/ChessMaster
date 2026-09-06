@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1400 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1408 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -105,6 +105,17 @@ and writes the same thing a moment later. The gate now closes the screen inside
 that half-second. That is the general lesson, not a footnote: a timer that fires
 after the thing it belongs to is gone proves nothing about a window that took
 the whole process with it.
+
+Eight more on 6.9.2026, for a question that carried the line answering it. A
+step's `pgn` is not redacted on its way to a child — the line *is* the lesson —
+and the viewer draws the move strip for every kind, so an `ask_move` step with a
+line showed the answer to anyone who pressed „Sledeći potez". The editor is the
+one place a step's kind is written, and it now asks before making that
+combination, warns on a step already in it, and refuses to save one. **That is
+the single refusal the editor makes on its own**, and the reason is written
+beside it: the server stores `pgn` as opaque text and has no PGN reader, so it
+cannot make this one, and giving it one would be a second parser disagreeing
+with the app's. Six mutations, all six caught.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

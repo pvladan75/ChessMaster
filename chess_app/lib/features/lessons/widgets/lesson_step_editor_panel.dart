@@ -6,6 +6,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart';
+import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -36,6 +37,15 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
 
   late TextEditingController _instructionCtrl;
   final ChessBoardController _boardCtrl = ChessBoardController();
+
+  /// Bumped when a kind change is refused, so the dropdown is rebuilt from the
+  /// step instead of keeping the selection the trainer took back.
+  ///
+  /// `DropdownButtonFormField` is a form field: it holds the value the user
+  /// picked in its own state, and a rebuild alone will not move it back. Without
+  /// this the dropdown reads „Traži potez na tabli" over a step that is still
+  /// a demonstration — the trainer believes they asked something and did not.
+  int _kindEpoch = 0;
 
   @override
   void initState() {
@@ -73,6 +83,77 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     });
   }
 
+  /// Whether [step] carries a line the child can walk.
+  ///
+  /// Read through `LessonStepLine`, which is the one reader of a step's line in
+  /// this app and the same read the student's screen performs. A second opinion
+  /// about what a PGN contains is how this codebase ended up with two parsers.
+  static bool _hasLine(Map<String, dynamic> step) {
+    final pgn = step['pgn']?.toString() ?? '';
+    if (pgn.trim().isEmpty) return false;
+    final read = LessonStepLine.read(
+      fen: step['fen']?.toString() ?? '',
+      pgn: pgn,
+    );
+    return read.line.movesSan.isNotEmpty;
+  }
+
+  /// True for a step that would hand the child its own answer.
+  static bool _leaksAnswer(Map<String, dynamic> step) =>
+      step['kind']?.toString() == 'ask_move' && _hasLine(step);
+
+  /// The kind the trainer picked, and the one question worth asking about it.
+  ///
+  /// A step's `pgn` is not redacted on its way to the child — the line *is* the
+  /// lesson — and `LessonViewerScreen` draws the move strip for every kind. So a
+  /// question whose line runs on from the very position being asked about shows
+  /// the answer to anyone who presses „Sledeći potez".
+  ///
+  /// Asked rather than done: deleting a trainer's line and their words inside it
+  /// because they touched a dropdown is not a repair, it is a loss they did not
+  /// agree to. Refusing outright is no better — it leaves them with a position
+  /// they cannot ask about and no way forward. The demonstration belongs in the
+  /// step *before* the question, which the viewer joins without reloading the
+  /// board.
+  Future<void> _chooseKind(String? value) async {
+    if (value == null || _steps.isEmpty || _selectedIndex >= _steps.length) {
+      return;
+    }
+
+    if (value == 'ask_move' && _hasLine(_steps[_selectedIndex])) {
+      final drop = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Dete bi videlo odgovor'),
+          content: const Text(
+            'Ovaj korak nosi liniju, a dete može da je prolista dugmetom '
+            '„Sledeći potez" pre nego što odgovori. Demonstracija ide u korak '
+            'ispred pitanja — pitanje ostaje samo pozicija.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Odustani'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Ukloni liniju i postavi pitanje'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+      if (drop != true) {
+        setState(() => _kindEpoch += 1);
+        return;
+      }
+      _updateStep('pgn', null);
+    }
+
+    _updateStep('kind', value == 'show' ? null : value);
+  }
+
   Future<void> _save() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
@@ -80,6 +161,30 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     // Save current instruction
     final instr = _instructionCtrl.text.trim();
     _updateStep('instruction', instr.isEmpty ? null : instr);
+
+    // The one refusal this editor makes, and it is not a copy of one of the
+    // server's: the server stores `pgn` as opaque text and has no PGN reader,
+    // so it cannot make this one, and giving it one would be a second parser
+    // disagreeing with this app's. The combination was reachable for as long as
+    // this panel has existed, so a lesson opened today may already be in it —
+    // and the quiet version of this bug is a child who stops getting anything
+    // wrong.
+    final leaking = _steps.where(_leaksAnswer).toList();
+    if (leaking.isNotEmpty) {
+      final names = leaking
+          .map((s) => '„${s['title']?.toString() ?? 'Korak'}"')
+          .join(', ');
+      setState(() => _isSaving = false);
+      AppFeedback.show(
+        context,
+        () => SnackBar(
+          content: Text('Nije sačuvano. $names nosi liniju u kojoj je odgovor '
+              '— ukloni liniju ili promeni tip zadatka.'),
+          backgroundColor: context.colors.danger,
+        ),
+      );
+      return;
+    }
 
     final err = await widget.api.update(
       id: widget.lesson['id'],
@@ -156,6 +261,46 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Shown on a step that already asks for a move and already carries a line.
+  ///
+  /// Those exist: the combination was reachable for as long as this panel has
+  /// been, so the fix cannot only be a question asked at the moment the kind is
+  /// chosen. A trainer opening an old lesson has to be told which step is
+  /// showing children its own answer, and be able to fix it where they are
+  /// standing.
+  Widget _buildAnswerLeakWarning() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceRaised,
+        borderRadius: AppRadii.roundedSm,
+        border: Border.all(color: context.colors.danger),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Dete bi videlo odgovor',
+              style: AppText.bodyBold.copyWith(color: context.colors.danger)),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Ovo pitanje nosi liniju koju dete može da prolista dugmetom '
+            '„Sledeći potez" pre nego što odgovori. Dok je tu, korak se ne čuva.',
+            style: AppText.body.copyWith(color: context.colors.textPrimary),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton(
+              onPressed: () => _updateStep('pgn', null),
+              child: const Text('Ukloni liniju'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildChoicesEditor(Map<String, dynamic> step) {
@@ -237,6 +382,7 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_leaksAnswer(step)) _buildAnswerLeakWarning(),
           TextField(
             key: const Key('step-instruction'),
             controller: _instructionCtrl,
@@ -248,23 +394,30 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
             maxLines: 2,
           ),
           const SizedBox(height: AppSpacing.md),
-          DropdownButtonFormField<String>(
-            initialValue: kind,
-            items: const [
-              DropdownMenuItem(value: 'show', child: Text('Samo prikaži')),
-              DropdownMenuItem(
-                  value: 'ask_move', child: Text('Traži potez na tabli')),
-              DropdownMenuItem(
-                  value: 'ask_choice', child: Text('Traži odgovor iz liste')),
-            ],
-            onChanged: (val) {
-              if (val != null) _updateStep('kind', val == 'show' ? null : val);
-            },
-            decoration: const InputDecoration(
-              labelText: 'Tip zadatka',
-              border: OutlineInputBorder(),
-            ),
-          ),
+          // The subtree's key changes with the step, with the kind, and every
+          // time a change is taken back — see [_kindEpoch] — which tears the
+          // field down and builds it from the step again. Without that it goes
+          // on showing a kind the step does not have. The field's own key stays
+          // put, because it is the handle the tests reach it by.
+          KeyedSubtree(
+              key: ValueKey('kind-$_selectedIndex-$kind-$_kindEpoch'),
+              child: DropdownButtonFormField<String>(
+                key: const Key('step-kind'),
+                initialValue: kind,
+                items: const [
+                  DropdownMenuItem(value: 'show', child: Text('Samo prikaži')),
+                  DropdownMenuItem(
+                      value: 'ask_move', child: Text('Traži potez na tabli')),
+                  DropdownMenuItem(
+                      value: 'ask_choice',
+                      child: Text('Traži odgovor iz liste')),
+                ],
+                onChanged: _chooseKind,
+                decoration: const InputDecoration(
+                  labelText: 'Tip zadatka',
+                  border: OutlineInputBorder(),
+                ),
+              )),
           if (kind == 'ask_choice') _buildChoicesEditor(step),
           const SizedBox(height: AppSpacing.md),
           if (kind == 'ask_move') ...[

@@ -63,6 +63,12 @@ takes out `solutionSan`, `acceptedSans` and the `correct` flags — and it leave
 So an `ask_move` example whose line begins with the answer prints the answer
 under the question, and the child finds it by pressing „Sledeći potez".
 
+The same rule is already enforced on the other authoring surface, and you can
+read it working: `LessonStepEditorPanel` asks before making that combination,
+warns on a step already in it, and refuses to save one —
+`test/lesson_answer_stays_hidden_test.dart`. Both surfaces decide it with the
+one PGN reader, `LessonStepLine.read`. Use that one; do not add a second.
+
 Two consequences, both asserted by the gate:
 
 1. With the kind set to „Traži potez na tabli", a move played on the board is
@@ -115,7 +121,7 @@ are redacted, so a line under it gives nothing away.
 
 ## Baselines, to measure yourself
 
-`cd chess_app && flutter test` reads **1400 passing, 1 skipped** on the base
+`cd chess_app && flutter test` reads **1408 passing, 1 skipped** on the base
 commit. `flutter analyze` reads **29 infos**. The skip is a golden-screenshot
 group, skipped unconditionally in `dart_test.yaml`; leave it alone.
 
