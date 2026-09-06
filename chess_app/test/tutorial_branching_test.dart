@@ -1,20 +1,21 @@
-// GATE — phase 2 of docs/PLAN-TUTORIJAL.md, batch B.
+// A sideline the trainer wrote must be reachable by the child who reads it.
 //
-// Red until the batch it judges is done, which is why it lives in docs/ rather
-// than in chess_app/test/. To run it against a worker's tree:
+// A lesson step carries its line as PGN, and PGN carries variations. They were
+// parsed and kept in the tree the whole time; the viewer called `mainLine()`
+// and threw them away, so a sideline was understood, stored, and unreachable —
+// which looks exactly like a trainer who forgot to write one.
 //
-//   cp docs/gates/tutorial_branching_test.dart <worktree>/chess_app/test/
-//   cd <worktree>/chess_app && flutter test test/tutorial_branching_test.dart
+// Written before the batch that made it green (batch 52 of
+// docs/PLAN-TUTORIJAL.md) and kept in docs/gates/ until then. It drives the
+// screen through its own controls — the strip, the sheet, the text on the
+// board — and never names a private field: a gate written against internals
+// passes a rewrite that broke the feature and fails a refactor that did not.
 //
-// It drives the screen through its own controls — the strip, the sheet, the
-// text on the board — and never names a private field. A gate written against
-// internals passes a rewrite that broke the feature, and fails a refactor that
-// did not.
-//
-// The contract it enforces is C2 in docs/PLAN-TUTORIJAL.md.
+// The last test in it is the one to keep: a step with no branches must never
+// show the chooser. Everything else here can be had by trading the ordinary
+// lesson away for the branching one.
 
 import 'package:flutter/material.dart';
-import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/core/services/speech_text.dart';
@@ -67,8 +68,8 @@ void main() {
       .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay).first);
 
   Future<void> open(WidgetTester tester, AssignmentDetail detail) async {
-    await tester.pumpWidget(
-        MaterialApp(home: LessonViewerScreen(session: session, detail: detail)));
+    await tester.pumpWidget(MaterialApp(
+        home: LessonViewerScreen(session: session, detail: detail)));
     await tester.pump();
   }
 

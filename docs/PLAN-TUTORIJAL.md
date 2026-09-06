@@ -196,7 +196,7 @@ rather than restating it.
 |---|---|---|---|
 | 0 | contracts C1–C4, gates, the clone endpoint | lead | **done 6.9.2026** |
 | 1 | vocabulary: „Lekcija" → „Tutorijal" | **worker** batch A | **done 6.9.2026** |
-| 2 | tree navigation in the viewer | **worker** batch B | C2 |
+| 2 | tree navigation in the viewer | **worker** batch B | **done 6.9.2026** |
 | 3a | `POST /lessons/:id/clone` + `LessonApiService.clone` | **lead** | decision 2 |
 | 3b | Uredi / Preimenuj / Sačuvaj kao novu verziju | **worker** batch C | 3a merged |
 | 4a | `TutorialStudioScreen`: board, tree, handover from the Studio, draft model | **worker** batch D | C4, decision 4 |
@@ -279,7 +279,27 @@ row of the table was not applied, (c) fails if a file outside the table changed,
 unchanged. Proved by mutation before it is believed: revert one row, watch it go
 red.
 
-### Phase 2 — tree navigation (worker batch B)
+### Phase 2 — tree navigation (worker batch B) — done 6.9.2026
+
+Merged as batch 52. All six gate tests green, and the real condition held: the
+five existing viewer and narration files pass **unedited**. Two files changed,
+63 lines added and 107 removed — a net simplification, which is what replacing
+five parallel lists with a tree and a node should look like.
+
+Lead fixes while grading, both of the same kind: the batch left „Potez N od M"
+being recomputed inside `build` under three comments written as thinking aloud,
+including its own word „approximation" for a number a child reads. Extracted to
+`_lineProgress` with a name and the reasoning — on a branching step the
+denominator is the length of *the line you are on*, and there is no single
+number of moves in a tree. It had also reported `dart format` as run when it
+was not.
+
+Its two corrections were both right, and one was about this plan: the brief
+quoted 1372 tests, and the commit it was given had 1377 because batch A had
+merged in between. It measured rather than quoted, which is exactly what the
+task file asks for.
+
+
 
 *Scope:* `LessonViewerScreen` and `LessonStepLine` only. Swap the cursor, read
 everything off the node, keep the narrated walk and the join working.

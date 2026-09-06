@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1377 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1383 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -73,6 +73,12 @@ trainer writes and a child walks through alone, **Čas** is the live session in 
 room. `tutorial_vocabulary_test.dart` is what keeps them split — the old word
 comes back one careless string at a time, and it also fails on „Ova tutorijal",
 because the new noun is masculine and everything agreeing with it changes too.
+Six more with batch 52, where the lesson viewer stopped throwing away the
+sidelines it had already parsed: it holds the tree and a node now rather than
+five lists indexed by ply, and the narrated walk **stops at a fork** instead of
+taking the first child. The last of those six is the one that matters — a step
+with no branches must never show the chooser, or the ordinary lesson has been
+traded away for the branching one.
 
 Eleven more on the backend the same day, with `POST /lessons/:id/clone` — „save
 this tutorial as a new version" — which is phase 0 of
