@@ -349,6 +349,20 @@ batch, not inside it**: everything about *what* the timeline says was decided in
 `beatsOf` and proved by mutation, so the widget batch had nothing left to be
 wrong about.
 
+Three more the same day, and they came out of a **trial build of the next
+batch** rather than out of the batch itself — **1554 in the app, 1 skipped**,
+measured on `master` on 7.9.2026 with nothing else running; the backend is
+untouched at 956. Opening a saved tutorial and pressing „Sačuvaj tutorijal"
+without touching anything downgraded a question to a plain position, silently:
+`initState` set the title and the FEN by hand and never called
+`_loadSelectedSection()`, so the part's kind, task and answers sat at their
+defaults and the first `_persist()` wrote those defaults back over it. The
+model's round trip was byte-identical throughout and stayed so — the loss was on
+the way through the screen, which is why `test/tutorial_reopen_test.dart` drives
+the widget and reads the request. **The trial for a batch is worth running even
+when the gate is already written**, and this is the third in a row that paid for
+itself before the worker started.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.
