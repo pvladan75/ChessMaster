@@ -4277,3 +4277,35 @@ tačkama 113 i 114 — isti ekran, isti prolaz.
    kog obe kartice ostaju napravljene.)
 7. [ ] **Pogledaj oznake.** Tekući takt i uzeti čip razlikuju se po podlozi,
    okviru, debljini slova i ikonici — ništa ne sme da zavisi od same boje.
+
+## 116. Tutorijal se piše u hronologiji — 7.9.2026, nije viđeno uživo
+
+P6b (batch 60), isti ekran kao 113–115 i ide u istom prolazu. Ovo je prvi put
+da se lekcija piše na mestu na kome se čita, pa je težište na tome gde tekst
+**završi**, a ne kako izgleda.
+
+1. [ ] **Polja su otišla iz kolone.** Iznad kartica „Tok"/„Stablo" stoje samo
+   naziv tutorijala i spisak delova. Nigde drugde nema polja za rečenicu ni za
+   pitanje.
+2. [ ] **Svaka kartica ima svoje polje.** Napiši različitu rečenicu na tri
+   uzastopna takta, sačuvaj, zatvori i otvori tutorijal ponovo — **svaka
+   rečenica je na svom potezu**. (Ovo je jedina tačka koju vredi uraditi dvaput.)
+3. [ ] **Klik u tuđe polje ne guta kucanje.** Stani na jedan takt, pa **klikni
+   direktno u polje druge kartice i odmah kucaj** — slova moraju da uđu u to
+   polje. Kartica postaje tekuća, tabla ode na tu poziciju, a kursor ostaje gde
+   si kliknuo. (Ovo je popravljeno na sluh testom, ali se vidi tek uživo.)
+4. [ ] **Nalepnica „Komentar za trenutni potez" stoji samo na tekućoj kartici.**
+   Ostale kartice imaju polje bez nalepnice. Ako ti izgleda golo, reci — to je
+   odluka o tekstu, ne o kodu.
+5. [ ] **Pitanje je na kraju linije.** Kartica sa „Tip zadatka" stoji **ispod
+   poslednjeg takta**, jednom, i nigde drugde. Promeni tip na „Traži odgovor iz
+   liste": tu se pojave i zadatak i ponuđeni odgovori.
+6. [ ] **Pitanje preživi čuvanje.** Postavi pitanje sa dva odgovora, sačuvaj,
+   otvori ponovo — tip, zadatak i odgovori su tu. (Do 7.9.2026 nisu bili; vidi
+   tačku 111.)
+7. [ ] **Grananje nosi i polja.** Na delu sa sporednom linijom pritisni čip
+   neuzete grane: kartice se precrtaju niz tu granu i **u poljima je tekst te
+   grane**, a ne rečenice linije koju si napustio.
+8. [ ] **Duga linija.** Napravi deo od desetak poteza i proveri da se donja
+   polovina skroluje do kartice sa pitanjem — ništa ne sme da ostane
+   nedohvatljivo ispod ivice.

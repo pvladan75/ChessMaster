@@ -5,11 +5,19 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_beat.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 
-/// The timeline of a tutorial part in the order the child meets it.
+/// The timeline of a tutorial part in the order the child meets it, and the
+/// surface it is written on.
 ///
-/// Stateless, and it decides nothing: it projects [root] and [current] through
-/// [beatsOf], draws one card per beat, and reports every choice through
-/// [onSelect]. The screen owns the cursor and moves the board.
+/// It decides nothing: it projects [root] and [current] through [beatsOf],
+/// draws one card per beat, reports every selection through [onSelect] and
+/// every edited sentence through [onCommentChanged], and draws the [question]
+/// the screen hands it under the last beat. The screen owns the cursor, the
+/// board, and everything the question card shows — a part's kind, task and
+/// answers are per *part*, and a panel that held them would have a model.
+///
+/// The one piece of state here is a card's own [TextEditingController] and
+/// [FocusNode], keyed by `beat.node.id` so that a card built for one node is
+/// never left on screen holding another node's sentence.
 class TutorialFlowPanel extends StatelessWidget {
   const TutorialFlowPanel({
     super.key,

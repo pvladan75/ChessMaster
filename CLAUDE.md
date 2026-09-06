@@ -363,6 +363,31 @@ the widget and reads the request. **The trial for a batch is worth running even
 when the gate is already written**, and this is the third in a row that paid for
 itself before the worker started.
 
+Nine more with batch 60, where the timeline became the surface the tutorial is
+written on — **1563 in the app, 1 skipped**; the backend is untouched at 956.
+Nine gates green in one round, no existing test edited, and two lessons that
+cost a mutation each.
+
+**A gate that reads an exported PGN by string position cannot tell which move a
+comment belongs to.** „Typing into a card writes that card's node" asserted that
+the sentence stands before `e5` — and a mutation writing every sentence onto the
+node the author is *standing on* passed it, because a saved tutorial opens with
+the cursor at the root and `PgnExporterService` writes a root comment ahead of
+move one. Both placements are „before e5". The test stands on the last beat now
+and reads the saved line back through `LessonStepLine`, asking which move
+carries the comment — the same rule the writer already follows, applied to the
+test. The batch's own report had found the hole and named the fix.
+
+**A widget whose `Key` changes is a widget that was thrown away**, and the thing
+thrown away here was the caret. A beat card's field is `example-sentence` when
+that card is current and `beat-comment-<index>` otherwise, so clicking into
+another card's sentence changes its key, unmounts the element, and a `TextField`
+that builds its own `FocusNode` loses focus at exactly the moment the trainer
+started to type. No test can see it — `enterText` focuses the field itself — so
+it was measured with a throwaway probe reading `EditableText.focusNode.hasFocus`
+after a real tap, against a control that tapped the current card's field. The
+node belongs to the card now.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

@@ -357,6 +357,45 @@ mutaciju preko četiri koje je batch prijavio, onu koju testovi crtanja ne mogu
 da vide: zamena `IndexedStack`-a običnim uslovom crta isto, a obara „stablo se
 ne pregrađuje pri promeni kartice".
 
+### P6b — tutorijal se piše u hronologiji, 7.9.2026, batch 60
+
+`gemini-3.8-flash-high`, `flutter_feature_builder`, jedna runda, devet kapija
+zeleno iz prve. **1563 testa u aplikaciji, 1 preskočen** (bilo 1554); backend
+nije diran i ostaje na 956. Diff su dva fajla i nijedan postojeći test nije
+dirnut.
+
+Do sada je „Tok" bio pogled, a pisalo se u jednom polju pored njega — pa je isti
+tekst imao dva mesta: karticu na kojoj se čita i polje u koje se kuca, bez ičega
+na ekranu što kaže o kom je potezu to polje. Sada svaka kartica nosi rečenicu
+svog poteza, kartica sa pitanjem stoji ispod poslednjeg takta, a iznad kartica
+ostaju samo naziv tutorijala i spisak delova.
+
+**Preživela mutacija je bila rupa u kapiji, ne u diff-u.** Vođa je promenio
+`onCommentChanged` da piše na čvor **na kome autor stoji** umesto na čvor
+kartice — tačno kvar zbog kog je test i pisan — i svih devet je ostalo zeleno.
+Razlog: kad se sačuvan tutorijal otvori, kursor stoji **na korenu**, a komentar
+korena `PgnExporterService` ispisuje *ispred* prvog poteza, pa je tvrdnja
+„rečenica stoji pre `e5`" bila tačna i za njega. Test sada prvo stane na
+poslednji takt i čita sačuvanu liniju nazad **kroz `LessonStepLine`**, pitajući
+koji potez nosi komentar. Gledan je kako pada pod mutacijom i kako je zelen bez
+nje. **Izveštaj radnika je istu rupu našao sam i predložio istu popravku** — to
+je najvrednije u njemu, i šesti uzastopni izveštaj bez ijednog izmišljenog broja.
+
+**Dve popravke vođe koje nijedna kapija ne dohvata.** Kursor se gubio na kliku
+kojim pisanje počinje: ključ polja se menja u trenutku kad kartica postane
+tekuća (`beat-comment-N` → `example-sentence`), promenjen ključ demontira
+element, i `TextField` koji sam pravi svoj `FocusNode` ostaje bez fokusa baš kad
+trener klikne u tuđu karticu da piše. Izmereno sondom (posle klika nijedan
+`EditableText` nema fokus; kontrola sa klikom u polje tekuće kartice daje
+`focus=true`), popravljeno tako što `FocusNode` drži kartica. Nijedan test to ne
+može da vidi, jer `enterText` sam fokusira polje. I nalepnica „Komentar za
+trenutni potez" stajala je na svim karticama, pa su tri od četiri tvrdile da su
+potez na kome trener stoji; sada je samo na tekućoj, a zaglavlje svake kartice
+(„posle 1. e4") ionako kaže o kom je potezu reč.
+
+Ostaje da se vidi uživo, tačka 116 u `docs/TODO-provera.md`, koja ide zajedno sa
+113–115 — isti ekran, isti prolaz.
+
 ### Šta je otvoreno — ODAKLE SUTRA
 
 **P5a je gotov** (batch 57, gore) — ostaje da se vidi uživo, tačka 113 u
@@ -380,28 +419,31 @@ propust.
 **P6a je gotov** (batch 59, gore) — ostaje da se vidi uživo, tačka 115 u
 `docs/TODO-provera.md`, koja ide zajedno sa 113 i 114.
 
-**Sledeći je P6b — batch 60, i sve za njega je napisano**: uređivanje komentara
-i pitanja u samim karticama, pa vađenje polja iz desne kolone. To je batch koji
-menja *ponašanje* ekrana, pa njegova kapija tvrdi nad onim što se sačuva, ne nad
-onim što se nacrta — `docs/gates/tutorial_tok_edit_test.dart`, devet testova, na
-`master`-u izmereno **2 prolaze i 7 pada** (7.9.2026). Zadatak i brief su
-[TASK-studio-polja.md](TASK-studio-polja.md) i
-[brief-studio-polja-2026-09.md](brief-studio-polja-2026-09.md); grana
-`batch/studio-polja`. Ostaje samo dozvola u `orchestrate.py` pre pokretanja.
+**P6b je gotov** (batch 60, gore) — ostaje da se vidi uživo, tačka 116. **Time
+je ceo P6 zatvoren**, i sa njim glavni deo redizajna: studio je jedan ekran na
+kome se tutorijal i piše i čita.
 
-Probni build je i ovde platio, pre nego što je brief napisan: našao je da
+Probni build je i za P6b platio pre nego što je brief napisan: našao je da
 sačuvan tutorijal nikada nije učitavao *tip* dela u editor (`ad8c11a`, sa
 `test/tutorial_reopen_test.dart`), i suzio tvrdnju u
-`tutorial_authoring_test.dart` koju bi ispravan P6b oborio (`3c9d481`). Oba su
-na `master`-u, pa batch ne bi trebalo da dira nijedan postojeći test.
+`tutorial_authoring_test.dart` koju bi ispravan P6b oborio (`3c9d481`). To je
+treći probni build zaredom koji se isplatio.
 
-**Stanje `master`-a mereno 7.9.2026, ničim drugim uz to: 1554 testa u
+**Stanje `master`-a mereno 7.9.2026, ničim drugim uz to: 1563 testa u
 aplikaciji, 1 preskočen; `flutter analyze` — 29 stavki, sve `info`.** Backend
 nije diran i ostaje na 956.
 
-Posle P6: P7 (izdvajanje `BoardAnnotationController` iz sobe, nezavisno od svega
-i može bilo kad), pa P8 (odbrane iz starog editora pa gašenje njegovog ulaza na
-Windows-u — ništa se ne gasi dok mu odbrane ne postoje drugde).
+**Sledeći je P7** — izdvajanje `BoardAnnotationController` iz sobe i crtanje
+strelica i polja u studiju. Nezavisan je od svega posle P1 i može bilo kad; za
+njega još ništa nije napisano. Posle njega P8 (odbrane iz starog editora pa
+gašenje njegovog ulaza na Windows-u — ništa se ne gasi dok mu odbrane ne postoje
+drugde).
+
+Dve stvari koje je P6b ostavio kao pitanje, a ne kao dug: da li kartice koje
+nisu tekuće treba da imaju nalepnicu nad poljem (sada je nemaju, i to je odluka
+o tekstu koju donosi vlasnik), i da li klik u polje tuđe kartice treba i da
+pomeri tablu (sada pomera — radnik je to dodao preko onoga što je traženo, i
+zadržano je).
 
 **Dozvole za batch-eve 57, 58 i 59 su izbrisane iz `orchestrate.py` pri
 spajanju**, a staging kopije kapija su otišle iz `docs/gates/` u
