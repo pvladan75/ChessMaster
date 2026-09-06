@@ -27,7 +27,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
-import 'package:chess_app/features/assignments/models/assignment.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
