@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1436 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1482 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -150,6 +150,80 @@ is what got applied.
 **Both numbers above were measured on `master` on 6.9.2026, after
 `feat/tutorijal` merged** — 1436 in the app with 1 skipped, 956 on the backend
 with `.env` moved aside, which is the environment CI actually has.
+
+Twenty-two more on 6.9.2026 with P0–P2 of `docs/PLAN-STUDIO-REDIZAJN.md`,
+the model half of the studio redesign — **1458 in the app, 1 skipped; the
+backend is untouched and stays at 956.** A tutorial's part stopped being
+flattened to `fen` + `pgn` when it was finished, which is the whole reason a
+second, weaker editing screen had to exist beside the studio: nothing could read
+a `pgn` back into an `AnalysisNode`, so a finished part could never be reopened.
+Four things from it are worth carrying:
+
+**The reader is `LessonStepLine`, and `_importPgn` is not a substitute.**
+`AnalysisStudioScreen._importPgn` goes through `chess.load_pgn` and
+`getHistory()`, which keeps the main line and silently drops every comment,
+every `[%cal]`, every `[%csl]` and every variation. Reopening a tutorial through
+it would have looked perfect and lost the lesson. `lib/features/tutorial_studio/
+services/step_tree.dart` crosses from `MoveNode` to `AnalysisNode` and parses
+nothing a second time.
+
+**A byte-identical round trip is impossible if the `pgn` is always re-exported**
+— `PgnExporterService` stamps a fresh `[Date]` on every call. So an untouched
+part is written back as the exact text it was read from, and the cache is
+invalidated by comparing `treeSignature` against the tree itself. Deliberately
+not a `bool edited` flag: a flag is the version of this that fails silently, and
+one mutator forgetting to set it would write a stale line over a trainer's edit.
+
+**`acceptedSans` was missing from the model and nobody had noticed**, because
+nothing had ever read a saved step back. The server stores it; a round trip
+without it would have deleted a trainer's extra correct moves the first time
+they renamed a tutorial. The byte-identical test is what found it, which is
+exactly what that kind of test is for.
+
+**A `contains` over a directory also matches a doc comment.** Widening
+`tutorial_authoring_test.dart`'s source-reading check from one file to the
+feature made it fail on prose in a comment explaining why `PgnExporterService`
+is *not* called there. It asks about **imports** now, which is what says the code
+reaches for a class. Same family as the 1600-character slice: a source-reading
+test is only as good as the thing it actually matches.
+
+Fifteen more the same day with P3a, the save routing — **1473 in the app, 1
+skipped** — and one of them is a fault that predates the whole plan. **A part
+with no moves was sending no line at all.** `pgnForSave` judged a part by its
+move count, and the note about the starting position, the arrows and the
+coloured squares live on the **root**, which is the only place they can live:
+„pogledaj polje d5" is a whole step, and `PgnExporterService` had been taught to
+write that comment ahead of move one precisely so it could travel. The writer
+threw it away again on the way out; the child got a bare diagram and nobody was
+told. Inherited from batch 54's `movesSan.isEmpty ? '' : pgn` and true for as
+long as that line existed.
+
+**How it was found is the part worth copying.** A mutation on the P3a gate
+survived — „`markSaved` forgets the stored text" stayed green — and the reflex
+of blaming the mutation would have lost it. The test had built its part through
+`fromStep`, which arrives *already* pristine, so it could not tell. Rewritten to
+start from a part written by hand, it went red for the mutation **and stayed
+red** after that fix, which is when the real bug came out. A surviving mutation
+is a question, not a verdict: it says this test cannot see, and what it cannot
+see is sometimes not the thing you were mutating.
+
+Nine more with P3b, the entry flow — **1482 in the app, 1 skipped** — and one
+lesson about gates rather than about code. Two phases of that plan had to edit
+files the plan itself had said would „pass unedited": once to widen a
+source-reading check from one file to a directory when the code it watches moved
+one layer down, and once because a screen's constructor changed. Both times the
+assertions were untouched and green. **„Passes unedited" is the right instinct
+and the wrong words** — a fixture is not a claim about behaviour, and holding a
+file literally unedited would have meant keeping a redundant second way to open a
+screen so that a constructor call need not move. Say „its assertions are
+unchanged", and then say which fixtures moved.
+
+One more, about running the suite rather than about the code:
+`test/opening_book_service_test.dart` takes ~20 s to load the bundled ECO
+dataset and **times out when anything else heavy runs beside it**. It failed
+twice while a `flutter analyze` and a second `flutter test` were running in
+parallel, and passed solo both times afterwards. Measure the suite with nothing
+else running, or you will spend an hour on a regression that is not there.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

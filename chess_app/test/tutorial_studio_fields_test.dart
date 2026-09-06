@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/models/user_session.dart';
 
@@ -18,7 +19,10 @@ void main() {
     );
 
     await tester.pumpWidget(MaterialApp(
-      home: TutorialStudioScreen(session: session),
+      home: TutorialStudioScreen(
+        session: session,
+        entry: const TutorialEntry.blank(''),
+      ),
     ));
     await tester.pumpAndSettle();
 
