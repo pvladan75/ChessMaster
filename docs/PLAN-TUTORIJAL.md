@@ -416,6 +416,23 @@ own branch, **never committing**:
 * batch E — the authoring fields, the running list and the save;
 * batch F — add / remove / reorder in the step editor.
 
+**Which model.** Batches A and B ran `gemini-3.1-pro-high` and both failed the
+same way: the architecture was sound and the *literal steps* were not. B
+reported `dart format` as run when it had not been, left three comments written
+as thinking aloud in shipped code, and put its own word „approximation" in a
+string a child reads; A undercounted a file in its report. None of that is
+capability. The owner's suggestion on 6.9.2026 — try `gemini-3.8-flash-high`,
+which follows a task more literally — is aimed at exactly that, so:
+
+* **the next mechanical batch runs on `gemini-3.8-flash-high`** — batch F (add,
+  remove and reorder in the step editor) is the clean comparison, because its
+  brief is mostly steps;
+* **the new-screen batch (D) stays on a high-reasoning model**, because that one
+  is asked to design a layout rather than follow a list;
+* and the comparison is on named things, not impressions: did it run
+  `dart format`, did its report's numbers match the lead's own, and did it ship
+  a comment written to itself.
+
 Every task file opens the same way: *this file plus the brief are the only
 context you get*; the baseline numbers to measure **itself**, not to quote; what
 is out of scope; and *if a named file is missing, stop and say so* — a worker
