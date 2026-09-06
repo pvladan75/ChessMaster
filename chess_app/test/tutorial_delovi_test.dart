@@ -109,9 +109,17 @@ void main() {
   ChessBoardWithOverlay board(WidgetTester tester) => tester
       .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay).first);
 
+  /// The move tree, whether or not it is the tab currently showing.
+  ///
+  /// `skipOffstage: false` was added ahead of P6a, which puts the tree behind
+  /// a „Stablo" tab with „Tok" in front of it: `IndexedStack` keeps the hidden
+  /// tab built — that is how the tree keeps its zoom across a switch — but
+  /// offstage, and the default finder skips offstage widgets. Without this the
+  /// helper throws „Bad state: No element" and takes a dozen assertions with
+  /// it, none of which are about tabs.
   AnalysisMoveTreeWidget tree(WidgetTester tester) =>
       tester.widget<AnalysisMoveTreeWidget>(
-          find.byType(AnalysisMoveTreeWidget).first);
+          find.byType(AnalysisMoveTreeWidget, skipOffstage: false).first);
 
   Future<void> open(WidgetTester tester) async {
     tester.view.physicalSize = const Size(1600, 1200);

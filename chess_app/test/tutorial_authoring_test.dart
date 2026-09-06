@@ -175,9 +175,17 @@ void main() {
   ChessBoardWithOverlay board(WidgetTester tester) => tester
       .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay).first);
 
+  /// The move tree, whether or not it is the tab currently showing.
+  ///
+  /// `skipOffstage: false` was added ahead of P6a, which puts the tree behind
+  /// a „Stablo" tab with „Tok" in front of it: `IndexedStack` keeps the hidden
+  /// tab built — that is how the tree keeps its zoom across a switch — but
+  /// offstage, and the default finder skips offstage widgets. Without this the
+  /// helper throws „Bad state: No element" and takes a dozen assertions with
+  /// it, none of which are about tabs.
   AnalysisMoveTreeWidget tree(WidgetTester tester) =>
       tester.widget<AnalysisMoveTreeWidget>(
-          find.byType(AnalysisMoveTreeWidget).first);
+          find.byType(AnalysisMoveTreeWidget, skipOffstage: false).first);
 
   Future<_RecordingApi> open(WidgetTester tester,
       {TutorialHandover? handover}) async {
@@ -399,7 +407,14 @@ void main() {
       await type(tester, 'example-sentence', firstSentence);
       await play(tester, 'e7', 'e5');
 
-      expect(find.text(firstSentence), findsNothing,
+      // `widgetWithText`, not `find.text`: this asserts about the **field**,
+      // and P6a puts a timeline beside it that draws every sentence on the
+      // line — including this one, correctly, on the card of the move it
+      // belongs to. Written as „this text is nowhere on screen" it would fail
+      // on a feature working exactly as intended. Same family as batch 55's
+      // finder that stopped being unique once a second place for the string
+      // existed.
+      expect(find.widgetWithText(TextField, firstSentence), findsNothing,
           reason: 'the sentence of the previous move is still in the field, '
               'waiting to be written onto this one');
 
@@ -407,7 +422,7 @@ void main() {
       await tester.tap(find.byTooltip('Prethodni potez'));
       await tester.pumpAndSettle();
 
-      expect(find.text(firstSentence), findsOneWidget,
+      expect(find.widgetWithText(TextField, firstSentence), findsOneWidget,
           reason: 'walking back does not bring back what was written there');
       await close(tester);
     });

@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1524 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1539 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -308,6 +308,38 @@ copy* looks like from outside — the title field and the sections panel had bee
 written once per layout branch, the title carrying a verbatim duplicate of the
 comment explaining it. A gate that counts literals catches a duplicated widget
 for free.
+
+Fifteen more with P6's lead half — `beatsOf`, the pure function the „Tok"
+timeline is a rendering of — **1539 in the app, 1 skipped**. Nine mutations, all
+nine caught. Two things came out of writing it that the plan did not have.
+
+**A move number cannot be counted from the root.** A tutorial part may open on
+any position, so the ply is not the move number and only the FEN knows where
+the counting started. That rule already existed, private, inside
+`VisualMoveTreeWidget`; it is `AnalysisNode.moveNumberLabel` now, with the old
+caller pointed at it, because the timeline needing the same sentence is exactly
+the moment a second copy gets written.
+
+**A „root" that has a parent is reachable in this codebase**, and the first
+version of `beatsOf` recursed on it for ever. The studio hands the function
+`_rootNode` and `_currentNode`, and a section swapped underneath while one of
+them is held is how that arrives. It terminates, with a test.
+
+And a lesson about a gate that has nothing to do with the code it guards:
+**`IndexedStack` keeps a hidden tab built but offstage, and `find.byType` skips
+offstage widgets.** P6a puts the tree behind a „Stablo" tab, so a helper
+written as `find.byType(AnalysisMoveTreeWidget).first` throws „Bad state: No
+element" and takes a dozen assertions with it — in three files, none of whose
+assertions are about tabs. Those helpers now pass `skipOffstage: false`, which
+changes nothing today.
+
+One of that group was not a fixture problem but an over-broad assertion:
+`tutorial_authoring_test.dart` said `find.text(sentence)` **findsNothing** to
+mean „the field no longer holds the previous sentence", and the timeline draws
+that sentence on its own card — correctly. A working feature would have failed
+it. It asks about the `TextField` now. Same family as batch 55's finder that
+stopped being unique once a second place for the string existed: **an assertion
+of absence is a claim about the whole screen, and the screen keeps growing.**
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

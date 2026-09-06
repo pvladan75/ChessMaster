@@ -340,23 +340,6 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     }
   }
 
-  /// The move number a card carries, in the form a book writes it: `4.` for
-  /// White's move and `4...` for Black's.
-  ///
-  /// Taken from the FEN of the position the move led to, which is the only
-  /// place that knows where the counting started. Empty for the root, which is
-  /// a position rather than a move.
-  String _moveNumberOf(AnalysisNode node) {
-    if (node.isRoot) return '';
-    final parts = node.fen.split(' ');
-    if (parts.length < 6) return '';
-    final fullmove = int.tryParse(parts[5]);
-    if (fullmove == null) return '';
-    // Black's move increments the counter, so the number belonging to it is
-    // the one before.
-    return node.fen.contains(' b ') ? '$fullmove. ' : '${fullmove - 1}... ';
-  }
-
   /// [child] under a tooltip when there is a sentence for it, and untouched
   /// when there is not — a `Tooltip` with an empty message still swallows a
   /// long press, which on a phone is how a card's own menu is opened.
@@ -772,7 +755,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
       // card's depth: a repertoire rooted at move four used to draw its first
       // card as move one, which is a small lie with no upside. The FEN carries
       // the true counter, so it is read from there.
-      label = '${_moveNumberOf(node)}${node.moveSan ?? ""}${node.nag ?? ""}';
+      label = '${node.moveNumberLabel}${node.moveSan ?? ""}${node.nag ?? ""}';
     }
 
     final tip = node.isRoot ? null : widget.nodeTooltip?.call(node);

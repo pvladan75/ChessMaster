@@ -76,6 +76,28 @@ class AnalysisNode {
   /// Returns true if this is the root node (has no parent)
   bool get isRoot => parent == null;
 
+  /// The move number this node carries, in the form a book writes it: `4. `
+  /// for White's move and `4... ` for Black's, with the trailing space.
+  ///
+  /// Read from the FEN of the position the move led to, which is the only
+  /// place that knows where the counting started — a tutorial part may open on
+  /// any position, so the ply from the root is not the move number. Empty for
+  /// the root, which is a position rather than a move.
+  ///
+  /// It lived as `_moveNumberOf` inside `VisualMoveTreeWidget` until the „Tok"
+  /// timeline needed the same sentence. One rule, one home: three hand-written
+  /// copies of one condition is how the `status = 'accepted'` bug got in.
+  String get moveNumberLabel {
+    if (isRoot) return '';
+    final parts = fen.split(' ');
+    if (parts.length < 6) return '';
+    final fullmove = int.tryParse(parts[5]);
+    if (fullmove == null) return '';
+    // Black's move increments the counter, so the number belonging to it is
+    // the one before.
+    return fen.contains(' b ') ? '$fullmove. ' : '${fullmove - 1}... ';
+  }
+
   /// Returns true if this node is in the main line (0th index child of parent)
   bool get isMainLine {
     if (parent == null) return true;
