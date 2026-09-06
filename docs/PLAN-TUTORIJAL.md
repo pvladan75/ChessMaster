@@ -190,6 +190,14 @@ The draft is client-side and is saved in one `POST /lessons/save` with
 is the one `services/lessonSteps.js` already validates — the brief quotes it
 rather than restating it.
 
+**One field was added to C4 on 6.9.2026, by the lead, before batch E started:
+`int? correctChoice`.** The list above froze `List<String> choices`, which is
+right for the *student's* model — the answer never travels to the child — but
+the author has to say which answer is the right one, and the server takes
+`[{text, correct}]` with exactly one `correct: true`. Without it an `ask_choice`
+example cannot be saved at all. Written down here rather than discovered inside
+a batch, which is the only reason a contract is frozen in the first place.
+
 ## Phases
 
 | # | what | owner | needs |
@@ -199,7 +207,7 @@ rather than restating it.
 | 2 | tree navigation in the viewer | **worker** batch B | **done 6.9.2026** |
 | 3a | `POST /lessons/:id/clone` + `LessonApiService.clone` | **lead** | decision 2 |
 | 3b | Uredi / Preimenuj / Sačuvaj kao novu verziju | **worker** batch C | **done 6.9.2026** |
-| 4a | `TutorialStudioScreen`: board, tree, handover from the Studio, draft model | **worker** batch D | C4, decision 4 |
+| 4a | `TutorialStudioScreen`: board, tree, handover from the Studio, draft model | **lead** | **done 6.9.2026** |
 | 4b | per-node fields, „+ Dodaj sledeću poziciju", the running list, one save | **worker** batch E | 4a merged |
 | 4c | the step editor gains add / remove / reorder | **worker** batch F | 4b |
 | 5 | live check with the owner | lead + owner | all |
@@ -413,6 +421,59 @@ the fen/pgn pairing, so every example replays from its own position — that che
 exists and must be reused, not reimplemented. Plus a diff check: no board,
 tree-widget or cursor code copied into the new screen.
 
+#### 4a — done by the lead, 6.9.2026
+
+**The split of labour changed here, and the owner asked for the change.** The
+plan had 4a as worker batch D; the owner's instruction on 6.9.2026 was „write
+the gate for batch D and set up the shell for `TutorialStudioScreen`", which is
+the recommendation from the handoff note: a new screen described in prose is the
+kind of batch that most often comes back the wrong shape, so **the lead builds
+the shell and the worker gets the fields and the running list**. Batch D is
+therefore retired as a worker batch and what was 4b becomes the next one.
+
+What landed: `lib/features/tutorial_studio/` — the screen, `TutorialDraft` and
+`TutorialExample`, `TutorialHandover`, `TutorialDraftService`, and the
+availability predicate; plus the Studio's door and one shared primitive
+(below). Thirteen tests in `test/tutorial_studio_test.dart`, written first and
+proved by seven mutations. 1400 in the app, `flutter analyze` still 29 infos and
+no errors or warnings.
+
+Three things it decided that the plan had left open, each with a reason:
+
+* **A handover wins over the stored working tree, but the examples already
+  written come back either way.** That is the flow the door is for: work the
+  next example out in the Studio, hand it over, carry on with the same tutorial.
+  Discarding the list because a new position arrived would throw away the most
+  expensive thing on the screen.
+* **The draft is persisted as the tree, not as the PGN.** `TutorialExample`
+  holds `pgn`, and reading a PGN back into an `AnalysisNode` would be a second
+  importer beside the Studio's — exactly the fork this plan forbids. The stored
+  draft therefore carries `workingTree` as node JSON beside the examples.
+* **`onPgnLoaded` is not wired on the setup dialog.** A line brought in from a
+  PGN arrives through the door as a whole tree; the alternative was copying the
+  Studio's private `_importPgn`.
+
+One shared primitive was added rather than a sixth copy of a private helper:
+`playedMove` in `lib/core/services/legal_moves.dart` — what a move is called and
+where it leaves the board, in one call. The same fifteen lines are written five
+times in `lib/` today as a private `_sanFor`, and every copy answers only half
+the question, so its caller keeps a second game object beside it. **Folding
+those five onto it is a standalone chore**, deliberately not done inside this
+work.
+
+*Still open on the screen, for 4b or later:* a committed example is flattened to
+`fen` + `pgn`, so re-opening Primer 1 to edit its tree needs the PGN importer
+that does not exist yet. Adding an example does not need it; editing one back
+does. Say so in batch E's brief rather than letting it be discovered.
+
+#### 4b — the next worker batch
+
+Unchanged in substance: the per-node fields, the running list with „+ Dodaj
+sledeću poziciju u tutorijal", and the one `POST /lessons/save`. They go in
+`_authoringColumn`, which exists and says so. Its gate is written before it
+starts, like this one, and it asserts the single `POST` body — every example
+present, in order, with its pgn and its question.
+
 ## Role split
 
 **Lead (me).** Everything irreversible and everything that decides shape:
@@ -432,7 +493,8 @@ own branch, **never committing**:
 * batch A — the vocabulary sweep;
 * batch B — the cursor swap in the viewer;
 * batch C — the three version actions in the library UI;
-* batch D — `TutorialStudioScreen`, the shell;
+* ~~batch D — `TutorialStudioScreen`, the shell~~ — **retired 6.9.2026**; the
+  owner asked the lead to build the shell, see phase 4a;
 * batch E — the authoring fields, the running list and the save;
 * batch F — add / remove / reorder in the step editor.
 
@@ -447,8 +509,9 @@ which follows a task more literally — is aimed at exactly that, so:
 * **the next mechanical batch runs on `gemini-3.8-flash-high`** — batch F (add,
   remove and reorder in the step editor) is the clean comparison, because its
   brief is mostly steps;
-* **the new-screen batch (D) stays on a high-reasoning model**, because that one
-  is asked to design a layout rather than follow a list;
+* the new-screen batch is no longer a batch — the lead built 4a. **Batch E
+  stays on a high-reasoning model**: it is asked to lay out fields and a list
+  beside a tree, not to follow steps;
 * and the comparison is on named things, not impressions: did it run
   `dart format`, did its report's numbers match the lead's own, and did it ship
   a comment written to itself.

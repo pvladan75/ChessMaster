@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1387 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1400 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -92,6 +92,19 @@ two worth knowing about: a clone **mints a fresh id for every copied step**
 carrying one is a child's progress appearing in the wrong copy), and it shortens
 a long title rather than letting `VARCHAR(255)` overflow into a 500 that reads
 as „cloning is broken".
+
+Thirteen more on 6.9.2026, and they were written **before** the screen they
+judge — `TutorialStudioScreen`, phase 4a. Five drive the screen through its own
+controls (the board reporting a move, the strip, the sheet at a fork), four pin
+the draft's wire shape, and four say what the screen must never become: no
+second board, tree or cursor of its own, and one named predicate deciding where
+the door to it is drawn. Seven mutations were run against them; **one survived
+at first** — deleting the flush that writes the draft when the screen closes
+left the gate green, because in a test the debounced timer outlives the widget
+and writes the same thing a moment later. The gate now closes the screen inside
+that half-second. That is the general lesson, not a footnote: a timer that fires
+after the thing it belongs to is gone proves nothing about a window that took
+the whole process with it.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

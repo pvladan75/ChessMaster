@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (tutorijal: faze 0–3 zatvorene, tri batcha
-spojena; sledeće je kapija za batch D i `TutorialStudioScreen`).
+Poslednje ažuriranje: 6.9.2026 (tutorijal: faza 4a zatvorena — kapija i
+školjka `TutorialStudioScreen`-a; sledeće je kapija za batch E).
 
 ---
 
@@ -603,7 +603,71 @@ Staro sačuvano stablo se i dalje otvara: `eval` i `evalDepth` se prosto više n
 
 Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
 
-## ODAKLE SUTRA — tutorijal, 6.9.2026 kraj dana
+## ODAKLE SUTRA — tutorijal, 6.9.2026 posle faze 4a
+
+Grana je **`feat/tutorijal`**, nije spojena u `master`. **1400 testova u
+aplikaciji** (1 preskočen), 956 na backendu — backend nije diran danas — i
+`flutter analyze` 29 info, bez grešaka i upozorenja.
+
+Faze 0–3 i **4a** iz [PLAN-TUTORIJAL.md](PLAN-TUTORIJAL.md) su zatvorene.
+
+**Šta je danas urađeno, i šta se u planu promenilo.** Vlasnik je tražio kapiju
+za batch D i školjku ekrana; to je i preporuka iz jučerašnje beleške, pa je
+**batch D povučen kao radni batch** — vođa je napisao i kapiju i školjku, a
+radnom agentu ostaje ono što je bilo 4b: polja za čvor, lista primera i jedno
+čuvanje.
+
+Novo u `chess_app/lib/features/tutorial_studio/`: `TutorialStudioScreen`,
+`TutorialDraft` i `TutorialExample`, `TutorialHandover`, `TutorialDraftService`
+i predikat `isTutorialStudioAvailable` (jedno mesto, `!kIsWeb &&
+Platform.isWindows`, odluka 5). U Analiznom studiju su vrata:
+„Kreiraj interaktivni tutorijal", nacrtana samo tamo gde ekran postoji, sa
+pitanjem prenosi li se samo pozicija ili cela linija. Ništa na tom ekranu još
+ne razgovara sa serverom — to je odluka 3, jedno čuvanje na kraju.
+
+Kapija je `chess_app/test/tutorial_studio_test.dart`, 13 testova, napisana
+**pre** ekrana i proverena sa sedam mutacija. **Jedna je prvo preživela**, i
+vredi je zapamtiti: brisanje `flush`-a koji upisuje nacrt pri zatvaranju ekrana
+nije oborilo kapiju, jer u testu tajmer sa 600 ms nadživi widget i upiše isto
+malo kasnije. U pravoj aplikaciji zatvaranje prozora nosi i proces, pa taj tajmer
+nikad ne odradi. Kapija sada zatvara ekran unutar te pola sekunde.
+
+Dodat je i jedan zajednički komad — `playedMove` u
+`lib/core/services/legal_moves.dart` — umesto šeste kopije privatnog `_sanFor`.
+**Sklapanje pet postojećih kopija na njega je zaseban posao**, namerno nije
+urađen unutar ovog.
+
+**Sledeće:**
+
+1. **Kapija za batch E se piše prva**, bez izuzetka. Ona tvrdi ono što plan traži
+   od faze 4: dva primera napisana od početka do kraja bez ijednog poziva
+   `save`, pa jedno telo `POST`-a — svaki primer prisutan, po redu, sa svojim
+   pgn-om i svojim pitanjem.
+2. **Batch E** — polja za čvor, lista primera sa „+ Dodaj sledeću poziciju u
+   tutorijal" i jedno „Sačuvaj tutorijal". Idu u `_authoringColumn`, koji
+   postoji i u komentaru piše šta tu dolazi.
+3. U brifu za E mora da stoji jedna otvorena stvar: zapisan primer je spljošten
+   na `fen` + `pgn`, pa **vraćanje u Primer 1 radi izmene stabla** traži uvoznik
+   PGN-a koji još ne postoji. Dodavanje primera ga ne traži; izmena postojećeg
+   da.
+
+Nova stavka za proveru uživo: `TODO-provera.md`, tačka 109. Kao i tačke 24–29,
+čeka fazu 5 — zajedničku proveru na uređajima, kad autorska strana bude gotova.
+
+**Model za batch E:** ostaje model koji ume da projektuje, jer se od njega traži
+raspored polja i liste pored stabla, a ne spisak koraka. `gemini-3.8-flash-high`
+čeka batch F (dodaj / obriši / promeni redosled u editoru koraka), gde je
+poređenje čisto.
+
+Radna stabla su na spojenim granama i mogu se prebaciti kad zatreba:
+`mislisha-batch-a` (`batch/tutorijal-recnik`), `-b` (`batch/tutorijal-stablo`),
+`-c` (`batch/tutorijal-verzije`).
+
+## Prevaziđeno: odakle sutra, 6.9.2026 kraj dana (faze 0–3)
+
+*Zamenjeno odeljkom iznad kad je faza 4a zatvorena. Ostaje zbog jedne stvari
+koju odeljak iznad ne ponavlja — kako je batch D bio zamišljen pre nego što je
+povučen.*
 
 Grana je **`feat/tutorijal`**, nije spojena u `master`. Radno stablo čisto,
 `fa902dd`. **1387 testova u aplikaciji** (1 preskočen) i **956 na backendu**,

@@ -101,3 +101,48 @@ bool isPromotionMove(chess.Chess game, String from, String to) {
   }
   return false;
 }
+
+/// What the move [from]→[to] is called and where it leaves the board.
+///
+/// Null when it is not legal in [fen], so a board that reported a move its
+/// position does not allow is answered by reloading rather than by growing a
+/// line out of a move nobody can play.
+///
+/// [promotion] is `''` for an ordinary move and one of `q r b n` otherwise; it
+/// is defaulted to a queen only where the move is a promotion and the caller
+/// said nothing, which is what every board in this app already does.
+///
+/// It exists because the same fifteen lines — play it, read the SAN back, undo
+/// — are written five times in `lib/` already (`_sanFor`, in the lesson viewer,
+/// the step editor, the puzzle solver, the endgame trainer and the tactics
+/// trainer), and each copy answers only half the question: the SAN, never the
+/// position it leads to, so its caller keeps a second game object beside it to
+/// find that out. New screens use this one. Folding the five existing copies
+/// onto it is a separate chore, deliberately not done inside a batch about
+/// something else.
+({String san, String uci, String fen})? playedMove({
+  required String fen,
+  required String from,
+  required String to,
+  String promotion = '',
+}) {
+  try {
+    final game = chess.Chess.fromFEN(fen);
+    final piece = promotion.isEmpty ? 'q' : promotion.toLowerCase();
+    if (!game.move({'from': from, 'to': to, 'promotion': piece})) return null;
+
+    final made = game.history.last.move;
+    // Read back rather than assumed: `made.promotion` is what the position
+    // actually promoted to, and it is null on every ordinary move.
+    final promoted = made.promotion?.name ?? '';
+    final afterFen = game.fen;
+    game.undo_move();
+    return (
+      san: game.move_to_san(made),
+      uci: '$from$to$promoted',
+      fen: afterFen,
+    );
+  } catch (_) {
+    return null;
+  }
+}

@@ -4115,3 +4115,29 @@ strana bude gotova. Ništa od ovoga nije viđeno kako radi.
     pritisni „Sledeći korak" — ista tabla, ista orijentacija, samo se otključa.
 29. [ ] **Korak koji počinje drugde se ne otvara sam.** Ako sledeći korak stoji
     na nekoj **drugoj** poziciji, čitanje stane na kraju linije i čeka dete.
+
+## 109. Studio za tutorijal — školjka — 6.9.2026, nije viđeno uživo
+
+Faza 4a iz `docs/PLAN-TUTORIJAL.md`. **Samo Windows** — na Androidu vrata nisu
+nacrtana i to je jedna od stavki. Kao i tačke 24–29, **čeka fazu 5**: ekran je
+tek pola gotov (polja i lista primera su batch E), pa se gleda odjednom kad
+autorska strana bude cela.
+
+1. [ ] **Vrata postoje tamo gde treba.** U Analiznom studiju na Windowsu, u
+   traci alata, stoji „Kreiraj interaktivni tutorijal". **Na telefonu ga
+   nema** — ni u traci, ni u meniju „Još alata".
+2. [ ] **Pozicija se prenosi.** Stani na neku poziciju bez nastavka i otvori
+   vrata: novi ekran se otvori na **toj** poziciji, sa istom stranom table.
+3. [ ] **Cela linija se prenosi.** Stani na potez iza kojeg ima nastavka i
+   varijanti; na pitanje odgovori „Celu liniju". U stablu novog ekrana su svi
+   ti potezi i sve varijante.
+4. [ ] **Analiza se ne menja.** Vrati se u Analizni studio i proveri da je
+   stablo tamo netaknuto — potez odigran u tutorijalu ga ne sme dirati.
+5. [ ] **Grananje pita.** Na novom ekranu odigraj potez, vrati se nazad, pa
+   odigraj **drugi** potez iz iste pozicije. Vrati se na početak i pritisni
+   „Sledeći potez": pojavi se izbor sa oba poteza, ne šeta u prvi sam.
+6. [ ] **Nacrt preživi zatvaranje.** Odigraj par poteza i **zatvori prozor
+   odmah**, ne čekajući — pa otvori ekran ponovo. Sve je tu, i tabla stoji na
+   potezu na kojem si stao. Ovo je tačka koju treba gledati u oči: greška bi se
+   videla samo ako se zatvori u prvoj sekundi.
+7. [ ] **Strelice na tastaturi šetaju liniju**, kao u Analiznom studiju.

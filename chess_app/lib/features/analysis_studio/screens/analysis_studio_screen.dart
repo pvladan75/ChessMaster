@@ -61,6 +61,9 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/lessons/widgets/lesson_step_editor_panel.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
+import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
+import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
+import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 
 class AnalysisStudioScreen extends StatefulWidget {
   final UserSession userSession;
@@ -267,6 +270,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           'Napravi korak od ove pozicije', _createStepFromPosition),
       _ToolAction(Icons.edit_note, context.colors.success,
           'Uredi korake tutorijala', _editLessonSteps),
+      // The one door to the authoring screen, and it is not drawn where that
+      // screen does not exist — decision 5 of docs/PLAN-TUTORIJAL.md. It
+      // replaces neither of the two above: those add one position to something
+      // that already exists, this one starts a tutorial from nothing.
+      if (isTutorialStudioAvailable)
+        _ToolAction(Icons.auto_stories, context.colors.success,
+            'Kreiraj interaktivni tutorijal', _openTutorialStudio),
       _ToolAction(Icons.share, context.colors.info, 'Izvezi PGN', _exportPgn),
       _ToolAction(Icons.cloud_outlined, context.colors.info, 'Sačuvane analize',
           _showSavedAnalysesDialog),
@@ -1288,6 +1298,59 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// word, so the student's screen showed a still picture and the trainer was
   /// told the step had been saved. Two things fix it: one node answers for
   /// both fields, and the step is read back here before it is sent.
+  /// Hands the line worked out here over to the tutorial studio.
+  ///
+  /// The whole point of the door is that a line reached with the engine becomes
+  /// a tutorial **without being retyped**, so the tree travels and not only a
+  /// FEN. Which of the two is asked here rather than guessed: standing on a
+  /// position with nothing after it, both answers are the same and the question
+  /// is not worth asking.
+  Future<void> _openTutorialStudio() async {
+    final blackOrientation = _orientation == PlayerColor.black;
+    var handover = TutorialHandover.position(_currentNode.fen,
+        blackOrientation: blackOrientation);
+
+    if (_currentNode.children.isNotEmpty) {
+      final wholeLine = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Šta prenosimo u tutorijal?'),
+          content: const Text(
+            'Možeš da poneseš samo poziciju sa table, ili celu liniju koja ide '
+            'odavde — sa varijantama i komentarima koje si napisao.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Odustani'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Samo poziciju'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Celu liniju'),
+            ),
+          ],
+        ),
+      );
+      if (wholeLine == null || !mounted) return;
+      if (wholeLine) {
+        handover = TutorialHandover.tree(_currentNode,
+            blackOrientation: blackOrientation);
+      }
+    }
+
+    if (!mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => TutorialStudioScreen(
+        session: widget.userSession,
+        handover: handover,
+      ),
+    ));
+  }
+
   Future<void> _createStepFromPosition() async {
     final library = PositionLibraryService(authToken: widget.userSession.token);
     final lessons = LessonApiService(authToken: widget.userSession.token);
