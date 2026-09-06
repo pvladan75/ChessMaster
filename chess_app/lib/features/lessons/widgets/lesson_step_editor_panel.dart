@@ -35,6 +35,7 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
   int _selectedIndex = 0;
   bool _isSaving = false;
 
+  late TextEditingController _titleCtrl;
   late TextEditingController _instructionCtrl;
   final ChessBoardController _boardCtrl = ChessBoardController();
 
@@ -53,12 +54,14 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     _steps = ((widget.lesson['position_list'] as List?) ?? [])
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
+    _titleCtrl = TextEditingController();
     _instructionCtrl = TextEditingController();
     _loadStep();
   }
 
   @override
   void dispose() {
+    _titleCtrl.dispose();
     _instructionCtrl.dispose();
     _boardCtrl.dispose();
     super.dispose();
@@ -67,9 +70,118 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
   void _loadStep() {
     if (_steps.isEmpty || _selectedIndex >= _steps.length) return;
     final step = _steps[_selectedIndex];
+    _titleCtrl.text = step['title']?.toString() ?? '';
     _instructionCtrl.text = step['instruction']?.toString() ?? '';
     final fen = step['fen']?.toString() ?? '8/8/8/8/8/8/8/8 w - - 0 1';
     _boardCtrl.loadFen(fen);
+  }
+
+  void _syncCurrentStepControllers() {
+    if (_steps.isEmpty || _selectedIndex >= _steps.length) return;
+    final title = _titleCtrl.text.trim();
+    if (title.isEmpty) {
+      _steps[_selectedIndex].remove('title');
+    } else {
+      _steps[_selectedIndex]['title'] = title;
+    }
+    final instr = _instructionCtrl.text.trim();
+    if (instr.isEmpty) {
+      _steps[_selectedIndex].remove('instruction');
+    } else {
+      _steps[_selectedIndex]['instruction'] = instr;
+    }
+  }
+
+  void _addStep() {
+    _syncCurrentStepControllers();
+    final insertIndex = _selectedIndex + 1;
+    final currentFen = (_steps.isNotEmpty && _selectedIndex < _steps.length)
+        ? _steps[_selectedIndex]['fen']
+        : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    final newStep = <String, dynamic>{
+      'fen': currentFen,
+    };
+    setState(() {
+      _steps.insert(insertIndex, newStep);
+      _selectedIndex = insertIndex;
+      _kindEpoch++;
+    });
+    _loadStep();
+  }
+
+  Future<void> _deleteStep() async {
+    if (_steps.length <= 1) {
+      AppFeedback.show(
+        context,
+        () => SnackBar(
+          content: const Text('Poslednji korak ne može biti obrisan.'),
+          backgroundColor: context.colors.danger,
+        ),
+      );
+      return;
+    }
+
+    final titleInCtrl = _titleCtrl.text.trim();
+    final currentTitle = titleInCtrl.isNotEmpty
+        ? titleInCtrl
+        : _steps[_selectedIndex]['title']?.toString().trim();
+    final displayName = (currentTitle != null && currentTitle.isNotEmpty)
+        ? currentTitle
+        : 'Korak ${_selectedIndex + 1}';
+
+    final drop = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Brisanje koraka'),
+        content: Text('Da li želiš da obrišeš korak „$displayName"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Odustani'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Obriši'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    if (drop != true) return;
+
+    setState(() {
+      _steps.removeAt(_selectedIndex);
+      if (_selectedIndex >= _steps.length) {
+        _selectedIndex = _steps.length - 1;
+      }
+      _kindEpoch++;
+    });
+    _loadStep();
+  }
+
+  void _moveUp() {
+    if (_selectedIndex <= 0) return;
+    _syncCurrentStepControllers();
+    setState(() {
+      final step = _steps.removeAt(_selectedIndex);
+      _selectedIndex--;
+      _steps.insert(_selectedIndex, step);
+      _kindEpoch++;
+    });
+    _loadStep();
+  }
+
+  void _moveDown() {
+    if (_selectedIndex >= _steps.length - 1) return;
+    _syncCurrentStepControllers();
+    setState(() {
+      final step = _steps.removeAt(_selectedIndex);
+      _selectedIndex++;
+      _steps.insert(_selectedIndex, step);
+      _kindEpoch++;
+    });
+    _loadStep();
   }
 
   void _updateStep(String key, dynamic value) {
@@ -158,9 +270,7 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     if (_isSaving) return;
     setState(() => _isSaving = true);
 
-    // Save current instruction
-    final instr = _instructionCtrl.text.trim();
-    _updateStep('instruction', instr.isEmpty ? null : instr);
+    _syncCurrentStepControllers();
 
     // The one refusal this editor makes, and it is not a copy of one of the
     // server's: the server stores `pgn` as opaque text and has no PGN reader,
@@ -217,9 +327,7 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
   }
 
   void _preview() {
-    // Save instruction to map before previewing
-    final instr = _instructionCtrl.text.trim();
-    _updateStep('instruction', instr.isEmpty ? null : instr);
+    _syncCurrentStepControllers();
 
     final detail = AssignmentDetail(
       assignment: Assignment(
@@ -378,11 +486,34 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     final orientation = isBlackToMove ? PlayerColor.black : PlayerColor.white;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_leaksAnswer(step)) _buildAnswerLeakWarning(),
+          TextField(
+            key: const Key('step-title'),
+            controller: _titleCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Naziv koraka',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: (val) {
+              final clean = val.trim();
+              setState(() {
+                if (clean.isEmpty) {
+                  _steps[_selectedIndex].remove('title');
+                } else {
+                  _steps[_selectedIndex]['title'] = clean;
+                }
+              });
+            },
+          ),
+          const SizedBox(height: AppSpacing.xs),
           TextField(
             key: const Key('step-instruction'),
             controller: _instructionCtrl,
@@ -390,10 +521,14 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
               labelText: 'Zadatak za učenika',
               hintText: 'npr. Beli je na potezu — nađi dobitak figure',
               border: OutlineInputBorder(),
+              isDense: true,
             ),
+            // Two lines, as it was. The batch shortened it to one while making
+            // room for four new controls; the task is up to 500 characters and
+            // nobody asked for it to get harder to read.
             maxLines: 2,
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.xs),
           // The subtree's key changes with the step, with the kind, and every
           // time a change is taken back — see [_kindEpoch] — which tears the
           // field down and builds it from the step again. Without that it goes
@@ -404,6 +539,7 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
               child: DropdownButtonFormField<String>(
                 key: const Key('step-kind'),
                 initialValue: kind,
+                isExpanded: true,
                 items: const [
                   DropdownMenuItem(value: 'show', child: Text('Samo prikaži')),
                   DropdownMenuItem(
@@ -416,46 +552,53 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
                 decoration: const InputDecoration(
                   labelText: 'Tip zadatka',
                   border: OutlineInputBorder(),
+                  isDense: true,
                 ),
               )),
           if (kind == 'ask_choice') _buildChoicesEditor(step),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.xs),
           if (kind == 'ask_move') ...[
             Text('Odigraj tačan potez na tabli', style: AppText.bodyBold),
             if (step['solutionSan'] != null)
               Text('Tačan potez: ${step['solutionSan']}',
                   style: AppText.body.copyWith(color: context.colors.success)),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.xs),
           ],
           Center(
-            child: BoardWithCoordinates(
-              size: 300,
-              orientation: orientation,
-              builder: (size) => ChessBoardWithOverlay(
-                controller: _boardCtrl,
-                boardOrientation: orientation,
-                boardSize: size,
-                isAllowedToMove: kind == 'ask_move',
-                isDrawingMode: false,
-                drawingStartSquare: null,
-                arrows: const [],
-                squares: const [],
-                engineArrows: const [],
-                onMove: (from, to, promotion) {
-                  if (kind == 'ask_move') {
-                    final fen = step['fen']?.toString() ?? '';
-                    final san = _sanFor(fen, from, to, promotion);
-                    if (san != null) {
-                      _updateStep('solutionSan', san);
-                    }
-                    _boardCtrl.loadFen(fen); // Revert board to step fen
-                  }
-                },
-                onSquareTapForDrawing: (_) {},
-              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final boardSize =
+                    constraints.maxWidth < 300 ? constraints.maxWidth : 300.0;
+                return BoardWithCoordinates(
+                  size: boardSize,
+                  orientation: orientation,
+                  builder: (size) => ChessBoardWithOverlay(
+                    controller: _boardCtrl,
+                    boardOrientation: orientation,
+                    boardSize: size,
+                    isAllowedToMove: kind == 'ask_move',
+                    isDrawingMode: false,
+                    drawingStartSquare: null,
+                    arrows: const [],
+                    squares: const [],
+                    engineArrows: const [],
+                    onMove: (from, to, promotion) {
+                      if (kind == 'ask_move') {
+                        final fen = step['fen']?.toString() ?? '';
+                        final san = _sanFor(fen, from, to, promotion);
+                        if (san != null) {
+                          _updateStep('solutionSan', san);
+                        }
+                        _boardCtrl.loadFen(fen); // Revert board to step fen
+                      }
+                    },
+                    onSquareTapForDrawing: (_) {},
+                  ),
+                );
+              },
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -477,25 +620,70 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final canMoveUp = _selectedIndex > 0;
+    final canMoveDown = _selectedIndex < _steps.length - 1;
+
     return Row(
       children: [
         SizedBox(
-          width: 150,
-          child: ListView.builder(
-            itemCount: _steps.length,
-            itemBuilder: (context, i) {
-              return ListTile(
-                title: Text(_steps[i]['title']?.toString() ?? 'Korak ${i + 1}'),
-                selected: i == _selectedIndex,
-                onTap: () {
-                  // Save current instruction before switching
-                  final instr = _instructionCtrl.text.trim();
-                  _updateStep('instruction', instr.isEmpty ? null : instr);
-                  setState(() => _selectedIndex = i);
-                  _loadStep();
-                },
-              );
-            },
+          width: 170,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.xs),
+                child: Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Tooltip(
+                      message: 'Pomeri gore',
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_upward),
+                        onPressed: canMoveUp ? _moveUp : null,
+                      ),
+                    ),
+                    Tooltip(
+                      message: 'Pomeri dole',
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_downward),
+                        onPressed: canMoveDown ? _moveDown : null,
+                      ),
+                    ),
+                    OutlinedButton(
+                      onPressed: _addStep,
+                      child: const Text('Dodaj korak'),
+                    ),
+                    OutlinedButton(
+                      onPressed: _deleteStep,
+                      child: const Text('Obriši korak'),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _steps.length,
+                  itemBuilder: (context, i) {
+                    final title = _steps[i]['title']?.toString().trim();
+                    final label = (title != null && title.isNotEmpty)
+                        ? title
+                        : 'Korak ${i + 1}';
+                    return ListTile(
+                      title: Text(label),
+                      selected: i == _selectedIndex,
+                      onTap: () {
+                        _syncCurrentStepControllers();
+                        setState(() => _selectedIndex = i);
+                        _loadStep();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
         const VerticalDivider(width: 1),

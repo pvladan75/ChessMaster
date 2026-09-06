@@ -160,8 +160,20 @@ void main() {
     return api;
   }
 
+  /// Picks a step by its name **in the list**, not anywhere the name appears.
+  ///
+  /// Scoped to the `ListTile` on purpose: this batch also gives the panel a
+  /// title field, so once a step is selected its name is on screen twice and a
+  /// bare `find.text` matches both. The first version of this helper did not
+  /// scope, and batch 55 worked around it by appending a zero-width space to
+  /// the title in the text field — shipping an invisible character into a field
+  /// a trainer edits, to keep a finder unique. The gate was wrong, not the
+  /// panel.
   Future<void> select(WidgetTester tester, String title) async {
-    await tester.tap(find.text(title));
+    await tester.tap(find.descendant(
+      of: find.byType(ListTile),
+      matching: find.text(title),
+    ));
     await tester.pumpAndSettle();
   }
 
@@ -214,8 +226,7 @@ void main() {
       await tapTooltip(tester, 'Pomeri dole');
       await save(tester);
 
-      final moved =
-          api.saved.single.firstWhere((s) => s['id'] == 'aaaa1111');
+      final moved = api.saved.single.firstWhere((s) => s['id'] == 'aaaa1111');
       expect(moved['kind'], before['kind']);
       expect(moved['solutionSan'], before['solutionSan']);
       expect(moved['instruction'], before['instruction']);
@@ -232,7 +243,17 @@ void main() {
       await select(tester, 'Treći');
       await tapTooltip(tester, 'Pomeri gore');
 
-      expect(find.text('Nađi mat u jednom potezu.'), findsNothing,
+      // Asserted on the name in the editor, not on the absence of some other
+      // step's sentence. The first version of this test only ruled out landing
+      // on „Prvi", and a mutation that left the selection on the old slot —
+      // where „Drugi" now sits, which has no sentence either — walked straight
+      // through it. A guard nobody has watched fail is not a guard.
+      expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('step-title')))
+              .controller
+              ?.text,
+          'Treći',
           reason: 'the editor is showing another step than the one that moved');
     });
 
@@ -354,8 +375,7 @@ void main() {
       await tapText(tester, 'Odustani');
       await save(tester);
 
-      expect(idsOf(api.saved.single),
-          ['aaaa1111', 'bbbb2222', 'cccc3333']);
+      expect(idsOf(api.saved.single), ['aaaa1111', 'bbbb2222', 'cccc3333']);
     });
 
     testWidgets('saying yes drops exactly that id', (tester) async {
