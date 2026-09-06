@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (tutorijal: **cela faza 4 zatvorena** — batchevi
-54 i 55 spojeni; ostaje samo faza 5, provera uživo).
+Poslednje ažuriranje: 6.9.2026 (tutorijal: **cela faza 4 zatvorena i
+`feat/tutorijal` spojen u `master`**; ostaje samo faza 5, provera uživo).
 
 ---
 
@@ -605,8 +605,8 @@ Ostaje provera uživo: `docs/TODO-provera.md`, stavka 103, deo B.
 
 ## ODAKLE SUTRA — tutorijal, 6.9.2026 posle faze 4a
 
-Grana je **`feat/tutorijal`**, nije spojena u `master`. **1400 testova u
-aplikaciji** (1 preskočen), 956 na backendu — backend nije diran danas — i
+Grana je bila **`feat/tutorijal`**; spojena je u `master` 6.9.2026. **1400
+testova u aplikaciji** (1 preskočen), 956 na backendu — backend nije diran danas — i
 `flutter analyze` 29 info, bez grešaka i upozorenja.
 
 Faze 0–3 i **4a** iz [PLAN-TUTORIJAL.md](PLAN-TUTORIJAL.md) su zatvorene.
@@ -730,6 +730,13 @@ ispravka je bila tačna i vrednija od ostatka: `PgnExporterService` uvek ispisuj
 zaglavlja, pa `pgn` nikad nije prazan string.
 
 **Sledeće:**
+
+0. **`feat/tutorijal` je spojen u `master`** 6.9.2026, kao `b478f82` —
+   dvadeset sedam commit-ova i pet radnih batcheva (51–55). Izmereno na
+   `master`-u posle spajanja: **1436 u aplikaciji** (1 preskočen), **956 na
+   backendu sa `.env` sklonjenim u stranu**, `flutter analyze` 29 info bez
+   ijednog prićutkivanja. **Nije gurnuto na `origin`** — CI se okida na push,
+   pa je to zasebna odluka.
 
 1. **Faza 4 je cela gotova.** Batch 55 (`gemini-3.8-flash-high`, jedna runda,
    14.6 minuta) je spojen kao `a0c68ad`: editor koraka sada ume da doda, obriše

@@ -147,6 +147,10 @@ The batch worked around that second one by appending a zero-width space to the
 title in the editing field; it declared it and recommended the right fix, which
 is what got applied.
 
+**Both numbers above were measured on `master` on 6.9.2026, after
+`feat/tutorijal` merged** — 1436 in the app with 1 skipped, 956 on the backend
+with `.env` moved aside, which is the environment CI actually has.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.
