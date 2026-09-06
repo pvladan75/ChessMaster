@@ -213,6 +213,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
+  /// The sentence field of the move the author is standing on.
+  ///
+  /// By key, because „the field" is the only thing these assertions are about
+  /// and the screen keeps growing other places to show the same words.
+  TextField sentenceField(WidgetTester tester) =>
+      tester.widget<TextField>(find.byKey(const Key('example-sentence')));
+
   Future<void> play(WidgetTester tester, String from, String to) async {
     board(tester).onMove(from, to, '');
     await tester.pumpAndSettle();
@@ -407,14 +414,16 @@ void main() {
       await type(tester, 'example-sentence', firstSentence);
       await play(tester, 'e7', 'e5');
 
-      // `widgetWithText`, not `find.text`: this asserts about the **field**,
-      // and P6a puts a timeline beside it that draws every sentence on the
-      // line — including this one, correctly, on the card of the move it
-      // belongs to. Written as „this text is nowhere on screen" it would fail
-      // on a feature working exactly as intended. Same family as batch 55's
-      // finder that stopped being unique once a second place for the string
-      // existed.
-      expect(find.widgetWithText(TextField, firstSentence), findsNothing,
+      // Asked of **the one field the author is typing in**, by its key.
+      //
+      // This assertion has been narrowed twice in a day, each time because a
+      // new place to show the same sentence appeared: first the „Tok" timeline
+      // drawing every comment on the line (P6a), then P6b giving every card a
+      // field of its own. Both times the feature was working exactly as
+      // intended and the test was asking the wrong question — „is this text
+      // anywhere", then „is it in any field", when what it means is „is it
+      // still in front of me, waiting to be typed over".
+      expect(sentenceField(tester).controller?.text, isNot(firstSentence),
           reason: 'the sentence of the previous move is still in the field, '
               'waiting to be written onto this one');
 
@@ -422,7 +431,7 @@ void main() {
       await tester.tap(find.byTooltip('Prethodni potez'));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(TextField, firstSentence), findsOneWidget,
+      expect(sentenceField(tester).controller?.text, firstSentence,
           reason: 'walking back does not bring back what was written there');
       await close(tester);
     });
