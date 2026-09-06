@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (tutorijal: faze 4a i 4b zatvorene — batch 54
-spojen; sledeće je batch F, pa faza 5, provera uživo).
+Poslednje ažuriranje: 6.9.2026 (tutorijal: faze 4a i 4b zatvorene, kapija za
+batch F napisana; sledeće je brif za batch F, pa faza 5).
 
 ---
 
@@ -732,8 +732,27 @@ zaglavlja, pa `pgn` nikad nije prazan string.
 **Sledeće:**
 
 1. **Batch F** — dodaj / obriši / promeni redosled u `LessonStepEditorPanel`.
-   To je batch na kojem se poredi `gemini-3.8-flash-high`, jer mu je brif
-   uglavnom spisak koraka. Kapija se piše pre njega, kao i uvek.
+   **Kapija je napisana**: `docs/gates/lesson_step_order_test.dart`, dvanaest
+   testova, svih dvanaest crveno na današnjem panelu — izmereno, ne
+   pretpostavljeno. Prevodi se protiv trenutnog stabla, pa je jedino što je
+   deli od zelenog sam posao batcha. Brif još nije napisan.
+
+   **To je najopasniji batch u planu, i ne zato što je težak.** `id` koraka je
+   njegov identitet: `assignment_items.step_key` i `review_items.step_key` ga
+   imenuju po toj vrednosti i **ništa se ne spaja po njoj**, pa promenjen `id`
+   znuči đački raspored i njegove zapisane odgovore koji pokazuju u prazno, bez
+   ijedne greške igde. `PUT /lessons/:id` ima za to čuvara — 409 „Koraci su
+   stigli bez svojih oznaka" — **koji za ovaj batch ne može da opali**, jer
+   traži `storedList.length === steps.length`, a i dodavanje i brisanje menjaju
+   dužinu. Za dve od tri operacije kapija je jedino što stoji tu.
+
+   Provereno, a ne pretpostavljeno: đačka strana već preživljava brisanje —
+   `getDue` završava sa `.filter((item) => item.step !== null)`, pa red koji
+   imenuje obrisan korak prestane da se pojavljuje umesto da posluži tablu koju
+   niko nije napisao. **Backend za 4c nije potreban i zadatak ga zabranjuje.**
+
+   Četiri odluke koje kapija zamrzava, sa razlozima, stoje u
+   `PLAN-TUTORIJAL.md`, odeljak „Phase 4c".
 2. **Faza 5** — provera uživo, zajedno: `TODO-provera.md` tačke 24–29, 109, 110
    i nova 111.
 3. Otvoreno, i za brif batcha F: zapisan primer je spljošten na `fen` + `pgn`,

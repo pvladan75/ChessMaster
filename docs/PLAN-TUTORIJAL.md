@@ -209,7 +209,7 @@ a batch, which is the only reason a contract is frozen in the first place.
 | 3b | Uredi / Preimenuj / Sačuvaj kao novu verziju | **worker** batch C | **done 6.9.2026** |
 | 4a | `TutorialStudioScreen`: board, tree, handover from the Studio, draft model | **lead** | **done 6.9.2026** |
 | 4b | per-node fields, „+ Dodaj sledeću poziciju", the running list, one save | **worker** batch 54 | **done 6.9.2026** |
-| 4c | the step editor gains add / remove / reorder | **worker** batch F | 4b |
+| 4c | the step editor gains add / remove / reorder | **worker** batch F | gate written 6.9.2026 |
 | 5 | live check with the owner | lead + owner | all |
 
 **The vocabulary goes first on purpose.** Everything phases 3b–4c adds is new
@@ -546,6 +546,50 @@ are ordinary; **the fourth is a real change and the owner may overrule it.**
 that does not exist. Adding an example does not need one; editing a committed
 one does. Batch E adds examples — it does not have to reopen them — but it must
 not pretend it can.
+
+### Phase 4c — add, remove, reorder; gate written 6.9.2026
+
+`docs/gates/lesson_step_order_test.dart`, twelve tests, **all twelve red on the
+current panel** — measured, not assumed. It compiles against today's tree, so
+the batch's work is the only thing between it and green.
+
+**This is the most dangerous batch in the plan, and not because it is hard.**
+A step's `id` is its identity: `assignment_items.step_key` and
+`review_items.step_key` name steps by it and nothing joins on it, so an id that
+changes orphans a child's schedule and their recorded answers with no error
+anywhere. `PUT /lessons/:id` guards against exactly that with a 409 — **and the
+guard cannot fire for this batch**, because it requires
+`storedList.length === steps.length` and both adding and removing change the
+length. For two of the three operations, the gate is the only thing there.
+
+Checked rather than assumed while writing it: the child's side already survives
+a removal. `getDue` resolves a review row through `stepByKey` and ends with
+`.filter((item) => item.step !== null)`, so a row naming a deleted step stops
+appearing rather than serving a board nobody wrote. **No backend work is needed
+for 4c, and the task forbids any.**
+
+Four decisions the gate freezes, with reasons:
+
+1. **Up and down, not drag.** `ReorderableListView` is prettier and is what a
+   trainer with twelve steps would want; it is also the gesture that is hard to
+   drive in a test and easy to get subtly wrong. This batch is the mechanical
+   one — it is the clean comparison for `gemini-3.8-flash-high` — so it gets
+   the unambiguous control. Drag is a later, separate decision.
+2. **The panel gains a title field.** It edits the instruction, the kind, the
+   choices and the answer, and not the name, so three added steps would all
+   reach the server as „Pozicija" — what `buildLessonStep` writes when a title
+   is missing — and the trainer could not tell them apart in the very list this
+   batch is about.
+3. **A new step carries no `id`** and inherits only the position it was added
+   from. The position is deliberate (it is what makes „show, then ask" one
+   board); the question is not.
+4. **The last step cannot be removed.** `PUT` writes `position_list = NULL` for
+   an empty list, so a tutorial emptied here loses its steps with nothing left
+   to join on and complain.
+
+Two files must stay green **unchanged**: `test/lesson_editor_test.dart` and
+`test/lesson_answer_stays_hidden_test.dart`. If either has to be edited, that is
+a finding.
 
 ## Role split
 
