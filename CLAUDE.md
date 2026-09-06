@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1341 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1342 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 945 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -51,7 +51,7 @@ and its route through `scanDocument`, and five for an upload that fails before
 the scan starts.
 
 Both counts were measured again on 6.9.2026, on `master`, after
-`PLAN-INTERAKTIVNA-LEKCIJA.md` phases 0–7 merged: **1341 in the app and 945 on
+`PLAN-INTERAKTIVNA-LEKCIJA.md` phases 0–7 merged: **1342 in the app and 945 on
 the backend**, the backend identical with `.env` moved aside. A hundred and two
 of the app's came with a lesson step that asks something back — the kind
 discriminator and the screen that shows it, the ring `[%csl]` is drawn as, the

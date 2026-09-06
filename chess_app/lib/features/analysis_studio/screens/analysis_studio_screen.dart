@@ -58,6 +58,7 @@ import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/features/lessons/widgets/lesson_step_editor_panel.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
 
@@ -264,6 +265,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           _showSavedPuzzleSetsDialog),
       _ToolAction(Icons.add_task, context.colors.success,
           'Napravi korak od ove pozicije', _createStepFromPosition),
+      _ToolAction(Icons.edit_note, context.colors.success,
+          'Uredi korake lekcije', _editLessonSteps),
       _ToolAction(Icons.share, context.colors.info, 'Izvezi PGN', _exportPgn),
       _ToolAction(Icons.cloud_outlined, context.colors.info, 'Sačuvane analize',
           _showSavedAnalysesDialog),
@@ -1138,6 +1141,67 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         },
       ),
     );
+  }
+
+  /// Opens the step editor on a lesson the trainer picks.
+  ///
+  /// §6 of `docs/PLAN-INTERAKTIVNA-LEKCIJA.md` puts the authoring surface here,
+  /// beside the button that makes a step: the studio is where the tree, the
+  /// comments and the arrows already are.
+  ///
+  /// Phase 7c, 6.9.2026, and it exists because phase 7b shipped a panel nothing
+  /// opened. Every gate passed — the widget was built, tested and formatted —
+  /// because what was missing was not code but a caller, and a test that pumps
+  /// a widget directly proves it works without proving anyone can reach it.
+  /// `lesson_editor_test.dart` now fails if this method stops constructing it.
+  Future<void> _editLessonSteps() async {
+    final library = PositionLibraryService(authToken: widget.userSession.token);
+    final lessons = LessonApiService(authToken: widget.userSession.token);
+
+    final course = await showDialog(
+      context: context,
+      builder: (context) => CoursePickerDialog(
+        service: library,
+        title: 'Koju lekciju uređuješ?',
+      ),
+    );
+    if (course == null || !mounted) return;
+
+    // There is no `GET /lessons/:id`; the list route is the only reader of a
+    // lesson's steps, and it already returns `position_list`. Finding the
+    // lesson in the list it hands back beats adding an endpoint for one screen.
+    final all = await lessons.fetchAll();
+    if (!mounted) return;
+
+    Map<String, dynamic>? lesson;
+    for (final entry in all) {
+      if (entry is Map && entry['id'] == course.id) {
+        lesson = Map<String, dynamic>.from(entry);
+        break;
+      }
+    }
+
+    if (lesson == null) {
+      AppFeedback.show(
+        context,
+        () => const SnackBar(content: Text('Lekcija nije pronađena.')),
+      );
+      return;
+    }
+
+    final opened = lesson;
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(
+          title: Text(opened['title']?.toString() ?? 'Koraci lekcije'),
+        ),
+        body: LessonStepEditorPanel(
+          session: widget.userSession,
+          api: lessons,
+          lesson: opened,
+        ),
+      ),
+    ));
   }
 
   Future<void> _createStepFromPosition() async {

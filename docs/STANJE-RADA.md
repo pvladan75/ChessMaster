@@ -774,6 +774,25 @@ Ocenjivano u dva kruga, i **najveći nalaz je bio krivica brifa, ne radnika**:
 
 Izveštaj stoji kao `docs/REPORT-batch-50.md`.
 
+**Faza 7c, istog dana, i to je najveći nalaz cele faze.** Paket je isporučio
+panel **koji ništa ne otvara**: `LessonStepEditorPanel` se u celom repozitorijumu
+konstruisao na tačno jednom mestu — u testu. Sve kapije su prošle, jer nije
+falio kod nego **pozivalac**. A pošto je isti paket iz `CreateCourseDialog`
+namerno uklonio jedino drugo polje za zadatak, ono što je spojeno na `master` je
+bila regresija: ranije je trener mogao da napiše zadatak uz poziciju, posle toga
+nigde.
+
+Krivica je brifova: §4.1 je fiksirao konstruktor rečima „the gate constructs it
+directly" i nijednom nije rekao *i otvara se odnekud*. Kapija je pumpala vidžet
+direktno — test koji dokazuje da stvar radi, a ne i da neko može do nje. Isti
+oblik kao `getDue`, koji nedeljama nije imao pozivaoca uz zelene testove.
+
+Popravljeno drugim dugmetom u studiju („Uredi korake lekcije") i čuvarom koji
+pada ako `lib/` prestane da konstruiše panel — dokazan mutacijom. Suite
+**1341 → 1342**. **Pravilo koje ostaje:** kapija koja sama konstruiše vidžet mora
+da ide u paru sa onom koja tvrdi da ga i aplikacija konstruiše. Dohvatljivost ne
+vidi nijedan alat, jer sa kodom nije ništa loše — samo nema ulaza.
+
 Dva nalaza iz ovih faza koja nadživljavaju ovu funkciju:
 
 1. **`getDue` nikad nije radio.** `stepsOfLesson` se poziva unutra a nikad nije

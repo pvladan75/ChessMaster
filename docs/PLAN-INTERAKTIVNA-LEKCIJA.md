@@ -800,6 +800,34 @@ implementation is the first thing this method warns about. Its own batch, later.
 
 Suite **1334 → 1341**, one skipped; analyze back to 29.
 
+**Phase 7c — lead. Done 6.9.2026, and it is the finding of this whole phase.**
+The batch shipped a panel **nothing opened**. `LessonStepEditorPanel` was
+constructed in exactly one place in the repository: the test file. Every gate
+passed — the widget was built, formatted, analysed and covered — because what was
+missing was not code but a **caller**.
+
+Worse, the batch had also removed the only other way to write a step's
+instruction, from `CreateCourseDialog`, by design and on purpose. So the state
+merged to `master` was a regression: before it a trainer could write a task
+beside a position, after it they could not write one anywhere.
+
+**The brief caused it.** §4.1 fixed the panel's constructor with the words „the
+gate constructs it directly, so this signature is fixed" and never once said
+*and it opens from somewhere*. The gate then pumped the widget directly, which
+is a test that proves a thing works without proving anyone can reach it — the
+same shape as `getDue`, called by nothing for weeks with its own tests green.
+
+Fixed by a second `_ToolAction` in the studio, „Uredi korake lekcije", which
+picks a lesson and pushes the panel; `CoursePickerDialog` gained an optional
+`title` so it can ask „Koju lekciju uređuješ?" instead of „U koju lekciju?". And
+by a guard that fails if `lib/` stops constructing the panel — a source-reading
+test, so it was proved by mutation before it was believed. Suite **1341 → 1342**.
+
+**The rule this leaves behind:** a gate that constructs a widget itself must be
+paired with one that asserts the app constructs it too. Reachability is not
+visible to `diff`, `strings`, `analyze` or `flutter test`, because nothing is
+wrong with the code — there is simply no way in.
+
 * **The `strings` gate learned a fourth kind of allowance**, because this batch
   *removes* copy — the dialog's instruction control — and additions were the only
   thing an allowance could describe. `allow_removed` is `{file: [strings]}`, a

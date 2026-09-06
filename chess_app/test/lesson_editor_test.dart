@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -207,6 +209,36 @@ void main() {
           reason: 'the preview tried to send the answer somewhere');
       expect(find.text('Tačno.'), findsNothing,
           reason: 'and it must not have judged it either');
+    });
+  });
+
+  group('the editor is reachable from the app', () {
+    // Batch 50 shipped a panel nothing opened. Every gate passed — the widget
+    // was built, tested and formatted — because what was missing was not code
+    // but a *caller*, and a test that pumps a widget directly proves it works
+    // without proving anyone can get to it. The same shape as `getDue`, which
+    // was called by nothing for weeks with its own tests green.
+    //
+    // A source-reading test, so it is proved by mutation below rather than
+    // believed: delete the studio's action and this goes red.
+    test('something under lib/ opens LessonStepEditorPanel', () {
+      const panel =
+          'lib/features/lessons/widgets/lesson_step_editor_panel.dart';
+      final callers = <String>[];
+
+      for (final entity in Directory('lib').listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        final path = entity.path.replaceAll(r'\', '/');
+        if (path.endsWith(panel.split('/').last)) continue;
+        if (entity.readAsStringSync().contains('LessonStepEditorPanel(')) {
+          callers.add(path);
+        }
+      }
+
+      expect(callers, isNotEmpty,
+          reason: 'the trainer cannot write a step from anywhere in the app: '
+              'nothing under lib/ constructs LessonStepEditorPanel, so it is '
+              'reachable only from this test file');
     });
   });
 

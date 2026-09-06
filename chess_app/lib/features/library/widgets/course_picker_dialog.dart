@@ -17,6 +17,7 @@ class CoursePickerDialog extends StatefulWidget {
     super.key,
     required this.service,
     this.count = 1,
+    this.title,
     this.loader,
   });
 
@@ -25,6 +26,13 @@ class CoursePickerDialog extends StatefulWidget {
   /// How many positions are on their way in — the trainer should see that the
   /// choice applies to all of them.
   final int count;
+
+  /// Overrides the question, for a caller that is not putting positions in.
+  ///
+  /// The default asks „U koju lekciju?", which is the right question when
+  /// something is on its way in and the wrong one when a trainer is choosing a
+  /// lesson to *edit*. One optional line beats a second picker.
+  final String? title;
 
   /// Test seam; see [PositionPickerDialog].
   final Future<List<CourseSummary>?> Function()? loader;
@@ -64,9 +72,10 @@ class _CoursePickerDialogState extends State<CoursePickerDialog> {
 
     return AlertDialog(
       title: Text(
-        widget.count == 1
-            ? 'U koju lekciju?'
-            : 'U koju lekciju? (${widget.count} pozicije)',
+        widget.title ??
+            (widget.count == 1
+                ? 'U koju lekciju?'
+                : 'U koju lekciju? (${widget.count} pozicije)'),
         style: const TextStyle(fontSize: 16),
       ),
       // Fixed width, for the same reason as everywhere else in this codebase:
