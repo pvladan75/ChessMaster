@@ -221,16 +221,23 @@ void main() {
     });
   });
 
+  // P1 of docs/PLAN-STUDIO-REDIZAJN.md renamed `TutorialExample` to
+  // `TutorialSection` and replaced its `String pgn` with the tree the pgn comes
+  // from, so a finished part can be reopened — the missing piece that forced a
+  // second editing screen to exist. **Every assertion below is unchanged**: what
+  // moved is the constructor these tests call, not the wire shape they pin. The
+  // `choices` pair became `List<TutorialChoice>`, which is the server's own
+  // `{text, correct}` shape.
   group('the draft model, as C4 froze it', () {
     test('an example carries exactly what a lesson step is', () {
-      const example = TutorialExample(
-        fen: openingFen,
-        pgn: '1. e4 e5',
-        title: 'Primer 1',
-        instruction: 'Odigraj najbolji potez.',
-        kind: LessonStepKind.askMove,
-        solutionSan: 'Nf3',
-      );
+      final example = TutorialSection.fromStep({
+        'fen': openingFen,
+        'pgn': '1. e4 e5',
+        'title': 'Primer 1',
+        'instruction': 'Odigraj najbolji potez.',
+        'kind': 'ask_move',
+        'solutionSan': 'Nf3',
+      });
 
       // The shape `services/lessonSteps.js` already validates. Quoted rather
       // than restated: a second idea of what a step is is how the two PGN
@@ -246,11 +253,11 @@ void main() {
     });
 
     test('a plain example says nothing about questions', () {
-      const example = TutorialExample(
-        fen: openingFen,
-        pgn: '1. e4',
-        title: 'Primer 1',
-      );
+      final example = TutorialSection.fromStep({
+        'fen': openingFen,
+        'pgn': '1. e4',
+        'title': 'Primer 1',
+      });
       expect(example.toJson(), {
         'fen': openingFen,
         'pgn': '1. e4',
@@ -266,14 +273,16 @@ void main() {
       // server takes `[{text, correct}]` with exactly one `correct: true`.
       // Without it an `ask_choice` example is unsaveable, and the batch that
       // found that out would have had to reopen a frozen contract mid-flight.
-      const example = TutorialExample(
-        fen: openingFen,
-        pgn: '1. e4',
-        title: 'Primer 1',
-        kind: LessonStepKind.askChoice,
-        choices: ['Kontrola centra', 'Napad na kralja'],
-        correctChoice: 0,
-      );
+      final example = TutorialSection.fromStep({
+        'fen': openingFen,
+        'pgn': '1. e4',
+        'title': 'Primer 1',
+        'kind': 'ask_choice',
+        'choices': [
+          {'text': 'Kontrola centra', 'correct': true},
+          {'text': 'Napad na kralja', 'correct': false},
+        ],
+      });
 
       expect(example.toJson()['choices'], [
         {'text': 'Kontrola centra', 'correct': true},
@@ -282,11 +291,12 @@ void main() {
     });
 
     test('the draft is a list of them, in the order they were written', () {
-      final draft = TutorialDraft(title: 'Opozicija');
-      draft.examples.add(const TutorialExample(
-          fen: openingFen, pgn: '1. e4', title: 'Primer 1'));
-      draft.examples.add(const TutorialExample(
-          fen: openingFen, pgn: '1. d4', title: 'Primer 2'));
+      final draft = TutorialDraft(title: 'Opozicija', sections: [
+        TutorialSection.fromStep(
+            {'fen': openingFen, 'pgn': '1. e4', 'title': 'Primer 1'}),
+        TutorialSection.fromStep(
+            {'fen': openingFen, 'pgn': '1. d4', 'title': 'Primer 2'}),
+      ]);
 
       expect(
           draft.positionList.map((e) => e['pgn']).toList(), ['1. e4', '1. d4']);

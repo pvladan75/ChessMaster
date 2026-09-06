@@ -15,8 +15,86 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (tutorijal: **cela faza 4 zatvorena i
-`feat/tutorijal` spojen u `master`**; ostaje samo faza 5, provera uživo).
+Poslednje ažuriranje: 6.9.2026 (redizajn studija: **P0–P2 gotove na `master`** —
+deo tutorijala od sada čuva svoje stablo; ostaje P3 nadalje. Tutorijal: cela
+faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Redizajn Studija za tutorijal — P0–P2 gotove, 6.9.2026
+
+Dogovor je [PLAN-STUDIO-REDIZAJN.md](PLAN-STUDIO-REDIZAJN.md), napisan pošto je
+vlasnik probao studio iz faza 4a–4c i prijavio četiri problema: ulazak iz
+Analize nasleđuje tuđe stanje, postoje dva ekrana za isti posao, nema osećaja
+hronologije, i stablo dole desno je skučeno i tehničko.
+
+**Koren je jedan i nije u rasporedu.** Gotov primer se pri „Dodaj sledeću
+poziciju" spljošti na `fen` + `pgn` i stablo se baci, a ništa u aplikaciji nije
+umelo da pročita `pgn` nazad u `AnalysisNode`. Zato gotov deo nije mogao da se
+ponovo otvori — i zato je drugi, slabiji ekran za izmene morao da postoji.
+Uklanjanje drugog ekrana nije posao oko rasporeda nego jedan konvertor.
+
+Vlasnik je 6.9.2026 usvojio plan u celosti i razrešio tri otvorene odluke:
+**D6** — ostaju oba taba, „Tok" podrazumevan i „Stablo" kao alternativa;
+**D7** — „Deo" je jedina reč u autorskim ekranima (stiže sa ekranom u P5, ne
+pre, jer bi pomeranje stringova u P1/P2 pokvarilo jedini dokaz da tok nije
+promenjen); **D9** — dugme nudi „Nastavi odavde (dete ne vidi novu tablu)" prvo
+i podrazumevano, pa „Nova pozicija", uz spojnicu u listi delova.
+
+### Šta je urađeno (P0–P2, sve lead)
+
+* `lib/features/tutorial_studio/services/step_tree.dart` — prelaz sa `MoveNode`
+  na `AnalysisNode`, plus `treeSignature`, `copyTree` i `endOfMainLine`.
+* `tutorial_draft.dart` napisan iznova: `TutorialChoice`, `TutorialSection` (sa
+  stablom, `stepId` i `acceptedSans`) i `TutorialDraft` (sa `lessonId`,
+  `selected`, dodavanjem, brisanjem, premeštanjem i kloniranjem delova).
+* `TutorialDraftService` čuva jedan objekat umesto nacrta pored radnog stabla, i
+  i dalje ume da pročita **stari** oblik slota — trener koji nadogradi usred
+  pisanja ne gubi ono što je napisao.
+* Ekran je preveden na novi model, **bez ijednog pomerenog stringa za
+  korisnika**. To je i dokaz: `test/tutorial_authoring_test.dart` prolazi.
+
+### Merenja i kapije
+
+Kapija je napisana **pre** rada i dokazana sa **sedam mutacija, sve uhvaćene**:
+izbačene sporedne varijante (oblik
+`_importPgn`), `stepId` prestao da putuje, `acceptedSans` izbačen, netaknuta
+linija ipak ponovo izvezena, klon deli stablo umesto da ga kopira, poslednji deo
+postao obrisiv, i rečenice trenera izbačene pri čitanju.
+
+**1458 testova u aplikaciji, 1 preskočen, sve zeleno** (bilo 1436), izmereno na
+`master`-u sa ničim drugim što radi paralelno. `flutter analyze` i dalje 29
+info-a, bez grešaka i upozorenja, i **ništa novo nije prigušeno**. Backend nije
+dodirnut i ostaje 956.
+
+### Šta je rad otkrio, a plan nije predvideo
+
+1. **Bajt-identičan povratni put je nemoguć ako se `pgn` uvek ponovo izvozi** —
+   `PgnExporterService` upisuje svež `[Date]` u svakom pozivu. Zato se netaknut
+   deo vraća kao *tačno onaj tekst koji je pročitan*, a keš se poništava
+   poređenjem `treeSignature` sa samim stablom. Namerno nije `bool` zastavica:
+   zastavica je verzija ovoga koja otkazuje nečujno.
+2. **`acceptedSans` nije postojao u modelu** i to niko nije primetio, jer ništa
+   nikada nije čitalo sačuvan korak nazad. Server ga čuva; povratni put bez
+   njega bi obrisao trenerove dodatne tačne poteze prvi put kad preimenuje
+   tutorijal. Našao ga je bajt-identičan test — zbog toga takav test i postoji.
+3. **`pgn` se izostavlja, ne šalje kao `''`.** Serveru je isto (`if (pgn)`), ali
+   samo izostavljanje vraća korak koji je sačuvan bez linije — bez linije. To
+   izoštrava ispravku iz batch-a 54, ne poništava je.
+4. **Kapija iz batch-a E je morala da se dopuni, i to je prošireno a ne
+   ublaženo** — piše ovde jer je „prolazi neizmenjena" bila lead-ova sopstvena
+   mera. Njen izvorni test je tražio `StudioLessonStep` u fajlu ekrana; P1 je taj
+   poziv spustio u `TutorialSection`. Sada čita ceo direktorijum feature-a i pita
+   za **import**, ne za identifikator — `contains` nad direktorijumom pogađa i
+   komentar, pa bi ga oborio komentar koji objašnjava zašto se izvoznik tu *ne*
+   zove.
+
+### Šta je otvoreno
+
+P3 nadalje. Prvo `LessonApiService.save`/`.update` moraju da vrate sačuvan red —
+oba rutera već odgovaraju sa `RETURNING *` — jer dok to ne stigne,
+`TutorialDraft.lessonId` upisuje `fromLesson` a ne čita niko, i drugi pritisak na
+„Sačuvaj" bi napravio drugi tutorijal. Redosled i podela posla su u §8 plana.
 
 ---
 

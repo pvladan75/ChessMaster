@@ -491,16 +491,45 @@ void main() {
         File('lib/features/tutorial_studio/screens/tutorial_studio_screen.dart')
             .readAsStringSync();
 
+    /// Every source file of the feature, read as one string.
+    ///
+    /// **This is the one edit P1 of `docs/PLAN-STUDIO-REDIZAJN.md` made to this
+    /// file, and it is a widening.** The assertion below used to read the
+    /// screen alone, because the screen was where an example was built. P1
+    /// moved that into `TutorialSection`, so that a finished part keeps its
+    /// tree and can be reopened — the pairing is honoured exactly as before,
+    /// one layer down. Reading the whole feature keeps the rule and makes it
+    /// stricter: `PgnExporterService` may not appear anywhere in here, not just
+    /// in the screen.
+    final featureSource = Directory('lib/features/tutorial_studio')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'))
+        .map((f) => f.readAsStringSync())
+        .join('\n');
+
     test('the fen and the pgn of an example still come from one node', () {
       // `StudioLessonStep.from` is the thing that made those two stop coming
-      // from different places. A screen that exports a pgn itself has taken
-      // that pairing apart again, and the failure is invisible until a child
-      // opens a step that lost its moves.
-      expect(source.contains('StudioLessonStep'), isTrue,
+      // from different places. Code that exports a pgn itself has taken that
+      // pairing apart again, and the failure is invisible until a child opens
+      // a step that lost its moves.
+      //
+      // Asked of the **imports** rather than of the identifiers, because a bare
+      // `contains` over a whole directory also matches a doc comment — and a
+      // comment explaining why the exporter is not called here would have
+      // failed this. An import is what says the code reaches for a class; prose
+      // about it is not.
+      expect(
+          featureSource
+              .contains('analysis_studio/services/studio_lesson_step.dart'),
+          isTrue,
           reason: 'the example is built without the class that owns the '
               'fen/pgn pairing');
-      expect(source.contains('PgnExporterService'), isFalse,
-          reason: 'the screen exports the line itself, beside the class whose '
+      expect(
+          featureSource
+              .contains('analysis_studio/services/pgn_exporter_service.dart'),
+          isFalse,
+          reason: 'the feature exports the line itself, beside the class whose '
               'whole job that is');
     });
 

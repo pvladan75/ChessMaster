@@ -8,7 +8,6 @@ import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
-import 'package:chess_app/features/analysis_studio/services/studio_lesson_step.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart'
     show LessonStepKind;
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
@@ -29,22 +28,25 @@ import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 /// `docs/PLAN-TUTORIJAL.md`.
 ///
 /// **Why it is not a twelfth action in the Analysis Studio.** That screen is
-/// 2383 lines and twelve actions of *analysing* — engine, explorer, tablebase,
+/// 2446 lines and twelve actions of *analysing* — engine, explorer, tablebase,
 /// motifs, game review — and every one of them is noise to somebody writing.
 /// More concretely, the authoring flow needs a running list of examples on
 /// screen at all times, and there is no room for it in a layout already
 /// carrying a board, a move tree and an engine panel.
 ///
-/// **What it holds, and nothing else:** the board, the move tree of the example
+/// **What it holds, and nothing else:** the board, the move tree of the part
 /// being written, the fields for the node the trainer is standing on, and the
-/// running list of examples with one save at the end.
+/// running list of parts with one save at the end.
 ///
-/// This is **the shell** — batch D, phase 4a. The board, the tree, the strip,
-/// the door from the Studio and the draft are here; the per-node fields, the
-/// running list and the single `POST /lessons/save` are batch E, and they go in
-/// [_authoringColumn], beside the tree. Nothing on this screen talks to the
-/// server yet, which is deliberate: decision 3 saves once, at the end, so a
-/// tutorial abandoned halfway leaves nothing half-written in the library.
+/// **P1 of `docs/PLAN-STUDIO-REDIZAJN.md` changed what is underneath it and
+/// nothing that is on it.** A finished part used to be flattened to `fen` +
+/// `pgn` and its tree dropped, so it could never be reopened — which is why a
+/// second, weaker editing screen had to exist beside this one. Every part now
+/// keeps its tree, so the screen holds one [TutorialDraft] and stands on
+/// `_draft.section` instead of keeping a working tree beside a list of finished
+/// strings. Not one user-facing string moved, which is what makes
+/// `test/tutorial_authoring_test.dart` passing **unedited** the proof that the
+/// flow survived. The layout this model was built for is P5.
 ///
 /// Everything it draws already existed. Not one line of board, tree or cursor
 /// code is copied in here — two models of one tree is the fault this codebase
@@ -78,17 +80,12 @@ class TutorialStudioScreen extends StatefulWidget {
 }
 
 class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
-  static const String _startFen =
-      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-
   final ChessBoardController _boardController = ChessBoardController();
 
   late final LessonApiService _lessonApi =
       widget.lessonApi ?? LessonApiService(authToken: widget.session.token);
 
-  late AnalysisNode _root;
-  late AnalysisNode _current;
-  TutorialDraft _draft = TutorialDraft();
+  late TutorialDraft _draft;
   PlayerColor _orientation = PlayerColor.white;
 
   String? _lastMoveFrom;
@@ -102,12 +99,34 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   int? _currentCorrectChoice;
   String? _currentSolutionSan;
 
+  /// Bumped whenever the fields are refilled from the model rather than by the
+  /// trainer typing into them.
+  ///
+  /// `DropdownButtonFormField` is a form field: it keeps the value it was given
+  /// in its own state, and a rebuild alone will not move it. Without this a
+  /// restored draft would read „Samo prikaži" over a part that asks for a move
+  /// — the trainer believing they asked something they did not. The same trap
+  /// `LessonStepEditorPanel._kindEpoch` was written for.
+  int _fieldsEpoch = 0;
+
+  /// The line being written, and where the trainer is standing on it.
+  AnalysisNode get _root => _draft.section.root;
+  AnalysisNode get _current => _draft.section.cursorNode;
+
   @override
   void initState() {
     super.initState();
     final handover = widget.handover;
-    _root = handover?.root ?? AnalysisNode(fen: _startFen);
-    _current = _root;
+    _draft = TutorialDraft(sections: [
+      TutorialSection.blank(
+        fen: handover?.root.fen ?? TutorialDraft.startFen,
+        title: 'Primer 1',
+      ),
+    ]);
+    if (handover != null) {
+      _draft.section.root = handover.root;
+      _draft.section.cursorNode = handover.root;
+    }
     if (handover?.blackOrientation ?? false) _orientation = PlayerColor.black;
     _boardController.loadFen(_root.fen);
     unawaited(_restoreDraft());
@@ -124,44 +143,97 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     // Flushed rather than left to the debounce: a pending timer dies with the
     // screen, and a draft that is only ever written 600 ms after the last move
     // is a draft that is never written when the trainer closes the window.
-    unawaited(TutorialDraftService.instance.flush(
-      draft: _draft,
-      workingTree: _root,
-      workingNode: _current,
-      blackOrientation: _orientation == PlayerColor.black,
-    ));
+    _syncSelectedSection();
+    unawaited(TutorialDraftService.instance.flush(_draft));
     super.dispose();
   }
 
   /// Brings back what was being written.
   ///
   /// A handover wins over the stored working tree — the trainer just said which
-  /// position they want — but the examples already written come back either
-  /// way, because that is the flow the door exists for: work the next example
-  /// out in the Studio, hand it over, carry on with the same tutorial.
+  /// position they want — but the parts already written come back either way,
+  /// because that is the flow the door exists for: work the next part out in
+  /// the Studio, hand it over, carry on with the same tutorial.
+  ///
+  /// Giving the slot an identity, so that opening a *different* tutorial can no
+  /// longer come up carrying this one's parts, is D4 of
+  /// `docs/PLAN-STUDIO-REDIZAJN.md` and lands with the entry flow in P3.
   Future<void> _restoreDraft() async {
     final restored = await TutorialDraftService.instance.load();
     if (!mounted || restored == null) return;
 
+    final handover = widget.handover;
     setState(() {
-      _draft = restored.draft;
-      _titleController.text = _draft.title;
-      if (widget.handover == null) {
-        _root = restored.workingTree;
-        _current = restored.resolveWorkingNode();
-        _orientation =
-            restored.blackOrientation ? PlayerColor.black : PlayerColor.white;
-        _boardController.loadFen(_current.fen);
+      _draft = restored;
+      if (handover != null) {
+        // The parts already written stay; the one being written is the line the
+        // trainer just handed over.
+        _draft.selected = _draft.sections.length - 1;
+        _draft.section.root = handover.root;
+        _draft.section.cursorNode = handover.root;
+      } else {
+        _orientation = _draft.section.blackOrientation
+            ? PlayerColor.black
+            : PlayerColor.white;
       }
+      _loadSelectedSection();
     });
   }
 
-  void _persist() => TutorialDraftService.instance.scheduleSave(
-        draft: _draft,
-        workingTree: _root,
-        workingNode: _current,
-        blackOrientation: _orientation == PlayerColor.black,
-      );
+  /// Fills the fields from the part that is open. Every write in this direction
+  /// bumps [_fieldsEpoch].
+  void _loadSelectedSection() {
+    final section = _draft.section;
+    _titleController.text = _draft.title;
+    _sentenceController.text = _current.comment;
+    _instructionController.text = section.instruction ?? '';
+    _currentKind = section.kind;
+    for (final c in _choiceControllers) {
+      c.dispose();
+    }
+    _choiceControllers
+      ..clear()
+      ..addAll([
+        for (final choice in section.choices)
+          TextEditingController(text: choice.text),
+      ]);
+    final correct = section.choices.indexWhere((c) => c.correct);
+    _currentCorrectChoice = correct == -1 ? null : correct;
+    _currentSolutionSan = section.solutionSan;
+    _boardController.loadFen(_current.fen);
+    _lastMoveFrom = null;
+    _lastMoveTo = null;
+    _fieldsEpoch++;
+  }
+
+  /// Writes the fields back into the part that is open.
+  ///
+  /// The fields are the live editing surface and the section is the record;
+  /// they meet here, in one place, before anything is persisted, committed or
+  /// sent. The same shape `LessonStepEditorPanel._syncCurrentStepControllers`
+  /// already uses.
+  void _syncSelectedSection() {
+    final section = _draft.section;
+    final instruction = _instructionController.text.trim();
+    section.instruction = instruction.isEmpty ? null : instruction;
+    section.kind = _currentKind;
+    section.solutionSan = _currentSolutionSan;
+    section.blackOrientation = _orientation == PlayerColor.black;
+    section.choices
+      ..clear()
+      ..addAll([
+        for (var i = 0; i < _choiceControllers.length; i++)
+          TutorialChoice(
+            text: _choiceControllers[i].text,
+            correct: i == _currentCorrectChoice,
+          ),
+      ]);
+  }
+
+  void _persist() {
+    _syncSelectedSection();
+    TutorialDraftService.instance.scheduleSave(_draft);
+  }
 
   /// The one cursor this screen is walked by — the strip's buttons and the
   /// arrow keys read it from here rather than each building their own.
@@ -175,7 +247,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   void _jumpTo(AnalysisNode node) {
     setState(() {
-      _current = node;
+      _draft.section.cursorNode = node;
       _boardController.loadFen(node.fen);
       _lastMoveFrom = null;
       _lastMoveTo = null;
@@ -218,7 +290,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
 
     setState(() {
-      _current = child;
+      _draft.section.cursorNode = child;
       _boardController.loadFen(played.fen);
       _lastMoveFrom = from;
       _lastMoveTo = to;
@@ -227,11 +299,15 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _persist();
   }
 
-  /// Starts the example over on [fen], with nothing written after it.
+  /// Starts the part over on [fen], with nothing written after it.
   void _startFrom(String fen) {
     setState(() {
-      _root = AnalysisNode(fen: fen);
-      _current = _root;
+      final fresh = AnalysisNode(fen: fen);
+      _draft.section
+        ..root = fresh
+        ..cursorNode = fresh
+        // The stored text described the line that was just thrown away.
+        ..storedPgn = null;
       _boardController.loadFen(fen);
       _lastMoveFrom = null;
       _lastMoveTo = null;
@@ -351,7 +427,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                   drawingStartSquare: null,
                   // The arrows and the rings the trainer drew on this move. The
                   // node has carried them since phase 2 of the interactive
-                  // lesson plan; the editor that writes them is batch E.
+                  // lesson plan; the editor that writes them is P7 of the
+                  // redesign.
                   arrows: _current.arrows,
                   squares: _current.squares,
                   engineArrows: const [],
@@ -377,39 +454,19 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
-  TutorialExample _buildCurrentExample() {
-    final step = StudioLessonStep.from(_root);
-    return TutorialExample(
-      fen: step.fen,
-      pgn: step.reading.line.movesSan.isEmpty ? '' : step.pgn,
-      title: 'Primer ${_draft.examples.length + 1}',
-      instruction: _instructionController.text.trim().isNotEmpty
-          ? _instructionController.text.trim()
-          : null,
-      kind: _currentKind,
-      choices: _choiceControllers.map((c) => c.text).toList(),
-      correctChoice: _currentCorrectChoice,
-      solutionSan: _currentSolutionSan,
-    );
-  }
-
+  /// Closes the part being written and opens the next one.
+  ///
+  /// It starts on the position this part's line ran out at — exactly the
+  /// position the child's screen joins on, so show → ask happens on one board
+  /// with no reset. Offering the other answer as well is D9 of
+  /// `docs/PLAN-STUDIO-REDIZAJN.md` and lands with the section panel in P5.
   void _commitExample() {
     setState(() {
-      _draft.examples.add(_buildCurrentExample());
-      // The next example starts where the last line ended — the end of the main line.
-      String lastFen = _root.fen;
-      AnalysisNode? node = _root;
-      while (node != null && node.children.isNotEmpty) {
-        node = node.children.first;
-        lastFen = node.fen;
-      }
-
-      _root = AnalysisNode(fen: lastFen);
-      _current = _root;
-      _boardController.loadFen(lastFen);
-      _lastMoveFrom = null;
-      _lastMoveTo = null;
-
+      _syncSelectedSection();
+      _draft.addSection(
+        continueFromEnd: true,
+        title: 'Primer ${_draft.sections.length + 1}',
+      );
       _sentenceController.text = '';
       _instructionController.text = '';
       _currentKind = LessonStepKind.show;
@@ -419,6 +476,10 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       _choiceControllers.clear();
       _currentCorrectChoice = null;
       _currentSolutionSan = null;
+      _boardController.loadFen(_root.fen);
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
+      _fieldsEpoch++;
     });
     _persist();
   }
@@ -429,18 +490,17 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       return;
     }
 
-    final currentExample = _buildCurrentExample();
-    final allExamples = [..._draft.examples, currentExample];
+    _syncSelectedSection();
 
-    for (final example in allExamples) {
-      if (example.kind == LessonStepKind.askMove &&
-          example.pgn.trim().isNotEmpty) {
+    for (final section in _draft.sections) {
+      if (section.kind == LessonStepKind.askMove &&
+          section.pgnForSave.trim().isNotEmpty) {
         AppFeedback.error(
             context, 'Primer koji traži potez ne sme da ima liniju.');
         return;
       }
-      if (example.kind == LessonStepKind.askChoice &&
-          example.correctChoice == null) {
+      if (section.kind == LessonStepKind.askChoice &&
+          !section.choices.any((c) => c.correct)) {
         AppFeedback.error(
             context, 'Tačno jedan ponuđeni odgovor mora da bude tačan.');
         return;
@@ -449,7 +509,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
     final error = await _lessonApi.save(
       title: _titleController.text.trim(),
-      positionList: allExamples.map((e) => e.toJson()).toList(),
+      positionList: _draft.positionList,
     );
 
     if (!mounted) return;
@@ -460,9 +520,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     }
   }
 
-  /// The tree of the example being written — and, from batch E, everything
-  /// written *about* it.
+  /// The tree of the part being written, and everything written *about* it.
   Widget _authoringColumn() {
+    final written = _draft.sections.length - 1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -472,7 +532,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           decoration: const InputDecoration(labelText: 'Naziv tutorijala'),
           // Written into the draft rather than only held in the controller.
           // The draft is what `TutorialDraftService` stores, so a title that
-          // lives only here comes back empty next time — with every example
+          // lives only here comes back empty next time — with every part
           // still in place, which is what made it invisible.
           onChanged: (value) {
             _draft.title = value;
@@ -480,13 +540,12 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           },
         ),
         const SizedBox(height: AppSpacing.md),
-        if (_draft.examples.isNotEmpty) ...[
+        if (written > 0) ...[
           Text('Primeri', style: AppText.bodyBold),
-          for (int i = 0; i < _draft.examples.length; i++)
-            Text('Primer ${i + 1}'),
+          for (int i = 0; i < written; i++) Text(_draft.sections[i].title),
           const SizedBox(height: AppSpacing.md),
         ],
-        Text('Primer ${_draft.examples.length + 1}', style: AppText.bodyBold),
+        Text(_draft.section.title, style: AppText.bodyBold),
         const SizedBox(height: AppSpacing.sm),
         TextField(
           key: const Key('example-sentence'),
@@ -499,27 +558,33 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           },
         ),
         const SizedBox(height: AppSpacing.sm),
-        DropdownButtonFormField<LessonStepKind>(
-          key: const Key('example-kind'),
-          initialValue: _currentKind,
-          decoration: const InputDecoration(labelText: 'Tip zadatka'),
-          items: const [
-            DropdownMenuItem(
-                value: LessonStepKind.show, child: Text('Samo prikaži')),
-            DropdownMenuItem(
-                value: LessonStepKind.askMove,
-                child: Text('Traži potez na tabli')),
-            DropdownMenuItem(
-                value: LessonStepKind.askChoice,
-                child: Text('Traži odgovor iz liste')),
-          ],
-          onChanged: (val) {
-            if (val != null) {
-              setState(() {
-                _currentKind = val;
-              });
-            }
-          },
+        // The subtree is rebuilt whenever the fields are refilled from the
+        // model — see [_fieldsEpoch]. The field's own key stays put, because it
+        // is the handle the tests reach it by.
+        KeyedSubtree(
+          key: ValueKey('kind-$_fieldsEpoch'),
+          child: DropdownButtonFormField<LessonStepKind>(
+            key: const Key('example-kind'),
+            initialValue: _currentKind,
+            decoration: const InputDecoration(labelText: 'Tip zadatka'),
+            items: const [
+              DropdownMenuItem(
+                  value: LessonStepKind.show, child: Text('Samo prikaži')),
+              DropdownMenuItem(
+                  value: LessonStepKind.askMove,
+                  child: Text('Traži potez na tabli')),
+              DropdownMenuItem(
+                  value: LessonStepKind.askChoice,
+                  child: Text('Traži odgovor iz liste')),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                setState(() {
+                  _currentKind = val;
+                });
+              }
+            },
+          ),
         ),
         const SizedBox(height: AppSpacing.sm),
         if (_currentKind != LessonStepKind.show) ...[
