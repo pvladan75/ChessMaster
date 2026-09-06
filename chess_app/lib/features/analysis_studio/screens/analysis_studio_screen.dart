@@ -65,6 +65,7 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 
 class AnalysisStudioScreen extends StatefulWidget {
   final UserSession userSession;
@@ -1344,10 +1345,16 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     }
 
     if (!mounted) return;
+    final intoOpenDraft = await askTutorialDestination(context);
+    if (intoOpenDraft == null || !mounted) return;
+
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => TutorialStudioScreen(
         session: widget.userSession,
-        entry: TutorialEntry.fromAnalysis(handover),
+        entry: TutorialEntry.fromAnalysis(
+          handover,
+          intoOpenDraft: intoOpenDraft,
+        ),
       ),
     ));
   }

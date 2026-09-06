@@ -78,6 +78,9 @@ class LessonApiService {
     }
   }
 
+  /// Whether the last [fetchAll] failed.
+  bool lastFetchFailed = false;
+
   /// Saved lessons and positions, filtered the way the library screen asks.
   ///
   /// Returns an empty list on any failure rather than throwing: this feeds a
@@ -88,6 +91,7 @@ class LessonApiService {
     List<String> excludeTags = const [],
     String matchMode = 'any',
   }) async {
+    lastFetchFailed = false;
     try {
       final params = <String, String>{
         if (searchQuery != null && searchQuery.trim().isNotEmpty)
@@ -102,11 +106,19 @@ class LessonApiService {
             headers: _headers,
           )
           .timeout(const Duration(seconds: 30));
-      if (res.statusCode != 200) return const [];
+      if (res.statusCode != 200) {
+        lastFetchFailed = true;
+        return const [];
+      }
       final decoded = jsonDecode(res.body);
-      return decoded is List ? decoded : const [];
+      if (decoded is! List) {
+        lastFetchFailed = true;
+        return const [];
+      }
+      return decoded;
     } catch (e) {
       AppLogger.log('[Lessons] Ne mogu da učitam listu: $e');
+      lastFetchFailed = true;
       return const [];
     }
   }
