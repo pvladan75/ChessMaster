@@ -4594,3 +4594,27 @@ tutorijal" — ko traži brisanje ne otvara vrata na kojima piše „otvori".
    otvara se.
 8. [ ] **Bez učenika.** Nalog bez ijednog prihvaćenog učenika dobija rečenicu,
    a ne prazan spisak.
+
+## 127. Play pušta ceo tutorijal — 7.9.2026, nije viđeno uživo
+
+Iz žive provere 7.9.2026: „zavaralo me play dugme, mislio sam da pušta ceo
+tutorijal kroz sve delove". Šetnja sa glasom je stajala na kraju dela koji ne
+stoji na istoj poziciji kao sledeći — po pravilu da je spoj nastavak, a nov
+dijagram stranica koju dete okreće samo. Trener je to pročitao kao da se drugi
+deo uopšte ne prikazuje, i bio je u pravu u onome što je važno: dugme sa ▶
+obećava ceo tutorijal, a dete zbog kog ta šetnja postoji je baš ono koje sluša
+umesto da pritiska.
+
+1. [ ] **Dugme kaže šta radi.** Ispod table piše „Pusti tutorijal", ne
+   „Pročitaj mi liniju".
+2. [ ] **Dva prikaza su jedna šetnja.** Tutorijal sa dva „prikaži" dela, drugi
+   iz svoje pozicije: pritisni play jednom — pročita prvi deo, pa **sam pređe**
+   u drugi i pročita i njega.
+3. [ ] **Tabla se ne postavlja ispod rečenice.** Na prelazu u deo koji počinje
+   drugde sačeka se kratko pre nego što se figure prerasporede.
+4. [ ] **Pitanje i dalje zaustavlja.** Deo koji nešto pita: pitanje se pročita
+   i šetnja stane, da dete odgovori.
+5. [ ] **Račva i dalje zaustavlja.** Na račvi šetnja stane i čipovi sa oba
+   poteza stoje na ekranu (stavka 123).
+6. [ ] **Kraj je kraj.** Na poslednjem delu šetnja stane i dugme se vrati na ▶.
+7. [ ] **Stop radi u svakom trenutku**, i posle prelaska u sledeći deo.

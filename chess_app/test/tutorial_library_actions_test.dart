@@ -266,6 +266,25 @@ void main() {
           reason: 'the tutorial that was sent is the row it was asked for');
     });
 
+    testWidgets('a send the server refused says so', (tester) async {
+      final assignments = _Assignments(fails: true);
+      await openList(
+        tester,
+        api: _LibraryApi(),
+        assignments: assignments,
+        students: _Students(),
+      );
+
+      await tester.tap(actionOn('Opozicija', 'Pošalji učeniku'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Mila'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nije poslato.'), findsOneWidget,
+          reason: 'the server said why, and the trainer is the one who has to '
+              'do something about it');
+    });
+
     testWidgets('a trainer with no accepted student is told so',
         (tester) async {
       final assignments = _Assignments();

@@ -445,11 +445,34 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
         continue;
       }
 
-      // The line has run out. If the next step stands on this very position,
-      // the lesson has not stopped — it is about to ask something about the
-      // board the child is already looking at, so the walk goes on through the
-      // join instead of ending at a „Sledeći korak" button.
-      if (!_nextStepContinuesHere) break;
+      // The line has run out, and the tutorial has not. The walk carries on
+      // into the next part — every part, not only one that stands on this very
+      // position.
+      //
+      // **It used to stop at a part that opened somewhere else**, on the rule
+      // that a join is a continuation while a new diagram is a page-turn the
+      // child should turn themselves. The trainer met that rule on 7.9.2026
+      // and read it as a bug: they pressed a play button, watched the first
+      // part, and concluded the second one „uopšte se ne prikazuje" — „mislio
+      // sam da pušta ceo tutorijal kroz sve delove". A control with a ▶ on it
+      // promises the whole thing, and the child this walk exists for is
+      // precisely the one who is listening rather than pressing. The old rule
+      // also predates „Traži potez na tabli", which now routinely cuts one
+      // part into a chain of three.
+      //
+      // What still stops the walk is unchanged and is what it should be: a
+      // fork, a part that asks something, and the end of the tutorial.
+      if (_stepIndex + 1 >= _steps.length) break;
+
+      // A part that opens somewhere else is a new diagram, and crossing to it
+      // puts the pieces back. That is a change of board, so it waits a beat —
+      // a board that rearranges itself under a sentence still being spoken
+      // leaves the listener hearing about a position that is no longer there,
+      // which is the fault this whole loop is written around.
+      if (!_nextStepContinuesHere) {
+        await Future<void>.delayed(_silentStep);
+        if (!mounted || !_narrating || run != _narrationRun) return;
+      }
 
       _goToStep(_stepIndex + 1, keepNarration: true);
       if (!mounted || !_narrating || run != _narrationRun) return;
@@ -927,7 +950,14 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     );
   }
 
-  /// Starts and stops the narrated walk down the line.
+  /// Starts and stops the narrated walk through the tutorial.
+  ///
+  /// It says „Pusti tutorijal" because that is what it does — it runs on
+  /// through the parts, stopping only where the child has something to do. It
+  /// said „Pročitaj mi liniju" while it walked one part, which was true and
+  /// still misread: a ▶ on a tutorial promises the tutorial, and a trainer
+  /// pressed it, watched one part and reported that the rest „uopšte se ne
+  /// prikazuje".
   ///
   /// Wrapped in a builder on the speech service so that installing a voice, or
   /// switching speech off in another screen, is reflected here without the
@@ -939,7 +969,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
         if (!_canNarrate) return const SizedBox.shrink();
         return IconButton(
           icon: Icon(_narrating ? Icons.stop : Icons.play_arrow),
-          tooltip: _narrating ? 'Zaustavi čitanje' : 'Pročitaj mi liniju',
+          tooltip: _narrating ? 'Zaustavi čitanje' : 'Pusti tutorijal',
           onPressed: _narrating ? _stopNarration : _narrate,
         );
       },

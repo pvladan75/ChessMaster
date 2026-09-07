@@ -183,7 +183,7 @@ void main() {
         speech,
       );
 
-      await tester.tap(find.byTooltip('Pročitaj mi liniju'));
+      await tester.tap(find.byTooltip('Pusti tutorijal'));
       await tester.pump();
 
       // Nothing is written about the position the line starts from, so the
@@ -251,7 +251,7 @@ void main() {
         speech,
       );
 
-      await tester.tap(find.byTooltip('Pročitaj mi liniju'));
+      await tester.tap(find.byTooltip('Pusti tutorijal'));
       await tester.pump(const Duration(milliseconds: 1400));
       await tester.pump();
       expect(find.text('Potez 1 od 5'), findsOneWidget);
@@ -261,7 +261,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Potez 0 od 5'), findsOneWidget);
-      expect(find.byTooltip('Pročitaj mi liniju'), findsOneWidget,
+      expect(find.byTooltip('Pusti tutorijal'), findsOneWidget,
           reason: 'the walk stopped, so the button offers to start it again');
 
       final spokenSoFar = tts.spoken.length;
@@ -283,7 +283,7 @@ void main() {
         speech,
       );
 
-      expect(find.byTooltip('Pročitaj mi liniju'), findsNothing);
+      expect(find.byTooltip('Pusti tutorijal'), findsNothing);
       expect(find.byTooltip('Sledeći potez'), findsOneWidget,
           reason: 'the line is still there to be walked by hand');
     });
@@ -315,7 +315,7 @@ void main() {
 
       expect(find.text('1/2'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Pročitaj mi liniju'));
+      await tester.tap(find.byTooltip('Pusti tutorijal'));
       await walkThrough(tester);
 
       // Nobody pressed „Sledeći korak": the line ran out on a position the next
@@ -358,7 +358,7 @@ void main() {
 
       expect(board(tester).boardOrientation, PlayerColor.white);
 
-      await tester.tap(find.byTooltip('Pročitaj mi liniju'));
+      await tester.tap(find.byTooltip('Pusti tutorijal'));
       await walkThrough(tester);
 
       expect(find.text('2/2'), findsOneWidget);
@@ -366,10 +366,15 @@ void main() {
           reason: 'the child is looking at the board they just watched');
     });
 
-    testWidgets('a step that starts somewhere else is not walked into',
-        (tester) async {
-      // The join is a continuation, not a page-turn: a next step on a different
-      // diagram is opened by the child when they are ready for it.
+    testWidgets('and on into a part that opens somewhere else', (tester) async {
+      // **This used to stop here**, on the rule that a join is a continuation
+      // while a new diagram is a page-turn the child should turn themselves.
+      // The trainer met that rule on 7.9.2026 and read it as a bug: they
+      // pressed the play button, watched the first part, and reported that the
+      // second one „uopšte se ne prikazuje" — „mislio sam da pušta ceo
+      // tutorijal kroz sve delove". A ▶ on a tutorial promises the tutorial,
+      // and the child this walk exists for is the one listening rather than
+      // pressing. What still stops it is a fork, a question, and the end.
       final tts = FakeTts(instant: true);
       final speech = await readyService(tts);
 
@@ -388,11 +393,86 @@ void main() {
         speech,
       );
 
-      await tester.tap(find.byTooltip('Pročitaj mi liniju'));
+      await tester.tap(find.byTooltip('Pusti tutorijal'));
       await walkThrough(tester);
 
+      expect(find.text('2/2'), findsOneWidget);
+      expect(tts.spoken, contains(speakable('Nešto sasvim drugo.')),
+          reason: 'the part was crossed into and its question read out');
+    });
+
+    testWidgets('two demonstrations in a row are one walk', (tester) async {
+      // The trainer's own case: two „prikaži" parts, the second starting from
+      // a board of its own. Pressing play has to reach the second one — the
+      // whole report was that it did not.
+      final tts = FakeTts(instant: true);
+      final speech = await readyService(tts);
+
+      await open(
+        tester,
+        lesson(const [
+          LessonStep(
+              title: 'Prvi deo', fen: startFen, pgn: '1. Kd3 {$kd3Note}'),
+          LessonStep(
+              title: 'Drugi deo', fen: afterKc4, pgn: '1... Kd6 {$kc4Note}'),
+        ]),
+        speech,
+      );
+
+      await tester.tap(find.byTooltip('Pusti tutorijal'));
+      await walkThrough(tester);
+
+      expect(find.text('2/2'), findsOneWidget);
+      expect(
+          tts.spoken,
+          containsAllInOrder([
+            speakable(kd3Note),
+            speakable(kc4Note),
+          ]));
+    });
+
+    testWidgets('and the new diagram is not put up under the sentence',
+        (tester) async {
+      // Crossing to a part that opens elsewhere puts the pieces back, and a
+      // board that rearranges itself while a sentence is still being spoken
+      // leaves the listener hearing about a position that is no longer there.
+      // So the walk waits a beat first — long enough that the step has not
+      // changed a frame after the line ran out.
+      final tts = FakeTts(instant: true);
+      final speech = await readyService(tts);
+
+      // The opening sentence is written on the root on purpose: with an
+      // instant voice every sentence resolves in a microtask, so a part whose
+      // first beat is *silent* would spend its first 1400 ms in the ordinary
+      // wait for a wordless move — and this test would pass whether the beat
+      // before the crossing existed or not. A check that cannot fail is not a
+      // check.
+      await open(
+        tester,
+        lesson(const [
+          LessonStep(
+            title: 'Prvi deo',
+            fen: startFen,
+            pgn: '{Uvod.} 1. Kd3 {$kd3Note}',
+          ),
+          LessonStep(
+              title: 'Drugi deo', fen: afterKc4, pgn: '1... Kd6 {$kc4Note}'),
+        ]),
+        speech,
+      );
+
+      await tester.tap(find.byTooltip('Pusti tutorijal'));
+      // Both sentences are read out in microtasks, and then the walk waits
+      // before it puts up a board the listener has not been told about.
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('1/2'), findsOneWidget);
-      expect(tts.spoken, isNot(contains(speakable('Nešto sasvim drugo.'))));
+      expect(tts.spoken, contains(speakable(kd3Note)),
+          reason: 'the wait being tested is the one after the line ran out, '
+              'not the ordinary wait on a move with nothing written about it');
+
+      await walkThrough(tester);
+      expect(find.text('2/2'), findsOneWidget);
     });
 
     testWidgets('pressing the step button by hand does not jump either',

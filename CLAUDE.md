@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1737 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1740 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -537,6 +537,29 @@ open a door labelled „open". Two mutations worth keeping: a row leaves the lis
 only when the server says it is gone, and a student who has not accepted the
 invitation is not offered — the same `status = 'accepted'` this repository has
 already lost three times.
+
+**Three more, 1740 on 7.9.2026, and one of them replaced a rule this file was
+proud of.** The narrated walk used to stop at a part that opened on a different
+position — „a join is a continuation, a new diagram is a page-turn the child
+turns themselves" — and it had a test saying so by name. The trainer pressed
+the play button, watched one part, and reported the second one as missing.
+**A ▶ promises the whole thing**, and the child that walk exists for is the one
+listening rather than pressing; the rule also predated „Traži potez na tabli",
+which now routinely cuts one part into a chain of three. It crosses every
+boundary now, waits a beat before a board it is about to rearrange, and still
+stops where the child has something to do — a fork, a question, the end. The
+button says „Pusti tutorijal".
+
+Two things about the harness came with it. **The analyzer reported 30, and the
+30th was a `warning` in a test file committed one commit earlier** — a fixture
+parameter with no test using it — while that commit's message said „analyze
+unchanged at 29 infos". Analyze had been run *before* the file was written. Run
+it after, and read the summary line. And **a test for a pause passed with the
+pause deleted**: with an instant voice every sentence resolves in a microtask,
+so a part whose first beat is silent spends its first 1400 ms in the ordinary
+wait for a wordless move, and the assertion could not tell the two waits apart.
+The fixture writes a sentence on the root now. Third time in this file: a check
+that cannot fail is not a check.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

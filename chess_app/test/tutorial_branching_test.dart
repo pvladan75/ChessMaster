@@ -207,7 +207,7 @@ void main() {
       ));
       await tester.pump();
 
-      await tester.tap(find.byTooltip('Pročitaj mi liniju'));
+      await tester.tap(find.byTooltip('Pusti tutorijal'));
       for (var i = 0; i < 40; i++) {
         await tester.pump(const Duration(milliseconds: 500));
       }
@@ -222,7 +222,7 @@ void main() {
       expect(tts.spoken, isNot(contains(speakable(mainNote))),
           reason: 'the walk chose the main line instead of asking');
       expect(tts.spoken, isNot(contains(speakable(sideNote))));
-      expect(find.byTooltip('Pročitaj mi liniju'), findsOneWidget,
+      expect(find.byTooltip('Pusti tutorijal'), findsOneWidget,
           reason: 'the walk stopped, so the button offers to start it again');
     });
   });
