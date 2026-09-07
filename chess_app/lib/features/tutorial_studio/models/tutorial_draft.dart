@@ -294,17 +294,78 @@ class TutorialSection {
         blackOrientation: blackOrientation,
       );
 
+  /// What this part is called — in the list, and on the child's screen.
+  ///
+  /// „Deo 1, Deo 2, Deo 3" is a table of contents that says nothing about a
+  /// tutorial, and the word is an idea a trainer should not have to hold: they
+  /// write a demonstration, ask a question, start a new position. So a part is
+  /// called by what it says, and a trainer who wants a name types one.
+  ///
+  ///  1. the name the trainer typed, if they typed one;
+  ///  2. the first sentence the part carries — about its starting position,
+  ///     else the first one written along its line, else the task it sets;
+  ///  3. „Deo N", which is the only place that word is still read.
+  ///
+  /// A title stored as „Deo 2" or „Primer 2" is **not** the trainer's own:
+  /// every tutorial written before this was named that way, and reading those
+  /// as chosen names would pin a list of numbers over a tutorial with plenty
+  /// to say for itself. [isGeneratedSectionTitle] is the one place that rule
+  /// lives.
+  String label(int index) {
+    final own = title.trim();
+    if (own.isNotEmpty && !isGeneratedSectionTitle(own)) return own;
+    return _spoken() ?? generatedSectionTitle(index);
+  }
+
+  /// The first thing this part says, or null when it says nothing.
+  String? _spoken() {
+    final rootComment = _shorten(root.comment);
+    if (rootComment != null) return rootComment;
+
+    for (var node = root; node.children.isNotEmpty;) {
+      node = node.children.first;
+      final said = _shorten(node.comment);
+      if (said != null) return said;
+    }
+
+    return _shorten(instruction ?? '');
+  }
+
+  /// One sentence of [text], short enough to read in a list.
+  static String? _shorten(String text) {
+    final flat = text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (flat.isEmpty) return null;
+
+    // The end of the first sentence — but not the dot of „1. e4", which is a
+    // move number and not a full stop.
+    final stop = RegExp(r'(?<![0-9])[.!?…](\s|$)').firstMatch(flat);
+    final sentence =
+        stop == null ? flat : flat.substring(0, stop.start + 1).trim();
+
+    if (sentence.length <= _labelLimit) return sentence;
+    final cut = sentence.substring(0, _labelLimit - 1);
+    final lastSpace = cut.lastIndexOf(' ');
+    return '${lastSpace > 20 ? cut.substring(0, lastSpace) : cut.trim()}…';
+  }
+
+  static const int _labelLimit = 60;
+
   /// One entry of the `positionList` a save sends.
   ///
   /// A field this part says nothing about is left out of the body rather than
   /// sent as null: the server tells „leave this alone" from „there is none" by
   /// whether the key is there at all, and that distinction has already cost
   /// this project every step of a renamed lesson.
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJson({int index = 0}) {
     final pgn = pgnForSave;
     return {
       if (stepId != null) 'id': stepId,
-      'title': title,
+      // [label], not the raw field: what the trainer reads in the list is what
+      // the child is sent, because it is the same function. Batch 57's finding
+      // was a panel that drew a row's number over a stored title that said
+      // something else — the right words over the wrong data — and computing
+      // the name once is the version of that fix that cannot come apart.
+      'title': label(index),
       'fen': root.fen,
       // Omitted rather than sent empty. `buildLessonStep` reads `if (pgn)`, so
       // `''` and absent are the same thing to the server — but only absence
@@ -480,8 +541,9 @@ class TutorialDraft {
 
   /// The body of the save. Built here so the screen that sends it has no second
   /// opinion about the shape.
-  List<Map<String, dynamic>> get positionList =>
-      [for (final section in sections) section.toJson()];
+  List<Map<String, dynamic>> get positionList => [
+        for (var i = 0; i < sections.length; i++) sections[i].toJson(index: i),
+      ];
 
   /// A saved tutorial, opened for editing.
   factory TutorialDraft.fromLesson(Map<String, dynamic> lesson) {
@@ -525,6 +587,17 @@ class TutorialDraft {
     final moved = sections.removeAt(from);
     sections.insert(to, moved);
     _selected = to;
+  }
+
+  /// Puts [parts] where the open one stands, and keeps the first of them open.
+  ///
+  /// What „Traži potez na tabli" does to a part: one goes out and up to three
+  /// come back, all of them standing on positions that join. The selection is
+  /// left on the first, and the caller moves it to whichever of them the
+  /// trainer should be looking at.
+  void replaceSelected(List<TutorialSection> parts) {
+    if (parts.isEmpty) return;
+    sections.replaceRange(_selected, _selected + 1, parts);
   }
 
   /// Duplicates a part. The copy carries no step id — see

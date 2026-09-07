@@ -136,8 +136,9 @@ void main() {
       await type(tester, 'tutorial-title', 'Dva dela');
       await type(tester, 'example-sentence', 'Ovo je prvi.');
 
-      await tapText(tester, '+ Dodaj deo');
-      await tapText(tester, 'Nova pozicija');
+      await tester.tap(find.byKey(const Key('add-show')));
+      await tester.pumpAndSettle();
+      await tapText(tester, 'Nova tabla');
       await type(tester, 'example-sentence', 'Ovo je drugi.');
 
       await tester.tap(find.byTooltip('Pomeri gore'));
@@ -152,16 +153,22 @@ void main() {
           .toList();
       expect(list, hasLength(2));
 
-      // The part that moved to the front carries its own work *and* the front
-      // part's name — both, or the tutorial the child opens is numbered the
-      // other way round from the one the trainer wrote.
+      // The part that moved to the front carries its own work *and* the name
+      // the panel shows for it — both, or the tutorial the child opens is
+      // named differently from the one the trainer wrote.
+      //
+      // Since 7.9.2026 that name is the part's first sentence rather than its
+      // place in the list, and the two readings are the same function
+      // ([TutorialSection.label]) rather than two that have to agree. The
+      // assertion is unchanged in what it is for: what is stored follows what
+      // is shown.
       expect(list.first['pgn'].toString(), contains('Ovo je drugi.'),
           reason: 'the part did not move, only its row did');
-      expect(list.first['title'], 'Deo 1',
-          reason: 'the panel shows „Deo 1" here and the server is being told '
+      expect(list.first['title'], 'Ovo je drugi.',
+          reason: 'the panel shows this name here and the server is being told '
               'something else');
       expect(list.last['pgn'].toString(), contains('Ovo je prvi.'));
-      expect(list.last['title'], 'Deo 2');
+      expect(list.last['title'], 'Ovo je prvi.');
 
       await close(tester);
     });

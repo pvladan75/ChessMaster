@@ -107,6 +107,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_flow_panel.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -242,8 +243,22 @@ void main() {
         (tester) async {
       await open(tester, pgn: '1. e4 {Beli zauzima centar.} e5');
 
-      expect(find.text('Beli zauzima centar.').hitTestable(), findsOneWidget,
-          reason: "the comment travels in the pgn and belongs on its own beat");
+      // Scoped to the timeline. Since 7.9.2026 a part is also *called* by its
+      // first sentence, so the same string is legitimately in the list of
+      // parts as well — and „findsOneWidget" over the whole screen is a claim
+      // about a screen that keeps growing. Batch 55 lost a finder to exactly
+      // this. What is being asked is that the sentence is on **its own beat**
+      // and on no other.
+      expect(
+        find
+            .descendant(
+              of: find.byType(TutorialFlowPanel),
+              matching: find.text('Beli zauzima centar.'),
+            )
+            .hitTestable(),
+        findsOneWidget,
+        reason: 'the comment travels in the pgn and belongs on its own beat',
+      );
 
       await close(tester);
     });

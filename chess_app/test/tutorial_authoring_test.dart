@@ -239,15 +239,16 @@ void main() {
 
   /// Commits the part being written and opens the next one.
   ///
-  /// **This helper is the only thing batch 57 changed in this file.** The single
-  /// „Dodaj sledeću poziciju" button became „+ Dodaj deo" with the two answers
-  /// decision D9 of `docs/PLAN-STUDIO-REDIZAJN.md` froze — „Nastavi odavde",
-  /// which is what this button always silently did, and „Nova pozicija". Every
-  /// assertion below is the one it had; only the taps that get there moved.
+  /// **This helper is the only thing batch 57 changed in this file, and the
+  /// only thing 7.9.2026 changed in it either.** „Dodaj sledeću poziciju"
+  /// became „+ Dodaj deo" with two answers, and then „Novi prikaz" with the
+  /// same two answers asked about a *board* rather than about a „deo" — the
+  /// word the trainer said they should not have to think in. Every assertion
+  /// below is the one it had; only the taps that get there moved.
   Future<void> addPart(WidgetTester tester) async {
-    await tester.tap(find.text('+ Dodaj deo').last);
+    await tester.tap(find.byKey(const Key('add-show')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Nastavi odavde').last);
+    await tester.tap(find.text('Odavde').last);
     await tester.pumpAndSettle();
   }
 

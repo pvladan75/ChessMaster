@@ -23,6 +23,7 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
+import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
@@ -742,7 +743,36 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _persist();
   }
 
-  void _addSection({required bool continueFromEnd}) {
+  /// „Novi prikaz" — the next demonstration, and the board it opens on.
+  ///
+  /// The one question left, and it is about a *position* rather than about
+  /// parts: „Odavde" keeps the child's board from reloading, which is what
+  /// makes two demonstrations in a row read as one; „Nova tabla" starts a
+  /// fresh example. The old wording asked where a *deo* begins, which is the
+  /// word this screen no longer makes a trainer think in.
+  Future<void> _addShowSection() async {
+    final continueFromEnd = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Odakle počinje?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Otkaži'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Nova tabla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Odavde'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || continueFromEnd == null) return;
+
     _syncSelectedSection();
     _draft.addSection(
       continueFromEnd: continueFromEnd,
@@ -751,6 +781,68 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _renumberGeneratedTitles();
     _loadSelectedSection();
     setState(() {});
+    _persist();
+  }
+
+  /// „Traži potez na tabli" / „Traži odgovor iz liste" — the question goes on
+  /// the beat the trainer is standing on.
+  ///
+  /// This is the arrangement the studio has always described and never built:
+  /// the demonstration in the part in front, the question on a bare position,
+  /// and what followed carried on after it. [splitForQuestion] decides all of
+  /// that; the screen only puts the parts where they go.
+  ///
+  /// A part with no line has nothing to cut, so it simply becomes the question
+  /// — which is the same act, with the first and third parts empty.
+  void _askHere(LessonStepKind kind) {
+    _syncSelectedSection();
+    final part = _draft.section;
+
+    if (!canSplitForQuestion(part)) {
+      setState(() => _currentKind = kind);
+      _syncSelectedSection();
+      _persist();
+      return;
+    }
+
+    final parts = splitForQuestion(part, _current, kind: kind);
+    setState(() {
+      _draft.replaceSelected(parts);
+      // The question is the one the trainer just asked for, so it is the one
+      // they are left standing on — with the board on the position it asks
+      // about.
+      _draft.selected = _draft.sections.indexOf(parts.firstWhere(
+        (p) => p.kind != LessonStepKind.show,
+        orElse: () => parts.first,
+      ));
+    });
+    _renumberGeneratedTitles();
+    _loadSelectedSection();
+    setState(() {});
+    _persist();
+    AppFeedback.success(context, 'Pitanje je postavljeno na ovoj poziciji.');
+  }
+
+  /// „Preimenuj" — the trainer's own name for a part, or none.
+  ///
+  /// Emptying the field is not a failure to name it: a part with no name of its
+  /// own is called by what it says, which is what [TutorialSection.label] does
+  /// and what most parts are better off with.
+  Future<void> _renameSection(int index) async {
+    if (index < 0 || index >= _draft.sections.length) return;
+    final section = _draft.sections[index];
+    final own = isGeneratedSectionTitle(section.title.trim())
+        ? ''
+        : section.title.trim();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => _RenameDialog(initial: own, hint: section.label(index)),
+    );
+    if (!mounted || name == null) return;
+    setState(() {
+      section.title =
+          name.trim().isEmpty ? generatedSectionTitle(index) : name.trim();
+    });
     _persist();
   }
 
@@ -1053,9 +1145,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     return TutorialSectionsPanel(
       draft: _draft,
       onSelect: _selectSection,
-      onAdd: _addSection,
+      onAddShow: _addShowSection,
+      onAsk: _askHere,
       onMove: _moveSection,
       onClone: _cloneSection,
+      onRename: _renameSection,
       onRemove: _removeSection,
     );
   }
@@ -1367,7 +1461,12 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               current: _current,
               onSelect: _jumpTo,
               onCommentChanged: (node, text) {
-                node.comment = text;
+                // `setState`, because the sentence is also the part's name:
+                // the panel calls [TutorialSection.label], which reads the
+                // first thing the part says. The beat cards keep their own
+                // controllers and focus nodes, so rebuilding them under the
+                // caret costs a frame and changes nothing the trainer sees.
+                setState(() => node.comment = text);
                 _persist();
               },
               question: _questionCard(),
@@ -1450,6 +1549,58 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 /// `pop` while the route is still animating out and the field is still being
 /// rebuilt. The controller has to belong to something that goes away with the
 /// route.
+/// „Preimenuj" — a name of the trainer's own, or none at all.
+///
+/// The hint is the name the part goes by now, so emptying the field reads as
+/// „call it what it says" rather than as leaving something blank.
+class _RenameDialog extends StatefulWidget {
+  const _RenameDialog({required this.initial, required this.hint});
+
+  final String initial;
+  final String hint;
+
+  @override
+  State<_RenameDialog> createState() => _RenameDialogState();
+}
+
+class _RenameDialogState extends State<_RenameDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Naziv'),
+      content: TextField(
+        key: const Key('section-name-field'),
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(
+          labelText: 'Naziv',
+          hintText: widget.hint,
+          helperText: 'Prazno — zove se po onome što piše u njemu.',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Odustani'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: const Text('Sačuvaj'),
+        ),
+      ],
+    );
+  }
+}
+
 class _CommentDialog extends StatefulWidget {
   const _CommentDialog({required this.initial});
 

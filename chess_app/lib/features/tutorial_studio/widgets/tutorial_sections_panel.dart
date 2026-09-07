@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/features/assignments/models/assignment.dart'
+    show LessonStepKind;
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart'
     show endOfMainLine;
@@ -12,22 +14,39 @@ import 'package:chess_app/theme/app_typography.dart';
 /// [draft.selected], and reports through its callbacks. Every mutation goes
 /// through the screen, which owns the draft, the board controller and the text
 /// fields.
+///
+/// **What a trainer reads here is not „Deo 1, Deo 2, Deo 3".** A tutorial is
+/// written by playing moves and saying things about them, and the parts it
+/// falls into are the *consequence* of asking a question — not a thing to plan.
+/// So a row is called by what it says ([TutorialSection.label]) and the three
+/// buttons name what the next step will be rather than that a section is being
+/// added. Two of them do not add anything at all: they cut the part being
+/// written at the beat the trainer is standing on and put the question there.
 class TutorialSectionsPanel extends StatelessWidget {
   const TutorialSectionsPanel({
     super.key,
     required this.draft,
     required this.onSelect,
-    required this.onAdd,
+    required this.onAddShow,
+    required this.onAsk,
     required this.onMove,
     required this.onClone,
+    required this.onRename,
     required this.onRemove,
   });
 
   final TutorialDraft draft;
   final void Function(int index) onSelect;
-  final void Function({required bool continueFromEnd}) onAdd;
+
+  /// „Novi prikaz" — a new demonstration after this one.
+  final VoidCallback onAddShow;
+
+  /// „Traži potez na tabli" / „Traži odgovor iz liste" — ask, here.
+  final void Function(LessonStepKind kind) onAsk;
+
   final void Function(int from, int to) onMove;
   final void Function(int index) onClone;
+  final void Function(int index) onRename;
   final void Function(int index) onRemove;
 
   static bool _isJoined(TutorialSection prev, TutorialSection curr) {
@@ -39,31 +58,15 @@ class TutorialSectionsPanel extends StatelessWidget {
   static String _fenKey(String fen) =>
       fen.trim().split(RegExp(r'\s+')).take(4).join(' ');
 
-  Future<void> _handleAdd(BuildContext context) async {
-    final continueFromEnd = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Gde počinje novi deo?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Otkaži'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Nova pozicija'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Nastavi odavde'),
-          ),
-        ],
-      ),
-    );
-    if (continueFromEnd != null) {
-      onAdd(continueFromEnd: continueFromEnd);
-    }
-  }
+  /// The chip that says what a part is.
+  ///
+  /// An icon as well as a word, and never colour alone: the one reader whose
+  /// live sign-off this project runs on cannot tell these apart by hue.
+  static (String, IconData) _chipOf(LessonStepKind kind) => switch (kind) {
+        LessonStepKind.show => ('Prikaz', Icons.visibility_outlined),
+        LessonStepKind.askMove => ('Potez', Icons.touch_app_outlined),
+        LessonStepKind.askChoice => ('Izbor', Icons.list_alt_outlined),
+      };
 
   Future<void> _handleDelete(BuildContext context) async {
     if (draft.sections.length <= 1) {
@@ -113,23 +116,45 @@ class TutorialSectionsPanel extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Delovi tutorijala',
+                  'Sadržaj tutorijala',
                   style:
                       AppText.title.copyWith(color: context.colors.textPrimary),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
+            // What comes next, said as the thing itself. The two questions act
+            // on the beat the trainer is standing on; „Novi prikaz" starts one
+            // after this part and asks which position it opens on.
+            // One Wrap, not two rows. The three actions and the housekeeping
+            // buttons flow together, which is what keeps the fixed part of this
+            // panel short enough for the narrowest wide window — 840 dp, where
+            // it overflowed by two pixels when they were separate.
             Wrap(
               spacing: AppSpacing.xs,
               runSpacing: AppSpacing.xs,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                OutlinedButton(
-                  onPressed: () => _handleAdd(context),
-                  child: const Text('+ Dodaj deo'),
+                OutlinedButton.icon(
+                  key: const Key('add-show'),
+                  onPressed: onAddShow,
+                  icon: const Icon(Icons.visibility_outlined, size: 18),
+                  label: const Text('Novi prikaz'),
+                ),
+                OutlinedButton.icon(
+                  key: const Key('ask-move'),
+                  onPressed: () => onAsk(LessonStepKind.askMove),
+                  icon: const Icon(Icons.touch_app_outlined, size: 18),
+                  label: const Text('Traži potez na tabli'),
+                ),
+                OutlinedButton.icon(
+                  key: const Key('ask-choice'),
+                  onPressed: () => onAsk(LessonStepKind.askChoice),
+                  icon: const Icon(Icons.list_alt_outlined, size: 18),
+                  label: const Text('Traži odgovor iz liste'),
                 ),
                 IconButton(
+                  visualDensity: VisualDensity.compact,
                   tooltip: 'Pomeri gore',
                   icon: const Icon(Icons.arrow_upward),
                   onPressed: canMoveUp
@@ -137,6 +162,7 @@ class TutorialSectionsPanel extends StatelessWidget {
                       : null,
                 ),
                 IconButton(
+                  visualDensity: VisualDensity.compact,
                   tooltip: 'Pomeri dole',
                   icon: const Icon(Icons.arrow_downward),
                   onPressed: canMoveDown
@@ -144,11 +170,19 @@ class TutorialSectionsPanel extends StatelessWidget {
                       : null,
                 ),
                 IconButton(
+                  visualDensity: VisualDensity.compact,
                   tooltip: 'Kloniraj deo',
                   icon: const Icon(Icons.copy),
                   onPressed: () => onClone(draft.selected),
                 ),
                 IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Preimenuj',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => onRename(draft.selected),
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
                   tooltip: 'Obriši deo',
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () => _handleDelete(context),
@@ -163,16 +197,15 @@ class TutorialSectionsPanel extends StatelessWidget {
                 shrinkWrap: true,
                 itemCount: draft.sections.length,
                 itemBuilder: (context, i) {
+                  final section = draft.sections[i];
                   final isSelected = i == draft.selected;
-                  final rawTitle = draft.sections[i].title.trim();
-                  // A tutorial written before „Primer" became „Deo" arrives from
-                  // the server with its old generated names, and nothing has
-                  // renumbered it yet — the screen only does that when a part is
-                  // added, moved, cloned or removed.
-                  final label =
-                      rawTitle.isEmpty || isGeneratedSectionTitle(rawTitle)
-                          ? generatedSectionTitle(i)
-                          : rawTitle;
+                  // The one function the wire uses too — see
+                  // [TutorialSection.toJson]. A row labelled from its index
+                  // over a stored title that says something else is batch 57's
+                  // finding, and computing the name once is the version of
+                  // that fix which cannot come apart.
+                  final label = section.label(i);
+                  final (chip, icon) = _chipOf(section.kind);
                   final hasJoin = i > 0 &&
                       _isJoined(draft.sections[i - 1], draft.sections[i]);
 
@@ -183,14 +216,31 @@ class TutorialSectionsPanel extends StatelessWidget {
                     shape: const RoundedRectangleBorder(
                       borderRadius: AppRadii.roundedSm,
                     ),
+                    leading: Tooltip(
+                      message: chip,
+                      child: Icon(
+                        icon,
+                        size: 18,
+                        color: isSelected
+                            ? context.colors.accent
+                            : context.colors.textSecondary,
+                      ),
+                    ),
                     title: Text(
                       label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: (isSelected ? AppText.bodyBold : AppText.body)
                           .copyWith(
                         color: isSelected
                             ? context.colors.textPrimary
                             : context.colors.textSecondary,
                       ),
+                    ),
+                    subtitle: Text(
+                      chip,
+                      style: AppText.caption
+                          .copyWith(color: context.colors.textSecondary),
                     ),
                     trailing: hasJoin
                         ? Tooltip(

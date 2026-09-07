@@ -125,7 +125,7 @@ List<TutorialSection> splitForQuestion(
 /// has nothing to split; and a part with no moves at all is already the bare
 /// position a question wants — the kind dropdown is the way to turn that one
 /// into a question.
-bool canSplitForQuestion(TutorialSection part, AnalysisNode cursor) =>
+bool canSplitForQuestion(TutorialSection part) =>
     part.kind == LessonStepKind.show && part.root.children.isNotEmpty;
 
 /// Makes the line from the root down to [node] the main line of its tree.

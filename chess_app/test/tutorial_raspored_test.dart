@@ -293,7 +293,14 @@ void main() {
         entry: TutorialEntry.saved(tallLesson()),
       );
 
-      final partBefore = tester.getRect(find.text('Deo 1'));
+      // The row is called by what the part says, since 7.9.2026 — and the
+      // same sentence is in the field the trainer typed it into, so the finder
+      // has to name the row rather than the string.
+      final row = find.descendant(
+        of: find.byType(ListTile),
+        matching: find.text('Šta beli postiže ovim potezom?'),
+      );
+      final partBefore = tester.getRect(row);
       final nameBefore = tester.getRect(
         find.byKey(const Key('tutorial-title')),
       );
@@ -309,7 +316,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        tester.getRect(find.text('Deo 1')),
+        tester.getRect(row),
         partBefore,
         reason: 'reading down the line carried the list of parts away, '
             'which is the thing this layout exists to stop',
@@ -447,7 +454,7 @@ void main() {
       // demanding it here would be a gate asking for work nobody briefed.
       await openAt(tester, const Size(700, 800));
       expect(tester.takeException(), isNull);
-      expect(find.text('Delovi tutorijala'), findsOneWidget);
+      expect(find.text('Sadržaj tutorijala'), findsOneWidget);
       await close(tester);
     });
   });

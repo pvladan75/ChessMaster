@@ -155,11 +155,33 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Adds a part, answering the question with [continueFromEnd].
+  /// Adds a demonstration, answering the position question with
+  /// [continueFromEnd].
+  ///
+  /// The words changed on 7.9.2026 and the two answers did not: „+ Dodaj deo"
+  /// became „Novi prikaz", and „Gde počinje novi deo?" — a question about
+  /// parts — became „Odakle počinje?", which is a question about a board. Every
+  /// assertion below about *where* a new part starts is unchanged.
   Future<void> addPart(WidgetTester tester,
       {bool continueFromEnd = true}) async {
-    await tapText(tester, '+ Dodaj deo');
-    await tapText(tester, continueFromEnd ? 'Nastavi odavde' : 'Nova pozicija');
+    await tester.tap(find.byKey(const Key('add-show')));
+    await tester.pumpAndSettle();
+    await tapText(tester, continueFromEnd ? 'Odavde' : 'Nova tabla');
+  }
+
+  /// Clicks a row of the panel by the name it is listed under.
+  ///
+  /// By the row and not by the text, because since 7.9.2026 a part is called by
+  /// its first sentence — and that sentence is also in the field the trainer
+  /// typed it into, so `find.text` matches two widgets. Same family as batch
+  /// 55's finder that stopped being unique once a second place for the string
+  /// existed.
+  Future<void> tapRow(WidgetTester tester, String label) async {
+    await tester.tap(find.descendant(
+      of: find.byType(ListTile),
+      matching: find.text(label),
+    ));
+    await tester.pumpAndSettle();
   }
 
   Future<void> type(WidgetTester tester, String key, String value) async {
@@ -170,7 +192,7 @@ void main() {
   group('the panel is the table of contents', () {
     testWidgets('every part is listed, numbered, by its name', (tester) async {
       await open(tester);
-      expect(find.text('Delovi tutorijala'), findsOneWidget);
+      expect(find.text('Sadržaj tutorijala'), findsOneWidget);
       expect(find.text('Deo 1'), findsOneWidget);
 
       await play(tester, 'e2', 'e4');
@@ -195,7 +217,7 @@ void main() {
 
       expect(tree(tester).rootNode.children.single.moveSan, 'd4');
 
-      await tapText(tester, 'Deo 1');
+      await tapRow(tester, 'Prvi deo govori ovo.');
 
       expect(tree(tester).rootNode.children.single.moveSan, 'e4',
           reason: 'the tree stayed on the part that was open before');
@@ -211,17 +233,17 @@ void main() {
   });
 
   group('adding a part', () {
-    testWidgets('asks where it begins', (tester) async {
+    testWidgets('asks which board it begins on', (tester) async {
       await open(tester);
-      await tapText(tester, '+ Dodaj deo');
-      expect(find.text('Gde počinje novi deo?'), findsOneWidget);
-      expect(find.text('Nastavi odavde'), findsOneWidget);
-      expect(find.text('Nova pozicija'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('add-show')));
+      await tester.pumpAndSettle();
+      expect(find.text('Odakle počinje?'), findsOneWidget);
+      expect(find.text('Odavde'), findsOneWidget);
+      expect(find.text('Nova tabla'), findsOneWidget);
       await close(tester);
     });
 
-    testWidgets('„Nastavi odavde" starts where this part’s line ended',
-        (tester) async {
+    testWidgets('„Odavde" starts where this part’s line ended', (tester) async {
       // What makes show → ask one board with no reset on the child's screen.
       await open(tester);
       await play(tester, 'e2', 'e4');
@@ -236,7 +258,7 @@ void main() {
       await close(tester);
     });
 
-    testWidgets('„Nova pozicija" starts on a board of its own', (tester) async {
+    testWidgets('„Nova tabla" starts on a board of its own', (tester) async {
       await open(tester);
       await play(tester, 'e2', 'e4');
       await addPart(tester, continueFromEnd: false);
@@ -248,7 +270,8 @@ void main() {
 
     testWidgets('saying neither adds nothing', (tester) async {
       await open(tester);
-      await tapText(tester, '+ Dodaj deo');
+      await tester.tap(find.byKey(const Key('add-show')));
+      await tester.pumpAndSettle();
       await tapText(tester, 'Otkaži');
 
       expect(find.text('Deo 2'), findsNothing);
@@ -269,7 +292,7 @@ void main() {
       // The selection follows the part, and the part brought its sentence.
       expect(find.widgetWithText(TextField, 'Ovo je drugi.'), findsOneWidget,
           reason: 'the row moved but the work behind it did not');
-      await tapText(tester, 'Deo 2');
+      await tapRow(tester, 'Ovo je prvi.');
       expect(find.widgetWithText(TextField, 'Ovo je prvi.'), findsOneWidget);
       await close(tester);
     });
@@ -295,7 +318,14 @@ void main() {
       await type(tester, 'example-sentence', 'Rečenica koja se kopira.');
       await tapTooltip(tester, 'Kloniraj deo');
 
-      expect(find.text('Deo 2'), findsOneWidget);
+      expect(
+          find.descendant(
+            of: find.byType(ListTile),
+            matching: find.text('Rečenica koja se kopira.'),
+          ),
+          findsNWidgets(2),
+          reason: 'the copy is listed beside the original, under the same '
+              'name — both are called by the sentence they carry');
       expect(find.widgetWithText(TextField, 'Rečenica koja se kopira.'),
           findsOneWidget,
           reason: 'the copy did not carry the work, or the trainer was left '

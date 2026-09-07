@@ -270,7 +270,11 @@ void main() {
       expect(example.toJson(), {
         'fen': openingFen,
         'pgn': '1. e4 e5',
-        'title': 'Primer 1',
+        // „Primer 1" was the stored name and is not the trainer's own: a part
+        // is called by what it says, and what this one says is its task. The
+        // part below says nothing at all and falls back to the number of its
+        // place. See `tutorial_section_label_test.dart`.
+        'title': 'Odigraj najbolji potez.',
         'instruction': 'Odigraj najbolji potez.',
         'kind': 'ask_move',
         'solutionSan': 'Nf3',
@@ -292,7 +296,7 @@ void main() {
       expect(example.toJson(), {
         'fen': openingFen,
         'pgn': '1. e4',
-        'title': 'Primer 1',
+        'title': 'Deo 1',
         'kind': 'show',
         'blackOrientation': false,
       });
