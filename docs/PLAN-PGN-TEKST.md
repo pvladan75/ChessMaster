@@ -103,6 +103,14 @@ the question card stays the question card.
 
 ### D5 — the spans come from the writer, never from re-tokenising
 
+*Built 7.9.2026, with one addition the plan had not foreseen:* the span types
+are a model of their own (`analysis_studio/models/pgn_span.dart`) and the text
+for the tab comes from `StudioLessonStep.textWithSpans`, not from the exporter
+directly. `tutorial_authoring_test` fails if anything under
+`lib/features/tutorial_studio/` imports `PgnExporterService` — the pairing of a
+step's `fen` and `pgn` has one home — and reading the map needed the types. The
+gate was right and stands unweakened.
+
 The right-click menu has to answer „which move is the caret in". That mapping
 comes from `PgnExporterService`, which writes into a `StringBuffer` node by node
 and therefore knows exactly where each node's text begins and ends: an optional
@@ -192,8 +200,8 @@ Each one is a line in a gate.
 |---|---|---|---|
 | **T1** | `exportWithSpans`: `(start, end, nodeId, kind)` per move and per comment. Headless tests | **lead**, done 7.9.2026 (`e45f004`) | fifteen tests, five mutations; `exportToPgn` delegates, so the old output is unchanged by construction |
 | **T2** | The „PGN" tab: text, legend, clean/dirty, „Primeni" through `LessonStepLine`, the refusals of §5 | **lead**, done 7.9.2026 (`e75e97d`) | thirteen tests; three of five mutations survived the first pass and each one bought a fix |
-| **T3** | The caret is the cursor (D2), both ways | worker | small, but only sensible once T2 exists |
-| **T4** | The right-click menu (D7), drawing through `BoardAnnotationController` | worker | needs T1 and T3 |
+| **T3** | The caret is the cursor (D2), both ways | **lead**, done 7.9.2026 (`b36ffe0`) | eight tests with T4; five mutations |
+| **T4** | The right-click menu (D7), drawing through `BoardAnnotationController` | **lead**, done 7.9.2026 (`b36ffe0`) | the menu draws nothing itself — it stands the cursor on the move and hands the board its mode |
 | **T5** | The `[FEN]` question (D6) and „paste a whole game" as its own live check | **lead** | it is the one branch that moves the board a child opens on |
 | **T6** | Docs: `TABELA-TUTORIJAL.md`, `STANJE-RADA.md`, `TODO-provera.md` | lead | as part of the work |
 

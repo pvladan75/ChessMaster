@@ -539,8 +539,20 @@ zaštita koja čuva neprimenjen tekst nije imala nijedan test — sada ima, iz
 drugog pokušaja, jer je prvi igrao crni potez iz pozicije u kojoj je beli na
 potezu.
 
-Sledi T3 (kursor u tekstu bira potez) i T4 (desni klik), pa T5 (pitanje o
-`[FEN]`-u).
+**T3 i T4 su gotovi istog dana** (`b36ffe0`). Kursor u tekstu bira potez i
+obrnuto — tabla i „Tok" idu za karetom, a karet ide za kursorom, ali nikad preko
+teksta koji trener piše a nije primenio. Desni klik nudi tri stvari za potez pod
+karetom; **strelica i polje ne crtaju sami**, nego postave kursor na taj potez i
+uključe režim na tabli, jer crtanje ima jedan dom od P7.
+
+Usput je jedno postojeće pravilo uhvatilo grešku i **bilo je u pravu**:
+`tutorial_authoring_test` obara sve pod `lib/features/tutorial_studio/` što
+uvozi `PgnExporterService`, jer par `fen`/`pgn` ima jedan dom. Tipovi raspona su
+sada zaseban model, a tekst za tab dolazi iz `StudioLessonStep.textWithSpans` —
+kapija stoji neoslabljena.
+
+Ostaje **T5** (pitanje o `[FEN]`-u kad se nalepi partija iz druge pozicije) i
+živa provera, tačka 120.
 
 **Sledeće nije više ovaj plan nego živa provera**: tačke 113–119 su jedna
 sesija na jednom ekranu, i sada ima na čemu — fajlovi iz `D:\chess books` daju

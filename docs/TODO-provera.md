@@ -4412,3 +4412,15 @@ spolja može da uđe u tutorijal, pa tačka 6 nije kozmetika nego cela poenta.
    „PGN": u tekstu stoji `[%cal ...]` na tom potezu.
 8. [ ] **Deo bez poteza.** Deo koji ima samo komentar prikazuje se u tabu kao
    zaglavlje i `{ … }` — i primena takvog teksta ga ne prazni.
+9. [ ] **Karet bira potez.** Klikni mišem unutar nekog poteza u tekstu — tabla
+   ode na tu poziciju, a u „Toku" se tekući takt preseli na taj potez.
+10. [ ] **I obrnuto.** Klikni karticu u „Toku" pa se vrati na „PGN" — karet
+    stoji na tom potezu (potez je označen).
+11. [ ] **Desni klik.** Desni klik unutar poteza daje tri stavke: „Dodaj
+    strelicu", „Označi polje", „Dodaj komentar". U praznini između poteza ih
+    nema, kao ni dok tekst piše „izmenjeno".
+12. [ ] **Strelica iz menija.** „Dodaj strelicu" postavi kursor na taj potez i
+    uključi crtanje — nacrtaj je na tabli i proveri da je u tekstu `[%cal ...]`
+    baš na tom potezu.
+13. [ ] **Komentar iz menija.** „Dodaj komentar" otvara polje sa postojećim
+    tekstom tog poteza; „Odustani" ne menja ništa.
