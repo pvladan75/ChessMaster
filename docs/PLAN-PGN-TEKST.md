@@ -69,8 +69,13 @@ paid for twice.
 
 What the reader is owed instead is a **legend**, one line above the field, in
 Serbian: what `[%cal]` and `[%csl]` mean and which letter is which colour
-(`G` zelena, `R` crvena, `B` plava, `O` narandžasta, `Y` žuta — from
+(`G` zelena, `R` crvena, `B` plava, `O` narandžasta, `P` ljubičasta — from
 `ArrowColor.all`, never typed out a second time).
+
+*Corrected 7.9.2026:* this said „`Y` žuta". The catalogue has five colours and
+yellow is not one of them; purple is the fifth. The legend in the built panel
+was right the whole time because it is generated from the catalogue — only the
+prose was wrong, which is the drift that generating it exists to prevent.
 
 ### D2 — one cursor, three surfaces
 

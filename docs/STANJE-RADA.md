@@ -561,6 +561,13 @@ ih je već znao: `fenHeaderOf` (jedini čitač `[FEN]` zaglavlja) i `samePositio
 
 **Stanje: 1667 testova, 1 preskočen; analizator 29; backend 956.**
 
+Napisano je i **[UPUTSTVO-STUDIO.md](UPUTSTVO-STUDIO.md)** (7.9.2026, srpski —
+namerno, publika su treneri): razlika između **takta** i **dela**, tri tipa
+zadatka, zašto pitanje ne sme da nosi liniju, format `[%cal]`/`[%csl]` sa
+slovima boja, i redosled rada. Poslednji odeljak je **prompt za model** koji iz
+knjige pravi gradivo, sa šest pravila koja je izlaz stvarno prekršio na
+fajlovima u `D:\chess books`.
+
 Ostaje **živa provera** — tačke 113–120, jedna sesija na jednom ekranu.
 
 **Sledeće nije više ovaj plan nego živa provera**: tačke 113–119 su jedna
