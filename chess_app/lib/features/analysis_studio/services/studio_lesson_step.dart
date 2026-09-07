@@ -1,4 +1,5 @@
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/models/pgn_span.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
 import 'package:chess_app/move_tree.dart';
@@ -49,6 +50,17 @@ class StudioLessonStep {
       reading: LessonStepLine.read(fen: fen, pgn: pgn),
     );
   }
+
+  /// The line as text, with the map of where each node sits inside it.
+  ///
+  /// **For showing, not for saving.** A save goes through [from], which pairs
+  /// the `fen` and the `pgn` and then reads its own work back through the
+  /// child's reader; this one is what the „PGN" tab draws and what its caret
+  /// and its right-click menu are aimed by. It lives here because the studio is
+  /// not allowed to reach for the exporter itself, and that rule is what keeps
+  /// the pairing in one place.
+  static PgnWithSpans textWithSpans(AnalysisNode anchor) =>
+      PgnExporterService.exportWithSpans(anchor);
 
   Map<String, dynamic> toJson({required String title}) => {
         'fen': fen,

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/models/pgn_span.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/move_tree.dart';
 

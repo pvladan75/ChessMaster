@@ -6,6 +6,8 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
+import 'package:chess_app/features/analysis_studio/models/pgn_span.dart';
+import 'package:chess_app/features/analysis_studio/services/studio_lesson_step.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart'
@@ -798,17 +800,62 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     ));
   }
 
-  /// The open part as text.
+  /// The open part as text, with the map of where each node sits in it.
   ///
-  /// `pgnForSave` answers with the exact text the server stored while the part
-  /// is untouched, which is the honest thing to show — and with `''` for a part
-  /// that carries nothing at all, where the export is headers and a `*`. The
-  /// field shows that rather than nothing, because an empty box says the tab is
-  /// broken while a header block says the part is empty.
-  String get _pgnOfOpenPart {
-    final section = _draft.section;
-    final saved = section.pgnForSave;
-    return saved.isNotEmpty ? saved : section.step.pgn;
+  /// **A fresh export, not `pgnForSave`.** That getter answers with the exact
+  /// text the server stored while the part is untouched — right for a save, and
+  /// wrong here: the spans describe the text the writer just wrote, and a
+  /// stored text formatted even slightly differently would put the caret and
+  /// the right-click menu on the wrong move. What is *sent* is still the stored
+  /// text; what is *shown* is the tree.
+  PgnWithSpans get _exportOfOpenPart =>
+      StudioLessonStep.textWithSpans(_draft.section.root);
+
+  /// The node with this id, anywhere in the open part's tree.
+  AnalysisNode? _nodeById(String id) {
+    AnalysisNode? walk(AnalysisNode node) {
+      if (node.id == id) return node;
+      for (final child in node.children) {
+        final hit = walk(child);
+        if (hit != null) return hit;
+      }
+      return null;
+    }
+
+    return walk(_root);
+  }
+
+  /// „Dodaj strelicu" and „Označi polje": stand on the move that was clicked and
+  /// hand the drawing to the board.
+  ///
+  /// **No second way of drawing is written.** The board and
+  /// `BoardAnnotationController` already do this, and a menu that put marks on
+  /// nodes by itself would be the second copy of a rule this repository has
+  /// paid for more than once.
+  void _drawFromText(String nodeId, AnnotationMode mode) {
+    final node = _nodeById(nodeId);
+    if (node == null) return;
+    if (node.id != _current.id) _jumpTo(node);
+    setState(() => _annotationController.setMode(mode));
+    AppFeedback.info(
+      context,
+      mode == AnnotationMode.arrow
+          ? 'Nacrtajte strelicu na tabli.'
+          : 'Kliknite polje na tabli.',
+    );
+  }
+
+  /// „Dodaj komentar": the words of one move, edited where the trainer asked.
+  Future<void> _editCommentFromText(String nodeId) async {
+    final node = _nodeById(nodeId);
+    if (node == null) return;
+    final saved = await showDialog<String>(
+      context: context,
+      builder: (_) => _CommentDialog(initial: node.comment),
+    );
+    if (!mounted || saved == null) return;
+    setState(() => node.comment = saved);
+    _persist();
   }
 
   /// Reads the trainer's text and, if it replays, makes it the part's line.
@@ -1270,8 +1317,16 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             // trainer's unapplied text alone, which `didUpdateWidget` decides.
             TutorialPgnPanel(
               key: ValueKey(_root.id),
-              pgn: _pgnOfOpenPart,
+              export: _exportOfOpenPart,
+              currentNodeId: _current.id,
               onApply: _applyPgn,
+              onCaretMoved: (id) {
+                final node = _nodeById(id);
+                if (node != null && node.id != _current.id) _jumpTo(node);
+              },
+              onDrawArrow: (id) => _drawFromText(id, AnnotationMode.arrow),
+              onMarkSquare: (id) => _drawFromText(id, AnnotationMode.square),
+              onEditComment: _editCommentFromText,
             ),
           ],
         ),
@@ -1317,6 +1372,59 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The one-field dialog behind „Dodaj komentar".
+///
+/// A `StatefulWidget` rather than a `TextEditingController` created beside
+/// `showDialog`, and that is a fix this repository has already paid for once:
+/// disposing on the dialog's future asserts, because the future completes on
+/// `pop` while the route is still animating out and the field is still being
+/// rebuilt. The controller has to belong to something that goes away with the
+/// route.
+class _CommentDialog extends StatefulWidget {
+  const _CommentDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_CommentDialog> createState() => _CommentDialogState();
+}
+
+class _CommentDialogState extends State<_CommentDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Komentar za ovaj potez'),
+      content: TextField(
+        key: const Key('pgn-comment-field'),
+        controller: _controller,
+        autofocus: true,
+        minLines: 2,
+        maxLines: null,
+        keyboardType: TextInputType.multiline,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Odustani'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: const Text('Sačuvaj'),
+        ),
+      ],
     );
   }
 }
