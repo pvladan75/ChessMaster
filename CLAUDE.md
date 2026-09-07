@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1727 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1730 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -515,6 +515,14 @@ words, drawings or moves under it: a dialog on every deletion is a dialog that
 gets dismissed unread. Three mutations, all three caught; the one worth keeping
 is that the cursor must leave a subtree before it is detached, or the board is
 left standing on a position the part no longer holds.
+
+**Three more, and the count is 1730 on 7.9.2026.** Two live findings that had
+been written down as „good, but…" under a fix that had just landed: „Primeni"
+put the trainer back on the opening position after they had typed a move on the
+end of the line, and a part added with „Odavde" came up White-side-down under a
+trainer who had turned the board. **A note filed under a green tick is still a
+report** — both of these were sitting inside items marked ok, and the wording
+that found them was „da, to je dobro, ali…".
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
