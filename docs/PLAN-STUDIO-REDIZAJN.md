@@ -463,13 +463,29 @@ warnings — and nothing newly suppressed.
 | **P4** | Biblioteka card: „Novi tutorijal" / „Otvori sačuvani tutorijal", both behind `isTutorialStudioAvailable`; the Analysis door demoted to „send this line into the studio" | worker (batch 56) | pure UI, no model |
 | **P5** | The split-view shell: board pane, sections panel with add/remove/reorder/clone, the tree tab where it is today | worker, high-reasoning | layout; reuses batch 55's semantics wholesale |
 | **P6** | The timeline: `beatsOf`, `_BeatCard`, fork chips, inline editing of comment and question | **lead writes `beatsOf` + its gate; worker builds the panel** | the pure function is the contract; the widget is replaceable |
-| **P7** | `BoardAnnotationController` extracted from the room; the annotation bar; marks written onto the node | worker | one extraction, two call sites |
+| **P7a** | `BoardAnnotationController` extracted from the room; the annotation bar; marks written onto the node **in the studio** | **lead writes the controller + its gate; worker builds the bar and the wiring** | the interaction is the contract; the bar is replaceable |
+| **P7b** | The **room** moved onto the controller — and first, the tests of the room's drawing that do not exist | **lead** | see below: this half was split off on 7.9.2026 |
 | **P8** | The four refusals of §7 live in the studio; „Pregledaj kao učenik"; `LessonStepEditorPanel` unlinked on Windows (D8) | **lead** | nothing is unlinked until its refusals are proved somewhere else |
 | **P9** | Docs: `STANJE-RADA.md`, `TODO-provera.md` live-check items, `CLAUDE.md` counts, `TABELA-TUTORIJAL.md` rows for D7 | lead | as part of the work, not afterwards |
 
 **Order.** P1 → P2 are serial and are the lead's. P3 and P4 can run in parallel
 with each other and with P5 once P2 lands. P6 needs P5. P7 is independent of
 everything after P1 and can run any time. P8 is last by definition.
+
+**P7 was split in two on 7.9.2026, and the reason is not symmetry with P5 and
+P6.** „One extraction, two call sites" reads as one job, and the extraction
+itself is: the controller landed with nineteen headless tests and six mutations
+before any batch was briefed. The second call site is the problem. The room
+(`chess_game_screen.dart`) has **no test of its drawing at all** — not one — and
+it is the screen a live lesson runs on, where an arrow drawn is also recorded
+into `timeline_json` and broadcast to the child's board. Rewiring it is a
+refactor of the highest-stakes screen in the app with nothing to catch a
+regression but a worker's report, which is the one thing this repository has
+written down that it will not do. So P7a gives the studio the feature it is
+missing, P7b moves the room, and P7b starts by writing the tests the room should
+have had. Until it lands, one rule lives in two places — a real cost, recorded
+here rather than pretended away, and bounded by the fact that the controller
+already exists and is the one that wins.
 
 **P1 and P2 are the batch that matters.** After them, „one screen" is a layout
 job. Before them, it is impossible.

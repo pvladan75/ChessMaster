@@ -433,11 +433,33 @@ treći probni build zaredom koji se isplatio.
 aplikaciji, 1 preskočen; `flutter analyze` — 29 stavki, sve `info`.** Backend
 nije diran i ostaje na 956.
 
-**Sledeći je P7** — izdvajanje `BoardAnnotationController` iz sobe i crtanje
-strelica i polja u studiju. Nezavisan je od svega posle P1 i može bilo kad; za
-njega još ništa nije napisano. Posle njega P8 (odbrane iz starog editora pa
-gašenje njegovog ulaza na Windows-u — ništa se ne gasi dok mu odbrane ne postoje
-drugde).
+**Sledeći je P7a — batch 61, i sve za njega je napisano.** Trener crta strelice
+i polja po tabli u studiju: model to nosi od faze 2 `PLAN-INTERAKTIVNA-LEKCIJA`,
+izvoznik piše `[%cal]` i `[%csl]`, dečji pregledač ih crta — a **niko ih nigde
+ne upisuje**. Svaka strelica u svakoj lekciji do sada je ukucana rukom u PGN.
+
+**Lead-ova polovina je već na `master`-u** (`e95b27e`):
+`BoardAnnotationController`, celo odlučivanje o tome šta klik znači, sa
+devetnaest testova bez ijednog widgeta i sedam mutacija — šest uhvaćeno, a sedma
+se nije mogla ni napisati, jer `clearArrows` fizički ne dobija polja. Kontroler
+drži *interakciju* i nikad oznake: oznake pripadaju čvoru, pa svaka metoda
+dobija dve liste i vraća da li se išta promenilo. Zadatak i brief su
+[TASK-studio-oznake.md](TASK-studio-oznake.md) i
+[brief-studio-oznake-2026-09.md](brief-studio-oznake-2026-09.md), kapija je
+`docs/gates/tutorial_oznake_test.dart` — jedanaest testova, na `master`-u
+izmereno **0 prolazi, 11 pada** (7.9.2026). Grana `batch/studio-oznake`; ostaje
+dozvola u `orchestrate.py` pre pokretanja.
+
+**P7 je namerno podeljen na dva, i razlog nije simetrija sa P5 i P6.** Drugo
+mesto poziva je soba, a **soba nema nijedan test svog crtanja** — a to je ekran
+na kome ide živi čas, gde se nacrtana strelica upisuje u `timeline_json` i šalje
+na dečju tablu. Prepravljati ga na osnovu izveštaja radnika je tačno ono što je
+u ovom repozitorijumu zapisano da se ne radi. Zato P7b (vođa) prvo piše te
+testove pa onda seli sobu na kontroler. Dotle jedno pravilo živi na dva mesta —
+stvarna cena, zapisana umesto prećutana.
+
+Posle toga P8 (odbrane iz starog editora pa gašenje njegovog ulaza na Windows-u
+— ništa se ne gasi dok mu odbrane ne postoje drugde).
 
 Dve stvari koje je P6b ostavio kao pitanje, a ne kao dug: da li kartice koje
 nisu tekuće treba da imaju nalepnicu nad poljem (sada je nemaju, i to je odluka
