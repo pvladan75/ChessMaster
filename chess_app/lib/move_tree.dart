@@ -353,15 +353,41 @@ class MoveTree {
     );
   }
 
+  /// The position a PGN says it starts from, or null when it says nothing.
+  ///
+  /// Named because two callers need it and one pattern is all there may be:
+  /// [parsePgn] uses it to decide where to start, and the studio's „PGN" tab
+  /// uses it to ask the trainer whether a pasted game's position becomes the
+  /// part's — a question that must be asked before the parse rather than
+  /// answered by it.
+  static String? fenHeaderOf(String pgn) =>
+      RegExp(r'\[[Ff][Ee][Nn]\s+"([^"]+)"\]').firstMatch(pgn)?.group(1);
+
+  /// Whether two FENs are the same position.
+  ///
+  /// Placement, side to move, castling and en passant — **not** the halfmove
+  /// clock or the move number. A line that walked to a position and a part
+  /// written from it are the same board to a child, and comparing whole strings
+  /// would make that depend on two counters nobody can see. Lived privately in
+  /// `LessonViewerScreen` until the studio needed the same question.
+  static bool samePosition(String a, String b) {
+    List<String> head(String fen) {
+      final parts = fen.trim().split(RegExp(r'\s+'));
+      return parts.length >= 4 ? parts.sublist(0, 4) : parts;
+    }
+
+    final x = head(a);
+    final y = head(b);
+    if (x.length != y.length) return false;
+    for (var i = 0; i < x.length; i++) {
+      if (x[i] != y[i]) return false;
+    }
+    return true;
+  }
+
   // Parse a cleaned single-game PGN string into this tree
   static MoveTree? parsePgn(String pgn, {String? startingFen}) {
-    String? extractedFen = startingFen;
-    if (extractedFen == null) {
-      final fenMatch = RegExp(r'\[[Ff][Ee][Nn]\s+"([^"]+)"\]').firstMatch(pgn);
-      if (fenMatch != null) {
-        extractedFen = fenMatch.group(1);
-      }
-    }
+    String? extractedFen = startingFen ?? fenHeaderOf(pgn);
     final actualStartingFen = extractedFen ??
         'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 

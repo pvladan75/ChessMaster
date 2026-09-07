@@ -30,6 +30,7 @@ import 'package:chess_app/features/tutorial_studio/widgets/tutorial_flow_panel.d
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_pgn_panel.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_sections_panel.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -76,6 +77,9 @@ import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 /// be dismissed by tapping beside it, which was read as „discard" and deleted
 /// an unfinished tutorial without a word.
 enum _DraftChoice { resume, fresh, cancel }
+
+/// What to do with the position a pasted PGN brought with it.
+enum _PastedPosition { take, keep, cancel }
 
 class TutorialStudioScreen extends StatefulWidget {
   const TutorialStudioScreen({
@@ -871,9 +875,24 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// watching a line they wrote come back shorter, with no error. The likeliest
   /// cause is not a typo but a game pasted from the initial position into a part
   /// that stands on move twelve, where every move is rejected at once.
-  void _applyPgn(String text) {
+  Future<void> _applyPgn(String text) async {
     final section = _draft.section;
-    final read = readStepTree(fen: section.root.fen, pgn: text);
+
+    // A pasted game usually carries its own `[FEN]`, and it is nearly always a
+    // different position from the one this part stands on — in which case every
+    // move is rejected at once and the count says nothing useful. So the
+    // question is asked **before** the parse, and only when the two positions
+    // really differ. Clocks are not part of that comparison: a line walked to
+    // here and a part written from here are the same board to a child.
+    var startFen = section.root.fen;
+    final header = MoveTree.fenHeaderOf(text);
+    if (header != null && !MoveTree.samePosition(header, startFen)) {
+      final answer = await _askAboutPastedPosition();
+      if (!mounted || answer == _PastedPosition.cancel) return;
+      if (answer == _PastedPosition.take) startFen = header;
+    }
+
+    final read = readStepTree(fen: startFen, pgn: text);
 
     if (read.rejectedMoves > 0) {
       AppFeedback.error(
@@ -902,6 +921,37 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     });
     _persist();
     AppFeedback.success(context, 'Primenjeno.');
+  }
+
+  /// Asked once, never assumed: taking the pasted position changes the board a
+  /// child opens this part on.
+  Future<_PastedPosition> _askAboutPastedPosition() async {
+    final answer = await showDialog<_PastedPosition>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Tekst počinje iz druge pozicije'),
+        content: const Text(
+          'Ovaj PGN nosi svoju polaznu poziciju, različitu od pozicije ovog '
+          'dela. Ako je uzmete, dete će ovaj deo otvarati na toj poziciji.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(_PastedPosition.cancel),
+            child: const Text('Odustani'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(_PastedPosition.keep),
+            child: const Text('Zadrži postojeću'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(_PastedPosition.take),
+            child: const Text('Uzmi tu poziciju'),
+          ),
+        ],
+      ),
+    );
+    return answer ?? _PastedPosition.cancel;
   }
 
   static String _movesWord(int count) {

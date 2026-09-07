@@ -139,7 +139,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     // the orientation there is a visible jump that says a new exercise has
     // started — which is exactly what it is not.
     final continues =
-        _shownFen.isNotEmpty && _samePosition(step.fen, _shownFen);
+        _shownFen.isNotEmpty && MoveTree.samePosition(step.fen, _shownFen);
 
     setState(() {
       _tree = tree;
@@ -326,7 +326,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   /// they are ready.
   bool get _nextStepContinuesHere {
     if (_stepIndex + 1 >= _steps.length) return false;
-    return _samePosition(_steps[_stepIndex + 1].fen, _lessonFen);
+    return MoveTree.samePosition(_steps[_stepIndex + 1].fen, _lessonFen);
   }
 
   /// The position the board was last put on by the lesson.
@@ -336,27 +336,6 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   /// and in that case the board must not be reloaded and the orientation must
   /// not be recomputed. Empty until the first step is loaded.
   String _shownFen = '';
-
-  /// Whether two FENs are the same position.
-  ///
-  /// Placement, side to move, castling and en passant — not the halfmove clock
-  /// or the move number. A demonstration that walked here and a question
-  /// written from here are the same board to a child, and comparing the whole
-  /// string would make the continuity depend on two counters nobody can see.
-  static bool _samePosition(String a, String b) {
-    List<String> head(String fen) {
-      final parts = fen.trim().split(RegExp(r'\s+'));
-      return parts.length >= 4 ? parts.sublist(0, 4) : parts;
-    }
-
-    final x = head(a);
-    final y = head(b);
-    if (x.length != y.length) return false;
-    for (var i = 0; i < x.length; i++) {
-      if (x[i] != y[i]) return false;
-    }
-    return true;
-  }
 
   /// True while the step's line is walking itself, a sentence at a time.
   bool _narrating = false;
