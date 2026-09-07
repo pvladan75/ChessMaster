@@ -142,6 +142,21 @@ void main() {
 
       expect(step.rejectedMoves, 0);
     });
+
+    test('a result marker glued to the last move', () {
+      // Reported live on 7.9.2026: a line typed into the studio's „PGN" tab
+      // was refused with „1 potez ne može da se odigra", and the move it
+      // named was legal. The star had no space in front of it, so the token
+      // was `Nxb4*` and the last move of the line was thrown away — the one
+      // shape where the count is above zero and the trainer is right.
+      final step = LessonStepLine.read(
+        fen: start,
+        pgn: '1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. b4 d5 5. exd5 Nxb4*',
+      );
+
+      expect(step.rejectedMoves, 0);
+      expect(step.line.movesSan.last, 'Nxb4');
+    });
   });
 
   test('a token that is not a move at all is counted', () {

@@ -455,6 +455,16 @@ class MoveTree {
         // [rejectedMoves] is read as "this line does not belong to this
         // position".
         cleanedToken = cleanedToken.replaceAll(RegExp(r'[!?□]+$'), '');
+        // A result marker written without a space in front of it. The whole
+        // text is swept for results above, but that sweep asks for a word
+        // boundary on **both** sides of the marker and `*` is not a word
+        // character — so `Nxb4*` at the end of a line survives it, reaches
+        // `chess` with the star still attached, and is counted as a move that
+        // cannot be played. That is a refusal of a line that is perfectly
+        // legal, and it is what a trainer sees when they type the last move
+        // over the exporter's ` *`.
+        cleanedToken =
+            cleanedToken.replaceAll(RegExp(r'(1-0|0-1|1/2-1/2|\*)$'), '');
 
         if (cleanedToken.isEmpty) continue;
 

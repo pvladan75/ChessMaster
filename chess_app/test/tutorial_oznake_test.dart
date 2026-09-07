@@ -60,7 +60,11 @@
 // **The cursor moving cancels a half-drawn arrow.** `pendingFrom` names a
 // square on the position the author was looking at; finishing that arrow after
 // the board has moved draws it somewhere nobody asked for. `cancelPending()` is
-// the call, and it deliberately does not leave drawing mode.
+// the call, and it deliberately does not leave drawing mode. *(Superseded on
+// 7.9.2026 by a live report: moving the cursor now leaves drawing mode
+// altogether. A toolbar still lit on a beat the trainer has only just arrived
+// at makes the next click draw when it looks like it will not. The call is
+// `stop()`, and „changing beat leaves drawing mode" below is the test.)*
 //
 // **Not this batch:** the room. `chess_game_screen.dart` keeps its private copy
 // for now — P7b moves it onto the controller, and it goes first through tests
@@ -386,6 +390,25 @@ void main() {
           reason: 'an arrow was finished across a move of the board, so it was '
               'drawn from a square on the position the author had left');
       expect(step.line.rootArrows, isEmpty);
+
+      await close(tester);
+    });
+
+    testWidgets('changing beat leaves drawing mode', (tester) async {
+      // Reported live on 7.9.2026. Forgetting the half-drawn arrow was not
+      // enough: the bar stayed lit across the jump, so the first click on the
+      // new beat's board drew a square instead of picking up a piece.
+      await open(tester);
+
+      await press(tester, 'annotate-arrow');
+      expect(board(tester).isDrawingMode, isTrue);
+
+      await tester.tap(find.byKey(const Key('beat-2')));
+      await tester.pumpAndSettle();
+
+      expect(board(tester).isDrawingMode, isFalse,
+          reason: 'the trainer has arrived somewhere new and the toolbar is '
+              'still lit');
 
       await close(tester);
     });

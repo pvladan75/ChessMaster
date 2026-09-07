@@ -414,8 +414,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       AnalysisNodeCursor(currentNode: _current, onSelect: _jumpTo);
 
   void _jumpTo(AnalysisNode node) {
-    _annotationController.cancelPending();
     setState(() {
+      // Drawing is left, not just interrupted. A half-drawn arrow was already
+      // forgotten here — it would otherwise land on a position its first
+      // square does not belong to — but the mode itself stayed on, so the next
+      // click on the new beat's board drew instead of doing what it looked
+      // like it would do. Asked for live on 7.9.2026: the toolbar must not
+      // still be lit on a beat the trainer has only just arrived at.
+      _annotationController.stop();
       _draft.section.cursorNode = node;
       _boardController.loadFen(node.fen);
       _lastMoveFrom = null;
