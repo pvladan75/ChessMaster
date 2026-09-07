@@ -4565,3 +4565,32 @@ Obe su iz stavke 121, gde su zapisane kao „dobro je, ali…".
 4. [ ] **Stari deo se ne dira.** Otvori sačuvan tutorijal sa delom koji je
    okrenut i delom koji nije, sačuvaj bez izmena — obe orijentacije su ostale
    kakve su bile.
+
+## 126. Sačuvani tutorijali: obriši i pošalji — 7.9.2026, nije viđeno uživo
+
+Iz žive provere 7.9.2026: „ne postoji mogućnost brisanja tutorijala" i
+„tutorijal ne može da se pošalje đaku". Oboje je bilo tačno za korisnika, a
+server je sve vreme imao i `DELETE /lessons/:id` i `POST /assignments/lesson` —
+aplikacija ih je zvala sa dva ekrana na koja onaj ko piše tutorijal nema zašto
+da svrati (spisak lekcija u sobi, i „Napredak učenika"). **Mogućnost koja
+postoji na svakom sloju, a ne može se dohvatiti odande gde korisnik ide, je
+mogućnost koju korisnik nema.**
+
+Dugme na kartici se sada zove **„Sačuvani tutorijali"**, ne „Otvori sačuvani
+tutorijal" — ko traži brisanje ne otvara vrata na kojima piše „otvori".
+
+1. [ ] **Spisak.** Biblioteka → „Sačuvani tutorijali": svaki red ima naziv i
+   dve ikonice — avionče („Pošalji učeniku") i kantu („Obriši tutorijal").
+2. [ ] **Otvaranje je i dalje tu.** Klik na naziv otvara tutorijal u studiju,
+   kao i pre.
+3. [ ] **Brisanje pita i imenuje.** Kanta pita „Obriši tutorijal?" i u pitanju
+   stoji naziv; „Odustani" ne briše ništa.
+4. [ ] **Posle brisanja spisak ostaje otvoren**, bez obrisanog reda, pa možeš
+   da obrišeš i drugi.
+5. [ ] **Obrisan je stvarno obrisan.** Zatvori pa opet otvori spisak — nema ga.
+6. [ ] **Slanje.** Avionče nudi spisak tvojih učenika; u njemu su **samo oni
+   koji su prihvatili poziv**. Izaberi jednog — poruka kaže da je poslato.
+7. [ ] **Kod deteta.** Uloguj se kao taj učenik: tutorijal stoji u zadacima i
+   otvara se.
+8. [ ] **Bez učenika.** Nalog bez ijednog prihvaćenog učenika dobija rečenicu,
+   a ne prazan spisak.

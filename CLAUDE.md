@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1730 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1737 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -523,6 +523,20 @@ end of the line, and a part added with „Odavde" came up White-side-down under 
 trainer who had turned the board. **A note filed under a green tick is still a
 report** — both of these were sitting inside items marked ok, and the wording
 that found them was „da, to je dobro, ali…".
+
+**Seven more, 1737 on 7.9.2026, and the lesson is about where a capability
+lives.** „Ne postoji mogućnost brisanja tutorijala" and „tutorijal ne može da
+se pošalje đaku" were both true for the user while the server had `DELETE
+/lessons/:id` and `POST /assignments/lesson`, and the app called both — from
+the lesson list inside a room, and from „Napredak učenika". **A capability that
+exists at every layer and is reachable from nowhere the user goes is a
+capability they do not have**, and no test of any layer can say so. Both live
+on the saved-tutorials list now, which is also why that button stopped saying
+„Otvori sačuvani tutorijal": somebody looking for a way to delete one does not
+open a door labelled „open". Two mutations worth keeping: a row leaves the list
+only when the server says it is gone, and a student who has not accepted the
+invitation is not offered — the same `status = 'accepted'` this repository has
+already lost three times.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

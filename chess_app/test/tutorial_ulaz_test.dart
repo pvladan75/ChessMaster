@@ -40,7 +40,7 @@
 //   'komentarom, strelicama i pitanjima.'                 the card's sentence
 //   'Novi tutorijal'                   the first button, and the name dialog's
 //                                      title
-//   'Otvori sačuvani tutorijal'        the second button, and the picker's title
+//   'Sačuvani tutorijali'        the second button, and the picker's title
 //   'Naziv tutorijala'                 the name field's label
 //   'Otkaži'                           on both dialogs
 //   'Napravi'                          confirms the name dialog
@@ -63,7 +63,7 @@
 //                         finding that out twenty minutes later is the expensive
 //                         way to learn it.
 //
-//   'Otvori sačuvani' ->  api.fetchAll(), keep the rows that are tutorials —
+//   'Sačuvani tutorijali' ->  api.fetchAll(), keep the rows that are tutorials —
 //                         `position_list` a non-empty List — then a dialog
 //                         listing their titles. Picking one opens
 //                         TutorialStudioScreen(entry: TutorialEntry.saved(row)),
@@ -229,7 +229,7 @@ void main() {
       await pump(tester);
       expect(find.text('Interaktivni tutorijali'), findsOneWidget);
       expect(find.text('Novi tutorijal'), findsOneWidget);
-      expect(find.text('Otvori sačuvani tutorijal'), findsOneWidget);
+      expect(find.text('Sačuvani tutorijali'), findsOneWidget);
     });
 
     testWidgets('everywhere else, it is not', (tester) async {
@@ -291,7 +291,7 @@ void main() {
     testWidgets('the list offers tutorials and not plain positions',
         (tester) async {
       await pump(tester, api: libraryApi());
-      await tester.tap(find.text('Otvori sačuvani tutorijal'));
+      await tester.tap(find.text('Sačuvani tutorijali'));
       await tester.pumpAndSettle();
 
       expect(find.text('Opozicija'), findsOneWidget);
@@ -303,7 +303,7 @@ void main() {
 
     testWidgets('picking one opens that tutorial, whole', (tester) async {
       await pump(tester, api: libraryApi());
-      await tester.tap(find.text('Otvori sačuvani tutorijal'));
+      await tester.tap(find.text('Sačuvani tutorijali'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Vezani top'));
       await tester.pumpAndSettle();
@@ -322,7 +322,7 @@ void main() {
 
     testWidgets('an empty library says so', (tester) async {
       await pump(tester, api: libraryApi(empty: true));
-      await tester.tap(find.text('Otvori sačuvani tutorijal'));
+      await tester.tap(find.text('Sačuvani tutorijali'));
       await tester.pumpAndSettle();
 
       expect(find.text('Nemate nijedan sačuvan tutorijal.'), findsOneWidget,
@@ -336,7 +336,7 @@ void main() {
       // that is drawn either way. So „nothing saved" and „could not reach the
       // server" arrive here identically unless this card asks.
       await pump(tester, api: libraryApi(fail: true));
-      await tester.tap(find.text('Otvori sačuvani tutorijal'));
+      await tester.tap(find.text('Sačuvani tutorijali'));
       await tester.pumpAndSettle();
 
       expect(find.text('Ne mogu da učitam listu tutorijala.'), findsOneWidget);
