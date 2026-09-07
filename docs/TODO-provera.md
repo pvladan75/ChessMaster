@@ -4642,3 +4642,31 @@ može postaviti, i sada je zasnovano na čitanju a ne na pogađanju.
 6. [ ] **Ništa se ne pita kad nema zašto.** Fragment koji se uredno igra iz
    pozicije ovog dela (npr. dopisan potez na kraj linije) primenjuje se bez
    ijednog pitanja, kao i pre.
+
+## 129. Tuđi tutorijali nisu na tvojoj polici — 8.9.2026, nije viđeno uživo
+
+Iz žive provere 8.9.2026: „učenik vidi sve tutorijale trenera" i „ne može da
+sačuva promene, ali može da menja". Provereno u kodu: **nije tako da su
+tutorijali dostupni svim nalozima.** `GET /lessons` vraća tri stvari — tvoje,
+one gde si ti trener, i sve što su sačuvali treneri koji su **tebe prihvatili**;
+ta treća grupa je označena poljem `is_trainer_lesson`. Pisanje je zatvoreno na
+sva tri puta (izmena, brisanje i kloniranje traže `user_id` ili `trainer_id`),
+pa promena nikad nije mogla da se sačuva — što si i video.
+
+Greška je bila da spisak „Sačuvani tutorijali" jedini nije gledao tu oznaku,
+iako je soba deli u dve sekcije a „Dodeli lekciju" po njoj filtrira. Od
+7.9.2026 je bilo i gore: na tuđem redu su stajale kanta i avionče koje taj
+nalog nikad ne bi mogao da upotrebi.
+
+1. [ ] **Kod učenika je polica prazna** (ili ima samo ono što je sam napisao).
+   Uloguj se kao učenik na Windows-u, Biblioteka → „Sačuvani tutorijali":
+   trenerovih tutorijala nema.
+2. [ ] **Kod trenera je sve na svom mestu** — svi njegovi tutorijali, sa sve
+   tri akcije.
+3. [ ] **Zadaci se ne diraju.** Tutorijal koji je trener **poslao** učeniku i
+   dalje stoji u zadacima i otvara se — to je drugi put i on ostaje.
+
+**Ostaje odluka za tebe, nije popravljeno:** da li učenik uopšte treba da u
+listi lekcija vidi sve što je trener ikad sačuvao (soba to prikazuje u sekciji
+„od trenera"). To je smisao `acceptedTrainersOf` i dira zadatke i lekcije, pa
+nije stvar za usput.

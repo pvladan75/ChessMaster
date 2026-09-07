@@ -172,6 +172,23 @@ LessonApiService libraryApi({bool fail = false, bool empty = false}) =>
                       },
                     ],
                   },
+                  // Somebody else's. `GET /lessons` hands a student everything
+                  // the trainers who teach them have ever saved, and marks it
+                  // with this flag — the same one the room's lesson list
+                  // splits its two sections by.
+                  {
+                    'id': 15,
+                    'title': 'Trenerov tutorijal',
+                    'is_trainer_lesson': true,
+                    'position_list': [
+                      {
+                        'id': 'step0003',
+                        'fen': openingFen,
+                        'title': 'Prvi deo',
+                        'kind': 'show',
+                      },
+                    ],
+                  },
                 ]),
           200,
           headers: {'content-type': 'application/json; charset=utf-8'},
@@ -299,6 +316,11 @@ void main() {
       expect(find.text('Samo pozicija'), findsNothing,
           reason: 'a row with no position_list is a diagram, and opening the '
               'studio on it opens a tutorial with no parts');
+      expect(find.text('Trenerov tutorijal'), findsNothing,
+          reason: 'this shelf is what this account has written. A student on '
+              'Windows opened their trainer’s tutorial from here, edited it, '
+              'and was refused only at save — and since the row carries a bin '
+              'and a „pošalji", two more actions they could never use');
     });
 
     testWidgets('picking one opens that tutorial, whole', (tester) async {

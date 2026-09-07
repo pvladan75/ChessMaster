@@ -178,18 +178,31 @@ class TutorialLibraryCard extends StatelessWidget {
       return;
     }
 
+    // Two questions, and the second one is newer than this card.
+    //
+    // A row with no `position_list` is a diagram rather than a tutorial, and
+    // opening the studio on it opens something with no parts.
+    //
+    // And `is_trainer_lesson` is true for exactly the rows `GET /lessons`
+    // reaches through `acceptedTrainersOf` — everything the trainers who teach
+    // this account have ever saved. **This is somebody else's work**, and it
+    // has no business on the shelf a trainer writes from: a student on Windows
+    // opened one in the studio, edited it, and found out only at save, where
+    // the server refused them. Reported live on 8.9.2026. Since 7.9.2026 the
+    // row also carries a bin and a „pošalji" they could never have used — an
+    // action drawn where it cannot work, which is the fault this list had just
+    // been fixed to stop being.
+    //
+    // The flag is the same one `chess_game_screen`'s lesson list splits its two
+    // sections by, and the one `assign_lesson_dialog` already filters on; this
+    // was the one reader that ignored it.
     final tutorials = <Map<String, dynamic>>[];
     for (final item in rawRows) {
-      if (item is Map<String, dynamic>) {
-        final posList = item['position_list'];
-        if (posList is List && posList.isNotEmpty) {
-          tutorials.add(item);
-        }
-      } else if (item is Map) {
-        final posList = item['position_list'];
-        if (posList is List && posList.isNotEmpty) {
-          tutorials.add(Map<String, dynamic>.from(item));
-        }
+      if (item is! Map) continue;
+      if (item['is_trainer_lesson'] == true) continue;
+      final posList = item['position_list'];
+      if (posList is List && posList.isNotEmpty) {
+        tutorials.add(Map<String, dynamic>.from(item));
       }
     }
 

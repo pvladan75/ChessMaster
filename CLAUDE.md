@@ -574,6 +574,21 @@ that also rejects moves would trade one silent loss for another. When nothing
 can be offered, the refusal now says the text carries no starting position,
 which is the answer to „why did it not ask me anything?".
 
+**One more the same day, and it is a lesson about a flag with three readers.**
+A student on Windows opened their trainer's tutorial from „Sačuvani
+tutorijali", edited it, and was refused only at save. `GET /lessons` hands an
+account everything the trainers who teach them have saved, marked
+`is_trainer_lesson`; every write path is closed (`user_id = me OR trainer_id =
+me` on update, delete and clone), so nothing leaked and nothing could be
+changed. **The card was simply the one reader of that flag that ignored it** —
+the room's lesson list splits its two sections by it and „Dodeli lekciju"
+filters on it. Worth noticing what it cost the day before: the bin and the
+„pošalji" added on 7.9.2026 were being drawn on rows the account could never
+act on, one commit after a lesson about exactly that. **When a flag says
+„somebody else's", every list that draws actions has to read it**, and the way
+to find the readers is to grep the flag rather than to trust that the newest
+list was written knowing about it.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.
