@@ -522,10 +522,25 @@ na potez u tom tekstu. Ne menja model: oba smera već postoje
 `LessonStepLine` ih čita nazad i broji `rejectedMoves`). Usput zatvara rupu koja
 je ostala posle razgovora o PDF-ovima: **aplikacija nema vrata za anotiranu
 liniju napravljenu bilo gde drugde**, jer jedini uvoz PGN-a ide kroz
-`_importPgn`, koji baca komentare, oznake i varijante. **T1 je gotov istog dana** (`e45f004`): `exportWithSpans` vraća isti tekst plus
-`(start, end, nodeId, kind)` za svaki potez i svaki komentar — petnaest testova
-bez ijednog widgeta, pet mutacija, sve uhvaćene. Sledi T2 (tab), i T2 sam po
-sebi vredi.
+`_importPgn`, koji baca komentare, oznake i varijante. **T1 i T2 su gotovi istog dana** (`e45f004`, `e75e97d`), oba vođa.
+`exportWithSpans` vraća isti tekst plus `(start, end, nodeId, kind)` za svaki
+potez i svaki komentar (petnaest testova bez ijednog widgeta, pet mutacija, sve
+uhvaćene), a studio ima treći tab **„PGN"**: tekst dela sa komentarima,
+`[%cal]`, `[%csl]` i varijantama, i „Primeni" koje čita nazad kroz
+`LessonStepLine`. **Time su otvorena vrata kojih nije bilo** — anotirana linija
+iz knjige, iz motora ili iz onoga što model napiše iz PDF-a više ne mora da se
+prekucava potez po potez.
+
+U T2 su **tri od pet mutacija preživele prvi prolaz** i svaka je platila
+popravku: test odbijanja nije umeo da razlikuje „odbijeno" od „primenjeno bez
+poteza koji nije pročitan"; brisanje sačuvanog teksta pri primeni nije radilo
+ništa (`treeSignature` ionako vidi novo stablo, pa je taj red obrisan); a
+zaštita koja čuva neprimenjen tekst nije imala nijedan test — sada ima, iz
+drugog pokušaja, jer je prvi igrao crni potez iz pozicije u kojoj je beli na
+potezu.
+
+Sledi T3 (kursor u tekstu bira potez) i T4 (desni klik), pa T5 (pitanje o
+`[FEN]`-u).
 
 **Sledeće nije više ovaj plan nego živa provera**: tačke 113–119 su jedna
 sesija na jednom ekranu, i sada ima na čemu — fajlovi iz `D:\chess books` daju

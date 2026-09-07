@@ -4386,3 +4386,29 @@ P8. Poslednja tačka `PLAN-STUDIO-REDIZAJN`-a. Ide uz 113–118, isti prolaz.
    **ništa ne šalje na server** — odgovori u pregledu ne upisuju pokušaj.
 7. [ ] **„Uredi" na Windows-u otvara studio**, a ne stari editor koraka. Na
    Android telefonu isti tutorijal se i dalje uređuje starim editorom.
+
+
+## 120. „PGN" tab u studiju — 7.9.2026, nije viđeno uživo
+
+T1 i T2 iz `docs/PLAN-PGN-TEKST.md`. Ovo je i jedini put kojim anotirana linija
+spolja može da uđe u tutorijal, pa tačka 6 nije kozmetika nego cela poenta.
+
+1. [ ] **Tab pokazuje deo.** Otvori deo sa nekoliko poteza i komentarom: u tabu
+   „PGN" stoji tekst sa tim potezima i komentarom u vitičastim zagradama.
+2. [ ] **Legenda.** Iznad polja piše šta su `[%cal]` i `[%csl]` i koje slovo je
+   koja boja — proveri da ih ima **pet**.
+3. [ ] **Kucanje ništa ne menja dok ne pritisneš „Primeni".** Ukucaj drugu
+   liniju, pređi na „Tok" — stara linija je i dalje tamo; vrati se na „PGN" —
+   tvoj tekst je i dalje tu, i piše „izmenjeno".
+4. [ ] **Primeni.** Pritisni „Primeni": „Tok" i tabla pokazuju novu liniju, a
+   oznaka pređe na „primenjeno".
+5. [ ] **Odbijanje.** Ukucaj liniju sa potezom koji se ne može odigrati —
+   poruka kaže **koliko** poteza, i deo ostaje nepromenjen.
+6. [ ] **Nalepi pravu partiju.** Uzmi anotiranu partiju sa komentarima i
+   `[%cal]`/`[%csl]` (Lichess, knjiga, ili izlaz iz `D:\chess books`), nalepi
+   je u deo koji počinje iz iste pozicije i primeni — **komentari, strelice i
+   varijante moraju da prežive**. Pa je pogledaj kroz „Pregledaj kao učenik".
+7. [ ] **Crtanje i tekst se slažu.** Nacrtaj strelicu po tabli pa pogledaj tab
+   „PGN": u tekstu stoji `[%cal ...]` na tom potezu.
+8. [ ] **Deo bez poteza.** Deo koji ima samo komentar prikazuje se u tabu kao
+   zaglavlje i `{ … }` — i primena takvog teksta ga ne prazni.

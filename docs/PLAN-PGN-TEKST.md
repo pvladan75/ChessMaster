@@ -155,9 +155,14 @@ authoring pane, lower half
 ```
 
 The tab's name is **„PGN"** rather than „Tekst": the trainer this is for uses
-the word, and it says what the field will refuse. It goes in
-`docs/TABELA-TUTORIJAL.md` with „Tok" and „Stablo" and is enforced by
-`tutorial_vocabulary_test.dart`.
+the word, and it says what the field will refuse.
+
+*Corrected while building T2:* this said the name goes in
+`docs/TABELA-TUTORIJAL.md` beside „Tok" and „Stablo". It does not. That file is
+the contract of the vocabulary sweep — the rows that turned „lekcija" and „kurs"
+into „tutorijal" — and neither tab name was ever in it. There is nothing to add
+there, and nothing enforcing these three names but the tests that drive the
+tabs.
 
 ## 5. What must not be lost
 
@@ -186,7 +191,7 @@ Each one is a line in a gate.
 | | what | who | why there |
 |---|---|---|---|
 | **T1** | `exportWithSpans`: `(start, end, nodeId, kind)` per move and per comment. Headless tests | **lead**, done 7.9.2026 (`e45f004`) | fifteen tests, five mutations; `exportToPgn` delegates, so the old output is unchanged by construction |
-| **T2** | The „PGN" tab: text, legend, clean/dirty, „Primeni" through `LessonStepLine`, the refusals of §5 | worker | one widget, one wiring; the reader already exists |
+| **T2** | The „PGN" tab: text, legend, clean/dirty, „Primeni" through `LessonStepLine`, the refusals of §5 | **lead**, done 7.9.2026 (`e75e97d`) | thirteen tests; three of five mutations survived the first pass and each one bought a fix |
 | **T3** | The caret is the cursor (D2), both ways | worker | small, but only sensible once T2 exists |
 | **T4** | The right-click menu (D7), drawing through `BoardAnnotationController` | worker | needs T1 and T3 |
 | **T5** | The `[FEN]` question (D6) and „paste a whole game" as its own live check | **lead** | it is the one branch that moves the board a child opens on |
