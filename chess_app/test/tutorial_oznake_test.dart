@@ -395,8 +395,8 @@ void main() {
 
       await press(tester, 'annotate-arrow');
 
-      expect(board(tester).isAllowedToMove || board(tester).isDrawingMode,
-          isTrue);
+      expect(
+          board(tester).isAllowedToMove || board(tester).isDrawingMode, isTrue);
       expect(board(tester).isDrawingMode, isTrue,
           reason: 'the board still takes piece taps while the trainer is '
               'drawing, so a drawing gesture grows the tree');
