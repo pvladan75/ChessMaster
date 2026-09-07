@@ -22,8 +22,10 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
+import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_flow_panel.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_pgn_panel.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_sections_panel.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
@@ -796,6 +798,71 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     ));
   }
 
+  /// The open part as text.
+  ///
+  /// `pgnForSave` answers with the exact text the server stored while the part
+  /// is untouched, which is the honest thing to show — and with `''` for a part
+  /// that carries nothing at all, where the export is headers and a `*`. The
+  /// field shows that rather than nothing, because an empty box says the tab is
+  /// broken while a header block says the part is empty.
+  String get _pgnOfOpenPart {
+    final section = _draft.section;
+    final saved = section.pgnForSave;
+    return saved.isNotEmpty ? saved : section.step.pgn;
+  }
+
+  /// Reads the trainer's text and, if it replays, makes it the part's line.
+  ///
+  /// Through `readStepTree` — that is `LessonStepLine`, the reader the child's
+  /// screen uses. Nothing here parses a PGN a second way, which is the rule
+  /// `step_tree.dart` carries and the reason this tab is a rendering rather
+  /// than a second editor.
+  ///
+  /// **Refused rather than partly applied.** `MoveTree.parsePgn` skips a move it
+  /// cannot play without a word, so a text with one bad move would otherwise
+  /// replace the part with the moves it happened to understand — the trainer
+  /// watching a line they wrote come back shorter, with no error. The likeliest
+  /// cause is not a typo but a game pasted from the initial position into a part
+  /// that stands on move twelve, where every move is rejected at once.
+  void _applyPgn(String text) {
+    final section = _draft.section;
+    final read = readStepTree(fen: section.root.fen, pgn: text);
+
+    if (read.rejectedMoves > 0) {
+      AppFeedback.error(
+        context,
+        'Nije primenjeno: ${read.rejectedMoves} '
+        '${_movesWord(read.rejectedMoves)} ne može da se odigra iz pozicije '
+        'ovog dela.',
+      );
+      return;
+    }
+
+    setState(() {
+      section.root = read.root;
+      section.cursorNode = read.root;
+      // Nothing to invalidate by hand. `isPristine` compares `treeSignature`
+      // against the tree itself, and this is a different tree — which is the
+      // whole reason P1 chose a signature over a `bool edited`: a flag is the
+      // version of this that one mutator forgets to set. Deleting the stored
+      // text here was watched surviving a mutation, because it was doing
+      // nothing.
+
+      _annotationController.cancelPending();
+      _boardController.loadFen(read.root.fen);
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
+    });
+    _persist();
+    AppFeedback.success(context, 'Primenjeno.');
+  }
+
+  static String _movesWord(int count) {
+    if (count == 1) return 'potez';
+    if (count >= 2 && count <= 4) return 'poteza';
+    return 'poteza';
+  }
+
   Future<void> _saveTutorial() async {
     if (_titleController.text.trim().isEmpty) {
       AppFeedback.error(context, 'Tutorijal mora da ima naziv.');
@@ -1169,6 +1236,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               isSelected: _selectedTab == 1,
               onTap: () => setState(() => _selectedTab = 1),
             ),
+            const SizedBox(width: AppSpacing.xs),
+            _tabButton(
+              key: const Key('pgn-tab'),
+              label: 'PGN',
+              isSelected: _selectedTab == 2,
+              onTap: () => setState(() => _selectedTab = 2),
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.xs),
@@ -1189,6 +1263,15 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               rootNode: _root,
               activeNode: _current,
               onSelectNode: _jumpTo,
+            ),
+            // Keyed by the tree it is showing: a new part, or a text that has
+            // just been applied, is a different line and the field follows it.
+            // Anything else — a move played, an arrow drawn — leaves the
+            // trainer's unapplied text alone, which `didUpdateWidget` decides.
+            TutorialPgnPanel(
+              key: ValueKey(_root.id),
+              pgn: _pgnOfOpenPart,
+              onApply: _applyPgn,
             ),
           ],
         ),
