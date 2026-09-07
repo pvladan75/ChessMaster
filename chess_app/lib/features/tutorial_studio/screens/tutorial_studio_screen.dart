@@ -24,6 +24,8 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/game_screen/board_annotation_bar.dart';
+import 'package:chess_app/widgets/game_screen/board_annotation_controller.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
@@ -85,6 +87,8 @@ class TutorialStudioScreen extends StatefulWidget {
 
 class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   final ChessBoardController _boardController = ChessBoardController();
+  final BoardAnnotationController _annotationController =
+      BoardAnnotationController();
 
   late final LessonApiService _lessonApi =
       widget.lessonApi ?? LessonApiService(authToken: widget.session.token);
@@ -292,6 +296,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// Fills the fields from the part that is open. Every write in this direction
   /// bumps [_fieldsEpoch].
   void _loadSelectedSection() {
+    _annotationController.cancelPending();
     final section = _draft.section;
     _titleController.text = _draft.title;
     _instructionController.text = section.instruction ?? '';
@@ -354,6 +359,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       AnalysisNodeCursor(currentNode: _current, onSelect: _jumpTo);
 
   void _jumpTo(AnalysisNode node) {
+    _annotationController.cancelPending();
     setState(() {
       _draft.section.cursorNode = node;
       _boardController.loadFen(node.fen);
@@ -370,6 +376,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// where they are, and leaving it showing a position the tree does not hold is
   /// how the two quietly part company.
   void _onMove(String from, String to, String promotion) {
+    _annotationController.cancelPending();
     final played = playedMove(
       fen: _current.fen,
       from: from,
@@ -407,6 +414,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   /// Starts the part over on [fen], with nothing written after it.
   void _startFrom(String fen) {
+    _annotationController.cancelPending();
     setState(() {
       final fresh = AnalysisNode(fen: fen);
       _draft.section
@@ -541,22 +549,35 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                   boardOrientation: _orientation,
                   boardSize: inner,
                   isAllowedToMove: true,
-                  isDrawingMode: false,
-                  drawingStartSquare: null,
-                  // The arrows and the rings the trainer drew on this move. The
-                  // node has carried them since phase 2 of the interactive
-                  // lesson plan; the editor that writes them is P7 of the
-                  // redesign.
+                  isDrawingMode: _annotationController.isDrawing,
+                  drawingStartSquare: _annotationController.pendingFrom,
+                  // The arrows and the rings the trainer drew on this move.
+                  // The node has carried them since phase 2 of the interactive
+                  // lesson plan and nothing wrote one until P7a: every arrow in
+                  // every lesson before that got there by being typed into a
+                  // PGN by hand. The bar below writes them now, through
+                  // `BoardAnnotationController`.
                   arrows: _current.arrows,
                   squares: _current.squares,
                   engineArrows: const [],
                   lastMoveFrom: _lastMoveFrom,
                   lastMoveTo: _lastMoveTo,
                   onMove: _onMove,
-                  onSquareTapForDrawing: (_) {},
+                  onSquareTapForDrawing: _onSquareTapForDrawing,
                 ),
               ),
             ),
+          ),
+        ),
+        SizedBox(
+          width: boardSize,
+          child: BoardAnnotationBar(
+            mode: _annotationController.mode,
+            selectedColorCode: _annotationController.colorCode,
+            onArrowPressed: _toggleArrowMode,
+            onSquarePressed: _toggleSquareMode,
+            onColorSelected: _selectColor,
+            onClearPressed: _clearMarks,
           ),
         ),
         SizedBox(
@@ -570,6 +591,55 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         ),
       ],
     );
+  }
+
+  void _toggleArrowMode() {
+    setState(() {
+      if (_annotationController.mode == AnnotationMode.arrow) {
+        _annotationController.stop();
+      } else {
+        _annotationController.setMode(AnnotationMode.arrow);
+      }
+    });
+  }
+
+  void _toggleSquareMode() {
+    setState(() {
+      if (_annotationController.mode == AnnotationMode.square) {
+        _annotationController.stop();
+      } else {
+        _annotationController.setMode(AnnotationMode.square);
+      }
+    });
+  }
+
+  void _selectColor(String code) {
+    setState(() {
+      _annotationController.setColor(code);
+    });
+  }
+
+  void _clearMarks() {
+    final changed = _annotationController.clearMarks(
+      arrows: _current.arrows,
+      squares: _current.squares,
+    );
+    if (changed) {
+      setState(() {});
+      _persist();
+    }
+  }
+
+  void _onSquareTapForDrawing(String square) {
+    final changed = _annotationController.tap(
+      square,
+      arrows: _current.arrows,
+      squares: _current.squares,
+    );
+    setState(() {});
+    if (changed) {
+      _persist();
+    }
   }
 
   /// Puts the generated names back in order after the parts have moved.
