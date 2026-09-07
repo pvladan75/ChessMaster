@@ -9,7 +9,14 @@ import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.d
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
+    show
+        Assignment,
+        AssignmentDetail,
+        AssignmentItem,
+        LessonStep,
+        LessonStepKind;
+import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
+import 'package:chess_app/features/lessons/widgets/preview_assignment_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
@@ -469,6 +476,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             tooltip: 'Unos pozicije',
             onPressed: _showSetupDialog,
           ),
+          TextButton(
+            key: const Key('preview-as-student'),
+            onPressed: _previewAsStudent,
+            child: const Text('Pregledaj kao učenik'),
+          ),
           FilledButton(
             onPressed: _saveTutorial,
             child: const Text('Sačuvaj tutorijal'),
@@ -708,6 +720,40 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _loadSelectedSection();
     setState(() {});
     _persist();
+  }
+
+  /// The tutorial as a child will meet it, without saving anything.
+  ///
+  /// It was buried in `LessonStepEditorPanel`, which D8 retires on Windows, and
+  /// it is the fastest answer to „does this feel right" that this screen can
+  /// give — so it comes across rather than being lost with the panel.
+  ///
+  /// **Nothing is sent.** The draft is projected into an `AssignmentDetail` and
+  /// the viewer is handed `PreviewAssignmentApiService`, which answers every
+  /// call locally: a trainer trying their own question does not mark a child's
+  /// schedule, and a preview that wrote to the server would be a save nobody
+  /// asked for.
+  void _previewAsStudent() {
+    _syncSelectedSection();
+    final steps = _draft.positionList;
+
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => LessonViewerScreen(
+        session: widget.session,
+        detail: AssignmentDetail(
+          assignment: Assignment(
+            id: _draft.lessonId ?? 0,
+            title: _titleController.text.trim(),
+          ),
+          items: [
+            for (var i = 0; i < steps.length; i++)
+              AssignmentItem(puzzleId: null, position: i, attemptedAt: null),
+          ],
+          steps: steps.map(LessonStep.fromJson).toList(),
+        ),
+        api: PreviewAssignmentApiService(),
+      ),
+    ));
   }
 
   Future<void> _saveTutorial() async {

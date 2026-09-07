@@ -16,7 +16,6 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
-import 'package:chess_app/features/lessons/widgets/lesson_step_editor_panel.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -34,6 +33,7 @@ import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/theme/arrow_colors.dart';
+import 'package:chess_app/features/tutorial_studio/tutorial_editor_entry.dart';
 import 'package:chess_app/widgets/game_screen/arrow_color_button.dart';
 import 'package:chess_app/widgets/game_screen/board_annotation_controller.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
@@ -1788,17 +1788,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   void _openTutorialEditor(Map<String, dynamic> lesson) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => Scaffold(
-        appBar: AppBar(
-          title: Text(lesson['title']?.toString() ?? 'Koraci tutorijala'),
-        ),
-        body: LessonStepEditorPanel(
-          session: widget.userSession,
-          api: _lessonApi,
-          lesson: lesson,
-        ),
-      ),
+    unawaited(openTutorialEditor(
+      context,
+      session: widget.userSession,
+      api: _lessonApi,
+      lesson: lesson,
     ));
   }
 

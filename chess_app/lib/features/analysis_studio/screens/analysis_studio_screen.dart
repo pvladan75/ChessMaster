@@ -58,9 +58,9 @@ import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialo
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
-import 'package:chess_app/features/lessons/widgets/lesson_step_editor_panel.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
+import 'package:chess_app/features/tutorial_studio/tutorial_editor_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
@@ -1201,19 +1201,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       return;
     }
 
-    final opened = lesson;
-    await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => Scaffold(
-        appBar: AppBar(
-          title: Text(opened['title']?.toString() ?? 'Koraci tutorijala'),
-        ),
-        body: LessonStepEditorPanel(
-          session: widget.userSession,
-          api: lessons,
-          lesson: opened,
-        ),
-      ),
-    ));
+    await openTutorialEditor(
+      context,
+      session: widget.userSession,
+      api: lessons,
+      lesson: lesson,
+    );
   }
 
   /// Where the step being saved begins.

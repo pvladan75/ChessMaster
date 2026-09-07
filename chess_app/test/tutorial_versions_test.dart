@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/lessons/widgets/lesson_step_editor_panel.dart';
+import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
 
@@ -96,6 +97,20 @@ class _RecordingApi extends LessonApiService {
 const _fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 void main() {
+  // Which editor „Uredi" opens is decided by `isTutorialStudioAvailable` since
+  // D8 of `docs/PLAN-STUDIO-REDIZAJN.md`: the studio on Windows, this panel
+  // everywhere else. These tests are about *which tutorial* the editor is given
+  // — the copy rather than the original, the one that was chosen — so they pin
+  // the answer rather than depending on the machine the suite happens to run
+  // on. Without this they pass on a developer's Windows box and fail on CI's
+  // Linux runner, or the other way round, which is the local-versus-CI shape
+  // this project has already paid for once.
+  //
+  // The Windows side of that door has its own file:
+  // `test/tutorial_editor_door_test.dart`.
+  setUp(() => debugTutorialStudioAvailable = false);
+  tearDown(() => debugTutorialStudioAvailable = null);
+
   Future<_RecordingApi> openLibrary(WidgetTester tester) async {
     final api = _RecordingApi();
     // Wide enough for the two-column layout, where the saved tutorials live.
