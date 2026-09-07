@@ -87,7 +87,16 @@ void main() {
           ]));
 
       await forward(tester); // 1. Kd3 — only one move, no question
-      expect(find.text('Odavde ide više linija — kojom?'), findsNothing);
+      expect(find.byType(BottomSheet), findsNothing,
+          reason: 'one move out of the start means forward just plays it');
+
+      // Standing **on** the fork, both replies are named on the screen itself.
+      // Asked for by the sheet's type rather than by its sentence, because
+      // since 7.9.2026 that sentence is also written inline — a sideline whose
+      // only sign was a button the child had to press first was a sideline
+      // they never met.
+      expect(find.widgetWithText(ActionChip, 'Ke5'), findsOneWidget);
+      expect(find.widgetWithText(ActionChip, 'Kc5'), findsOneWidget);
 
       await forward(tester); // the fork after 1.Kd3
       expect(find.text('Odavde ide više linija — kojom?'), findsOneWidget,

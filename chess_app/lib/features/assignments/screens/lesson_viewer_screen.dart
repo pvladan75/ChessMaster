@@ -588,6 +588,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
                     _buildStepTasks(),
                     if (_explored) _buildRestore(),
                     _buildMoveComment(),
+                    _buildBranchChoices(),
                     if (_tree != null && _tree!.root.children.isNotEmpty)
                       _buildMoveControls(),
                     const SizedBox(height: 10),
@@ -701,6 +702,67 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// The moves that leave this position, when there is more than one.
+  ///
+  /// **A fork the child cannot see is a sideline that does not exist for
+  /// them.** The branch chooser was reachable only by pressing „Sledeći potez",
+  /// which opens a sheet: nothing on the screen said there was anything to
+  /// choose, the narrated walk stopped dead at the fork with no explanation,
+  /// and a listening child — the child this feature is for — never met the
+  /// other line at all. Reported live on 7.9.2026, on a tutorial cut by
+  /// „Traži potez na tabli", where the continuation *opens* on a fork: the
+  /// answer and its alternatives are the first thing in that part.
+  ///
+  /// The sheet stays: it is what the strip and the arrow keys do on every
+  /// screen. This says the same thing where the child is already looking.
+  ///
+  /// The main line is marked by a **shape** rather than by a colour, the same
+  /// way [showBranchChoice] marks it, and it is marked rather than preselected
+  /// — the point is that the others are reachable.
+  Widget _buildBranchChoices() {
+    final node = _node;
+    if (node == null || node.children.length < 2) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Odavde ide više linija — kojom?',
+            style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            children: [
+              for (var i = 0; i < node.children.length; i++)
+                ActionChip(
+                  avatar: Icon(
+                    i == 0 ? Icons.star : Icons.arrow_forward,
+                    size: 16,
+                    color:
+                        i == 0 ? context.colors.warning : context.colors.accent,
+                  ),
+                  label: Text(node.children[i].san),
+                  onPressed: () {
+                    // Taking a branch is the reader driving, the same as the
+                    // strip: whatever was being read is about the position
+                    // they are leaving.
+                    _stopNarration();
+                    _applyNode(node.children[i]);
+                  },
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

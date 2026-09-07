@@ -4493,3 +4493,30 @@ kome stojiš, jer korak koji nosi liniju pokazuje detetu odgovor.
 12. [ ] **Uzak prozor.** Suzi prozor studija na oko 840 dp: panel sa sadržajem
     ne sme da preliva (u release buildu se preliv ne vidi, samo se dugmad ne
     mogu pritisnuti).
+
+## 123. Račva se vidi kod deteta — 7.9.2026, nije viđeno uživo
+
+Iz žive provere stavke 122: „ne prikazuje se druga grana, samo jedna". Grana je
+sve vreme bila u koraku — deo koji nastavlja posle pitanja **počinje** račvom,
+jer su odgovor i njegove alternative prva stvar u njemu — ali se do nje dolazilo
+samo pritiskom na strelicu „Sledeći potez", koja otvara list. Ništa na ekranu
+nije govorilo da ima šta da se bira, a šetnja sa glasom staje na račvi bez reči:
+dete koje sluša nikad nije srelo drugu liniju.
+
+List ostaje (to rade traka i strelice na tastaturi na svakom ekranu); ista
+rečenica se sada piše i tu gde dete već gleda.
+
+1. [ ] **Oba poteza stoje na ekranu.** Otvori kao učenik tutorijal čiji korak
+   ima sporednu liniju: ispod komentara piše „Odavde ide više linija — kojom?"
+   i stoje dva čipa sa potezima.
+2. [ ] **Presečen tutorijal.** Uradi „Traži potez na tabli" na poziciji iz koje
+   ide više odgovora, pa „Pregledaj kao učenik": treći deo se **otvara** sa oba
+   poteza na ekranu.
+3. [ ] **Klik vodi u tu liniju.** Pritisni čip sporedne linije — tabla i
+   komentar su te grane, i čipova više nema jedan potez niže.
+4. [ ] **Bez račve nema pitanja.** Korak sa jednom linijom nema ni rečenicu ni
+   čipove — to je pravilo iz serije 52 i ono se ne sme izgubiti.
+5. [ ] **Glavna linija se poznaje po obliku.** Prvi čip nosi zvezdicu, ostali
+   strelicu — razlika ne sme da zavisi od boje.
+6. [ ] **Traka i dalje pita.** Strelica „Sledeći potez" na račvi i dalje otvara
+   list sa istim potezima.

@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1717 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1721 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -486,6 +486,21 @@ named by its first sentence, which put that sentence in the list of parts as
 well as in the field it was typed into, and `findsOneWidget` over the whole
 screen went red in a file with nothing to do with naming. Third time in this
 repository; scope the finder, do not weaken it.
+
+**Four more on 7.9.2026 — 1721 in the app, 1 skipped; the backend is
+untouched.** A fork was drawn nowhere the child could see it: the branch
+chooser opened only from the „Sledeći potez" button, and the narrated walk
+stops at a fork on purpose, so a listening child met the end of the lesson
+instead of a choice. It cost most in the shape `splitForQuestion` now writes,
+where the continuation part **opens** on the fork. Two things worth carrying.
+**A feature can be complete, tested and unreachable** — the sidelines were
+parsed, stored, round-tripped and offered by a sheet nobody knew to open; every
+layer was right and the child still never saw them, which no test of any layer
+could say. And, fourth time now: **an assertion of absence is a claim about the
+whole screen.** `tutorial_branching_test.dart` said the chooser's sentence was
+absent after one move to mean „no sheet opened", and the sentence is written
+inline now; it asks about `BottomSheet` instead. Scope the finder, do not
+weaken it.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
