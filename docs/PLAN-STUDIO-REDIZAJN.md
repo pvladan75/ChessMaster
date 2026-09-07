@@ -465,7 +465,8 @@ warnings — and nothing newly suppressed.
 | **P6** | The timeline: `beatsOf`, `_BeatCard`, fork chips, inline editing of comment and question | **lead writes `beatsOf` + its gate; worker builds the panel** | the pure function is the contract; the widget is replaceable |
 | **P7a** | `BoardAnnotationController` extracted from the room; the annotation bar; marks written onto the node **in the studio** | **lead writes the controller + its gate; worker builds the bar and the wiring** | the interaction is the contract; the bar is replaceable |
 | **P7b** | The **room** moved onto the controller — and first, the tests of the room's drawing that did not exist | **lead**, done 7.9.2026 | twelve tests written green against the unchanged room, then the move; two mutations survived the first pass and bought two more tests |
-| **P8** | The four refusals of §7 live in the studio; „Pregledaj kao učenik"; `LessonStepEditorPanel` unlinked on Windows (D8) | **lead** | nothing is unlinked until its refusals are proved somewhere else |
+| **P8a** | §7's refusals live in the studio, with the offending parts named | **lead**, done 7.9.2026 | eleven tests — and it found the refusal already there judging a part by its exported text rather than by its moves |
+| **P8b** | „Pregledaj kao učenik"; `openTutorialEditor` decides which editor opens (D8) | **lead**, done 7.9.2026 | one predicate, one door; the panel is untouched off Windows, so deleting it later is one edit |
 | **P9** | Docs: `STANJE-RADA.md`, `TODO-provera.md` live-check items, `CLAUDE.md` counts, `TABELA-TUTORIJAL.md` rows for D7 | lead | as part of the work, not afterwards |
 
 **Order.** P1 → P2 are serial and are the lead's. P3 and P4 can run in parallel

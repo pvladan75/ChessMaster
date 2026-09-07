@@ -437,6 +437,36 @@ room code whose `initState` asks for none of them, with the socket built
 of a screen that had none. When a refactor is blocked on „that screen cannot be
 tested", spend twenty minutes proving it before believing it.
 
+Fifteen more with P8, which closed `PLAN-STUDIO-REDIZAJN` — **1620 in the app, 1
+skipped**; the backend is untouched at 956. The studio makes every refusal the
+step editor it retires used to make, and that editor is now unlinked on Windows
+and untouched everywhere else.
+
+**A rule about the lesson must not be asked of the serialised text.** The
+studio's answer-leak refusal judged a part by `pgnForSave.trim().isNotEmpty` —
+and a part with *no moves* still exports a `pgn` when its root carries a note, an
+arrow or a coloured square, because the exporter writes those ahead of move one
+on purpose so „pogledaj polje d5" can travel. So „Nađi najbolji potez" with an
+arrow drawn on the weak square was refused for carrying a line it does not have.
+It asks the tree now. Worth noticing *why* it surfaced when it did: the fault was
+harmless until P7a gave trainers a way to draw at all, and would have arrived
+with the first real tutorial. **A dormant bug wakes up when the feature it
+depends on ships**, and the feature that wakes it is usually not the one that
+contains it.
+
+**A shared fixture id plus a singleton draft slot is a test that reads another
+test's leftovers.** The studio adopts a stored draft when its `lessonId` matches,
+and a screen flushes its draft on dispose — so a file whose fixtures all said
+lesson 31 watched a perfectly good question refused for two correct answers left
+behind by the test before it. Mint an id per test.
+
+**A test that asserts which screen opens is a test about the machine it runs
+on.** `tutorial_versions_test.dart` asserted that „Uredi" opens the old panel;
+after D8 that is true only where the studio does not exist, so it would pass on a
+developer's Windows box and fail on CI, or the reverse. It pins
+`debugTutorialStudioAvailable` now. Third time this local-versus-CI shape has
+cost something here.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

@@ -493,10 +493,31 @@ sedam mutacija — šest uhvaćeno, a sedma se nije mogla ni napisati, jer
 oznake: oznake pripadaju čvoru, pa svaka metoda dobija dve liste i vraća da li
 se išta promenilo.
 
-**Sledeći je P8, i on je vođin**: odbrane iz §7 plana žive u studiju, „Pregledaj
-kao učenik", pa gašenje ulaza u stari editor koraka na Windows-u (D8). Ništa se
-ne gasi dok mu odbrane ne postoje drugde. Za njega još ništa nije napisano —
-**i time bi ceo `PLAN-STUDIO-REDIZAJN` bio zatvoren.**
+**P8 je gotov, i sa njim je `PLAN-STUDIO-REDIZAJN` ceo zatvoren** (`52499cc` +
+`812bd1a`, vođa). **1620 testova u aplikaciji, 1 preskočen**; analizator 29;
+backend 956. Ostaje da se vidi uživo, tačka 119.
+
+P8a je doneo odbrane iz §7 u studio — pitanje kad se bira tip, traka na
+tutorijalu koji već curi, i odbijanje pri čuvanju sa **imenovanim** delovima —
+i usput našao da je odbrana koja je već postojala **bila pogrešna**: deo se
+procenjivao po `pgnForSave.trim().isNotEmpty`, a deo bez poteza ipak izveze
+`pgn` kad mu koren nosi belešku, strelicu ili obojeno polje. Tako je „Nađi
+najbolji potez" sa strelicom bio odbijen zbog linije koju nema. **P7a je to
+učinio uobičajenim načinom pisanja pitanja**, pa bi greška stigla sa prvim
+pravim tutorijalom. Sada `TutorialSection.hasLine` pita stablo, a `leaksAnswer`
+je jedan geter koji čitaju sva tri mesta. Uz to `ask_choice` traži dva do četiri
+odgovora sa tačno jednim tačnim, što je §7.6 tražio a batch 54 ostavio otvoreno.
+
+P8b je preneo „Pregledaj kao učenik" u studio (ništa ne šalje — pregledač dobija
+`PreviewAssignmentApiService`) i ugasio stari editor **samo na Windows-u**:
+`openTutorialEditor` je jedina vrata i jedino mesto koje pita platformu. Na
+Androidu `LessonStepEditorPanel` ostaje netaknut, jer je dohvatljiv sa svake
+platforme i brisanje bi odnelo uređivanje tutorijala sa telefona. Brisanje
+panela kasnije je sada jedna izmena u jednom fajlu.
+
+**Sledeće nije više ovaj plan nego živa provera**: tačke 113–119 su jedna
+sesija na jednom ekranu, i sada ima na čemu — fajlovi iz `D:\chess books` daju
+pravi tutorijal umesto izmišljenog.
 
 **Zašto je P7 bio podeljen na dva** — vredi zapamtiti, jer je odluka bila
 ispravna iz razloga koji se video tek na kraju. Drugo mesto poziva je soba, a

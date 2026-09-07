@@ -4363,3 +4363,26 @@ testova pokriva ponašanje na tabli; `_publishArrows` upisuje u `timeline_json` 
    polja — zelena nestaje (brisanje ne gleda boju).
 6. [ ] **Crtanje i potezi.** Uključi crtanje, klikni jedno polje, pa odigraj
    potez — polunacrtana strelica se zaboravlja, a crtanje ostaje uključeno.
+
+## 119. Odbrane studija i gašenje starog editora — 7.9.2026, nije viđeno uživo
+
+P8. Poslednja tačka `PLAN-STUDIO-REDIZAJN`-a. Ide uz 113–118, isti prolaz.
+
+1. [ ] **Pitanje sa linijom se ne čuva, i kaže se koji deo.** Napravi deo sa
+   nekoliko poteza, prebaci ga na „Traži potez na tabli" — pojavi se pitanje
+   „Dete bi videlo odgovor". Izaberi „Odustani": tip ostaje „Samo prikaži" i
+   linija je netaknuta.
+2. [ ] **„Ukloni liniju i postavi pitanje"** briše poteze, ostavlja polaznu
+   poziciju, komentar i nacrtane oznake na njoj.
+3. [ ] **Pitanje sa strelicom se čuva.** Napravi deo bez poteza, napiši
+   „Nađi najbolji potez", nacrtaj strelicu, postavi „Traži potez na tabli" i
+   sačuvaj — **mora da prođe.** (Do 7.9.2026 je bilo odbijeno, jer se deo
+   procenjivao po izvezenom tekstu, a ne po tome ima li poteza.)
+4. [ ] **Stari tutorijal koji curi kaže to na otvaranju.** Otvori tutorijal koji
+   ima `ask_move` deo sa linijom — gore stoji crvena traka koja imenuje taj deo.
+5. [ ] **Ponuđeni odgovori.** Jedan odgovor se odbija, pet se odbija, dva bez
+   ijednog tačnog se odbija, dva sa jednim tačnim prolazi.
+6. [ ] **„Pregledaj kao učenik"** otvara tutorijal onako kako ga dete vidi, i
+   **ništa ne šalje na server** — odgovori u pregledu ne upisuju pokušaj.
+7. [ ] **„Uredi" na Windows-u otvara studio**, a ne stari editor koraka. Na
+   Android telefonu isti tutorijal se i dalje uređuje starim editorom.
