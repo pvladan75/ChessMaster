@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1551 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1717 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -466,6 +466,26 @@ after D8 that is true only where the studio does not exist, so it would pass on 
 developer's Windows box and fail on CI, or the reverse. It pins
 `debugTutorialStudioAvailable` now. Third time this local-versus-CI shape has
 cost something here.
+
+**Measured again on `master` on 7.9.2026: 1717 in the app with 1 skipped, 958
+on the backend with `.env` moved aside.** Between 1554 and here: the „PGN" tab
+(`PLAN-PGN-TEKST`), then five pieces of one day's live feedback — a result
+marker glued to the last move being counted as a rejected one, the board's
+orientation reaching the child at last, `splitForQuestion`, and the panel's
+three actions with the naming that goes with them.
+
+Three things from that day worth carrying. **A guard that asks for a word
+boundary on both sides of `*` can never match one at the end of a line** — the
+star stayed on `Nxb4*`, the move was refused as unplayable, and a space in
+front of it made the same line work. **Absence is a third answer**: a stored
+step that says nothing about its orientation is not a step that says „White",
+and a part read back adopts the guess the viewer was already making rather than
+stamping `false` over every old black-to-move part on the next save. And **a
+new place for a string breaks an old assertion of uniqueness** — a part is now
+named by its first sentence, which put that sentence in the list of parts as
+well as in the field it was typed into, and `findsOneWidget` over the whole
+screen went red in a file with nothing to do with naming. Third time in this
+repository; scope the finder, do not weaken it.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
