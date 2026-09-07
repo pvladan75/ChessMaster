@@ -65,6 +65,14 @@ import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 /// code is copied in here — two models of one tree is the fault this codebase
 /// has already paid for twice — and `test/tutorial_studio_test.dart` fails if a
 /// copy appears.
+/// What the trainer answered about the draft waiting in the slot.
+///
+/// Three answers rather than two. „Odbaci" and „Nastavi" left no way back out
+/// of a question the trainer had not meant to be asked — and the dialog could
+/// be dismissed by tapping beside it, which was read as „discard" and deleted
+/// an unfinished tutorial without a word.
+enum _DraftChoice { resume, fresh, cancel }
+
 class TutorialStudioScreen extends StatefulWidget {
   const TutorialStudioScreen({
     super.key,
@@ -123,6 +131,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// `LessonStepEditorPanel._kindEpoch` was written for.
   int _fieldsEpoch = 0;
   int _selectedTab = 0;
+
+  /// Set when the trainer backs out of the „unfinished tutorial" question.
+  ///
+  /// The screen flushes its draft on the way out, and the draft it is holding
+  /// at that moment is the *blank* one it opened with — so writing it would
+  /// overwrite the very tutorial the trainer just chose not to touch. Backing
+  /// out has to leave the slot exactly as it was found.
+  bool _leftWithoutWriting = false;
 
   /// The line being written, and where the trainer is standing on it.
   AnalysisNode get _root => _draft.section.root;
@@ -186,8 +202,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     // Flushed rather than left to the debounce: a pending timer dies with the
     // screen, and a draft that is only ever written 600 ms after the last move
     // is a draft that is never written when the trainer closes the window.
-    _syncSelectedSection();
-    unawaited(TutorialDraftService.instance.flush(_draft));
+    //
+    // Unless the trainer backed out of the stored-draft question, in which case
+    // this screen holds a blank draft and writing it would delete theirs.
+    if (!_leftWithoutWriting) {
+      _syncSelectedSection();
+      unawaited(TutorialDraftService.instance.flush(_draft));
+    }
     super.dispose();
   }
 
@@ -240,18 +261,26 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
       case TutorialEntryBlank():
         if (_isEmptyDraft(stored)) return;
-        final resume = await _askAboutStoredDraft(stored);
+        final choice = await _askAboutStoredDraft(stored);
         if (!mounted) return;
-        if (resume) {
-          setState(() {
-            _draft = stored;
-            _loadSelectedSection();
-          });
-        } else {
-          // Thrown away rather than left behind: a draft the trainer has just
-          // declined must not be waiting for them the next time they start
-          // something.
-          await TutorialDraftService.instance.clear();
+        switch (choice) {
+          case _DraftChoice.resume:
+            setState(() {
+              _draft = stored;
+              _loadSelectedSection();
+            });
+          case _DraftChoice.fresh:
+            // Thrown away rather than left behind: a draft the trainer has
+            // just declined must not be waiting for them the next time they
+            // start something. This is the one branch that loses work, which
+            // is why the question says so in those words.
+            await TutorialDraftService.instance.clear();
+          case _DraftChoice.cancel:
+            // Neither tutorial is touched: not the stored one, and not this
+            // blank screen, which goes away.
+            _leftWithoutWriting = true;
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) navigator.pop();
         }
     }
   }
@@ -267,31 +296,42 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   ///
   /// The name is the whole point. „You have an unfinished draft" is a question
   /// nobody can answer; „Opozicija, 3 dela" is one they can.
-  Future<bool> _askAboutStoredDraft(TutorialDraft stored) async {
+  Future<_DraftChoice> _askAboutStoredDraft(TutorialDraft stored) async {
     final name =
         stored.title.trim().isEmpty ? 'bez naziva' : stored.title.trim();
-    final answer = await showDialog<bool>(
+    final answer = await showDialog<_DraftChoice>(
       context: context,
+      // Not dismissible: tapping beside this dialog used to answer it, and the
+      // answer it gave was „discard".
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Imate nezavr\u0161en tutorijal'),
+        title: const Text('Imate nezavršen tutorijal'),
         content: Text(
-          'Pro\u0161li put ste pisali tutorijal \u201E$name\u201D '
+          'Prošli put ste pisali tutorijal „$name" '
           '(${stored.sections.length} ${_partsWord(stored.sections.length)}). '
-          'Nastavite tamo gde ste stali, ili ga odbacite i po\u010Dnite nov?',
+          'Nastavite tamo gde ste stali ili počnite novi? '
+          'Ako počnete novi, nezavršeni se briše.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Odbaci'),
+            onPressed: () => Navigator.of(ctx).pop(_DraftChoice.cancel),
+            child: const Text('Odustajem'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(_DraftChoice.fresh),
+            child: const Text('Nov'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
+            onPressed: () => Navigator.of(ctx).pop(_DraftChoice.resume),
             child: const Text('Nastavi'),
           ),
         ],
       ),
     );
-    return answer ?? false;
+    // A dialog that comes back with nothing — a back button, a route popped
+    // from elsewhere — is a question that was not answered, and an unanswered
+    // question must never be read as the answer that deletes something.
+    return answer ?? _DraftChoice.cancel;
   }
 
   static String _partsWord(int count) {
@@ -1034,6 +1074,15 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                 controller: _instructionController,
                 decoration:
                     const InputDecoration(labelText: 'Zadatak za učenika'),
+                // Same reason as the sentence on a beat card: a question a
+                // child reads is longer than one line, and a field that scrolls
+                // sideways hides its own beginning. It **grows** with the text
+                // rather than starting two lines tall: this card carries the
+                // answers and „Dodaj odgovor" under it, and two lines of empty
+                // field pushed that button below the fold — which is not a
+                // layout opinion but a control a trainer cannot press.
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
               ),
               const SizedBox(height: AppSpacing.sm),
             ],

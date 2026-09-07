@@ -174,6 +174,21 @@ class _BeatCardState extends State<_BeatCard> {
                         labelText: 'Komentar za trenutni potez',
                       )
                     : null,
+                // Wrapped, not scrolled sideways. A single-line field shows
+                // the *end* of a long sentence and hides where it began, so a
+                // trainer rereading what they wrote sees the tail of it — and
+                // these sentences are read out to a child, which makes them
+                // longer than a label.
+                //
+                // It grows with the text rather than starting two lines tall.
+                // An empty field two lines high on every card pushes the
+                // question card and „Dodaj odgovor" under it below the fold of
+                // the scrolling half — a control a trainer cannot press is a
+                // worse problem than the one being fixed, and it is the same
+                // trap batch 58 lost a round to.
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
                 onTap: () {
                   if (!beat.isCurrent) {
                     widget.onSelect(beat.node);

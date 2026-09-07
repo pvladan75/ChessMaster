@@ -101,7 +101,10 @@ void main() {
           reason: 'the trainer was not told which tutorial is waiting — '
               'a draft that comes back unannounced is what made this feel '
               'haunted');
-      expect(find.text('Odbaci'), findsOneWidget);
+      expect(find.text('Odustajem'), findsOneWidget,
+          reason: 'the question has no way out, so a trainer who did not mean '
+              'to be asked has to answer it with somebodys work');
+      expect(find.text('Nov'), findsOneWidget);
       expect(find.text('Nastavi'), findsOneWidget);
     });
 
@@ -110,7 +113,7 @@ void main() {
       await storeDraft(title: 'Opozicija');
       await open(tester, const TutorialEntry.blank('Skakač i pešak'));
 
-      await tester.tap(find.text('Odbaci'));
+      await tester.tap(find.text('Nov'));
       await tester.pumpAndSettle();
 
       expect(find.text('Skakač i pešak'), findsOneWidget,
@@ -135,12 +138,53 @@ void main() {
       expect(find.text('Nedovršen deo'), findsOneWidget);
     });
 
+    testWidgets('backing out leaves the unfinished tutorial where it was',
+        (tester) async {
+      // The answer that was missing. „Odbaci" and „Nastavi" made a trainer who
+      // opened this screen by accident choose between somebody's work and
+      // starting over — and dismissing the dialog was read as „discard".
+      await storeDraft(title: 'Opozicija');
+      await open(tester, const TutorialEntry.blank('Skakač i pešak'));
+
+      await tester.tap(find.text('Odustajem'));
+      await tester.pumpAndSettle();
+
+      final kept = await TutorialDraftService.instance.load();
+      expect(kept, isNotNull,
+          reason: 'backing out of the question deleted the tutorial it was '
+              'asking about');
+      expect(kept!.title, 'Opozicija');
+      expect(kept.sections.single.title, 'Nedovršen deo');
+    });
+
+    testWidgets('and the blank screen it was asked from is not written either',
+        (tester) async {
+      // The trap under the trap: this screen flushes its draft on the way out,
+      // and the draft it holds at that moment is the blank one it opened with.
+      // Backing out has to suppress that write, or the slot ends up holding
+      // „Skakač i pešak" with nothing in it — which is the stored tutorial
+      // gone by another route.
+      await storeDraft(title: 'Opozicija');
+      await open(tester, const TutorialEntry.blank('Skakač i pešak'));
+
+      await tester.tap(find.text('Odustajem'));
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 700));
+
+      final kept = await TutorialDraftService.instance.load();
+      expect(kept?.title, 'Opozicija',
+          reason: 'the blank screen wrote itself over the stored draft as it '
+              'closed');
+    });
+
     testWidgets('with nothing stored there is no question at all',
         (tester) async {
       await open(tester, const TutorialEntry.blank('Skakač i pešak'));
 
       expect(find.text('Nastavi'), findsNothing);
-      expect(find.text('Odbaci'), findsNothing);
+      expect(find.text('Nov'), findsNothing);
       expect(find.text('Skakač i pešak'), findsOneWidget);
     });
   });
