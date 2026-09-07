@@ -185,7 +185,7 @@ Each one is a line in a gate.
 
 | | what | who | why there |
 |---|---|---|---|
-| **T1** | `exportToPgn` gains an optional span collector: `(start, end, nodeId)` per move, per comment. Headless tests | **lead** | it is the contract the menu stands on, and it is pure |
+| **T1** | `exportWithSpans`: `(start, end, nodeId, kind)` per move and per comment. Headless tests | **lead**, done 7.9.2026 (`e45f004`) | fifteen tests, five mutations; `exportToPgn` delegates, so the old output is unchanged by construction |
 | **T2** | The „PGN" tab: text, legend, clean/dirty, „Primeni" through `LessonStepLine`, the refusals of §5 | worker | one widget, one wiring; the reader already exists |
 | **T3** | The caret is the cursor (D2), both ways | worker | small, but only sensible once T2 exists |
 | **T4** | The right-click menu (D7), drawing through `BoardAnnotationController` | worker | needs T1 and T3 |

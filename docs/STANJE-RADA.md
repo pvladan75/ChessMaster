@@ -522,8 +522,10 @@ na potez u tom tekstu. Ne menja model: oba smera već postoje
 `LessonStepLine` ih čita nazad i broji `rejectedMoves`). Usput zatvara rupu koja
 je ostala posle razgovora o PDF-ovima: **aplikacija nema vrata za anotiranu
 liniju napravljenu bilo gde drugde**, jer jedini uvoz PGN-a ide kroz
-`_importPgn`, koji baca komentare, oznake i varijante. Prvo ide T1 (rasponi iz
-izvoznika, čisto jezgro), pa T2 (tab), i T2 sam po sebi vredi.
+`_importPgn`, koji baca komentare, oznake i varijante. **T1 je gotov istog dana** (`e45f004`): `exportWithSpans` vraća isti tekst plus
+`(start, end, nodeId, kind)` za svaki potez i svaki komentar — petnaest testova
+bez ijednog widgeta, pet mutacija, sve uhvaćene. Sledi T2 (tab), i T2 sam po
+sebi vredi.
 
 **Sledeće nije više ovaj plan nego živa provera**: tačke 113–119 su jedna
 sesija na jednom ekranu, i sada ima na čemu — fajlovi iz `D:\chess books` daju
