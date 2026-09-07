@@ -151,7 +151,16 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       // A continuing step keeps the board the child is looking at, whichever
       // way round it is. Only a step that opens a different position gets to
       // decide the orientation.
-      if (!continues) _orientation = _sideToMove(step.fen);
+      //
+      // And the trainer decides it when they said so. `blackOrientation` is
+      // null for every step written before the studio could send it, and for
+      // those the side to move is still the best guess — but a step that
+      // carries the field carries a decision, and a computed orientation
+      // overruling it is the board flipping under a child in the middle of a
+      // tutorial written from one side. Reported live on 7.9.2026.
+      if (!continues) {
+        _orientation = _orientationOf(step);
+      }
     });
 
     // The pieces are only put back if they are not there already — a step that
@@ -288,6 +297,14 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       _reveal = result;
     });
   }
+
+  /// Which way round a step's board stands.
+  static PlayerColor _orientationOf(LessonStep step) =>
+      switch (step.blackOrientation) {
+        true => PlayerColor.black,
+        false => PlayerColor.white,
+        null => _sideToMove(step.fen),
+      };
 
   static PlayerColor _sideToMove(String fen) {
     try {

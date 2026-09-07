@@ -77,6 +77,13 @@ Map<String, dynamic> savedStep({
   String? solutionSan,
   List<String>? acceptedSans,
   List<Map<String, dynamic>>? choices,
+  // Part of what the server stores since 7.9.2026, so part of what a round
+  // trip has to bring back. It is written here rather than defaulted away
+  // because the interesting case is a step that carries it: a step that does
+  // *not* is the legacy one, and `fromStep` deliberately answers for that with
+  // the guess the child's viewer was already making, which is a different
+  // test.
+  bool blackOrientation = false,
 }) =>
     {
       'id': id,
@@ -84,6 +91,7 @@ Map<String, dynamic> savedStep({
       'fen': fen,
       if (pgn != null) 'pgn': pgn,
       'kind': kind,
+      'blackOrientation': blackOrientation,
       if (instruction != null) 'instruction': instruction,
       if (solutionSan != null) 'solutionSan': solutionSan,
       if (acceptedSans != null) 'acceptedSans': acceptedSans,

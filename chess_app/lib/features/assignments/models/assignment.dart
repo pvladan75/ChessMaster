@@ -148,6 +148,16 @@ class LessonStep {
   final LessonStepKind kind;
   final List<String> choices;
 
+  /// Which way round the trainer left this step's board, or null when the step
+  /// does not say.
+  ///
+  /// Three states rather than two, and the third one is why this is nullable.
+  /// Every step written before the studio could send this has no opinion, and
+  /// the viewer falls back to the side to move for those — while a step that
+  /// says `false` is a trainer stating that a black-to-move position is to be
+  /// shown from White's side, which is not the same thing at all.
+  final bool? blackOrientation;
+
   const LessonStep({
     required this.title,
     required this.fen,
@@ -155,6 +165,7 @@ class LessonStep {
     this.instruction,
     this.kind = LessonStepKind.show,
     this.choices = const [],
+    this.blackOrientation,
   });
 
   factory LessonStep.fromJson(Map<String, dynamic> json) {
@@ -177,6 +188,8 @@ class LessonStep {
               ?.map((c) => (c as Map)['text'].toString())
               .toList() ??
           const [],
+      blackOrientation:
+          json['blackOrientation'] is bool ? json['blackOrientation'] : null,
     );
   }
 }

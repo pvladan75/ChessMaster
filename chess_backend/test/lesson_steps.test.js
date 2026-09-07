@@ -5,7 +5,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildLessonStep, stepsOfLesson } = require('../services/lessonSteps');
+const { buildLessonStep, stepsOfLesson, redactStepForStudent } = require('../services/lessonSteps');
 
 const FEN = '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1';
 
@@ -61,6 +61,47 @@ test('only the fields a step is made of get through', () => {
     Object.keys(built.entry).sort(),
     ['fen', 'id', 'kind', 'title'],
   );
+});
+
+test('which way round the board stands travels, and absent is a third answer', () => {
+  // Reported live on 7.9.2026: the board turned over between the parts of one
+  // tutorial, because the student's viewer worked the orientation out from
+  // whose turn it was and the trainer's own choice never left the studio.
+  //
+  // Stored only when the client actually says. `false` is a trainer stating
+  // that a black-to-move position is to be shown from White's side, and every
+  // step written before this field existed says nothing at all — a viewer that
+  // read those two the same way would be back to overruling the trainer on
+  // half of them.
+  assert.equal(
+    buildLessonStep({ fen: FEN, blackOrientation: true }).entry.blackOrientation,
+    true,
+  );
+  assert.equal(
+    buildLessonStep({ fen: FEN, blackOrientation: false }).entry.blackOrientation,
+    false,
+  );
+  assert.ok(
+    !('blackOrientation' in buildLessonStep({ fen: FEN }).entry),
+    'a step nobody said anything about must not come back saying White',
+  );
+  assert.ok(
+    !('blackOrientation' in buildLessonStep({ fen: FEN, blackOrientation: 'crna' }).entry),
+    'only a boolean is an answer',
+  );
+});
+
+test('the orientation is not an answer, so it survives redaction', () => {
+  const { entry } = buildLessonStep({
+    fen: FEN,
+    kind: 'ask_move',
+    solutionSan: 'Ra8+',
+    blackOrientation: true,
+  });
+  const shown = redactStepForStudent(entry);
+
+  assert.equal(shown.blackOrientation, true);
+  assert.equal(shown.solutionSan, undefined, 'the answer still goes');
 });
 
 test("a row's own database id is not a step id", () => {

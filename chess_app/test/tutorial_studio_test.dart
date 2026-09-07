@@ -274,6 +274,12 @@ void main() {
         'instruction': 'Odigraj najbolji potez.',
         'kind': 'ask_move',
         'solutionSan': 'Nf3',
+        // Joined the list on 7.9.2026, on a live report: which way round the
+        // board stands used to live only in the studio, so the child's viewer
+        // guessed it from whose turn it is and the board turned over between
+        // the parts of one tutorial. Always sent from here — absence means
+        // „written before anyone could say" and is resolved on the way in.
+        'blackOrientation': false,
       });
     });
 
@@ -288,6 +294,7 @@ void main() {
         'pgn': '1. e4',
         'title': 'Primer 1',
         'kind': 'show',
+        'blackOrientation': false,
       });
     });
 

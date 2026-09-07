@@ -186,7 +186,10 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     if (handover != null) {
       _draft.section.root = handover.root;
       _draft.section.cursorNode = handover.root;
-      if (handover.blackOrientation) _orientation = PlayerColor.black;
+      // Onto the part, not onto the screen: `_loadSelectedSection` below reads
+      // the orientation out of the part, so setting the field here would be
+      // overwritten one line later.
+      _draft.section.blackOrientation = handover.blackOrientation;
     }
     // Every field of the open part, not just the two that used to be set here
     // by hand. `_loadSelectedSection` is the one place a part's kind, task,
@@ -368,6 +371,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     final correct = section.choices.indexWhere((c) => c.correct);
     _currentCorrectChoice = correct == -1 ? null : correct;
     _currentSolutionSan = section.solutionSan;
+    // The orientation belongs to the part, and it is read back here for the
+    // same reason the kind and the task are: `_syncSelectedSection` writes the
+    // screen's orientation into whichever part is open, so a part opened while
+    // the screen stood the other way round had its stored choice overwritten
+    // by the way the previous part happened to be looking.
+    _orientation =
+        section.blackOrientation ? PlayerColor.black : PlayerColor.white;
     _boardController.loadFen(_current.fen);
     _lastMoveFrom = null;
     _lastMoveTo = null;

@@ -46,6 +46,19 @@ bool isGeneratedSectionTitle(String title) =>
 
 final RegExp _generatedSectionTitle = RegExp(r'^(Deo|Primer)\s+\d+$');
 
+/// Whether Black is to move in [fen].
+///
+/// Only ever a guess about the *orientation* — it is what the child's viewer
+/// falls back to when a step says nothing about which way round it stands, and
+/// a part read back from such a step adopts it so that reopening a tutorial
+/// does not change what a child sees. Read off the FEN's second field rather
+/// than through `chess`, because a FEN this cannot parse is one no board can
+/// load either, and the caller has bigger problems than the orientation.
+bool blackToMoveIn(String fen) {
+  final fields = fen.trim().split(RegExp(r'\s+'));
+  return fields.length > 1 && fields[1].toLowerCase() == 'b';
+}
+
 /// One part of a tutorial — „Deo" to the trainer, one `position_list` entry to
 /// the server, one `LessonStep` to the child.
 ///
@@ -115,6 +128,16 @@ class TutorialSection {
           raw.toString(),
       ],
       storedPgn: (pgn != null && pgn.trim().isNotEmpty) ? pgn : null,
+      // A stored step that says nothing is not a stored step that says
+      // „White". Every part written before this field existed was drawn for
+      // the child by working the orientation out from whose turn it is, so
+      // that guess is what the part has been showing and that guess is what it
+      // adopts. Reading absence as `false` would turn every black-to-move part
+      // of every old tutorial round the first time a trainer opened one and
+      // pressed save, without touching it.
+      blackOrientation: step['blackOrientation'] is bool
+          ? step['blackOrientation'] as bool
+          : blackToMoveIn(fen),
     );
   }
 
@@ -149,6 +172,13 @@ class TutorialSection {
   /// first time they renamed their tutorial.
   final List<String> acceptedSans;
 
+  /// Which way round this part's board stands, for the trainer and then for
+  /// the child.
+  ///
+  /// Always sent, and never null: what the trainer is looking at is what the
+  /// child gets, and there is no third state on this side of the wire. The
+  /// third state exists on the server, where absence means „written before
+  /// anyone could say" — [TutorialSection.fromStep] resolves it on the way in.
   bool blackOrientation;
 
   /// The exact `pgn` text this part was read from, or null for one written
@@ -283,6 +313,14 @@ class TutorialSection {
       if (instruction != null && instruction!.trim().isNotEmpty)
         'instruction': instruction!.trim(),
       'kind': _wire[kind]!,
+      // Which way round the child opens this part.
+      //
+      // Sent even when it is false, unlike everything else here, and that is
+      // the point: the viewer works out the orientation from whose turn it is
+      // when the step does not say, so „false" and „absent" are two different
+      // instructions. A trainer who deliberately left a black-to-move position
+      // the white way round has to be able to say so.
+      'blackOrientation': blackOrientation,
       if (solutionSan != null && solutionSan!.isNotEmpty)
         'solutionSan': solutionSan,
       if (acceptedSans.isNotEmpty) 'acceptedSans': [...acceptedSans],

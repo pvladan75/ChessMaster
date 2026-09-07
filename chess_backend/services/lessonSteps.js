@@ -86,6 +86,18 @@ function buildLessonStep(step) {
   const pgn = text(step.pgn, 100000);
   if (pgn) entry.pgn = pgn;
 
+  // Which way round the board stands when a child opens this step.
+  //
+  // Stored only when the client actually says, because absent is a third
+  // answer and not a synonym for `false`: the student's viewer works the
+  // orientation out from whose turn it is when nothing says otherwise, and
+  // every step written before this field existed relies on that. A trainer
+  // who left a black-to-move position deliberately the white way round is
+  // saying something a computed orientation would overrule.
+  if (typeof step.blackOrientation === 'boolean') {
+    entry.blackOrientation = step.blackOrientation;
+  }
+
   // The task travels with the position. A step without one is a board with no
   // question on it, which is the oldest complaint about this feature.
   const instruction = text(step.instruction, MAX_INSTRUCTION);
