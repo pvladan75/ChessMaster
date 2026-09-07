@@ -4430,3 +4430,28 @@ spolja može da uđe u tutorijal, pa tačka 6 nije kozmetika nego cela poenta.
     poruku; „Odustani" ne uradi ništa i **ne** javlja grešku.
 15. [ ] **Isti položaj, drugi satovi.** PGN čiji se `[FEN]` razlikuje samo po
     brojačima ne sme ništa da pita.
+
+## 121. Tri popravke iz žive provere — 7.9.2026, nije viđeno uživo
+
+Prve dve su iz prijava od 7.9.2026, treća je iz beleške uz stavku 117/7.
+Prva se vidi samo ako se zvezdica na kraju linije **ne** odvoji razmakom —
+tako je i prijavljena, i tako je i pukla.
+
+1. [ ] **Zvezdica zalepljena za poslednji potez.** U tab „PGN" ukucaj liniju
+   koja se završava sa `... exd5 Nxb4*` — bez razmaka ispred zvezdice — i
+   pritisni „Primeni". **Primeni se**, i poslednji potez je u „Toku".
+   Ranije je javljalo „1 potez ne može da se odigra" za sasvim legalnu liniju.
+2. [ ] **Isto sa razmakom** (`Nxb4 *`) i dalje radi, kao i `1-0`.
+3. [ ] **Crtanje se gasi kad promeniš takt.** Uključi „Strelica", pa klikni
+   drugi takt u „Toku": dugme više nije upaljeno, i klik po tabli ne crta.
+4. [ ] **Orijentacija table stiže do deteta.** U studiju okreni tablu na delu
+   („Okreni tablu" ispod table), sačuvaj, pa otvori „Pregledaj kao učenik" —
+   tabla stoji onako kako si je ostavio. Isto i kroz pravi zadatak kod deteta.
+5. [ ] **Svaki deo pamti svoju.** Okreni tablu na prvom delu, izaberi drugi
+   deo (koji nije okrenut), pa se vrati na prvi — prvi je i dalje okrenut, a
+   drugi nije. Sačuvaj, izađi, otvori ponovo: isto.
+6. [ ] **Stari tutorijal se ne prevrće.** Otvori tutorijal napravljen pre ove
+   izmene koji ima deo sa pozicijom u kojoj je crni na potezu, sačuvaj ga bez
+   ijedne izmene, pa ga pogledaj kao učenik — tabla stoji **isto kao pre**
+   (okrenuta ka crnom). Ovo je tačka koju treba gledati u oči: greška bi bila
+   tiha i videla bi se tek kod deteta.
