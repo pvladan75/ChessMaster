@@ -219,6 +219,92 @@ void main() {
     });
   });
 
+  group('a text that brought no position of its own', () {
+    // The trainer's complaint on 7.9.2026 was that pasting one of these got
+    // „samo mi ovo javi" — the count of moves that would not play, and no
+    // question. There was nothing to ask *about*: a PGN with no `[FEN]` says
+    // nothing about where it starts. But a game without a header is a game
+    // from the standard opening position, so when the text plays cleanly from
+    // **there** and not from here, the same question can be asked — and it is
+    // grounded in the reading rather than in a guess about what was meant.
+
+    testWidgets('is offered the opening position when it plays from there',
+        (tester) async {
+      await open(tester, fen: endgameFen, pgn: '12. Ke6');
+
+      await paste(tester, '1. e4 e5 2. Nf3 { Italijanka. }');
+
+      expect(find.text('Tekst ne počinje odavde'), findsOneWidget);
+
+      await tester.tap(find.text('Uzmi početnu poziciju'));
+      await tester.pumpAndSettle();
+
+      final step = await saveAndStep(tester);
+      expect(step['fen'], startFen,
+          reason: 'the part was moved onto the position the text plays from');
+      expect(
+          LessonStepLine.read(
+            fen: step['fen'].toString(),
+            pgn: step['pgn']?.toString(),
+          ).line.movesSan,
+          ['e4', 'e5', 'Nf3']);
+
+      await close(tester);
+    });
+
+    testWidgets('„Zadrži postojeću" refuses it and says why', (tester) async {
+      await open(tester, fen: endgameFen, pgn: '12. Ke6');
+
+      await paste(tester, '1. e4 e5 2. Nf3');
+      await tester.tap(find.text('Zadrži postojeću'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('nema svoju polaznu poziciju'), findsOneWidget,
+          reason: 'the count of rejected moves alone is what sent the trainer '
+              'looking for a bug');
+
+      final step = await saveAndStep(tester);
+      expect(step['fen'], endgameFen);
+      expect(step['pgn'].toString(), contains('Ke6'));
+
+      await close(tester);
+    });
+
+    testWidgets('„Odustani" leaves the part alone and reports nothing',
+        (tester) async {
+      await open(tester, fen: endgameFen, pgn: '12. Ke6');
+
+      await paste(tester, '1. e4 e5 2. Nf3');
+      await tester.tap(find.text('Odustani'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Nije primenjeno'), findsNothing,
+          reason: 'a question the trainer backed out of is not a failure');
+
+      final step = await saveAndStep(tester);
+      expect(step['fen'], endgameFen);
+
+      await close(tester);
+    });
+
+    testWidgets(
+        'and a text that plays from neither is refused without a '
+        'question', (tester) async {
+      // Offering to move the part onto a position that also rejects moves
+      // would trade one silent loss for another. The message says what is
+      // missing, which is the whole of the fix for that case.
+      await open(tester, fen: endgameFen, pgn: '12. Ke6');
+
+      await paste(tester, '13. Kd7 Kf7');
+
+      expect(find.text('Tekst ne počinje odavde'), findsNothing);
+      expect(
+          find.textContaining('nema svoju polaznu poziciju'), findsOneWidget);
+
+      await close(tester);
+    });
+  });
+
   group('and not asked about when there is nothing to ask', () {
     testWidgets('a text with no position of its own', (tester) async {
       await open(tester);

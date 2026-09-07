@@ -4618,3 +4618,27 @@ umesto da pritiska.
    poteza stoje na ekranu (stavka 123).
 6. [ ] **Kraj je kraj.** Na poslednjem delu šetnja stane i dugme se vrati na ▶.
 7. [ ] **Stop radi u svakom trenutku**, i posle prelaska u sledeći deo.
+
+## 128. Nalepljen PGN bez svoje pozicije — 8.9.2026, nije viđeno uživo
+
+Iz stavke 120.15 („samo mi ovo javi"): tekst bez `[FEN]` ne govori odakle
+počinje, pa nije imalo šta da se pita — trener je dobijao samo broj poteza koji
+ne mogu da se odigraju. Ali partija bez zaglavlja je partija iz **početne
+pozicije**, pa kad se tekst čisto odigra odatle a ne odavde, isto pitanje se
+može postaviti, i sada je zasnovano na čitanju a ne na pogađanju.
+
+1. [ ] **Pita kad ima šta da ponudi.** Otvori deo koji stoji na nekoj
+   završnici, nalepi u tab „PGN" običnu partiju od `1. e4` (bez `[FEN]`) i
+   pritisni „Primeni" — pojavi se „Tekst ne počinje odavde".
+2. [ ] **„Uzmi početnu poziciju"** prebaci deo na početnu poziciju i linija se
+   odigra cela.
+3. [ ] **„Zadrži postojeću"** odbije tekst, i poruka kaže **da tekst nema svoju
+   polaznu poziciju** — to je rečenica koja je nedostajala.
+4. [ ] **„Odustani"** ne menja ništa i **ne** javlja grešku; tvoj tekst ostaje
+   u polju.
+5. [ ] **Tekst koji ne ide nigde.** Nalepi liniju koja se ne može odigrati ni
+   odavde ni iz početne — nema pitanja, ali poruka i dalje kaže da tekst nema
+   svoju polaznu poziciju.
+6. [ ] **Ništa se ne pita kad nema zašto.** Fragment koji se uredno igra iz
+   pozicije ovog dela (npr. dopisan potez na kraj linije) primenjuje se bez
+   ijednog pitanja, kao i pre.

@@ -1076,19 +1076,59 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     var startFen = section.root.fen;
     final header = MoveTree.fenHeaderOf(text);
     if (header != null && !MoveTree.samePosition(header, startFen)) {
-      final answer = await _askAboutPastedPosition();
+      final answer = await _askAboutPastedPosition(
+        title: 'Tekst počinje iz druge pozicije',
+        explanation:
+            'Ovaj PGN nosi svoju polaznu poziciju, različitu od pozicije ovog '
+            'dela. Ako je uzmete, dete će ovaj deo otvarati na toj poziciji.',
+        takeLabel: 'Uzmi tu poziciju',
+      );
       if (!mounted || answer == _PastedPosition.cancel) return;
       if (answer == _PastedPosition.take) startFen = header;
     }
 
-    final read = readStepTree(fen: startFen, pgn: text);
+    var read = readStepTree(fen: startFen, pgn: text);
+
+    // A text with no `[FEN]` says nothing about where it starts, so there was
+    // nothing to ask about and the trainer got only the count of moves that
+    // would not play — „samo mi ovo javi", 7.9.2026. But a PGN without a
+    // header is a game from the standard opening position, which is a position
+    // like any other: if the text plays cleanly from **there** and not from
+    // here, the same question can be asked, and now it is grounded in the
+    // reading rather than in a guess about what the trainer meant.
+    //
+    // Only when it replays whole. A text that half fits the opening position
+    // is not a game from it, and offering to move the part onto a position
+    // that also rejects moves would trade one silent loss for another.
+    if (read.rejectedMoves > 0 && header == null) {
+      final fromStart = readStepTree(fen: TutorialDraft.startFen, pgn: text);
+      if (fromStart.rejectedMoves == 0 && fromStart.root.children.isNotEmpty) {
+        final answer = await _askAboutPastedPosition(
+          title: 'Tekst ne počinje odavde',
+          explanation:
+              'Ovaj PGN nema svoju polaznu poziciju, a njegovi potezi ne mogu '
+              'da se odigraju iz pozicije ovog dela — mogu iz početne. Ako je '
+              'uzmete, dete će ovaj deo otvarati iz početne pozicije.',
+          takeLabel: 'Uzmi početnu poziciju',
+        );
+        if (!mounted || answer == _PastedPosition.cancel) return;
+        if (answer == _PastedPosition.take) {
+          startFen = TutorialDraft.startFen;
+          read = fromStart;
+        }
+      }
+    }
 
     if (read.rejectedMoves > 0) {
       AppFeedback.error(
         context,
         'Nije primenjeno: ${read.rejectedMoves} '
         '${_movesWord(read.rejectedMoves)} ne može da se odigra iz pozicije '
-        'ovog dela.',
+        'ovog dela.'
+        // Said only when it is the answer to „why did it not ask me
+        // anything?". With a `[FEN]` the question was asked and answered.
+        '${header == null ? ' Tekst nema svoju polaznu poziciju ([FEN]), pa '
+            'ne može da se prepozna odakle počinje.' : ''}',
       );
       return;
     }
@@ -1120,16 +1160,22 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   /// Asked once, never assumed: taking the pasted position changes the board a
   /// child opens this part on.
-  Future<_PastedPosition> _askAboutPastedPosition() async {
+  ///
+  /// Two questions, one dialog, because they have the same three answers and
+  /// the same consequence. The first is „this text brought a position of its
+  /// own"; the second is „this text brought none, and only plays from the
+  /// opening position".
+  Future<_PastedPosition> _askAboutPastedPosition({
+    required String title,
+    required String explanation,
+    required String takeLabel,
+  }) async {
     final answer = await showDialog<_PastedPosition>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Tekst počinje iz druge pozicije'),
-        content: const Text(
-          'Ovaj PGN nosi svoju polaznu poziciju, različitu od pozicije ovog '
-          'dela. Ako je uzmete, dete će ovaj deo otvarati na toj poziciji.',
-        ),
+        title: Text(title),
+        content: Text(explanation),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(_PastedPosition.cancel),
@@ -1141,7 +1187,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(_PastedPosition.take),
-            child: const Text('Uzmi tu poziciju'),
+            child: Text(takeLabel),
           ),
         ],
       ),

@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1740 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1744 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -560,6 +560,19 @@ so a part whose first beat is silent spends its first 1400 ms in the ordinary
 wait for a wordless move, and the assertion could not tell the two waits apart.
 The fixture writes a sentence on the root now. Third time in this file: a check
 that cannot fail is not a check.
+
+**Four more on 8.9.2026 — 1744 in the app, 1 skipped.** A pasted PGN with no
+`[FEN]` was refused with a count of moves that would not play and no question,
+because there was nothing to ask *about*: the text says nothing about where it
+starts. What was missing is that **a game with no header is a game from the
+standard opening position** — so when the text replays cleanly from there and
+not from the part's own board, the same three-way question can be asked, and it
+is grounded in a second reading rather than in a guess about what the trainer
+meant. It is offered only when that reading is whole: a text that half fits the
+opening position is not a game from it, and moving the part onto a position
+that also rejects moves would trade one silent loss for another. When nothing
+can be offered, the refusal now says the text carries no starting position,
+which is the answer to „why did it not ask me anything?".
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
