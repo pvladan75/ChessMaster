@@ -4455,3 +4455,41 @@ tako je i prijavljena, i tako je i pukla.
    ijedne izmene, pa ga pogledaj kao učenik — tabla stoji **isto kao pre**
    (okrenuta ka crnom). Ovo je tačka koju treba gledati u oči: greška bi bila
    tiha i videla bi se tek kod deteta.
+
+## 122. Tri akcije umesto „dodaj deo" — 7.9.2026, nije viđeno uživo
+
+Korisnikov predlog od 7.9.2026: sakriti reč „Deo" i ponuditi tri didaktičke
+akcije. Dva dugmeta ne dodaju ništa — ona **preseku** deo koji pišeš na taktu na
+kome stojiš, jer korak koji nosi liniju pokazuje detetu odgovor.
+
+1. [ ] **Tri dugmeta.** U panelu piše „Sadržaj tutorijala", a ne „Delovi
+   tutorijala", i stoje tri dugmeta: „Novi prikaz", „Traži potez na tabli",
+   „Traži odgovor iz liste". Nema više „+ Dodaj deo".
+2. [ ] **Presecanje.** Odigraj `1. e4 e5 2. Nf3 Nc6 3. Bb5`, vrati se na
+   poziciju posle `2. Nf3` i pritisni „Traži potez na tabli". Dobiješ **tri**
+   dela: prikaz do `2. Nf3`, pitanje na toj poziciji (bez poteza, sa tačnim
+   potezom `Nc6`), i prikaz koji nastavlja sa `Nc6 3. Bb5`. Sva tri imaju
+   ikonicu lanca — nadovezuju se.
+3. [ ] **Ostaješ na pitanju.** Posle presecanja si u delu koji pita, sa poljem
+   „Zadatak za učenika" pred sobom.
+4. [ ] **Kod deteta je jedna tabla.** „Pregledaj kao učenik": demonstracija,
+   pitanje na istoj poziciji **bez ponovnog postavljanja figura**, pa
+   nastavak. Ovo je cela poenta — ako tabla trepne, javi.
+5. [ ] **Grana se ne gubi.** Uradi isto na delu koji ima sporednu liniju posle
+   poteza koji pitaš — sporedna linija mora da bude u trećem delu.
+6. [ ] **Pitanje na sporednoj liniji.** Stani na potez iz sporedne linije pa
+   pitaj: prvi deo mora da **vodi do te pozicije** (ta linija postaje glavna),
+   a ne do stare glavne.
+7. [ ] **Prazan deo.** Na delu bez ijednog poteza „Traži potez na tabli" ne
+   pravi nove delove — deo prosto postane pitanje.
+8. [ ] **Nazivi.** Deo se u spisku zove po prvoj rečenici koju nosi (ili po
+   zadatku, ako pita). Bez ijedne reči — „Deo 1".
+9. [ ] **Preimenuj.** Olovka otvara „Naziv"; upisano ime pobeđuje sve. Isprazni
+   polje pa sačuvaj — vraća se naziv po rečenici.
+10. [ ] **Ime stiže do deteta.** Isti naziv koji vidiš u spisku mora da stoji i
+    kad tutorijal otvoriš kao učenik.
+11. [ ] **„Novi prikaz"** pita „Odakle počinje?" — „Odavde" nastavlja tamo gde
+    je stala linija (ikonica lanca), „Nova tabla" počinje iz početne pozicije.
+12. [ ] **Uzak prozor.** Suzi prozor studija na oko 840 dp: panel sa sadržajem
+    ne sme da preliva (u release buildu se preliv ne vidi, samo se dugmad ne
+    mogu pritisnuti).
