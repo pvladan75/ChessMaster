@@ -515,6 +515,16 @@ Androidu `LessonStepEditorPanel` ostaje netaknut, jer je dohvatljiv sa svake
 platforme i brisanje bi odnelo uređivanje tutorijala sa telefona. Brisanje
 panela kasnije je sada jedna izmena u jednom fajlu.
 
+**Napisan je nov plan: [PLAN-PGN-TEKST.md](PLAN-PGN-TEKST.md)** (7.9.2026), iz
+dve vlasnikove primedbe sa žive provere — tekstualni pogled na deo, i desni klik
+na potez u tom tekstu. Ne menja model: oba smera već postoje
+(`PgnExporterService` piše `[%cal]`, `[%csl]`, varijante i `[FEN]`;
+`LessonStepLine` ih čita nazad i broji `rejectedMoves`). Usput zatvara rupu koja
+je ostala posle razgovora o PDF-ovima: **aplikacija nema vrata za anotiranu
+liniju napravljenu bilo gde drugde**, jer jedini uvoz PGN-a ide kroz
+`_importPgn`, koji baca komentare, oznake i varijante. Prvo ide T1 (rasponi iz
+izvoznika, čisto jezgro), pa T2 (tab), i T2 sam po sebi vredi.
+
 **Sledeće nije više ovaj plan nego živa provera**: tačke 113–119 su jedna
 sesija na jednom ekranu, i sada ima na čemu — fajlovi iz `D:\chess books` daju
 pravi tutorijal umesto izmišljenog.
