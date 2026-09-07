@@ -35,6 +35,7 @@ import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/theme/arrow_colors.dart';
 import 'package:chess_app/widgets/game_screen/arrow_color_button.dart';
+import 'package:chess_app/widgets/game_screen/board_annotation_controller.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
@@ -154,12 +155,20 @@ class _ChessGamePageState extends State<ChessGamePage> {
   bool isHandRaised = false;
   List<dynamic> roomMembers = [];
 
-  bool isDrawingMode = false;
-  String? drawingStartSquare;
-
-  /// Which colour a drawn arrow takes. One of `ArrowColor.all`'s ids;
-  /// green because it is the first swatch, not because it means anything.
-  String selectedArrowColorCode = 'G';
+  /// The drawing interaction, shared with the tutorial studio.
+  ///
+  /// It was three fields and two methods of this screen until P7b of
+  /// `docs/PLAN-STUDIO-REDIZAJN.md` — the mode, the pending square, the colour,
+  /// the toggle that draws or erases, and the undo. The studio needed the same
+  /// gestures, and two copies of one rule is the fault this repository has paid
+  /// for more than once, so the interaction left and this screen became its
+  /// second caller rather than its only one.
+  ///
+  /// What stays here is what belongs to a *room* and to nothing else:
+  /// [_publishArrows], which records the arrows into the lesson's timeline and
+  /// broadcasts them to whoever is watching. The controller draws; the room
+  /// decides that a drawing is worth telling anyone about.
+  final BoardAnnotationController _annotation = BoardAnnotationController();
 
   List<dynamic> lessons = [];
   bool isLoadingLessons = false;
@@ -705,62 +714,25 @@ class _ChessGamePageState extends State<ChessGamePage> {
         boardOrientation: boardOrientation,
         boardSize: size,
         isAllowedToMove: isAllowedToMove,
-        isDrawingMode: isDrawingMode,
-        drawingStartSquare: drawingStartSquare,
+        isDrawingMode: _annotation.isDrawing,
+        drawingStartSquare: _annotation.pendingFrom,
         arrows: moveTree.current.arrows,
         engineArrows: engineArrows,
         onMove: _handleLocalMoveMade,
         onSquareTapForDrawing: (square) {
-          setState(() {
-            if (drawingStartSquare == null) {
-              drawingStartSquare = square;
-            } else {
-              final start = drawingStartSquare!;
-              drawingStartSquare = null;
-              if (start != square) {
-                _toggleArrow(start, square);
-              }
-            }
-          });
+          // The first tap of an arrow changes nothing but has to repaint: the
+          // board draws the square it will be drawn from, which is the only
+          // thing telling the trainer their tap was heard.
+          final changed = _annotation.tap(
+            square,
+            arrows: moveTree.current.arrows,
+            squares: moveTree.current.squares,
+          );
+          setState(() {});
+          if (changed) _publishArrows();
         },
       ),
     );
-  }
-
-  /// Draws the arrow, or takes it back if the same one is already there.
-  ///
-  /// Redrawing a square pair to remove it is what Lichess and chess.com do, and
-  /// it is the only way to correct one arrow that does not go through the
-  /// board's whole annotation. The colour is deliberately not part of the
-  /// match: the mistake being corrected is usually "wrong arrow", not "right
-  /// arrow, wrong colour", and having to remember which colour it was drawn in
-  /// to erase it would be worse than the button it replaces.
-  ///
-  /// Must be called from inside a [setState] — [_publishArrows] does not
-  /// rebuild on its own.
-  void _toggleArrow(String from, String to) {
-    final arrows = moveTree.current.arrows;
-    final existing = arrows.indexWhere((a) => a.from == from && a.to == to);
-    if (existing >= 0) {
-      arrows.removeAt(existing);
-    } else {
-      arrows.add(ChessArrow(
-        from: from,
-        to: to,
-        colorCode: selectedArrowColorCode,
-      ));
-    }
-    _publishArrows();
-  }
-
-  /// Takes back the arrow drawn last on this move. Returns false when there
-  /// was none, so the caller can say so rather than silently doing nothing.
-  bool _undoLastArrow() {
-    final arrows = moveTree.current.arrows;
-    if (arrows.isEmpty) return false;
-    arrows.removeLast();
-    _publishArrows();
-    return true;
   }
 
   /// Records the current move's arrows and sends them to the room.
@@ -780,6 +752,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
     });
   }
 
+  /// The brush button, in both layouts.
+  ///
+  /// Written once because it is one rule: leaving drawing mode also forgets a
+  /// half-drawn arrow, and a second copy of that is a copy that will one day
+  /// forget.
+  void _toggleDrawingMode() {
+    if (_annotation.isDrawing) {
+      _annotation.stop();
+    } else {
+      _annotation.setMode(AnnotationMode.arrow);
+    }
+  }
+
   /// Undo beside clear-all, for the studio and the trainer alike.
   ///
   /// A Wrap rather than a Row: two labelled buttons do not fit side by side in
@@ -794,11 +779,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
           onPressed: () {
             // Do the thing, then say it: the message must not be able to take
             // down the edit it reports on.
-            bool undone = false;
-            setState(() {
-              undone = _undoLastArrow();
-              drawingStartSquare = null;
-            });
+            final undone = _annotation.undoLastArrow(moveTree.current.arrows);
+            _annotation.cancelPending();
+            setState(() {});
+            if (undone) _publishArrows();
             if (undone) {
               _showSuccess('Poslednja strelica je poništena.');
             } else {
@@ -810,11 +794,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
         ),
         OutlinedButton.icon(
           onPressed: () {
-            setState(() {
-              moveTree.current.arrows.clear();
-              drawingStartSquare = null;
-              _publishArrows();
-            });
+            // Only when there was something to clear. Clearing an empty
+            // move used to record an `arrow_drawn` event and broadcast it,
+            // which puts a beat in a lesson's timeline for a press that
+            // changed nothing.
+            final cleared = _annotation.clearArrows(moveTree.current.arrows);
+            _annotation.cancelPending();
+            setState(() {});
+            if (cleared) _publishArrows();
           },
           icon: const Icon(Icons.layers_clear, size: 16),
           label: const Text('Izbriši sve strelice', style: AppText.body),
@@ -829,10 +816,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
     // drifted from what the painter drew; the name was typed eight times.
     return ArrowColorButton(
       arrow: arrow,
-      isSelected: selectedArrowColorCode == arrow.id,
+      isSelected: _annotation.colorCode == arrow.id,
       onTap: () {
         setState(() {
-          selectedArrowColorCode = arrow.id;
+          _annotation.setColor(arrow.id);
         });
       },
     );
@@ -2225,7 +2212,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     setState(() {
       moveTree.current = node;
       commentController.text = node.comment;
-      drawingStartSquare = null;
+      _annotation.cancelPending();
     });
 
     controller.loadFen(node.fen);
@@ -2371,7 +2358,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         currentNode.children.add(newNode);
         moveTree.current = newNode;
         commentController.text = '';
-        drawingStartSquare = null;
+        _annotation.cancelPending();
       });
       _broadcastMoveAndState(from, to, newFen);
     }
@@ -3308,17 +3295,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            setState(() {
-                              isDrawingMode = !isDrawingMode;
-                              drawingStartSquare = null;
-                            });
+                            setState(_toggleDrawingMode);
                           },
-                          icon: Icon(isDrawingMode ? Icons.check : Icons.brush),
-                          label: Text(isDrawingMode
+                          icon: Icon(_annotation.isDrawing
+                              ? Icons.check
+                              : Icons.brush),
+                          label: Text(_annotation.isDrawing
                               ? 'Završi crtanje'
                               : 'Nacrtaj strelicu'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isDrawingMode
+                            backgroundColor: _annotation.isDrawing
                                 ? context.colors.warning
                                 : context.colors.accent,
                             foregroundColor: context.colors.canvas,
@@ -3327,7 +3313,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       ),
                     ],
                   ),
-                  if (isDrawingMode) ...[
+                  if (_annotation.isDrawing) ...[
                     const SizedBox(height: 10),
                     _buildColorButtonRow(),
                   ],
@@ -3434,29 +3420,27 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            setState(() {
-                              isDrawingMode = !isDrawingMode;
-                              drawingStartSquare = null;
-                            });
+                            setState(_toggleDrawingMode);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isDrawingMode
+                            backgroundColor: _annotation.isDrawing
                                 ? context.colors.accent
                                 : context.colors.brand.withValues(alpha: 0.3),
-                            foregroundColor: isDrawingMode
+                            foregroundColor: _annotation.isDrawing
                                 ? context.colors.canvas
                                 : context.colors.textPrimary,
                           ),
-                          icon:
-                              Icon(isDrawingMode ? Icons.check : Icons.gesture),
-                          label: Text(isDrawingMode
+                          icon: Icon(_annotation.isDrawing
+                              ? Icons.check
+                              : Icons.gesture),
+                          label: Text(_annotation.isDrawing
                               ? 'Završi crtanje'
                               : 'Crtaj strelice'),
                         ),
                       ),
                     ],
                   ),
-                  if (isDrawingMode) ...[
+                  if (_annotation.isDrawing) ...[
                     const SizedBox(height: 10),
                     _buildColorButtonRow(),
                   ],

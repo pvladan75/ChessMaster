@@ -185,6 +185,56 @@ void main() {
     });
   });
 
+  group('a half-drawn arrow does not outlive the position it was drawn on', () {
+    // The gap a lead mutation found: deleting the cancel from `_selectNode`
+    // left every other test in this file green. `pendingFrom` names a square on
+    // the board the trainer was looking at, and finishing that arrow after the
+    // board has moved draws it somewhere nobody asked for.
+
+    testWidgets('playing a move forgets the started square', (tester) async {
+      await openRoom(tester);
+      await startDrawing(tester);
+
+      await tapSquare(tester, 'e2');
+      expect(board(tester).drawingStartSquare, 'e2');
+
+      board(tester).onMove('g1', 'f3', '');
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(board(tester).drawingStartSquare, isNull);
+
+      await tapSquare(tester, 'e4');
+      expect(arrows(tester), isEmpty,
+          reason: 'an arrow was finished across a move, so it was drawn from a '
+              'square on the position that was left');
+
+      await closeRoom(tester);
+    });
+
+    testWidgets('walking back through the moves forgets it too',
+        (tester) async {
+      await openRoom(tester);
+
+      board(tester).onMove('e2', 'e4', '');
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await startDrawing(tester);
+      await tapSquare(tester, 'd2');
+      expect(board(tester).drawingStartSquare, 'd2');
+
+      await tester.tap(find.byTooltip('Prethodni potez').last,
+          warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(board(tester).drawingStartSquare, isNull);
+
+      await tapSquare(tester, 'd4');
+      expect(arrows(tester), isEmpty);
+
+      await closeRoom(tester);
+    });
+  });
+
   group('taking an arrow back', () {
     testWidgets('drawing the same pair again erases it', (tester) async {
       await openRoom(tester);
