@@ -166,6 +166,37 @@ class TutorialSection {
   bool get isPristine =>
       storedPgn != null && _storedSignature == treeSignature(root);
 
+  /// Whether this part has moves after its starting position.
+  ///
+  /// **Not `pgnForSave.isNotEmpty`, and that difference was a bug.** A part with
+  /// no moves still exports a `pgn` when its root carries a note, an arrow or a
+  /// coloured square — the exporter writes those ahead of move one on purpose,
+  /// so that „pogledaj polje d5" can travel. Judging a part by whether its
+  /// exported text is empty therefore called a question with an arrow on it „a
+  /// part with a line", and refused to save it. P7a, which gave the trainer a
+  /// way to draw, made that the normal way to write a question.
+  ///
+  /// Asked of the tree rather than of a parsed text, because the tree is the
+  /// writable one and cannot disagree with itself. What is *sent* is still read
+  /// back through `LessonStepLine` before it leaves — that check is about the
+  /// text, and this one is about the lesson.
+  bool get hasLine => root.children.isNotEmpty;
+
+  /// True for a part that would hand the child its own answer.
+  ///
+  /// A step's `pgn` is not redacted on its way to a child — the line *is* the
+  /// lesson — and the viewer draws the move strip for every kind. So a question
+  /// whose line runs on from the very position being asked about shows the
+  /// answer to anyone who presses „Sledeći potez".
+  ///
+  /// **This is the single refusal the app makes on its own**, and it cannot be
+  /// moved to the server: the server stores `pgn` as opaque text and has no PGN
+  /// reader, and giving it one would be a second parser disagreeing with this
+  /// app's. One getter, read by all three places the rule appears — the question
+  /// asked when the kind is chosen, the banner on a tutorial already in that
+  /// state, and the refusal at save.
+  bool get leaksAnswer => kind == LessonStepKind.askMove && hasLine;
+
   /// What a save should send as this part's line.
   ///
   /// An untouched part is written back as **the exact text it was read from**.

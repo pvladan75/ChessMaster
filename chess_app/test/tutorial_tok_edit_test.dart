@@ -332,9 +332,17 @@ void main() {
       await tester.tap(find.text('Traži odgovor iz liste').last);
       await tester.pumpAndSettle();
       await typeIn(tester, 'example-instruction', 'Šta beli postiže?');
+      // Two answers, because P8 made „two to four" a refusal — §7.6 of
+      // `docs/PLAN-STUDIO-REDIZAJN.md`, and a child offered a single answer to
+      // pick from is not being asked anything. The assertion below is the one
+      // this test has always made: that the question reaches the server. Only
+      // the fixture grew.
       await tester.tap(find.text('Dodaj odgovor'));
       await tester.pumpAndSettle();
       await typeIn(tester, 'example-choice-0', 'Zauzima centar.');
+      await tester.tap(find.text('Dodaj odgovor'));
+      await tester.pumpAndSettle();
+      await typeIn(tester, 'example-choice-1', 'Napada kralja.');
       await tester.tap(find.byType(Radio<int>).first);
       await tester.pumpAndSettle();
 
@@ -344,6 +352,7 @@ void main() {
       expect(list.single['instruction'], 'Šta beli postiže?');
       expect(list.single['choices'], [
         {'text': 'Zauzima centar.', 'correct': true},
+        {'text': 'Napada kralja.', 'correct': false},
       ]);
 
       await close(tester);

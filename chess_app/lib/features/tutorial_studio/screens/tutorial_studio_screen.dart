@@ -718,15 +718,29 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
     _syncSelectedSection();
 
+    // Named, not counted. A trainer with fourteen parts and a refusal that says
+    // „a part" has been told they are wrong and not where — which is the same
+    // as not being told. `LessonStepEditorPanel` named them, and D8 retires that
+    // panel, so the naming comes here with the rule.
+    final leaking = _draft.sections.where((s) => s.leaksAnswer).toList();
+    if (leaking.isNotEmpty) {
+      AppFeedback.error(
+        context,
+        'Nije sačuvano. ${_namesOf(leaking)} nosi liniju u kojoj je odgovor '
+        '— ukloni liniju ili promeni tip zadatka.',
+      );
+      return;
+    }
+
     for (final section in _draft.sections) {
-      if (section.kind == LessonStepKind.askMove &&
-          section.pgnForSave.trim().isNotEmpty) {
-        AppFeedback.error(
-            context, 'Deo koji traži potez ne sme da ima liniju.');
+      if (section.kind != LessonStepKind.askChoice) continue;
+      final answers = section.choices.where((c) => c.text.trim().isNotEmpty);
+      if (answers.length < 2 || answers.length > 4) {
+        AppFeedback.error(context,
+            'Pitanje sa ponuđenim odgovorima traži dva do četiri odgovora.');
         return;
       }
-      if (section.kind == LessonStepKind.askChoice &&
-          !section.choices.any((c) => c.correct)) {
+      if (answers.where((c) => c.correct).length != 1) {
         AppFeedback.error(
             context, 'Tačno jedan ponuđeni odgovor mora da bude tačan.');
         return;
@@ -788,6 +802,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _titleField(),
+          _leakBanner(),
           const SizedBox(height: AppSpacing.sm),
           Expanded(
             key: const Key('sections-half'),
@@ -813,12 +828,118 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _titleField(),
+        _leakBanner(),
         const SizedBox(height: AppSpacing.md),
         _sectionsPanel(),
         const SizedBox(height: AppSpacing.md),
         _editorFields(),
       ],
     );
+  }
+
+  /// „Deo 2" and „Deo 4", quoted, for a sentence that names what is wrong.
+  static String _namesOf(List<TutorialSection> sections) => sections
+      .map((s) => '„${s.title.trim().isEmpty ? 'Deo' : s.title}"')
+      .join(', ');
+
+  /// Said on the way in, about parts that were already saved this way.
+  ///
+  /// §7.2 of the plan: a tutorial written before this refusal existed can carry
+  /// the leak, and hydration is the only moment anyone would find out. The quiet
+  /// version of this bug is a child who simply stops getting anything wrong, so
+  /// it is worth a banner rather than a line in a log.
+  Widget _leakBanner() {
+    final leaking = _draft.sections.where((s) => s.leaksAnswer).toList();
+    if (leaking.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      key: const Key('leak-banner'),
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Material(
+        color: context.colors.dangerContainer,
+        borderRadius: AppRadii.roundedSm,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.warning_amber,
+                  size: 18, color: context.colors.onDangerContainer),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  'Dete bi videlo odgovor: ${_namesOf(leaking)} traži potez, a '
+                  'nosi liniju koju dete može da prolista dugmetom „Sledeći '
+                  'potez".',
+                  style: AppText.body
+                      .copyWith(color: context.colors.onDangerContainer),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The kind the trainer picked, and the one question worth asking about it.
+  ///
+  /// Asked rather than done: deleting a trainer's line and the words inside it
+  /// because they touched a dropdown is not a repair, it is a loss they did not
+  /// agree to. Refusing outright is no better — it leaves them with a position
+  /// they cannot ask about and no way forward. The demonstration belongs in the
+  /// part *before* the question, which the viewer joins without reloading the
+  /// board. Carried over from `LessonStepEditorPanel`, which D8 retires.
+  Future<void> _chooseKind(LessonStepKind? value) async {
+    if (value == null) return;
+
+    if (value == LessonStepKind.askMove && _draft.section.hasLine) {
+      final drop = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Dete bi videlo odgovor'),
+          content: const Text(
+            'Ovaj deo nosi liniju, a dete može da je prolista dugmetom '
+            '„Sledeći potez" pre nego što odgovori. Demonstracija ide u deo '
+            'ispred pitanja — pitanje ostaje samo pozicija.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Odustani'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Ukloni liniju i postavi pitanje'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+      if (drop != true) {
+        // The dropdown keeps the value it was given in its own state, so the
+        // subtree is rebuilt to put „Samo prikaži" back in front of the
+        // trainer. Same reason [_fieldsEpoch] exists at all.
+        setState(() => _fieldsEpoch++);
+        return;
+      }
+      setState(_dropLine);
+    }
+
+    setState(() => _currentKind = value);
+    _persist();
+  }
+
+  /// Takes the moves off the open part, keeping the position it asks about and
+  /// everything written on that position.
+  void _dropLine() {
+    final section = _draft.section;
+    section.root.children.clear();
+    section.cursorNode = section.root;
+    _boardController.loadFen(section.root.fen);
+    _lastMoveFrom = null;
+    _lastMoveTo = null;
+    _annotationController.cancelPending();
   }
 
   Widget _questionCard() {
@@ -857,13 +978,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                       value: LessonStepKind.askChoice,
                       child: Text('Traži odgovor iz liste')),
                 ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() {
-                      _currentKind = val;
-                    });
-                  }
-                },
+                onChanged: _chooseKind,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
