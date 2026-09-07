@@ -450,6 +450,12 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
   }
 
   void _showNodeContextMenu(BuildContext context, AnalysisNode node) {
+    // An empty sheet is the same lie as a dead menu item, one step further on.
+    if (widget.onPromoteNode == null &&
+        widget.onDeleteNode == null &&
+        widget.extraLabel?.call(node) == null) {
+      return;
+    }
     showModalBottomSheet(
       context: context,
       backgroundColor: context.colors.surface,
@@ -460,27 +466,35 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: Icon(Icons.star, color: ctx.colors.warning),
-                title: Text('Unapredi u Glavnu Liniju (Main Line)',
-                    style: TextStyle(color: ctx.colors.textPrimary)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  if (node.parent != null) {
-                    widget.onPromoteNode?.call(node);
-                  }
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.delete, color: ctx.colors.danger),
-                title: Text(
-                    widget.deleteLabel?.call(node) ?? 'Obriši Ovu Varijantu',
-                    style: TextStyle(color: ctx.colors.textPrimary)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  widget.onDeleteNode?.call(node);
-                },
-              ),
+              // Drawn only where they do something. A screen that takes this
+              // widget without the callbacks used to get the whole menu
+              // anyway: the tutorial studio showed „Obriši Ovu Varijantu",
+              // the trainer pressed it, the sheet closed and the move stayed —
+              // the recurring fault of this repository, in the form a user
+              // meets it. Found live on 7.9.2026.
+              if (widget.onPromoteNode != null)
+                ListTile(
+                  leading: Icon(Icons.star, color: ctx.colors.warning),
+                  title: Text('Unapredi u Glavnu Liniju (Main Line)',
+                      style: TextStyle(color: ctx.colors.textPrimary)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    if (node.parent != null) {
+                      widget.onPromoteNode?.call(node);
+                    }
+                  },
+                ),
+              if (widget.onDeleteNode != null)
+                ListTile(
+                  leading: Icon(Icons.delete, color: ctx.colors.danger),
+                  title: Text(
+                      widget.deleteLabel?.call(node) ?? 'Obriši Ovu Varijantu',
+                      style: TextStyle(color: ctx.colors.textPrimary)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    widget.onDeleteNode?.call(node);
+                  },
+                ),
               if (widget.extraLabel?.call(node) != null)
                 ListTile(
                   leading: Icon(Icons.call_split, color: ctx.colors.accent),

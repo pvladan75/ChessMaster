@@ -441,6 +441,87 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _persist();
   }
 
+  /// Whether [node] is [_current] or stands above it on the line.
+  ///
+  /// Asked before a move is deleted: the trainer is usually standing on or
+  /// below the move they are taking back, and a cursor left pointing into a
+  /// detached subtree is a board showing a position the part no longer holds.
+  bool _cursorIsAtOrBelow(AnalysisNode node) {
+    for (AnalysisNode? n = _current; n != null; n = n.parent) {
+      if (identical(n, node)) return true;
+    }
+    return false;
+  }
+
+  /// Takes a move back, with everything written under it.
+  ///
+  /// **The menu was already there and did nothing.** `AnalysisMoveTreeWidget`
+  /// draws „Unapredi u Glavnu Liniju" and „Obriši Ovu Varijantu" on a
+  /// long-press or a right-click, and this screen passed neither callback — so
+  /// a trainer opened it, pressed „Obriši", and the move stayed. The only way
+  /// to take a move back was to retype the line in the „PGN" tab, which is
+  /// where the owner found it on 7.9.2026: „ne mogu da se brišu potezi (ili ne
+  /// vidim kako)". The dead entries are hidden now, and these two are wired.
+  ///
+  /// It asks first only when there is something to lose — a move with words,
+  /// drawings or moves under it. A trainer taking back a piece they dropped on
+  /// the wrong square should not have to answer a question about it, and a
+  /// dialog on every deletion is a dialog that gets dismissed unread.
+  Future<void> _deleteNode(AnalysisNode node) async {
+    final parent = node.parent;
+    // The root is the part's starting position rather than a move. There is a
+    // way to throw that away and it is „Obriši deo".
+    if (parent == null) return;
+
+    if (_carriesWork(node)) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Obriši potez?'),
+          content: Text('„${node.moveNumberLabel}${node.moveSan}" i sve što '
+              'je napisano posle njega biće obrisano.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Odustani'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Obriši'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true) return;
+    }
+
+    // Moved off it before it is detached, not after: `_jumpTo` loads the
+    // board from the node it is given, and a cursor inside the subtree being
+    // removed would be pointing at a position the part no longer has.
+    if (_cursorIsAtOrBelow(node)) _jumpTo(parent);
+    setState(() => parent.removeChild(node));
+    _persist();
+  }
+
+  /// Whether [node] holds anything beyond the move itself.
+  static bool _carriesWork(AnalysisNode node) =>
+      node.children.isNotEmpty ||
+      node.comment.trim().isNotEmpty ||
+      node.arrows.isNotEmpty ||
+      node.squares.isNotEmpty;
+
+  /// Makes a sideline the line the child walks.
+  ///
+  /// It matters more here than in the Analysis Studio: the „Tok" timeline and
+  /// the narrated walk both follow first children, so which branch is main is
+  /// a decision about the lesson rather than about how the tree is drawn.
+  void _promoteNode(AnalysisNode node) {
+    final parent = node.parent;
+    if (parent == null) return;
+    setState(() => parent.promoteToMainLine(node));
+    _persist();
+  }
+
   /// A move the board reported, dragged or tapped.
   ///
   /// A move the position does not allow puts the board back where it was rather
@@ -1470,11 +1551,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                 _persist();
               },
               question: _questionCard(),
+              onDelete: _deleteNode,
             ),
             AnalysisMoveTreeWidget(
               rootNode: _root,
               activeNode: _current,
               onSelectNode: _jumpTo,
+              onPromoteNode: _promoteNode,
+              onDeleteNode: _deleteNode,
             ),
             // Keyed by the tree it is showing: a new part, or a text that has
             // just been applied, is a different line and the field follows it.

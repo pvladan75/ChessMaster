@@ -4520,3 +4520,31 @@ rečenica se sada piše i tu gde dete već gleda.
    strelicu — razlika ne sme da zavisi od boje.
 6. [ ] **Traka i dalje pita.** Strelica „Sledeći potez" na račvi i dalje otvara
    list sa istim potezima.
+
+## 124. Potez se briše iz stabla i iz „Toka" — 7.9.2026, nije viđeno uživo
+
+Iz žive provere 7.9.2026: „ne mogu da se brišu potezi (ili ne vidim kako)", pa
+zatim „može iz pgn prikaza … ali ne iz stabla ili toka". Meni na čvoru stabla
+je sve vreme postojao — dugi pritisak ili desni klik otvara „Unapredi u Glavnu
+Liniju" i „Obriši Ovu Varijantu" — ali studio za tutorijal nije prosleđivao
+nijednu od te dve akcije, pa se list otvarao, dugme se pritiskalo i **ništa se
+nije dešavalo**. To je stara greška ove baze u obliku u kome je korisnik sreće.
+
+1. [ ] **Iz „Toka".** Svaka kartica koja jeste potez ima dugme sa gumicom
+   (`Obriši ovaj potez`) u zaglavlju. Kartica „Polazna pozicija" ga **nema** —
+   to nije potez, i za nju postoji „Obriši deo".
+2. [ ] **Go potez ne pita.** Odigraj tri poteza i obriši poslednji — nestaje
+   odmah, bez pitanja.
+3. [ ] **Potez sa napisanim ne ide bez pitanja.** Napiši rečenicu na potez (ili
+   nacrtaj strelicu, ili igraj dalje od njega) pa ga obriši — pita „Obriši
+   potez?" i imenuje ga. „Odustani" ne menja ništa.
+4. [ ] **Tabla ne ostaje na obrisanoj poziciji.** Stani na potez, pa obriši
+   potez **iznad** njega — tabla i „Tok" se vrate na potez pre obrisanog.
+5. [ ] **Iz stabla.** U tabu „Stablo" desni klik (ili dugi pritisak) na potez
+   daje isti izbor, i „Obriši Ovu Varijantu" sada zaista briše.
+6. [ ] **Glavna linija se bira.** Napravi sporednu liniju, desni klik na njen
+   prvi potez, „Unapredi u Glavnu Liniju" — od tada „Tok" ide tom granom i
+   dete se vodi njome.
+7. [ ] **Nigde više mrtvog menija.** Ako neki ekran ne nudi te akcije, meni se
+   ne otvara prazan — ne sme da postoji dugme koje ne radi ništa.
+8. [ ] **Sačuvaj pa otvori ponovo** — obrisani potez se nije vratio.

@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1721 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1727 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -501,6 +501,20 @@ whole screen.** `tutorial_branching_test.dart` said the chooser's sentence was
 absent after one move to mean „no sheet opened", and the sentence is written
 inline now; it asks about `BottomSheet` instead. Scope the finder, do not
 weaken it.
+
+**Six more the same day — 1727 in the app, 1 skipped.** A move could be taken
+back only by retyping the line in the „PGN" tab. `AnalysisMoveTreeWidget` has
+drawn „Unapredi u Glavnu Liniju" and „Obriši Ovu Varijantu" on a long-press
+since the Analysis Studio was built, and the tutorial studio took the widget
+**without either callback**: the sheet opened, the trainer pressed „Obriši",
+the sheet closed and the move stayed. **A widget that draws an action it was
+given no way to perform is this repository's recurring fault wearing a menu** —
+the entries are drawn only where a callback exists now, and the sheet does not
+open at all when none does. Deleting asks first only when the move carries
+words, drawings or moves under it: a dialog on every deletion is a dialog that
+gets dismissed unread. Three mutations, all three caught; the one worth keeping
+is that the cursor must leave a subtree before it is detached, or the board is
+left standing on a position the part no longer holds.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

@@ -26,6 +26,7 @@ class TutorialFlowPanel extends StatelessWidget {
     required this.onSelect,
     required this.onCommentChanged,
     required this.question,
+    this.onDelete,
   });
 
   final AnalysisNode root;
@@ -33,6 +34,14 @@ class TutorialFlowPanel extends StatelessWidget {
   final void Function(AnalysisNode) onSelect;
   final void Function(AnalysisNode, String) onCommentChanged;
   final Widget question;
+
+  /// Takes back the move that arrived at a beat, with everything under it.
+  ///
+  /// Optional, and drawn only on the beats that *are* a move — the opening
+  /// position of a part is not one, and there is a different action for
+  /// throwing that away. The screen owns what deleting means, including
+  /// whether to ask first; this only says which move was pointed at.
+  final void Function(AnalysisNode)? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +58,7 @@ class TutorialFlowPanel extends StatelessWidget {
             beat: beats[i],
             onSelect: onSelect,
             onCommentChanged: onCommentChanged,
+            onDelete: onDelete,
           ),
         ],
         const SizedBox(height: AppSpacing.xs),
@@ -64,11 +74,13 @@ class _BeatCard extends StatefulWidget {
     required this.beat,
     required this.onSelect,
     required this.onCommentChanged,
+    this.onDelete,
   });
 
   final TutorialBeat beat;
   final void Function(AnalysisNode) onSelect;
   final void Function(AnalysisNode, String) onCommentChanged;
+  final void Function(AnalysisNode)? onDelete;
 
   @override
   State<_BeatCard> createState() => _BeatCardState();
@@ -152,6 +164,20 @@ class _BeatCardState extends State<_BeatCard> {
                       ),
                     ),
                   ),
+                  // The move that arrived here, taken back from the surface
+                  // the tutorial is written on. Until 7.9.2026 the only place
+                  // a move could be deleted was the „PGN" tab, by retyping the
+                  // line — the tree's own menu drew the action and did
+                  // nothing.
+                  if (widget.onDelete != null && beat.arrivedBy != null)
+                    IconButton(
+                      key: Key('beat-delete-${beat.index}'),
+                      icon: const Icon(Icons.backspace_outlined, size: 16),
+                      color: context.colors.textMuted,
+                      tooltip: 'Obriši ovaj potez',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => widget.onDelete!(beat.node),
+                    ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
