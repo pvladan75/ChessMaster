@@ -551,8 +551,17 @@ uvozi `PgnExporterService`, jer par `fen`/`pgn` ima jedan dom. Tipovi raspona su
 sada zaseban model, a tekst za tab dolazi iz `StudioLessonStep.textWithSpans` —
 kapija stoji neoslabljena.
 
-Ostaje **T5** (pitanje o `[FEN]`-u kad se nalepi partija iz druge pozicije) i
-živa provera, tačka 120.
+**T5 je gotov** (`daee549`) i sa njim je `PLAN-PGN-TEKST` ceo zatvoren. Kad
+nalepljeni tekst nosi svoj `[FEN]` različit od pozicije dela, pita se jednom —
+„Odustani", „Zadrži postojeću", „Uzmi tu poziciju" — jer uzimanje te pozicije
+menja tablu na kojoj **dete** otvara deo. Usput su dve stvari koje su htele da
+budu napisane dvaput sada napisane jednom, u `move_tree.dart` pored parsera koji
+ih je već znao: `fenHeaderOf` (jedini čitač `[FEN]` zaglavlja) i `samePosition`
+(poređenje bez satova, koje je do sada privatno živelo u pregledaču).
+
+**Stanje: 1667 testova, 1 preskočen; analizator 29; backend 956.**
+
+Ostaje **živa provera** — tačke 113–120, jedna sesija na jednom ekranu.
 
 **Sledeće nije više ovaj plan nego živa provera**: tačke 113–119 su jedna
 sesija na jednom ekranu, i sada ima na čemu — fajlovi iz `D:\chess books` daju

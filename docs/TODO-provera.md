@@ -4424,3 +4424,9 @@ spolja može da uđe u tutorijal, pa tačka 6 nije kozmetika nego cela poenta.
     baš na tom potezu.
 13. [ ] **Komentar iz menija.** „Dodaj komentar" otvara polje sa postojećim
     tekstom tog poteza; „Odustani" ne menja ništa.
+14. [ ] **Nalepljena partija iz druge pozicije.** Nalepi PGN koji nosi svoj
+    `[FEN]` različit od pozicije dela — pojavi se pitanje. „Uzmi tu poziciju"
+    prebaci deo na nju i linija se odigra; „Zadrži postojeću" odbije tekst uz
+    poruku; „Odustani" ne uradi ništa i **ne** javlja grešku.
+15. [ ] **Isti položaj, drugi satovi.** PGN čiji se `[FEN]` razlikuje samo po
+    brojačima ne sme ništa da pita.

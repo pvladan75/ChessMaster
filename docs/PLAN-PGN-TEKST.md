@@ -202,8 +202,8 @@ Each one is a line in a gate.
 | **T2** | The „PGN" tab: text, legend, clean/dirty, „Primeni" through `LessonStepLine`, the refusals of §5 | **lead**, done 7.9.2026 (`e75e97d`) | thirteen tests; three of five mutations survived the first pass and each one bought a fix |
 | **T3** | The caret is the cursor (D2), both ways | **lead**, done 7.9.2026 (`b36ffe0`) | eight tests with T4; five mutations |
 | **T4** | The right-click menu (D7), drawing through `BoardAnnotationController` | **lead**, done 7.9.2026 (`b36ffe0`) | the menu draws nothing itself — it stands the cursor on the move and hands the board its mode |
-| **T5** | The `[FEN]` question (D6) and „paste a whole game" as its own live check | **lead** | it is the one branch that moves the board a child opens on |
-| **T6** | Docs: `TABELA-TUTORIJAL.md`, `STANJE-RADA.md`, `TODO-provera.md` | lead | as part of the work |
+| **T5** | The `[FEN]` question (D6) and „paste a whole game" as its own live check | **lead**, done 7.9.2026 (`daee549`) | six tests, four mutations; `fenHeaderOf` and `samePosition` moved to `move_tree.dart` so neither is written twice |
+| **T6** | Docs: `STANJE-RADA.md`, `TODO-provera.md` | lead, done 7.9.2026 | `TABELA-TUTORIJAL.md` turned out not to be part of this — see §4 |
 
 **T1 first and alone.** It is the pure core — the same shape as `beatsOf` before
 the timeline — and a batch that has it has nothing left to decide about where a
@@ -233,6 +233,13 @@ being on screen:
   asserted in the saved `pgn`;
 * the menu is unavailable while the text is dirty;
 * leaving the tab with dirty text loses nothing.
+
+**All six phases landed on 7.9.2026**, T1 through T5 as the lead's own commits
+rather than as a worker batch: the owner judged it small enough, and it was —
+the reader, the writer and the refusals all existed, and what was added is one
+map, one tab and one question. What it cost instead was mutations: eleven in
+total across the five phases, of which **four survived their first pass**, and
+every one of those four was a test that could not see what it was written for.
 
 ## 8. What this plan does not do
 
