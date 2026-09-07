@@ -463,7 +463,29 @@ treći probni build zaredom koji se isplatio.
 aplikaciji, 1 preskočen; `flutter analyze` — 29 stavki, sve `info`.** Backend
 nije diran i ostaje na 956.
 
-**P7a je gotov** (batch 61, gore) — ostaje da se vidi uživo, tačka 117.
+**P7 je ceo gotov.** P7a je batch 61 (gore) — ostaje da se vidi uživo, tačka
+117. **P7b je urađen isti dan, vođa** (`1ae5fd2` + `869dd60`): soba je prešla na
+`BoardAnnotationController`, iz nje su izašla tri polja i dve metode, i jedno
+pravilo više ne živi na dva mesta. **1605 testova u aplikaciji, 1 preskočen**;
+analizator 29; backend 956.
+
+Redosled je bio ceo posao: **prvo dvanaest testova crtanja u sobi, zelenih na
+nepromenjenoj sobi**, pa tek onda selidba. Soba se, ispostavilo se, može
+pumpati u testu — `STUDIO` je jedini kod sobe čiji `initState` ne traži server,
+ni registraciju sesije, ni partnera, socket se pravi sa `disableAutoConnect`, a
+`lessonApi` je već injektabilan.
+
+**Dve mutacije su preživele prvi put**, i to je bio nalaz: brisanje
+`cancelPending()` iz `_selectNode` i iz rukovaoca potezom ostavljalo je sve
+zeleno, jer nijedan test nije šetao stablom sa polunacrtanom strelicom. Rupa je
+zatvorena sa dva testa, oba gledana kako padaju na mutaciji koja ih je našla.
+
+Dve namerne promene ponašanja, obe zapisane u kodu: **prazno „Izbriši sve
+strelice" više ne emituje** (upisivalo je `arrow_drawn` u `timeline_json` za
+pritisak koji ništa nije promenio, pa je reprodukcija imala prazan takt), i
+dugme za crtanje je `_toggleDrawingMode()`, napisano jednom umesto po jednom u
+svakom rasporedu. Živa provera je tačka 118, i ona gađa **baš ono što testovi ne
+vide** — emitovanje detetu i snimak.
 Lead-ova polovina je bila `BoardAnnotationController` (`e95b27e`): celo
 odlučivanje o tome šta klik znači, devetnaest testova bez ijednog widgeta i
 sedam mutacija — šest uhvaćeno, a sedma se nije mogla ni napisati, jer
@@ -471,21 +493,20 @@ sedam mutacija — šest uhvaćeno, a sedma se nije mogla ni napisati, jer
 oznake: oznake pripadaju čvoru, pa svaka metoda dobija dve liste i vraća da li
 se išta promenilo.
 
-**Sledeći je P7b, i on je vođin.** Soba (`chess_game_screen.dart`) i dalje drži
-svoju privatnu kopiju istog pravila, pa jedno pravilo živi na dva mesta. Redosled
-je nepregovaran: **prvo testovi crtanja u sobi, kojih nema nijedan**, pa tek onda
-selidba na kontroler. Za njega ništa nije napisano.
+**Sledeći je P8, i on je vođin**: odbrane iz §7 plana žive u studiju, „Pregledaj
+kao učenik", pa gašenje ulaza u stari editor koraka na Windows-u (D8). Ništa se
+ne gasi dok mu odbrane ne postoje drugde. Za njega još ništa nije napisano —
+**i time bi ceo `PLAN-STUDIO-REDIZAJN` bio zatvoren.**
 
-**P7 je namerno podeljen na dva, i razlog nije simetrija sa P5 i P6.** Drugo
-mesto poziva je soba, a **soba nema nijedan test svog crtanja** — a to je ekran
-na kome ide živi čas, gde se nacrtana strelica upisuje u `timeline_json` i šalje
-na dečju tablu. Prepravljati ga na osnovu izveštaja radnika je tačno ono što je
-u ovom repozitorijumu zapisano da se ne radi. Zato P7b (vođa) prvo piše te
-testove pa onda seli sobu na kontroler. Dotle jedno pravilo živi na dva mesta —
-stvarna cena, zapisana umesto prećutana.
-
-Posle toga P8 (odbrane iz starog editora pa gašenje njegovog ulaza na Windows-u
-— ništa se ne gasi dok mu odbrane ne postoje drugde).
+**Zašto je P7 bio podeljen na dva** — vredi zapamtiti, jer je odluka bila
+ispravna iz razloga koji se video tek na kraju. Drugo mesto poziva je soba, a
+soba **nije imala nijedan test svog crtanja**, dok je to ekran na kome ide živi
+čas i gde nacrtana strelica ide i u `timeline_json` i na dečju tablu.
+Prepravljati ga na osnovu izveštaja radnika je tačno ono što je u ovom
+repozitorijumu zapisano da se ne radi — pa je otišao vođi, sa testovima kao
+prvim korakom. Te testove su odmah zaradile **dve preživele mutacije**, obe o
+polunacrtanoj strelici preko promene poteza: da je posao bio jedan batch, taj
+propust bi ušao u sobu i niko ga ne bi video.
 
 Dve stvari koje je P6b ostavio kao pitanje, a ne kao dug: da li kartice koje
 nisu tekuće treba da imaju nalepnicu nad poljem (sada je nemaju, i to je odluka

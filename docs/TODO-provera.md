@@ -4340,3 +4340,26 @@ PGN**, pa je ovo prvi put da neko crta iz aplikacije.
    strelice i polja na tabli, na istim potezima.
 10. [ ] **Boje.** Krugovi imaju slova (C, N, Z, P, Lj) i izabrani ima prsten —
     proveri da razlikuješ izabranu boju **bez** oslanjanja na samu boju.
+
+## 118. Crtanje u sobi posle selidbe na kontroler — 7.9.2026, nije viđeno uživo
+
+P7b. Ovo nije nova funkcija nego prepravka postojeće, pa je provera kratka i
+gađa **tačno ono što testovi ne mogu da vide**: emitovanje i snimanje. Dvanaest
+testova pokriva ponašanje na tabli; `_publishArrows` upisuje u `timeline_json` i
+šalje preko socket-a, a to nijedan test ne dohvata.
+
+1. [ ] **Dete vidi strelicu.** Uđi u sobu sa druge mašine (ili drugog naloga)
+   kao učenik. Trener nacrta strelicu — **pojavi se i kod deteta**, iste boje.
+2. [ ] **Brisanje stigne do deteta.** Trener pritisne „Poništi strelicu" pa
+   „Izbriši sve strelice" — kod deteta nestaju.
+3. [ ] **Snimak.** Snimi kratak čas u kome nacrtaš strelicu, pa pusti reprodukciju
+   — strelica se pojavljuje u trenutku u kom je nacrtana.
+4. [ ] **Prazan „Izbriši sve" ne pravi takt.** Pritisni „Izbriši sve strelice"
+   na potezu bez ijedne strelice, pa pogledaj reprodukciju — **ne sme** da
+   postoji prazan trenutak na tom mestu. (To je jedina namerna promena
+   ponašanja u P7b.)
+5. [ ] **Boja i poništavanje.** Nacrtaj zelenu pa crvenu strelicu, „Poništi
+   strelicu" skida crvenu; nacrtaj zelenu i sa izabranom crvenom klikni ista dva
+   polja — zelena nestaje (brisanje ne gleda boju).
+6. [ ] **Crtanje i potezi.** Uključi crtanje, klikni jedno polje, pa odigraj
+   potez — polunacrtana strelica se zaboravlja, a crtanje ostaje uključeno.

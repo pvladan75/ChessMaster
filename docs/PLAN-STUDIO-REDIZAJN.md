@@ -464,7 +464,7 @@ warnings — and nothing newly suppressed.
 | **P5** | The split-view shell: board pane, sections panel with add/remove/reorder/clone, the tree tab where it is today | worker, high-reasoning | layout; reuses batch 55's semantics wholesale |
 | **P6** | The timeline: `beatsOf`, `_BeatCard`, fork chips, inline editing of comment and question | **lead writes `beatsOf` + its gate; worker builds the panel** | the pure function is the contract; the widget is replaceable |
 | **P7a** | `BoardAnnotationController` extracted from the room; the annotation bar; marks written onto the node **in the studio** | **lead writes the controller + its gate; worker builds the bar and the wiring** | the interaction is the contract; the bar is replaceable |
-| **P7b** | The **room** moved onto the controller — and first, the tests of the room's drawing that do not exist | **lead** | see below: this half was split off on 7.9.2026 |
+| **P7b** | The **room** moved onto the controller — and first, the tests of the room's drawing that did not exist | **lead**, done 7.9.2026 | twelve tests written green against the unchanged room, then the move; two mutations survived the first pass and bought two more tests |
 | **P8** | The four refusals of §7 live in the studio; „Pregledaj kao učenik"; `LessonStepEditorPanel` unlinked on Windows (D8) | **lead** | nothing is unlinked until its refusals are proved somewhere else |
 | **P9** | Docs: `STANJE-RADA.md`, `TODO-provera.md` live-check items, `CLAUDE.md` counts, `TABELA-TUTORIJAL.md` rows for D7 | lead | as part of the work, not afterwards |
 

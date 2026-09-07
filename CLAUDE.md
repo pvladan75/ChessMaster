@@ -416,6 +416,27 @@ conditions, so each branch carries its own pair. The scanner stays conservative
 on purpose — one that paired branches by guessing would hide a real failure —
 so **when two properties of one widget vary together, write the variants out**.
 
+Twelve more the same day with P7b, which moved the room onto that controller and
+closed P7 — **1605 in the app, 1 skipped**; the backend is untouched at 956.
+Three fields and two methods left `chess_game_screen.dart`, so the drawing rule
+has one home and two callers.
+
+**The tests came first, and that order was the whole safety story.** All twelve
+were green against the unchanged room before a line of the move was written, and
+green after. Two of the four mutations **survived at first** — deleting the
+cancel of a half-drawn arrow from `_selectNode` and from the move handler left
+everything green, because nothing in the file walked the move tree with a
+pending arrow. Two tests closed that, both watched failing on the mutation that
+found them. Had this been one batch rather than two, that gap would have shipped
+into the screen a live lesson runs on.
+
+**A screen this size is testable in one entry and nobody had tried.** The room
+looked unreachable — sockets, a partner, a session — and `STUDIO` is the one
+room code whose `initState` asks for none of them, with the socket built
+`disableAutoConnect` and the API already injectable. Twelve widget tests came out
+of a screen that had none. When a refactor is blocked on „that screen cannot be
+tested", spend twenty minutes proving it before believing it.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.
