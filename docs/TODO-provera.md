@@ -4548,3 +4548,20 @@ nije dešavalo**. To je stara greška ove baze u obliku u kome je korisnik sreć
 7. [ ] **Nigde više mrtvog menija.** Ako neki ekran ne nudi te akcije, meni se
    ne otvara prazan — ne sme da postoji dugme koje ne radi ništa.
 8. [ ] **Sačuvaj pa otvori ponovo** — obrisani potez se nije vratio.
+
+## 125. Dve popravke iz žive provere — 7.9.2026, nije viđeno uživo
+
+Obe su iz stavke 121, gde su zapisane kao „dobro je, ali…".
+
+1. [ ] **Posle „Primeni" stojiš na poslednjem potezu.** U tabu „PGN" dopiši
+   potez na kraj linije i pritisni „Primeni" — u „Toku" je tekuća **poslednja**
+   kartica, a tabla je na toj poziciji. Ranije te je vraćalo na polaznu.
+2. [ ] **Novi deo počinje kako si ostavio tablu.** Okreni tablu, pa „Novi
+   prikaz" → „Odavde": novi deo je okrenut isto. To je cela poenta nastavka —
+   dete prelazi spoj bez ponovnog postavljanja figura, pa tabla ne sme da se
+   prevrne baš tu.
+3. [ ] **Isto i za „Nova tabla".** Ko piše iz ugla crnog, piše iz ugla crnog i
+   na sledećem dijagramu.
+4. [ ] **Stari deo se ne dira.** Otvori sačuvan tutorijal sa delom koji je
+   okrenut i delom koji nije, sačuvaj bez izmena — obe orijentacije su ostale
+   kakve su bile.

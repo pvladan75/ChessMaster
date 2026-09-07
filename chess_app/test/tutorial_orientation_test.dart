@@ -162,6 +162,53 @@ void main() {
     await close(tester);
   });
 
+  testWidgets('a part added after this one starts the same way round',
+      (tester) async {
+    // „Novi prikaz" → „Odavde" continues the part in front of it, and the
+    // child crosses that join without the pieces being reloaded — so a board
+    // that flips at the join is the one thing the join exists to prevent. The
+    // trainer met it the other way round: they turned the board, added a part,
+    // and White was at the bottom again. Reported live on 7.9.2026.
+    final api = await open(tester, [
+      {'fen': startFen, 'title': 'Deo 1', 'kind': 'show'},
+    ]);
+
+    await flip(tester);
+    await tester.tap(find.text('Novi prikaz'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Odavde'));
+    await tester.pumpAndSettle();
+
+    final sent = await save(tester, api);
+
+    expect(sent, hasLength(2));
+    expect((sent.last as Map)['blackOrientation'], isTrue,
+        reason: 'the new part came up the other way round from the one it '
+            'continues');
+
+    await close(tester);
+  });
+
+  testWidgets('and so does one started on a board of its own', (tester) async {
+    // Somebody writing from Black's side is still writing from Black's side on
+    // the next diagram.
+    final api = await open(tester, [
+      {'fen': startFen, 'title': 'Deo 1', 'kind': 'show'},
+    ]);
+
+    await flip(tester);
+    await tester.tap(find.text('Novi prikaz'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nova tabla'));
+    await tester.pumpAndSettle();
+
+    final sent = await save(tester, api);
+
+    expect((sent.last as Map)['blackOrientation'], isTrue);
+
+    await close(tester);
+  });
+
   testWidgets('a saved orientation comes back when the tutorial is reopened',
       (tester) async {
     final api = await open(tester, [

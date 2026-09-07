@@ -311,6 +311,33 @@ void main() {
 
       await close(tester);
     });
+
+    testWidgets('and it leaves the trainer standing on the last move typed',
+        (tester) async {
+      // A trainer presses „Primeni" having just written a move on the end of
+      // the text. Being put back on the opening position means finding the way
+      // to it again after every application — reported live on 7.9.2026, on
+      // the very fix that made a line ending in `Nxb4*` applicable at all.
+      await open(tester, lessonWith(pgn: '1. e4'));
+      await openTab(tester);
+
+      await typeInto(tester, '1. d4 d5 2. c4');
+      await apply(tester);
+
+      await tester.tap(find.byKey(const Key('tok-tab')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('beat-3')),
+          matching: find.byKey(const Key('beat-current')),
+        ),
+        findsOneWidget,
+        reason: 'the last beat of the applied line is the one stood on',
+      );
+
+      await close(tester);
+    });
   });
 
   group('the trainer is the one who types in the field', () {

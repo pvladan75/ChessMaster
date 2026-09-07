@@ -1095,7 +1095,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
     setState(() {
       section.root = read.root;
-      section.cursorNode = read.root;
+      // The end of the line, not its beginning. A trainer presses „Primeni"
+      // having just typed a move on the end of the text, and being thrown back
+      // to the opening position means finding their way to it again on every
+      // application — reported live on 7.9.2026, on the very fix that made a
+      // line ending in `Nxb4*` applicable at all. It is also what „Tok" then
+      // shows: the last card is the one they wrote.
+      section.cursorNode = endOfMainLine(read.root);
       // Nothing to invalidate by hand. `isPristine` compares `treeSignature`
       // against the tree itself, and this is a different tree — which is the
       // whole reason P1 chose a signature over a `bool edited`: a flag is the
@@ -1104,7 +1110,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       // nothing.
 
       _annotationController.cancelPending();
-      _boardController.loadFen(read.root.fen);
+      _boardController.loadFen(section.cursorNode.fen);
       _lastMoveFrom = null;
       _lastMoveTo = null;
     });

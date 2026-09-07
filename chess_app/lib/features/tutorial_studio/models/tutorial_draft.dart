@@ -568,7 +568,19 @@ class TutorialDraft {
   void addSection({required bool continueFromEnd, String title = ''}) {
     final at = _selected + 1;
     final fen = continueFromEnd ? endOfMainLine(section.root).fen : startFen;
-    sections.insert(at, TutorialSection.blank(fen: fen, title: title));
+    // The way round the trainer is looking, carried over. A part added with
+    // „Odavde" *continues* the one before it — the child crosses that join
+    // without the pieces being reloaded — so a board that flips at the join is
+    // the one thing the join exists to prevent. It carries over for „Nova
+    // tabla" too: somebody writing a tutorial from Black's side is still
+    // writing from Black's side on the next diagram. Reported live on
+    // 7.9.2026.
+    final blackOrientation = section.blackOrientation;
+    sections.insert(
+      at,
+      TutorialSection.blank(fen: fen, title: title)
+        ..blackOrientation = blackOrientation,
+    );
     _selected = at;
   }
 
