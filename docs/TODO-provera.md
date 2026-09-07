@@ -4309,3 +4309,34 @@ da se lekcija piše na mestu na kome se čita, pa je težište na tome gde tekst
 8. [ ] **Duga linija.** Napravi deo od desetak poteza i proveri da se donja
    polovina skroluje do kartice sa pitanjem — ništa ne sme da ostane
    nedohvatljivo ispod ivice.
+
+## 117. Trener crta po tabli u studiju — 7.9.2026, nije viđeno uživo
+
+P7a (batch 61), studio za tutorijale, traka ispod table. Ide u istom prolazu kao
+113–116. Do ovoga je **svaka strelica u svakoj lekciji bila ukucana rukom u
+PGN**, pa je ovo prvi put da neko crta iz aplikacije.
+
+1. [ ] **Traka je ispod table**, iznad dugmadi za kretanje kroz poteze: „Strelica",
+   „Polje", pet krugova sa bojama i „Obriši oznake".
+2. [ ] **Strelica.** Pritisni „Strelica" (dugme se oboji), pa klikni dva polja —
+   strelica se nacrta. Klikni ista dva polja opet — nestane.
+3. [ ] **Brisanje ne gleda boju.** Nacrtaj zelenu strelicu, promeni boju na
+   crvenu, pa klikni ista dva polja — strelica **mora** da nestane. (Namerno je
+   tako: ispravlja se „pogrešna strelica", ne „pogrešna boja".)
+4. [ ] **Polje.** Pritisni „Polje" pa klikni polje — nacrta se prsten. Klikni
+   isto polje opet — nestane.
+5. [ ] **Dok crtaš, figure se ne pomeraju.** U režimu crtanja povuci figuru —
+   ništa se ne sme odigrati.
+6. [ ] **Oznake stoje na potezu na kome si ih nacrtao.** Nacrtaj strelicu na
+   trećem taktu, prošetaj napred-nazad po hronologiji — strelica se vidi samo na
+   tom taktu.
+7. [ ] **Polunacrtana strelica ne preskače na drugu poziciju.** Klikni prvo
+   polje, pa **promeni takt** u „Toku", pa klikni drugo polje — ne sme da se
+   pojavi nikakva strelica. Crtanje ostaje uključeno.
+8. [ ] **Oznake na polaznoj poziciji.** Napravi deo bez ijednog poteza, nacrtaj
+   na njemu polje i strelicu, sačuvaj, otvori ponovo — sve je tu. („Pogledaj
+   polje d5" je ceo deo lekcije.)
+9. [ ] **Dete to vidi.** Otvori isti tutorijal kao učenik i proveri da su
+   strelice i polja na tabli, na istim potezima.
+10. [ ] **Boje.** Krugovi imaju slova (C, N, Z, P, Lj) i izabrani ima prsten —
+    proveri da razlikuješ izabranu boju **bez** oslanjanja na samu boju.

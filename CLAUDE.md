@@ -388,6 +388,34 @@ it was measured with a throwaway probe reading `EditableText.focusNode.hasFocus`
 after a real tap, against a control that tapped the current card's field. The
 node belongs to the card now.
 
+Thirty more on 7.9.2026 with P7a, where the trainer finally draws on the board —
+**1593 in the app, 1 skipped**; the backend is untouched at 956. Nineteen are
+the lead's headless controller and eleven the batch's. The feature is worth one
+sentence: `AnalysisNode` has carried `arrows` and `squares` since phase 2 of the
+interactive lesson plan, the exporter writes `[%cal]` and `[%csl]`, the viewer
+draws them — and **nothing anywhere wrote one**, so every arrow in every lesson
+until now was typed into a PGN by hand. A model can be complete, round-tripped
+and tested for months with no way for a human to put anything into it.
+
+Two lessons about the harness, both from gates that failed work they had asked
+for.
+
+**Seeing a file and allowing it are two different gates.** The batch's one new
+file was left out of the run's `untracked` allowance because an earlier fix had
+taught `changed_dart_files` to *see* untracked lib files — which is what makes
+the string and scale scanners open them, and says nothing about the tree gate,
+whose whole job is to fail a file nobody named. Fourth time this mechanism has
+failed correct work; the fix is always naming what was asked for.
+
+**A contrast reading can be a cross product of two ternaries.**
+`backgroundColor: on ? accent : null` against `foregroundColor: on ? canvas :
+textPrimary` was reported as `accent` under `textPrimary` — a pairing the screen
+never draws, because the two conditions are the same one. Fixed in the widget
+rather than by an allowance: two whole styles instead of one built from four
+conditions, so each branch carries its own pair. The scanner stays conservative
+on purpose — one that paired branches by guessing would hide a real failure —
+so **when two properties of one widget vary together, write the variants out**.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

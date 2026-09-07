@@ -396,6 +396,36 @@ potez na kome trener stoji; sada je samo na tekućoj, a zaglavlje svake kartice
 Ostaje da se vidi uživo, tačka 116 u `docs/TODO-provera.md`, koja ide zajedno sa
 113–115 — isti ekran, isti prolaz.
 
+### P7a — trener crta po tabli, 7.9.2026, batch 61
+
+`gemini-3.8-flash-high`, jedna runda. **1593 testa u aplikaciji, 1 preskočen**
+(bilo 1582); backend nije diran i ostaje na 956. Sedam mutacija ukupno, tri
+batch-ove i četiri vođine — sve uhvaćene.
+
+Model ovo nosi od faze 2 `PLAN-INTERAKTIVNA-LEKCIJA`: čvor drži `arrows` i
+`squares`, izvoznik piše `[%cal]` i `[%csl]`, dečji pregledač ih crta. **Niko ih
+nigde nije upisivao** — svaka strelica u svakoj lekciji do danas ukucana je
+rukom u PGN. Sada postoji traka ispod table i oznake putuju do deteta.
+
+Ožičenje je ceo diff: `cancelPending()` na sva četiri mesta gde se tabla pomera,
+oznake predate kontroleru kao `_current.arrows` i `_current.squares`, i
+`_persist()` samo kad se nešto promenilo.
+
+**Dve kapije su pale iz prve i nijedna nije bila greška u poslu.** `worktree` je
+oborio traku, koju vođina dozvola nije imenovala — batch 47 je naučio
+`changed_dart_files` da **vidi** nepraćene lib fajlove, a `gate_tree`, čiji je
+posao da obori nepraćen fajl koji niko nije imenovao, o tome nije obavešten.
+Videti fajl i dozvoliti ga su dve kapije; ovo je četvrti put da mehanizam obori
+posao koji je sam tražio. A `contrast` je pročitao
+`backgroundColor: isArrow ? accent : null` i `foregroundColor: isArrow ? canvas
+: textPrimary` kao **unakrsni proizvod** i prijavio par koji se na ekranu nikad
+ne crta. Popravljeno u widget-u a ne dozvolom: `_modeStyle` vraća dva cela stila
+umesto jednog sastavljenog od četiri uslova, pa svaka grana nosi svoj par.
+Skener ostaje konzervativan, i to je ispravno — skener koji bi grane uparivao
+pogađanjem jednog dana bi sakrio pravi pad.
+
+Ostaje da se vidi uživo, tačka 117 u `docs/TODO-provera.md`, uz 113–116.
+
 ### Šta je otvoreno — ODAKLE SUTRA
 
 **P5a je gotov** (batch 57, gore) — ostaje da se vidi uživo, tačka 113 u
@@ -433,22 +463,18 @@ treći probni build zaredom koji se isplatio.
 aplikaciji, 1 preskočen; `flutter analyze` — 29 stavki, sve `info`.** Backend
 nije diran i ostaje na 956.
 
-**Sledeći je P7a — batch 61, i sve za njega je napisano.** Trener crta strelice
-i polja po tabli u studiju: model to nosi od faze 2 `PLAN-INTERAKTIVNA-LEKCIJA`,
-izvoznik piše `[%cal]` i `[%csl]`, dečji pregledač ih crta — a **niko ih nigde
-ne upisuje**. Svaka strelica u svakoj lekciji do sada je ukucana rukom u PGN.
+**P7a je gotov** (batch 61, gore) — ostaje da se vidi uživo, tačka 117.
+Lead-ova polovina je bila `BoardAnnotationController` (`e95b27e`): celo
+odlučivanje o tome šta klik znači, devetnaest testova bez ijednog widgeta i
+sedam mutacija — šest uhvaćeno, a sedma se nije mogla ni napisati, jer
+`clearArrows` fizički ne dobija polja. Kontroler drži *interakciju* i nikad
+oznake: oznake pripadaju čvoru, pa svaka metoda dobija dve liste i vraća da li
+se išta promenilo.
 
-**Lead-ova polovina je već na `master`-u** (`e95b27e`):
-`BoardAnnotationController`, celo odlučivanje o tome šta klik znači, sa
-devetnaest testova bez ijednog widgeta i sedam mutacija — šest uhvaćeno, a sedma
-se nije mogla ni napisati, jer `clearArrows` fizički ne dobija polja. Kontroler
-drži *interakciju* i nikad oznake: oznake pripadaju čvoru, pa svaka metoda
-dobija dve liste i vraća da li se išta promenilo. Zadatak i brief su
-[TASK-studio-oznake.md](TASK-studio-oznake.md) i
-[brief-studio-oznake-2026-09.md](brief-studio-oznake-2026-09.md), kapija je
-`docs/gates/tutorial_oznake_test.dart` — jedanaest testova, na `master`-u
-izmereno **0 prolazi, 11 pada** (7.9.2026). Grana `batch/studio-oznake`; ostaje
-dozvola u `orchestrate.py` pre pokretanja.
+**Sledeći je P7b, i on je vođin.** Soba (`chess_game_screen.dart`) i dalje drži
+svoju privatnu kopiju istog pravila, pa jedno pravilo živi na dva mesta. Redosled
+je nepregovaran: **prvo testovi crtanja u sobi, kojih nema nijedan**, pa tek onda
+selidba na kontroler. Za njega ništa nije napisano.
 
 **P7 je namerno podeljen na dva, i razlog nije simetrija sa P5 i P6.** Drugo
 mesto poziva je soba, a **soba nema nijedan test svog crtanja** — a to je ekran
