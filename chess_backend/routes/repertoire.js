@@ -408,7 +408,7 @@ router.get('/color', authenticateToken, (req, res) => {
   answer(
     res,
     colorStats(pool, req.user.id, { color: req.query.color }),
-    'Could not read side status.',
+    'Could not read color status.',
   );
 });
 
@@ -1002,7 +1002,7 @@ router.get('/drill/line', authenticateToken, (req, res) => {
       gateUci: gateOf(req.query),
       breadth: breadthOf(req.query),
     })),
-    'Could not assemble drill line.',
+    'Could not assemble the drill line.',
   );
 });
 

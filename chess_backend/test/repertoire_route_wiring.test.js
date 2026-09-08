@@ -21,15 +21,34 @@ const path = require('node:path');
 /// wiring rather than the behaviour.
 const ROUTES = path.join(__dirname, '..', 'routes', 'repertoire.js');
 
-/// Comments out. A comment that mentions a name is not a use of it, and this
-/// file is heavily commented — the first run of this test reported `keys` and
-/// `kept` as stray names because both are words in an English sentence above
-/// the code. The same rule the narrative guard learned: strip first, then read.
+/// Comments and string literals out. Neither is a use of a name, and this file
+/// is full of both — the first run of this test reported `keys` and `kept` as
+/// stray names because both are words in an English sentence above the code.
+/// The same rule the narrative guard learned: strip first, then read.
+///
+/// **Strings came out on 9.9.2026, and until then this test could not tell a
+/// parameter from a word in a message.** The messages were Serbian when it was
+/// written, so no sentence in this file happened to contain `color` or
+/// `practice`; the English pivot made that ordinary, and batch 66b was failed
+/// for writing „Could not read color status." inside the `/color` handler —
+/// correct English, refused. It reworded two messages to get past the check,
+/// which is what a gate that cannot be satisfied always buys.
+///
+/// The false pass is the worse half and it was there from the start: a
+/// parameter destructured and then dropped counts as *used* the moment any
+/// message happens to name it, which is exactly the bug this file exists for.
+///
+/// A template literal is not blanked whole — what is interpolated into it is
+/// live code, and `${color}` in a sentence is a real use of the name. Only the
+/// prose between the interpolations goes.
 function strip(code) {
   return code
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/^[ \t]*\/\/.*$/gm, ' ')
-    .replace(/([^:])\/\/.*$/gm, '$1');
+    .replace(/^[ 	]*\/\/.*$/gm, ' ')
+    .replace(/([^:])\/\/.*$/gm, '$1')
+    .replace(/`(?:[^`\\]|\\.)*`/g, (tpl) => (tpl.match(/\$\{[^{}]*\}/g) ?? []).join(' '))
+    .replace(/'(?:[^'\\\n]|\\.)*'/g, ' ')
+    .replace(/"(?:[^"\\\n]|\\.)*"/g, ' ');
 }
 
 /// One handler body, read by **matching braces** from the arrow of its
