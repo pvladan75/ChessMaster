@@ -1,21 +1,18 @@
 // The English vocabulary, kept frozen: **Tutorial** is the artefact a trainer
 // writes and a child walks alone, **Session** is the live meeting in a room.
 //
-// The successor to `test/tutorial_vocabulary_test.dart`, which keeps the same
-// pair apart in Serbian („Tutorijal" / „Čas"). When the sweep is done this file
-// moves into `test/` and that one is deleted — one pair, one guard, one
-// language.
+// The successor to `test/tutorial_vocabulary_test.dart`, which kept the same
+// pair apart in Serbian („Tutorijal" / „Čas") and was deleted on 8.9.2026 when
+// batch 65b landed — one pair, one guard, one language.
 //
-// **It lives in `docs/gates/` until it is green**, which is the same place
+// It waited in `docs/gates/` from the day it was written until the last
+// translation batch made it green, which is the same place
 // `tutorial_branching_test.dart` and the Serbian vocabulary test waited. A red
-// suite hides the next real failure, and a translation sweep in three batches
-// would leave it red for days.
+// suite hides the next real failure, and a sweep in four batches would have
+// left it red for days.
 //
 // The contract it enforces is `docs/GLOSSARY-EN.md`. If the two disagree, the
 // glossary wins and this file is wrong.
-//
-// To run it before it is moved:
-//   cd chess_app && flutter test ../docs/gates/vocabulary_en_test.dart
 
 import 'dart:io';
 
@@ -51,6 +48,46 @@ final _literal = RegExp("'[^']*'" r'|"[^"]*"');
 bool _isComment(String line) {
   final t = line.trimLeft();
   return t.startsWith('//') || t.startsWith('///') || t.startsWith('*');
+}
+
+/// A line with its interpolations taken out, so the literal scanner sees copy.
+///
+/// This runs on the **line** rather than on a literal, and that is the whole
+/// trick. `'"${firstPos['title'] ?? lesson['title']}"'` is one Dart literal and
+/// four quote characters, so a naive literal regex slices it into fragments and
+/// hands back ` ?? lesson[` — the gap *between* two nested literals — as though
+/// it were copy. Removing `${...}` first makes the line contain one literal
+/// again.
+String _withoutInterpolation(String line) => line
+    .replaceAll(RegExp(r'\$\{[^{}]*\}'), '')
+    .replaceAll(RegExp(r'\$[A-Za-z_][A-Za-z0-9_]*'), '');
+
+/// What a reader actually sees inside a string literal, or null if nobody does.
+///
+/// Added 8.9.2026, when this anchor failed the finished sweep on nine lines and
+/// **not one of them was the word on a screen**: two wire values
+/// (`json['kind'] == 'lesson'`), a hero tag (`'assign-lesson'`), two routes
+/// (`'/assignments/:id/lesson'`), and four interpolations of a local variable
+/// called `lesson`. The glossary already says this in words — *in code,
+/// `lesson` means the tutorial*, and the table, the wire type and the routes
+/// are deliberately not renamed — so an anchor that fails on them contradicts
+/// the contract it exists to enforce.
+///
+/// With the interpolations already gone, one rule is left: a literal with **no
+/// capital and no space** is a value rather than a sentence — a wire kind, a
+/// tag, a route, a map key.
+///
+/// That rule is the one that could hide something, so it is drawn where it
+/// cannot: a single-word label a reader sees is capitalised, `Text('Lesson')`,
+/// and still gets scanned. It was proved by mutation before it was believed —
+/// `Text('Lesson')` and `'Start the lesson now'` were both watched failing this
+/// test with the narrowing in place.
+String? _readerText(String literal) {
+  if (literal.length < 2) return null;
+  final inner = literal.substring(1, literal.length - 1).trim();
+  if (inner.isEmpty) return null;
+  if (!RegExp('[A-Z]').hasMatch(inner) && !inner.contains(' ')) return null;
+  return inner;
 }
 
 void main() {
@@ -95,8 +132,9 @@ void main() {
         final line = entry.value[i];
         if (_isComment(line)) continue;
         if (_allowedLesson.any(line.contains)) continue;
-        for (final match in _literal.allMatches(line)) {
-          final text = match.group(0)!;
+        for (final match in _literal.allMatches(_withoutInterpolation(line))) {
+          final text = _readerText(match.group(0)!);
+          if (text == null) continue;
           if (RegExp(r'\b[Ll]esson\b').hasMatch(text)) {
             offenders.add('${entry.key}:${i + 1}: ${line.trim()}');
             break;

@@ -1,21 +1,19 @@
 // Each board screen is named for what it is for, in English.
 //
-// The successor to `test/screen_names_test.dart`, which pins the same four
-// names in Serbian. When the sweep is done this file moves into `test/` and
-// that one is deleted.
+// The successor to `test/screen_names_test.dart`, which pinned the same four
+// names in Serbian and was deleted on 8.9.2026 when batch 65b landed. One set
+// of names, one guard, one language.
 //
 //   „Soba"                 -> Room             the live session, with a student
 //   „Priprema"             -> Preparation      the same room alone, your library
 //   „Analiza"              -> Analysis         the engine, the database, the tree
 //   „Studio za tutorijal"  -> Tutorial Studio  and the only „studio" there is
 //
-// **It lives in `docs/gates/` until it is green.** A red suite hides the next
-// real failure, and this one is red from the moment it is written until the
-// last batch lands.
+// It waited in `docs/gates/` from the day it was written until the last
+// translation batch made it green, because a red suite hides the next real
+// failure. That wait is over and it is an ordinary test now.
 //
 // The contract is `docs/GLOSSARY-EN.md`. If the two disagree, the glossary wins.
-//
-//   cd chess_app && flutter test ../docs/gates/screen_names_en_test.dart
 
 import 'dart:io';
 
