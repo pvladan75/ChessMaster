@@ -63,8 +63,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                       const SizedBox(height: AppSpacing.lg),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.dashboard_customize),
-                        label: const Text(
-                            'Otvori Šahovski Studio sa praznom tablom'),
+                        label: const Text('Otvori Pripremu sa praznom tablom'),
                         style: ElevatedButton.styleFrom(
                           minimumSize: const Size(double.infinity, 48),
                           padding: AppSpacing.buttonPadding,
@@ -89,7 +88,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                               color: context.colors.accent, size: 28),
                           const SizedBox(width: AppSpacing.md),
                           Text(
-                            'Tabla za Analizu 🔬',
+                            'Analiza 🔬',
                             style: AppText.headline
                                 .copyWith(color: context.colors.textPrimary),
                           ),
@@ -97,7 +96,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'Slobodna šahovska tabla za duboku analizu, unos varijacija za obe strane, rad sa PGN/FEN pozicijama i beleženje komentara i NAG simbola.',
+                        'Motor, baza otvaranja i stablo varijanti — za rad na jednoj poziciji ili partiji.',
                         style: AppText.body
                             .copyWith(color: context.colors.textSecondary),
                       ),
@@ -106,7 +105,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.biotech),
-                          label: const Text('Otvori Tablu za Analizu'),
+                          label: const Text('Otvori Analizu'),
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 48),
                             padding: AppSpacing.buttonPadding,

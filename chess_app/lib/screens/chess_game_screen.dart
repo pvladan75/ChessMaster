@@ -901,7 +901,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       final isStudio = widget.roomCode == 'STUDIO';
       setState(() {
         isConnected = true;
-        gameStatus = isStudio ? 'Šahovski studio' : "Soba: ${widget.roomCode}";
+        gameStatus = isStudio ? 'Priprema' : "Soba: ${widget.roomCode}";
       });
 
       // The studio is a local board, not a room: there is no `rooms` row named
@@ -3283,7 +3283,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               children: [
                 Text(
                   isStudio
-                      ? 'Studio Kontrole'
+                      ? 'Kontrole pripreme'
                       : (isHost
                           ? 'Host Kontrole & Istorija'
                           : 'Kontrola i Istorija'),
@@ -3341,7 +3341,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
-                              'Studio Režim (Samostalan rad - Učionica isključena)',
+                              'Samostalan rad — učionica je isključena',
                               style: AppText.captionBold
                                   .copyWith(color: context.colors.textPrimary),
                             ),
@@ -4140,7 +4140,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               ),
             IconButton(
               icon: Icon(Icons.biotech, color: context.colors.accent),
-              tooltip: 'Izvezi u Tablu za Analizu 🔬',
+              tooltip: 'Izvezi u Analizu 🔬',
               onPressed: () {
                 context.push(AppRoutes.analysisPath(fen: controller.getFen()));
               },

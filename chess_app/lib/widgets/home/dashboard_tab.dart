@@ -152,12 +152,12 @@ class HomeDashboardTab extends StatelessWidget {
                               Icon(Icons.dashboard,
                                   size: 36, color: colors.brand),
                               const SizedBox(height: AppSpacing.md),
-                              Text('Šahovski Studio',
+                              Text('Priprema',
                                   style: AppText.title
                                       .copyWith(color: colors.brand)),
                               const SizedBox(height: AppSpacing.xs),
                               Text(
-                                'Samostalni rad, FEN postavljanje, PGN i Stockfish analiza.',
+                                'Vaše sačuvane pozicije i tutorijali, na tabli — bez učenika.',
                                 style: AppText.caption
                                     .copyWith(color: colors.textSecondary),
                               ),

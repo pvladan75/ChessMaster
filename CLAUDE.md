@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1749 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1752 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -618,6 +618,17 @@ through.
 asserts every caller passes `initialFen:`, and its first version sliced 400
 characters — the same mistake as the 1600-character function slice this file
 already records. It also counted the dialog's own constructor as a caller.
+
+**Three more with phase 1b — 1752, 1 skipped.** The screens were renamed, not
+merged: „Priprema" for the room alone with your library, „Analiza" for the
+engine and the tree, „Soba" and „Studio za tutorijal" unchanged, so the word
+*studio* names one thing. The finding that made the rename obvious is worth
+keeping: **the two screens that „look the same" had home-screen descriptions
+that described the same thing** — „Samostalni rad, FEN postavljanje, PGN i
+Stockfish analiza" against „Slobodna šahovska tabla za duboku analizu … rad sa
+PGN/FEN pozicijama". The names were never the whole problem; the sentences under
+them were. `test/screen_names_test.dart` keeps both halves: the retired names
+stay retired, and each card still says what is different about its screen.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

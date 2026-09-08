@@ -1762,7 +1762,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                       ],
                     )
                   : const Text(
-                      'Tabla za Analizu',
+                      'Analiza',
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                       style: AppText.title,

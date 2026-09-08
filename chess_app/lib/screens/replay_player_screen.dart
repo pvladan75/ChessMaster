@@ -303,8 +303,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             children: [
               Icon(Icons.video_settings_rounded, color: context.colors.brand),
               const SizedBox(width: AppSpacing.sm),
-              const Text('Video Studio - Podešavanje Videa',
-                  style: AppText.title),
+              const Text('Podešavanje videa', style: AppText.title),
             ],
           ),
           content: SingleChildScrollView(
@@ -625,7 +624,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.biotech, color: context.colors.accent),
-            tooltip: 'Izvezi u Tablu za Analizu 🔬',
+            tooltip: 'Izvezi u Analizu 🔬',
             onPressed: () {
               final fen = _boardController.getFen();
               context.push(AppRoutes.analysisPath(fen: fen));

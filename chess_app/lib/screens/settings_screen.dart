@@ -912,7 +912,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
-                      const Text('Paneli u Analizi (Tabla za Analizu):',
+                      const Text('Paneli u Analizi:',
                           style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: AppSpacing.xs),
                       ..._analysisPanelToggles.map((panel) => CheckboxListTile(

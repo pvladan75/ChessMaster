@@ -4698,3 +4698,34 @@ nije dešavalo.
    pritisnuti. Na širokom se ne skroluje ništa.
 7. [ ] **Tri načina brisanja polja** i dalje rade: klik na naoružanu figuru,
    dugi pritisak, desni klik.
+
+## 131. Imena ekrana — 8.9.2026, nije viđeno uživo
+
+Faza 1b iz `docs/PLAN-ZAVRSNICA.md`. Ekrani se ne spajaju; menjaju se imena,
+jer su dva od njih na početnom ekranu **opisivala istu stvar** („Samostalni rad,
+FEN postavljanje, PGN i Stockfish analiza" naspram „Slobodna šahovska tabla za
+duboku analizu … rad sa PGN/FEN pozicijama"). Reč „studio" ostaje na jednom
+mestu.
+
+| bilo | sada |
+|---|---|
+| „Šahovski studio" | **„Priprema"** |
+| „Tabla za Analizu" | **„Analiza"** |
+| „Studio Kontrole" | „Kontrole pripreme" |
+| „Studio Režim (Samostalan rad…)" | „Samostalan rad — učionica je isključena" |
+| „Video Studio — Podešavanje Videa" | „Podešavanje videa" |
+
+1. [ ] **Početni ekran.** Kartica „Priprema" piše „Vaše sačuvane pozicije i
+   tutorijali, na tabli — bez učenika."; kartica „Analiza" piše „Motor, baza
+   otvaranja i stablo varijanti…". Pročitaj obe i reci da li se sada vidi
+   razlika.
+2. [ ] **Biblioteka.** Dugmad su „Otvori Pripremu sa praznom tablom" i „Otvori
+   Analizu".
+3. [ ] **U samom ekranu.** Naslov sobe bez učenika je „Priprema"; desni panel
+   piše „Kontrole pripreme"; prekidač piše „Samostalan rad — učionica je
+   isključena".
+4. [ ] **Analiza** se u zaglavlju zove „Analiza", a u podešavanjima piše
+   „Paneli u Analizi:".
+5. [ ] **Reč „studio"** se sreće još samo u „Studio za tutorijal".
+6. [ ] **Ništa se nije prelomilo** — proveri da naslovi staju u zaglavlje i na
+   užem prozoru.
