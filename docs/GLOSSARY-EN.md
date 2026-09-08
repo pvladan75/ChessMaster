@@ -99,6 +99,39 @@ trainer already uses. „Prep" is fine in prose, never as a title.
 | Nalog | **Account** |
 | Pretplata | **Subscription** |
 
+## Who the interface talks to
+
+**The copy addresses a player and a trainer. It does not address a child.**
+
+This is a contract rule, not a preference, and it was added on 8.9.2026 with the
+audience declaration: the app ships as a General Audience product, 13+, rather
+than as one directed to children. An interface that says „child" in every second
+sentence reads as child-directed to a store reviewer whatever the listing says,
+and the declaration is what removes verifiable parental consent, the analytics
+restrictions and the Designed for Families review.
+
+* **Player** — anybody using the app on their own.
+* **Student** — somebody a trainer teaches. The relationship word, not an age.
+* **Trainer** — the person teaching. **Not „coach"**, and not because coach is
+  wrong English: the code says trainer in every identifier it has —
+  `trainer_students`, `trainer_id`, `trainerOwnsStudent`, `acceptedTrainersOf` —
+  and a UI word that disagrees with the schema costs a guess in every bug report
+  and every log line. If this should be Coach, say so and it changes here first.
+
+**„Child" and „kid" are out of the general flow** — out of buttons, labels,
+instructions, empty states and error messages. They appear only where the
+feature is explicitly about parental supervision or a legal context: the
+parent's report, the parental consent texts, the age gate, and the privacy
+policy. In those places „child" is the right word and a euphemism would be
+worse.
+
+The Serbian being replaced does not obey this rule — it says „dete" freely,
+because it was written for a Serbian audience of children and their trainers.
+**Translating those sentences is where the rule is applied**, and it is applied
+sentence by sentence rather than by replacing one word with another: „Dete bi
+videlo odgovor" becomes „The student would see the answer", and a sentence whose
+whole point was that the reader is small gets rewritten rather than reworded.
+
 ## Rules for the sweep
 
 1. **Nothing outside `lib/` is translated.** The legal texts
