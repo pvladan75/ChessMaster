@@ -2,14 +2,15 @@
 ///
 /// Written text and spoken text are not the same text, and chess is where they
 /// come apart hardest: `Rd3` is read by every synthesiser as three characters,
-/// which arrives as noise. The panel's sentences are already Serbian prose, so
-/// the work here is narrow - find the moves inside them and spell them out the
-/// way a person at the board would.
+/// which arrives as noise. The panel's sentences are already prose, so the work
+/// here is narrow - find the moves inside them and spell them out the way a
+/// person at the board would.
 ///
 /// The tables are kept behind [SpeechVocabulary] rather than written into the
-/// function, because a second language is planned and the only thing that
-/// changes is the words. The rules of algebraic notation are the same in every
-/// language; the names of the pieces are not.
+/// function. That was written when a second language was only planned; it
+/// earned its keep when the app went English-only, because swapping the words
+/// was the whole of the change. The rules of algebraic notation are the same in
+/// every language; the names of the pieces are not.
 library;
 
 /// The words one language uses to read a move out loud.
@@ -43,9 +44,10 @@ class SpeechVocabulary {
   ///
   /// The digit was left to the voice at first, on the reasoning that it reads
   /// numbers in its own language anyway. It does - but a digit followed by a
-  /// full stop is how Serbian writes an ordinal, so a move at the end of a
-  /// sentence came out as "e šesti" instead of "e šest". A word cannot be read
-  /// as an ordinal, which ends the question rather than working around it.
+  /// full stop reads as an ordinal in more than one language, so a move at the
+  /// end of a sentence came out as "e sixth" instead of "e six". A word cannot
+  /// be read as an ordinal, which ends the question rather than working around
+  /// it.
   final Map<String, String> ranks;
 
   final String pawn;
@@ -59,24 +61,26 @@ class SpeechVocabulary {
   final String longCastle;
 }
 
-const serbianSpeech = SpeechVocabulary(
+const englishSpeech = SpeechVocabulary(
   pieces: {
-    'K': 'kralj',
-    'Q': 'dama',
-    'R': 'top',
-    'B': 'lovac',
-    'N': 'skakač',
+    'K': 'king',
+    'Q': 'queen',
+    'R': 'rook',
+    'B': 'bishop',
+    'N': 'knight',
   },
   // One letter each, and nothing spelled out. A one-letter token is read from
-  // the voice's own letter-name table, and the Croatian names of the letters
-  // are exactly what a player says: a, be, ce, de, e, ef, ge, ha. Spelling them
-  // out is what caused the trouble - written "ge", the g-file was read by its
-  // English name and came out as "dž".
+  // the voice's own letter-name table, which in English gives exactly what a
+  // player says: ay, bee, see, dee, ee, ef, gee, aitch.
   //
-  // The map stays even though it is now an identity, because it is what another
-  // language would change: a voice that reads bare letters by some other
-  // table gets its own spellings here rather than a branch somewhere in the
-  // code.
+  // Spelling them out is what caused the trouble in the Serbian build - written
+  // "ge", the g-file went through an English letter table and came out as "dzh"
+  // - and writing them out here would reintroduce the same class of fault from
+  // the other side.
+  //
+  // The map stays even though it is an identity, because it is the one place a
+  // voice that reads bare letters by some other table gets its own spellings,
+  // rather than a branch somewhere in the code.
   files: {
     'a': 'a',
     'b': 'b',
@@ -88,24 +92,24 @@ const serbianSpeech = SpeechVocabulary(
     'h': 'h',
   },
   ranks: {
-    '1': 'jedan',
-    '2': 'dva',
-    '3': 'tri',
-    '4': 'četiri',
-    '5': 'pet',
-    '6': 'šest',
-    '7': 'sedam',
-    '8': 'osam',
+    '1': 'one',
+    '2': 'two',
+    '3': 'three',
+    '4': 'four',
+    '5': 'five',
+    '6': 'six',
+    '7': 'seven',
+    '8': 'eight',
   },
-  pawn: 'pešak',
-  captures: 'uzima',
-  from: 'sa',
-  to: 'na',
-  promotesTo: 'postaje',
-  check: 'šah',
-  mate: 'mat',
-  shortCastle: 'mala rokada',
-  longCastle: 'velika rokada',
+  pawn: 'pawn',
+  captures: 'takes',
+  from: 'from',
+  to: 'to',
+  promotesTo: 'promotes to',
+  check: 'check',
+  mate: 'mate',
+  shortCastle: 'castles kingside',
+  longCastle: 'castles queenside',
 );
 
 /// A move in algebraic notation, wherever it sits inside a sentence.
@@ -141,13 +145,13 @@ String _sayMove(Match m, SpeechVocabulary v) {
   if (piece != null) {
     words.add(v.pieces[piece]!);
   } else if (capture) {
-    // `exd5` - the pawn is named because "e uzima de pet" on its own sounds
+    // `exd5` - the pawn is named because "e takes d five" on its own sounds
     // like a piece whose name was swallowed.
     words.add(v.pawn);
   }
 
   // A disambiguated move is the one place where the square in front matters,
-  // and running the two squares together ("skakač be de sedam") is exactly the
+  // and running the two squares together ("knight b d seven") is exactly the
   // ambiguity the notation was disambiguating.
   final origin = [
     if (fromFile != null) v.files[fromFile]!,
@@ -183,25 +187,31 @@ String _sayMove(Match m, SpeechVocabulary v) {
 /// Typography that is read aloud as itself unless it goes.
 ///
 /// Quotation marks are the loud one: several voices announce them, so a
-/// sentence quoting a button name gets "navodnik" twice. The dashes become
-/// commas rather than nothing, because they are doing a comma's work.
-/// A full stop straight after a digit is how Serbian writes an ordinal, and
-/// that is a problem in one direction only.
+/// sentence quoting a button name gets "quote" twice. The dashes become commas
+/// rather than nothing, because they are doing a comma's work. The Serbian
+/// quotation marks are still stripped, because a trainer pasting a line out of
+/// an older document is exactly where they turn up.
 ///
-/// Where it really is an ordinal - "greška je napravljena u 8. potezu" - the
-/// stop must stay, or the voice says "u osam potezu". Where it is the end of a
-/// sentence that happens to finish on a number - "Nađeno 3 od 12." - the same
-/// two characters make the voice say "dvanaesti".
+/// A full stop straight after a digit is the remaining trap, and it is a
+/// problem in one direction only. At the end of a sentence that happens to
+/// finish on a number - "Found 3 of 12." - several voices read the digits as an
+/// ordinal and say "twelfth". Where the stop belongs to the number itself -
+/// "See 3. diagram" - it has to stay.
 ///
-/// The two are told apart by what follows, which in Serbian is reliable: an
-/// ordinal is followed by the rest of its sentence in lower case, while a new
-/// sentence starts with a capital. So the stop goes only at the end of the
-/// text or before a capital letter.
+/// The two are told apart by what follows: a stop that ends a sentence is
+/// followed by a capital or by nothing at all, while one that belongs to the
+/// number is followed by the rest of its clause in lower case. So the stop goes
+/// only at the end of the text or before a capital letter.
+///
+/// The rule was written for Serbian, where "u 8. potezu" is how an ordinal is
+/// spelled and getting it wrong made the voice say "u osam potezu". English
+/// writes "move 8" and rarely trips that half, so what mostly survives here is
+/// the end-of-sentence case, which is real in both.
 ///
 /// Moves need none of this - their rank is already a word by the time this
 /// runs - and "1.e4" is untouched either way, having no space after the stop.
 String _noOrdinalStops(String text) => text.replaceAllMapped(
-      RegExp(r'(\d)\.(\s+(?=[A-ZČĆŠŽĐ])|$)'),
+      RegExp(r'(\d)\.(\s+(?=[A-Z])|$)'),
       (m) => '${m[1]}${m[2]}',
     );
 
@@ -225,7 +235,7 @@ String _plainPunctuation(String text) {
 ///
 /// Returns an empty string when there is nothing worth saying, so the caller
 /// can treat "nothing to speak" and "spoke nothing" as one case.
-String speakable(String? text, {SpeechVocabulary vocabulary = serbianSpeech}) {
+String speakable(String? text, {SpeechVocabulary vocabulary = englishSpeech}) {
   if (text == null) return '';
   // Order matters: the moves go first, so that by the time the ordinal rule
   // runs there is no digit left in `e6.` for it to act on and the sentence
