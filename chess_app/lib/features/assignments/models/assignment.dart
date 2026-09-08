@@ -292,9 +292,11 @@ class CustomAttemptResult {
 
   final bool correct;
 
-  /// Why, in the app's own words — "autorov potez", "drugi mat, ali mat".
-  /// The second one matters: a student who found a different mate deserves to
-  /// be told they were right *and* why it counted.
+  /// The server's own words — "the author's move", "a different mate, but
+  /// mate". The second one matters: a student who found a different mate
+  /// deserves to be told they were right *and* why it counted, and
+  /// `custom_puzzle_solver_screen.dart` compares this string to say so. It is
+  /// a wire value as much as a sentence: see `customPuzzleJudge.js`.
   final String reason;
 
   final String? playedSan;

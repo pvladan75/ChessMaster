@@ -30,7 +30,7 @@ test('a different mate is still a mate, and the task was to mate', () => {
   // and telling them otherwise teaches them to distrust the app.
   const r = judgeAttempt({ fen: TWO_MATES, solutionSan: 'Qe6#', moveSan: 'Qh7#' });
   assert.equal(r.correct, true);
-  assert.equal(r.reason, 'drugi mat, ali mat');
+  assert.equal(r.reason, 'a different mate, but mate');
 });
 
 test('an underpromotion that mates counts too', () => {
@@ -49,7 +49,7 @@ test('an impossible move is refused without pretending it was played', () => {
   const r = judgeAttempt({ fen: MATE_IN_ONE, solutionSan: 'Qf1#', moveSan: 'Ra1' });
   assert.equal(r.correct, false);
   assert.equal(r.playedSan, null);
-  assert.match(r.reason, /nije moguć/);
+  assert.match(r.reason, /not possible/);
 });
 
 test('when the task was not a mate, only the printed move counts', () => {
@@ -61,12 +61,12 @@ test('when the task was not a mate, only the printed move counts', () => {
 });
 
 test('a position with no solution cannot be set as homework', () => {
-  assert.match(assignableProblem({ solution_san: null, needs_review: false }), /nema rešenje/);
+  assert.match(assignableProblem({ solution_san: null, needs_review: false }), /has no solution/);
 });
 
 test('a position still marked for review cannot be set either', () => {
   // Homework in front of a child is the last place to discover our own doubt.
-  assert.match(assignableProblem({ solution_san: 'Qf1#', needs_review: true }), /proveru/);
+  assert.match(assignableProblem({ solution_san: 'Qf1#', needs_review: true }), /marked for review/);
 });
 
 test('a verified position is assignable', () => {

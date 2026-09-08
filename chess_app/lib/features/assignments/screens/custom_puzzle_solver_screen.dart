@@ -449,9 +449,10 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
           ],
         ),
         const SizedBox(height: AppSpacing.xs),
-        // "drugi mat, ali mat" is worth saying out loud: the student found
-        // something the book did not print, and should know it counted.
-        if (verdict.correct && verdict.reason == 'drugi mat, ali mat')
+        // "a different mate, but mate" is worth saying out loud: the student
+        // found something the book did not print, and should know it counted.
+        // The string is `customPuzzleJudge.js`'s, byte for byte.
+        if (verdict.correct && verdict.reason == 'a different mate, but mate')
           Text('Different checkmate from the book — but mate is mate.',
               style: AppText.body.copyWith(color: colors.textSecondary)),
         if (!verdict.correct && verdict.solutionSan != null)

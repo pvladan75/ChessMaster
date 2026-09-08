@@ -67,7 +67,7 @@ test('castling rights are restored from the solution, not assumed', () => {
   const result = buildPosition(diagram, { side: 'w', san: 'O-O#', sans: ['O-O#'] });
   assert.equal(result.solutionLegal, true);
   assert.equal(result.fen.split(' ')[2], 'K');
-  assert.deepEqual(result.repairs, ['rokada: postavljeno pravo K']);
+  assert.deepEqual(result.repairs, ['castling: granted the right K']);
 });
 
 test('the en passant square is restored from a capture onto an empty square', () => {
@@ -82,7 +82,7 @@ test('a position with no solution is kept but marked, never guessed', () => {
   const result = buildPosition(diagram, undefined);
   assert.equal(result.solutionLegal, null);
   assert.equal(result.problem, null);
-  assert.ok(['nepoznato', 'jedina legalna strana'].includes(result.sideSource));
+  assert.ok(['unknown', 'only-legal-side'].includes(result.sideSource));
 });
 
 // Both of these guard the same thing from different sides: a diagram read wrong
@@ -97,11 +97,11 @@ test('material that could never stand on a board is refused', () => {
   // pawns all present — the exact shape of the misread this check exists for.
   assert.match(
     materialProblem('r1bQk2r/pppp1ppp/5n2/1B2p3/1b1nP3/2NP1N2/PPPB1PPP/R2QK2R'),
-    /beli.*viška uz 8 pešaka/
+    /White.*spare officers beside 8 pawns/
   );
 
-  assert.match(materialProblem('4k3/8/8/8/8/8/PPPPPPPPP/4K3'), /beli ima 9 pešaka/);
-  assert.match(materialProblem('4k3/pppppppppp/8/8/8/8/8/4K3'), /crni ima 10 pešaka/);
+  assert.match(materialProblem('4k3/8/8/8/8/8/PPPPPPPPP/4K3'), /White has 9 pawns/);
+  assert.match(materialProblem('4k3/pppppppppp/8/8/8/8/8/4K3'), /Black has 10 pawns/);
 });
 
 test('a promotion is possible material, and is not refused', () => {
@@ -112,7 +112,7 @@ test('a promotion is possible material, and is not refused', () => {
 
   // Three queens needs two pawns gone, and only two are.
   assert.equal(materialProblem('4k3/8/8/8/8/8/PPPPPP2/2QQQ2K'), null);
-  assert.match(materialProblem('4k3/8/8/8/8/8/PPPPPPP1/2QQQ2K'), /viška/);
+  assert.match(materialProblem('4k3/8/8/8/8/8/PPPPPPP1/2QQQ2K'), /spare officers/);
 });
 
 test('a number printed over two diagrams binds to neither', () => {
@@ -121,7 +121,7 @@ test('a number printed over two diagrams binds to neither', () => {
   // solution, and the one it did not belong to reported the book's own move as
   // illegal — which reads as a broken glyph map.
   const positions = [
-    { label: 6, page: 40, solutionLegal: false, problem: 'potez iz knjige "Re7+" nije legalan' },
+    { label: 6, page: 40, solutionLegal: false, problem: 'the book move "Re7+" is not legal' },
     { label: 6, page: 78, solutionLegal: true, problem: null },
     { label: 7, page: 79, solutionLegal: true, problem: null },
     { label: null, page: 12, solutionLegal: null, problem: null },

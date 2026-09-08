@@ -47,7 +47,7 @@ test('an accepted move is matched without its decoration', () => {
   });
 
   assert.equal(verdict.correct, true);
-  assert.equal(verdict.reason, 'drugi tačan potez',
+  assert.equal(verdict.reason, 'another correct move',
       'the mate rule must not be the one answering here');
 });
 

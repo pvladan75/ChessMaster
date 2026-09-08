@@ -65,7 +65,7 @@ test('a scanned position without a solution says why it cannot be assigned', asy
   // whatever they played. The reason travels with the row rather than the
   // picker deciding it a second time.
   assert.equal(item.assignable, false);
-  assert.match(item.blockedReason, /nema rešenje/);
+  assert.match(item.blockedReason, /has no solution/);
 });
 
 test('a position still flagged for review cannot be assigned', async () => {
@@ -73,7 +73,7 @@ test('a position still flagged for review cannot be assigned', async () => {
   const [item] = await listScanned(pool, 5, {});
 
   assert.equal(item.assignable, false);
-  assert.match(item.blockedReason, /proveru/);
+  assert.match(item.blockedReason, /marked for review/);
   assert.equal(item.needsReview, true);
 });
 
@@ -117,7 +117,7 @@ test('nothing but a scanned position can be homework yet', async () => {
   // homework. Saying so is the point: hiding it would look like a bug.
   assert.equal(item.kind, 'position');
   assert.equal(item.assignable, false);
-  assert.match(item.blockedReason, /nema rešenje/);
+  assert.match(item.blockedReason, /has no solution/);
 });
 
 test('an analysis is listed without its tree', async () => {

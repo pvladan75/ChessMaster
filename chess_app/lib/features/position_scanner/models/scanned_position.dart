@@ -10,7 +10,7 @@ class ScannedPosition {
     required this.fen,
     required this.page,
     this.label,
-    this.sideSource = 'nepoznato',
+    this.sideSource = 'unknown',
     this.solutionSan,
     this.solutionLegal,
     this.themesText,
@@ -25,9 +25,11 @@ class ScannedPosition {
   final int page;
   final String? label;
 
-  /// How the side to move was decided: `resenje`, `jedina legalna strana`, or
-  /// `nepoznato`. Shown to the trainer, because "we guessed" and "the book said
-  /// so" deserve different amounts of trust.
+  /// How the side to move was decided: `solution`, `only-legal-side`, or
+  /// `unknown`. Shown to the trainer, because "we guessed" and "the book said
+  /// so" deserve different amounts of trust. The three are written by
+  /// `positionScanner/verify.mjs` and read here and in the review screen, so
+  /// they are a wire contract and not copy — they were Serbian until 8.9.2026.
   final String sideSource;
 
   final String? solutionSan;
@@ -43,7 +45,7 @@ class ScannedPosition {
   /// the default without hiding work.
   bool accepted;
 
-  bool get needsReview => problem != null || sideSource == 'nepoznato';
+  bool get needsReview => problem != null || sideSource == 'unknown';
 
   String get sideToMove => fen.split(' ').length > 1 ? fen.split(' ')[1] : 'w';
 
@@ -64,7 +66,7 @@ class ScannedPosition {
         fen: json['fen']?.toString() ?? '',
         page: (json['page'] as num?)?.toInt() ?? 0,
         label: json['label']?.toString(),
-        sideSource: json['sideSource']?.toString() ?? 'nepoznato',
+        sideSource: json['sideSource']?.toString() ?? 'unknown',
         solutionSan: json['solutionSan']?.toString(),
         solutionLegal: json['solutionLegal'] as bool?,
         themesText: json['themesText']?.toString(),

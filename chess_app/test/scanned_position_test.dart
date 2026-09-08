@@ -11,7 +11,7 @@ void main() {
         'fen': _mateInOne,
         'page': 32,
         'label': '97',
-        'sideSource': 'resenje',
+        'sideSource': 'solution',
         'solutionSan': 'Qf1#',
         'solutionLegal': true,
         'themesText': 'pin/undermine',
@@ -40,7 +40,7 @@ void main() {
 
     test('an unknown side to move counts as needing a look', () {
       final position = ScannedPosition.fromJson({'fen': _mateInOne, 'page': 1});
-      expect(position.sideSource, 'nepoznato');
+      expect(position.sideSource, 'unknown');
       expect(position.needsReview, isTrue);
     });
 
@@ -101,12 +101,12 @@ void main() {
         'scannedTo': 20,
         'font': 'SkakNew-Diagram',
         'positions': [
-          {'fen': _mateInOne, 'page': 1, 'sideSource': 'resenje'},
-          {'fen': _mateInOne, 'page': 2, 'sideSource': 'nepoznato'},
+          {'fen': _mateInOne, 'page': 1, 'sideSource': 'solution'},
+          {'fen': _mateInOne, 'page': 2, 'sideSource': 'unknown'},
           {
             'fen': _mateInOne,
             'page': 3,
-            'sideSource': 'resenje',
+            'sideSource': 'solution',
             'problem': 'ne valja'
           },
         ],

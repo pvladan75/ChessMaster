@@ -84,19 +84,19 @@ void main() {
     test('carries why an answer counted, not just that it did', () {
       final result = CustomAttemptResult.fromJson({
         'correct': true,
-        'reason': 'drugi mat, ali mat',
+        'reason': 'a different mate, but mate',
         'playedSan': 'Qh7#',
         'solutionSan': 'Qe6#',
       });
       expect(result.correct, isTrue);
-      expect(result.reason, 'drugi mat, ali mat');
+      expect(result.reason, 'a different mate, but mate');
       expect(result.playedSan, 'Qh7#');
     });
 
     test('a wrong answer comes back with the solution attached', () {
       final result = CustomAttemptResult.fromJson({
         'correct': false,
-        'reason': 'nije traženi potez',
+        'reason': 'That is not the move the exercise asks for.',
         'solutionSan': 'Qf1#'
       });
       expect(result.correct, isFalse);

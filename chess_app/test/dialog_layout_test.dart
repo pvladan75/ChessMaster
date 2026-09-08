@@ -116,7 +116,7 @@ void main() {
             title: 'Završnica',
             fen: '8/8/8/8/8/8/8/K6k w - - 0 1',
             assignable: false,
-            blockedReason: 'nema rešenje, pa odgovor ne može da se oceni',
+            blockedReason: 'has no solution, so an answer cannot be judged',
           ),
         ],
       ),
@@ -124,7 +124,7 @@ void main() {
 
     // Hiding it would read as a bug — the trainer knows they saved it.
     expect(find.text('Završnica'), findsOneWidget);
-    expect(find.textContaining('nema rešenje'), findsOneWidget);
+    expect(find.textContaining('has no solution'), findsOneWidget);
   });
 
   testWidgets('an unreachable server is not reported as an empty shelf',

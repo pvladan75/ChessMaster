@@ -113,8 +113,8 @@ async function main() {
   console.log(`Dijagrama pronađeno:            ${positions.length}`);
   console.log(`  sa brojem (labelom):          ${positions.filter((p) => p.id !== null).length}`);
   console.log(`  sa rešenjem iz knjige:        ${withSolution.length}`);
-  console.log(`  strana na potezu iz rešenja:  ${positions.filter((p) => p.sideSource === 'resenje').length}`);
-  console.log(`  strana nepoznata:             ${positions.filter((p) => p.sideSource === 'nepoznato').length}`);
+  console.log(`  strana na potezu iz rešenja:  ${positions.filter((p) => p.sideSource === 'solution').length}`);
+  console.log(`  strana nepoznata:             ${positions.filter((p) => p.sideSource === 'unknown').length}`);
   console.log(`Potez iz knjige legalan:        ${legal.length} / ${withSolution.length}  (${pct(legal.length, withSolution.length)})`);
   console.log(`  popravljeno rokadom/e.p.:     ${repaired.length}`);
   console.log(`Za ljudsku proveru:             ${problems.length}`);

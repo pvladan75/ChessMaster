@@ -26,7 +26,7 @@ function tryMove(fen, san) {
   try {
     const board = new Chess(fen);
     const move = board.move(san);
-    return move ? { ok: true, move } : { ok: false, reason: 'odbijen potez' };
+    return move ? { ok: true, move } : { ok: false, reason: 'move rejected' };
   } catch (err) {
     return { ok: false, reason: err.message };
   }
@@ -57,11 +57,11 @@ export function materialProblem(placement) {
   }
 
   for (const [side, pawn, queen, rook, bishop, knight, name] of [
-    ['w', 'P', 'Q', 'R', 'B', 'N', 'beli'],
-    ['b', 'p', 'q', 'r', 'b', 'n', 'crni'],
+    ['w', 'P', 'Q', 'R', 'B', 'N', 'White'],
+    ['b', 'p', 'q', 'r', 'b', 'n', 'Black'],
   ]) {
     const pawns = count[pawn] ?? 0;
-    if (pawns > 8) return `${name} ima ${pawns} pešaka`;
+    if (pawns > 8) return `${name} has ${pawns} pawns`;
 
     const promoted =
       Math.max(0, (count[queen] ?? 0) - 1) +
@@ -70,7 +70,7 @@ export function materialProblem(placement) {
       Math.max(0, (count[knight] ?? 0) - 2);
 
     if (promoted > 8 - pawns) {
-      return `${name} ima ${promoted} figura viška uz ${pawns} pešaka`;
+      return `${name} has ${promoted} spare officers beside ${pawns} pawns`;
     }
     void side;
   }
@@ -91,6 +91,14 @@ function isLegalPosition(fen) {
  * solution.
  *
  * Returns { fen, side, sideSource, solutionLegal, repairs, problem }.
+ *
+ * `sideSource` is one of `'solution'`, `'only-legal-side'` or `'unknown'`, and
+ * those three are a **wire contract**: `scan_review_screen.dart` switches on
+ * them for the note under the board, and `ScannedPosition.needsReview` reads
+ * `'unknown'` to decide whether the trainer has to look. They were Serbian
+ * until 8.9.2026 and they read exactly like copy, which is the trap — a
+ * translation that moves one end silently stops flagging every position
+ * whose side to move nobody could work out.
  * `problem` set means a human has to look at this one — that is the intended
  * outcome for anything uncertain, not a reason to drop the position silently.
  */
@@ -99,7 +107,7 @@ export function buildPosition(diagram, solution) {
   const placement = diagram.placement;
 
   let side = solution?.side ?? null;
-  let sideSource = solution ? 'resenje' : null;
+  let sideSource = solution ? 'solution' : null;
 
   // With no solution to lean on, keep the position but say so. The trainer's
   // confirmation screen is where this gets settled; an engine can narrow it
@@ -109,13 +117,13 @@ export function buildPosition(diagram, solution) {
     const blackOk = isLegalPosition(makeFen(placement, 'b', '-', '-')) === true;
     if (whiteOk && !blackOk) {
       side = 'w';
-      sideSource = 'jedina legalna strana';
+      sideSource = 'only-legal-side';
     } else if (blackOk && !whiteOk) {
       side = 'b';
-      sideSource = 'jedina legalna strana';
+      sideSource = 'only-legal-side';
     } else {
       side = 'w';
-      sideSource = 'nepoznato';
+      sideSource = 'unknown';
     }
   }
 
@@ -125,14 +133,14 @@ export function buildPosition(diagram, solution) {
 
   const legality = isLegalPosition(fen);
   if (legality !== true) {
-    return { fen, side, sideSource, solutionLegal: null, repairs, problem: `nelegalna pozicija: ${legality.error}` };
+    return { fen, side, sideSource, solutionLegal: null, repairs, problem: `illegal position: ${legality.error}` };
   }
 
   // Reported rather than dropped, like everything else uncertain here: the
   // position is probably read wrong, and a human has to see which.
   const material = materialProblem(placement);
   if (material) {
-    return { fen, side, sideSource, solutionLegal: null, repairs, problem: `nemoguć materijal: ${material}` };
+    return { fen, side, sideSource, solutionLegal: null, repairs, problem: `impossible material: ${material}` };
   }
 
   if (!solution) {
@@ -141,7 +149,7 @@ export function buildPosition(diagram, solution) {
 
   // The notation may be ambiguous once the typesetter's spaces are gone, so the
   // solution arrives as candidates, shortest first. The board decides.
-  let attempt = { ok: false, reason: 'nema kandidata' };
+  let attempt = { ok: false, reason: 'no candidate' };
   let san = solution.san;
 
   for (const candidate of solution.sans ?? [solution.san]) {
@@ -161,7 +169,7 @@ export function buildPosition(diagram, solution) {
         castling = right;
         fen = withRight;
         attempt = retry;
-        repairs.push(`rokada: postavljeno pravo ${right}`);
+        repairs.push(`castling: granted the right ${right}`);
         break;
       }
     }
@@ -178,7 +186,7 @@ export function buildPosition(diagram, solution) {
           ep = target;
           fen = withEp;
           attempt = retry;
-          repairs.push(`en passant: postavljeno polje ${target}`);
+          repairs.push(`en passant: set the target square ${target}`);
           break;
         }
       }
@@ -193,6 +201,6 @@ export function buildPosition(diagram, solution) {
     solutionSan: attempt.ok ? san : solution.san,
     solutionMove: attempt.ok ? attempt.move.lan : null,
     repairs,
-    problem: attempt.ok ? null : `potez iz knjige "${solution.san}" nije legalan (${attempt.reason})`,
+    problem: attempt.ok ? null : `the book move "${solution.san}" is not legal (${attempt.reason})`,
   };
 }

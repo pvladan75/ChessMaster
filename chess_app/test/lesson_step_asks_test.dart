@@ -175,8 +175,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // The reason comes from the server rather than being composed here, so
-      // the child is told what actually happened — „taj potez nije moguć" and
-      // „nije traženi potez" mean very different things.
+      // the child is told what actually happened — "That move is not possible
+      // in this position." and "That is not the move the exercise asks for."
+      // mean very different things.
       expect(find.text('netačan odgovor'), findsOneWidget);
     });
   });
@@ -218,7 +219,9 @@ void main() {
       // in the position being judged — and the board then snaps back with
       // nothing said. `wrong_move_board_test.dart` is the same rule on the
       // puzzle screen; this screen may not be the one place it does not hold.
-      final api = _FakeApi(correct: false, reason: 'nije traženi potez');
+      final api = _FakeApi(
+          correct: false,
+          reason: 'That is not the move the exercise asks for.');
       await open(tester, detailOf([moveStep()]), api);
 
       final board = tester
@@ -244,7 +247,9 @@ void main() {
 
     testWidgets('„Pokaži mi" is not offered before the second wrong answer',
         (tester) async {
-      final api = _FakeApi(correct: false, reason: 'nije traženi potez');
+      final api = _FakeApi(
+          correct: false,
+          reason: 'That is not the move the exercise asks for.');
       await open(tester, detailOf([moveStep()]), api);
 
       expect(find.text('Show me'), findsNothing);
@@ -258,7 +263,9 @@ void main() {
       // A stuck child who cannot finish never writes `completed_at`, and the
       // trainer's unreviewed count can then never reach zero — the exact
       // failure `assignments.reviewed_at` was added to fix.
-      final api = _FakeApi(correct: false, reason: 'nije traženi potez');
+      final api = _FakeApi(
+          correct: false,
+          reason: 'That is not the move the exercise asks for.');
       await open(tester, detailOf([moveStep()]), api);
 
       await api.pretendMove(tester, 'Rb1');
@@ -270,7 +277,9 @@ void main() {
     testWidgets('pressing it asks the server, and shows what comes back',
         (tester) async {
       final api = _FakeApi(
-          correct: false, reason: 'nije traženi potez', solutionSan: 'Ra8#');
+          correct: false,
+          reason: 'That is not the move the exercise asks for.',
+          solutionSan: 'Ra8#');
       await open(tester, detailOf([moveStep()]), api);
 
       await api.pretendMove(tester, 'Rb1');

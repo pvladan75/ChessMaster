@@ -493,7 +493,7 @@ class _PositionCard extends StatelessWidget {
             Text(
               _sideNote(position.sideSource),
               style: AppText.caption.copyWith(
-                color: position.sideSource == 'nepoznato'
+                color: position.sideSource == 'unknown'
                     ? colors.warning
                     : colors.textMuted,
               ),
@@ -517,9 +517,9 @@ class _PositionCard extends StatelessWidget {
 
   String _sideNote(String source) {
     switch (source) {
-      case 'resenje':
+      case 'solution':
         return 'from book solution';
-      case 'jedina legalna strana':
+      case 'only-legal-side':
         return 'only legal side';
       default:
         return 'book does not say — check';
