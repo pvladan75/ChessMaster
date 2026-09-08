@@ -311,6 +311,22 @@ billing service are built; the six open items in `docs/CENA-I-PRETPLATA.md` §7
 are business decisions, not code, and they are better made against a month of
 real measurements than against a guess.
 
+**Superseded on 8.9.2026 — the app goes English-only.** The owner's decision:
+the market is global and the Serbian audience too small to carry the format. It
+does not add an i18n layer; the literals in `lib/` are replaced in place, which
+is why the paragraph below is kept rather than deleted — the count in it is the
+size of the sweep. `docs/GLOSSARY-EN.md` is the contract, the two anchors in
+`docs/gates/` are the vocabulary, and `gate_english_ui` is what grades it. The
+manual and the site are therefore written in **English**, not Serbian.
+
+**One consequence that is not a translation and has to be decided:** the legal
+texts were approved by a lawyer **for Serbia**, in Serbian, and that approval
+does not travel. A globally distributed app used by children means COPPA in the
+United States and GDPR-K in the European Union, where the age of consent differs
+between member states — which is why `AGE_OF_CONSENT` and
+`PARENT_CONSENT_VERSION` are configuration in the first place. Nothing in the
+code blocks on this today; publishing does.
+
 **Translating the app.** There is no localisation layer at all — no
 `flutter_localizations`, no `.arb`, and roughly 1700 string literals carrying
 Serbian diacritics in `lib/` alone, which undercounts the ones that happen to
