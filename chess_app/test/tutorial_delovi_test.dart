@@ -166,7 +166,7 @@ void main() {
       {bool continueFromEnd = true}) async {
     await tester.tap(find.byKey(const Key('add-show')));
     await tester.pumpAndSettle();
-    await tapText(tester, continueFromEnd ? 'Odavde' : 'Nova tabla');
+    await tapText(tester, continueFromEnd ? 'From here' : 'New board');
   }
 
   /// Clicks a row of the panel by the name it is listed under.
@@ -192,7 +192,7 @@ void main() {
   group('the panel is the table of contents', () {
     testWidgets('every part is listed, numbered, by its name', (tester) async {
       await open(tester);
-      expect(find.text('Sadržaj tutorijala'), findsOneWidget);
+      expect(find.text('Tutorial contents'), findsOneWidget);
       expect(find.text('Deo 1'), findsOneWidget);
 
       await play(tester, 'e2', 'e4');
@@ -237,9 +237,9 @@ void main() {
       await open(tester);
       await tester.tap(find.byKey(const Key('add-show')));
       await tester.pumpAndSettle();
-      expect(find.text('Odakle počinje?'), findsOneWidget);
-      expect(find.text('Odavde'), findsOneWidget);
-      expect(find.text('Nova tabla'), findsOneWidget);
+      expect(find.text('Where does it start?'), findsOneWidget);
+      expect(find.text('From here'), findsOneWidget);
+      expect(find.text('New board'), findsOneWidget);
       await close(tester);
     });
 
@@ -272,7 +272,7 @@ void main() {
       await open(tester);
       await tester.tap(find.byKey(const Key('add-show')));
       await tester.pumpAndSettle();
-      await tapText(tester, 'Otkaži');
+      await tapText(tester, 'Cancel');
 
       expect(find.text('Deo 2'), findsNothing);
       await close(tester);
@@ -287,7 +287,7 @@ void main() {
       await addPart(tester, continueFromEnd: false);
       await type(tester, 'example-sentence', 'Ovo je drugi.');
 
-      await tapTooltip(tester, 'Pomeri gore');
+      await tapTooltip(tester, 'Move up');
 
       // The selection follows the part, and the part brought its sentence.
       expect(find.widgetWithText(TextField, 'Ovo je drugi.'), findsOneWidget,
@@ -305,7 +305,7 @@ void main() {
       expect(
           tester
               .widget<IconButton>(find.ancestor(
-                  of: find.byTooltip('Pomeri dole'),
+                  of: find.byTooltip('Move down'),
                   matching: find.byType(IconButton)))
               .onPressed,
           isNull);
@@ -316,7 +316,7 @@ void main() {
         (tester) async {
       await open(tester);
       await type(tester, 'example-sentence', 'Rečenica koja se kopira.');
-      await tapTooltip(tester, 'Kloniraj deo');
+      await tapTooltip(tester, 'Clone part');
 
       expect(
           find.descendant(
@@ -339,9 +339,9 @@ void main() {
       await open(tester);
       await addPart(tester);
 
-      await tapTooltip(tester, 'Obriši deo');
-      expect(find.text('Brisanje dela'), findsOneWidget);
-      await tapText(tester, 'Odustani');
+      await tapTooltip(tester, 'Delete part');
+      expect(find.text('Delete part'), findsOneWidget);
+      await tapText(tester, 'Cancel');
 
       expect(find.text('Deo 2'), findsOneWidget);
       await close(tester);
@@ -351,8 +351,8 @@ void main() {
       await open(tester);
       await addPart(tester);
 
-      await tapTooltip(tester, 'Obriši deo');
-      await tapText(tester, 'Obriši');
+      await tapTooltip(tester, 'Delete part');
+      await tapText(tester, 'Delete');
 
       expect(find.text('Deo 2'), findsNothing);
       expect(find.text('Deo 1'), findsOneWidget);
@@ -364,10 +364,10 @@ void main() {
       // emptied here loses every step with nothing left to join on and
       // complain. The model refuses it; this is the screen saying so.
       await open(tester);
-      await tapTooltip(tester, 'Obriši deo');
+      await tapTooltip(tester, 'Delete part');
       await tester.pumpAndSettle();
 
-      expect(find.text('Poslednji deo ne može biti obrisan.'), findsOneWidget);
+      expect(find.text('The last part cannot be deleted.'), findsOneWidget);
       expect(find.text('Deo 1'), findsOneWidget);
       await close(tester);
     });
@@ -380,7 +380,7 @@ void main() {
       await play(tester, 'e2', 'e4');
       await addPart(tester);
 
-      expect(find.byTooltip('Nastavlja se na prethodni deo'), findsOneWidget,
+      expect(find.byTooltip('Continues from previous part'), findsOneWidget,
           reason: 'the author cannot see which of their parts the child will '
               'experience as one board');
       await close(tester);
@@ -391,7 +391,7 @@ void main() {
       await play(tester, 'e2', 'e4');
       await addPart(tester, continueFromEnd: false);
 
-      expect(find.byTooltip('Nastavlja se na prethodni deo'), findsNothing);
+      expect(find.byTooltip('Continues from previous part'), findsNothing);
       await close(tester);
     });
   });

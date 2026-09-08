@@ -183,16 +183,16 @@ void main() {
         speech,
       );
 
-      await tester.tap(find.byTooltip('Pusti tutorijal'));
+      await tester.tap(find.byTooltip('Play tutorial'));
       await tester.pump();
 
       // Nothing is written about the position the line starts from, so the
       // first move comes after a pause rather than after a sentence.
-      expect(find.text('Potez 0 od 5'), findsOneWidget);
+      expect(find.text('Move 0 of 5'), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 1400));
       await tester.pump();
 
-      expect(find.text('Potez 1 od 5'), findsOneWidget);
+      expect(find.text('Move 1 of 5'), findsOneWidget);
       // The service says notation as words — „Kd3" is heard as „kralj d tri" —
       // so the comparison is against what a listener would hear.
       expect(tts.spoken.last, speakable(kd3Note),
@@ -208,7 +208,7 @@ void main() {
       // And the board does not move on while the voice is still going, however
       // long that takes.
       await tester.pump(const Duration(seconds: 3));
-      expect(find.text('Potez 1 od 5'), findsOneWidget,
+      expect(find.text('Move 1 of 5'), findsOneWidget,
           reason: 'Ke5 must not be played under the sentence about Kd3');
       expect(tts.spoken.length, 1);
 
@@ -216,7 +216,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Potez 2 od 5'), findsOneWidget);
+      expect(find.text('Move 2 of 5'), findsOneWidget);
       expect(tts.spoken.last, speakable(ke5Note));
       expect(board(tester).squares, isEmpty,
           reason: 'the marks belong to the move they were drawn on');
@@ -225,16 +225,16 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Potez 3 od 5'), findsOneWidget);
+      expect(find.text('Move 3 of 5'), findsOneWidget);
       expect(tts.spoken.last, speakable(kc4Note));
 
       // Stopping is the reader taking over, and it holds.
-      await tester.tap(find.byTooltip('Zaustavi čitanje'));
+      await tester.tap(find.byTooltip('Stop reading'));
       await tester.pump();
 
       final spokenSoFar = tts.spoken.length;
       await tester.pump(const Duration(seconds: 5));
-      expect(find.text('Potez 3 od 5'), findsOneWidget);
+      expect(find.text('Move 3 of 5'), findsOneWidget);
       expect(tts.spoken.length, spokenSoFar,
           reason: 'a stopped walk stays stopped');
     });
@@ -251,17 +251,17 @@ void main() {
         speech,
       );
 
-      await tester.tap(find.byTooltip('Pusti tutorijal'));
+      await tester.tap(find.byTooltip('Play tutorial'));
       await tester.pump(const Duration(milliseconds: 1400));
       await tester.pump();
-      expect(find.text('Potez 1 od 5'), findsOneWidget);
+      expect(find.text('Move 1 of 5'), findsOneWidget);
 
       // The child decides to go back and look again.
       await tester.tap(find.byTooltip('Prethodni potez'));
       await tester.pump();
 
-      expect(find.text('Potez 0 od 5'), findsOneWidget);
-      expect(find.byTooltip('Pusti tutorijal'), findsOneWidget,
+      expect(find.text('Move 0 of 5'), findsOneWidget);
+      expect(find.byTooltip('Play tutorial'), findsOneWidget,
           reason: 'the walk stopped, so the button offers to start it again');
 
       final spokenSoFar = tts.spoken.length;
@@ -283,7 +283,7 @@ void main() {
         speech,
       );
 
-      expect(find.byTooltip('Pusti tutorijal'), findsNothing);
+      expect(find.byTooltip('Play tutorial'), findsNothing);
       expect(find.byTooltip('Sledeći potez'), findsOneWidget,
           reason: 'the line is still there to be walked by hand');
     });
@@ -315,7 +315,7 @@ void main() {
 
       expect(find.text('1/2'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Pusti tutorijal'));
+      await tester.tap(find.byTooltip('Play tutorial'));
       await walkThrough(tester);
 
       // Nobody pressed „Sledeći korak": the line ran out on a position the next
@@ -358,7 +358,7 @@ void main() {
 
       expect(board(tester).boardOrientation, PlayerColor.white);
 
-      await tester.tap(find.byTooltip('Pusti tutorijal'));
+      await tester.tap(find.byTooltip('Play tutorial'));
       await walkThrough(tester);
 
       expect(find.text('2/2'), findsOneWidget);
@@ -393,7 +393,7 @@ void main() {
         speech,
       );
 
-      await tester.tap(find.byTooltip('Pusti tutorijal'));
+      await tester.tap(find.byTooltip('Play tutorial'));
       await walkThrough(tester);
 
       expect(find.text('2/2'), findsOneWidget);
@@ -419,7 +419,7 @@ void main() {
         speech,
       );
 
-      await tester.tap(find.byTooltip('Pusti tutorijal'));
+      await tester.tap(find.byTooltip('Play tutorial'));
       await walkThrough(tester);
 
       expect(find.text('2/2'), findsOneWidget);
@@ -461,7 +461,7 @@ void main() {
         speech,
       );
 
-      await tester.tap(find.byTooltip('Pusti tutorijal'));
+      await tester.tap(find.byTooltip('Play tutorial'));
       // Both sentences are read out in microtasks, and then the walk waits
       // before it puts up a board the listener has not been told about.
       await tester.pump(const Duration(milliseconds: 300));
@@ -485,11 +485,11 @@ void main() {
 
       await tester.tap(find.byTooltip('Idi na kraj'));
       await tester.pump();
-      expect(find.text('Potez 4 od 4'), findsOneWidget);
+      expect(find.text('Move 4 of 4'), findsOneWidget);
 
       final before = board(tester).boardOrientation;
 
-      await tester.tap(find.text('Sledeći korak'));
+      await tester.tap(find.text('Next part'));
       await tester.pump();
 
       expect(find.text('2/2'), findsOneWidget);

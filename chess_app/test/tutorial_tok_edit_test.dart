@@ -185,7 +185,7 @@ void main() {
   /// read out of it rather than off the widgets that produced it.
   Future<List<Map<String, dynamic>>> save(
       WidgetTester tester, _RecordingApi api) async {
-    await tester.tap(find.text('Sačuvaj tutorijal'));
+    await tester.tap(find.text('Save tutorial'));
     await tester.pumpAndSettle();
     expect(api.saves, hasLength(1), reason: 'one tutorial is one write');
     return (api.saves.single['positionList'] as List)
@@ -329,7 +329,7 @@ void main() {
 
       await tester.tap(find.byKey(const Key('example-kind')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Traži odgovor iz liste').last);
+      await tester.tap(find.text('Ask for answer from list').last);
       await tester.pumpAndSettle();
       await typeIn(tester, 'example-instruction', 'Šta beli postiže?');
       // Two answers, because P8 made „two to four" a refusal — §7.6 of
@@ -337,10 +337,10 @@ void main() {
       // pick from is not being asked anything. The assertion below is the one
       // this test has always made: that the question reaches the server. Only
       // the fixture grew.
-      await tester.tap(find.text('Dodaj odgovor'));
+      await tester.tap(find.text('Add answer'));
       await tester.pumpAndSettle();
       await typeIn(tester, 'example-choice-0', 'Zauzima centar.');
-      await tester.tap(find.text('Dodaj odgovor'));
+      await tester.tap(find.text('Add answer'));
       await tester.pumpAndSettle();
       await typeIn(tester, 'example-choice-1', 'Napada kralja.');
       await tester.tap(find.byType(Radio<int>).first);

@@ -115,7 +115,7 @@ void main() {
   }
 
   Future<void> save(WidgetTester tester) async {
-    await tester.tap(find.text('Sačuvaj tutorijal'));
+    await tester.tap(find.text('Save tutorial'));
     await tester.pumpAndSettle();
   }
 
@@ -132,32 +132,35 @@ void main() {
       await openLesson(
           tester,
           lessonWith([
-            step(title: 'Pitanje', pgn: '1. e4 e5 2. Nf3', kind: 'ask_move'),
+            step(
+              title: 'Part 1',
+              pgn: '1. e4 e5 2. Nf3',
+              kind: 'ask_move',
+            ),
           ]));
 
       await save(tester);
 
-      expect(saves, isEmpty, reason: 'the tutorial was sent as it stands');
-      expect(find.textContaining('Pitanje'), findsWidgets,
+      expect(saves, isEmpty,
+          reason: 'a question that carries its own line saves quietly, '
+              'and the child can page to the answer');
+      expect(find.textContaining('Part 1'), findsWidgets,
           reason: 'the refusal does not say which part is wrong, so a trainer '
               'with fourteen parts has to find it themselves');
 
       await close(tester);
     });
 
-    testWidgets('a question with no moves is saved, marks and words included',
+    testWidgets('a question with a whole comment on its root is saved',
         (tester) async {
-      // The one this file was written for. „Nađi najbolji potez" plus an arrow
-      // pointing at the weak square is a whole question — it carries a comment
-      // and `[%cal]` on its root and **no line at all**, so nothing can be
-      // paged to. Judging a part by whether its exported `pgn` is empty refuses
-      // it anyway, because the exporter writes the root's note and marks ahead
-      // of move one. P7a made this the normal way to write a question.
+      // Regression guard: the PGN writer outputs `{ [%cal ...] } *` when there
+      // are arrows on the root. That comment is legal, and stripping it would
+      // drop the arrows.
       await openLesson(
           tester,
           lessonWith([
             step(
-              title: 'Pitanje',
+              title: 'Part 1',
               pgn: '{ Nađi najbolji potez. [%cal Gd1h5][%csl Rf7] } *',
               kind: 'ask_move',
             ),
@@ -166,7 +169,8 @@ void main() {
       await save(tester);
 
       expect(saves, hasLength(1),
-          reason: 'a question with no moves was refused for carrying a line it '
+          reason: 'a whole comment on the root position is not a move line '
+              'the child could page through; it was rejected as a leak it '
               'does not have — the note and the arrows on its starting '
               'position were read as one');
 
@@ -177,9 +181,9 @@ void main() {
         (tester) async {
       await openLesson(tester, lessonWith([step(pgn: '1. e4 e5 2. Nf3')]));
 
-      await pickKind(tester, 'Traži potez na tabli');
+      await pickKind(tester, 'Ask for move on board');
 
-      expect(find.text('Dete bi videlo odgovor'), findsOneWidget,
+      expect(find.text('The student would see the answer'), findsOneWidget,
           reason: 'the kind changed with no question asked, and the line the '
               'trainer wrote is now the answer to their own question');
 
@@ -189,8 +193,8 @@ void main() {
     testWidgets('„Odustani" leaves the part exactly as it was', (tester) async {
       await openLesson(tester, lessonWith([step(pgn: '1. e4 e5 2. Nf3')]));
 
-      await pickKind(tester, 'Traži potez na tabli');
-      await tester.tap(find.text('Odustani'));
+      await pickKind(tester, 'Ask for move on board');
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
       await save(tester);
@@ -211,8 +215,8 @@ void main() {
         (tester) async {
       await openLesson(tester, lessonWith([step(pgn: '1. e4 e5 2. Nf3')]));
 
-      await pickKind(tester, 'Traži potez na tabli');
-      await tester.tap(find.text('Ukloni liniju i postavi pitanje'));
+      await pickKind(tester, 'Ask for move on board');
+      await tester.tap(find.text('Remove line and ask question'));
       await tester.pumpAndSettle();
 
       await save(tester);
@@ -238,7 +242,8 @@ void main() {
             step(title: 'Drugi', pgn: '1. e4 e5', kind: 'ask_move'),
           ]));
 
-      expect(find.textContaining('Dete bi videlo odgovor'), findsWidgets,
+      expect(
+          find.textContaining('The student would see the answer'), findsWidgets,
           reason: 'a tutorial that already hands the child its answer opened '
               'with nothing said about it');
 

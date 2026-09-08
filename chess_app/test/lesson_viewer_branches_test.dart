@@ -68,7 +68,8 @@ void main() {
       (tester) async {
     await open(tester, forkPgn);
 
-    expect(find.text('Odavde ide više linija — kojom?'), findsOneWidget);
+    expect(find.text('Multiple lines continue from here — which one?'),
+        findsOneWidget);
     expect(find.widgetWithText(ActionChip, 'Nc6'), findsOneWidget);
     expect(find.widgetWithText(ActionChip, 'd6'), findsOneWidget,
         reason: 'the sideline is the whole reason this row exists');
@@ -78,7 +79,8 @@ void main() {
       (tester) async {
     await open(tester, straightPgn);
 
-    expect(find.text('Odavde ide više linija — kojom?'), findsNothing);
+    expect(find.text('Multiple lines continue from here — which one?'),
+        findsNothing);
     expect(find.byType(ActionChip), findsNothing);
   });
 
@@ -94,7 +96,8 @@ void main() {
     expect(find.text('Italijanka.'), findsNothing);
 
     // And there is nothing left to choose one move down it.
-    expect(find.text('Odavde ide više linija — kojom?'), findsNothing);
+    expect(find.text('Multiple lines continue from here — which one?'),
+        findsNothing);
   });
 
   testWidgets('and the main line is still one press away', (tester) async {

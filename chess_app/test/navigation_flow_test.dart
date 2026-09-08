@@ -171,7 +171,7 @@ void main() {
     // No server answers in a test, so it ends up saying it could not fetch it -
     // which is the point: it is a screen, not a blank.
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.textContaining('Zadatak'), findsWidgets);
+    expect(find.textContaining('Assignment'), findsWidgets);
   });
 
   testWidgets('what is left of an assignment is a place, not a list of ids',

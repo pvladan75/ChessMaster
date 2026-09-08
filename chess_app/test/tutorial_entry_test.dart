@@ -101,11 +101,11 @@ void main() {
           reason: 'the trainer was not told which tutorial is waiting — '
               'a draft that comes back unannounced is what made this feel '
               'haunted');
-      expect(find.text('Odustajem'), findsOneWidget,
+      expect(find.text('Cancel'), findsOneWidget,
           reason: 'the question has no way out, so a trainer who did not mean '
               'to be asked has to answer it with somebodys work');
-      expect(find.text('Nov'), findsOneWidget);
-      expect(find.text('Nastavi'), findsOneWidget);
+      expect(find.text('New'), findsOneWidget);
+      expect(find.text('Continue'), findsOneWidget);
     });
 
     testWidgets('declining leaves a clean screen with the new name',
@@ -113,7 +113,7 @@ void main() {
       await storeDraft(title: 'Opozicija');
       await open(tester, const TutorialEntry.blank('Skakač i pešak'));
 
-      await tester.tap(find.text('Nov'));
+      await tester.tap(find.text('New'));
       await tester.pumpAndSettle();
 
       expect(find.text('Skakač i pešak'), findsOneWidget,
@@ -131,7 +131,7 @@ void main() {
       await storeDraft(title: 'Opozicija');
       await open(tester, const TutorialEntry.blank('Skakač i pešak'));
 
-      await tester.tap(find.text('Nastavi'));
+      await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
       expect(find.text('Opozicija'), findsWidgets);
@@ -146,7 +146,7 @@ void main() {
       await storeDraft(title: 'Opozicija');
       await open(tester, const TutorialEntry.blank('Skakač i pešak'));
 
-      await tester.tap(find.text('Odustajem'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
       final kept = await TutorialDraftService.instance.load();
@@ -167,7 +167,7 @@ void main() {
       await storeDraft(title: 'Opozicija');
       await open(tester, const TutorialEntry.blank('Skakač i pešak'));
 
-      await tester.tap(find.text('Odustajem'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -183,8 +183,8 @@ void main() {
         (tester) async {
       await open(tester, const TutorialEntry.blank('Skakač i pešak'));
 
-      expect(find.text('Nastavi'), findsNothing);
-      expect(find.text('Nov'), findsNothing);
+      expect(find.text('Continue'), findsNothing);
+      expect(find.text('New'), findsNothing);
       expect(find.text('Skakač i pešak'), findsOneWidget);
     });
   });
@@ -220,7 +220,7 @@ void main() {
       expect(find.text('Nedovršen deo'), findsNothing,
           reason: 'another tutorial’s unsaved work was opened as this one');
       expect(find.text('Uvod'), findsOneWidget);
-      expect(find.text('Nastavi'), findsNothing,
+      expect(find.text('Continue'), findsNothing,
           reason: 'a draft of a different tutorial is not this trainer’s '
               'business right now, so it is not a question either');
     });
@@ -260,7 +260,7 @@ void main() {
       );
 
       expect(find.text('Nedovršen deo'), findsNothing);
-      expect(find.text('Nastavi'), findsNothing,
+      expect(find.text('Continue'), findsNothing,
           reason: 'the question was already answered at the door');
     });
   });

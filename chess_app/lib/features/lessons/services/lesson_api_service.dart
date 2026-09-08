@@ -117,7 +117,7 @@ class LessonApiService {
       }
       return decoded;
     } catch (e) {
-      AppLogger.log('[Lessons] Ne mogu da učitam listu: $e');
+      AppLogger.log('[Lessons] Could not load list: $e');
       lastFetchFailed = true;
       return const [];
     }
@@ -133,7 +133,7 @@ class LessonApiService {
       final decoded = jsonDecode(res.body);
       return decoded is List ? List<String>.from(decoded) : const [];
     } catch (e) {
-      AppLogger.log('[Lessons] Ne mogu da učitam oznake: $e');
+      AppLogger.log('[Lessons] Could not load tags: $e');
       return const [];
     }
   }
@@ -193,11 +193,11 @@ class LessonApiService {
           .timeout(const Duration(seconds: 30));
       if (res.statusCode == 201) return _rowFrom(res.body);
       return LessonWriteResult(
-        error: _errorFrom(res.body, 'Čuvanje nije uspelo (${res.statusCode}).'),
+        error: _errorFrom(res.body, 'Save failed (${res.statusCode}).'),
       );
     } catch (e) {
-      AppLogger.log('[Lessons] Čuvanje nije uspelo: $e');
-      return const LessonWriteResult(error: 'Nije moguće doći do servera.');
+      AppLogger.log('[Lessons] Save failed: $e');
+      return const LessonWriteResult(error: 'Cannot connect to server.');
     }
   }
 
@@ -287,11 +287,11 @@ class LessonApiService {
           .timeout(const Duration(seconds: 30));
       if (res.statusCode == 200) return _rowFrom(res.body);
       return LessonWriteResult(
-        error: _errorFrom(res.body, 'Izmena nije uspela (${res.statusCode}).'),
+        error: _errorFrom(res.body, 'Update failed (${res.statusCode}).'),
       );
     } catch (e) {
-      AppLogger.log('[Lessons] Izmena nije uspela: $e');
-      return const LessonWriteResult(error: 'Nije moguće doći do servera.');
+      AppLogger.log('[Lessons] Update failed: $e');
+      return const LessonWriteResult(error: 'Cannot connect to server.');
     }
   }
 
@@ -302,10 +302,10 @@ class LessonApiService {
           .delete(Uri.parse('$backendUrl/lessons/$id'), headers: _headers)
           .timeout(const Duration(seconds: 20));
       if (res.statusCode == 200) return null;
-      return _errorFrom(res.body, 'Brisanje nije uspelo (${res.statusCode}).');
+      return _errorFrom(res.body, 'Delete failed (${res.statusCode}).');
     } catch (e) {
-      AppLogger.log('[Lessons] Brisanje nije uspelo: $e');
-      return 'Nije moguće doći do servera.';
+      AppLogger.log('[Lessons] Delete failed: $e');
+      return 'Cannot connect to server.';
     }
   }
 
@@ -333,10 +333,10 @@ class LessonApiService {
           )
           .timeout(const Duration(seconds: 30));
       if (res.statusCode == 201) return null;
-      return _errorFrom(res.body, 'Dodavanje nije uspelo (${res.statusCode}).');
+      return _errorFrom(res.body, 'Adding step failed (${res.statusCode}).');
     } catch (e) {
-      AppLogger.log('[Lessons] Dodavanje koraka nije uspelo: $e');
-      return 'Nije moguće doći do servera.';
+      AppLogger.log('[Lessons] Adding step failed: $e');
+      return 'Cannot connect to server.';
     }
   }
 
@@ -367,15 +367,14 @@ class LessonApiService {
         final body = jsonDecode(res.body);
         final newId = body is Map ? body['id'] : null;
         if (newId is int) return newId;
-        cloneError = 'Kopija je napravljena, ali je server nije imenovao.';
+        cloneError = 'Copy created, but server did not return an id.';
         return null;
       }
-      cloneError =
-          _errorFrom(res.body, 'Kopiranje nije uspelo (${res.statusCode}).');
+      cloneError = _errorFrom(res.body, 'Copy failed (${res.statusCode}).');
       return null;
     } catch (e) {
-      AppLogger.log('[Lessons] Kopiranje nije uspelo: $e');
-      cloneError = 'Nije moguće doći do servera.';
+      AppLogger.log('[Lessons] Copy failed: $e');
+      cloneError = 'Cannot connect to server.';
       return null;
     }
   }

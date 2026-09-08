@@ -125,7 +125,7 @@ void main() {
 
   /// What leaves the screen, read back through the child's own reader.
   Future<LessonStepLine> saveAndRead(WidgetTester tester) async {
-    await tester.tap(find.text('Sačuvaj tutorijal'));
+    await tester.tap(find.text('Save tutorial'));
     await tester.pumpAndSettle();
     expect(saves, hasLength(1), reason: 'one tutorial is one write');
     final step = (saves.single['positionList'] as List).single as Map;
@@ -267,7 +267,7 @@ void main() {
       await typeInto(tester, '1. d4');
       await apply(tester);
 
-      await tester.tap(find.text('Sačuvaj tutorijal'));
+      await tester.tap(find.text('Save tutorial'));
       await tester.pumpAndSettle();
 
       final step = (saves.single['positionList'] as List).single as Map;

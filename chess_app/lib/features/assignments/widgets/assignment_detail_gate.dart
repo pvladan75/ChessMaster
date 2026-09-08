@@ -72,7 +72,7 @@ class _AssignmentDetailGateState extends State<AssignmentDetailGate> {
       // Said out loud rather than shown as an empty screen. A blank assignment
       // reads as an assignment with nothing in it, which is a different thing
       // from one that could not be fetched.
-      _error = detail == null ? 'Zadatak nije moguće učitati.' : null;
+      _error = detail == null ? 'Could not load assignment.' : null;
     });
   }
 
@@ -82,7 +82,7 @@ class _AssignmentDetailGateState extends State<AssignmentDetailGate> {
     if (detail != null) return widget.builder(detail);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Zadatak')),
+      appBar: AppBar(title: const Text('Assignment')),
       body: Center(
         child: _loading
             ? const CircularProgressIndicator()
@@ -92,12 +92,12 @@ class _AssignmentDetailGateState extends State<AssignmentDetailGate> {
                   Icon(Icons.cloud_off,
                       size: 40, color: context.colors.textMuted),
                   const SizedBox(height: AppSpacing.md),
-                  Text(_error ?? 'Zadatak nije pronađen.'),
+                  Text(_error ?? 'Assignment not found.'),
                   const SizedBox(height: AppSpacing.md),
                   FilledButton.icon(
                     onPressed: _load,
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Pokušaj ponovo'),
+                    label: const Text('Try again'),
                   ),
                 ],
               ),

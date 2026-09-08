@@ -62,7 +62,7 @@ void main() {
       // A fixed 420px content box was wider than the room an AlertDialog leaves
       // on a 360px screen, which overflowed rather than shrinking.
       expect(tester.takeException(), isNull);
-      expect(find.text('Zadaj'), findsOneWidget);
+      expect(find.text('Assign'), findsOneWidget);
     });
 
     testWidgets('still lays out on a 320px screen', (tester) async {
@@ -123,7 +123,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // The obvious assignment should already be filled in, in Serbian.
-      expect(find.text('Vežba: vezivanje'), findsOneWidget);
+      expect(find.text('Drill: pin'), findsOneWidget);
     });
   });
 
@@ -156,8 +156,8 @@ void main() {
 
       expect(tester.takeException(), isNull);
       // The parent needs to know no account is required, or they will not open it.
-      expect(find.textContaining('nije mu potreban nalog'), findsOneWidget);
-      expect(find.text('Napravi'), findsOneWidget);
+      expect(find.textContaining('no account required'), findsOneWidget);
+      expect(find.text('Create'), findsOneWidget);
     });
   });
 

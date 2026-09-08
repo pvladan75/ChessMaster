@@ -157,7 +157,7 @@ void main() {
       ),
     ));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sačuvani tutorijali'));
+    await tester.tap(find.text('Saved tutorials'));
     await tester.pumpAndSettle();
   }
 
@@ -175,18 +175,18 @@ void main() {
       final api = _LibraryApi();
       await openList(tester, api: api);
 
-      expect(actionOn('Opozicija', 'Obriši tutorijal'), findsOneWidget);
-      expect(actionOn('Vezani top', 'Obriši tutorijal'), findsOneWidget);
+      expect(actionOn('Opozicija', 'Delete tutorial'), findsOneWidget);
+      expect(actionOn('Vezani top', 'Delete tutorial'), findsOneWidget);
 
-      await tester.tap(actionOn('Vezani top', 'Obriši tutorijal'));
+      await tester.tap(actionOn('Vezani top', 'Delete tutorial'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Obriši tutorijal?'), findsOneWidget);
+      expect(find.text('Delete tutorial?'), findsOneWidget);
       expect(find.textContaining('Vezani top'), findsWidgets,
           reason: 'a refusal that does not name what it is about is a refusal '
               'the trainer has to guess at');
 
-      await tester.tap(find.text('Odustani'));
+      await tester.tap(find.text('Cancel').last);
       await tester.pumpAndSettle();
 
       expect(api.deleted, isEmpty);
@@ -198,9 +198,9 @@ void main() {
       final api = _LibraryApi();
       await openList(tester, api: api);
 
-      await tester.tap(actionOn('Vezani top', 'Obriši tutorijal'));
+      await tester.tap(actionOn('Vezani top', 'Delete tutorial'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Obriši'));
+      await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
 
       expect(api.deleted, ['/lessons/14']);
@@ -214,9 +214,9 @@ void main() {
       final api = _LibraryApi(deleteFails: true);
       await openList(tester, api: api);
 
-      await tester.tap(actionOn('Vezani top', 'Obriši tutorijal'));
+      await tester.tap(actionOn('Vezani top', 'Delete tutorial'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Obriši'));
+      await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
 
       expect(find.text('Vezani top'), findsOneWidget,
@@ -235,10 +235,10 @@ void main() {
         students: _Students(),
       );
 
-      await tester.tap(actionOn('Opozicija', 'Pošalji učeniku'));
+      await tester.tap(actionOn('Opozicija', 'Send to student'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Pošalji učeniku'), findsWidgets);
+      expect(find.text('Send to student'), findsWidgets);
       expect(find.text('Mila'), findsOneWidget);
       expect(find.text('Nepotvrđeni'), findsNothing,
           reason: 'a relationship nobody has accepted grants nothing, and the '
@@ -255,7 +255,7 @@ void main() {
         students: _Students(),
       );
 
-      await tester.tap(actionOn('Opozicija', 'Pošalji učeniku'));
+      await tester.tap(actionOn('Opozicija', 'Send to student'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Mila'));
       await tester.pumpAndSettle();
@@ -275,7 +275,7 @@ void main() {
         students: _Students(),
       );
 
-      await tester.tap(actionOn('Opozicija', 'Pošalji učeniku'));
+      await tester.tap(actionOn('Opozicija', 'Send to student'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Mila'));
       await tester.pumpAndSettle();
@@ -297,10 +297,10 @@ void main() {
         ]),
       );
 
-      await tester.tap(actionOn('Opozicija', 'Pošalji učeniku'));
+      await tester.tap(actionOn('Opozicija', 'Send to student'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Nemate nijednog učenika'), findsOneWidget);
+      expect(find.textContaining('You have no students'), findsOneWidget);
       expect(assignments.sent, isEmpty);
     });
   });
@@ -313,7 +313,7 @@ void main() {
     await tester.tap(find.text('Opozicija'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Studio za tutorijal'), findsOneWidget,
+    expect(find.text('Tutorial Studio'), findsOneWidget,
         reason: 'the actions were added beside opening, not in front of it');
   });
 }

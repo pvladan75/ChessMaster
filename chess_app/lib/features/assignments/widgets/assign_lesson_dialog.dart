@@ -74,15 +74,15 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
       } else {
         setState(() {
           _loading = false;
-          _error = 'Ne mogu da učitam tutorijale.';
+          _error = 'Could not load tutorials.';
         });
       }
     } catch (e) {
-      AppLogger.log('[Assignments] Učitavanje lekcija nije uspelo: $e');
+      AppLogger.log('[Assignments] Failed to load tutorials: $e');
       if (mounted) {
         setState(() {
           _loading = false;
-          _error = 'Nema veze sa serverom.';
+          _error = 'Cannot connect to server.';
         });
       }
     }
@@ -101,7 +101,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
 
   Future<void> _submit() async {
     if (_selectedId == null) {
-      setState(() => _error = 'Izaberite tutorijal.');
+      setState(() => _error = 'Select a tutorial.');
       return;
     }
 
@@ -127,7 +127,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
     setState(() {
       _saving = false;
       _error = result.quotaExceeded
-          ? '${result.error} Premium nalog uklanja ovo ograničenje.'
+          ? '${result.error} A premium account removes this limit.'
           : result.error;
     });
   }
@@ -143,7 +143,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
     final width = (MediaQuery.of(context).size.width - 128).clamp(180.0, 420.0);
 
     return AlertDialog(
-      title: Text('Zadaj tutorijal — ${widget.studentName}'),
+      title: Text('Assign tutorial — ${widget.studentName}'),
       content: SizedBox(
         width: width,
         child: _loading
@@ -154,7 +154,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context, false),
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: _saving || _lessons.isEmpty ? null : _submit,
@@ -163,7 +163,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Zadaj'),
+              : const Text('Assign'),
         ),
       ],
     );
@@ -176,8 +176,8 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
         children: [
           Text(
             _error ??
-                'Nemate nijedan sačuvan tutorijal. Napravite ga preko '
-                    '„Kreiraj tutorijal", pa ga odavde možete zadati.',
+                'You have no saved tutorials. Create one via '
+                    '"Create tutorial", then assign it from here.',
             style:
                 AppText.bodyLarge.copyWith(color: context.colors.textSecondary),
           ),
@@ -189,7 +189,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Tutorijal', style: Theme.of(context).textTheme.labelLarge),
+        Text('Tutorial', style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 6),
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 220),
@@ -205,13 +205,18 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
                       contentPadding: EdgeInsets.zero,
                       value: (lesson['id'] as num).toInt(),
                       title: Text(
-                        lesson['title']?.toString() ?? 'Tutorijal',
+                        lesson['title']?.toString() ?? 'Tutorial',
                         style: const TextStyle(fontSize: 14),
                         overflow: TextOverflow.ellipsis,
                       ),
-                      subtitle: Text(
-                        '${_stepCount(lesson)} koraka',
-                        style: const TextStyle(fontSize: 11.5),
+                      subtitle: Builder(
+                        builder: (context) {
+                          final count = _stepCount(lesson);
+                          return Text(
+                            '$count ${count == 1 ? 'part' : 'parts'}',
+                            style: const TextStyle(fontSize: 11.5),
+                          );
+                        },
                       ),
                     ),
                 ],
@@ -224,7 +229,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
           controller: _instructions,
           maxLines: 2,
           decoration: const InputDecoration(
-            labelText: 'Napomena učeniku (opciono)',
+            labelText: 'Note for student (optional)',
           ),
         ),
         const SizedBox(height: 6),
@@ -237,14 +242,14 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
               icon: const Icon(Icons.event, size: 18),
               label: Text(
                 _dueAt == null
-                    ? 'Postavi rok'
-                    : 'Rok: ${_dueAt!.day}.${_dueAt!.month}.${_dueAt!.year}.',
+                    ? 'Set due date'
+                    : 'Due: ${_dueAt!.day}.${_dueAt!.month}.${_dueAt!.year}.',
               ),
             ),
             if (_dueAt != null)
               IconButton(
                 icon: const Icon(Icons.close, size: 18),
-                tooltip: 'Ukloni rok',
+                tooltip: 'Remove due date',
                 onPressed: () => setState(() => _dueAt = null),
               ),
           ],

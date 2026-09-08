@@ -121,7 +121,7 @@ class _TutorialPgnPanelState extends State<TutorialPgnPanel> {
     final colours = ArrowColor.all
         .map((c) => '${c.id} ${c.name.toLowerCase()}')
         .join(' · ');
-    return '[%cal Gd2d4] strelica · [%csl Rd5] polje · $colours';
+    return '[%cal Gd2d4] arrow · [%csl Rd5] square · $colours';
   }
 
   /// Tells the screen which move the caret landed in.
@@ -150,21 +150,21 @@ class _TutorialPgnPanelState extends State<TutorialPgnPanel> {
         ...state.contextMenuButtonItems,
         if (id != null && !_dirty) ...[
           ContextMenuButtonItem(
-            label: 'Dodaj strelicu',
+            label: 'Add arrow',
             onPressed: () {
               ContextMenuController.removeAny();
               widget.onDrawArrow(id);
             },
           ),
           ContextMenuButtonItem(
-            label: 'Označi polje',
+            label: 'Mark square',
             onPressed: () {
               ContextMenuController.removeAny();
               widget.onMarkSquare(id);
             },
           ),
           ContextMenuButtonItem(
-            label: 'Dodaj komentar',
+            label: 'Add comment',
             onPressed: () {
               ContextMenuController.removeAny();
               widget.onEditComment(id);
@@ -205,11 +205,11 @@ class _TutorialPgnPanelState extends State<TutorialPgnPanel> {
             FilledButton(
               key: const Key('pgn-apply'),
               onPressed: () => widget.onApply(_controller.text),
-              child: const Text('Primeni'),
+              child: const Text('Apply'),
             ),
             const SizedBox(width: AppSpacing.sm),
             Text(
-              _dirty ? 'izmenjeno' : 'primenjeno',
+              _dirty ? 'edited' : 'applied',
               key: const Key('pgn-state'),
               style: AppText.caption.copyWith(
                 color: _dirty

@@ -107,7 +107,7 @@ void main() {
   }
 
   Future<Map> saveAndStep(WidgetTester tester) async {
-    await tester.tap(find.text('Sačuvaj tutorijal'));
+    await tester.tap(find.text('Save tutorial'));
     await tester.pumpAndSettle();
     expect(saves, hasLength(1));
     return (saves.single['positionList'] as List).single as Map;
@@ -126,7 +126,7 @@ void main() {
 
       await paste(tester, pastedGame);
 
-      expect(find.text('Tekst počinje iz druge pozicije'), findsOneWidget,
+      expect(find.text('Text starts from a different position'), findsOneWidget,
           reason: 'the position a child opens on was changed, or refused, '
               'without anybody being asked');
 
@@ -137,7 +137,7 @@ void main() {
       await open(tester);
       await paste(tester, pastedGame);
 
-      await tester.tap(find.text('Uzmi tu poziciju'));
+      await tester.tap(find.text('Use that position'));
       await tester.pumpAndSettle();
 
       final step = await saveAndStep(tester);
@@ -163,10 +163,10 @@ void main() {
       await open(tester);
       await paste(tester, pastedGame);
 
-      await tester.tap(find.text('Zadrži postojeću'));
+      await tester.tap(find.text('Keep existing'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Nije primenjeno'), findsWidgets,
+      expect(find.textContaining('Not applied'), findsWidgets,
           reason: 'keeping the position silently dropped a text that cannot be '
               'played from it — the trainer is left believing it was applied');
 
@@ -189,14 +189,14 @@ void main() {
       await open(tester);
       await paste(tester, pastedGame);
 
-      await tester.tap(find.text('Odustani'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
       // The difference between backing out and keeping the position is exactly
       // one sentence: „Odustani" is silent, because nothing was attempted. A
       // mutation that dropped the cancel branch left every other assertion here
       // green — the outcome is the same, and only the noise differs.
-      expect(find.textContaining('Nije primenjeno'), findsNothing,
+      expect(find.textContaining('Not applied'), findsNothing,
           reason: 'backing out of the question reported a failure at something '
               'the trainer had just called off');
 
@@ -234,9 +234,9 @@ void main() {
 
       await paste(tester, '1. e4 e5 2. Nf3 { Italijanka. }');
 
-      expect(find.text('Tekst ne počinje odavde'), findsOneWidget);
+      expect(find.text('Text does not start from here'), findsOneWidget);
 
-      await tester.tap(find.text('Uzmi početnu poziciju'));
+      await tester.tap(find.text('Use starting position'));
       await tester.pumpAndSettle();
 
       final step = await saveAndStep(tester);
@@ -256,10 +256,10 @@ void main() {
       await open(tester, fen: endgameFen, pgn: '12. Ke6');
 
       await paste(tester, '1. e4 e5 2. Nf3');
-      await tester.tap(find.text('Zadrži postojeću'));
+      await tester.tap(find.text('Keep existing'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('nema svoju polaznu poziciju'), findsOneWidget,
+      expect(find.textContaining('has no starting position'), findsOneWidget,
           reason: 'the count of rejected moves alone is what sent the trainer '
               'looking for a bug');
 
@@ -275,10 +275,10 @@ void main() {
       await open(tester, fen: endgameFen, pgn: '12. Ke6');
 
       await paste(tester, '1. e4 e5 2. Nf3');
-      await tester.tap(find.text('Odustani'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Nije primenjeno'), findsNothing,
+      expect(find.textContaining('Not applied'), findsNothing,
           reason: 'a question the trainer backed out of is not a failure');
 
       final step = await saveAndStep(tester);
@@ -297,9 +297,8 @@ void main() {
 
       await paste(tester, '13. Kd7 Kf7');
 
-      expect(find.text('Tekst ne počinje odavde'), findsNothing);
-      expect(
-          find.textContaining('nema svoju polaznu poziciju'), findsOneWidget);
+      expect(find.text('Text does not start from here'), findsNothing);
+      expect(find.textContaining('has no starting position'), findsOneWidget);
 
       await close(tester);
     });
@@ -311,7 +310,7 @@ void main() {
 
       await paste(tester, '1. d4 d5');
 
-      expect(find.text('Tekst počinje iz druge pozicije'), findsNothing);
+      expect(find.text('Text starts from a different position'), findsNothing);
 
       final step = await saveAndStep(tester);
       expect(
@@ -335,7 +334,7 @@ void main() {
           '[SetUp "1"]\n[FEN "4k3/8/5K2/4P3/8/8/8/8 w - - 7 19"]\n\n'
           '19. Ke6 Kf8 *');
 
-      expect(find.text('Tekst počinje iz druge pozicije'), findsNothing,
+      expect(find.text('Text starts from a different position'), findsNothing,
           reason: 'a question was asked about two counters nobody can see');
 
       final step = await saveAndStep(tester);

@@ -249,9 +249,9 @@ void main() {
   });
 
   group('themeLabel', () {
-    test('translates known Lichess motifs into Serbian', () {
-      expect(themeLabel('pin'), 'vezivanje');
-      expect(themeLabel('hangingPiece'), 'nezaštićena figura');
+    test('formats known Lichess motifs into English readable labels', () {
+      expect(themeLabel('pin'), 'pin');
+      expect(themeLabel('hangingPiece'), 'hanging piece');
     });
 
     test('falls back to the raw tag so a new motif is still shown', () {

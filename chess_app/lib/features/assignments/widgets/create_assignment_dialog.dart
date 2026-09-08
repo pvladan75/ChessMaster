@@ -66,8 +66,8 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
     _themes = widget.suggestedThemes.take(3).toSet();
     _title = TextEditingController(
       text: _themes.isEmpty
-          ? 'Domaći zadatak'
-          : 'Vežba: ${_themes.map(themeLabel).join(', ')}',
+          ? 'Assignment'
+          : 'Drill: ${_themes.map(themeLabel).join(', ')}',
     );
   }
 
@@ -91,7 +91,7 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
 
   Future<void> _submit() async {
     if (_title.text.trim().isEmpty) {
-      setState(() => _error = 'Naslov je obavezan.');
+      setState(() => _error = 'Title is required.');
       return;
     }
 
@@ -121,7 +121,7 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
     setState(() {
       _saving = false;
       _error = result.quotaExceeded
-          ? '${result.error} Premium nalog uklanja ovo ograničenje.'
+          ? '${result.error} A premium account removes this limit.'
           : result.error;
     });
   }
@@ -135,7 +135,7 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
     final available = MediaQuery.of(context).size.width - 128;
 
     return AlertDialog(
-      title: Text('Zadatak za ${widget.studentName}'),
+      title: Text('Assignment for ${widget.studentName}'),
       content: SizedBox(
         width: available.clamp(180.0, 420.0),
         child: SingleChildScrollView(
@@ -145,26 +145,26 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
             children: [
               TextField(
                 controller: _title,
-                decoration: const InputDecoration(labelText: 'Naslov'),
+                decoration: const InputDecoration(labelText: 'Title'),
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _instructions,
                 decoration: const InputDecoration(
-                  labelText: 'Napomena učeniku (opciono)',
+                  labelText: 'Note for student (optional)',
                 ),
                 maxLines: 2,
               ),
               const SizedBox(height: 18),
 
-              Text('Teme', style: Theme.of(context).textTheme.labelLarge),
+              Text('Themes', style: Theme.of(context).textTheme.labelLarge),
               if (widget.suggestedThemes.isNotEmpty)
                 Padding(
                   padding:
                       const EdgeInsets.only(top: AppSpacing.xxs, bottom: 6),
                   child: Text(
-                    'Predložene su teme na kojima učenik najviše greši.',
+                    'Suggested themes based on where the student struggles most.',
                     style: AppText.caption
                         .copyWith(color: context.colors.textMuted),
                   ),
@@ -192,14 +192,14 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
-                    'Bez izabrane teme zadatak uzima zagonetke svih vrsta.',
+                    'With no theme selected, the assignment includes all puzzle types.',
                     style: AppText.caption
                         .copyWith(color: context.colors.textMuted),
                   ),
                 ),
 
               const SizedBox(height: 18),
-              Text('Broj zagonetki: $_count',
+              Text('Number of puzzles: $_count',
                   style: Theme.of(context).textTheme.labelLarge),
               Slider(
                 value: _count.toDouble(),
@@ -211,7 +211,7 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
               ),
 
               Text(
-                'Težina: ${_ratingRange.start.round()}–${_ratingRange.end.round()}',
+                'Difficulty: ${_ratingRange.start.round()}–${_ratingRange.end.round()}',
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               RangeSlider(
@@ -239,14 +239,14 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
                     icon: const Icon(Icons.event, size: 18),
                     label: Text(
                       _dueAt == null
-                          ? 'Postavi rok'
-                          : 'Rok: ${_dueAt!.day}.${_dueAt!.month}.${_dueAt!.year}.',
+                          ? 'Set due date'
+                          : 'Due: ${_dueAt!.day}.${_dueAt!.month}.${_dueAt!.year}.',
                     ),
                   ),
                   if (_dueAt != null)
                     IconButton(
                       icon: const Icon(Icons.close, size: 18),
-                      tooltip: 'Ukloni rok',
+                      tooltip: 'Remove due date',
                       onPressed: () => setState(() => _dueAt = null),
                     ),
                 ],
@@ -265,7 +265,7 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context, false),
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: _saving ? null : _submit,
@@ -274,7 +274,7 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Zadaj'),
+              : const Text('Assign'),
         ),
       ],
     );

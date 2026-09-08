@@ -69,7 +69,7 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
     if (!mounted) return;
     AppFeedback.show(
       context,
-      () => const SnackBar(content: Text('Link je kopiran.')),
+      () => const SnackBar(content: Text('Link copied.')),
     );
   }
 
@@ -80,7 +80,7 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
       if (!mounted) return;
       AppFeedback.show(
         context,
-        () => const SnackBar(content: Text('Ne mogu da otvorim link.')),
+        () => const SnackBar(content: Text('Could not open link.')),
       );
     }
   }
@@ -92,8 +92,7 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
     final width = (MediaQuery.of(context).size.width - 128).clamp(180.0, 420.0);
 
     return AlertDialog(
-      title:
-          Text(_url == null ? 'Izveštaj za roditelja' : 'Izveštaj je spreman'),
+      title: Text(_url == null ? 'Parent report' : 'Report ready'),
       content: SizedBox(
         width: width,
         child: SingleChildScrollView(
@@ -104,7 +103,7 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
           ? [
               TextButton(
                 onPressed: _working ? null : () => Navigator.pop(context),
-                child: const Text('Otkaži'),
+                child: const Text('Cancel'),
               ),
               ElevatedButton(
                 onPressed: _working ? null : _generate,
@@ -113,23 +112,23 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Napravi'),
+                    : const Text('Create'),
               ),
             ]
           : [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Zatvori'),
+                child: const Text('Close'),
               ),
               TextButton.icon(
                 onPressed: _open,
                 icon: const Icon(Icons.open_in_new, size: 18),
-                label: const Text('Otvori'),
+                label: const Text('Open'),
               ),
               ElevatedButton.icon(
                 onPressed: _copy,
                 icon: const Icon(Icons.copy, size: 18),
-                label: const Text('Kopiraj link'),
+                label: const Text('Copy link'),
               ),
             ],
     );
@@ -141,8 +140,8 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Za ${widget.studentName}. Roditelj otvara link u pregledaču — '
-          'nije mu potreban nalog.',
+          'For ${widget.studentName}. The parent opens the link in a browser — '
+          'no account required.',
           style:
               AppText.bodyLarge.copyWith(color: context.colors.textSecondary),
         ),
@@ -154,7 +153,7 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
           children: [
             for (final option in const [7, 30, 90])
               ChoiceChip(
-                label: Text('$option dana'),
+                label: Text('$option days'),
                 selected: _days == option,
                 onSelected: (_) => setState(() => _days = option),
               ),
@@ -166,9 +165,9 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
           maxLines: 4,
           maxLength: 2000,
           decoration: const InputDecoration(
-            labelText: 'Poruka roditelju (opciono)',
+            labelText: 'Note for parent (optional)',
             hintText:
-                'Šta ide dobro, na čemu radite, šta biste tražili od kuće.',
+                'What is going well, what you are working on, what to practice at home.',
             alignLabelWithHint: true,
           ),
         ),
@@ -188,14 +187,14 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.md),
             child: Text(
-              'Napomena: u izabranom periodu učenik nije rešavao zadatke, pa '
-              'izveštaj to i kaže umesto da prikaže nule.',
+              'Note: the student solved no puzzles during this period, so the '
+              'report explains this rather than showing zeros.',
               style: TextStyle(fontSize: 12.5, color: context.colors.warning),
             ),
           ),
         Text(
-          'Pošaljite ovaj link roditelju. Brojevi u njemu su zamrznuti — neće se '
-          'menjati kad ga roditelj kasnije ponovo otvori.',
+          'Send this link to the parent. The numbers are frozen — they will not '
+          'change when reopened later.',
           style:
               AppText.bodyLarge.copyWith(color: context.colors.textSecondary),
         ),
@@ -214,8 +213,8 @@ class _ParentReportDialogState extends State<ParentReportDialog> {
         ),
         const SizedBox(height: 10),
         Text(
-          'Link važi 60 dana i otvara ga svako ko ga dobije — šaljite ga samo '
-          'roditelju.',
+          'The link is valid for 60 days and can be opened by anyone who receives it — share only with '
+          'the parent.',
           style: TextStyle(fontSize: 11.5, color: context.colors.textMuted),
         ),
       ],

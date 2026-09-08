@@ -103,7 +103,7 @@ void main() {
   }
 
   Future<List<dynamic>> save(WidgetTester tester, _RecordingApi api) async {
-    await tester.tap(find.text('Sačuvaj tutorijal'));
+    await tester.tap(find.text('Save tutorial'));
     await tester.pumpAndSettle();
     expect(api.saves, hasLength(1), reason: 'one tutorial is one write');
     return api.saves.single['positionList'] as List;
@@ -174,9 +174,9 @@ void main() {
     ]);
 
     await flip(tester);
-    await tester.tap(find.text('Novi prikaz'));
+    await tester.tap(find.text('New demonstration'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Odavde'));
+    await tester.tap(find.text('From here'));
     await tester.pumpAndSettle();
 
     final sent = await save(tester, api);
@@ -197,9 +197,9 @@ void main() {
     ]);
 
     await flip(tester);
-    await tester.tap(find.text('Novi prikaz'));
+    await tester.tap(find.text('New demonstration'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Nova tabla'));
+    await tester.tap(find.text('New board'));
     await tester.pumpAndSettle();
 
     final sent = await save(tester, api);

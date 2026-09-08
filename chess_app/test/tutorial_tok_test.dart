@@ -188,9 +188,9 @@ void main() {
     testWidgets('„Tok" is what the panel opens on', (tester) async {
       await open(tester);
 
-      expect(find.text('Tok'), findsOneWidget);
-      expect(find.text('Stablo'), findsOneWidget);
-      expect(find.text('Polazna pozicija').hitTestable(), findsOneWidget,
+      expect(find.text('Flow'), findsOneWidget);
+      expect(find.text('Tree'), findsOneWidget);
+      expect(find.text('Starting position').hitTestable(), findsOneWidget,
           reason: 'the timeline is the default view — D6, approved 6.9.2026');
       expect(find.byType(AnalysisMoveTreeWidget).hitTestable(), findsNothing,
           reason: 'the tree is the other tab, not a second thing on screen');
@@ -204,10 +204,10 @@ void main() {
         (tester) async {
       await open(tester);
 
-      expect(find.text('Polazna pozicija').hitTestable(), findsOneWidget);
-      expect(find.text('posle 1. e4').hitTestable(), findsOneWidget);
-      expect(find.text('posle 1... e5').hitTestable(), findsOneWidget);
-      expect(find.text('posle 2. Nf3').hitTestable(), findsOneWidget,
+      expect(find.text('Starting position').hitTestable(), findsOneWidget);
+      expect(find.text('after 1. e4').hitTestable(), findsOneWidget);
+      expect(find.text('after 1... e5').hitTestable(), findsOneWidget);
+      expect(find.text('after 2. Nf3').hitTestable(), findsOneWidget,
           reason: 'the number is read from the FEN, not counted from the root '
               '— see AnalysisNode.moveNumberLabel');
 
@@ -218,8 +218,8 @@ void main() {
         (tester) async {
       await open(tester);
 
-      final header = tester.getRect(find.text('posle 1. e4'));
-      final playsOut = tester.getRect(find.text('pa se igra: 1... e5'));
+      final header = tester.getRect(find.text('after 1. e4'));
+      final playsOut = tester.getRect(find.text('then plays: 1... e5'));
       expect(playsOut.top, greaterThan(header.top),
           reason: 'standing on a node the child hears what is said *here* and '
               'only then sees the move played onward; a card in the other '
@@ -231,8 +231,8 @@ void main() {
     testWidgets('the last beat plays nothing', (tester) async {
       await open(tester, pgn: '1. e4 e5');
 
-      expect(find.text('posle 1... e5').hitTestable(), findsOneWidget);
-      expect(find.textContaining('pa se igra: 2.'), findsNothing,
+      expect(find.text('after 1... e5').hitTestable(), findsOneWidget);
+      expect(find.textContaining('then plays: 2.'), findsNothing,
           reason: 'the line has run out — a move drawn here is a move the '
               'child never gets to see');
 
@@ -321,10 +321,10 @@ void main() {
       await tester.tap(find.text('1... c5').first);
       await tester.pumpAndSettle();
 
-      expect(find.text('posle 1... c5').hitTestable(), findsOneWidget);
-      expect(find.text('posle 2. Nf3').hitTestable(), findsOneWidget,
+      expect(find.text('after 1... c5').hitTestable(), findsOneWidget);
+      expect(find.text('after 2. Nf3').hitTestable(), findsOneWidget,
           reason: 'the timeline did not follow the branch that was pressed');
-      expect(find.text('posle 2. Nc3'), findsNothing,
+      expect(find.text('after 2. Nc3'), findsNothing,
           reason: 'the line that was left is still being drawn beside the one '
               'that was chosen');
 
@@ -339,10 +339,10 @@ void main() {
 
       await tapKey(tester, 'stablo-tab');
       expect(find.byType(AnalysisMoveTreeWidget).hitTestable(), findsOneWidget);
-      expect(find.text('Polazna pozicija').hitTestable(), findsNothing);
+      expect(find.text('Starting position').hitTestable(), findsNothing);
 
       await tapKey(tester, 'tok-tab');
-      expect(find.text('Polazna pozicija').hitTestable(), findsOneWidget);
+      expect(find.text('Starting position').hitTestable(), findsOneWidget);
 
       await close(tester);
     });

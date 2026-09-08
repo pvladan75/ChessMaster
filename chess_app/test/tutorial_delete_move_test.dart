@@ -106,7 +106,7 @@ void main() {
 
   /// The line as it is sent — the only place a deletion is a fact.
   Future<String> savedLine(WidgetTester tester, _RecordingApi api) async {
-    await tester.tap(find.text('Sačuvaj tutorijal'));
+    await tester.tap(find.text('Save tutorial'));
     await tester.pumpAndSettle();
     final parts = (api.saves.last['positionList'] as List)
         .map((e) => Map<String, dynamic>.from(e as Map))
@@ -124,7 +124,7 @@ void main() {
     await tester.tap(find.byKey(const Key('beat-delete-3')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Obriši potez?'), findsNothing,
+    expect(find.text('Delete move?'), findsNothing,
         reason: 'a move with nothing written under it has nothing to lose');
 
     final pgn = await savedLine(tester, api);
@@ -145,8 +145,8 @@ void main() {
     await tester.tap(find.byKey(const Key('beat-delete-1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Obriši potez?'), findsOneWidget);
-    await tester.tap(find.text('Odustani'));
+    expect(find.text('Delete move?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
     expect(await savedLine(tester, api), contains('e4'),
@@ -165,7 +165,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('beat-delete-1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Obriši'));
+    await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
 
     final pgn = await savedLine(tester, api);
@@ -185,12 +185,12 @@ void main() {
     // move under it, so it asks.
     await tester.tap(find.byKey(const Key('beat-delete-1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Obriši'));
+    await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
 
     // The opening position, which is what is left of the part.
-    expect(find.text('Polazna pozicija'), findsOneWidget);
-    expect(find.text('posle 1. e4'), findsNothing);
+    expect(find.text('Starting position'), findsOneWidget);
+    expect(find.text('after 1. e4'), findsNothing);
     expect(board(tester).controller.getFen().split(' ').first,
         'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR',
         reason: 'the board may never stand on a position the part lost');
@@ -222,7 +222,7 @@ void main() {
     // Through the tree's own menu, on the „Stablo" tab — the node is drawn as
     // a `RichText`, so it is found by the text it renders rather than by a key
     // no user can see.
-    await tester.tap(find.text('Stablo'));
+    await tester.tap(find.text('Tree'));
     await tester.pumpAndSettle();
     await tester.longPress(find.textContaining('c5').first);
     await tester.pumpAndSettle();

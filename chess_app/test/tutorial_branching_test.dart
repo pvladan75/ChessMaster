@@ -99,7 +99,8 @@ void main() {
       expect(find.widgetWithText(ActionChip, 'Kc5'), findsOneWidget);
 
       await forward(tester); // the fork after 1.Kd3
-      expect(find.text('Odavde ide više linija — kojom?'), findsOneWidget,
+      expect(find.text('Multiple lines continue from here — which one?'),
+          findsOneWidget,
           reason: 'two replies means "forward" has two meanings');
       expect(find.text('Ke5'), findsOneWidget);
       expect(find.text('Kc5'), findsOneWidget);
@@ -183,7 +184,8 @@ void main() {
       await forward(tester);
       await forward(tester);
 
-      expect(find.text('Odavde ide više linija — kojom?'), findsNothing);
+      expect(find.text('Multiple lines continue from here — which one?'),
+          findsNothing);
     });
 
     testWidgets('the narrated walk stops at a fork instead of choosing',
@@ -207,7 +209,7 @@ void main() {
       ));
       await tester.pump();
 
-      await tester.tap(find.byTooltip('Pusti tutorijal'));
+      await tester.tap(find.byTooltip('Play tutorial'));
       for (var i = 0; i < 40; i++) {
         await tester.pump(const Duration(milliseconds: 500));
       }
@@ -222,7 +224,7 @@ void main() {
       expect(tts.spoken, isNot(contains(speakable(mainNote))),
           reason: 'the walk chose the main line instead of asking');
       expect(tts.spoken, isNot(contains(speakable(sideNote))));
-      expect(find.byTooltip('Pusti tutorijal'), findsOneWidget,
+      expect(find.byTooltip('Play tutorial'), findsOneWidget,
           reason: 'the walk stopped, so the button offers to start it again');
     });
   });

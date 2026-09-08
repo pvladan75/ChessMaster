@@ -74,7 +74,7 @@ class TutorialDraftService {
       }
       return draft;
     } catch (e) {
-      AppLogger.log('[TutorialDraft] ❌ Učitavanje nije uspelo: $e');
+      AppLogger.log('[TutorialDraft] ❌ Load failed: $e');
       return null;
     }
   }
@@ -85,7 +85,7 @@ class TutorialDraftService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_key);
     } catch (e) {
-      AppLogger.log('[TutorialDraft] ❌ Brisanje nije uspelo: $e');
+      AppLogger.log('[TutorialDraft] ❌ Clear failed: $e');
     }
   }
 
@@ -94,7 +94,7 @@ class TutorialDraftService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_key, payload);
     } catch (e) {
-      AppLogger.log('[TutorialDraft] ❌ Čuvanje nije uspelo: $e');
+      AppLogger.log('[TutorialDraft] ❌ Save failed: $e');
     }
   }
 

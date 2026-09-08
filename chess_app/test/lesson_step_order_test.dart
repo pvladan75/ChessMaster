@@ -188,7 +188,7 @@ void main() {
   }
 
   Future<void> save(WidgetTester tester) async {
-    await tester.tap(find.text('Sačuvaj korak'));
+    await tester.tap(find.text('Save step'));
     await tester.pumpAndSettle();
   }
 
@@ -201,7 +201,7 @@ void main() {
       final api = await openEditor(tester);
 
       await select(tester, 'Treći');
-      await tapTooltip(tester, 'Pomeri gore');
+      await tapTooltip(tester, 'Move up');
       await save(tester);
 
       final sent = api.saved.single;
@@ -223,7 +223,7 @@ void main() {
 
       final api = await openEditor(tester);
       await select(tester, 'Prvi');
-      await tapTooltip(tester, 'Pomeri dole');
+      await tapTooltip(tester, 'Move down');
       await save(tester);
 
       final moved = api.saved.single.firstWhere((s) => s['id'] == 'aaaa1111');
@@ -241,7 +241,7 @@ void main() {
       await openEditor(tester);
 
       await select(tester, 'Treći');
-      await tapTooltip(tester, 'Pomeri gore');
+      await tapTooltip(tester, 'Move up');
 
       // Asserted on the name in the editor, not on the absence of some other
       // step's sentence. The first version of this test only ruled out landing
@@ -272,10 +272,10 @@ void main() {
       await openEditor(tester);
 
       await select(tester, 'Prvi');
-      expect(moveButton('Pomeri gore').onPressed, isNull);
+      expect(moveButton('Move up').onPressed, isNull);
 
       await select(tester, 'Treći');
-      expect(moveButton('Pomeri dole').onPressed, isNull);
+      expect(moveButton('Move down').onPressed, isNull);
     });
   });
 
@@ -288,7 +288,7 @@ void main() {
       final api = await openEditor(tester);
 
       await select(tester, 'Prvi');
-      await tapText(tester, 'Dodaj korak');
+      await tapText(tester, 'Add step');
       await save(tester);
 
       final sent = api.saved.single;
@@ -307,7 +307,7 @@ void main() {
       final api = await openEditor(tester);
 
       await select(tester, 'Prvi');
-      await tapText(tester, 'Dodaj korak');
+      await tapText(tester, 'Add step');
       await tester.enterText(find.byKey(const Key('step-title')), 'Ubačeni');
       await tester.pumpAndSettle();
       await save(tester);
@@ -329,7 +329,7 @@ void main() {
       final api = await openEditor(tester);
 
       await select(tester, 'Prvi');
-      await tapText(tester, 'Dodaj korak');
+      await tapText(tester, 'Add step');
       await save(tester);
 
       final added = api.saved.single[1];
@@ -349,7 +349,7 @@ void main() {
       final api = await openEditor(tester);
 
       await select(tester, 'Drugi');
-      await tapText(tester, 'Obriši korak');
+      await tapText(tester, 'Delete step');
 
       // Asserted inside the dialog: „Drugi" is on a list tile as well, so
       // `findsWidgets` on the whole screen would have passed with no dialog at
@@ -371,8 +371,8 @@ void main() {
       final api = await openEditor(tester);
 
       await select(tester, 'Drugi');
-      await tapText(tester, 'Obriši korak');
-      await tapText(tester, 'Odustani');
+      await tapText(tester, 'Delete step');
+      await tapText(tester, 'Cancel');
       await save(tester);
 
       expect(idsOf(api.saved.single), ['aaaa1111', 'bbbb2222', 'cccc3333']);
@@ -382,8 +382,8 @@ void main() {
       final api = await openEditor(tester);
 
       await select(tester, 'Drugi');
-      await tapText(tester, 'Obriši korak');
-      await tapText(tester, 'Obriši');
+      await tapText(tester, 'Delete step');
+      await tapText(tester, 'Delete');
       await save(tester);
 
       expect(idsOf(api.saved.single), ['aaaa1111', 'cccc3333'],
@@ -396,7 +396,7 @@ void main() {
       // whose steps are gone has nothing left to join on and complain.
       final api = await openEditor(tester, withLesson: oneStepLesson());
 
-      await tapText(tester, 'Obriši korak');
+      await tapText(tester, 'Delete step');
       await tester.pumpAndSettle();
 
       // Refused outright rather than asked about: there is no answer to the
@@ -415,11 +415,11 @@ void main() {
       final api = await openEditor(tester);
 
       await select(tester, 'Prvi');
-      await tapText(tester, 'Dodaj korak');
-      await tapTooltip(tester, 'Pomeri dole');
+      await tapText(tester, 'Add step');
+      await tapTooltip(tester, 'Move down');
       await select(tester, 'Treći');
-      await tapText(tester, 'Obriši korak');
-      await tapText(tester, 'Obriši');
+      await tapText(tester, 'Delete step');
+      await tapText(tester, 'Delete');
 
       expect(api.saved, isEmpty,
           reason: 'the panel wrote to the server on its own; every other edit '

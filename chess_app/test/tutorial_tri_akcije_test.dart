@@ -115,7 +115,7 @@ void main() {
   /// The parts as they are sent, which is the only place a name is a fact.
   Future<List<Map<String, dynamic>>> save(
       WidgetTester tester, _RecordingApi api) async {
-    await tester.tap(find.text('Sačuvaj tutorijal'));
+    await tester.tap(find.text('Save tutorial'));
     await tester.pumpAndSettle();
     expect(api.saves, hasLength(1));
     return (api.saves.single['positionList'] as List)
@@ -128,9 +128,9 @@ void main() {
         (tester) async {
       await open(tester);
 
-      expect(find.text('Novi prikaz'), findsOneWidget);
-      expect(find.text('Traži potez na tabli'), findsOneWidget);
-      expect(find.text('Traži odgovor iz liste'), findsOneWidget);
+      expect(find.text('New demonstration'), findsOneWidget);
+      expect(find.text('Find the move'), findsOneWidget);
+      expect(find.text('Choose the answer'), findsOneWidget);
       expect(find.text('+ Dodaj deo'), findsNothing);
       expect(find.text('Delovi tutorijala'), findsNothing);
 
@@ -198,9 +198,9 @@ void main() {
       await play(tester, 'e2', 'e4');
       await press(tester, 'ask-choice');
 
-      expect(find.text('Izbor'), findsOneWidget,
+      expect(find.text('Choice'), findsOneWidget,
           reason: 'the chip on the row says what the part is');
-      expect(find.text('Prikaz'), findsOneWidget,
+      expect(find.text('Show'), findsOneWidget,
           reason: 'and the demonstration in front of it is still a prikaz');
 
       await close(tester);
@@ -265,10 +265,10 @@ void main() {
       await type(tester, 'tutorial-title', 'Otvaranje');
       await type(tester, 'example-sentence', 'Zauzimamo centar.');
 
-      await tester.tap(find.byTooltip('Preimenuj'));
+      await tester.tap(find.byTooltip('Rename'));
       await tester.pumpAndSettle();
       await type(tester, 'section-name-field', 'Uvod');
-      await tester.tap(find.text('Sačuvaj').last);
+      await tester.tap(find.text('Save').last);
       await tester.pumpAndSettle();
 
       expect(find.text('Uvod'), findsOneWidget);
@@ -278,10 +278,10 @@ void main() {
 
       // Emptying the field is not a failure to name it: a part with no name of
       // its own goes back to being called by what it says.
-      await tester.tap(find.byTooltip('Preimenuj'));
+      await tester.tap(find.byTooltip('Rename'));
       await tester.pumpAndSettle();
       await type(tester, 'section-name-field', '');
-      await tester.tap(find.text('Sačuvaj').last);
+      await tester.tap(find.text('Save').last);
       await tester.pumpAndSettle();
 
       expect(find.text('Uvod'), findsNothing);
@@ -310,7 +310,7 @@ void main() {
       final ended = board(tester).controller.getFen();
 
       await press(tester, 'add-show');
-      await tester.tap(find.text('Odavde'));
+      await tester.tap(find.text('From here'));
       await tester.pumpAndSettle();
 
       expect(board(tester).controller.getFen().split(' ').take(2).join(' '),
@@ -324,7 +324,7 @@ void main() {
       await play(tester, 'e2', 'e4');
 
       await press(tester, 'add-show');
-      await tester.tap(find.text('Nova tabla'));
+      await tester.tap(find.text('New board'));
       await tester.pumpAndSettle();
 
       expect(board(tester).controller.getFen().split(' ').first,

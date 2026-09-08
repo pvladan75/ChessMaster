@@ -194,7 +194,7 @@ void main() {
   /// child's screen uses. „The board painted an arrow" is not evidence.
   Future<LessonStepLine> saveAndRead(
       WidgetTester tester, _RecordingApi api) async {
-    await tester.tap(find.text('Sačuvaj tutorijal'));
+    await tester.tap(find.text('Save tutorial'));
     await tester.pumpAndSettle();
     expect(api.saves, hasLength(1), reason: 'one tutorial is one write');
     final step = (api.saves.single['positionList'] as List).single as Map;

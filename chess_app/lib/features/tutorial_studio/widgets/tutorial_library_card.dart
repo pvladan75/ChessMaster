@@ -20,19 +20,19 @@ Future<bool?> askTutorialDestination(BuildContext context) {
   return showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Gde ide ova linija?'),
+      title: const Text('Where does this line go?'),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(null),
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
         ),
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Počni nov tutorijal'),
+          child: const Text('Start new tutorial'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('Nastavi tutorijal koji uređujem'),
+          child: const Text('Continue editing tutorial'),
         ),
       ],
     ),
@@ -89,7 +89,7 @@ class TutorialLibraryCard extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Text(
-                    'Interaktivni tutorijali',
+                    'Interactive tutorials',
                     style: AppText.headline
                         .copyWith(color: context.colors.textPrimary),
                   ),
@@ -97,15 +97,15 @@ class TutorialLibraryCard extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Napravite tutorijal koji dete prolazi samo — pozicija po poziciju, sa '
-                'komentarom, strelicama i pitanjima.',
+                'Create a tutorial that the student goes through on their own — '
+                'position by position, with comments, arrows, and questions.',
                 style:
                     AppText.body.copyWith(color: context.colors.textSecondary),
               ),
               const SizedBox(height: AppSpacing.lg),
               ElevatedButton.icon(
                 icon: const Icon(Icons.add),
-                label: const Text('Novi tutorijal'),
+                label: const Text('New tutorial'),
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
                   padding: AppSpacing.buttonPadding,
@@ -115,7 +115,7 @@ class TutorialLibraryCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
               OutlinedButton.icon(
                 icon: const Icon(Icons.folder_open),
-                label: const Text('Sačuvani tutorijali'),
+                label: const Text('Saved tutorials'),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
                   padding: AppSpacing.buttonPadding,
@@ -165,12 +165,12 @@ class TutorialLibraryCard extends StatelessWidget {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Sačuvani tutorijali'),
-          content: const Text('Ne mogu da učitam listu tutorijala.'),
+          title: const Text('Saved tutorials'),
+          content: const Text('Could not load tutorials.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Otkaži'),
+              child: const Text('Cancel'),
             ),
           ],
         ),
@@ -210,12 +210,12 @@ class TutorialLibraryCard extends StatelessWidget {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Sačuvani tutorijali'),
-          content: const Text('Nemate nijedan sačuvan tutorijal.'),
+          title: const Text('Saved tutorials'),
+          content: const Text('You have no saved tutorials.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Otkaži'),
+              child: const Text('Cancel'),
             ),
           ],
         ),
@@ -296,17 +296,18 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Obriši tutorijal?'),
-        content: Text('„${_titleOf(row)}" će biti trajno obrisan, zajedno sa '
-            'svim delovima.'),
+        title: const Text('Delete tutorial?'),
+        content:
+            Text('"${_titleOf(row)}" will be permanently deleted, along with '
+                'all parts.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Odustani'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Obriši', style: TextStyle(color: ctx.colors.danger)),
+            child: Text('Delete', style: TextStyle(color: ctx.colors.danger)),
           ),
         ],
       ),
@@ -326,7 +327,7 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
       AppFeedback.error(context, error);
       return;
     }
-    AppFeedback.success(context, 'Tutorijal obrisan.');
+    AppFeedback.success(context, 'Tutorial deleted.');
   }
 
   Future<void> _send(Map<String, dynamic> row) async {
@@ -345,14 +346,14 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
     final accepted = students.where((s) => s['status'] == 'accepted').toList();
     if (accepted.isEmpty) {
       AppFeedback.info(
-          context, 'Nemate nijednog učenika koji je prihvatio poziv.');
+          context, 'You have no students who have accepted the invitation.');
       return;
     }
 
     final studentId = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Pošalji učeniku'),
+        title: const Text('Send to student'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 320),
           child: SizedBox(
@@ -362,7 +363,7 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
               itemCount: accepted.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (ctx, i) => ListTile(
-                title: Text(accepted[i]['name']?.toString() ?? 'Učenik'),
+                title: Text(accepted[i]['name']?.toString() ?? 'Student'),
                 onTap: () {
                   final raw = accepted[i]['id'];
                   Navigator.of(ctx)
@@ -375,7 +376,7 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Otkaži'),
+            child: const Text('Cancel'),
           ),
         ],
       ),
@@ -392,22 +393,22 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
     setState(() => _busy = false);
 
     if (!result.success) {
-      AppFeedback.error(context, result.error ?? 'Slanje nije uspelo.');
+      AppFeedback.error(context, result.error ?? 'Failed to send.');
       return;
     }
-    AppFeedback.success(context, 'Tutorijal je poslat učeniku.');
+    AppFeedback.success(context, 'Tutorial sent to student.');
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Sačuvani tutorijali'),
+      title: const Text('Saved tutorials'),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxHeight: 400),
         child: SizedBox(
           width: double.maxFinite,
           child: _rows.isEmpty
-              ? const Text('Nemate nijedan sačuvan tutorijal.')
+              ? const Text('You have no saved tutorials.')
               : ListView.separated(
                   shrinkWrap: true,
                   itemCount: _rows.length,
@@ -422,13 +423,13 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.send_outlined, size: 20),
-                            tooltip: 'Pošalji učeniku',
+                            tooltip: 'Send to student',
                             onPressed: _busy ? null : () => _send(row),
                           ),
                           IconButton(
                             icon: Icon(Icons.delete_outline,
                                 size: 20, color: context.colors.danger),
-                            tooltip: 'Obriši tutorijal',
+                            tooltip: 'Delete tutorial',
                             onPressed: _busy ? null : () => _delete(row),
                           ),
                         ],
@@ -441,7 +442,7 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
         ),
       ],
     );
@@ -483,19 +484,19 @@ class _NewTutorialNameDialogState extends State<_NewTutorialNameDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Novi tutorijal'),
+      title: const Text('New tutorial'),
       content: TextField(
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(labelText: 'Naziv tutorijala'),
+        decoration: const InputDecoration(labelText: 'Tutorial title'),
         onSubmitted: (_) => _submit(),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(null),
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
         ),
-        FilledButton(onPressed: _submit, child: const Text('Napravi')),
+        FilledButton(onPressed: _submit, child: const Text('Create')),
       ],
     );
   }

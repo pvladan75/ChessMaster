@@ -29,13 +29,13 @@ void main() {
     // Select ask_choice
     await tester.tap(find.byKey(const Key('example-kind')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Traži odgovor iz liste').last);
+    await tester.tap(find.text('Ask for answer from list').last);
     await tester.pumpAndSettle();
 
     // Add two choices
-    await tester.tap(find.text('Dodaj odgovor'));
+    await tester.tap(find.text('Add answer'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Dodaj odgovor'));
+    await tester.tap(find.text('Add answer'));
     await tester.pumpAndSettle();
 
     // They should be rendered

@@ -248,7 +248,7 @@ void main() {
   Future<void> addPart(WidgetTester tester) async {
     await tester.tap(find.byKey(const Key('add-show')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Odavde').last);
+    await tester.tap(find.text('From here').last);
     await tester.pumpAndSettle();
   }
 
@@ -288,13 +288,13 @@ void main() {
 
       // Primer 2 — the question, standing on the position Primer 1 ended on.
       final askedFen = board(tester).controller.getFen();
-      await pickKind(tester, 'Traži potez na tabli');
+      await pickKind(tester, 'Ask for move on board');
       await type(tester, 'example-instruction', 'Napadni pešaka na e5.');
       await play(tester, 'g1', 'f3');
-      expect(find.textContaining('Tačan potez: Nf3'), findsOneWidget,
+      expect(find.textContaining('Correct move: Nf3'), findsOneWidget,
           reason: 'the trainer cannot see what the child will be asked');
 
-      await tapText(tester, 'Sačuvaj tutorijal');
+      await tapText(tester, 'Save tutorial');
 
       expect(api.saves, hasLength(1),
           reason: 'one tutorial is one write — ${api.seen.length} requests '
@@ -348,7 +348,7 @@ void main() {
       await tester.tap(find.byTooltip('Prethodni potez'));
       await tester.pumpAndSettle();
 
-      await tapText(tester, 'Sačuvaj tutorijal');
+      await tapText(tester, 'Save tutorial');
 
       for (final raw in api.saves.single['positionList'] as List) {
         final step = Map<String, dynamic>.from(raw as Map);
@@ -443,7 +443,7 @@ void main() {
       final api = await open(tester);
       await play(tester, 'e2', 'e4');
 
-      await tapText(tester, 'Sačuvaj tutorijal');
+      await tapText(tester, 'Save tutorial');
 
       expect(api.seen, isEmpty,
           reason: 'the server would answer 400 and the trainer would read it '
@@ -461,9 +461,9 @@ void main() {
 
       await play(tester, 'e2', 'e4');
       await play(tester, 'e7', 'e5');
-      await pickKind(tester, 'Traži potez na tabli');
+      await pickKind(tester, 'Ask for move on board');
 
-      await tapText(tester, 'Sačuvaj tutorijal');
+      await tapText(tester, 'Save tutorial');
 
       expect(api.seen, isEmpty,
           reason: 'a question was saved with the answer inside its own line');
@@ -474,7 +474,7 @@ void main() {
         (tester) async {
       final api = await open(tester);
       await type(tester, 'tutorial-title', 'Samo pitanje');
-      await pickKind(tester, 'Traži potez na tabli');
+      await pickKind(tester, 'Ask for move on board');
 
       await play(tester, 'e2', 'e4');
 
@@ -485,9 +485,9 @@ void main() {
           startFen.split(' ').first,
           reason: 'the board stayed on the answer instead of going back to '
               'the position being asked about');
-      expect(find.textContaining('Tačan potez: e4'), findsOneWidget);
+      expect(find.textContaining('Correct move: e4'), findsOneWidget);
 
-      await tapText(tester, 'Sačuvaj tutorijal');
+      await tapText(tester, 'Save tutorial');
       final step = Map<String, dynamic>.from(
           (api.saves.single['positionList'] as List).single as Map);
       expect(step['solutionSan'], 'e4');
@@ -504,21 +504,21 @@ void main() {
       // sentence from arriving after the trainer believed they were finished.
       final api = await open(tester);
       await type(tester, 'tutorial-title', 'Pitanje sa ponuđenim odgovorima');
-      await pickKind(tester, 'Traži odgovor iz liste');
+      await pickKind(tester, 'Ask for answer from list');
 
-      await tapText(tester, 'Dodaj odgovor');
+      await tapText(tester, 'Add answer');
       await type(tester, 'example-choice-0', 'Kontrola centra');
-      await tapText(tester, 'Dodaj odgovor');
+      await tapText(tester, 'Add answer');
       await type(tester, 'example-choice-1', 'Napad na kralja');
 
-      await tapText(tester, 'Sačuvaj tutorijal');
+      await tapText(tester, 'Save tutorial');
       expect(api.seen, isEmpty);
 
       // Marked, and now it goes — with exactly one `correct: true`, which is
       // the shape `buildChoices` validates.
       await tester.tap(find.byType(Radio<int>).first);
       await tester.pumpAndSettle();
-      await tapText(tester, 'Sačuvaj tutorijal');
+      await tapText(tester, 'Save tutorial');
 
       final step = Map<String, dynamic>.from(
           (api.saves.single['positionList'] as List).single as Map);

@@ -63,7 +63,7 @@ void main() {
     expect(text.contains('before'), isFalse);
     expect(text.contains('after'), isFalse);
 
-    expect(find.text('Aktivnost u poslednjih 12 meseci'), findsOneWidget);
+    expect(find.text('Activity in the last 12 months'), findsOneWidget);
     expect(find.textContaining('2025-01'), findsOneWidget);
   });
 
@@ -80,7 +80,7 @@ void main() {
     )));
     await tester.pumpAndSettle();
 
-    expect(find.text('Učenik još nije uvezao partije'), findsOneWidget);
+    expect(find.text('Student has not imported games yet'), findsOneWidget);
   });
 
   testWidgets('renders error message', (tester) async {

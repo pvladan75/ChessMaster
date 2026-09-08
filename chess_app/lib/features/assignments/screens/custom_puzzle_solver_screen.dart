@@ -134,7 +134,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
       game.undo_move();
       return game.move_to_san(made);
     } catch (e) {
-      AppLogger.log('[Solver] SAN nije izračunat: $e');
+      AppLogger.log('[Solver] SAN not calculated: $e');
       return null;
     }
   }
@@ -165,8 +165,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
       _board.loadFen(_current.fen);
       AppFeedback.show(
         context,
-        () => const SnackBar(
-            content: Text('Odgovor nije poslat — pokušaj ponovo.')),
+        () => const SnackBar(content: Text('Answer not sent — try again.')),
       );
       return;
     }
@@ -225,7 +224,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
     if (_queue.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.detail.assignment.title)),
-        body: const Center(child: Text('Ovaj zadatak nema nijednu poziciju.')),
+        body: const Center(child: Text('This assignment has no positions.')),
       );
     }
 
@@ -238,7 +237,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.grid_view),
-            tooltip: 'Sve pozicije',
+            tooltip: 'All positions',
           ),
         ],
         bottom: PreferredSize(
@@ -314,12 +313,12 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
             IconButton(
               onPressed: _index == 0 ? null : () => _step(-1),
               icon: const Icon(Icons.chevron_left),
-              tooltip: 'Prethodna',
+              tooltip: 'Previous',
               visualDensity: VisualDensity.compact,
             ),
             Expanded(
               child: Text(
-                'Pozicija ${_index + 1} od ${_queue.length}',
+                'Position ${_index + 1} of ${_queue.length}',
                 textAlign: TextAlign.center,
                 style: AppText.body.copyWith(color: colors.textSecondary),
               ),
@@ -327,10 +326,10 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
             IconButton(
               onPressed: _index + 1 >= _queue.length ? null : () => _step(1),
               icon: const Icon(Icons.chevron_right),
-              tooltip: 'Sledeća',
+              tooltip: 'Next',
               visualDensity: VisualDensity.compact,
             ),
-            Text('Tačno: $_solved',
+            Text('Correct: $_solved',
                 style: AppText.body.copyWith(color: colors.success)),
           ],
         ),
@@ -353,7 +352,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
               Expanded(
                 child: Text(
                   _current.instruction ??
-                      '${_current.sideToMove == 'w' ? 'Beli' : 'Crni'} je na potezu.',
+                      '${_current.sideToMove == 'w' ? 'White' : 'Black'} to move.',
                   style: TextStyle(
                     fontSize: 14,
                     color: colors.textPrimary,
@@ -395,14 +394,17 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
                 Icon(settled ? Icons.check_circle : Icons.cancel,
                     color: settled ? colors.success : colors.danger, size: 18),
                 const SizedBox(width: 6),
-                Text(settled ? 'Već urađeno — tačno' : 'Već urađeno — netačno',
+                Text(
+                    settled
+                        ? 'Already completed — correct'
+                        : 'Already completed — incorrect',
                     style: TextStyle(
                         color: settled ? colors.success : colors.danger,
                         fontSize: 14)),
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
-            Text('Rezultat se ne menja — računa se prvi pokušaj.',
+            Text('Score does not change — only the first attempt counts.',
                 style: AppText.body.copyWith(color: colors.textMuted)),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
@@ -412,12 +414,12 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
                 OutlinedButton.icon(
                   onPressed: _openReview,
                   icon: const Icon(Icons.rate_review_outlined, size: 16),
-                  label: const Text('Rešenje i komentari'),
+                  label: const Text('Solution and comments'),
                 ),
                 FilledButton.icon(
                   onPressed: _next,
                   icon: const Icon(Icons.arrow_forward),
-                  label: const Text('Sledeća nerešena'),
+                  label: const Text('Next unsolved'),
                 ),
               ],
             ),
@@ -426,7 +428,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
       }
 
       return Text(
-        'Odigraj potez na tabli.',
+        'Play a move on the board.',
         style: AppText.body.copyWith(color: colors.textMuted),
       );
     }
@@ -441,7 +443,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
                 color: tone, size: 20),
             const SizedBox(width: AppSpacing.sm),
             Text(
-              verdict.correct ? 'Tačno' : 'Nije to',
+              verdict.correct ? 'Correct' : 'Not quite',
               style: AppText.title.copyWith(color: tone),
             ),
           ],
@@ -450,10 +452,10 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
         // "drugi mat, ali mat" is worth saying out loud: the student found
         // something the book did not print, and should know it counted.
         if (verdict.correct && verdict.reason == 'drugi mat, ali mat')
-          Text('Drugi mat od onog u knjizi — ali mat je mat.',
+          Text('Different checkmate from the book — but mate is mate.',
               style: AppText.body.copyWith(color: colors.textSecondary)),
         if (!verdict.correct && verdict.solutionSan != null)
-          Text('Rešenje: ${verdict.solutionSan}',
+          Text('Solution: ${verdict.solutionSan}',
               style: AppText.bodyLarge.copyWith(color: colors.textSecondary)),
         const SizedBox(height: 10),
         FilledButton.icon(
@@ -461,9 +463,8 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
           icon: const Icon(Icons.arrow_forward),
           // "Finish" only when nothing is left anywhere in the assignment —
           // being at the end of the list is no longer the same thing.
-          label: Text(_answered.length >= _queue.length
-              ? 'Završi'
-              : 'Sledeća nerešena'),
+          label: Text(
+              _answered.length >= _queue.length ? 'Finish' : 'Next unsolved'),
         ),
       ],
     );
